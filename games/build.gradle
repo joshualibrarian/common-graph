@@ -1,0 +1,21 @@
+// =============================================================================
+// :games — Game components (chess, board games, etc.)
+//
+// Game logic, board abstractions, and game-specific components.
+// Depends on :core for Item/Component infrastructure.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+
+    // Core module (Item, Component, Library, etc.)
+    api project(':core')
+
+    // -------------------------------------------------------------------------
+    // Chess (legal move generation, FEN/PGN parsing)
+    // -------------------------------------------------------------------------
+    implementation 'com.github.bhlangonijr:chesslib:1.3.4'
+}

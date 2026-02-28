@@ -1,0 +1,395 @@
+package dev.everydaythings.graph.language;
+
+import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
+import lombok.extern.log4j.Log4j2;
+
+import java.util.*;
+import java.util.function.ToIntFunction;
+import java.util.function.Function;
+
+/**
+ * Assembles a {@link SemanticFrame} from resolved tokens in any order.
+ *
+ * <p>The assembler is stateless. It scans resolved tokens to find:
+ * <ol>
+ *   <li>The verb (first {@link VerbSememe} found)</li>
+ *   <li>Prepositional phrases ({@link PrepositionSememe} followed by an object)</li>
+ *   <li>Bare nouns matched to the verb's {@link ArgumentSlot}s by first-fit</li>
+ * </ol>
+ *
+ * <p>Order doesn't matter: "create chess on librarian", "on librarian create chess",
+ * and "chess create on librarian" all produce the same frame.
+ *
+ * <p>Conjunctions are supported within prepositional phrases:
+ * "between bob and jane" produces a List binding for the COMITATIVE role.
+ */
+@Log4j2
+public class FrameAssembler {
+
+    /** A resolved token paired with its Item (if resolved). */
+    private record Slot(ResolvedToken token, Item item) {}
+
+    /**
+     * Unified semantic analysis result for resolved tokens.
+     *
+     * <p>This is the single parser output used by both:
+     * <ul>
+     *   <li>Execution flow (via {@link #assemble(List, Function)})</li>
+     *   <li>UI completion narrowing (via ExpressionContext)</li>
+     * </ul>
+     */
+    public record Analysis(
+            VerbSememe verb,
+            Map<ThematicRole, Object> bindings,
+            List<ResolvedToken> unmatchedArgs,
+            List<ArgumentSlot> unboundRequired,
+            List<ArgumentSlot> unboundOptional,
+            boolean lastTokenIsDanglingPreposition,
+            List<TermBinding> termBindings
+    ) {}
+
+    /**
+     * Analyze resolved tokens into a semantic structure (single parsing flow).
+     *
+     * @param tokens   The resolved tokens from evaluation
+     * @param resolver Resolves an ItemID to its Item (typically librarianHandle::get)
+     * @return Analysis if a verb is present, else empty
+     */
+    public static Optional<Analysis> analyze(
+            List<ResolvedToken> tokens,
+            Function<ItemID, Optional<Item>> resolver) {
+        return analyze(tokens, resolver, v -> 0);
+    }
+
+    /**
+     * Analyze resolved tokens with score-based head verb selection.
+     *
+     * @param tokens          The resolved tokens from evaluation
+     * @param resolver        Resolves an ItemID to its Item (typically librarianHandle::get)
+     * @param headVerbScorer  Additional score contribution for head-verb selection
+     * @return Analysis if a verb is present, else empty
+     */
+    public static Optional<Analysis> analyze(
+            List<ResolvedToken> tokens,
+            Function<ItemID, Optional<Item>> resolver,
+            ToIntFunction<VerbSememe> headVerbScorer) {
+
+        if (traceEnabled()) {
+            logger.info("[Parse] analyze tokens={}", summarizeTokens(tokens));
+        }
+
+        if (tokens.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // Step 1: Resolve all Link tokens to (token, Optional<Item>) pairs
+        List<Slot> slots = new ArrayList<>();
+        for (ResolvedToken token : tokens) {
+            if (token instanceof ResolvedToken.Link link) {
+                Optional<Item> item = resolver.apply(link.iid());
+                slots.add(new Slot(token, item.orElse(null)));
+            } else {
+                slots.add(new Slot(token, null));
+            }
+        }
+
+        // Step 2: Pick head verb via score instead of first-hit.
+        int verbIndex = selectHeadVerbIndex(slots, headVerbScorer != null ? headVerbScorer : v -> 0);
+        VerbSememe verb = verbIndex >= 0 ? (VerbSememe) slots.get(verbIndex).item() : null;
+
+        if (verb == null) {
+            if (traceEnabled()) {
+                logger.info("[Parse] no verb sememe found");
+            }
+            return Optional.empty();
+        }
+
+        // Track which indices are consumed
+        Set<Integer> consumed = new HashSet<>();
+        consumed.add(verbIndex);
+
+        // Step 3: Find prepositional phrases (with conjunction support)
+        Map<ThematicRole, Object> bindings = new LinkedHashMap<>();
+        Map<Integer, ThematicRole> thematicByTokenIndex = new HashMap<>();
+
+        for (int i = 0; i < slots.size(); i++) {
+            if (consumed.contains(i)) continue;
+
+            Item item = slots.get(i).item();
+            if (item instanceof PrepositionSememe prep && prep.assignedRole() != null) {
+                // Look for the next unconsumed token as the object
+                int objectIndex = nextUnconsumed(slots, consumed, i + 1);
+
+                if (objectIndex >= 0) {
+                    Object firstValue = resolveSlotValue(slots.get(objectIndex));
+                    if (firstValue != null) {
+                        consumed.add(i);
+                        consumed.add(objectIndex);
+
+                        // Check for conjunction ("and") to build a list
+                        List<Object> values = collectConjoinedValues(
+                                slots, consumed, objectIndex + 1, firstValue);
+
+                        if (values != null) {
+                            bindings.put(prep.assignedRole(), values);
+                        } else {
+                            bindings.put(prep.assignedRole(), firstValue);
+                        }
+                        thematicByTokenIndex.put(objectIndex, prep.assignedRole());
+                    }
+                    // else: object doesn't resolve — skip, both go unmatched
+                }
+                // else: dangling preposition (no object follows) — goes unmatched
+            }
+        }
+
+        // Step 4: Match remaining resolved Items to argument slots (first-fit)
+        List<ArgumentSlot> arguments = verb.arguments();
+        Set<ThematicRole> filledRoles = new HashSet<>(bindings.keySet());
+
+        for (int i = 0; i < slots.size(); i++) {
+            if (consumed.contains(i)) continue;
+
+            Item item = slots.get(i).item();
+            if (item == null) continue; // literals and unresolved handled in step 5
+            if (item instanceof PrepositionSememe) continue; // unconsumed prepositions go unmatched
+            if (item instanceof ConjunctionSememe) continue; // unconsumed conjunctions go unmatched
+
+            // Find first unfilled argument slot for this item
+            for (ArgumentSlot slot : arguments) {
+                if (!filledRoles.contains(slot.role())) {
+                    bindings.put(slot.role(), item);
+                    filledRoles.add(slot.role());
+                    consumed.add(i);
+                    thematicByTokenIndex.put(i, slot.role());
+                    break;
+                }
+            }
+            // If no slot matched, item stays unconsumed → goes to unmatchedArgs
+        }
+
+        // Step 5: Collect unmatched tokens
+        List<ResolvedToken> unmatchedArgs = new ArrayList<>();
+        for (int i = 0; i < slots.size(); i++) {
+            if (!consumed.contains(i)) {
+                unmatchedArgs.add(slots.get(i).token());
+            }
+        }
+
+        // Step 6: Compute unbound slots
+        List<ArgumentSlot> unboundRequired = new ArrayList<>();
+        List<ArgumentSlot> unboundOptional = new ArrayList<>();
+        for (ArgumentSlot slot : arguments) {
+            if (!filledRoles.contains(slot.role())) {
+                if (slot.required()) {
+                    unboundRequired.add(slot);
+                } else {
+                    unboundOptional.add(slot);
+                }
+            }
+        }
+
+        // Step 7: Track dangling preposition at end for completion UI.
+        boolean lastTokenIsDanglingPreposition = false;
+        if (!slots.isEmpty()) {
+            int lastIndex = slots.size() - 1;
+            Item lastItem = slots.get(lastIndex).item();
+            lastTokenIsDanglingPreposition =
+                    (lastItem instanceof PrepositionSememe) && !consumed.contains(lastIndex);
+        }
+
+        // Step 8: Emit term-level bindings (ACTION / REFERENCE / QUALIFIER).
+        List<TermBinding> termBindings = new ArrayList<>(slots.size());
+        for (int i = 0; i < slots.size(); i++) {
+            Slot slot = slots.get(i);
+            ResolvedToken token = slot.token();
+            Item item = slot.item();
+            ItemID targetId = token instanceof ResolvedToken.Link link ? link.iid() : null;
+            termBindings.add(new TermBinding(
+                    i,
+                    surface(token),
+                    BindingRole.classify(item, token),
+                    thematicByTokenIndex.get(i),
+                    targetId,
+                    consumed.contains(i)
+            ));
+        }
+
+        Analysis analysis = new Analysis(
+                verb,
+                Collections.unmodifiableMap(bindings),
+                Collections.unmodifiableList(unmatchedArgs),
+                Collections.unmodifiableList(unboundRequired),
+                Collections.unmodifiableList(unboundOptional),
+                lastTokenIsDanglingPreposition,
+                Collections.unmodifiableList(termBindings)
+        );
+
+        if (traceEnabled()) {
+            logger.info("[Parse] verb={} bindings={} unboundRequired={} unmatched={} termBindings={}",
+                    verb.displayToken(), bindings, unboundRequired, unmatchedArgs, termBindings);
+        }
+
+        return Optional.of(analysis);
+    }
+
+    /**
+     * Assemble a SemanticFrame from resolved tokens (order-agnostic).
+     *
+     * @param tokens   The resolved tokens from evaluation
+     * @param resolver Resolves an ItemID to its Item (typically librarianHandle::get)
+     * @return The assembled frame, or empty if no VerbSememe found in tokens
+     */
+    public static Optional<SemanticFrame> assemble(
+            List<ResolvedToken> tokens,
+            Function<ItemID, Optional<Item>> resolver) {
+        Optional<Analysis> analysis = analyze(tokens, resolver);
+        if (analysis.isEmpty()) return Optional.empty();
+        Analysis a = analysis.get();
+        return Optional.of(new SemanticFrame(
+                a.verb(),
+                a.bindings(),
+                a.unmatchedArgs(),
+                a.unboundRequired(),
+                a.unboundOptional()
+        ));
+    }
+
+    /**
+     * Find the next unconsumed slot index starting from {@code from}.
+     */
+    private static int nextUnconsumed(List<Slot> slots, Set<Integer> consumed, int from) {
+        for (int j = from; j < slots.size(); j++) {
+            if (!consumed.contains(j)) return j;
+        }
+        return -1;
+    }
+
+    /**
+     * Extract the bound value from a slot (Item or literal string), or null.
+     */
+    private static Object resolveSlotValue(Slot slot) {
+        if (slot.item() != null) return slot.item();
+        if (slot.token() instanceof ResolvedToken.Literal lit) return lit.value();
+        return null;
+    }
+
+    private static String surface(ResolvedToken token) {
+        return switch (token) {
+            case ResolvedToken.Link link -> link.originalToken();
+            case ResolvedToken.Literal lit -> String.valueOf(lit.originalToken());
+            case ResolvedToken.Unresolved u -> u.token();
+        };
+    }
+
+    private static boolean traceEnabled() {
+        return Boolean.getBoolean("cg.eval.trace")
+                || "1".equals(System.getenv("CG_EVAL_TRACE"))
+                || "true".equalsIgnoreCase(System.getenv("CG_EVAL_TRACE"));
+    }
+
+    private static String summarizeTokens(List<ResolvedToken> tokens) {
+        List<String> out = new ArrayList<>(tokens.size());
+        for (ResolvedToken token : tokens) {
+            switch (token) {
+                case ResolvedToken.Link link ->
+                        out.add("LINK(" + link.originalToken() + "->" + link.iid().encodeText() + ")");
+                case ResolvedToken.Literal lit ->
+                        out.add("LIT(" + lit.value() + ")");
+                case ResolvedToken.Unresolved u ->
+                        out.add("UNRESOLVED(" + u.token() + ")");
+            }
+        }
+        return out.toString();
+    }
+
+    /**
+     * After consuming the first object of a prepositional phrase, check for
+     * conjunction-separated additional objects: "bob and jane and pat".
+     *
+     * @return A list of all values (including firstValue) if conjunctions found, else null
+     */
+    private static List<Object> collectConjoinedValues(
+            List<Slot> slots, Set<Integer> consumed, int startFrom, Object firstValue) {
+        List<Object> values = null;
+        int cursor = startFrom;
+
+        while (true) {
+            int conjIndex = nextUnconsumed(slots, consumed, cursor);
+            if (conjIndex < 0) break;
+
+            // Check if this slot is a ConjunctionSememe
+            Item conjItem = slots.get(conjIndex).item();
+            if (!(conjItem instanceof ConjunctionSememe)) break;
+
+            // Look for the object after the conjunction
+            int nextObjIndex = nextUnconsumed(slots, consumed, conjIndex + 1);
+            if (nextObjIndex < 0) break;
+
+            Object nextValue = resolveSlotValue(slots.get(nextObjIndex));
+            if (nextValue == null) break;
+
+            // First conjunction found — initialize list with firstValue
+            if (values == null) {
+                values = new ArrayList<>();
+                values.add(firstValue);
+            }
+
+            consumed.add(conjIndex);
+            consumed.add(nextObjIndex);
+            values.add(nextValue);
+            cursor = nextObjIndex + 1;
+        }
+
+        return values;
+    }
+
+    /**
+     * Choose the head verb index by combining static priors and runtime dispatchability.
+     */
+    private static int selectHeadVerbIndex(List<Slot> slots, ToIntFunction<VerbSememe> headVerbScorer) {
+        int bestIndex = -1;
+        int bestScore = Integer.MIN_VALUE;
+
+        for (int i = 0; i < slots.size(); i++) {
+            Item item = slots.get(i).item();
+            if (!(item instanceof VerbSememe verb)) continue;
+
+            int score = baseHeadScore(verb) + headVerbScorer.applyAsInt(verb);
+            // Stable tie-breaker: earlier token wins.
+            if (score > bestScore) {
+                bestScore = score;
+                bestIndex = i;
+            }
+            if (traceEnabled()) {
+                logger.info("[Parse] head-candidate token={} verb={} score={}",
+                        i, verb.displayToken(), score);
+            }
+        }
+        return bestIndex;
+    }
+
+    /**
+     * Static priors for selecting dispatch heads.
+     *
+     * <p>Relational/type-link predicates should usually bind as arguments (THEME)
+     * to an action verb (e.g. "find implemented-by"), not become the head action.
+     */
+    private static int baseHeadScore(VerbSememe verb) {
+        int score = 0;
+        String key = verb.canonicalKey();
+        if (key != null) {
+            if (key.startsWith("cg.rel:") || key.startsWith("cg.type:")) {
+                score -= 200;
+            }
+            if (key.startsWith("cg.verb:") || key.startsWith("cg.session:")) {
+                score += 25;
+            }
+        }
+        // Verbs with explicit argument frames are typically command heads.
+        score += Math.min(verb.arguments().size(), 4) * 10;
+        return score;
+    }
+}

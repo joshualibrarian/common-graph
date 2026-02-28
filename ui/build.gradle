@@ -1,0 +1,384 @@
+// =============================================================================
+// :ui — Rendering implementations, input, style, sessions, entry point
+//
+// Platform-specific renderers (Skia, TUI, Filament),
+// input handling, style system, and the application entry point.
+// Depends on :core for scene model, items, storage, etc.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+    id 'application'
+}
+
+def osName = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+def osArch = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
+
+def skijaArtifact
+def lwjglNatives
+
+if (osName.contains('mac')) {
+    if (osArch.contains('aarch64') || osArch.contains('arm64')) {
+        skijaArtifact = "io.github.humbleui:skija-macos-arm64:${skijaVersion}"
+        lwjglNatives = 'natives-macos-arm64'
+    } else {
+        skijaArtifact = "io.github.humbleui:skija-macos-x64:${skijaVersion}"
+        lwjglNatives = 'natives-macos'
+    }
+} else if (osName.contains('linux')) {
+    if (osArch.contains('aarch64') || osArch.contains('arm64')) {
+        skijaArtifact = "io.github.humbleui:skija-linux-arm64:${skijaVersion}"
+        lwjglNatives = 'natives-linux-arm64'
+    } else {
+        skijaArtifact = "io.github.humbleui:skija-linux-x64:${skijaVersion}"
+        lwjglNatives = 'natives-linux'
+    }
+} else {
+    throw new GradleException("Unsupported platform for UI native deps: os=${osName}, arch=${osArch}")
+}
+
+def macJvmArgs = []
+if (osName.contains('mac')) {
+    // GLFW on macOS must run on the process first thread.
+    macJvmArgs << '-XstartOnFirstThread'
+}
+def sharedJvmArgs = ['--enable-native-access=ALL-UNNAMED']
+sharedJvmArgs.addAll(macJvmArgs)
+['graph.msdf.mode', 'graph.msdf.disable', 'graph.msdf.enableOnMacArm', 'filament.msdf.forceMtsdf'].each { key ->
+    def value = System.getProperty(key)
+    if (value != null && !value.isBlank()) {
+        sharedJvmArgs << "-D${key}=${value}"
+    }
+}
+
+def filamentSdkDir = providers.gradleProperty("filamentSdkDir")
+        .orElse(new File(rootProject.projectDir.parentFile, "filament-java/filament-sdk").absolutePath)
+def matcPath = providers.provider { new File(filamentSdkDir.get(), "bin/matc") }
+
+dependencies {
+
+    // Core module
+    api project(':core')
+
+    // ClassGraph (classpath scanning for @Scene.Rule annotations)
+    implementation "io.github.classgraph:classgraph:${classgraphVersion}"
+
+    // Games module (chess, board games) — runtime only, discovered via classpath scanning
+    runtimeOnly project(':games')
+    testImplementation project(':games')
+
+    // -------------------------------------------------------------------------
+    // Terminal UI
+    // -------------------------------------------------------------------------
+    implementation "org.jline:jline:${jlineVersion}"
+    implementation "com.gitlab.klamonte:jexer:${jexerVersion}"
+
+    // BouncyCastle (needed by Graph entry point for security provider registration)
+    implementation "org.bouncycastle:bcprov-jdk18on:${bouncycastleVersion}"
+
+    // JNA (Java Native Access — system tray, platform integration)
+    implementation "net.java.dev.jna:jna:${jnaVersion}"
+    implementation "net.java.dev.jna:jna-platform:${jnaVersion}"
+
+    // ICU4J (Unicode line breaking for paragraph layout)
+    implementation "com.ibm.icu:icu4j:${icu4jVersion}"
+
+    // -------------------------------------------------------------------------
+    // Skia 2D Rendering
+    // -------------------------------------------------------------------------
+    implementation skijaArtifact
+
+    // -------------------------------------------------------------------------
+    // LWJGL (GLFW windowing + OpenGL for Skia GPU backend + OpenAL for spatial audio)
+    // -------------------------------------------------------------------------
+    implementation platform("org.lwjgl:lwjgl-bom:${lwjglVersion}")
+    implementation "org.lwjgl:lwjgl"
+    implementation "org.lwjgl:lwjgl-glfw"
+    implementation "org.lwjgl:lwjgl-opengl"
+    implementation "org.lwjgl:lwjgl-openal"
+    implementation "org.lwjgl:lwjgl-stb"
+    runtimeOnly "org.lwjgl:lwjgl::${lwjglNatives}"
+    runtimeOnly "org.lwjgl:lwjgl-glfw::${lwjglNatives}"
+    runtimeOnly "org.lwjgl:lwjgl-opengl::${lwjglNatives}"
+    runtimeOnly "org.lwjgl:lwjgl-openal::${lwjglNatives}"
+    runtimeOnly "org.lwjgl:lwjgl-stb::${lwjglNatives}"
+
+    // -------------------------------------------------------------------------
+    // Google Filament
+    // -------------------------------------------------------------------------
+
+    // Core rendering
+    implementation("dev.everydaythings:filament-java-core:0.1.0-SNAPSHOT")
+    implementation("dev.everydaythings:filament-java-native:0.1.0-SNAPSHOT")
+
+    // GLFW windowing (includes LWJGL)
+    implementation("dev.everydaythings:filament-java-lwjgl:0.1.0-SNAPSHOT")
+
+    // glTF/GLB asset loading
+    implementation("dev.everydaythings:filament-java-gltfio:0.1.0-SNAPSHOT")
+
+    // MSDF text rendering (font atlas generation + materials)
+    implementation("dev.everydaythings:filament-java-text:0.1.0-SNAPSHOT")
+
+
+    }
+
+// -------------------------------------------------------------------------
+// Application Configuration
+// -------------------------------------------------------------------------
+application {
+    mainClass = 'dev.everydaythings.graph.Graph'
+    applicationName = 'graph'
+}
+
+tasks.register('compileBakedColorMaterial', Exec) {
+    description = 'Compile baked_color.mat to baked_color.filamat (all APIs)'
+    group = 'build'
+    inputs.file(file('src/main/resources/materials/baked_color.mat'))
+    outputs.file(file('src/main/resources/materials/baked_color.filamat'))
+    executable = matcPath.get().absolutePath
+    args '-a', 'all',
+            '-o', file('src/main/resources/materials/baked_color.filamat').absolutePath,
+            file('src/main/resources/materials/baked_color.mat').absolutePath
+    onlyIf {
+        def matc = matcPath.get()
+        if (!matc.exists()) {
+            logger.warn("matc not found at ${matc.absolutePath}; skipping baked_color material compilation")
+            return false
+        }
+        true
+    }
+}
+
+tasks.register('compileTexturedUnlitMaterial', Exec) {
+    description = 'Compile textured_unlit.mat to textured_unlit.filamat (all APIs)'
+    group = 'build'
+    inputs.file(file('src/main/resources/materials/textured_unlit.mat'))
+    outputs.file(file('src/main/resources/materials/textured_unlit.filamat'))
+    executable = matcPath.get().absolutePath
+    args '-a', 'all',
+            '-o', file('src/main/resources/materials/textured_unlit.filamat').absolutePath,
+            file('src/main/resources/materials/textured_unlit.mat').absolutePath
+    onlyIf {
+        def matc = matcPath.get()
+        if (!matc.exists()) {
+            logger.warn("matc not found at ${matc.absolutePath}; skipping textured_unlit material compilation")
+            return false
+        }
+        true
+    }
+}
+
+tasks.register('compileFilamentMaterials') {
+    description = 'Compile Filament material sources (.mat) to multi-backend .filamat blobs'
+    group = 'build'
+    dependsOn tasks.named('compileBakedColorMaterial')
+    dependsOn tasks.named('compileTexturedUnlitMaterial')
+}
+
+tasks.named('processResources') {
+    dependsOn tasks.named('compileFilamentMaterials')
+}
+
+run {
+    standardInput = System.in
+    standardOutput = System.out
+    errorOutput = System.err
+    jvmArgs '-XX:-OmitStackTraceInFastThrow'
+    jvmArgs sharedJvmArgs
+    environment 'GRAPH_HOME', layout.buildDirectory.dir("scratch").get().asFile.absolutePath
+    doFirst {
+        layout.buildDirectory.dir("scratch").get().asFile.mkdirs()
+    }
+}
+
+// =============================================================================
+// Development Tasks (with scratch directory via GRAPH_HOME)
+// =============================================================================
+
+def scratchDir = layout.buildDirectory.dir("scratch")
+
+tasks.register('cleanScratch') {
+    description = 'Clean the scratch directory (preserves .bin)'
+    group = 'development'
+    doLast {
+        def scratch = scratchDir.get().asFile
+        if (scratch.exists()) {
+            scratch.listFiles()?.each { item ->
+                if (item.name != '.bin') {
+                    delete item
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
+// Mode-specific tasks (fresh scratch directory, cleaned each run)
+// -------------------------------------------------------------------------
+
+// TUI requires a real terminal (PTY) — use installBin and run the script directly.
+['cli', '2d', '3d'].each { mode ->
+    tasks.register(mode, JavaExec) {
+        description = "Run in ${mode.toUpperCase()} mode with fresh scratch directory"
+        group = 'development'
+        dependsOn 'cleanScratch'
+        mainClass = 'dev.everydaythings.graph.Graph'
+        classpath = sourceSets.main.runtimeClasspath
+        standardInput = System.in
+        standardOutput = System.out
+        errorOutput = System.err
+        args "--ui=${mode}"
+        jvmArgs '-XX:-OmitStackTraceInFastThrow'
+        jvmArgs sharedJvmArgs
+        environment 'GRAPH_HOME', scratchDir.get().asFile.absolutePath
+
+        doFirst {
+            scratchDir.get().asFile.mkdirs()
+            println "==> [${mode.toUpperCase()}] GRAPH_HOME=${scratchDir.get().asFile.absolutePath}"
+            if (Boolean.getBoolean('graph.debug.classpath')) {
+                classpath.files.findAll { it.name.contains('filament-java-text') }.each { f ->
+                    println "==> [${mode.toUpperCase()}] CLASSPATH filament-java-text=${f.absolutePath}"
+                }
+                classpath.files.findAll { it.name.contains('lwjgl-msdfgen') }.each { f ->
+                    println "==> [${mode.toUpperCase()}] CLASSPATH lwjgl-msdfgen=${f.absolutePath}"
+                }
+            }
+        }
+    }
+}
+
+// Persistent scratch directory (NOT cleaned between runs)
+tasks.register('scratch', JavaExec) {
+    description = 'Run CLI with persistent scratch directory (NOT cleaned)'
+    group = 'development'
+    mainClass = 'dev.everydaythings.graph.Graph'
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    standardOutput = System.out
+    errorOutput = System.err
+    args '--ui=cli'
+    jvmArgs '-XX:-OmitStackTraceInFastThrow'
+    jvmArgs sharedJvmArgs
+    environment 'GRAPH_HOME', scratchDir.get().asFile.absolutePath
+
+    doFirst {
+        scratchDir.get().asFile.mkdirs()
+        println "==> GRAPH_HOME=${scratchDir.get().asFile.absolutePath}"
+    }
+}
+
+tasks.register('chessPieces', JavaExec) {
+    description = 'Show chess piece SVGs in a Skia 2D window'
+    group = 'development'
+    mainClass = 'dev.everydaythings.graph.ui.skia.ChessPieceShowcase'
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '-XX:-OmitStackTraceInFastThrow'
+    jvmArgs sharedJvmArgs
+}
+
+tasks.register('chessPieces3D', JavaExec) {
+    description = 'Show chess piece GLB models in a Filament 3D window'
+    group = 'development'
+    mainClass = 'dev.everydaythings.graph.ui.filament.ChessPiece3DShowcase'
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '-XX:-OmitStackTraceInFastThrow'
+    jvmArgs sharedJvmArgs
+}
+
+tasks.register('paragraphShowcase', JavaExec) {
+    description = 'Show paragraph wrapping/layout in a Skia 2D window'
+    group = 'development'
+    mainClass = 'dev.everydaythings.graph.ui.paragraph.ParagraphShowcase'
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '-XX:-OmitStackTraceInFastThrow'
+    jvmArgs sharedJvmArgs
+}
+
+tasks.register('paragraphShowcase3D', JavaExec) {
+    description = 'Show paragraph wrapping/layout in a Filament 3D window (MSDF)'
+    group = 'development'
+    mainClass = 'dev.everydaythings.graph.ui.paragraph.Paragraph3DShowcase'
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '-XX:-OmitStackTraceInFastThrow'
+    jvmArgs sharedJvmArgs
+}
+
+tasks.register('clock', JavaExec) {
+    description = 'Show declarative clock widget in a Skia 2D window'
+    group = 'development'
+    mainClass = 'dev.everydaythings.graph.ui.clock.ClockShowcase'
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '-XX:-OmitStackTraceInFastThrow'
+    jvmArgs sharedJvmArgs
+}
+
+tasks.register('installBin') {
+    description = 'Create launcher script in $GRAPH_HOME/.bin'
+    group = 'development'
+    dependsOn 'classes'
+
+    doLast {
+        def graphHome = scratchDir.get().asFile
+        def binDir = new File(graphHome, ".bin")
+        binDir.mkdirs()
+        def projectRoot = rootProject.projectDir.absolutePath
+
+        // Dynamic launcher — computes classpath from Gradle each run, never stale
+        def script = new File(binDir, "graph")
+        script.text = """\
+#!/usr/bin/env bash
+# Generated by: ./gradlew :ui:installBin
+# Common Graph launcher — dynamic classpath (never stale)
+
+SCRIPT_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+export GRAPH_HOME="\$( cd "\$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="${projectRoot}"
+
+# Build first (quiet), then resolve classpath
+(cd "\$PROJECT_ROOT" && ./gradlew :ui:classes -q 2>/dev/null)
+CLASSPATH="\$(cd "\$PROJECT_ROOT" && ./gradlew -q :ui:printClasspath 2>/dev/null)"
+
+if [ -z "\$CLASSPATH" ]; then
+    echo "ERROR: Failed to resolve classpath. Run: ./gradlew :ui:classes" >&2
+    exit 1
+fi
+
+exec java \\
+    -XX:-OmitStackTraceInFastThrow \\
+    --enable-native-access=ALL-UNNAMED \\
+    -cp "\$CLASSPATH" \\
+    dev.everydaythings.graph.Graph \\
+    "\$@"
+"""
+        script.setExecutable(true)
+
+        println ""
+        println "=========================================="
+        println "  Launcher installed!"
+        println "=========================================="
+        println ""
+        println "  Script: ${script.absolutePath}"
+        println "  GRAPH_HOME will be: ${graphHome.absolutePath}"
+        println ""
+        println "  Usage:"
+        println "    ${script.absolutePath}                # default (auto-detect)"
+        println "    ${script.absolutePath} --ui=tui       # TUI mode (needs real terminal)"
+        println "    ${script.absolutePath} --ui=gui       # GUI mode"
+        println "    ${script.absolutePath} --ui=cli       # CLI mode"
+        println ""
+    }
+}
+
+// Helper task: print runtime classpath (used by launcher script)
+tasks.register('printClasspath') {
+    description = 'Print the runtime classpath (for launcher scripts)'
+    group = 'development'
+    dependsOn 'classes'
+
+    doLast {
+        def cpEntries = sourceSets.main.runtimeClasspath.files.collect { it.absolutePath }
+        def classesDir = sourceSets.main.output.classesDirs.asPath
+        print(([classesDir] + cpEntries).join(':'))
+    }
+}

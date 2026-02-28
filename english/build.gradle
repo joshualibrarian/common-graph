@@ -1,0 +1,24 @@
+// =============================================================================
+// :english — English language support (WordNet import, lexicon generation)
+//
+// English-specific language data and importers.
+// Depends on :core for Item/Language/Sememe infrastructure.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+
+    // Core module (Item, Language, Sememe, WordNetImporter, etc.)
+    api project(':core')
+
+    // Abstract test bases (ItemTest, LanguageTest)
+    testImplementation testFixtures(project(':core'))
+
+    // -------------------------------------------------------------------------
+    // Semantic Web (test only — for RDF/ontology validation)
+    // -------------------------------------------------------------------------
+    testImplementation "org.apache.jena:jena-arq:${jenaVersion}"
+}

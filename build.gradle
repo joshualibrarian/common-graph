@@ -1,0 +1,127 @@
+// =============================================================================
+// Common Graph — Root Build
+//
+// Shared configuration for all subprojects.
+// Actual dependencies live in core/build.gradle and ui/build.gradle.
+// =============================================================================
+
+// =============================================================================
+// Dependency Versions - centralized for easy updates
+// =============================================================================
+ext {
+    // Core
+    lombokVersion = '1.18.36'
+
+    // Logging
+    log4jVersion = '2.25.3'
+
+    // CLI & Terminal
+    picocliVersion = '4.7.7'
+    jlineVersion = '3.28.0'
+    jexerVersion = '1.6.0'
+
+    // Data Formats
+    jacksonVersion = '2.18.2'
+    cborVersion = '5.0.0-alpha2'
+    dagCborVersion = '0.1.2'
+
+    // Apache Commons
+    commonsLang3Version = '3.18.0'
+    commonsCollections4Version = '4.5.0'
+    commonsCompressVersion = '1.28.0'
+    commonsDaemonVersion = '1.4.0'
+
+    // Networking
+    nettyVersion = '4.1.131.Final'
+
+    // Storage
+    rocksdbVersion = '9.10.0'
+    mapdbVersion = '3.1.0'
+
+    // Cryptography
+    bouncycastleVersion = '1.80'
+
+    // Native Access
+    jnaVersion = '5.16.0'
+
+    // Classpath Scanning
+    classgraphVersion = '4.8.181'
+
+    // Semantic Web
+    jenaVersion = '5.5.0'
+
+    // Unicode / Internationalization
+    icu4jVersion = '76.1'
+
+    // Skia (2D rendering) — HumbleUI/Skija
+    skijaVersion = '0.143.9'
+
+    // LWJGL (GLFW windowing + OpenGL)
+    lwjglVersion = '3.4.0'
+
+    // Testing
+    junitVersion = '5.11.4'
+    assertjVersion = '3.27.3'
+    mockitoVersion = '5.16.0'
+}
+
+// =============================================================================
+// Shared configuration for all subprojects
+// =============================================================================
+subprojects {
+    apply plugin: 'java-library'
+
+    group = 'dev.everydaythings'
+    version = '1.0-SNAPSHOT'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url = uri('https://jitpack.io') }
+    }
+
+    // -------------------------------------------------------------------------
+    // Lombok (all subprojects)
+    // -------------------------------------------------------------------------
+    dependencies {
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+        testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+        testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    }
+
+    // -------------------------------------------------------------------------
+    // Logging (all subprojects)
+    // -------------------------------------------------------------------------
+    dependencies {
+        implementation "org.apache.logging.log4j:log4j-api:${log4jVersion}"
+        implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
+        implementation "org.apache.logging.log4j:log4j-slf4j2-impl:${log4jVersion}"
+    }
+
+    // -------------------------------------------------------------------------
+    // Testing (all subprojects)
+    // -------------------------------------------------------------------------
+    dependencies {
+        testImplementation platform("org.junit:junit-bom:${junitVersion}")
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        testImplementation "org.assertj:assertj-core:${assertjVersion}"
+        testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+        testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
+    }
+
+    test {
+        useJUnitPlatform()
+        maxHeapSize = '2g'
+        testLogging {
+            showStandardStreams = true
+        }
+    }
+}

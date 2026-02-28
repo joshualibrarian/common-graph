@@ -1,0 +1,17 @@
+material {
+    name : textured_unlit,
+    parameters : [
+        { type : sampler2d, name : baseColorMap }
+    ],
+    requires : [uv0],
+    shadingModel : unlit,
+    blending : transparent,
+    doubleSided : true
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_baseColorMap, getUV0());
+    }
+}

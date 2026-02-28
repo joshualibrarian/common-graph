@@ -1,0 +1,93 @@
+// =============================================================================
+// :core — Items, storage, network, runtime backbone, scene model
+//
+// No platform rendering dependencies. Scene model (CBOR-serializable data
+// structures describing WHAT to render) lives here. HOW to render lives in :ui.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+}
+
+dependencies {
+
+    // -------------------------------------------------------------------------
+    // CLI (Picocli) — used by core commands, action system
+    // -------------------------------------------------------------------------
+    api "info.picocli:picocli:${picocliVersion}"
+    annotationProcessor "info.picocli:picocli-codegen:${picocliVersion}"
+
+    // -------------------------------------------------------------------------
+    // Data Formats & Serialization
+    // -------------------------------------------------------------------------
+    api "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    api "com.upokecenter:cbor:${cborVersion}"
+    implementation "com.github.peergos:dag-cbor:${dagCborVersion}"
+    implementation 'com.jayway.jsonpath:json-path:2.9.0'
+
+    // -------------------------------------------------------------------------
+    // Content Addressing & Hashing
+    // -------------------------------------------------------------------------
+    api 'com.github.multiformats:java-multihash:v1.3.6'
+
+    // -------------------------------------------------------------------------
+    // Apache Commons
+    // -------------------------------------------------------------------------
+    implementation "org.apache.commons:commons-lang3:${commonsLang3Version}"
+    implementation "org.apache.commons:commons-collections4:${commonsCollections4Version}"
+    implementation "org.apache.commons:commons-compress:${commonsCompressVersion}"
+    api "commons-daemon:commons-daemon:${commonsDaemonVersion}"
+
+    // -------------------------------------------------------------------------
+    // Unicode / Internationalization (ICU4J)
+    // -------------------------------------------------------------------------
+    implementation "com.ibm.icu:icu4j:${icu4jVersion}"
+
+    // -------------------------------------------------------------------------
+    // Networking
+    // -------------------------------------------------------------------------
+    implementation "io.netty:netty-all:${nettyVersion}"
+
+    // -------------------------------------------------------------------------
+    // Storage
+    // -------------------------------------------------------------------------
+    implementation "org.rocksdb:rocksdbjni:${rocksdbVersion}"
+    implementation "org.mapdb:mapdb:${mapdbVersion}"
+
+    // -------------------------------------------------------------------------
+    // Cryptography
+    // -------------------------------------------------------------------------
+    implementation "org.bouncycastle:bcprov-jdk18on:${bouncycastleVersion}"
+    implementation "org.bouncycastle:bcpg-jdk18on:${bouncycastleVersion}"
+    implementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastleVersion}"
+
+    // -------------------------------------------------------------------------
+    // Platform & Directories
+    // -------------------------------------------------------------------------
+    implementation 'com.kstruct:gethostname4j:1.0.0'
+    implementation 'net.harawata:appdirs:1.2.2'
+    implementation 'dev.dirs:directories:26'
+
+    // -------------------------------------------------------------------------
+    // Classpath Scanning
+    // -------------------------------------------------------------------------
+    implementation "io.github.classgraph:classgraph:${classgraphVersion}"
+
+    // -------------------------------------------------------------------------
+    // JLine (compileOnly — Eval.java uses JLine; to be moved to :ui later)
+    // -------------------------------------------------------------------------
+    compileOnly "org.jline:jline:${jlineVersion}"
+
+    // -------------------------------------------------------------------------
+    // Semantic Web (test only)
+    // -------------------------------------------------------------------------
+    testImplementation "org.apache.jena:jena-arq:${jenaVersion}"
+
+    // -------------------------------------------------------------------------
+    // Test Fixtures (abstract test bases shared with :english, :games, etc.)
+    // -------------------------------------------------------------------------
+    testFixturesImplementation platform("org.junit:junit-bom:${junitVersion}")
+    testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
+    testFixturesImplementation "org.assertj:assertj-core:${assertjVersion}"
+}

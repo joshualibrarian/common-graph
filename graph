@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Common Graph launcher — always works, never stale.
+# Uses Gradle to resolve classpath dynamically, then launches Java directly
+# (real PTY, so TUI/JLine works properly unlike `./gradlew run`).
+#
+# Usage:
+#   ./graph                  # auto-detect UI mode
+#   ./graph --ui=tui         # TUI mode
+#   ./graph --ui=gui         # GUI mode (Filament 3D + Skia 2D)
+#   ./graph --ui=cli         # CLI mode
+#   ./graph sh               # interactive shell
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRATCH_DIR="$PROJECT_ROOT/ui/build/scratch"
+
+# Ensure scratch dir exists
+mkdir -p "$SCRATCH_DIR"
+export GRAPH_HOME="$SCRATCH_DIR"
+
+# Build (quiet) and resolve classpath in one shot
+echo -n "Building... "
+CLASSPATH="$(cd "$PROJECT_ROOT" && ./gradlew -q :ui:printClasspath 2>/dev/null)"
+
+if [ -z "$CLASSPATH" ]; then
+    echo "FAILED"
+    echo "ERROR: Classpath resolution failed. Try: ./gradlew :ui:classes" >&2
+    exit 1
+fi
+echo "done."
+
+exec java \
+    -XX:-OmitStackTraceInFastThrow \
+    --enable-native-access=ALL-UNNAMED \
+    -cp "$CLASSPATH" \
+    dev.everydaythings.graph.Graph \
+    "$@"
