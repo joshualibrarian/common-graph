@@ -39,15 +39,16 @@ The trust matrix is a cached component on the user's own item — a table of `(s
 Trust is built from **attestation relations** — signed assertions about how much you trust someone in a specific domain:
 
 ```
-(alice) —[trusts]→ (bob)
+(alice) → trusts → (bob)
   weight: 0.82        # strength (0.0 to 1.0)
   confidence: 0.76    # how certain you are of this weight
   scope: oaklandItem   # geographic/organizational boundary
   domain: "auto.repair" # what this trust is about
   expiresAt: 2026-08-10T11:22:33Z
+  signed by: alice
 ```
 
-These are ordinary signed relations — first-class graph data, queryable, versionable, revocable. The trust matrix is computed by walking these edges.
+This is an ordinary relation — `subject → predicate → object` — signed by its author. The signer often *is* the subject (you assert your own trust), but the signature is separate from the relation shape. These are first-class graph data: queryable, versionable, revocable. The trust matrix is computed by walking these edges.
 
 ### Trust Dimensions
 
@@ -66,10 +67,10 @@ A single composite score can be derived from these dimensions via policy-defined
 
 ### Trust Path Computation
 
-Direct attestations give you first-hop trust. For entities you haven't directly attested, trust is computed by walking paths through the graph:
+Direct attestations give you first-hop trust. For entities you haven't directly attested, trust is computed by walking paths through the attestation graph:
 
 ```
-alice → trusts(0.9) → dana → trusts(0.8) → bob
+alice —trusts(0.9)→ dana —trusts(0.8)→ bob
 ```
 
 **Path scoring:**
@@ -104,10 +105,10 @@ Social media platforms have "likes," "reports," and "moderation queues" as separ
 A "like" is a signed relation:
 
 ```
-alice → LIKES → post
+(post) → liked_by → (alice)     signed by: alice
 ```
 
-So is a "funny," an "insightful," a "misleading" — any sememe can be a reaction predicate. These are first-class graph data: signed by their author, queryable by anyone who can see them, filterable by trust policy.
+So is a "funny," an "insightful," a "misleading" — any sememe can be a reaction predicate. The relation is `subject → predicate [→ object]`, and the signature tells you who asserted it. These are first-class graph data: queryable by anyone who can see them, filterable by trust policy.
 
 **Per-author uniqueness**: a sememe facet (`author_in_identity: true`) can enforce that each author gets at most one reaction of a given type per target — preventing spam-likes without a central rate limiter.
 
@@ -118,13 +119,13 @@ So is a "funny," an "insightful," a "misleading" — any sememe can be a reactio
 The key architectural insight: **relations can target the RIDs of other relations.** This enables moderation without any special moderation subsystem.
 
 ```
-R1: (tony) → comments_on → (picture)
-R2: (jane) → marks_as → R1    qualifiers: { label: spam, reason: "obvious scam" }
-R3: (susan) → endorses → R2   qualifiers: { note: "agreed, clear spam" }
-R4: (bob) → disputes → R2     qualifiers: { note: "it's a real comment" }
+R1: (picture) → has_comment → (tony's comment)     signed by: tony
+R2: R1 → labeled → spam                            signed by: jane   { reason: "obvious scam" }
+R3: R2 → endorsed_by → (susan)                     signed by: susan  { note: "agreed, clear spam" }
+R4: R2 → disputed_by → (bob)                       signed by: bob    { note: "it's a real comment" }
 ```
 
-Jane marks Tony's comment as spam. Susan endorses Jane's moderation. Bob disputes it. All of these are ordinary signed relations — attributable, auditable, and subject to trust evaluation. There is no "moderation queue." There is no "appeals process." There is the graph, and everyone's local trust matrix producing a different view.
+Jane marks Tony's comment as spam. Susan endorses Jane's moderation. Bob disputes it. All of these are ordinary `subject → predicate [→ object]` relations — the signature tells you who asserted each one. Attributable, auditable, and subject to trust evaluation. There is no "moderation queue." There is no "appeals process." There is the graph, and everyone's local trust matrix producing a different view.
 
 This is how you "mark someone's like as spam." If a bot farm floods a post with likes, a handful of trusted community members can mark those likes (by targeting their RIDs) as spam — and anyone whose trust matrix scores those moderators highly will stop seeing the bot likes in their counts.
 

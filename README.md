@@ -1,12 +1,14 @@
 # Common Graph
 
-**Everything is an Item. Items are versioned, signed, content-addressed, semantically related, and discoverable by shared meaning — in any language.**
+**A unified substrate for content, identity, meaning, and trust.**
 
 ---
 
 ## The Problem
 
-We interact with computers through layers that were never designed to work together. Files and folders flatten everything into opaque blobs with no inherent meaning or relationships. The web routes through URLs that rot, platforms that own your data, and semantics that are afterthoughts bolted on top. Identity lives in corporate accounts. Trust is implicit. Search is keyword-shaped. The most powerful computing devices ever built spend most of their time acting as thin terminals for someone else's server.
+We interact with computers through layers that were never designed to work together. Files are opaque byte streams named by path — your OS doesn't know that a JPEG is a photo of your daughter or that two documents are versions of the same report. The web promised to link everything, but links rot, data lives on someone else's server, and "semantic" means whatever the platform's ad model needs it to mean. Your identity is a username and password on fifty different services, each with its own notion of who you are and none of them yours. Your messages live in one silo, your documents in another, your photos in a third, your code in a fourth — each with its own sync model, its own search, its own sharing mechanism, its own idea of what "delete" means.
+
+Meanwhile, the concepts that should be foundational — authorship, trust, versioning, meaning, relationships between things — are either missing entirely or reimplemented from scratch by every application. Your email client doesn't know that the attachment you received is the same document you edited last week. Your note-taking app can't express that two notes are related except by putting them in the same folder. Your chat app can't verify who actually sent a message without trusting a corporation's server.
 
 These aren't separate problems. They're symptoms of a missing foundation.
 
@@ -20,7 +22,11 @@ An **Item** is the fundamental unit. Items can represent anything — documents,
 
 **Relations** make the graph. Signed semantic triples — `book:Hobbit → author → person:Tolkien` — are first-class, queryable, and auditable. Not hidden in platform databases. Not trapped behind APIs. Anyone can assert, dispute, or extend them.
 
-**Trust is explicit — and it's the whole game.** Every manifest and relation is signed with Ed25519 keys. Trust isn't binary — it's policy-driven with thresholds, scopes, decay, and revocation. Trust policies live on items as configuration, inspectable and adjustable. But trust isn't just a security mechanism — it's the social fabric of the entire system. Trust determines who you sync with, whose assertions you accept, how far your queries propagate through the network, and whose content appears in your graph at all. There is no separate "moderation" system because trust *is* moderation. You don't report abuse to a platform and hope they act. You adjust your trust policies — lower a threshold, narrow a scope, revoke a peer relationship — and the effect is immediate, local, and yours. Communities form their own trust topologies: a research group might trust each other's type definitions broadly but require multiple endorsements for factual claims. A family might trust everything from family devices unconditionally. These aren't platform settings — they're signed relations in the graph, as inspectable and portable as any other data.
+**Trust is explicit — and it's the whole game.** Every manifest and relation is signed with Ed25519 keys. Trust isn't binary — it's policy-driven with thresholds, scopes, decay, and revocation. Trust policies live on items as configuration, inspectable and adjustable.
+
+But trust isn't just a security mechanism — it's the social fabric of the entire system. Trust determines who you sync with, whose assertions you accept, how far your queries propagate through the network, and whose content appears in your graph at all. There is no separate "moderation" system because trust *is* moderation. You don't report abuse to a platform and hope they act. You adjust your trust policies — lower a threshold, narrow a scope, revoke a peer relationship — and the effect is immediate, local, and yours.
+
+Communities form their own trust topologies: a research group might trust each other's type definitions broadly but require multiple endorsements for factual claims. A family might trust everything from family devices unconditionally. These aren't platform settings — they're signed relations in the graph, as inspectable and portable as any other data.
 
 **Local-first by design.** All data lives on your devices. Networking is explicit. Sync is merge-based. You own your graph.
 
@@ -113,7 +119,7 @@ This means:
 - **Network topology emerges from community.** Rather than a global DHT with uniform routing, the graph's connectivity reflects actual human and organizational relationships. A research group's nodes cluster naturally. A family's devices find each other through their shared relations. This won't scale like Kademlia for anonymous global lookup — but Common Graph isn't trying to be a CDN. It's trying to be the connective tissue between people and their data.
 - **Moderation is trust, not authority.** Centralized platforms solve moderation by hiring humans or training classifiers to make content decisions for billions of people. Common Graph doesn't have a "content moderation layer" because trust policies already do this work. If someone floods your peer network with spam, you lower their trust scope or sever the peer relation — and the effect cascades naturally through the graph. Communities that peer densely with each other form natural trust boundaries. A node that behaves badly loses peer relationships, which means it loses routing, which means it loses reach — the same way a person who behaves badly loses social connections. This isn't a metaphor for social dynamics. It literally *is* social dynamics, modeled in signed relations.
 
-**Reactions replace algorithms.** On social media, a "like" is a row in a corporate database, visible only through the platform's algorithm. In Common Graph, a like is a signed relation: `alice → LIKES → post`. So is a dislike, a "funny," an "insightful," a "misleading" — any sememe can be a reaction predicate. These are first-class graph data: signed by their author, queryable by anyone who can see them, filterable by your trust policies. The interesting part is what happens next. Relations can target other relations. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob can assert `bob → MARKS_AS_SPAM → alice's-like`. Now everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. There's no appeals process, no review board, no algorithm deciding what's "really" spam — just overlapping trust graphs producing different views of the same underlying data. A community of cryptographers and a community of flat-earthers can coexist in the same graph, each seeing the reactions and endorsements of the people they trust, without a platform making editorial decisions for either of them.
+**Reactions replace algorithms.** On social media, a "like" is a row in a corporate database, visible only through the platform's algorithm. In Common Graph, a like is a signed relation — `post → liked_by → alice`, signed by Alice. So is a dislike, a "funny," an "insightful," a "misleading" — any sememe can be a reaction predicate. These are first-class graph data, queryable by anyone who can see them, filterable by your trust policies. The interesting part is what happens next: relations can target other relations. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a relation targeting Alice's like as spam. Now everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. There's no appeals process, no review board, no algorithm deciding what's "really" spam — just overlapping trust graphs producing different views of the same underlying data. A community of cryptographers and a community of flat-earthers can coexist in the same graph, each seeing the reactions and endorsements of the people they trust, without a platform making editorial decisions for either of them.
 
 The protocol is designed to be extended without changing the wire format. New relation predicates can express new routing policies, new storage strategies, new trust models — all as graph data, not protocol upgrades.
 
@@ -123,20 +129,20 @@ See [`docs/protocol.md`](docs/protocol.md) and [`docs/trust.md`](docs/trust.md) 
 
 ## Presentation: One Scene, Every Surface
 
-Let's be honest: building a UI system from scratch was not the plan. It's a lot of work and there are established frameworks out there. But every one of them comes with a cost.
+Building a UI system from scratch was not the plan. Nobody wants to do that. But every existing option comes with a cost.
 
 Web technologies (HTML/CSS/JS) bring decades of accumulated complexity, a document model that never quite fit application UI, and an entire browser runtime as a dependency. Native toolkits (SwiftUI, Jetpack Compose, GTK, Qt) lock you to a platform or demand per-platform rewrites. Cross-platform frameworks (Flutter, React Native, Electron) bridge the gap but carry their own runtime assumptions, layout models, and rendering pipelines — and none of them treat 3D as a first-class citizen alongside 2D.
 
 Common Graph needs something none of these provide: a **single declarative scene model** where depth is a continuous parameter, not a cliff between "2D app" and "3D engine." A minesweeper tile is a 3mm slab. A chess board square is a 1cm platform. A chess piece is a full 3D mesh. A text label is flat. These aren't different rendering systems — they're the same scene at different depths. The same declaration renders as perspective 3D with physically-based lighting on a GPU, as flat 2D through Skia on a lighter machine, or as text art in a terminal. Same items, same scene, different projections.
 
-So we built it. The scene system is:
+So here we are. The scene system is:
 
 - **Declarative and serializable.** Scenes are CBOR data structures, not code. They can be stored, transmitted, cached, and versioned like any other content. Items declare their presentation through annotations or programmatic schemas.
 - **Renderer-agnostic.** The scene model doesn't know about Filament or Skia or ANSI escape codes. Renderers project the same abstract tree into their native medium. Adding a new renderer (WebGL, a game engine, an accessibility layer) means implementing the projection, not rewriting the UI.
 - **Dimensionally unified.** Text, images, containers, and 3D geometry coexist in one coordinate system. Depth, elevation, and lighting are properties, not mode switches. A button can have a shadow because it has depth, not because someone implemented a shadow API.
 - **Portable.** No browser runtime. No platform SDK. The scene model is pure data; renderers are swappable backends. This code can target a desktop GPU, a phone, a terminal, a VR headset, or a watch — wherever there's a renderer that can project the scene tree.
 
-Is it as mature as HTML/CSS? No. Is it as polished as SwiftUI? Not yet. But it doesn't carry 30 years of backward compatibility constraints either, and it solves a problem none of them even attempt: treating the full spectrum from flat text to spatial 3D as one continuous, declarative, content-addressed scene.
+Is it as mature as HTML/CSS? Obviously not. Is it as polished as SwiftUI? Not yet. But it doesn't carry 30 years of backward compatibility constraints, and it solves a problem none of them even attempt: treating the full spectrum from flat text to spatial 3D as one continuous, declarative, content-addressed scene.
 
 See [`docs/presentation.md`](docs/presentation.md) for the rendering pipeline and scene system details.
 
@@ -144,7 +150,7 @@ See [`docs/presentation.md`](docs/presentation.md) for the rendering pipeline an
 
 ## Encoding: Why Binary, Why CBOR
 
-The web runs on text. HTML, CSS, JSON, XML — human-readable formats designed for an era when developers needed to view source and debug by eye. That was a reasonable tradeoff in 1993. It's a strange choice for the backbone of global infrastructure in 2026.
+The web runs on text. HTML, CSS, JSON, XML — human-readable formats designed for an era when developers needed to view source and debug by eye. That was a reasonable tradeoff in 1993. It's an odd choice for the backbone of global infrastructure in 2026.
 
 Text formats are bulky. A JSON object carrying a 32-byte hash needs 66+ bytes of hex encoding plus quotes and keys. The same value in CBOR is 34 bytes. Multiply that across every item, every relation, every content reference in a graph, and the difference is not academic — it's bandwidth, storage, and parse time at scale. Text formats are also weakly typed: JSON has no distinction between an integer and a float, no binary data type, no way to express "this is a cryptographic hash" versus "this is a UTF-8 string" without out-of-band schema.
 
@@ -267,7 +273,7 @@ Common Graph does not invent from scratch. It integrates decades of prior work:
 - **Local-first software** (Kleppmann 2019) — user-owned data, offline capability, collaboration without servers
 - **Visionary systems** (Bush's memex, Engelbart's augmentation, Nelson's Xanadu, Kay's Croquet) — the philosophical lineage
 
-Each of these solved a piece of the puzzle. Common Graph's contribution — if it works — is the integration: a single model where content addressing, semantic relations, cryptographic identity, multilingual vocabulary, and local-first storage reinforce each other rather than existing as separate systems stitched together.
+Each of these solved a piece of the puzzle. Common Graph's contribution — if it works — is the integration: a single model where content addressing, semantic relations, cryptographic identity, multilingual vocabulary, and local-first storage reinforce each other rather than existing as separate systems stitched together. Whether that integration is elegant synthesis or foolish overreach probably depends on when you ask.
 
 See [`docs/references/`](docs/references/) for the full academic bibliography with 65+ papers across 20 topic areas.
 
@@ -277,7 +283,7 @@ See [`docs/references/`](docs/references/) for the full academic bibliography wi
 
 This is an early-stage, ambitious, in-progress research project. It functions, but it is not ready for production use.
 
-**What works today** (~800K lines of Java across ~3,400 files):
+**What works today:**
 - Full item lifecycle: create, edit, sign, commit, store, retrieve, verify
 - Content-addressed storage with three backends (RocksDB, MapDB, in-memory)
 - Sememe-based vocabulary with TokenDictionary, inner-to-outer dispatch, and expression input
@@ -305,9 +311,9 @@ This is an early-stage, ambitious, in-progress research project. It functions, b
 - Performance optimization for large libraries
 - Documentation for contributors
 
-**The cautionary context:** Projects with this level of ambition have a history of not shipping. Xanadu envisioned content addressing and bidirectional links in 1963 and is still not finished. Cyc has been hand-encoding common sense for 40 years. Croquet built a beautiful replicated object system that couldn't meet users where they were. Plan 9 was technically superior to Unix and didn't matter. We take these lessons seriously — see [`docs/references/README.md`](docs/references/README.md#visionary-projects-and-cautionary-tales) for the full cautionary tales section.
+**The cautionary context:** Projects with this level of ambition have a history of not shipping. Xanadu envisioned content addressing and bidirectional links in 1963 and is still not finished. Cyc has been hand-encoding common sense for 40 years. Croquet built a beautiful replicated object system that couldn't meet users where they were. Plan 9 was technically superior to Unix and didn't matter. These lessons are taken seriously — see [`docs/references/README.md`](docs/references/README.md#visionary-projects-and-cautionary-tales) for the full cautionary tales section.
 
-The difference, we hope, is shipping incrementally and in public rather than waiting for completeness.
+The difference, hopefully, is shipping incrementally and in public rather than waiting for completeness.
 
 ---
 
@@ -384,9 +390,9 @@ Detailed specifications live in `docs/`:
 
 ## Contributing
 
-This project is in its early public life. The architecture is stabilizing but the surface area is large and there's plenty of room for collaboration — whether that's finding holes in the design, improving documentation, writing tests, or building on the component and game frameworks.
+This project is in its early public life. The architecture is stabilizing but the surface area is large and there's plenty of room for collaboration — finding holes in the design, improving documentation, writing tests, or building on the component and game frameworks.
 
-If Common Graph's vision resonates with you, open an issue or start a discussion. Design critiques are as valuable as code.
+If any of this resonates, open an issue or start a discussion. Design critiques are as valuable as code — possibly more so at this stage.
 
 ---
 
@@ -396,4 +402,4 @@ License will be formalized as the project matures. The intent is permissive open
 
 ---
 
-*Common Graph is built by [Jon Chambers](https://github.com/jchambers) with substantial assistance from Claude (Anthropic). The academic lineage is documented in [`docs/references/`](docs/references/).*
+*Common Graph has been a vision of Joshua Chambers for twenty years. This is the attempt that finally stuck. Built with [Claude Code](https://claude.ai/code). Intellectual lineage documented in [`docs/references/`](docs/references/).*
