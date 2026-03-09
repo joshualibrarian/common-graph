@@ -67,6 +67,10 @@ public abstract class Log<E> implements Component {
     /** Current sequence number (next entry gets this + 1) */
     private long sequence = -1;
 
+    /** Session-local cache of recent entry snapshots for tree display. */
+    private static final int MAX_CACHED_ENTRIES = 100;
+    private final List<InspectEntry> entryCache = new ArrayList<>();
+
     /**
      * Construct a Log, extracting the entry type from the generic parameter.
      */
@@ -121,6 +125,49 @@ public abstract class Log<E> implements Component {
     }
 
     // ==================================================================================
+    // Component Tree
+    // ==================================================================================
+
+    @Override
+    public boolean isExpandable() {
+        return !isEmpty();
+    }
+
+    @Override
+    public String displayToken() {
+        long n = count();
+        return entryClass.getSimpleName() + " log" + (n > 0 ? " (" + n + ")" : "");
+    }
+
+    @Override
+    public List<InspectEntry> inspectEntries() {
+        // Return newest first
+        List<InspectEntry> result = new ArrayList<>(entryCache.size());
+        for (int i = entryCache.size() - 1; i >= 0; i--) {
+            result.add(entryCache.get(i));
+        }
+        return result;
+    }
+
+    /**
+     * Subclasses can override to customize the label for a log entry in the tree.
+     *
+     * @param seq     the entry's sequence number
+     * @param payload the entry payload
+     * @return a human-readable label for the tree node
+     */
+    protected String entryLabel(long seq, E payload) {
+        return "#" + seq + " " + String.valueOf(payload);
+    }
+
+    /**
+     * Subclasses can override to customize the emoji for a log entry.
+     */
+    protected String entryEmoji(long seq, E payload) {
+        return "📜";
+    }
+
+    // ==================================================================================
     // Actions
     // ==================================================================================
 
@@ -155,6 +202,17 @@ public abstract class Log<E> implements Component {
         // Update head
         this.head = entryCid;
         this.sequence = logEntry.sequence();
+
+        // Cache entry snapshot for tree display
+        long seq = logEntry.sequence();
+        entryCache.add(new InspectEntry(
+                String.valueOf(seq),
+                entryLabel(seq, entry),
+                entryEmoji(seq, entry),
+                entry));
+        if (entryCache.size() > MAX_CACHED_ENTRIES) {
+            entryCache.removeFirst();
+        }
 
         return entryCid;
     }

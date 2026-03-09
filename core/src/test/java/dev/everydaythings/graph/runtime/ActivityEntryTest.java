@@ -1,13 +1,12 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for ActivityEntry and SessionItem activity log.
+ * Tests for ActivityEntry and ActivityLog.
  */
 class ActivityEntryTest {
 
@@ -55,57 +54,57 @@ class ActivityEntryTest {
     }
 
     // ==================================================================================
-    // SessionItem activity log
+    // ActivityLog tests
     // ==================================================================================
 
     @Test
-    void sessionLogIsInitiallyEmpty() {
-        var session = new SessionItem();
-        assertThat(session.activityCount()).isZero();
-        assertThat(session.lastActivity()).isEmpty();
+    void logIsInitiallyEmpty() {
+        var log = new ActivityLog();
+        assertThat(log.size()).isZero();
+        assertThat(log.last()).isEmpty();
     }
 
     @Test
-    void logActivityAppendsEntry() {
-        var session = new SessionItem();
+    void appendAddsEntry() {
+        var log = new ActivityLog();
         var entry = ActivityEntry.from("5 + 2", null, Eval.EvalResult.value(7.0));
-        session.logActivity(entry);
+        log.append(entry);
 
-        assertThat(session.activityCount()).isEqualTo(1);
-        assertThat(session.lastActivity()).isPresent();
-        assertThat(session.lastActivity().get().input()).isEqualTo("5 + 2");
+        assertThat(log.size()).isEqualTo(1);
+        assertThat(log.last()).isPresent();
+        assertThat(log.last().get().input()).isEqualTo("5 + 2");
     }
 
     @Test
-    void lastActivityForContextFiltersCorrectly() {
-        var session = new SessionItem();
+    void lastForContextFiltersCorrectly() {
+        var log = new ActivityLog();
         ItemID ctx1 = ItemID.fromString("cg:test/item1");
         ItemID ctx2 = ItemID.fromString("cg:test/item2");
 
-        session.logActivity(ActivityEntry.from("a", ctx1, Eval.EvalResult.value("alpha")));
-        session.logActivity(ActivityEntry.from("b", ctx2, Eval.EvalResult.value("beta")));
-        session.logActivity(ActivityEntry.from("c", ctx1, Eval.EvalResult.value("gamma")));
+        log.append(ActivityEntry.from("a", ctx1, Eval.EvalResult.value("alpha")));
+        log.append(ActivityEntry.from("b", ctx2, Eval.EvalResult.value("beta")));
+        log.append(ActivityEntry.from("c", ctx1, Eval.EvalResult.value("gamma")));
 
         // Last for ctx1 should be "c", not "a"
-        var last1 = session.lastActivityForContext(ctx1);
+        var last1 = log.lastForContext(ctx1);
         assertThat(last1).isPresent();
         assertThat(last1.get().input()).isEqualTo("c");
         assertThat(last1.get().resultText()).isEqualTo("gamma");
 
         // Last for ctx2 should be "b"
-        var last2 = session.lastActivityForContext(ctx2);
+        var last2 = log.lastForContext(ctx2);
         assertThat(last2).isPresent();
         assertThat(last2.get().input()).isEqualTo("b");
     }
 
     @Test
     void recentActivityReturnsNewestFirst() {
-        var session = new SessionItem();
-        session.logActivity(ActivityEntry.from("first", null, Eval.EvalResult.value(1)));
-        session.logActivity(ActivityEntry.from("second", null, Eval.EvalResult.value(2)));
-        session.logActivity(ActivityEntry.from("third", null, Eval.EvalResult.value(3)));
+        var log = new ActivityLog();
+        log.append(ActivityEntry.from("first", null, Eval.EvalResult.value(1)));
+        log.append(ActivityEntry.from("second", null, Eval.EvalResult.value(2)));
+        log.append(ActivityEntry.from("third", null, Eval.EvalResult.value(3)));
 
-        var recent = session.recentActivity(2);
+        var recent = log.recent(2);
         assertThat(recent).hasSize(2);
         assertThat(recent.get(0).input()).isEqualTo("third");
         assertThat(recent.get(1).input()).isEqualTo("second");
@@ -113,10 +112,10 @@ class ActivityEntryTest {
 
     @Test
     void recentActivityHandlesMoreThanAvailable() {
-        var session = new SessionItem();
-        session.logActivity(ActivityEntry.from("only", null, Eval.EvalResult.value(1)));
+        var log = new ActivityLog();
+        log.append(ActivityEntry.from("only", null, Eval.EvalResult.value(1)));
 
-        var recent = session.recentActivity(10);
+        var recent = log.recent(10);
         assertThat(recent).hasSize(1);
         assertThat(recent.get(0).input()).isEqualTo("only");
     }

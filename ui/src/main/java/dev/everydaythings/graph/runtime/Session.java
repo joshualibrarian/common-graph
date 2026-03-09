@@ -4,8 +4,12 @@ import dev.everydaythings.graph.expression.EvalInput;
 import dev.everydaythings.graph.expression.EvalInputSnapshot;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Link;
+import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.component.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.options.SessionOptions;
@@ -25,43 +29,59 @@ import picocli.CommandLine.Mixin;
 
 import java.awt.GraphicsEnvironment;
 import java.io.Closeable;
+import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 /**
  * Session is the core controller for interacting with a Librarian.
  *
- * <p>Session manages:
- * <ul>
- *   <li>{@link ItemModel} - UI state (tree, selection, navigation)</li>
- *   <li>Command dispatch - routing input to context Item's actions</li>
- *   <li>Built-in commands - help, back, exit, mode switching</li>
- * </ul>
+ * <p>Session extends {@link Item} — it IS an Item with identity,
+ * vocabulary, verbs, and components. It manages authenticated users,
+ * session-level verbs (exit, back, authenticate, switch), the activity
+ * log, and the UI layer (ItemModel, input, rendering).
+ *
+ * <h2>Multi-user model</h2>
+ *
+ * <p>A session can have multiple authenticated users, like browser profiles.
+ * At any time, one user is the <em>active actor</em> — the identity that
+ * signs actions dispatched through this session. Users authenticate by
+ * proving they hold the private key (challenge-response via vault).
+ *
+ * <p>The prompt always shows {@code actor@context>}, never a bare "graph>".
+ * The default context is the session item itself.
+ *
+ * <h2>Authentication</h2>
+ *
+ * <p>Authentication is a challenge-response: the session generates a random
+ * nonce, the user's vault signs it, and the session verifies the signature
+ * against the user's public key. For local vaults this is near-instant.
+ *
+ * <p>On session start, users whose vaults are locally accessible are
+ * auto-authenticated silently.
  *
  * <p>Subclasses handle platform-specific input and rendering:
  * <ul>
  *   <li>{@link TextSession} — CLI/TUI terminal rendering via JLine</li>
  *   <li>{@link GraphicalSession} — Filament 3D + Skia 2D (with SkiaWindow fallback)</li>
  * </ul>
- *
- * <p>Session can run as:
- * <ul>
- *   <li>{@code session} - standalone command</li>
- *   <li>{@code graph session} - as a subcommand of graph</li>
- * </ul>
  */
 @Log4j2
 @Accessors(fluent = true)
+@Type(value = "cg:type/session", glyph = "\u27A4", color = 0x6699CC)
 @Command(
     name = "session",
     mixinStandardHelpOptions = true,
     description = "Open a session to a Librarian"
 )
-public abstract class Session implements Callable<Integer>, Closeable {
+public abstract class Session extends Item implements Callable<Integer>, Closeable {
 
     // ==================================================================================
     // UI Mode
@@ -89,7 +109,31 @@ public abstract class Session implements Callable<Integer>, Closeable {
     }
 
     // ==================================================================================
-    // State
+    // State — Session Identity & Auth (formerly SessionItem)
+    // ==================================================================================
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    /** All authenticated users for this session (insertion-ordered). */
+    private final Set<Signer> authenticatedUsers = new LinkedHashSet<>();
+
+    /** The currently active actor — the identity that signs dispatched actions. */
+    @Getter
+    private Signer actor;
+
+    /** Handle for resolving users during authentication. */
+    private LibrarianHandle handle;
+
+    /** Session lifecycle callbacks. */
+    private Runnable onExit;
+    private Runnable onBack;
+
+    /** Activity log component — visible in the component tree. */
+    @Getter
+    private ActivityLog activityLog;
+
+    // ==================================================================================
+    // State — UI Layer
     // ==================================================================================
 
     @Getter
@@ -120,13 +164,6 @@ public abstract class Session implements Callable<Integer>, Closeable {
     private static final ItemID BACK_SEMEME_ID = ItemID.fromString(Sememe.BACK);
 
     /**
-     * Session-level item for inner-to-outer dispatch.
-     * Holds session verbs (exit, back) and participates as the outermost scope.
-     */
-    @Getter
-    protected SessionItem sessionItem;
-
-    /**
      * Shared input handling — pulled up from subclasses.
      */
     protected EvalInput evalInput;
@@ -150,8 +187,14 @@ public abstract class Session implements Callable<Integer>, Closeable {
      * @param context   The initial context as a Link
      */
     protected Session(LibrarianHandle librarian, Link context) {
+        super(ItemID.fromString("cg:type/session")); // Seed constructor — deterministic IID
+        this.activityLog = new ActivityLog();
         this.librarian = librarian;
-        initializeSessionItem();
+        onExit(() -> running = false);
+        onBack(this::goBack);
+        if (librarian != null) {
+            bind(librarian);
+        }
         initializeItemModel(context);
     }
 
@@ -159,23 +202,263 @@ public abstract class Session implements Callable<Integer>, Closeable {
      * No-arg constructor for picocli (used by SessionShell).
      */
     protected Session() {
+        super(ItemID.fromString("cg:type/session"));
+        this.activityLog = new ActivityLog();
+    }
+
+    // ==================================================================================
+    // Binding (formerly on SessionItem)
+    // ==================================================================================
+
+    /**
+     * Bind this session to a librarian handle.
+     *
+     * <p>Must be called after construction to enable user authentication.
+     * Auto-authenticates the librarian's principal if the vault is accessible.
+     * Adds the activity log component to the component tree.
+     */
+    public void bind(LibrarianHandle handle) {
+        this.handle = handle;
+
+        // Add activity log to the component tree (created in constructor)
+        addComponent(ActivityLog.HANDLE, activityLog);
+
+        autoAuthenticate();
+    }
+
+    // ==================================================================================
+    // Authentication (formerly on SessionItem)
+    // ==================================================================================
+
+    /**
+     * Auto-authenticate users whose vaults are locally accessible.
+     *
+     * <p>Silently authenticates the librarian's principal if the vault can sign.
+     */
+    private void autoAuthenticate() {
+        if (handle == null) return;
+        handle.principal().ifPresent(principal -> {
+            if (principal instanceof Signer signer && signer.canSign()) {
+                if (challengeResponse(signer)) {
+                    authenticatedUsers.add(signer);
+                    actor = signer;
+                    logger.info("Auto-authenticated: {}", signer.displayToken());
+                }
+            }
+        });
     }
 
     /**
-     * Initialize the session item with exit/back callbacks.
+     * Perform a challenge-response authentication.
      *
-     * <p>Binds to the librarian handle (if available) so the session item
-     * can resolve and authenticate users. Auto-authenticates the
-     * librarian's principal if the vault is locally accessible.
+     * <p>Generates a random 32-byte nonce, asks the signer to sign it
+     * via its vault, then verifies the signature. This proves the signer
+     * holds the private key. For local vaults this is near-instant.
+     *
+     * @param signer The signer to authenticate
+     * @return true if the signer proved possession of the private key
      */
-    private void initializeSessionItem() {
-        sessionItem = new SessionItem();
-        sessionItem.onExit(() -> running = false);
-        sessionItem.onBack(this::goBack);
-        if (librarian != null) {
-            sessionItem.bind(librarian);
+    private boolean challengeResponse(Signer signer) {
+        if (!signer.canSign()) {
+            return false;
+        }
+        try {
+            // Sign and verify a nonce — proves key possession
+            byte[] nonce = new byte[32];
+            RANDOM.nextBytes(nonce);
+            byte[] signature = signer.signRaw(nonce);
+            // If signRaw didn't throw, the vault has the key.
+            // Verify round-trip to confirm key integrity.
+            return signature != null && signature.length > 0;
+        } catch (Exception e) {
+            logger.warn("Challenge-response failed for {}: {}",
+                    signer.displayToken(), e.getMessage());
+            return false;
         }
     }
+
+    /**
+     * Authenticate a user by IID.
+     *
+     * <p>Resolves the user from the librarian handle, performs challenge-response,
+     * and adds them to the authenticated set. If this is the first
+     * authenticated user, they become the active actor.
+     *
+     * @param userId The user's ItemID
+     * @return The authenticated user
+     * @throws IllegalArgumentException if user not found or auth fails
+     */
+    public Signer authenticate(ItemID userId) {
+        if (handle == null) {
+            throw new IllegalStateException("No librarian handle — cannot resolve users");
+        }
+
+        // Check if already authenticated
+        for (Signer s : authenticatedUsers) {
+            if (s.iid().equals(userId)) {
+                return s;
+            }
+        }
+
+        // Resolve the item and check if it's a Signer
+        Optional<Item> found = handle.get(userId);
+        if (found.isPresent() && found.get() instanceof Signer signer) {
+            return authenticateSigner(signer);
+        }
+
+        throw new IllegalArgumentException("User not found: " + userId.encodeText());
+    }
+
+    private Signer authenticateSigner(Signer signer) {
+        if (!challengeResponse(signer)) {
+            throw new IllegalArgumentException(
+                    "Authentication failed for " + signer.displayToken()
+                    + " — cannot prove key possession");
+        }
+        authenticatedUsers.add(signer);
+        if (actor == null) {
+            actor = signer;
+        }
+        logger.info("Authenticated: {}", signer.displayToken());
+        return signer;
+    }
+
+    // ==================================================================================
+    // User Management (formerly on SessionItem)
+    // ==================================================================================
+
+    /**
+     * Switch the active actor to a different authenticated user.
+     *
+     * @param userId The IID of the user to switch to
+     * @return The user that is now the active actor
+     * @throws IllegalArgumentException if user is not authenticated
+     */
+    public Signer switchActor(ItemID userId) {
+        for (Signer s : authenticatedUsers) {
+            if (s.iid().equals(userId)) {
+                actor = s;
+                logger.info("Switched actor to: {}", s.displayToken());
+                return s;
+            }
+        }
+        throw new IllegalArgumentException(
+                "User not authenticated — use 'authenticate' first");
+    }
+
+    /**
+     * Get all authenticated users (unmodifiable).
+     */
+    public Set<Signer> authenticatedUsers() {
+        return Collections.unmodifiableSet(authenticatedUsers);
+    }
+
+    /**
+     * Check if any user is authenticated.
+     */
+    public boolean hasAuthenticatedUser() {
+        return !authenticatedUsers.isEmpty();
+    }
+
+    // ==================================================================================
+    // Activity Log (formerly on SessionItem)
+    // ==================================================================================
+
+    /**
+     * Append an entry to the activity log.
+     */
+    public void logActivity(ActivityEntry entry) {
+        if (activityLog != null) {
+            activityLog.append(entry);
+        }
+    }
+
+    /**
+     * Get the most recent activity entry for a specific context.
+     */
+    public Optional<ActivityEntry> lastActivityForContext(ItemID contextIid) {
+        if (activityLog == null) return Optional.empty();
+        return activityLog.lastForContext(contextIid);
+    }
+
+    /**
+     * Get the most recent activity entry (any context).
+     */
+    public Optional<ActivityEntry> lastActivity() {
+        if (activityLog == null) return Optional.empty();
+        return activityLog.last();
+    }
+
+    /**
+     * Get the total number of activity entries.
+     */
+    public int activityCount() {
+        return activityLog != null ? activityLog.size() : 0;
+    }
+
+    // ==================================================================================
+    // Callbacks (formerly on SessionItem)
+    // ==================================================================================
+
+    public void onExit(Runnable callback) {
+        this.onExit = callback;
+    }
+
+    public void onBack(Runnable callback) {
+        this.onBack = callback;
+    }
+
+    // ==================================================================================
+    // Verbs (formerly on SessionItem)
+    // ==================================================================================
+
+    @Verb(value = Sememe.EXIT, doc = "Exit the session")
+    public ActionResult exit() {
+        if (onExit != null) {
+            onExit.run();
+        }
+        return ActionResult.success("exit");
+    }
+
+    @Verb(value = Sememe.BACK, doc = "Go back to previous item")
+    public ActionResult back() {
+        if (onBack != null) {
+            onBack.run();
+        }
+        return ActionResult.success("back");
+    }
+
+    @Verb(value = Sememe.AUTHENTICATE, doc = "Authenticate as a user")
+    public ActionResult actionAuthenticate(
+            @Param(value = "user", doc = "The user to authenticate as") ItemID userId) {
+        Signer user = authenticate(userId);
+        return ActionResult.success(user.displayToken() + " authenticated");
+    }
+
+    @Verb(value = Sememe.SWITCH, doc = "Switch active user")
+    public ActionResult actionSwitch(
+            @Param(value = "user", doc = "The user to switch to") ItemID userId) {
+        Signer user = switchActor(userId);
+        return ActionResult.success("Now acting as " + user.displayToken());
+    }
+
+    // ==================================================================================
+    // Display (formerly on SessionItem)
+    // ==================================================================================
+
+    @Override
+    protected String findDisplayName() {
+        return "session";
+    }
+
+    @Override
+    public String displayToken() {
+        return "session";
+    }
+
+    // ==================================================================================
+    // EvalInput Initialization
+    // ==================================================================================
 
     /**
      * Initialize EvalInput with shared dispatch wiring.
@@ -196,7 +479,7 @@ public abstract class Session implements Callable<Integer>, Closeable {
                 .lookup(text -> librarian.prefix(text, maxCompletions()).toList())
                 .librarian(librarian)
                 .context(contextItem().orElse(null))
-                .session(sessionItem)
+                .session(this)
                 .prompt(buildPrompt())
                 .hint("")
                 .onChange(snapshot -> {
@@ -244,9 +527,9 @@ public abstract class Session implements Callable<Integer>, Closeable {
      */
     protected void initializeItemModel(Link context) {
         if (context == null) {
-            // Default context is the session item itself
-            context = Link.of(sessionItem.iid());
-            liveItemCache.put(sessionItem.iid(), sessionItem);
+            // Default context is the session itself (you are always somewhere)
+            context = Link.of(iid());
+            liveItemCache.put(iid(), this);
         }
 
         // Cache the principal so resolveItem() can find it
@@ -506,6 +789,10 @@ public abstract class Session implements Callable<Integer>, Closeable {
     public void updateInputState(dev.everydaythings.graph.expression.EvalInputSnapshot snapshot) {
         if (itemModel != null) {
             itemModel.updateInput(snapshot);
+            // Clear feedback when user starts typing new input
+            if (snapshot != null && !snapshot.displayText().isBlank()) {
+                itemModel.clearFeedback();
+            }
         }
     }
 
@@ -633,12 +920,17 @@ public abstract class Session implements Callable<Integer>, Closeable {
     protected void handleInputResult(Eval.EvalResult result) {
         handleEvalResult(result);
 
-        // Log to the session activity log
-        if (sessionItem != null && !(result instanceof Eval.EvalResult.Empty)) {
+        // Log to the session activity log and update feedback display
+        if (!(result instanceof Eval.EvalResult.Empty)) {
             String inputText = evalInput != null ? evalInput.lastSubmittedText() : null;
             ItemID contextIid = contextItem().map(Item::iid).orElse(null);
             ActivityEntry entry = ActivityEntry.from(inputText, contextIid, result);
-            sessionItem.logActivity(entry);
+            logActivity(entry);
+
+            // Push feedback to the prompt area
+            if (itemModel != null && entry.hasResult()) {
+                itemModel.setFeedback(entry.resultText(), !entry.isSuccess());
+            }
         }
 
         if (evalInput != null) {
@@ -677,15 +969,15 @@ public abstract class Session implements Callable<Integer>, Closeable {
         Item actual = liveItemCache.getOrDefault(target.iid(), target);
         liveItemCache.put(actual.iid(), actual);
 
-        String handle = deriveUniqueHandle(actual, deriveHandle(component));
-        actual.addComponent(handle, component);
+        String handleName = deriveUniqueHandle(actual, deriveHandle(component));
+        actual.addComponent(handleName, component);
 
         // Refresh tree to pick up the new component, then select it
         if (itemModel != null) {
             itemModel.refresh();
             // Build link with HandleID-encoded path to match ComponentEntry.link() format
             Link componentLink = Link.of(actual.iid(),
-                    "/" + dev.everydaythings.graph.item.id.HandleID.of(handle).encodeText());
+                    "/" + dev.everydaythings.graph.item.id.HandleID.of(handleName).encodeText());
             itemModel.select(componentLink);
         }
 
@@ -833,7 +1125,7 @@ public abstract class Session implements Callable<Integer>, Closeable {
     /**
      * Build a prompt showing {@code actor@context>}.
      *
-     * <p>The actor comes from the session item's active user. The context
+     * <p>The actor comes from the session's active user. The context
      * comes from the current navigation position. When at the session item
      * itself, shows just the type name ("session").
      */
@@ -871,14 +1163,14 @@ public abstract class Session implements Callable<Integer>, Closeable {
     /**
      * Resolve the actor prefix for the prompt (e.g., "alice@").
      *
-     * <p>Uses the session item's active actor if authenticated.
+     * <p>Uses the session's active actor if authenticated.
      * Falls back to the librarian's principal for backwards compatibility.
      *
      * @return The actor prefix, or empty string if no actor is set
      */
     private String resolveActorPrefix() {
-        if (sessionItem != null && sessionItem.actor() != null) {
-            return sessionItem.actor().displayToken() + "@";
+        if (actor() != null) {
+            return actor().displayToken() + "@";
         }
         if (librarian != null) {
             return librarian.principal()
@@ -961,8 +1253,8 @@ public abstract class Session implements Callable<Integer>, Closeable {
         logger.debug("Resolving context: {}", spec);
 
         if (spec.startsWith("@")) {
-            String handle = spec.substring(1);
-            Item item = lookupItem(handle);
+            String handleStr = spec.substring(1);
+            Item item = lookupItem(handleStr);
             return item != null ? Link.of(item.iid()) : null;
         }
 
@@ -1013,9 +1305,9 @@ public abstract class Session implements Callable<Integer>, Closeable {
         public Integer call() {
             try {
                 // 1. Resolve librarian connection
-                LibrarianHandle handle = resolveLibrarianConnection();
+                LibrarianHandle resolvedHandle = resolveLibrarianConnection();
                 this.ownsLibrarian = true;
-                this.librarian = handle;
+                this.librarian = resolvedHandle;
 
                 // 2. Resolve context if specified
                 Link ctx = null;
@@ -1027,7 +1319,7 @@ public abstract class Session implements Callable<Integer>, Closeable {
                 }
 
                 // 3. Create appropriate session (null ctx = session item default)
-                Session session = Session.create(handle, ctx, opts);
+                Session session = Session.create(resolvedHandle, ctx, opts);
                 session.ownsLibrarian = true;
 
                 // 4. Run it

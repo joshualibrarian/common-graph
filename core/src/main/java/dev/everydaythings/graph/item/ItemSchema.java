@@ -265,6 +265,11 @@ public class ItemSchema {
             ComponentEntry entry = encodeComponentField(spec, value, storePayload);
             if (entry != null) {
                 contentTable.add(entry);
+                // Preserve the live instance on the new entry so subsequent
+                // lookups return the same object (not a lazy-decoded copy
+                // that loses transient state like Dag's materialized maps).
+                String alias = spec.alias().isEmpty() ? spec.handleKey() : spec.alias();
+                contentTable.setLive(spec.handle(), alias, value);
             }
         }
     }

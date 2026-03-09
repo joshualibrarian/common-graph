@@ -279,7 +279,7 @@ public final class SceneCompiler {
             return View.of(schema).mode(mode);
         } else if (data instanceof SceneModel model) {
             return View.of(model.toSurface()).mode(mode);
-        } else if (hasStructuralAnnotation(clazz)) {
+        } else if (has2DAnnotation(clazz)) {
             // Class itself has @Scene.Container/@Scene.Text/etc — compile from its own annotations
             SurfaceSchema<Object> wrapper = new SurfaceSchema<>() {};
             wrapper.value(data);
@@ -565,14 +565,10 @@ public final class SceneCompiler {
     }
 
     /**
-     * Check if a class has any @Scene structural annotation.
+     * Check if a class has any @Scene structural annotation (2D or 3D).
      */
     static boolean hasStructuralAnnotation(Class<?> clazz) {
-        return clazz.isAnnotationPresent(Scene.Container.class)
-                || clazz.isAnnotationPresent(Scene.Text.class)
-                || clazz.isAnnotationPresent(Scene.Image.class)
-                || clazz.isAnnotationPresent(Scene.Shape.class)
-                || clazz.isAnnotationPresent(Scene.Embed.class)
+        return has2DAnnotation(clazz)
                 || clazz.isAnnotationPresent(Scene.Body.class)
                 || clazz.isAnnotationPresent(Scene.Face.class)
                 || clazz.isAnnotationPresent(Scene.Transform.class)
@@ -580,6 +576,18 @@ public final class SceneCompiler {
                 || clazz.isAnnotationPresent(Scene.Audio.class)
                 || clazz.isAnnotationPresent(Scene.Environment.class)
                 || clazz.isAnnotationPresent(Scene.Camera.class);
+    }
+
+    /**
+     * Check if a class has 2D surface annotations (Container, Text, Image, Shape, Embed).
+     * Classes with only 3D annotations (Body, Face, Transform, etc.) return false.
+     */
+    static boolean has2DAnnotation(Class<?> clazz) {
+        return clazz.isAnnotationPresent(Scene.Container.class)
+                || clazz.isAnnotationPresent(Scene.Text.class)
+                || clazz.isAnnotationPresent(Scene.Image.class)
+                || clazz.isAnnotationPresent(Scene.Shape.class)
+                || clazz.isAnnotationPresent(Scene.Embed.class);
     }
 
     /**
@@ -1834,8 +1842,9 @@ public final class SceneCompiler {
         FieldMetadata metadata = scanFields(clazz);
 
         // Primitive/simple objects (String, Number, Map, List, etc.) may not have
-        // annotated fields. Render them via the same default value-to-surface path.
-        if (metadata.fields().isEmpty()) {
+        // annotated fields. Also fall through if all fields are hidden.
+        boolean hasVisibleFields = metadata.fields().stream().anyMatch(FieldInfo::visible);
+        if (metadata.fields().isEmpty() || !hasVisibleFields) {
             SurfaceSchema<?> surface = defaultValueToScene(data, mode);
             return surface != null ? View.of(surface).mode(mode) : View.empty();
         }
@@ -2094,7 +2103,8 @@ public final class SceneCompiler {
             // Prevent compile -> defaultValueToScene -> compile recursion for Canonicals
             // that do not expose annotated fields (e.g., Hash/ID wrappers).
             FieldMetadata metadata = scanFields(value.getClass());
-            if (metadata.fields().isEmpty()) {
+            boolean anyVisible = metadata.fields().stream().anyMatch(FieldInfo::visible);
+            if (metadata.fields().isEmpty() || !anyVisible) {
                 return TextSurface.of(String.valueOf(value)).format("code");
             }
             View v = compile(c, mode);

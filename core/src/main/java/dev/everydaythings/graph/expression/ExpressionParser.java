@@ -4,6 +4,7 @@ import dev.everydaythings.graph.item.component.expression.BinaryExpression;
 import dev.everydaythings.graph.item.component.expression.Expression;
 import dev.everydaythings.graph.item.component.expression.FunctionExpression;
 import dev.everydaythings.graph.item.component.expression.LiteralExpression;
+import dev.everydaythings.graph.item.component.expression.PropertyAccessExpression;
 import dev.everydaythings.graph.item.component.expression.ReferenceExpression;
 import dev.everydaythings.graph.item.component.expression.UnaryExpression;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -44,6 +45,32 @@ public class ExpressionParser {
     private ExpressionParser(List<ExpressionToken> tokens) {
         this.tokens = tokens;
         this.pos = 0;
+    }
+
+    /**
+     * Parse a raw expression string into an Expression AST.
+     *
+     * <p>This is the universal entry point — used by {@code @Scene.Bind},
+     * stored expressions, and anywhere a string needs to become an expression.
+     *
+     * @param expression The expression string (e.g., "session.activity.resultText")
+     * @return The parsed expression
+     * @throws ParseException if the string cannot be parsed
+     */
+    public static Expression parse(String expression) {
+        List<ExpressionToken> tokens = ExpressionLexer.tokenize(expression);
+        return parse(tokens);
+    }
+
+    /**
+     * Try to parse a raw expression string. Returns empty on failure.
+     */
+    public static Optional<Expression> tryParse(String expression) {
+        try {
+            return Optional.of(parse(expression));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -88,6 +115,7 @@ public class ExpressionParser {
             if (token instanceof ExpressionToken.OpToken) return true;
             if (token instanceof ExpressionToken.OpenParen) return true;
             if (token instanceof ExpressionToken.CloseParen) return true;
+            if (token instanceof ExpressionToken.DotToken) return true;
         }
         // Also check for numeric literals (bare numbers are expressions)
         if (tokens.size() == 1 && tokens.getFirst() instanceof ExpressionToken.LiteralToken lit) {
@@ -111,6 +139,30 @@ public class ExpressionParser {
 
         while (pos < tokens.size()) {
             ExpressionToken token = tokens.get(pos);
+
+            // DOT — property access, always tightest binding.
+            // Handled before operator precedence check because it
+            // binds tighter than any operator.
+            if (token instanceof ExpressionToken.DotToken) {
+                pos++; // consume dot
+                if (pos >= tokens.size()) {
+                    throw new ParseException("Expected property name after '.'");
+                }
+                ExpressionToken propToken = tokens.get(pos);
+                if (!(propToken instanceof ExpressionToken.NameToken name)) {
+                    throw new ParseException("Expected property name after '.', got: " + propToken.displayText());
+                }
+                pos++; // consume property name
+
+                // Check for method call: obj.method(args...)
+                if (pos < tokens.size() && tokens.get(pos) instanceof ExpressionToken.OpenParen) {
+                    // Method call — parse as function call with object as first arg
+                    left = parseMethodCall(left, name.name());
+                } else {
+                    left = new PropertyAccessExpression(left, name.name());
+                }
+                continue;
+            }
 
             // Check for infix operator
             Operator infixOp = getInfixOperator(token);
@@ -199,6 +251,12 @@ public class ExpressionParser {
 
             case ExpressionToken.CloseParen ignored ->
                     throw new ParseException("Unexpected closing parenthesis");
+
+            case ExpressionToken.DotToken ignored ->
+                    throw new ParseException("Unexpected '.' at start of expression");
+
+            case ExpressionToken.CommaToken ignored ->
+                    throw new ParseException("Unexpected ',' outside of function call");
         };
     }
 
@@ -208,28 +266,47 @@ public class ExpressionParser {
      */
     private Expression parseFunctionCall(String functionName) {
         pos++; // consume OpenParen
+        List<Expression> args = parseArgumentList();
+        expect(ExpressionToken.CloseParen.class, ")");
+        return FunctionExpression.call(functionName, args);
+    }
 
+    /**
+     * Parse a method call: obj.method(arg1, arg2, ...)
+     * Assumes dot and method name have been consumed and next token is OpenParen.
+     * The object expression becomes an implicit first argument.
+     */
+    private Expression parseMethodCall(Expression object, String methodName) {
+        pos++; // consume OpenParen
+        List<Expression> args = new ArrayList<>();
+        args.add(object); // object is implicit first argument
+        args.addAll(parseArgumentList());
+        expect(ExpressionToken.CloseParen.class, ")");
+        return FunctionExpression.call(methodName, args);
+    }
+
+    /**
+     * Parse a comma-separated list of argument expressions.
+     * Does NOT consume the closing paren.
+     */
+    private List<Expression> parseArgumentList() {
         List<Expression> args = new ArrayList<>();
 
         // Empty argument list?
         if (pos < tokens.size() && tokens.get(pos) instanceof ExpressionToken.CloseParen) {
-            pos++; // consume CloseParen
-            return FunctionExpression.call(functionName, args);
+            return args;
         }
 
-        // Parse comma-separated arguments
-        // (commas aren't tokens yet, so arguments are separated by the natural
-        // parsing boundaries — for now, each argument is a single expression)
+        // First argument
         args.add(parseExpression(Integer.MIN_VALUE));
 
-        // TODO: when comma token is added, parse more arguments here
-        // while (pos < tokens.size() && isComma(tokens.get(pos))) {
-        //     pos++; // consume comma
-        //     args.add(parseExpression(Integer.MIN_VALUE));
-        // }
+        // Remaining arguments separated by commas
+        while (pos < tokens.size() && tokens.get(pos) instanceof ExpressionToken.CommaToken) {
+            pos++; // consume comma
+            args.add(parseExpression(Integer.MIN_VALUE));
+        }
 
-        expect(ExpressionToken.CloseParen.class, ")");
-        return FunctionExpression.call(functionName, args);
+        return args;
     }
 
     // ==================================================================================

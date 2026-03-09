@@ -119,7 +119,7 @@ public class TextSession extends Session {
         return Eval.builder()
                 .librarian(librarian)
                 .context(ctx)
-                .session(sessionItem)
+                .session(this)
                 .interactive(false)
                 .build()
                 .run(Arrays.asList(parts));
@@ -143,7 +143,7 @@ public class TextSession extends Session {
         return Eval.builder()
                 .librarian(librarian)
                 .context(ctx)
-                .session(sessionItem)
+                .session(this)
                 .interactive(false)
                 .build()
                 .run(commandArgs);

@@ -5,6 +5,7 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.trust.Signing;
+import dev.everydaythings.graph.ui.scene.Scene;
 
 import java.util.*;
 
@@ -46,10 +47,12 @@ public abstract class Dag<E> implements Component, Canonical {
     /* ======================== Canonical fields ========================= */
 
     @Canon(isBody = true, isRecord = false, order = 1)
+    @Scene(visible = false)
     protected int version = 1;
 
     /** Current heads (event CIDs) – lives in RECORD. */
     @Canon(isBody = false, isRecord = true, order = 100)
+    @Scene(visible = false)
     protected List<byte[]> heads = new ArrayList<>();
 
     public List<byte[]> heads() { return List.copyOf(heads); }
@@ -204,6 +207,11 @@ public abstract class Dag<E> implements Component, Canonical {
      */
     public boolean isEmpty() {
         return heads.isEmpty();
+    }
+
+    @Override
+    public boolean isExpandable() {
+        return !isEmpty();
     }
 
     /**

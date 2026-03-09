@@ -1,13 +1,20 @@
 package dev.everydaythings.graph.ui.scene.surface;
 
+import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.expression.CompletionEntry;
 import dev.everydaythings.graph.expression.EvalInputSnapshot;
 import dev.everydaythings.graph.expression.ExpressionToken;
+import dev.everydaythings.graph.expression.ExpressionToken.RefToken;
+import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.ui.scene.BoxBorder;
 import dev.everydaythings.graph.ui.scene.Scene;
 import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Input field surface — renders the prompt, tokens, pending text, and completions.
@@ -22,34 +29,45 @@ import java.util.List;
  *
  * <h2>Visual Structure</h2>
  * <pre>
- * ┌─────────────────────────────────────────────┐
- * │ 📚 Librarian> [token1] [token2] pending_  │  ← input row
- * ├─────────────────────────────────────────────┤
- * │ ▸ completion1                               │  ← completions (if visible)
- * │   completion2                               │
- * │   completion3                               │
- * └─────────────────────────────────────────────┘
+ * ┌─────────────────────────────────────────────────────┐
+ * │ 📚 Librarian> [🎯 create] [♟ chess] pending_     │  ← input row
+ * ├─────────────────────────────────────────────────────┤
+ * │ ▸ completion1                                       │  ← completions (if visible)
+ * │   completion2                                       │
+ * │   completion3                                       │
+ * └─────────────────────────────────────────────────────┘
  * </pre>
- *
- * <h2>Usage</h2>
- * <pre>{@code
- * // Empty input with prompt
- * InputSurface.empty("📚 Librarian> ", "Type to search...")
- *
- * // From EvalInput snapshot
- * InputSurface.fromSnapshot(evalInput.snapshot())
- * }</pre>
  */
 @Getter
+@Scene.Rule(match = ".prompt", color = "#89B4FA")
+@Scene.Rule(match = ".completion-selected", background = "#313244")
+@Scene.Rule(match = ".completion-indicator", color = "#89B4FA", fontWeight = "bold")
+@Scene.Rule(match = ".error", color = "#F38BA8")
 public class InputSurface extends SurfaceSchema<Void> {
+
+    /**
+     * A token chip — carries display info for one committed token in the input.
+     *
+     * <p>Resolved tokens (RefToken) render as handle-like pills with emoji + label.
+     * Unresolved tokens (literals, operators, parens) render as plain text.
+     */
+    public record TokenChip(
+            String text,
+            String emoji,
+            boolean resolved
+    ) implements Canonical {
+        public TokenChip {
+            if (text == null) text = "";
+        }
+    }
 
     /** The prompt text (e.g., "📚 Librarian> "). */
     @Canon(order = 20)
     private String prompt;
 
-    /** Display texts of resolved tokens (chips). */
+    /** Token chips with display metadata. */
     @Canon(order = 21)
-    private List<String> tokenTexts;
+    private List<TokenChip> chips;
 
     /** Unresolved text being typed. */
     @Canon(order = 22)
@@ -80,7 +98,7 @@ public class InputSurface extends SurfaceSchema<Void> {
     private boolean showCompletions;
 
     public InputSurface() {
-        this.tokenTexts = List.of();
+        this.chips = List.of();
         this.completions = List.of();
         this.pendingText = "";
     }
@@ -98,9 +116,20 @@ public class InputSurface extends SurfaceSchema<Void> {
     }
 
     /**
-     * Populate from an EvalInputSnapshot.
+     * Populate from an EvalInputSnapshot (no emoji resolution).
      */
     public static InputSurface fromSnapshot(EvalInputSnapshot snapshot) {
+        return fromSnapshot(snapshot, null);
+    }
+
+    /**
+     * Populate from an EvalInputSnapshot with item resolution for emoji.
+     *
+     * @param snapshot the input state snapshot
+     * @param resolver optional item resolver to look up emoji for RefTokens
+     */
+    public static InputSurface fromSnapshot(EvalInputSnapshot snapshot,
+                                            Function<ItemID, Optional<Item>> resolver) {
         InputSurface s = new InputSurface();
         s.prompt = snapshot.prompt();
         s.hint = snapshot.hint();
@@ -110,17 +139,37 @@ public class InputSurface extends SurfaceSchema<Void> {
         s.showCompletions = snapshot.showCompletions();
         s.selectedCompletion = snapshot.selectedCompletion();
 
-        // Extract token display texts
-        List<String> tokens = new ArrayList<>();
+        // Build token chips with resolution info
+        List<TokenChip> chipList = new ArrayList<>();
         for (ExpressionToken token : snapshot.tokens()) {
-            tokens.add(token.displayText());
+            if (token instanceof RefToken ref && resolver != null) {
+                String emoji = null;
+                try {
+                    Optional<Item> item = resolver.apply(ref.target());
+                    if (item.isPresent()) {
+                        emoji = item.get().emoji();
+                    }
+                } catch (Exception ignored) {}
+                chipList.add(new TokenChip(ref.displayText(), emoji, true));
+            } else if (token instanceof RefToken ref) {
+                chipList.add(new TokenChip(ref.displayText(), null, true));
+            } else {
+                chipList.add(new TokenChip(token.displayText(), null, false));
+            }
         }
-        s.tokenTexts = tokens;
+        s.chips = chipList;
 
         // Use enriched completion entries
         s.completions = snapshot.completionEntries();
 
         return s;
+    }
+
+    /**
+     * Get display texts for all chips (backwards-compatible).
+     */
+    public List<String> tokenTexts() {
+        return chips.stream().map(TokenChip::text).toList();
     }
 
     // ==================== Rendering ====================
@@ -147,7 +196,7 @@ public class InputSurface extends SurfaceSchema<Void> {
     }
 
     /**
-     * Render the main input row: prompt + tokens + pending text.
+     * Render the main input row: prompt + token chips + pending text.
      */
     private void renderInputRow(SurfaceRenderer out) {
         out.gap("0.25em");
@@ -158,18 +207,32 @@ public class InputSurface extends SurfaceSchema<Void> {
             out.text(prompt, List.of("prompt"));
         }
 
-        // Resolved token chips
-        for (String tokenText : tokenTexts) {
-            out.beginBox(Scene.Direction.HORIZONTAL, List.of("token-chip"));
-            out.text(tokenText, List.of("token"));
-            out.endBox();
+        // Token chips
+        for (TokenChip chip : chips) {
+            if (chip.resolved()) {
+                // Resolved token: render as a handle-like pill with border-radius and background
+                out.gap("0.3em");
+                out.beginBox(Scene.Direction.HORIZONTAL,
+                        List.of("token-chip", "resolved"),
+                        BoxBorder.parse("0.1em solid #4A5568", "0.6em"),
+                        "#2D3748", null, null, "0.1em 0.4em");
+                if (chip.emoji() != null && !chip.emoji().isEmpty()) {
+                    out.text(chip.emoji(), List.of("token-emoji"));
+                }
+                out.text(chip.text(), List.of("token"));
+                out.endBox();
+            } else {
+                // Unresolved token: plain text (operators, parens, literals)
+                out.beginBox(Scene.Direction.HORIZONTAL, List.of("token-chip"));
+                out.text(chip.text(), List.of("token"));
+                out.endBox();
+            }
         }
 
         // Pending text with cursor, or hint
-        boolean hasContent = !tokenTexts.isEmpty() || (pendingText != null && !pendingText.isEmpty());
+        boolean hasContent = !chips.isEmpty() || (pendingText != null && !pendingText.isEmpty());
         if (pendingText != null && !pendingText.isEmpty()) {
             out.editable(true);
-            // Insert cursor marker into text
             String display = insertCursor(pendingText, cursor);
             out.text(display, List.of("pending"));
         } else if (!hasContent && hint != null && !hint.isEmpty()) {
@@ -199,6 +262,9 @@ public class InputSurface extends SurfaceSchema<Void> {
 
             out.gap("0.5em");
             out.beginBox(Scene.Direction.HORIZONTAL, rowStyles);
+            // Selection indicator: ▸ for selected, space for others
+            boolean selected = (i == selectedCompletion);
+            out.text(selected ? "▸ " : "  ", List.of(selected ? "completion-indicator" : "completion-spacer"));
             if (entry.emoji() != null && !entry.emoji().isEmpty()) {
                 out.text(entry.emoji(), List.of("completion-emoji"));
             }
@@ -216,11 +282,11 @@ public class InputSurface extends SurfaceSchema<Void> {
      * Insert a visual cursor marker into text at the given position.
      */
     private static String insertCursor(String text, int pos) {
-        if (text == null || text.isEmpty()) return "▏";
+        if (text == null || text.isEmpty()) return "\u258F";
         int clampedPos = Math.max(0, Math.min(pos, text.length()));
         if (clampedPos >= text.length()) {
-            return text + "▏";
+            return text + "\u258F";
         }
-        return text.substring(0, clampedPos) + "▏" + text.substring(clampedPos);
+        return text.substring(0, clampedPos) + "\u258F" + text.substring(clampedPos);
     }
 }

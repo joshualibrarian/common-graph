@@ -232,4 +232,27 @@ public sealed interface ExpressionToken {
             return name;
         }
     }
+
+    /**
+     * Dot — property access separator.
+     *
+     * <p>Used in expression parsing for property access: {@code session.activity}.
+     * Handled as the tightest-binding infix operation in the Pratt parser.
+     */
+    record DotToken() implements ExpressionToken {
+        @Override
+        public String displayText() {
+            return ".";
+        }
+    }
+
+    /**
+     * Comma — argument separator in function calls.
+     */
+    record CommaToken() implements ExpressionToken {
+        @Override
+        public String displayText() {
+            return ",";
+        }
+    }
 }

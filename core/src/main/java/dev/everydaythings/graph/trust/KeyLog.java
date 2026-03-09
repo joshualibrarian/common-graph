@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.component.Factory;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Dag;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.ui.scene.Scene;
+
 import lombok.AllArgsConstructor;
 
 import java.security.MessageDigest;
@@ -27,7 +27,7 @@ import java.util.*;
  * and can be shared to prove identity and key history.
  */
 @Type(value = KeyLog.KEY, glyph = "🔑", icon = "/icons/key.png")
-@Scene.Body(mesh = "/models/key-quaternius.glb", color = 0xC9B037)
+// TODO: 3D model for handle icon (not detail panel): mesh="/models/key-quaternius.glb", color=0xC9B037
 public class KeyLog extends Dag<KeyLog.Op> {
 
     // === TYPE DEFINITION ===
@@ -231,6 +231,46 @@ public class KeyLog extends Dag<KeyLog.Op> {
                     entry.getValue()));
         }
         return entries;
+    }
+
+    /* ===================== display ===================== */
+
+    @Override
+    public String displayToken() {
+        int n = keys.size();
+        int dead = tombstoned.size();
+        if (n == 0) {
+            return heads().isEmpty() ? "keys (empty)" : "keys (" + heads().size() + " events)";
+        }
+        return "keys (" + n + (dead > 0 ? ", " + dead + " tombstoned" : "") + ")";
+    }
+
+    @Override
+    public String toString() {
+        if (keys.isEmpty()) {
+            if (!heads().isEmpty()) {
+                return heads().size() + " event(s) recorded (state not materialized).";
+            }
+            return "No keys registered.";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(keys.size()).append(keys.size() == 1 ? " key" : " keys");
+        if (!tombstoned.isEmpty()) {
+            sb.append(" (").append(tombstoned.size()).append(" tombstoned)");
+        }
+        sb.append("\n\n");
+        for (var entry : keys.entrySet()) {
+            String shortId = entry.getKey().length() > 12
+                    ? entry.getKey().substring(0, 12) + "\u2026" : entry.getKey();
+            boolean dead = tombstoned.contains(entry.getKey());
+            sb.append(dead ? "  \uD83D\uDEAB " : "  \uD83D\uDD11 ");
+            sb.append(shortId);
+            SigningPublicKey k = entry.getValue();
+            sb.append("  ").append(k.algorithm().name());
+            if (dead) sb.append("  (tombstoned)");
+            sb.append("\n");
+        }
+        return sb.toString().stripTrailing();
     }
 
     /* ===================== convenience query helpers ===================== */

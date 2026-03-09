@@ -315,6 +315,64 @@ public class CertLog extends Dag<CertLog.Op> {
     }
 
     // ==================================================================================
+    // Display
+    // ==================================================================================
+
+    @Override
+    public String displayToken() {
+        int total = keyCerts.size() + tlsCerts.size();
+        int rev = revoked.size();
+        if (total == 0) return "certs (empty)";
+        return "certs (" + total + (rev > 0 ? ", " + rev + " revoked" : "") + ")";
+    }
+
+    @Override
+    public String toString() {
+        if (keyCerts.isEmpty() && tlsCerts.isEmpty()) {
+            if (!heads().isEmpty()) {
+                return heads().size() + " event(s) recorded (state not materialized).";
+            }
+            return "No certificates issued.";
+        }
+        StringBuilder sb = new StringBuilder();
+        if (!keyCerts.isEmpty()) {
+            sb.append(keyCerts.size()).append(keyCerts.size() == 1 ? " key cert" : " key certs");
+            long activeCount = keyCerts.keySet().stream().filter(c -> !revoked.contains(c)).count();
+            if (activeCount < keyCerts.size()) {
+                sb.append(" (").append(activeCount).append(" active)");
+            }
+            sb.append("\n");
+            for (var entry : keyCerts.entrySet()) {
+                String shortId = entry.getKey().length() > 12
+                        ? entry.getKey().substring(0, 12) + "\u2026" : entry.getKey();
+                boolean isRevoked = revoked.contains(entry.getKey());
+                sb.append(isRevoked ? "  \uD83D\uDEAB " : "  \uD83D\uDCCB ");
+                sb.append(shortId);
+                if (isRevoked) sb.append("  (revoked)");
+                sb.append("\n");
+            }
+        }
+        if (!tlsCerts.isEmpty()) {
+            if (!keyCerts.isEmpty()) sb.append("\n");
+            sb.append(tlsCerts.size()).append(tlsCerts.size() == 1 ? " TLS cert" : " TLS certs");
+            if (currentTlsCertCid != null) sb.append(" (1 current)");
+            sb.append("\n");
+            for (var entry : tlsCerts.entrySet()) {
+                String shortId = entry.getKey().length() > 12
+                        ? entry.getKey().substring(0, 12) + "\u2026" : entry.getKey();
+                boolean isCurrent = entry.getKey().equals(currentTlsCertCid);
+                boolean isRevoked = revoked.contains(entry.getKey());
+                sb.append(isRevoked ? "  \uD83D\uDEAB " : isCurrent ? "  \uD83D\uDD12 " : "  \uD83D\uDD13 ");
+                sb.append(shortId);
+                if (isCurrent) sb.append("  (current)");
+                if (isRevoked) sb.append("  (revoked)");
+                sb.append("\n");
+            }
+        }
+        return sb.toString().stripTrailing();
+    }
+
+    // ==================================================================================
     // Queries - KeyCerts
     // ==================================================================================
 

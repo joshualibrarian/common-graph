@@ -185,7 +185,7 @@ VocabularyContribution now has an `expression` field. When a contribution has `i
 
 ### 5.3 — Session as Item ✅
 
-`SessionItem` extends Item with `@Verb` for exit and back. Session creates a SessionItem on initialization, wires callbacks (`onExit` → `running = false`, `onBack` → `goBack()`), and passes it to EvalInput/Eval as the session scope. Session verbs now dispatch naturally through the inner-to-outer chain without special-casing.
+`Session` extends Item directly with `@Verb` for exit and back. It wires callbacks (`onExit` → `running = false`, `onBack` → `goBack()`) and passes itself to EvalInput/Eval as the session scope. Session verbs dispatch naturally through the inner-to-outer chain without special-casing.
 
 ---
 

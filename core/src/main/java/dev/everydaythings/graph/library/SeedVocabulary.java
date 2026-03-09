@@ -129,23 +129,33 @@ public final class SeedVocabulary {
                 collectSeedItemsWithTokens(clazz, result);
             }
 
-            // 3. @Type classes → type seed items
+            // 3. @Type classes → type seed items (concrete or abstract)
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (!Item.class.isAssignableFrom(clazz)) continue;
-                if (Modifier.isAbstract(clazz.getModifiers())) continue;
 
                 Type ann = clazz.getAnnotation(Type.class);
                 if (ann == null || ann.value().isBlank()) continue;
 
                 try {
-                    Class<? extends Item> itemClass = (Class<? extends Item>) clazz;
-                    Constructor<? extends Item> ctor = itemClass.getDeclaredConstructor(ItemID.class);
-                    ctor.setAccessible(true);
-                    ItemID typeId = ItemID.fromString(ann.value());
-                    Item typeSeed = ctor.newInstance(typeId);
-                    if (typeSeed.extractTokens().findAny().isPresent()) {
-                        result.add(typeSeed);
+                    if (Modifier.isAbstract(clazz.getModifiers())) {
+                        // Abstract classes: derive tokens statically from @Type annotation
+                        String key = ann.value();
+                        String name = extractReadableName(key);
+                        ComponentType ct = new ComponentType(key, name, clazz);
+                        if (ct.extractTokens().findAny().isPresent()) {
+                            result.add(ct);
+                        }
+                    } else {
+                        // Concrete classes: instantiate via seed constructor
+                        Class<? extends Item> itemClass = (Class<? extends Item>) clazz;
+                        Constructor<? extends Item> ctor = itemClass.getDeclaredConstructor(ItemID.class);
+                        ctor.setAccessible(true);
+                        ItemID typeId = ItemID.fromString(ann.value());
+                        Item typeSeed = ctor.newInstance(typeId);
+                        if (typeSeed.extractTokens().findAny().isPresent()) {
+                            result.add(typeSeed);
+                        }
                     }
                 } catch (Exception e) {
                     // Skip types without seed constructor
@@ -275,12 +285,17 @@ public final class SeedVocabulary {
         String key = annotation.value();
         ItemID typeId = ItemID.fromString(key);
 
-        // Skip abstract classes
-        if (Modifier.isAbstract(type.getModifiers())) return;
-
-        // Create type seed instance
-        Item typeSeed = createTypeSeed(type, typeId);
-        if (typeSeed == null) return;
+        Item typeSeed;
+        if (Modifier.isAbstract(type.getModifiers())) {
+            // Abstract classes: create a ComponentType seed with static metadata
+            String name = extractReadableName(key);
+            ComponentType.registerTypeName(typeId, name);
+            typeSeed = new ComponentType(key, name, type);
+        } else {
+            // Concrete classes: instantiate via seed constructor
+            typeSeed = createTypeSeed(type, typeId);
+            if (typeSeed == null) return;
+        }
 
         // Attach unified presentation component (display metadata + surface template)
         attachTypePresentation(typeSeed, type, annotation);

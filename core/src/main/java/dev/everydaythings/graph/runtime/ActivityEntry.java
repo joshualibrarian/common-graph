@@ -2,6 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -17,7 +18,7 @@ import java.time.Instant;
  * <p>Entries are lightweight summaries — they don't hold live Item references,
  * just IIDs and display text. This makes them safe to serialize and query.
  *
- * @see SessionItem
+ * @see ActivityLog
  */
 @Getter
 @Accessors(fluent = true)
@@ -95,7 +96,7 @@ public class ActivityEntry implements Canonical {
 
             case Eval.EvalResult.Value(Object value) ->
                     new ActivityEntry(input, contextIid, Kind.VALUE,
-                            value != null ? String.valueOf(value) : null, null);
+                            summarize(value), null);
 
             case Eval.EvalResult.ItemResult(Item item) ->
                     new ActivityEntry(input, contextIid, Kind.ITEM,
@@ -107,12 +108,34 @@ public class ActivityEntry implements Canonical {
 
             case Eval.EvalResult.ValueWithTarget(Object value, Item target) ->
                     new ActivityEntry(input, contextIid, Kind.VALUE,
-                            value != null ? String.valueOf(value) : null,
-                            target.iid());
+                            summarize(value), target.iid());
 
             case Eval.EvalResult.Error(String message) ->
                     new ActivityEntry(input, contextIid, Kind.ERROR, message, null);
         };
+    }
+
+    // ==================================================================================
+    // Summarization
+    // ==================================================================================
+
+    /**
+     * Produce a short, single-line summary of a value for the activity log.
+     *
+     * <p>This is NOT for rendering — it's for the feedback line and log display.
+     * Items and Components use their displayToken(); everything else gets a
+     * truncated toString().
+     */
+    private static String summarize(Object value) {
+        if (value == null) return null;
+        if (value instanceof Item item) return item.displayToken();
+        if (value instanceof Component comp) return comp.displayToken();
+        String text = String.valueOf(value);
+        // Single-line, max 80 chars
+        int newline = text.indexOf('\n');
+        if (newline >= 0) text = text.substring(0, newline);
+        if (text.length() > 80) text = text.substring(0, 77) + "...";
+        return text;
     }
 
     // ==================================================================================

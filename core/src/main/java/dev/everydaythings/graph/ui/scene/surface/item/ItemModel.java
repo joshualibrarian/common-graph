@@ -171,6 +171,20 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     // ==================== Input State ====================
 
     /**
+     * The last evaluation result text to display in the feedback line.
+     *
+     * <p>Set by the session after each dispatch. Cleared when the user
+     * starts typing again. This is NOT stored data — it's the ephemeral
+     * output of the activity log query "last result for this context."
+     */
+    private String feedbackText;
+
+    /**
+     * Whether the feedback was an error.
+     */
+    private boolean feedbackIsError;
+
+    /**
      * Update the input state from an EvalInput snapshot.
      *
      * <p>Called by the session when EvalInput fires onChange.
@@ -183,6 +197,26 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      */
     public void updateInput(EvalInputSnapshot snapshot) {
         this.inputSnapshot = snapshot;
+    }
+
+    /**
+     * Set the feedback text to display above the prompt.
+     *
+     * <p>Called by the session after logging an activity entry.
+     * The feedback line shows the result of the last evaluation
+     * for the current context — an ephemeral query result, not stored data.
+     */
+    public void setFeedback(String text, boolean isError) {
+        this.feedbackText = text;
+        this.feedbackIsError = isError;
+    }
+
+    /**
+     * Clear the feedback text (e.g., when user starts typing).
+     */
+    public void clearFeedback() {
+        this.feedbackText = null;
+        this.feedbackIsError = false;
     }
 
     /**
@@ -618,33 +652,53 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     }
 
     /**
-     * Prompt region - input targeting the context.
+     * Prompt region — feedback line + input field.
      *
-     * <p>Returns an {@link InputSurface} that renders the full input field:
-     * prompt label, token chips, pending text with cursor, and completions.
-     * If no input snapshot is available, shows an empty input with hint text.
+     * <p>The feedback line shows the result of the last evaluation for
+     * the current context — an ephemeral query result from the session's
+     * activity log, not stored data on this item. It appears above the
+     * input field and disappears when the user starts typing.
+     *
+     * <p>The input field renders the full EvalInput state: prompt label,
+     * token chips, pending text with cursor, and completions.
      */
     @Scene(id = "prompt", classes = {"input"})
     @Scene.Constraint(bottom = "0", left = "0", right = "100%", height = "fit")
     @Scene.Border(all = "0.15ln solid #B04A9D", radius = "0.4ch")
     public SurfaceSchema prompt() {
-        if (inputSnapshot != null) {
-            if (renderInputInSurface) {
-                return InputSurface.fromSnapshot(inputSnapshot);
-            }
+        SurfaceSchema inputSurface;
+
+        if (inputSnapshot != null && renderInputInSurface) {
+            inputSurface = InputSurface.fromSnapshot(inputSnapshot, resolver);
+        } else if (inputSnapshot != null) {
             // Platform input renderer (JLineInputRenderer) handles display.
-            return null;
+            inputSurface = null;
+        } else {
+            // No input snapshot — show static prompt (non-interactive mode)
+            String promptText = resolver.apply(context.item())
+                    .map(item -> {
+                        String icon = item.emoji();
+                        String label = item.displayToken();
+                        return (icon != null ? icon + " " : "") + label + "> ";
+                    })
+                    .orElse("graph> ");
+            inputSurface = InputSurface.empty(promptText, "");
         }
 
-        // No input snapshot — show static prompt (non-interactive mode)
-        String promptText = resolver.apply(context.item())
-                .map(item -> {
-                    String icon = item.emoji();
-                    String label = item.displayToken();
-                    return (icon != null ? icon + " " : "") + label + "> ";
-                })
-                .orElse("graph> ");
-        return InputSurface.empty(promptText, "");
+        // If there's feedback text, wrap input with a feedback line above it
+        if (feedbackText != null && !feedbackText.isBlank()) {
+            ContainerSurface prompt = ContainerSurface.vertical();
+            TextSurface feedback = TextSurface.of(
+                    (feedbackIsError ? "error: " : "  → ") + feedbackText);
+            feedback.style(feedbackIsError ? "feedback-error" : "feedback");
+            prompt.add(feedback);
+            if (inputSurface != null) {
+                prompt.add(inputSurface);
+            }
+            return prompt;
+        }
+
+        return inputSurface;
     }
 
     // ==================== Construction ====================
