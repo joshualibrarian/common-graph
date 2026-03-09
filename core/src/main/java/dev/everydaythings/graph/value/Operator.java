@@ -16,123 +16,125 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * An Operator as a first-class Item.
+ * An Operator as a first-class Item in the graph.
  *
- * <p>This is a self-describing type. The class IS the definition.
+ * <p>Every operator — arithmetic, comparison, logical, structural — is an Item
+ * with stable identity, discoverable and relatable. Operators know their symbol,
+ * precedence, associativity, fixity, and how to evaluate themselves.
  *
- * <p>Operators are Items that can be discovered, related, and reasoned about.
- * Each operator has:
- * <ul>
- *   <li>canonicalKey: stable identifier (e.g., "cg.op:and")</li>
- *   <li>symbol: display symbol (e.g., "&&")</li>
- *   <li>name: human-readable name (e.g., "and")</li>
- *   <li>arity: number of operands (2 for binary)</li>
- *   <li>precedence: binding strength (higher = tighter)</li>
- * </ul>
- *
- * <p>The evaluation logic lives in this class, handling short-circuit
- * evaluation for logical operators.
- *
- * <p>Usage:
- * <pre>{@code
- * // Reference an operator
- * Operator and = Operator.AND;
- * ItemID andId = and.iid();
- *
- * // Evaluate with short-circuit
- * Object result = Operator.AND.evaluate(leftExpr, rightExpr, ctx);
- * }</pre>
+ * <p>This unifies the expression system: verb frames, mathematical formulas,
+ * queries, and reactive rules all compose using the same operator vocabulary.
  */
 @Type(value = Operator.KEY, glyph = "➕")
 public class Operator extends Item {
 
-    // ==================================================================================
-    // TYPE DEFINITION
-    // ==================================================================================
-
     public static final String KEY = "cg:type/operator";
 
-    public enum Associativity {
-        LEFT,
-        RIGHT,
-        NONE
-    }
-
-    public enum Fixity {
-        PREFIX,
-        INFIX,
-        POSTFIX
-    }
-
+    public enum Associativity { LEFT, RIGHT, NONE }
+    public enum Fixity { PREFIX, INFIX, POSTFIX }
 
     // ==================================================================================
-    // SEED INSTANCES - Logical
+    // SEED INSTANCES
     // ==================================================================================
 
-    /** Logical AND operator - short-circuit evaluation */
-    @Seed
-    public static final Operator AND = new Operator(
-            "cg.op:and", "&&", "and",
-            2, 1, Associativity.LEFT, Fixity.INFIX  // arity, precedence, assoc, fixity
-    );
+    // --- Logical ---
+    @Seed public static final Operator AND = new Operator(
+            "cg.op:and", "&&", "and", 2, 1, Associativity.LEFT, Fixity.INFIX);
+    @Seed public static final Operator OR = new Operator(
+            "cg.op:or", "||", "or", 2, 0, Associativity.LEFT, Fixity.INFIX);
+    @Seed public static final Operator NOT = new Operator(
+            "cg.op:not", "!", "not", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
 
-    /** Logical OR operator - short-circuit evaluation */
-    @Seed
-    public static final Operator OR = new Operator(
-            "cg.op:or", "||", "or",
-            2, 0, Associativity.LEFT, Fixity.INFIX  // arity, precedence, assoc, fixity
-    );
+    // --- Arithmetic ---
+    @Seed public static final Operator ADD = new Operator(
+            "cg.op:add", "+", "add", 2, 10, Associativity.LEFT, Fixity.INFIX);
+    @Seed public static final Operator SUBTRACT = new Operator(
+            "cg.op:sub", "-", "subtract", 2, 10, Associativity.LEFT, Fixity.INFIX);
+    @Seed public static final Operator MULTIPLY = new Operator(
+            "cg.op:mul", "*", "multiply", 2, 20, Associativity.LEFT, Fixity.INFIX);
+    @Seed public static final Operator DIVIDE = new Operator(
+            "cg.op:div", "/", "divide", 2, 20, Associativity.LEFT, Fixity.INFIX);
+    @Seed public static final Operator MODULO = new Operator(
+            "cg.op:mod", "%", "modulo", 2, 20, Associativity.LEFT, Fixity.INFIX);
+    @Seed public static final Operator POWER = new Operator(
+            "cg.op:pow", "^", "power", 2, 30, Associativity.RIGHT, Fixity.INFIX);
+    @Seed public static final Operator NEGATE = new Operator(
+            "cg.op:neg", "-", "negate", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
 
-    private static final List<Operator> SEED_OPERATORS = List.of(AND, OR);
+    // --- Comparison ---
+    @Seed public static final Operator EQUAL = new Operator(
+            "cg.op:eq", "==", "equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    @Seed public static final Operator NOT_EQUAL = new Operator(
+            "cg.op:ne", "!=", "not equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    @Seed public static final Operator LESS_THAN = new Operator(
+            "cg.op:lt", "<", "less than", 2, 5, Associativity.NONE, Fixity.INFIX);
+    @Seed public static final Operator GREATER_THAN = new Operator(
+            "cg.op:gt", ">", "greater than", 2, 5, Associativity.NONE, Fixity.INFIX);
+    @Seed public static final Operator LESS_OR_EQUAL = new Operator(
+            "cg.op:le", "<=", "less or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    @Seed public static final Operator GREATER_OR_EQUAL = new Operator(
+            "cg.op:ge", ">=", "greater or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+    // --- String ---
+    @Seed public static final Operator CONCAT = new Operator(
+            "cg.op:concat", "++", "concat", 2, 10, Associativity.LEFT, Fixity.INFIX);
+
+    // --- Collection ---
+    @Seed public static final Operator IN = new Operator(
+            "cg.op:in", "in", "in", 2, 5, Associativity.NONE, Fixity.INFIX);
+    @Seed public static final Operator CONTAINS = new Operator(
+            "cg.op:contains", "contains", "contains", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+    // --- Structural ---
+    @Seed public static final Operator ASSIGN = new Operator(
+            "cg.op:assign", "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX);
+    @Seed public static final Operator PIPE = new Operator(
+            "cg.op:pipe", "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX);
+
+    // ==================================================================================
+    // LOOKUP TABLES
+    // ==================================================================================
+
+    private static final List<Operator> SEED_OPERATORS = List.of(
+            AND, OR, NOT,
+            ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, POWER, NEGATE,
+            EQUAL, NOT_EQUAL, LESS_THAN, GREATER_THAN, LESS_OR_EQUAL, GREATER_OR_EQUAL,
+            CONCAT, IN, CONTAINS,
+            ASSIGN, PIPE
+    );
     private static final Map<ItemID, Operator> SEED_BY_ID = buildSeedById();
-    private static final Map<String, Operator> SEED_BY_SYMBOL = buildSeedBySymbol();
+    private static final Map<String, Operator> INFIX_BY_SYMBOL = buildInfixBySymbol();
+    private static final Map<String, Operator> PREFIX_BY_SYMBOL = buildPrefixBySymbol();
 
     // ==================================================================================
     // INSTANCE FIELDS
     // ==================================================================================
 
-    /** The canonical key (e.g., "cg.op:and") */
-    @Getter
-    @ContentField(handleKey = "key")
+    @Getter @ContentField(handleKey = "key")
     private String canonicalKey;
 
-    /** Symbol used in expressions (e.g., "&&", "||") */
-    @Getter
-    @ContentField
+    @Getter @ContentField
     private String symbol;
 
-    /** Human-readable name (e.g., "and", "or") */
-    @Getter
-    @ContentField
+    @Getter @ContentField
     private String name;
 
-    /** Number of operands (2 for binary operators) */
-    @Getter
-    @ContentField
+    @Getter @ContentField
     private int arity;
 
-    /** Precedence level (higher binds tighter) */
-    @Getter
-    @ContentField
+    @Getter @ContentField
     private int precedence;
 
-    /** Associativity for parse-time grouping. */
-    @Getter
-    @ContentField
+    @Getter @ContentField
     private Associativity associativity;
 
-    /** Fixity for parse-time placement (prefix/infix/postfix). */
-    @Getter
-    @ContentField
+    @Getter @ContentField
     private Fixity fixity;
 
     // ==================================================================================
     // CONSTRUCTORS
     // ==================================================================================
 
-    /**
-     * Create a seed operator (no librarian, deterministic IID from key).
-     */
     public Operator(String canonicalKey, String symbol, String name,
                     int arity, int precedence,
                     Associativity associativity, Fixity fixity) {
@@ -146,9 +148,6 @@ public class Operator extends Item {
         this.fixity = fixity != null ? fixity : Fixity.INFIX;
     }
 
-    /**
-     * Create an operator with a librarian (for runtime creation).
-     */
     public Operator(Librarian librarian,
                     String canonicalKey, String symbol, String name,
                     int arity, int precedence,
@@ -163,16 +162,9 @@ public class Operator extends Item {
         this.fixity = fixity != null ? fixity : Fixity.INFIX;
     }
 
-    /**
-     * Type seed constructor - creates a minimal Operator for use as type seed.
-     *
-     * <p>Used by SeedStore to create the "cg:type/operator" type item.
-     * Derives canonicalKey from the @Type annotation.
-     */
-    @SuppressWarnings("unused")  // Used via reflection by SeedStore
+    @SuppressWarnings("unused")
     protected Operator(ItemID typeId) {
         super(typeId);
-        // For type seeds, derive canonicalKey from the type annotation
         Type typeAnnotation = getClass().getAnnotation(Type.class);
         if (typeAnnotation != null) {
             this.canonicalKey = typeAnnotation.value();
@@ -180,9 +172,281 @@ public class Operator extends Item {
         }
     }
 
+    @SuppressWarnings("unused")
+    private Operator(Librarian librarian, Manifest manifest) {
+        super(librarian, manifest);
+    }
+
+    // ==================================================================================
+    // EVALUATION — Binary
+    // ==================================================================================
+
     /**
-     * Extract a readable name from a type key (e.g., "cg:type/operator" → "operator").
+     * Evaluate this binary operator with two operand expressions.
+     *
+     * <p>Short-circuit operators (AND, OR) evaluate lazily.
+     * All others evaluate both operands first.
      */
+    public Object evaluate(Expression left, Expression right, EvaluationContext context) {
+        if (canonicalKey == null) {
+            throw new UnsupportedOperationException("Operator has no canonical key");
+        }
+
+        // Short-circuit: evaluate left first, maybe skip right
+        if (isShortCircuit()) {
+            return evaluateShortCircuit(left, right, context);
+        }
+
+        // Eager: evaluate both operands
+        Object leftVal = left.evaluate(context);
+        Object rightVal = right.evaluate(context);
+        return applyBinary(leftVal, rightVal);
+    }
+
+    private Object evaluateShortCircuit(Expression left, Expression right, EvaluationContext context) {
+        return switch (canonicalKey) {
+            case "cg.op:and" -> {
+                Object leftVal = left.evaluate(context);
+                if (!toBoolean(leftVal)) yield false;
+                yield toBoolean(right.evaluate(context));
+            }
+            case "cg.op:or" -> {
+                Object leftVal = left.evaluate(context);
+                if (toBoolean(leftVal)) yield true;
+                yield toBoolean(right.evaluate(context));
+            }
+            default -> throw new UnsupportedOperationException(
+                    "Not a short-circuit operator: " + canonicalKey);
+        };
+    }
+
+    private Object applyBinary(Object left, Object right) {
+        return switch (canonicalKey) {
+            // Arithmetic
+            case "cg.op:add" -> {
+                if (left instanceof Number l && right instanceof Number r)
+                    yield toNumber(l) + toNumber(r);
+                yield String.valueOf(left) + String.valueOf(right);
+            }
+            case "cg.op:sub" -> toNumber(left) - toNumber(right);
+            case "cg.op:mul" -> toNumber(left) * toNumber(right);
+            case "cg.op:div" -> {
+                double r = toNumber(right);
+                if (r == 0) throw new ArithmeticException("Division by zero");
+                yield toNumber(left) / r;
+            }
+            case "cg.op:mod" -> {
+                double r = toNumber(right);
+                if (r == 0) throw new ArithmeticException("Modulo by zero");
+                yield toNumber(left) % r;
+            }
+            case "cg.op:pow" -> Math.pow(toNumber(left), toNumber(right));
+
+            // Comparison
+            case "cg.op:eq" -> valueEquals(left, right);
+            case "cg.op:ne" -> !valueEquals(left, right);
+            case "cg.op:lt" -> valueCompare(left, right) < 0;
+            case "cg.op:gt" -> valueCompare(left, right) > 0;
+            case "cg.op:le" -> valueCompare(left, right) <= 0;
+            case "cg.op:ge" -> valueCompare(left, right) >= 0;
+
+            // String
+            case "cg.op:concat" -> String.valueOf(left) + String.valueOf(right);
+
+            // Collection
+            case "cg.op:in" -> {
+                if (right instanceof List<?> list) yield list.contains(left);
+                yield false;
+            }
+            case "cg.op:contains" -> {
+                if (left instanceof List<?> list) yield list.contains(right);
+                yield false;
+            }
+
+            // Structural — handled by the evaluator, not here
+            case "cg.op:assign", "cg.op:pipe" ->
+                    throw new UnsupportedOperationException(
+                            canonicalKey + " must be handled by the evaluator, not evaluated directly");
+
+            default -> throw new UnsupportedOperationException(
+                    "No evaluator for operator: " + canonicalKey);
+        };
+    }
+
+    // ==================================================================================
+    // EVALUATION — Unary
+    // ==================================================================================
+
+    /**
+     * Evaluate this unary operator with one operand expression.
+     */
+    public Object evaluateUnary(Expression operand, EvaluationContext context) {
+        Object val = operand.evaluate(context);
+        return switch (canonicalKey) {
+            case "cg.op:neg" -> {
+                if (val instanceof Number n) yield -n.doubleValue();
+                yield 0;
+            }
+            case "cg.op:not" -> !toBoolean(val);
+            default -> throw new UnsupportedOperationException(
+                    "Not a unary operator: " + canonicalKey);
+        };
+    }
+
+    // ==================================================================================
+    // PREDICATES
+    // ==================================================================================
+
+    public boolean isShortCircuit() {
+        return "cg.op:and".equals(canonicalKey) || "cg.op:or".equals(canonicalKey);
+    }
+
+    public boolean isPrefix() {
+        return fixity == Fixity.PREFIX;
+    }
+
+    public boolean isInfix() {
+        return fixity == Fixity.INFIX;
+    }
+
+    // ==================================================================================
+    // TYPE COERCION AND HELPERS
+    // ==================================================================================
+
+    public static boolean toBoolean(Object value) {
+        if (value == null) return false;
+        if (value instanceof Boolean b) return b;
+        if (value instanceof Number n) return n.doubleValue() != 0;
+        if (value instanceof String s) return !s.isEmpty();
+        if (value instanceof List<?> l) return !l.isEmpty();
+        return true;
+    }
+
+    public static double toNumber(Object o) {
+        if (o instanceof Number n) return n.doubleValue();
+        if (o instanceof String s) {
+            try { return Double.parseDouble(s); }
+            catch (NumberFormatException e) { return 0; }
+        }
+        return 0;
+    }
+
+    public static boolean valueEquals(Object a, Object b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        if (a instanceof Number && b instanceof Number) {
+            return toNumber(a) == toNumber(b);
+        }
+        return a.equals(b);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static int valueCompare(Object a, Object b) {
+        if (a instanceof Number && b instanceof Number) {
+            return Double.compare(toNumber(a), toNumber(b));
+        }
+        if (a instanceof Comparable c && b != null) {
+            try { return c.compareTo(b); }
+            catch (ClassCastException e) { return 0; }
+        }
+        return 0;
+    }
+
+    // ==================================================================================
+    // LOOKUP
+    // ==================================================================================
+
+    /**
+     * Look up an Operator by IID. Checks seeds first, then librarian.
+     */
+    public static Operator lookup(ItemID iid, EvaluationContext context) {
+        Operator seed = lookupKnown(iid);
+        if (seed != null) return seed;
+
+        if (context != null && context.librarian() != null) {
+            return context.librarian().get(iid, Operator.class).orElse(null);
+        }
+        return null;
+    }
+
+    /**
+     * Look up a seed operator by IID (no context required).
+     */
+    public static Operator lookupKnown(ItemID iid) {
+        if (iid == null) return null;
+        return SEED_BY_ID.get(iid);
+    }
+
+    /**
+     * Find an infix operator by symbol text.
+     */
+    public static Operator fromSymbol(String text) {
+        if (text == null) return null;
+        String trimmed = text.trim();
+        Operator op = INFIX_BY_SYMBOL.get(trimmed);
+        if (op != null) return op;
+        return PREFIX_BY_SYMBOL.get(trimmed);
+    }
+
+    /**
+     * Find an infix operator by symbol.
+     */
+    public static Operator infixFromSymbol(String text) {
+        if (text == null) return null;
+        return INFIX_BY_SYMBOL.get(text.trim());
+    }
+
+    /**
+     * Find a prefix operator by symbol.
+     */
+    public static Operator prefixFromSymbol(String text) {
+        if (text == null) return null;
+        return PREFIX_BY_SYMBOL.get(text.trim());
+    }
+
+    /**
+     * Get all seed operators.
+     */
+    public static List<Operator> seeds() {
+        return SEED_OPERATORS;
+    }
+
+    // ==================================================================================
+    // STATIC BUILDERS
+    // ==================================================================================
+
+    private static Map<ItemID, Operator> buildSeedById() {
+        Map<ItemID, Operator> out = new LinkedHashMap<>();
+        for (Operator op : SEED_OPERATORS) {
+            out.put(op.iid(), op);
+        }
+        return Map.copyOf(out);
+    }
+
+    private static Map<String, Operator> buildInfixBySymbol() {
+        Map<String, Operator> out = new LinkedHashMap<>();
+        for (Operator op : SEED_OPERATORS) {
+            if (op.fixity == Fixity.INFIX && op.symbol != null && !op.symbol.isBlank()) {
+                out.put(op.symbol, op);
+            }
+        }
+        // Aliases
+        out.put("&", AND);
+        out.put("|", OR);
+        out.put("**", POWER);
+        return Map.copyOf(out);
+    }
+
+    private static Map<String, Operator> buildPrefixBySymbol() {
+        Map<String, Operator> out = new LinkedHashMap<>();
+        for (Operator op : SEED_OPERATORS) {
+            if (op.fixity == Fixity.PREFIX && op.symbol != null && !op.symbol.isBlank()) {
+                out.put(op.symbol, op);
+            }
+        }
+        return Map.copyOf(out);
+    }
+
     private static String extractNameFromKey(String key) {
         if (key == null) return null;
         int lastSlash = key.lastIndexOf('/');
@@ -194,163 +458,6 @@ public class Operator extends Item {
             return key.substring(lastColon + 1);
         }
         return key;
-    }
-
-    /**
-     * Hydration constructor - reconstructs an Operator from a stored manifest.
-     *
-     * <p>Fields are bound via reflection in the base class hydrate() method.
-     */
-    @SuppressWarnings("unused")  // Used via reflection for hydration
-    private Operator(Librarian librarian, Manifest manifest) {
-        super(librarian, manifest);
-        // Fields are set by bindFieldsFromTable() via reflection during super() call
-        // Do NOT assign values here - it would overwrite what hydration set!
-    }
-
-    // ==================================================================================
-    // EVALUATION
-    // ==================================================================================
-
-    /**
-     * Evaluate this operator with the given operand expressions.
-     *
-     * <p>Handles short-circuit evaluation for AND/OR:
-     * <ul>
-     *   <li>AND: if left is false, don't evaluate right</li>
-     *   <li>OR: if left is true, don't evaluate right</li>
-     * </ul>
-     *
-     * @param left    Left operand expression
-     * @param right   Right operand expression
-     * @param context Evaluation context
-     * @return The result of applying the operator
-     * @throws UnsupportedOperationException if this operator has no evaluator
-     */
-    public Object evaluate(Expression left, Expression right, EvaluationContext context) {
-        ItemID id = iid();
-
-        if (id.equals(AND.iid())) {
-            Object leftVal = left.evaluate(context);
-            if (!toBoolean(leftVal)) return false;  // Short-circuit
-            return toBoolean(right.evaluate(context));
-        }
-
-        if (id.equals(OR.iid())) {
-            Object leftVal = left.evaluate(context);
-            if (toBoolean(leftVal)) return true;  // Short-circuit
-            return toBoolean(right.evaluate(context));
-        }
-
-        throw new UnsupportedOperationException("No evaluator for operator: " + id);
-    }
-
-    /**
-     * Check if this operator requires short-circuit evaluation.
-     *
-     * <p>Short-circuit operators (AND, OR) must not evaluate the right
-     * operand before checking the left operand's result.
-     *
-     * @return true if this operator short-circuits
-     */
-    public boolean isShortCircuit() {
-        ItemID id = iid();
-        return id.equals(AND.iid()) || id.equals(OR.iid());
-    }
-
-    // ==================================================================================
-    // TYPE COERCION
-    // ==================================================================================
-
-    /**
-     * Convert a value to boolean for logical operations.
-     *
-     * <p>Truthiness rules:
-     * <ul>
-     *   <li>null → false</li>
-     *   <li>Boolean → its value</li>
-     *   <li>Number → true if non-zero</li>
-     *   <li>String → true if non-empty</li>
-     *   <li>List → true if non-empty</li>
-     *   <li>Everything else → true</li>
-     * </ul>
-     *
-     * @param value The value to convert
-     * @return The boolean value
-     */
-    public static boolean toBoolean(Object value) {
-        if (value == null) return false;
-        if (value instanceof Boolean b) return b;
-        if (value instanceof Number n) return n.doubleValue() != 0;
-        if (value instanceof String s) return !s.isEmpty();
-        if (value instanceof List<?> l) return !l.isEmpty();
-        return true;
-    }
-
-    // ==================================================================================
-    // LOOKUP
-    // ==================================================================================
-
-    /**
-     * Look up an Operator by its IID.
-     *
-     * <p>Checks seed instances first, then falls back to librarian lookup.
-     *
-     * @param iid     The operator IID
-     * @param context Evaluation context (for librarian access)
-     * @return The Operator, or null if not found
-     */
-    public static Operator lookup(ItemID iid, EvaluationContext context) {
-        Operator seed = lookupKnown(iid);
-        if (seed != null) return seed;
-
-        // Fall back to librarian lookup
-        if (context != null && context.librarian() != null) {
-            return context.librarian().get(iid, Operator.class).orElse(null);
-        }
-
-        return null;
-    }
-
-    /**
-     * Look up a known seed operator by IID without evaluation context.
-     */
-    public static Operator lookupKnown(ItemID iid) {
-        if (iid == null) return null;
-        return SEED_BY_ID.get(iid);
-    }
-
-    /**
-     * Parse an operator from symbol text.
-     *
-     * @param text The symbol text (e.g., "&&", "AND", "||", "OR")
-     * @return The Operator, or null if not recognized
-     */
-    public static Operator fromSymbol(String text) {
-        if (text == null) return null;
-        String trimmed = text.trim();
-        return SEED_BY_SYMBOL.get(trimmed);
-    }
-
-    private static Map<ItemID, Operator> buildSeedById() {
-        Map<ItemID, Operator> out = new LinkedHashMap<>();
-        for (Operator op : SEED_OPERATORS) {
-            out.put(op.iid(), op);
-        }
-        return Map.copyOf(out);
-    }
-
-    private static Map<String, Operator> buildSeedBySymbol() {
-        Map<String, Operator> out = new LinkedHashMap<>();
-        for (Operator op : SEED_OPERATORS) {
-            if (op.symbol != null && !op.symbol.isBlank()) {
-                out.put(op.symbol, op);
-            }
-        }
-        // Backward-compatible aliases (still resolved as data-backed operators).
-        out.put("&", AND);
-        out.put("|", OR);
-        return Map.copyOf(out);
     }
 
     // ==================================================================================
@@ -365,14 +472,11 @@ public class Operator extends Item {
     @Override
     public Stream<TokenEntry> extractTokens() {
         List<TokenEntry> tokens = new ArrayList<>();
-
-        // Index only the symbol (e.g., "&&", "||").
-        // English words ("and", "or") are owned by ConjunctionSememe seeds
-        // and resolved through the completion system, not as operators.
-        if (symbol != null && !symbol.isBlank()) {
+        // Index symbolic operators (+, -, *, ==, etc.) but not word-form
+        // operators ("in", "contains") — those resolve through sememes.
+        if (symbol != null && !symbol.isBlank() && !symbol.chars().allMatch(Character::isLetter)) {
             tokens.add(new TokenEntry(symbol, 1.0f));
         }
-
         return tokens.stream();
     }
 

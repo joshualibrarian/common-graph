@@ -15,13 +15,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * renders through TuiSurfaceRenderer, which buffers child content and wraps
  * it with BoxDrawing unicode characters.
  *
- * <p>With block-character-only rendering (no LIGHT/HEAVY line-drawing),
- * all border weights map to Unicode block elements:
+ * <p>Borders use line-drawing characters with complete matching sets:
  * <ul>
- *   <li>1px → BLOCK_1_8: ▏▔▕▁ (thinnest block)</li>
- *   <li>2px → BLOCK_1_4: ▎▀▕▂</li>
- *   <li>0.5ch = 5px → BLOCK_1_2: ▌▀▐▄</li>
- *   <li>1ch = 10px → FULL: ████</li>
+ *   <li>LIGHT (≤2.5px): ─ │ ┌ ┐ └ ┘ (thin lines, rounded: ╭╮╰╯)</li>
+ *   <li>HEAVY (&gt;2.5px): ━ ┃ ┏ ┓ ┗ ┛ (thick lines)</li>
+ *   <li>DOUBLE: ═ ║ ╔ ╗ ╚ ╝ (double lines)</li>
  * </ul>
  */
 @DisplayName("Box Rendering (End-to-End)")
@@ -34,7 +32,7 @@ class BoxRenderingTest {
     }
 
     // ==================================================================================
-    // Thin Border (1px → BLOCK_1_8)
+    // Light Border (1px → LIGHT)
     // ==================================================================================
 
     @Nested
@@ -42,7 +40,7 @@ class BoxRenderingTest {
     class LightBorder {
 
         @Test
-        @DisplayName("container with 1px solid border produces light box-drawing chars")
+        @DisplayName("container with 1px solid border produces light line-drawing chars")
         void lightBorderChars() {
             ContainerSurface container = ContainerSurface.vertical()
                     .add("Hello World");
@@ -52,11 +50,11 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 1px → BLOCK_1_8: top=▔, bottom=▁, left=▏, right=▕, corners=█
-            assertThat(output).contains("▔");  // top
-            assertThat(output).contains("▁");  // bottom
-            assertThat(output).contains("▏");  // left
-            assertThat(output).contains("▕");  // right
+            // 1px → LIGHT: ┌─┐ top, │ sides, └─┘ bottom
+            assertThat(output).contains("─");  // horizontal
+            assertThat(output).contains("│");  // vertical sides
+            assertThat(output).contains("┌");  // top-left corner
+            assertThat(output).contains("┘");  // bottom-right corner
         }
 
         @Test
@@ -72,51 +70,65 @@ class BoxRenderingTest {
 
             assertThat(output).contains("Content Inside");
 
-            // Content should appear on a line bounded by block chars
             String[] lines = output.split("\n");
             boolean foundContentLine = false;
             for (String line : lines) {
                 if (line.contains("Content Inside")) {
-                    // Left border is ▏ (BLOCK_1_8 left)
-                    assertThat(line).contains("▏");
+                    assertThat(line).contains("│");
                     foundContentLine = true;
                     break;
                 }
             }
             assertThat(foundContentLine)
-                    .as("Content line should be bounded by block borders")
+                    .as("Content line should be bounded by │ borders")
                     .isTrue();
         }
     }
 
     // ==================================================================================
-    // Quarter Block Border (2px → BLOCK_1_4)
+    // Heavy Border (>2.5px → HEAVY)
     // ==================================================================================
 
     @Nested
-    @DisplayName("Heavy Border (2px solid)")
+    @DisplayName("Heavy Border (3px+ solid)")
     class HeavyBorder {
 
         @Test
-        @DisplayName("container with 2px solid border produces heavy box-drawing chars")
+        @DisplayName("container with 3px solid border produces heavy line-drawing chars")
         void heavyBorderChars() {
             ContainerSurface container = ContainerSurface.vertical()
                     .add("Heavy Box");
+            container.border("3px solid");
+
+            TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
+            container.render(renderer);
+            String output = stripAnsi(renderer.result());
+
+            // 3px → HEAVY: ┏━┓ top, ┃ sides, ┗━┛ bottom
+            assertThat(output).contains("━");  // heavy horizontal
+            assertThat(output).contains("┃");  // heavy vertical
+            assertThat(output).contains("┏");  // heavy top-left
+        }
+
+        @Test
+        @DisplayName("2px solid border still uses LIGHT (≤2.5px threshold)")
+        void twoPxIsLight() {
+            ContainerSurface container = ContainerSurface.vertical()
+                    .add("Test");
             container.border("2px solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 2px → BLOCK_1_4: top=▀, bottom=▂, left=▎, right=▕, corners=█
-            assertThat(output).contains("▀");  // top half block
-            assertThat(output).contains("▂");  // bottom 1/4 block
-            assertThat(output).contains("▎");  // left 1/4 block
+            // 2px → LIGHT
+            assertThat(output).contains("│");
+            assertThat(output).contains("─");
         }
     }
 
     // ==================================================================================
-    // Rounded Border — block weights don't support rounded corners
+    // Rounded Border
     // ==================================================================================
 
     @Nested
@@ -134,14 +146,17 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // Block weights use light rounded corners (╭╮╰╯)
+            // LIGHT + rounded: ╭─╮ top, ╰─╯ bottom
             assertThat(output).contains("╭");
+            assertThat(output).contains("╮");
+            assertThat(output).contains("╰");
+            assertThat(output).contains("╯");
             assertThat(output).contains("Rounded");
         }
 
         @Test
-        @DisplayName("rounded border still uses regular horizontal and vertical lines")
-        void roundedBorderLinesAreRegular() {
+        @DisplayName("rounded border uses light line-drawing horizontals and verticals")
+        void roundedBorderLinesAreLight() {
             ContainerSurface container = ContainerSurface.vertical()
                     .add("Rounded");
             container.border(BoxBorder.parse("1px solid", "4px"));
@@ -150,9 +165,8 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // Block weight uses block chars, not line-drawing
-            assertThat(output).contains("▔");  // top block
-            assertThat(output).contains("▏");  // left block
+            assertThat(output).contains("─");  // horizontal
+            assertThat(output).contains("│");  // vertical
         }
     }
 
@@ -181,11 +195,11 @@ class BoxRenderingTest {
             assertThat(output).contains("Line Two");
             assertThat(output).contains("Line Three");
 
-            // Count lines with left block border containing content
+            // Count lines with │ border containing content
             String[] lines = output.split("\n");
             int contentLines = 0;
             for (String line : lines) {
-                if (line.contains("▏") && (line.contains("Line One")
+                if (line.contains("│") && (line.contains("Line One")
                         || line.contains("Line Two")
                         || line.contains("Line Three"))) {
                     contentLines++;
@@ -204,8 +218,9 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // Should have top and bottom border with light corners
-            assertThat(output).contains("┌");  // light corners for block weights
+            // Should have top and bottom border with matching corners
+            assertThat(output).contains("┌");
+            assertThat(output).contains("┘");
         }
     }
 
@@ -229,19 +244,19 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // Find the top border line (block chars: █ corner + ▔ fill + █ corner)
+            // Find the top border line
             String[] lines = output.split("\n");
             String topLine = null;
             for (String line : lines) {
                 String trimmed = line.trim();
-                if (trimmed.contains("▔") || (trimmed.startsWith("█") && trimmed.length() > 2)) {
+                if (trimmed.contains("─") && trimmed.contains("┌")) {
                     topLine = trimmed;
                     break;
                 }
             }
             assertThat(topLine).isNotNull();
 
-            // Top line should be: █ + 20 top chars + █ = 22 total
+            // Top line should be: ┌ + 20 ─ chars + ┐ = 22 total
             assertThat(topLine.length()).isEqualTo(22);
         }
     }
@@ -264,10 +279,10 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            assertThat(output).doesNotContain("▏");
-            assertThat(output).doesNotContain("▔");
-            assertThat(output).doesNotContain("▕");
-            assertThat(output).doesNotContain("▁");
+            assertThat(output).doesNotContain("│");
+            assertThat(output).doesNotContain("─");
+            assertThat(output).doesNotContain("┌");
+            assertThat(output).doesNotContain("┘");
             assertThat(output).contains("Plain Content");
         }
 
@@ -282,8 +297,8 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            assertThat(output).doesNotContain("▏");
-            assertThat(output).doesNotContain("▕");
+            assertThat(output).doesNotContain("│");
+            assertThat(output).doesNotContain("┌");
             assertThat(output).contains("No Border");
         }
     }
@@ -297,40 +312,42 @@ class BoxRenderingTest {
     class MultiUnitBorders {
 
         @Test
-        @DisplayName("1ch solid border produces block-weight characters")
-        void chBorderProducesBlockChars() {
+        @DisplayName("1ch solid border (10px) uses HEAVY line-drawing")
+        void chBorderUsesHeavy() {
             ContainerSurface container = ContainerSurface.vertical()
-                    .add("Block Border");
+                    .add("Heavy Border");
             container.border("1ch solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 1ch = 10px → FULL weight → █ everywhere
-            assertThat(output).contains("█");
-            assertThat(output).contains("Block Border");
+            // 1ch = 10px → HEAVY: ┏━┓ top, ┃ sides
+            assertThat(output).contains("━");
+            assertThat(output).contains("┃");
+            assertThat(output).contains("Heavy Border");
         }
 
         @Test
-        @DisplayName("1em solid border produces full block characters")
-        void emBorderProducesFullBlock() {
+        @DisplayName("1em solid border (10px) uses HEAVY line-drawing")
+        void emBorderUsesHeavy() {
             ContainerSurface container = ContainerSurface.vertical()
-                    .add("Full Block");
+                    .add("Heavy Em");
             container.border("1em solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 1em = 10px → FULL weight → █ everywhere
-            assertThat(output).contains("█");
-            assertThat(output).contains("Full Block");
+            // 1em = 10px → HEAVY
+            assertThat(output).contains("━");
+            assertThat(output).contains("┃");
+            assertThat(output).contains("Heavy Em");
         }
 
         @Test
-        @DisplayName("0.1ch solid border produces light line characters")
-        void tenthChBorderProducesLight() {
+        @DisplayName("0.1ch solid border (1px) uses LIGHT line-drawing")
+        void tenthChBorderUsesLight() {
             ContainerSurface container = ContainerSurface.vertical()
                     .add("Thin Ch");
             container.border("0.1ch solid");
@@ -339,47 +356,45 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 0.1ch = 1px → BLOCK_1_8: ▏▔▕▁
-            assertThat(output).contains("▔");  // top
-            assertThat(output).contains("▏");  // left
-            assertThat(output).contains("▁");  // bottom
+            // 0.1ch = 1px → LIGHT: ─ │ ┌ ┐ └ ┘
+            assertThat(output).contains("─");
+            assertThat(output).contains("│");
         }
 
         @Test
-        @DisplayName("0.25ch solid border produces heavy line characters")
-        void quarterChBorderProducesHeavy() {
+        @DisplayName("0.25ch solid border (2.5px) uses LIGHT line-drawing")
+        void quarterChBorderUsesLight() {
             ContainerSurface container = ContainerSurface.vertical()
-                    .add("Heavy Ch");
+                    .add("Light Ch");
             container.border("0.25ch solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 0.25ch = 2.5px → BLOCK_1_4: ▎▀▕▂
-            assertThat(output).contains("▀");  // top (upper half block)
-            assertThat(output).contains("▎");  // left 1/4 block
-            assertThat(output).contains("▂");  // bottom 1/4 block
+            // 0.25ch = 2.5px → LIGHT
+            assertThat(output).contains("─");
+            assertThat(output).contains("│");
         }
 
         @Test
-        @DisplayName("0.1em solid border produces BLOCK_1_8 characters")
-        void tenthEmBorderProducesBlock18() {
+        @DisplayName("0.1em solid border (1px) uses LIGHT line-drawing")
+        void tenthEmBorderUsesLight() {
             ContainerSurface container = ContainerSurface.vertical()
-                    .add("Heavy Em");
+                    .add("Light Em");
             container.border("0.1em solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 0.1em = 1px → BLOCK_1_8: ▏▔▕▁
-            assertThat(output).contains("▔");  // top
-            assertThat(output).contains("▏");  // left
+            // 0.1em = 1px → LIGHT
+            assertThat(output).contains("─");
+            assertThat(output).contains("│");
         }
 
         @Test
-        @DisplayName("0.5em solid border matches 0.5ch solid border (both 5px → BLOCK_1_2)")
+        @DisplayName("0.5em solid border (5px) matches 0.5ch solid border (both → HEAVY)")
         void halfEmMatchesHalfCh() {
             ContainerSurface containerEm = ContainerSurface.vertical()
                     .add("Same");
@@ -395,57 +410,57 @@ class BoxRenderingTest {
             TuiSurfaceRenderer rendererCh = new TuiSurfaceRenderer();
             containerCh.render(rendererCh);
 
-            // Both 0.5em and 0.5ch = 5px → BLOCK_1_2
+            // Both 0.5em and 0.5ch = 5px → HEAVY
             assertThat(stripAnsi(rendererEm.result()))
                     .isEqualTo(stripAnsi(rendererCh.result()));
         }
 
         @Test
-        @DisplayName("0.5ch solid border (5px → BLOCK_1_2) uses block chars")
-        void halfChBorderUsesBlock12() {
+        @DisplayName("0.5ch solid border (5px → HEAVY) uses heavy chars")
+        void halfChBorderUsesHeavy() {
             ContainerSurface container = ContainerSurface.vertical()
-                    .add("Half Block");
+                    .add("Heavy Half");
             container.border("0.5ch solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 0.5ch = 5px → BLOCK_1_2: left=▌
-            assertThat(output).contains("▌");
-            assertThat(output).contains("Half Block");
+            // 0.5ch = 5px → HEAVY: ┃ sides, ━ horizontal
+            assertThat(output).contains("┃");
+            assertThat(output).contains("Heavy Half");
         }
 
         @Test
-        @DisplayName("1rem solid border produces full block (same as 1em)")
-        void remBorderProducesFullBlock() {
+        @DisplayName("1rem solid border uses HEAVY (same as 1em)")
+        void remBorderUsesHeavy() {
             ContainerSurface container = ContainerSurface.vertical()
-                    .add("Rem Block");
+                    .add("Rem Heavy");
             container.border("1rem solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 1rem = 10px → FULL
-            assertThat(output).contains("█");
-            assertThat(output).contains("Rem Block");
+            // 1rem = 10px → HEAVY
+            assertThat(output).contains("━");
+            assertThat(output).contains("Rem Heavy");
         }
 
         @Test
-        @DisplayName("1ln solid border produces full block (10px → FULL)")
-        void lnBorderProducesFullBlock() {
+        @DisplayName("1ln solid border uses HEAVY (10px)")
+        void lnBorderUsesHeavy() {
             ContainerSurface container = ContainerSurface.vertical()
-                    .add("Line Block");
+                    .add("Ln Heavy");
             container.border("1ln solid");
 
             TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 1ln = 10px → FULL
-            assertThat(output).contains("█");
-            assertThat(output).contains("Line Block");
+            // 1ln = 10px → HEAVY
+            assertThat(output).contains("━");
+            assertThat(output).contains("Ln Heavy");
         }
     }
 
@@ -473,7 +488,7 @@ class BoxRenderingTest {
             String topLine = null;
             for (String line : lines) {
                 String trimmed = line.trim();
-                if (trimmed.contains("▔")) {
+                if (trimmed.contains("─")) {
                     topLine = trimmed;
                     break;
                 }
@@ -499,7 +514,7 @@ class BoxRenderingTest {
             String topLine = null;
             for (String line : lines) {
                 String trimmed = line.trim();
-                if (trimmed.contains("▔")) {
+                if (trimmed.contains("─")) {
                     topLine = trimmed;
                     break;
                 }
@@ -525,7 +540,7 @@ class BoxRenderingTest {
             String topLine = null;
             for (String line : lines) {
                 String trimmed = line.trim();
-                if (trimmed.contains("▔")) {
+                if (trimmed.contains("─")) {
                     topLine = trimmed;
                     break;
                 }
@@ -552,12 +567,11 @@ class BoxRenderingTest {
             TuiSurfaceRenderer rendererCh = new TuiSurfaceRenderer();
             containerCh.render(rendererCh);
 
-            // Both should produce same-width boxes
             String emOut = stripAnsi(rendererEm.result());
             String chOut = stripAnsi(rendererCh.result());
 
-            String emTopLine = emOut.lines().filter(l -> l.contains("▔")).findFirst().orElse("").trim();
-            String chTopLine = chOut.lines().filter(l -> l.contains("▔")).findFirst().orElse("").trim();
+            String emTopLine = emOut.lines().filter(l -> l.contains("─")).findFirst().orElse("").trim();
+            String chTopLine = chOut.lines().filter(l -> l.contains("─")).findFirst().orElse("").trim();
 
             assertThat(emTopLine.length()).isEqualTo(chTopLine.length());
         }
@@ -583,13 +597,13 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 0.25ch = 2.5px → BLOCK_1_4 border
-            assertThat(output).contains("▎");   // left 1/4 block
-            assertThat(output).contains("▀");   // top half block
+            // 0.25ch = 2.5px → LIGHT border
+            assertThat(output).contains("│");  // light vertical
+            assertThat(output).contains("─");  // light horizontal
             assertThat(output).contains("Mixed Units");
 
             // 10em = 20 columns + 2 border chars = 22
-            String topLine = output.lines().filter(l -> l.contains("▀")).findFirst().orElse("").trim();
+            String topLine = output.lines().filter(l -> l.contains("─")).findFirst().orElse("").trim();
             assertThat(topLine.length()).isEqualTo(22);
         }
 
@@ -605,10 +619,10 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // 0.1em = 1px → BLOCK_1_8 border
-            assertThat(output).contains("▏");  // left 1/8 block
+            // 0.1em = 1px → LIGHT border
+            assertThat(output).contains("│");  // light vertical
             // 160px = 20 columns + 2 border = 22
-            String topLine = output.lines().filter(l -> l.contains("▔")).findFirst().orElse("").trim();
+            String topLine = output.lines().filter(l -> l.contains("─")).findFirst().orElse("").trim();
             assertThat(topLine.length()).isEqualTo(22);
         }
     }
@@ -633,7 +647,6 @@ class BoxRenderingTest {
             container.render(renderer);
             String output = stripAnsi(renderer.result());
 
-            // Should contain the content
             assertThat(output).contains("Padded");
 
             String[] lines = output.split("\n");
@@ -665,9 +678,9 @@ class BoxRenderingTest {
             // Raw output should contain ANSI codes (blue = \033[34m)
             assertThat(rawOutput).contains("\u001B[");
 
-            // Stripped output should still have block chars
+            // Stripped output should still have line-drawing chars
             String stripped = stripAnsi(rawOutput);
-            assertThat(stripped).contains("▏");  // left block border
+            assertThat(stripped).contains("│");  // light vertical border
             assertThat(stripped).contains("Colored Border");
         }
     }
@@ -693,7 +706,6 @@ class BoxRenderingTest {
 
             String[] lines = output.split("\n");
 
-            // Filter out any empty lines
             java.util.List<String> nonEmptyLines = new java.util.ArrayList<>();
             for (String line : lines) {
                 if (!line.isEmpty()) {
@@ -703,17 +715,17 @@ class BoxRenderingTest {
 
             assertThat(nonEmptyLines).hasSizeGreaterThanOrEqualTo(3);
 
-            // First non-empty line starts with ┌ (light corner for block weight)
+            // First non-empty line starts with ┌ (light corner)
             assertThat(nonEmptyLines.get(0).trim().charAt(0)).isEqualTo('┌');
 
-            // Last non-empty line starts with └ (light corner for block weight)
+            // Last non-empty line starts with └ (light corner)
             String lastLine = nonEmptyLines.get(nonEmptyLines.size() - 1).trim();
             assertThat(lastLine.charAt(0)).isEqualTo('└');
 
-            // Middle lines have left block border ▏
+            // Middle lines have │ border
             for (int i = 1; i < nonEmptyLines.size() - 1; i++) {
                 String line = nonEmptyLines.get(i).trim();
-                assertThat(line.charAt(0)).isEqualTo('▏');
+                assertThat(line.charAt(0)).isEqualTo('│');
             }
         }
 

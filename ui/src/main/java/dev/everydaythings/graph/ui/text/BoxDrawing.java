@@ -389,6 +389,18 @@ public class BoxDrawing {
     /**
      * Resolve a BorderSide to its TUI weight.
      *
+     * <p>Maps to the three line-drawing weight tiers that have complete,
+     * matching character sets (horizontals, verticals, AND corners):
+     * <ul>
+     *   <li>LIGHT — thin lines: ─ │ ┌ ┐ └ ┘ (+ rounded ╭╮╰╯, dashed ╌╎)</li>
+     *   <li>HEAVY — thick lines: ━ ┃ ┏ ┓ ┗ ┛ (+ dashed ╍╏)</li>
+     *   <li>DOUBLE — double lines: ═ ║ ╔ ╗ ╚ ╝</li>
+     * </ul>
+     *
+     * <p>Block elements (▏▎▍▌ / ▔▁▂▃▄▅▆▇) are NOT used for borders
+     * because Unicode provides no matching corner characters for them,
+     * resulting in ugly mismatches (e.g., thick ▌ sides with thin ┌ corners).
+     *
      * @param side the border side specification
      * @param ctx  render context with unit resolver and metrics
      */
@@ -396,16 +408,22 @@ public class BoxDrawing {
         if (!side.isVisible()) return Weight.NONE;
         if ("double".equals(side.style())) return Weight.DOUBLE;
         SizeValue sv = SizeValue.parse(side.width());
-        if (sv == null) return Weight.BLOCK_1_8;
-        return pixelsToWeight(sv.toPixels(ctx));
+        if (sv == null) return Weight.LIGHT;
+        double px = sv.toPixels(ctx);
+        if (px <= 0) return Weight.NONE;
+        if (px <= 2.5) return Weight.LIGHT;
+        return Weight.HEAVY;
     }
 
     /**
-     * Map a pixel size to a TUI border weight tier.
+     * Map a pixel size to a block-element weight tier.
      *
-     * <p>Uses block characters exclusively — the continuous spectrum from ▏ (1/8)
-     * to █ (full) provides better proportional accuracy than mixing line-drawing
-     * and block characters. With TUI_DEFAULT metrics (1em = 10px), each 1/8
+     * <p>This maps to BLOCK weights (▏▎▍▌▋▊▉█) which are useful for
+     * progress bars, sparklines, and histograms — NOT for box borders.
+     * For borders, use {@link #weightOf(BoxBorder.BorderSide, RenderContext)}
+     * which maps to LIGHT/HEAVY/DOUBLE (complete sets with matching corners).
+     *
+     * <p>With TUI_DEFAULT metrics (1em = 10px), each 1/8
      * character fraction maps exactly to its corresponding block character:
      * <pre>
      * 0.125em = 1.25px → BLOCK_1_8 (▏)

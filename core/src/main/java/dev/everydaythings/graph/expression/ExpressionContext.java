@@ -6,6 +6,7 @@ import dev.everydaythings.graph.language.ArgumentSlot;
 import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.PrepositionSememe;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.VerbSememe;
 
@@ -107,8 +108,8 @@ public record ExpressionContext(
      * <p>Narrowing rules:
      * <ul>
      *   <li>No verb yet → show everything (no filter)</li>
-     *   <li>Verb accepted → keep sememe verbs available (they may be thematic arguments)</li>
-     *   <li>Last token is open preposition → exclude PrepositionSememes</li>
+     *   <li>Verb accepted → exclude other VerbSememes (you have your action)</li>
+     *   <li>Last token is open preposition → also exclude PrepositionSememes</li>
      * </ul>
      *
      * <p>Items that are not Sememes always pass through (they are valid arguments).
@@ -137,6 +138,11 @@ public record ExpressionContext(
             }
 
             Item item = target.get();
+
+            // Once we have a verb, exclude other verbs from completions
+            if (item instanceof VerbSememe) {
+                continue;
+            }
 
             if (lastTokenIsPreposition && item instanceof PrepositionSememe) {
                 // Preposition needs an object, not another preposition.

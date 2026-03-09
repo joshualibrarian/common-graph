@@ -564,6 +564,37 @@ public abstract sealed class Sememe extends Item
     );
 
     // ==================================================================================
+    // SEED INSTANCES (pronouns — discourse references)
+    // ==================================================================================
+
+    /** "it" / "that" — refers to the most recently mentioned item. */
+    @Seed
+    public static final PronounSememe IT = new PronounSememe(
+            "cg.pronoun:it",
+            Map.of("en", "the most recently mentioned or created item"),
+            Map.of(),
+            List.of("it", "that")
+    );
+
+    /** "this" — refers to the currently focused item. */
+    @Seed
+    public static final PronounSememe THIS = new PronounSememe(
+            "cg.pronoun:this",
+            Map.of("en", "the currently focused item"),
+            Map.of(),
+            List.of("this")
+    );
+
+    /** "last" — refers to the previously mentioned item (before most recent). */
+    @Seed
+    public static final PronounSememe LAST = new PronounSememe(
+            "cg.pronoun:last",
+            Map.of("en", "the previously mentioned item"),
+            Map.of(),
+            List.of("last", "previous")
+    );
+
+    // ==================================================================================
     // SEED INSTANCES (prepositions — thematic role carriers)
     // ==================================================================================
 

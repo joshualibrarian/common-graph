@@ -143,12 +143,12 @@ public class VerbInvoker {
                 // 1. Role match
                 Object matched = null;
                 boolean found = false;
+                ThematicRole role = null;
                 if (param.role() != null) {
-                    ThematicRole role;
                     try {
                         role = ThematicRole.valueOf(param.role());
                     } catch (IllegalArgumentException e) {
-                        role = null;
+                        // unknown role string — ignore
                     }
                     if (role != null && bindings.containsKey(role)) {
                         matched = bindings.get(role);

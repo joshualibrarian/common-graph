@@ -401,17 +401,24 @@ class BoxDrawingTest {
         }
 
         @Test
-        @DisplayName("1px solid maps to BLOCK_1_8")
-        void onePxMapsToBlock18() {
+        @DisplayName("1px solid maps to LIGHT")
+        void onePxMapsToLight() {
             BorderSide side = BorderSide.parse("1px solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_8);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         @Test
-        @DisplayName("2px solid maps to BLOCK_1_4")
-        void twoPxMapsToBlock14() {
+        @DisplayName("2px solid maps to LIGHT (thin border)")
+        void twoPxMapsToLight() {
             BorderSide side = BorderSide.parse("2px solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_4);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
+        }
+
+        @Test
+        @DisplayName("3px solid maps to HEAVY (thick border)")
+        void threePxMapsToHeavy() {
+            BorderSide side = BorderSide.parse("3px solid");
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         @Test
@@ -431,114 +438,114 @@ class BoxDrawingTest {
         // --- ch unit ---
 
         @Test
-        @DisplayName("1ch solid (10px) maps to FULL")
-        void oneChMapsToFull() {
+        @DisplayName("1ch solid (10px) maps to HEAVY")
+        void oneChMapsToHeavy() {
             BorderSide side = BorderSide.parse("1ch solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.FULL);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         @Test
-        @DisplayName("0.1ch solid (1px) maps to BLOCK_1_8")
-        void tenthChMapsToBlock18() {
+        @DisplayName("0.1ch solid (1px) maps to LIGHT")
+        void tenthChMapsToLight() {
             BorderSide side = BorderSide.parse("0.1ch solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_8);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         @Test
-        @DisplayName("0.25ch solid (2.5px) maps to BLOCK_1_4")
-        void quarterChMapsToBlock14() {
+        @DisplayName("0.25ch solid (2.5px) maps to LIGHT")
+        void quarterChMapsToLight() {
             BorderSide side = BorderSide.parse("0.25ch solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_4);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         @Test
-        @DisplayName("0.5ch solid (5px) maps to BLOCK_1_2")
-        void halfChMapsToBlock12() {
+        @DisplayName("0.5ch solid (5px) maps to HEAVY")
+        void halfChMapsToHeavy() {
             BorderSide side = BorderSide.parse("0.5ch solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_2);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         @Test
-        @DisplayName("2ch solid (20px) maps to FULL")
-        void twoChMapsToFull() {
+        @DisplayName("2ch solid (20px) maps to HEAVY")
+        void twoChMapsToHeavy() {
             BorderSide side = BorderSide.parse("2ch solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.FULL);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         // --- em unit ---
 
         @Test
-        @DisplayName("1em solid (10px) maps to FULL")
-        void oneEmMapsToFull() {
+        @DisplayName("1em solid (10px) maps to HEAVY")
+        void oneEmMapsToHeavy() {
             BorderSide side = BorderSide.parse("1em solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.FULL);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         @Test
-        @DisplayName("0.06em solid (0.6px) maps to BLOCK_1_8")
-        void sixHundredthsEmMapsToBlock18() {
+        @DisplayName("0.06em solid (0.6px) maps to LIGHT")
+        void sixHundredthsEmMapsToLight() {
             BorderSide side = BorderSide.parse("0.06em solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_8);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         @Test
-        @DisplayName("0.1em solid (1px) maps to BLOCK_1_8")
-        void tenthEmMapsToBlock18() {
+        @DisplayName("0.1em solid (1px) maps to LIGHT")
+        void tenthEmMapsToLight() {
             BorderSide side = BorderSide.parse("0.1em solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_8);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         @Test
-        @DisplayName("0.5em solid (5px) maps to BLOCK_1_2")
-        void halfEmMapsToBlock12() {
+        @DisplayName("0.5em solid (5px) maps to HEAVY")
+        void halfEmMapsToHeavy() {
             BorderSide side = BorderSide.parse("0.5em solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_2);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         @Test
-        @DisplayName("0.25em solid (2.5px) maps to BLOCK_1_4")
-        void quarterEmMapsToBlock14() {
+        @DisplayName("0.25em solid (2.5px) maps to LIGHT")
+        void quarterEmMapsToLight() {
             BorderSide side = BorderSide.parse("0.25em solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_4);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         // --- rem unit ---
 
         @Test
-        @DisplayName("1rem solid (10px) maps to FULL")
-        void oneRemMapsToFull() {
+        @DisplayName("1rem solid (10px) maps to HEAVY")
+        void oneRemMapsToHeavy() {
             BorderSide side = BorderSide.parse("1rem solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.FULL);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         @Test
-        @DisplayName("0.1rem solid (1px) maps to BLOCK_1_8")
-        void tenthRemMapsToBlock18() {
+        @DisplayName("0.1rem solid (1px) maps to LIGHT")
+        void tenthRemMapsToLight() {
             BorderSide side = BorderSide.parse("0.1rem solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_8);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         // --- ln unit ---
 
         @Test
-        @DisplayName("1ln solid (10px) maps to FULL")
-        void oneLnMapsToFull() {
+        @DisplayName("1ln solid (10px) maps to HEAVY")
+        void oneLnMapsToHeavy() {
             BorderSide side = BorderSide.parse("1ln solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.FULL);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.HEAVY);
         }
 
         @Test
-        @DisplayName("0.05ln solid (0.5px) maps to BLOCK_1_8")
-        void twentiethLnMapsToBlock18() {
+        @DisplayName("0.05ln solid (0.5px) maps to LIGHT")
+        void twentiethLnMapsToLight() {
             BorderSide side = BorderSide.parse("0.05ln solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_8);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         @Test
-        @DisplayName("0.1ln solid (1px) maps to BLOCK_1_8")
-        void tenthLnMapsToBlock18() {
+        @DisplayName("0.1ln solid (1px) maps to LIGHT")
+        void tenthLnMapsToLight() {
             BorderSide side = BorderSide.parse("0.1ln solid");
-            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.BLOCK_1_8);
+            assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.LIGHT);
         }
 
         // --- double style overrides weight ---
@@ -567,7 +574,7 @@ class BoxDrawingTest {
     class WrapInBorder {
 
         @Test
-        @DisplayName("1px solid border wraps content with block chars")
+        @DisplayName("1px solid border wraps content with light line-drawing chars")
         void onePxBorder() {
             BoxBorder border = BoxBorder.parse("1px solid");
             List<String> content = List.of("Hello");
@@ -577,20 +584,22 @@ class BoxDrawingTest {
 
             assertThat(result).hasSize(3); // top border + content + bottom border
 
-            // 1px → BLOCK_1_8: top ▔, bottom ▁, left ▏, right ▕, corners ┌/┐
+            // 1px → LIGHT: corners ┌┐└┘, horizontal ─, vertical │
             assertThat(result.get(0)).startsWith("┌");
-            assertThat(result.get(0)).contains("▔");
+            assertThat(result.get(0)).endsWith("┐");
+            assertThat(result.get(0)).contains("─");
 
-            // Content row: left block + content + right block
+            // Content row: │ + content + │
             assertThat(result.get(1)).contains("Hello");
-            assertThat(result.get(1).charAt(0)).isEqualTo('▏');
+            assertThat(result.get(1).charAt(0)).isEqualTo('│');
 
-            // Bottom row
-            assertThat(result.get(2)).contains("▁");
+            // Bottom row: └ ─ ┘
+            assertThat(result.get(2)).startsWith("└");
+            assertThat(result.get(2)).contains("─");
         }
 
         @Test
-        @DisplayName("2px solid border wraps with BLOCK_1_4 chars")
+        @DisplayName("2px solid border also uses LIGHT (≤2.5px threshold)")
         void twoPxBorder() {
             BoxBorder border = BoxBorder.parse("2px solid");
             List<String> content = List.of("Test");
@@ -598,13 +607,13 @@ class BoxDrawingTest {
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // 2px → BLOCK_1_4: left ▎, bottom ▂
-            assertThat(result.get(1).charAt(0)).isEqualTo('▎');
-            assertThat(result.get(2)).contains("▂");
+            // 2px → LIGHT: │ sides, ─ horizontal
+            assertThat(result.get(1).charAt(0)).isEqualTo('│');
+            assertThat(result.get(2)).contains("─");
         }
 
         @Test
-        @DisplayName("rounded border with block chars uses full block corners")
+        @DisplayName("rounded border uses rounded light corners")
         void roundedBorder() {
             BoxBorder border = BoxBorder.parse("1px solid");
             List<String> content = List.of("Round");
@@ -612,9 +621,11 @@ class BoxDrawingTest {
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, true, TUI);
 
-            // Block weights use rounded line-drawing corners
+            // LIGHT + rounded: ╭ ─ ╮ top, ╰ ─ ╯ bottom
             assertThat(result.get(0)).startsWith("╭");
-            assertThat(result.get(0)).contains("▔");
+            assertThat(result.get(0)).endsWith("╮");
+            assertThat(result.get(0)).contains("─");
+            assertThat(result.getLast()).startsWith("╰");
         }
 
         @Test
@@ -631,7 +642,7 @@ class BoxDrawingTest {
 
             // Content row should have left padding (2) and right padding (2)
             String contentRow = result.get(2); // top, padTop, then content
-            assertThat(contentRow.charAt(0)).isEqualTo('▏');
+            assertThat(contentRow.charAt(0)).isEqualTo('│');
             // Content should be indented with padding
             assertThat(contentRow).contains("  Pad");
         }
@@ -690,101 +701,104 @@ class BoxDrawingTest {
             assertThat(result.get(3)).contains("Line 3");
         }
 
-        // --- multi-unit border widths ---
+        // --- thick borders use HEAVY line-drawing ---
 
         @Test
-        @DisplayName("1ch solid border produces full block chars (10px → FULL)")
-        void chBorderUsesFullBlock() {
+        @DisplayName("1ch solid border (10px) uses HEAVY line-drawing")
+        void chBorderUsesHeavy() {
             BoxBorder border = BoxBorder.parse("1ch solid");
-            List<String> content = List.of("Block");
+            List<String> content = List.of("Thick");
 
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // FULL weight → █ everywhere
-            assertThat(result.get(0)).contains("█");
-            assertThat(result.get(1)).contains("Block");
-            assertThat(result.get(1).charAt(0)).isEqualTo('█');
+            // HEAVY: ┏ ━ ┓ top, ┃ sides, ┗ ━ ┛ bottom
+            assertThat(result.get(0)).startsWith("┏");
+            assertThat(result.get(0)).contains("━");
+            assertThat(result.get(1)).contains("Thick");
+            assertThat(result.get(1).charAt(0)).isEqualTo('┃');
+            assertThat(result.getLast()).startsWith("┗");
         }
 
         @Test
-        @DisplayName("1em solid border produces full block chars (10px → FULL)")
-        void emBorderUsesFullBlock() {
+        @DisplayName("1em solid border (10px) uses HEAVY line-drawing")
+        void emBorderUsesHeavy() {
             BoxBorder border = BoxBorder.parse("1em solid");
             List<String> content = List.of("Full");
 
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // FULL weight → █ everywhere
-            assertThat(result.get(0)).contains("█");
-            assertThat(result.get(1).charAt(0)).isEqualTo('█');
+            // HEAVY: ┏ ━ ┓ top, ┃ sides
+            assertThat(result.get(0)).startsWith("┏");
+            assertThat(result.get(0)).contains("━");
+            assertThat(result.get(1).charAt(0)).isEqualTo('┃');
         }
 
         @Test
-        @DisplayName("0.25ch solid border produces BLOCK_1_4 chars (2.5px)")
-        void quarterChBorderUsesBlock14() {
+        @DisplayName("0.25ch solid border (2.5px) uses LIGHT line-drawing")
+        void quarterChBorderUsesLight() {
             BoxBorder border = BoxBorder.parse("0.25ch solid");
             List<String> content = List.of("Quarter");
 
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // BLOCK_1_4: left ▎, bottom ▂
-            assertThat(result.get(1).charAt(0)).isEqualTo('▎');
-            assertThat(result.getLast()).contains("▂");
+            // LIGHT: │ sides, ─ horizontal
+            assertThat(result.get(1).charAt(0)).isEqualTo('│');
+            assertThat(result.getLast()).contains("─");
         }
 
         @Test
-        @DisplayName("0.1ch solid border produces BLOCK_1_8 chars (1px)")
-        void tenthChBorderUsesBlock18() {
+        @DisplayName("0.1ch solid border (1px) uses LIGHT line-drawing")
+        void tenthChBorderUsesLight() {
             BoxBorder border = BoxBorder.parse("0.1ch solid");
             List<String> content = List.of("Thin");
 
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // BLOCK_1_8: left ▏, top ▔, bottom ▁
-            assertThat(result.get(1).charAt(0)).isEqualTo('▏');
-            assertThat(result.get(0)).contains("▔");
+            // LIGHT: │ sides, ─ horizontal
+            assertThat(result.get(1).charAt(0)).isEqualTo('│');
+            assertThat(result.get(0)).contains("─");
         }
 
         @Test
-        @DisplayName("0.1em solid border produces BLOCK_1_8 chars (1px)")
-        void tenthEmBorderUsesBlock18() {
+        @DisplayName("0.1em solid border (1px) uses LIGHT line-drawing")
+        void tenthEmBorderUsesLight() {
             BoxBorder border = BoxBorder.parse("0.1em solid");
             List<String> content = List.of("Thin");
 
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // BLOCK_1_8: left ▏, top ▔
-            assertThat(result.get(1).charAt(0)).isEqualTo('▏');
-            assertThat(result.get(0)).contains("▔");
+            // LIGHT: │ sides, ─ horizontal
+            assertThat(result.get(1).charAt(0)).isEqualTo('│');
+            assertThat(result.get(0)).contains("─");
         }
 
         @Test
-        @DisplayName("0.5em solid border produces BLOCK_1_2 (half block)")
-        void halfEmBorderUsesBlock12() {
+        @DisplayName("0.5em solid border (5px) uses HEAVY line-drawing")
+        void halfEmBorderUsesHeavy() {
             BoxBorder border = BoxBorder.parse("0.5em solid");
             List<String> content = List.of("Half");
 
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // BLOCK_1_2: left ▌, bottom ▄
-            assertThat(result.get(1).charAt(0)).isEqualTo('▌');
-            assertThat(result.getLast()).contains("▄");
+            // HEAVY: ┃ sides, ━ horizontal
+            assertThat(result.get(1).charAt(0)).isEqualTo('┃');
+            assertThat(result.getLast()).contains("━");
         }
 
         @Test
-        @DisplayName("mixed per-side units: em top, ch sides, px bottom")
+        @DisplayName("mixed per-side units: thick top, thin sides, thin bottom")
         void mixedUnitPerSide() {
             BoxBorder border = BoxBorder.of(
-                    "0.5em solid",   // top: 5px → BLOCK_1_2
-                    "0.1ch solid",   // right: 1px → BLOCK_1_8
-                    "0.25ch solid",  // bottom: 2.5px → BLOCK_1_4
-                    "0.1ch solid",   // left: 1px → BLOCK_1_8
+                    "0.5em solid",   // top: 5px → HEAVY
+                    "0.1ch solid",   // right: 1px → LIGHT
+                    "0.25ch solid",  // bottom: 2.5px → LIGHT
+                    "0.1ch solid",   // left: 1px → LIGHT
                     null
             );
             List<String> content = List.of("Mix");
@@ -792,12 +806,12 @@ class BoxDrawingTest {
             List<String> result = BoxDrawing.wrapInBorder(
                     content, border, -1, 0, 0, 0, 0, false, TUI);
 
-            // Top should use BLOCK_1_2 horizontal: ▀ (upper half block)
-            assertThat(result.get(0)).contains("▀");
-            // Bottom should use BLOCK_1_4 char: ▂
-            assertThat(result.getLast()).contains("▂");
-            // Left should use BLOCK_1_8: ▏
-            assertThat(result.get(1).charAt(0)).isEqualTo('▏');
+            // Top should use HEAVY horizontal: ━
+            assertThat(result.get(0)).contains("━");
+            // Bottom should use LIGHT horizontal: ─
+            assertThat(result.getLast()).contains("─");
+            // Left should use LIGHT vertical: │
+            assertThat(result.get(1).charAt(0)).isEqualTo('│');
         }
     }
 

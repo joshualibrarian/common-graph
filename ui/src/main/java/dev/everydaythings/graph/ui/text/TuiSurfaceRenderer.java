@@ -9,6 +9,7 @@ import dev.everydaythings.graph.ui.scene.BoxBorder;
 import dev.everydaythings.graph.ui.scene.SizeValue;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceRenderer;
+import dev.everydaythings.graph.ui.scene.surface.primitive.TextSpan;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -470,7 +471,7 @@ public class TuiSurfaceRenderer implements SurfaceRenderer {
         if (isHorizontalContext()) {
             appendStyledText(buf, content, styles);
             buf.append(" ");
-            currentCol += content.length() + 1;
+            currentCol += BoxDrawing.stripAnsiLength(content) + 1;
         } else {
             appendIndent(buf);
             appendStyledText(buf, content, styles);
@@ -506,7 +507,7 @@ public class TuiSurfaceRenderer implements SurfaceRenderer {
                 appendStyledText(buf, content, styles);
             }
             buf.append(" ");
-            currentCol += content.length() + 1;
+            currentCol += BoxDrawing.stripAnsiLength(content) + 1;
         } else {
             appendIndent(buf);
             if ("code".equals(format)) {
@@ -519,6 +520,100 @@ public class TuiSurfaceRenderer implements SurfaceRenderer {
             trackNewline();
         }
         clearPendingMetadata();
+    }
+
+    // ==================== Rich Text ====================
+
+    @Override
+    public void richText(List<TextSpan> spans, List<String> paragraphStyles) {
+        if (querySkipDepth > 0) return;
+        StyleProperties styles = resolveStyles(paragraphStyles);
+
+        if (styles.isHidden()) {
+            clearPendingMetadata();
+            return;
+        }
+
+        if (spans == null || spans.isEmpty()) {
+            clearPendingMetadata();
+            return;
+        }
+
+        StringBuilder buf = activeBuffer();
+        markElementStart();
+
+        if (isHorizontalContext()) {
+            for (TextSpan span : spans) {
+                appendSpan(buf, span, styles);
+            }
+            buf.append(" ");
+            int totalWidth = 0;
+            for (TextSpan span : spans) {
+                totalWidth += BoxDrawing.stripAnsiLength(span.text());
+            }
+            currentCol += totalWidth + 1;
+        } else {
+            appendIndent(buf);
+            for (TextSpan span : spans) {
+                appendSpan(buf, span, styles);
+            }
+            createHitRegions();
+            buf.append("\n");
+            trackNewline();
+        }
+        clearPendingMetadata();
+    }
+
+    /**
+     * Render a single TextSpan with its own ANSI formatting.
+     */
+    private void appendSpan(StringBuilder buf, TextSpan span, StyleProperties parentStyles) {
+        String text = span.text();
+        if (text == null || text.isEmpty()) return;
+
+        List<String> spanStyles = span.styles();
+        boolean hasFormat = false;
+
+        if (spanStyles != null && !spanStyles.isEmpty()) {
+            if (spanStyles.contains("bold") || spanStyles.contains("strong")) {
+                buf.append(ANSI.BOLD);
+                hasFormat = true;
+            }
+            if (spanStyles.contains("dim") || spanStyles.contains("muted")) {
+                buf.append(ANSI.DIM);
+                hasFormat = true;
+            }
+            if (spanStyles.contains("underline")) {
+                buf.append(ANSI.UNDERLINE);
+                hasFormat = true;
+            }
+            if (spanStyles.contains("reverse")) {
+                buf.append(ANSI.REVERSE);
+                hasFormat = true;
+            }
+            if (spanStyles.contains("code")) {
+                buf.append(ANSI.CYAN);
+                hasFormat = true;
+            }
+            // Check for color in span styles
+            for (String cls : spanStyles) {
+                String ansi = colorToAnsi(cls);
+                if (ansi != null) {
+                    buf.append(ansi);
+                    hasFormat = true;
+                    break;
+                }
+            }
+        }
+
+        // If no span-level formatting, apply parent paragraph styles
+        if (!hasFormat) {
+            appendStyledText(buf, text, parentStyles);
+            return;
+        }
+
+        buf.append(text);
+        buf.append(ANSI.RESET);
     }
 
     // ==================== Image Primitive ====================
@@ -544,7 +639,7 @@ public class TuiSurfaceRenderer implements SurfaceRenderer {
         if (isHorizontalContext()) {
             appendStyledText(buf, alt, styles);
             buf.append(" ");
-            currentCol += alt.length() + 1;
+            currentCol += BoxDrawing.stripAnsiLength(alt) + 1;
         } else {
             appendIndent(buf);
             appendStyledText(buf, alt, styles);
@@ -1057,7 +1152,7 @@ public class TuiSurfaceRenderer implements SurfaceRenderer {
         });
 
         buf.append(text);
-        currentCol += text.length();
+        currentCol += BoxDrawing.stripAnsiLength(text);
 
         if (hasStyle || styles.getColor().isPresent()) {
             buf.append(ANSI.RESET);

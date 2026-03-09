@@ -45,8 +45,8 @@ class UserIntegrationTest {
 
         Eval.EvalResult result = eval.evaluateCommand(List.of("create", "user", "alice"));
 
-        assertThat(result).isInstanceOf(Eval.EvalResult.ItemResult.class);
-        Item created = ((Eval.EvalResult.ItemResult) result).item();
+        assertThat(result).isInstanceOf(Eval.EvalResult.Created.class);
+        Item created = ((Eval.EvalResult.Created) result).item();
         assertThat(created).isInstanceOf(User.class);
 
         User user = (User) created;
@@ -63,7 +63,7 @@ class UserIntegrationTest {
                 .build();
 
         Eval.EvalResult result = eval.evaluateCommand(List.of("create", "user", "alice"));
-        User user = (User) ((Eval.EvalResult.ItemResult) result).item();
+        User user = (User) ((Eval.EvalResult.Created) result).item();
 
         assertThat(user.canSign()).isTrue();
         assertThat(user.publicKey()).isNotNull();
@@ -98,8 +98,8 @@ class UserIntegrationTest {
 
         // First create a user
         Eval.EvalResult createResult = eval.evaluateCommand(List.of("create", "user", "alice"));
-        assertThat(createResult).isInstanceOf(Eval.EvalResult.ItemResult.class);
-        User alice = (User) ((Eval.EvalResult.ItemResult) createResult).item();
+        assertThat(createResult).isInstanceOf(Eval.EvalResult.Created.class);
+        User alice = (User) ((Eval.EvalResult.Created) createResult).item();
 
         // Verify user's name is indexed in token dictionary
         var tokenDict = librarian.tokenIndex();
@@ -157,8 +157,8 @@ class UserIntegrationTest {
         Eval.EvalResult r1 = eval.evaluateCommand(List.of("create", "user", "alice"));
         Eval.EvalResult r2 = eval.evaluateCommand(List.of("create", "user", "bob"));
 
-        User alice = (User) ((Eval.EvalResult.ItemResult) r1).item();
-        User bob = (User) ((Eval.EvalResult.ItemResult) r2).item();
+        User alice = (User) ((Eval.EvalResult.Created) r1).item();
+        User bob = (User) ((Eval.EvalResult.Created) r2).item();
 
         assertThat(alice.iid()).isNotEqualTo(bob.iid());
         assertThat(alice.name()).isEqualTo("alice");
@@ -191,8 +191,8 @@ class UserIntegrationTest {
 
         // Step 1: Create user
         Eval.EvalResult userResult = eval.evaluateCommand(List.of("create", "user", "alice"));
-        assertThat(userResult).isInstanceOf(Eval.EvalResult.ItemResult.class);
-        User alice = (User) ((Eval.EvalResult.ItemResult) userResult).item();
+        assertThat(userResult).isInstanceOf(Eval.EvalResult.Created.class);
+        User alice = (User) ((Eval.EvalResult.Created) userResult).item();
 
         // Step 2: Serve user (set as principal)
         eval.evaluateCommand(List.of("serve", "alice"));
@@ -200,8 +200,8 @@ class UserIntegrationTest {
 
         // Step 3: Create an item
         Eval.EvalResult itemResult = eval.evaluateCommand(List.of("create", "item"));
-        assertThat(itemResult).isInstanceOf(Eval.EvalResult.ItemResult.class);
-        Item item = ((Eval.EvalResult.ItemResult) itemResult).item();
+        assertThat(itemResult).isInstanceOf(Eval.EvalResult.Created.class);
+        Item item = ((Eval.EvalResult.Created) itemResult).item();
 
         // Step 4: Create chess on the item context
         Eval evalOnItem = Eval.builder()

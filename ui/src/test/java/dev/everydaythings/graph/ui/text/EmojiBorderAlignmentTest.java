@@ -259,7 +259,7 @@ class EmojiBorderAlignmentTest {
         // Box-drawing and block elements → 1 column
         assertThat(BoxDrawing.codePointWidth(0x2500)).as("─").isEqualTo(1);
         assertThat(BoxDrawing.codePointWidth(0x251C)).as("├").isEqualTo(1);
-        assertThat(BoxDrawing.codePointWidth(0x258F)).as("▏").isEqualTo(1);
+        assertThat(BoxDrawing.codePointWidth(0x2502)).as("│").isEqualTo(1);
 
         // VS16 (U+FE0F) → 0 columns (variation selector)
         assertThat(BoxDrawing.codePointWidth(0xFE0F)).as("VS16").isEqualTo(0);

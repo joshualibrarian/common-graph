@@ -105,8 +105,8 @@ class ChessEvalIntegrationTest {
 
         Eval.EvalResult result = eval.evaluateCommand(List.of("create", "item"));
 
-        assertThat(result).isInstanceOf(Eval.EvalResult.ItemResult.class);
-        Item created = ((Eval.EvalResult.ItemResult) result).item();
+        assertThat(result).isInstanceOf(Eval.EvalResult.Created.class);
+        Item created = ((Eval.EvalResult.Created) result).item();
         assertThat(created).isNotNull();
         assertThat(created.iid()).isNotNull();
     }
@@ -167,8 +167,8 @@ class ChessEvalIntegrationTest {
                 .build();
 
         Eval.EvalResult createResult = eval.evaluateCommand(List.of("create", "item"));
-        assertThat(createResult).isInstanceOf(Eval.EvalResult.ItemResult.class);
-        Item item = ((Eval.EvalResult.ItemResult) createResult).item();
+        assertThat(createResult).isInstanceOf(Eval.EvalResult.Created.class);
+        Item item = ((Eval.EvalResult.Created) createResult).item();
 
         // Step 2: Create a Chess component via Eval (context = item)
         Eval evalOnItem = Eval.builder()

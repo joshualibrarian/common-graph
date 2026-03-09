@@ -13,8 +13,12 @@ import lombok.experimental.Accessors;
 import lombok.extern.log4j.Log4j2;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -68,6 +72,27 @@ public class SessionItem extends Item {
     /** Session lifecycle callbacks. */
     private Runnable onExit;
     private Runnable onBack;
+
+    /**
+     * Activity log — session-scoped record of user interactions.
+     *
+     * <p>In-memory for now (SessionItem doesn't have persistent storage yet).
+     * When SessionItem becomes a proper librarian-backed Item, this will
+     * migrate to a {@code Log<ActivityEntry>} stream component.
+     *
+     * <p>The activity log is the single source of truth for "what happened."
+     * The feedback panel near each item's prompt is an ephemeral query into
+     * this log, filtered by context IID — not a component on each item.
+     */
+    private final List<ActivityEntry> activityLog = new ArrayList<>();
+
+    /**
+     * Fast lookup: most recent activity entry per context IID.
+     *
+     * <p>This is a cache over the activity log, updated on every append.
+     * Surfaces bind to this for the prompt feedback display.
+     */
+    private final Map<ItemID, ActivityEntry> lastByContext = new LinkedHashMap<>();
 
     // ==================================================================================
     // Constructors
@@ -227,6 +252,65 @@ public class SessionItem extends Item {
      */
     public boolean hasAuthenticatedUser() {
         return !authenticatedUsers.isEmpty();
+    }
+
+    // ==================================================================================
+    // Activity Log
+    // ==================================================================================
+
+    /**
+     * Append an entry to the activity log.
+     *
+     * @param entry The activity entry to record
+     */
+    public void logActivity(ActivityEntry entry) {
+        activityLog.add(entry);
+        if (entry.contextIid() != null) {
+            lastByContext.put(entry.contextIid(), entry);
+        }
+    }
+
+    /**
+     * Get the most recent activity entry for a specific context.
+     *
+     * <p>This is the ephemeral query that the prompt feedback panel binds to:
+     * "last entry in the activity log where context == this item."
+     *
+     * @param contextIid The context item IID to filter by
+     * @return The most recent entry for that context, or empty
+     */
+    public Optional<ActivityEntry> lastActivityForContext(ItemID contextIid) {
+        if (contextIid == null) return lastActivity();
+        return Optional.ofNullable(lastByContext.get(contextIid));
+    }
+
+    /**
+     * Get the most recent activity entry (any context).
+     */
+    public Optional<ActivityEntry> lastActivity() {
+        if (activityLog.isEmpty()) return Optional.empty();
+        return Optional.of(activityLog.getLast());
+    }
+
+    /**
+     * Get the N most recent activity entries (newest first).
+     *
+     * @param count Maximum number of entries to return
+     * @return List of entries, newest first
+     */
+    public List<ActivityEntry> recentActivity(int count) {
+        int size = activityLog.size();
+        int start = Math.max(0, size - count);
+        List<ActivityEntry> result = new ArrayList<>(activityLog.subList(start, size));
+        Collections.reverse(result);
+        return result;
+    }
+
+    /**
+     * Get the total number of activity entries.
+     */
+    public int activityCount() {
+        return activityLog.size();
     }
 
     // ==================================================================================

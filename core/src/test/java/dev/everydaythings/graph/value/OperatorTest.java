@@ -130,7 +130,7 @@ class OperatorTest {
     @Test
     void fromSymbolReturnsNullForUnknown() {
         assertThat(Operator.fromSymbol("XOR")).isNull();
-        assertThat(Operator.fromSymbol("+")).isNull();
+        assertThat(Operator.fromSymbol("~~~")).isNull();
         assertThat(Operator.fromSymbol(null)).isNull();
     }
 

@@ -219,4 +219,17 @@ public sealed interface ExpressionToken {
             return ")";
         }
     }
+
+    /**
+     * An unresolved name — a bare identifier not yet bound to an item.
+     *
+     * <p>Used in expression parsing for variable references (x, y, z)
+     * and function names. Resolved to bindings at evaluation time.
+     */
+    record NameToken(String name) implements ExpressionToken {
+        @Override
+        public String displayText() {
+            return name;
+        }
+    }
 }

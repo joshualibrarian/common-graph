@@ -43,6 +43,7 @@ public class FrameAssembler {
     public record Analysis(
             VerbSememe verb,
             Map<ThematicRole, Object> bindings,
+            Map<String, List<Sememe>> modifiers,
             List<ResolvedToken> unmatchedArgs,
             List<ArgumentSlot> unboundRequired,
             List<ArgumentSlot> unboundOptional,
@@ -145,6 +146,44 @@ public class FrameAssembler {
             }
         }
 
+        // Step 3.5: Collect modifiers (adjectives → next noun, adverbs → verb)
+        Map<String, List<Sememe>> modifiers = new LinkedHashMap<>();
+        for (int i = 0; i < slots.size(); i++) {
+            if (consumed.contains(i)) continue;
+
+            Item item = slots.get(i).item();
+            if (item instanceof AdverbSememe adverb) {
+                // Adverbs modify the verb
+                modifiers.computeIfAbsent("verb", k -> new ArrayList<>()).add(adverb);
+                consumed.add(i);
+            } else if (item instanceof AdjectiveSememe adj) {
+                // Adjectives modify the next unconsumed noun/item
+                int nextNoun = -1;
+                for (int j = i + 1; j < slots.size(); j++) {
+                    if (consumed.contains(j)) continue;
+                    Item candidate = slots.get(j).item();
+                    if (candidate != null
+                            && !(candidate instanceof VerbSememe)
+                            && !(candidate instanceof PrepositionSememe)
+                            && !(candidate instanceof ConjunctionSememe)
+                            && !(candidate instanceof AdjectiveSememe)
+                            && !(candidate instanceof AdverbSememe)) {
+                        nextNoun = j;
+                        break;
+                    }
+                }
+                if (nextNoun >= 0) {
+                    // Key by the noun's IID so dispatch can look up per-argument modifiers
+                    String key = "iid:" + slots.get(nextNoun).item().iid().encodeText();
+                    modifiers.computeIfAbsent(key, k -> new ArrayList<>()).add(adj);
+                } else {
+                    // No noun follows — attach to verb as a general qualifier
+                    modifiers.computeIfAbsent("verb", k -> new ArrayList<>()).add(adj);
+                }
+                consumed.add(i);
+            }
+        }
+
         // Step 4: Match remaining resolved Items to argument slots (first-fit)
         List<ArgumentSlot> arguments = verb.arguments();
         Set<ThematicRole> filledRoles = new HashSet<>(bindings.keySet());
@@ -154,6 +193,7 @@ public class FrameAssembler {
 
             Item item = slots.get(i).item();
             if (item == null) continue; // literals and unresolved handled in step 5
+            if (item instanceof VerbSememe) continue; // extra verbs go unmatched, not to argument slots
             if (item instanceof PrepositionSememe) continue; // unconsumed prepositions go unmatched
             if (item instanceof ConjunctionSememe) continue; // unconsumed conjunctions go unmatched
 
@@ -164,6 +204,13 @@ public class FrameAssembler {
                     filledRoles.add(slot.role());
                     consumed.add(i);
                     thematicByTokenIndex.put(i, slot.role());
+
+                    // Re-key modifiers from iid-based to role-based
+                    String iidKey = "iid:" + item.iid().encodeText();
+                    List<Sememe> mods = modifiers.remove(iidKey);
+                    if (mods != null) {
+                        modifiers.put("role:" + slot.role().name(), mods);
+                    }
                     break;
                 }
             }
@@ -217,9 +264,16 @@ public class FrameAssembler {
             ));
         }
 
+        // Make modifier lists unmodifiable
+        Map<String, List<Sememe>> unmodifiableModifiers = new LinkedHashMap<>();
+        for (var entry : modifiers.entrySet()) {
+            unmodifiableModifiers.put(entry.getKey(), Collections.unmodifiableList(entry.getValue()));
+        }
+
         Analysis analysis = new Analysis(
                 verb,
                 Collections.unmodifiableMap(bindings),
+                Collections.unmodifiableMap(unmodifiableModifiers),
                 Collections.unmodifiableList(unmatchedArgs),
                 Collections.unmodifiableList(unboundRequired),
                 Collections.unmodifiableList(unboundOptional),
@@ -251,10 +305,92 @@ public class FrameAssembler {
         return Optional.of(new SemanticFrame(
                 a.verb(),
                 a.bindings(),
+                a.modifiers(),
                 a.unmatchedArgs(),
                 a.unboundRequired(),
                 a.unboundOptional()
         ));
+    }
+
+    /**
+     * Detect and split multi-verb conjunction expressions.
+     *
+     * <p>Handles patterns like "create chess and place in main" by detecting
+     * ConjunctionSememe between verb groups and splitting into separate
+     * token lists, each assembled independently.
+     *
+     * @param tokens   The resolved tokens
+     * @param resolver Item resolver
+     * @return List of frames (1 if no conjunction, 2+ if verbs are conjoined)
+     */
+    public static List<SemanticFrame> assembleAll(
+            List<ResolvedToken> tokens,
+            Function<ItemID, Optional<Item>> resolver) {
+        return assembleAll(tokens, resolver, v -> 0);
+    }
+
+    /**
+     * Detect and split multi-verb conjunction expressions with head-verb scoring.
+     */
+    public static List<SemanticFrame> assembleAll(
+            List<ResolvedToken> tokens,
+            Function<ItemID, Optional<Item>> resolver,
+            ToIntFunction<VerbSememe> headVerbScorer) {
+
+        if (tokens.isEmpty()) return List.of();
+
+        // Count verbs and find conjunction positions between them
+        List<Integer> verbIndices = new ArrayList<>();
+        List<Integer> conjIndices = new ArrayList<>();
+
+        for (int i = 0; i < tokens.size(); i++) {
+            if (tokens.get(i) instanceof ResolvedToken.Link link) {
+                Optional<Item> item = resolver.apply(link.iid());
+                if (item.isPresent()) {
+                    if (item.get() instanceof VerbSememe) verbIndices.add(i);
+                    else if (item.get() instanceof ConjunctionSememe) conjIndices.add(i);
+                }
+            }
+        }
+
+        // Only split if there are 2+ verbs with a conjunction between them
+        if (verbIndices.size() < 2 || conjIndices.isEmpty()) {
+            Optional<SemanticFrame> single = assemble(tokens, resolver);
+            return single.map(List::of).orElse(List.of());
+        }
+
+        // Find conjunction indices that separate verb groups
+        List<Integer> splitPoints = new ArrayList<>();
+        for (int conjIdx : conjIndices) {
+            boolean verbBefore = verbIndices.stream().anyMatch(v -> v < conjIdx);
+            boolean verbAfter = verbIndices.stream().anyMatch(v -> v > conjIdx);
+            if (verbBefore && verbAfter) {
+                splitPoints.add(conjIdx);
+            }
+        }
+
+        if (splitPoints.isEmpty()) {
+            Optional<SemanticFrame> single = assemble(tokens, resolver);
+            return single.map(List::of).orElse(List.of());
+        }
+
+        // Split tokens at conjunction points and assemble each segment
+        List<SemanticFrame> frames = new ArrayList<>();
+        int start = 0;
+        for (int splitIdx : splitPoints) {
+            List<ResolvedToken> segment = tokens.subList(start, splitIdx);
+            Optional<SemanticFrame> frame = assemble(segment, resolver);
+            frame.ifPresent(frames::add);
+            start = splitIdx + 1; // skip the conjunction
+        }
+        // Last segment
+        if (start < tokens.size()) {
+            List<ResolvedToken> segment = tokens.subList(start, tokens.size());
+            Optional<SemanticFrame> frame = assemble(segment, resolver);
+            frame.ifPresent(frames::add);
+        }
+
+        return frames;
     }
 
     /**

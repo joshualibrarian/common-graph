@@ -626,12 +626,21 @@ public abstract class Session implements Callable<Integer>, Closeable {
     /**
      * Handle an EvalResult from input dispatch.
      *
-     * <p>Handles the result (navigation, component creation) and updates
-     * prompt/context. Errors are shown directly in the input field via
-     * EvalInput's error state — no separate transcript needed.
+     * <p>Handles the result (navigation, component creation), logs the
+     * activity, and updates prompt/context. Errors are shown directly in
+     * the input field via EvalInput's error state.
      */
     protected void handleInputResult(Eval.EvalResult result) {
         handleEvalResult(result);
+
+        // Log to the session activity log
+        if (sessionItem != null && !(result instanceof Eval.EvalResult.Empty)) {
+            String inputText = evalInput != null ? evalInput.lastSubmittedText() : null;
+            ItemID contextIid = contextItem().map(Item::iid).orElse(null);
+            ActivityEntry entry = ActivityEntry.from(inputText, contextIid, result);
+            sessionItem.logActivity(entry);
+        }
+
         if (evalInput != null) {
             evalInput.setPrompt(buildPrompt());
             evalInput.setContext(contextItem().orElse(null));

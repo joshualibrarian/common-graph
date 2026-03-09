@@ -2,6 +2,8 @@
 
 **A unified substrate for content, identity, meaning, and trust.**
 
+> **Fair warning:** This is an active construction site. The architecture is real, the code runs, but everything is changing constantly and some of it is a mess. If that bothers you, check back later. If that excites you, read on.
+
 ---
 
 ## The Problem

@@ -1,19 +1,26 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.expression.ExpressionParser;
 import dev.everydaythings.graph.expression.ExpressionToken;
+import dev.everydaythings.graph.item.component.expression.EvaluationContext;
+import dev.everydaythings.graph.item.component.expression.Expression;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Vocabulary;
 import dev.everydaythings.graph.item.VerbEntry;
 import dev.everydaythings.graph.item.VerbInvoker;
 import dev.everydaythings.graph.item.action.ActionContext;
+import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.ComponentType;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.item.action.ParamSpec;
+import dev.everydaythings.graph.language.DiscourseHistory;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.PronounSememe;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.ArgumentSlot;
 import dev.everydaythings.graph.language.SemanticFrame;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.VerbSememe;
@@ -66,16 +73,20 @@ public class Eval {
     private final String focusedComponent;
     /** Session-level item providing outermost vocabulary scope. */
     private final Item session;
+    /** Discourse history for pronoun resolution ("it", "that", "this", "last"). */
+    private final DiscourseHistory discourseHistory;
     private final boolean interactive;
     private final boolean jsonOutput;
     private final int depth;
 
     private Eval(LibrarianHandle librarianHandle, Item context, String focusedComponent,
-                 Item session, boolean interactive, boolean jsonOutput, int depth) {
+                 Item session, DiscourseHistory discourseHistory,
+                 boolean interactive, boolean jsonOutput, int depth) {
         this.librarianHandle = librarianHandle;
         this.context = context;
         this.focusedComponent = focusedComponent;
         this.session = session;
+        this.discourseHistory = discourseHistory != null ? discourseHistory : new DiscourseHistory();
         this.interactive = interactive;
         this.jsonOutput = jsonOutput;
         this.depth = depth;
@@ -94,6 +105,7 @@ public class Eval {
         private Item context;
         private String focusedComponent;
         private Item session;
+        private DiscourseHistory discourseHistory;
         private boolean interactive = true;
         private boolean jsonOutput = false;
 
@@ -124,6 +136,12 @@ public class Eval {
             return this;
         }
 
+        /** Set discourse history for pronoun resolution (shared across evals). */
+        public Builder discourseHistory(DiscourseHistory history) {
+            this.discourseHistory = history;
+            return this;
+        }
+
         public Builder interactive(boolean interactive) {
             this.interactive = interactive;
             return this;
@@ -139,7 +157,7 @@ public class Eval {
                 throw new IllegalStateException("LibrarianHandle is required");
             }
             return new Eval(librarianHandle, context, focusedComponent, session,
-                    interactive, jsonOutput, 0);
+                    discourseHistory, interactive, jsonOutput, 0);
         }
     }
 
@@ -436,6 +454,47 @@ public class Eval {
         return resolved;
     }
 
+    /**
+     * Replace pronoun sememes with their concrete referents from discourse history.
+     *
+     * <p>If "it" resolves to the most recently created item, the Link pointing
+     * to the PronounSememe is replaced with a Link pointing to the referent.
+     */
+    private List<ResolvedToken> resolvePronouns(List<ResolvedToken> tokens) {
+        List<ResolvedToken> result = new ArrayList<>(tokens.size());
+        boolean anyResolved = false;
+
+        for (ResolvedToken token : tokens) {
+            if (token instanceof ResolvedToken.Link link) {
+                Optional<Item> item = librarianHandle.get(link.iid());
+                if (item.isPresent() && item.get() instanceof PronounSememe pronoun) {
+                    Optional<Item> referent = discourseHistory.resolve(pronoun, context);
+                    if (referent.isPresent()) {
+                        result.add(new ResolvedToken.Link(
+                                referent.get().iid(), link.originalToken()));
+                        anyResolved = true;
+                        continue;
+                    }
+                }
+            }
+            result.add(token);
+        }
+
+        if (anyResolved) {
+            logger.debug("Pronoun resolution: {}", result);
+        }
+        return anyResolved ? result : tokens;
+    }
+
+    /**
+     * Push an item to discourse history after it was referenced in a result.
+     */
+    private void pushToHistory(Item item) {
+        if (item != null && discourseHistory != null) {
+            discourseHistory.push(item);
+        }
+    }
+
     private boolean isCreateVerbToken(ResolvedToken token) {
         if (!(token instanceof ResolvedToken.Link link)) return false;
         return link.iid().equals(ItemID.fromString(Sememe.CREATE));
@@ -512,13 +571,16 @@ public class Eval {
                 expanded.addAll(args.subList(1, args.size()));
             }
             Eval child = new Eval(librarianHandle, context, focusedComponent, session,
-                    interactive, jsonOutput, depth + 1);
+                    discourseHistory, interactive, jsonOutput, depth + 1);
             return child.evaluateCommand(expanded);
         }
 
         // Resolve all tokens to Items/literals
         List<ResolvedToken> resolved = resolveAll(args);
         logger.debug("Resolved {} tokens: {}", resolved.size(), resolved);
+
+        // Resolve pronouns ("it", "that", "this", "last") to their referents
+        resolved = resolvePronouns(resolved);
 
         return evaluateResolved(resolved);
     }
@@ -529,32 +591,38 @@ public class Eval {
      * <p>Uses {@link FrameAssembler} to build a {@link SemanticFrame} from
      * resolved tokens in any order. If a verb is found, dispatches via the
      * frame; otherwise falls back to navigation/literal handling.
+     *
+     * <p>Supports multi-verb conjunction: "create chess and place in main"
+     * splits into two frames executed sequentially, with the result of the
+     * first available to the second.
      */
     private EvalResult evaluateResolved(List<ResolvedToken> resolved) {
         if (resolved.isEmpty()) {
             return EvalResult.empty();
         }
 
-        // Run unified semantic parser (order-agnostic) and derive frame.
-        Optional<FrameAssembler.Analysis> maybeAnalysis = FrameAssembler.analyze(
+        // Check for multi-verb conjunction ("create X and place in Y")
+        List<SemanticFrame> frames = FrameAssembler.assembleAll(
                 resolved, iid -> librarianHandle.get(iid), this::headVerbScore);
 
-        if (maybeAnalysis.isEmpty()) {
+        if (frames.isEmpty()) {
             // No verb found — fall back to navigation/literal handling
             return evaluateWithoutVerb(resolved);
         }
 
-        FrameAssembler.Analysis analysis = maybeAnalysis.get();
-        logger.debug("parser termBindings={}", analysis.termBindings());
+        if (frames.size() == 1) {
+            return evaluateFrame(frames.get(0));
+        }
 
-        SemanticFrame frame = new SemanticFrame(
-                analysis.verb(),
-                analysis.bindings(),
-                analysis.unmatchedArgs(),
-                analysis.unboundRequired(),
-                analysis.unboundOptional()
-        );
-        return evaluateFrame(frame);
+        // Multi-verb: execute sequentially, threading results
+        EvalResult lastResult = EvalResult.empty();
+        for (SemanticFrame frame : frames) {
+            lastResult = evaluateFrame(frame);
+            if (!lastResult.isSuccess()) {
+                return lastResult; // stop on first error
+            }
+        }
+        return lastResult;
     }
 
     /**
@@ -603,6 +671,7 @@ public class Eval {
             if (token instanceof ResolvedToken.Link link) {
                 Optional<Item> item = librarianHandle.get(link.iid());
                 if (item.isPresent()) {
+                    pushToHistory(item.get());
                     return EvalResult.item(item.get());
                 }
             }
@@ -850,8 +919,32 @@ public class Eval {
                 expanded.add(tokens.get(i).displayText());
             }
             Eval child = new Eval(librarianHandle, context, focusedComponent, session,
-                    interactive, jsonOutput, depth + 1);
+                    discourseHistory, interactive, jsonOutput, depth + 1);
             return child.evaluateCommand(expanded);
+        }
+
+        // If the tokens look like a mathematical expression (contain operators,
+        // parentheses, or are bare numerics), try the expression parser first.
+        if (ExpressionParser.looksLikeExpression(tokens)) {
+            var exprResult = ExpressionParser.tryParse(tokens);
+            if (exprResult.isPresent()) {
+                Expression expr = exprResult.get();
+                Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                        ? local.librarian() : null;
+                EvaluationContext evalCtx = (librarian != null && context != null)
+                        ? EvaluationContext.forItem(librarian, context)
+                        : (librarian != null)
+                            ? EvaluationContext.forLibrarian(librarian)
+                            : new EvaluationContext(null, null);
+                try {
+                    Object value = expr.evaluate(evalCtx);
+                    logger.debug("Expression evaluated: {} → {}", expr.toExpressionString(), value);
+                    return EvalResult.value(value);
+                } catch (Exception e) {
+                    logger.debug("Expression evaluation failed: {}", e.getMessage());
+                    // Fall through to verb-frame path
+                }
+            }
         }
 
         // Convert ExpressionTokens to ResolvedTokens
@@ -859,6 +952,9 @@ public class Eval {
         for (ExpressionToken token : tokens) {
             resolved.add(convertToken(token));
         }
+
+        // Resolve pronouns
+        resolved = resolvePronouns(resolved);
 
         logger.debug("Executing {} tokens: {}", resolved.size(), resolved);
 
@@ -876,6 +972,9 @@ public class Eval {
         } else if (token instanceof ExpressionToken.OpToken op) {
             // Operators reference Items - treat as Link
             return new ResolvedToken.Link(op.operatorId(), op.displayText());
+        } else if (token instanceof ExpressionToken.NameToken name) {
+            // Unresolved name - treat as unresolved token
+            return new ResolvedToken.Unresolved(name.name());
         } else {
             // Parens etc - treat as literals
             return new ResolvedToken.Literal(token.displayText(), token.displayText());
@@ -928,6 +1027,12 @@ public class Eval {
         // Second pass: match unmatched literals to verb params by role
         bindLiteralsToParams(verb, bindings, overflow);
 
+        // Validate type constraints from the verb's argument slots
+        String typeError = validateTypeConstraints(frame.verb(), bindings);
+        if (typeError != null) {
+            return EvalResult.error(typeError);
+        }
+
         Item principalItem = librarianHandle.principal().orElse(null);
         Signer principal = principalItem instanceof Signer s ? s : null;
         ItemID callerId = principalItem != null ? principalItem.iid() : null;
@@ -941,6 +1046,7 @@ public class Eval {
         if (result.success()) {
             Object value = result.value();
             if (value instanceof Item item) {
+                pushToHistory(item);
                 // CREATE returns a new item — don't navigate the current view
                 if (verbId.equals(ItemID.fromString(Sememe.CREATE))) {
                     return EvalResult.created(item);
@@ -953,6 +1059,35 @@ public class Eval {
             Throwable error = result.error();
             return EvalResult.error(error != null ? error.getMessage() : "unknown error");
         }
+    }
+
+    /**
+     * Validate type constraints from the verb's argument slots against bound values.
+     *
+     * @return Error message if a constraint is violated, null if all pass
+     */
+    private String validateTypeConstraints(VerbSememe verb, Map<ThematicRole, Object> bindings) {
+        for (ArgumentSlot slot : verb.arguments()) {
+            if (slot.typeConstraint() == null) continue;
+
+            Object value = bindings.get(slot.role());
+            if (value == null) continue;
+
+            if (value instanceof Item item) {
+                // Check if the item's type matches the constraint
+                ItemID requiredType = slot.typeConstraint();
+                ItemID actualType = Components.typeId(item.getClass());
+                if (actualType != null && !actualType.equals(requiredType)) {
+                    // Look up type names for a helpful message
+                    String requiredName = librarianHandle.get(requiredType)
+                            .map(Item::displayToken).orElse(requiredType.encodeText());
+                    String actualName = item.displayToken();
+                    return "Expected " + requiredName + " for " + slot.role()
+                            + ", got " + actualName;
+                }
+            }
+        }
+        return null;
     }
 
     /**

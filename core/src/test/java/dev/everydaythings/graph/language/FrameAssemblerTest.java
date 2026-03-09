@@ -28,6 +28,16 @@ class FrameAssemblerTest {
     private static final PrepositionSememe FROM = Sememe.from;
     private static final ConjunctionSememe AND = Sememe.and;
 
+    // Test modifier sememes
+    private static final AdjectiveSememe PUBLIC_ADJ = new AdjectiveSememe(
+            "cg:test/public",
+            Map.of("en", "accessible to everyone"), Map.of(),
+            List.of("public"));
+    private static final AdverbSememe QUIETLY = new AdverbSememe(
+            "cg:test/quietly",
+            Map.of("en", "without notification"), Map.of(),
+            List.of("quietly"));
+
     // Mock "noun" items — use random IIDs
     private static final ItemID CHESS_IID = ItemID.fromString("cg:test/chess");
     private static final ItemID LIBRARIAN_IID = ItemID.fromString("cg:test/librarian");
@@ -60,6 +70,8 @@ class FrameAssemblerTest {
         if (iid.equals(NAMED.iid())) return Optional.of(NAMED);
         if (iid.equals(FROM.iid())) return Optional.of(FROM);
         if (iid.equals(AND.iid())) return Optional.of(AND);
+        if (iid.equals(PUBLIC_ADJ.iid())) return Optional.of(PUBLIC_ADJ);
+        if (iid.equals(QUIETLY.iid())) return Optional.of(QUIETLY);
         if (iid.equals(CHESS_IID)) return Optional.of(CHESS_ITEM);
         if (iid.equals(LIBRARIAN_IID)) return Optional.of(LIBRARIAN_ITEM);
         if (iid.equals(BOB_IID)) return Optional.of(BOB_ITEM);
@@ -399,5 +411,102 @@ class FrameAssemblerTest {
 
         assertThat(frame).isPresent();
         assertThat(frame.get().bindings().get(ThematicRole.COMITATIVE)).isSameAs(BOB_ITEM);
+    }
+
+    // ==================================================================================
+    // Adverb modifies verb: "quietly create chess"
+    // ==================================================================================
+
+    @Test
+    void adverbModifiesVerb() {
+        var tokens = List.of(
+                link(QUIETLY), link(CREATE), link(CHESS_IID, "chess"));
+
+        var frame = FrameAssembler.assemble(tokens, resolver);
+
+        assertThat(frame).isPresent();
+        assertThat(frame.get().verb()).isSameAs(CREATE);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.THEME, CHESS_ITEM);
+        assertThat(frame.get().verbModifiers()).containsExactly(QUIETLY);
+        assertThat(frame.get().unmatchedArgs()).isEmpty();
+    }
+
+    // ==================================================================================
+    // Adjective modifies noun: "create public chess"
+    // ==================================================================================
+
+    @Test
+    void adjectiveModifiesNoun() {
+        var tokens = List.of(
+                link(CREATE), link(PUBLIC_ADJ), link(CHESS_IID, "chess"));
+
+        var frame = FrameAssembler.assemble(tokens, resolver);
+
+        assertThat(frame).isPresent();
+        assertThat(frame.get().verb()).isSameAs(CREATE);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.THEME, CHESS_ITEM);
+        // Adjective should be keyed by role since chess was bound to THEME
+        assertThat(frame.get().modifiersFor(ThematicRole.THEME)).containsExactly(PUBLIC_ADJ);
+        assertThat(frame.get().unmatchedArgs()).isEmpty();
+    }
+
+    // ==================================================================================
+    // Both modifiers: "quietly create public chess"
+    // ==================================================================================
+
+    @Test
+    void adverbAndAdjective() {
+        var tokens = List.of(
+                link(QUIETLY), link(CREATE), link(PUBLIC_ADJ), link(CHESS_IID, "chess"));
+
+        var frame = FrameAssembler.assemble(tokens, resolver);
+
+        assertThat(frame).isPresent();
+        assertThat(frame.get().verb()).isSameAs(CREATE);
+        assertThat(frame.get().verbModifiers()).containsExactly(QUIETLY);
+        assertThat(frame.get().modifiersFor(ThematicRole.THEME)).containsExactly(PUBLIC_ADJ);
+    }
+
+    // ==================================================================================
+    // Multi-verb conjunction: "create chess and show librarian"
+    // ==================================================================================
+
+    @Test
+    void multiVerbConjunction() {
+        var tokens = List.of(
+                link(CREATE), link(CHESS_IID, "chess"),
+                link(AND),
+                link(SHOW), link(LIBRARIAN_IID, "librarian"));
+
+        var frames = FrameAssembler.assembleAll(tokens, resolver);
+
+        assertThat(frames).hasSize(2);
+
+        // First frame: create chess
+        assertThat(frames.get(0).verb()).isSameAs(CREATE);
+        assertThat(frames.get(0).bindings()).containsEntry(ThematicRole.THEME, CHESS_ITEM);
+
+        // Second frame: show librarian
+        assertThat(frames.get(1).verb()).isSameAs(SHOW);
+        assertThat(frames.get(1).bindings()).containsEntry(ThematicRole.THEME, LIBRARIAN_ITEM);
+    }
+
+    // ==================================================================================
+    // Single verb with conjunction noun is NOT split
+    // ==================================================================================
+
+    @Test
+    void singleVerbConjunctionNotSplit() {
+        // "create chess between bob and jane" should NOT split
+        var tokens = List.of(
+                link(CREATE), link(CHESS_IID, "chess"),
+                link(BETWEEN), link(BOB_IID, "bob"),
+                link(AND), link(JANE_IID, "jane"));
+
+        var frames = FrameAssembler.assembleAll(tokens, resolver);
+
+        // Should produce 1 frame (not split at AND — no verb after AND)
+        assertThat(frames).hasSize(1);
+        assertThat(frames.get(0).verb()).isSameAs(CREATE);
     }
 }
