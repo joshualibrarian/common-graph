@@ -2,6 +2,7 @@ package dev.everydaythings.graph.expression;
 
 import dev.everydaythings.graph.expression.ExpressionToken.*;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
@@ -413,7 +414,7 @@ public class EvalInput {
             }
         }
 
-        tokens.add(RefToken.from(posting));
+        tokens.add(enrichedRefToken(posting));
         pendingText.setLength(0);
         cursor = 0;
         clearCompletions();
@@ -427,8 +428,14 @@ public class EvalInput {
     /**
      * Handle token boundary (Space key).
      *
-     * <p>If the pending text is a recognized operator or literal, commits it
-     * as a token. Otherwise, inserts a space character.
+     * <p>Resolution order ensures expressions work correctly:
+     * <ol>
+     *   <li>Parentheses and commas — structural tokens</li>
+     *   <li>Literals (numbers, booleans, quoted strings) — before dictionary so "5" is always a number</li>
+     *   <li>Symbolic operators (+, -, *, etc.) — before dictionary so "+" becomes OpToken, not RefToken</li>
+     *   <li>Dictionary lookup — for words (verbs, nouns, function names)</li>
+     *   <li>Fallback — insert space, keep as pending text</li>
+     * </ol>
      */
     public void tokenBoundary() {
         clearError();
@@ -437,6 +444,18 @@ public class EvalInput {
             type(' ');
             return;
         }
+
+        // Split at character-class boundaries — handles "5+2", "5meter", etc.
+        List<String> parts = splitRawTokens(trimmed);
+
+        // If it splits into multiple pieces, resolve them all
+        if (parts.size() > 1) {
+            resolveOrCommit(trimmed);
+            resetPending();
+            return;
+        }
+
+        // Single token — try to resolve it specifically
 
         // Check for paren
         if ("(".equals(trimmed)) {
@@ -449,29 +468,38 @@ public class EvalInput {
             resetPending();
             return;
         }
-
-        // Try to auto-resolve against completions (exact match) first —
-        // this lets sememe seeds like "and" (conjunction) take priority
-        // over operator symbol parsing.
-        Posting exactMatch = findExactMatch(trimmed);
-        if (exactMatch != null) {
-            acceptCompletion(exactMatch);
-            return;
-        }
-
-        // Check for operator (&&, ||)
-        OpToken opToken = OpToken.tryParse(trimmed);
-        if (opToken != null) {
-            tokens.add(opToken);
+        if (",".equals(trimmed)) {
+            tokens.add(new CommaToken());
             resetPending();
             return;
         }
 
-        // Check for literal (number, boolean, quoted string)
+        // Check for literal (number, boolean, quoted string) — before dictionary
+        // so "5" always becomes LiteralToken, never a dictionary entry
         LiteralToken litToken = LiteralToken.tryParse(trimmed);
         if (litToken != null) {
             tokens.add(litToken);
             resetPending();
+            return;
+        }
+
+        // Check for symbolic operators (+, -, *, /, etc.) — before dictionary
+        // so "+" becomes OpToken (enabling expression detection), not RefToken.
+        // Word-form operators (in, contains) go through dictionary first so they
+        // can also serve as prepositions in verb frames.
+        if (!startsWithLetter(trimmed)) {
+            OpToken opToken = OpToken.tryParse(trimmed);
+            if (opToken != null) {
+                tokens.add(opToken);
+                resetPending();
+                return;
+            }
+        }
+
+        // Dictionary lookup — for words like "create", "sqrt", "in"
+        Posting exactMatch = findExactMatch(trimmed);
+        if (exactMatch != null) {
+            acceptCompletion(exactMatch);
             return;
         }
 
@@ -646,53 +674,100 @@ public class EvalInput {
     }
 
     /**
-     * Resolve each word in text against the lookup, committing as literal
-     * only if no exact match is found.
+     * Resolve each word in text, using the same priority order as tokenBoundary:
+     * literal → symbolic operator → dictionary → word operator → name token.
      */
     private void resolveOrCommit(String text) {
-        String[] words = text.split("\\s+");
-        for (String word : words) {
-            if (word.isEmpty()) continue;
-            Posting match = findExactMatch(word);
-            if (match != null) {
-                tokens.add(RefToken.from(match));
-            } else {
-                commitPendingText(word);
+        for (String word : splitRawTokens(text)) {
+            // Structural (already split by splitRawTokens)
+            if ("(".equals(word)) { tokens.add(new OpenParen()); continue; }
+            if (")".equals(word)) { tokens.add(new CloseParen()); continue; }
+            if (",".equals(word)) { tokens.add(new CommaToken()); continue; }
+
+            // Literal (number, boolean, quoted string)
+            LiteralToken lit = LiteralToken.tryParse(word);
+            if (lit != null) { tokens.add(lit); continue; }
+
+            // Symbolic operator (+, -, *, /, etc.)
+            if (!startsWithLetter(word)) {
+                OpToken op = OpToken.tryParse(word);
+                if (op != null) { tokens.add(op); continue; }
             }
+
+            // Dictionary lookup
+            Posting match = findExactMatch(word);
+            if (match != null) { tokens.add(enrichedRefToken(match)); continue; }
+
+            // Word-form operator (in, contains) — after dictionary
+            OpToken op = OpToken.tryParse(word);
+            if (op != null) { tokens.add(op); continue; }
+
+            // Unresolved text → name token (for function calls, variables)
+            tokens.add(new NameToken(word));
         }
     }
 
     /**
      * Called after any text change — updates completions and notifies.
+     *
+     * <p>Eagerly splits pending text at character-class boundaries so
+     * completed sub-tokens appear immediately (e.g., typing "+" after "5"
+     * commits the "5" as a LiteralToken and keeps "+" as the new pending text).
      */
     private void afterTextChange() {
-        // Check for paren typed at end
         if (pendingText.length() > 0) {
+            // Check last character for structural tokens (parens, commas)
             char lastChar = pendingText.charAt(pendingText.length() - 1);
-            if (lastChar == '(') {
+            if (lastChar == '(' || lastChar == ')' || lastChar == ',') {
                 String before = pendingText.substring(0, pendingText.length() - 1).trim();
                 pendingText.setLength(0);
                 cursor = 0;
-                if (!before.isEmpty()) commitPendingText(before);
-                tokens.add(new OpenParen());
+                if (!before.isEmpty()) resolveOrCommit(before);
+                resolveOrCommit(String.valueOf(lastChar));
                 clearCompletions();
                 notifyChange();
                 return;
             }
-            if (lastChar == ')') {
-                String before = pendingText.substring(0, pendingText.length() - 1).trim();
-                pendingText.setLength(0);
-                cursor = 0;
-                if (!before.isEmpty()) commitPendingText(before);
-                tokens.add(new CloseParen());
-                clearCompletions();
-                notifyChange();
-                return;
+
+            // Eagerly split at character-class boundaries (digit→symbol, etc.)
+            // but NOT at whitespace — whitespace splitting happens on accept/boundary.
+            if (pendingText.length() >= 2) {
+                String text = pendingText.toString();
+                // Check if the last char is a different class than the preceding non-space char
+                int lastIdx = text.length() - 1;
+                int prevIdx = lastIdx - 1;
+                // Skip back over whitespace to find previous meaningful char
+                while (prevIdx >= 0 && Character.isWhitespace(text.charAt(prevIdx))) prevIdx--;
+                if (prevIdx >= 0) {
+                    int prevCls = charClass(text.charAt(prevIdx));
+                    int lastCls = charClass(lastChar);
+                    if (prevCls != lastCls && prevCls >= 0 && lastCls >= 0) {
+                        // Class boundary — commit everything before, keep last class run
+                        String beforeBoundary = text.substring(0, prevIdx + 1).trim();
+                        String afterBoundary = text.substring(prevIdx + 1).trim();
+                        pendingText.setLength(0);
+                        cursor = 0;
+                        if (!beforeBoundary.isEmpty()) resolveOrCommit(beforeBoundary);
+                        pendingText.append(afterBoundary);
+                        cursor = afterBoundary.length();
+                        updateCompletions();
+                        notifyChange();
+                        return;
+                    }
+                }
             }
         }
 
         updateCompletions();
         notifyChange();
+    }
+
+    /** Classify a character: 0=digit, 1=letter, 2=symbol, -1=structural/whitespace. */
+    private static int charClass(char ch) {
+        if (Character.isDigit(ch) || ch == '.') return 0;
+        if (Character.isLetter(ch) || ch == '_') return 1;
+        if (ch == '(' || ch == ')' || ch == ',' || Character.isWhitespace(ch)) return -1;
+        return 2; // symbol
     }
 
     /**
@@ -707,6 +782,24 @@ public class EvalInput {
             try {
                 completions = lookup.apply(lookupText);
                 if (completions == null) completions = List.of();
+
+                // Deduplicate by target — same item via different tokens appears only once.
+                // Multiple matching tokens boost the merged posting's weight.
+                if (completions.size() > 1) {
+                    Map<ItemID, Posting> merged = new LinkedHashMap<>();
+                    for (Posting p : completions) {
+                        merged.merge(p.target(), p, (existing, extra) ->
+                                Posting.builder()
+                                        .token(existing.token())
+                                        .scope(existing.scope())
+                                        .target(existing.target())
+                                        .weight(Math.min(1.0f, existing.weight() + extra.weight()))
+                                        .build());
+                    }
+                    completions = merged.values().stream()
+                            .sorted(Comparator.comparing(Posting::weight).reversed())
+                            .toList();
+                }
 
                 // Apply semantic narrowing
                 if (librarianHandle != null && !completions.isEmpty()) {
@@ -794,32 +887,12 @@ public class EvalInput {
     }
 
     /**
-     * Commit text as a token — tries exact match, operator, literal, then string literal.
+     * Commit text as a token — same priority order as tokenBoundary:
+     * literal → symbolic operator → dictionary → word operator → name token.
      */
     private void commitPendingText(String text) {
-        // Try exact match against completions first (same priority as tokenBoundary)
-        Posting exactMatch = findExactMatch(text);
-        if (exactMatch != null) {
-            acceptCompletion(exactMatch);
-            return;
-        }
-
-        OpToken op = OpToken.tryParse(text);
-        if (op != null) {
-            tokens.add(op);
-            return;
-        }
-
-        LiteralToken lit = LiteralToken.tryParse(text);
-        if (lit != null) {
-            tokens.add(lit);
-            return;
-        }
-
-        // Unresolved text → string literal
-        if (!text.isBlank()) {
-            tokens.add(LiteralToken.ofString(text));
-        }
+        // Split at character-class boundaries and resolve each piece
+        resolveOrCommit(text);
     }
 
     private void resetPending() {
@@ -827,6 +900,106 @@ public class EvalInput {
         cursor = 0;
         clearCompletions();
         notifyChange();
+    }
+
+    /**
+     * Create a RefToken from a posting, using the item's displayToken when available.
+     *
+     * <p>For items where the posting token is terse (e.g., "m" for meter),
+     * the resolved item's displayToken provides a clearer label.
+     */
+    private RefToken enrichedRefToken(Posting posting) {
+        if (librarianHandle != null) {
+            try {
+                var item = librarianHandle.get(posting.target());
+                if (item.isPresent()) {
+                    String display = item.get().displayToken();
+                    if (display != null && !display.isBlank()) {
+                        return RefToken.of(posting.target(), display);
+                    }
+                }
+            } catch (Exception e) {
+                // Fall through to default
+            }
+        }
+        return RefToken.from(posting);
+    }
+
+    /**
+     * Check if text starts with a letter (word-like vs symbolic).
+     * Used to distinguish symbolic operators (+, -, *) from word-form operators (in, contains).
+     */
+    private static boolean startsWithLetter(String text) {
+        return !text.isEmpty() && Character.isLetter(text.charAt(0));
+    }
+
+    /**
+     * Split raw text into sub-tokens at character-class boundaries.
+     *
+     * <p>Character classes: DIGIT (0-9, decimal point in number context),
+     * LETTER (Unicode letters/digits after first letter), SYMBOL (operators),
+     * STRUCTURAL (parens, commas — always their own token).
+     * Whitespace is consumed as a separator.
+     *
+     * <p>Examples:
+     * <ul>
+     *   <li>"5+2" → ["5", "+", "2"]</li>
+     *   <li>"5meter" → ["5", "meter"]</li>
+     *   <li>"sqrt(144)" → ["sqrt", "(", "144", ")"]</li>
+     *   <li>"3.14*r" → ["3.14", "*", "r"]</li>
+     *   <li>"x>=5" → ["x", ">=", "5"]</li>
+     * </ul>
+     */
+    static List<String> splitRawTokens(String text) {
+        if (text == null || text.isEmpty()) return List.of();
+
+        List<String> result = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int cls = -1; // current class: 0=digit, 1=letter, 2=symbol
+
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+
+            // Whitespace — flush and skip
+            if (Character.isWhitespace(ch)) {
+                if (!current.isEmpty()) { result.add(current.toString()); current.setLength(0); }
+                cls = -1;
+                continue;
+            }
+
+            // Structural characters — always their own token
+            if (ch == '(' || ch == ')' || ch == ',') {
+                if (!current.isEmpty()) { result.add(current.toString()); current.setLength(0); }
+                result.add(String.valueOf(ch));
+                cls = -1;
+                continue;
+            }
+
+            // Decimal point in number context: "3.14" stays together
+            if (ch == '.' && cls == 0 && i + 1 < text.length() && Character.isDigit(text.charAt(i + 1))) {
+                current.append(ch);
+                continue;
+            }
+
+            int newCls;
+            if (Character.isDigit(ch)) newCls = 0;
+            else if (Character.isLetter(ch) || (ch == '_')) newCls = 1;
+            else newCls = 2; // symbol
+
+            // Digit continuation in word context: "x2" stays as "x2"
+            if (newCls == 0 && cls == 1) newCls = 1;
+
+            if (cls != -1 && newCls != cls) {
+                // Class boundary — flush
+                result.add(current.toString());
+                current.setLength(0);
+            }
+            current.append(ch);
+            cls = newCls;
+        }
+        if (!current.isEmpty()) result.add(current.toString());
+
+        return result;
     }
 
     private void clearCompletions() {

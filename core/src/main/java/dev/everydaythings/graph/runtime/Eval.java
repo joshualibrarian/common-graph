@@ -942,7 +942,10 @@ public class Eval {
                     return EvalResult.value(value);
                 } catch (Exception e) {
                     logger.debug("Expression evaluation failed: {}", e.getMessage());
-                    // Fall through to verb-frame path
+                    // Expression parsed successfully but evaluation failed —
+                    // report the error rather than falling through to verb dispatch
+                    // (which would misinterpret operands as navigation targets).
+                    return EvalResult.error(e.getMessage());
                 }
             }
         }

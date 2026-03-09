@@ -1,32 +1,34 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.expression.EvaluationContext;
 import dev.everydaythings.graph.item.component.expression.Expression;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /**
- * An Operator as a first-class Item in the graph.
+ * An Operator — a noun sememe with symbol, precedence, and evaluation.
  *
- * <p>Every operator — arithmetic, comparison, logical, structural — is an Item
- * with stable identity, discoverable and relatable. Operators know their symbol,
- * precedence, associativity, fixity, and how to evaluate themselves.
+ * <p>Every operator — arithmetic, comparison, logical, structural — is a
+ * noun in the vocabulary, discoverable and relatable. Operators know their
+ * symbol, precedence, associativity, fixity, and how to evaluate themselves.
+ *
+ * <p>By extending {@link NounSememe}, operators inherit glosses, tokens,
+ * symbols, and dictionary registration — making them discoverable through
+ * the same vocabulary pipeline as any other sememe.
  *
  * <p>This unifies the expression system: verb frames, mathematical formulas,
  * queries, and reactive rules all compose using the same operator vocabulary.
  */
 @Type(value = Operator.KEY, glyph = "➕")
-public class Operator extends Item {
+public class Operator extends NounSememe {
 
     public static final String KEY = "cg:type/operator";
 
@@ -107,17 +109,8 @@ public class Operator extends Item {
     private static final Map<String, Operator> PREFIX_BY_SYMBOL = buildPrefixBySymbol();
 
     // ==================================================================================
-    // INSTANCE FIELDS
+    // INSTANCE FIELDS (operator-specific; canonicalKey, glosses, symbols inherited)
     // ==================================================================================
-
-    @Getter @ContentField(handleKey = "key")
-    private String canonicalKey;
-
-    @Getter @ContentField
-    private String symbol;
-
-    @Getter @ContentField
-    private String name;
 
     @Getter @ContentField
     private int arity;
@@ -135,45 +128,30 @@ public class Operator extends Item {
     // CONSTRUCTORS
     // ==================================================================================
 
+    /** Seed constructor — symbol and name map to Sememe's symbols and tokens/glosses. */
     public Operator(String canonicalKey, String symbol, String name,
                     int arity, int precedence,
                     Associativity associativity, Fixity fixity) {
-        super(ItemID.fromString(canonicalKey));
-        this.canonicalKey = canonicalKey;
-        this.symbol = symbol;
-        this.name = name;
+        super(canonicalKey,
+                Map.of("en", name),     // name serves as English gloss
+                Map.of(),               // no CILI sources for operators
+                List.of(symbol),        // symbol as universal symbol
+                List.of(name));         // name also as English token
         this.arity = arity;
         this.precedence = precedence;
         this.associativity = associativity != null ? associativity : Associativity.LEFT;
         this.fixity = fixity != null ? fixity : Fixity.INFIX;
     }
 
-    public Operator(Librarian librarian,
-                    String canonicalKey, String symbol, String name,
-                    int arity, int precedence,
-                    Associativity associativity, Fixity fixity) {
-        super(librarian, ItemID.fromString(canonicalKey));
-        this.canonicalKey = canonicalKey;
-        this.symbol = symbol;
-        this.name = name;
-        this.arity = arity;
-        this.precedence = precedence;
-        this.associativity = associativity != null ? associativity : Associativity.LEFT;
-        this.fixity = fixity != null ? fixity : Fixity.INFIX;
-    }
-
+    /** Type seed constructor. */
     @SuppressWarnings("unused")
     protected Operator(ItemID typeId) {
         super(typeId);
-        Type typeAnnotation = getClass().getAnnotation(Type.class);
-        if (typeAnnotation != null) {
-            this.canonicalKey = typeAnnotation.value();
-            this.name = extractNameFromKey(this.canonicalKey);
-        }
     }
 
+    /** Hydration constructor. */
     @SuppressWarnings("unused")
-    private Operator(Librarian librarian, Manifest manifest) {
+    protected Operator(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
     }
 
@@ -188,7 +166,7 @@ public class Operator extends Item {
      * All others evaluate both operands first.
      */
     public Object evaluate(Expression left, Expression right, EvaluationContext context) {
-        if (canonicalKey == null) {
+        if (canonicalKey() == null) {
             throw new UnsupportedOperationException("Operator has no canonical key");
         }
 
@@ -200,11 +178,22 @@ public class Operator extends Item {
         // Eager: evaluate both operands
         Object leftVal = left.evaluate(context);
         Object rightVal = right.evaluate(context);
+
+        // Resolve ItemIDs to Units for quantity construction
+        if (leftVal instanceof ItemID lid) {
+            Unit u = Unit.lookupSeed(lid);
+            if (u != null) leftVal = u;
+        }
+        if (rightVal instanceof ItemID rid) {
+            Unit u = Unit.lookupSeed(rid);
+            if (u != null) rightVal = u;
+        }
+
         return applyBinary(leftVal, rightVal);
     }
 
     private Object evaluateShortCircuit(Expression left, Expression right, EvaluationContext context) {
-        return switch (canonicalKey) {
+        return switch (canonicalKey()) {
             case "cg.op:and" -> {
                 Object leftVal = left.evaluate(context);
                 if (!toBoolean(leftVal)) yield false;
@@ -216,22 +205,51 @@ public class Operator extends Item {
                 yield toBoolean(right.evaluate(context));
             }
             default -> throw new UnsupportedOperationException(
-                    "Not a short-circuit operator: " + canonicalKey);
+                    "Not a short-circuit operator: " + canonicalKey());
         };
     }
 
     private Object applyBinary(Object left, Object right) {
-        return switch (canonicalKey) {
+        return switch (canonicalKey()) {
             // Arithmetic
             case "cg.op:add" -> {
+                if (left instanceof Quantity lq && right instanceof Quantity rq)
+                    yield quantityAdd(lq, rq);
                 if (left instanceof Number l && right instanceof Number r)
                     yield toNumber(l) + toNumber(r);
                 yield String.valueOf(left) + String.valueOf(right);
             }
-            case "cg.op:sub" -> toNumber(left) - toNumber(right);
-            case "cg.op:mul" -> toNumber(left) * toNumber(right);
+            case "cg.op:sub" -> {
+                if (left instanceof Quantity lq && right instanceof Quantity rq)
+                    yield quantitySubtract(lq, rq);
+                yield toNumber(left) - toNumber(right);
+            }
+            case "cg.op:mul" -> {
+                // Quantity construction: Number * Unit → Quantity
+                if (left instanceof Number n && right instanceof Unit u)
+                    yield toQuantity(n, u);
+                if (left instanceof Unit u && right instanceof Number n)
+                    yield toQuantity(n, u);
+                // Scaling: Number * Quantity → Quantity
+                if (left instanceof Number n && right instanceof Quantity q)
+                    yield scaleQuantity(q, toNumber(n));
+                if (left instanceof Quantity q && right instanceof Number n)
+                    yield scaleQuantity(q, toNumber(n));
+                yield toNumber(left) * toNumber(right);
+            }
             case "cg.op:div" -> {
-                double r = toNumber(right);
+                double r;
+                // Quantity / Number → scaled Quantity
+                if (left instanceof Quantity q && right instanceof Number n) {
+                    r = toNumber(n);
+                    if (r == 0) throw new ArithmeticException("Division by zero");
+                    yield scaleQuantity(q, 1.0 / r);
+                }
+                // Quantity / Quantity → dimensionless ratio (if compatible)
+                if (left instanceof Quantity lq && right instanceof Quantity rq) {
+                    yield quantityDivide(lq, rq);
+                }
+                r = toNumber(right);
                 if (r == 0) throw new ArithmeticException("Division by zero");
                 yield toNumber(left) / r;
             }
@@ -266,10 +284,10 @@ public class Operator extends Item {
             // Structural — handled by the evaluator, not here
             case "cg.op:assign", "cg.op:pipe" ->
                     throw new UnsupportedOperationException(
-                            canonicalKey + " must be handled by the evaluator, not evaluated directly");
+                            canonicalKey() + " must be handled by the evaluator, not evaluated directly");
 
             default -> throw new UnsupportedOperationException(
-                    "No evaluator for operator: " + canonicalKey);
+                    "No evaluator for operator: " + canonicalKey());
         };
     }
 
@@ -282,15 +300,33 @@ public class Operator extends Item {
      */
     public Object evaluateUnary(Expression operand, EvaluationContext context) {
         Object val = operand.evaluate(context);
-        return switch (canonicalKey) {
+        return switch (canonicalKey()) {
             case "cg.op:neg" -> {
+                if (val instanceof Quantity q)
+                    yield scaleQuantity(q, -1.0);
                 if (val instanceof Number n) yield -n.doubleValue();
                 yield 0;
             }
             case "cg.op:not" -> !toBoolean(val);
             default -> throw new UnsupportedOperationException(
-                    "Not a unary operator: " + canonicalKey);
+                    "Not a unary operator: " + canonicalKey());
         };
+    }
+
+    // ==================================================================================
+    // CONVENIENCE ACCESSORS (derived from inherited Sememe fields)
+    // ==================================================================================
+
+    /** Primary symbol (first element of inherited symbols list). */
+    public String symbol() {
+        List<String> syms = symbols();
+        return (syms != null && !syms.isEmpty()) ? syms.getFirst() : null;
+    }
+
+    /** English name (first token or derived from canonical key). */
+    public String name() {
+        List<String> toks = tokens();
+        return (toks != null && !toks.isEmpty()) ? toks.getFirst() : displayToken();
     }
 
     // ==================================================================================
@@ -298,7 +334,7 @@ public class Operator extends Item {
     // ==================================================================================
 
     public boolean isShortCircuit() {
-        return "cg.op:and".equals(canonicalKey) || "cg.op:or".equals(canonicalKey);
+        return "cg.op:and".equals(canonicalKey()) || "cg.op:or".equals(canonicalKey());
     }
 
     public boolean isPrefix() {
@@ -350,6 +386,69 @@ public class Operator extends Item {
             catch (ClassCastException e) { return 0; }
         }
         return 0;
+    }
+
+    // ==================================================================================
+    // QUANTITY ARITHMETIC
+    // ==================================================================================
+
+    /** Number * Unit → Quantity */
+    private static Quantity toQuantity(Number n, Unit u) {
+        return Quantity.of(decimalFrom(toNumber(n)), u.iid());
+    }
+
+    /** Scale a quantity by a factor. */
+    private static Quantity scaleQuantity(Quantity q, double factor) {
+        return Quantity.of(decimalFrom(q.value().toDouble() * factor), q.unit());
+    }
+
+    /** Add two quantities, converting right to left's unit. */
+    private static Quantity quantityAdd(Quantity left, Quantity right) {
+        Unit lu = Unit.lookupSeed(left.unit());
+        Unit ru = Unit.lookupSeed(right.unit());
+        if (lu == null || ru == null)
+            throw new ArithmeticException("Unknown unit in quantity arithmetic");
+        if (!lu.isCompatibleWith(ru))
+            throw new ArithmeticException("Cannot add " + lu.symbol() + " and " + ru.symbol()
+                    + " — incompatible dimensions");
+        double converted = ru.convert(right.value().toDouble(), lu);
+        return Quantity.of(decimalFrom(left.value().toDouble() + converted), left.unit());
+    }
+
+    /** Subtract two quantities, converting right to left's unit. */
+    private static Quantity quantitySubtract(Quantity left, Quantity right) {
+        Unit lu = Unit.lookupSeed(left.unit());
+        Unit ru = Unit.lookupSeed(right.unit());
+        if (lu == null || ru == null)
+            throw new ArithmeticException("Unknown unit in quantity arithmetic");
+        if (!lu.isCompatibleWith(ru))
+            throw new ArithmeticException("Cannot subtract " + ru.symbol() + " from " + lu.symbol()
+                    + " — incompatible dimensions");
+        double converted = ru.convert(right.value().toDouble(), lu);
+        return Quantity.of(decimalFrom(left.value().toDouble() - converted), left.unit());
+    }
+
+    /** Divide two quantities — returns dimensionless ratio if compatible. */
+    private static double quantityDivide(Quantity left, Quantity right) {
+        Unit lu = Unit.lookupSeed(left.unit());
+        Unit ru = Unit.lookupSeed(right.unit());
+        if (lu == null || ru == null)
+            throw new ArithmeticException("Unknown unit in quantity arithmetic");
+        if (!lu.isCompatibleWith(ru))
+            throw new ArithmeticException("Cannot divide " + lu.symbol() + " by " + ru.symbol()
+                    + " — incompatible dimensions");
+        double converted = ru.convert(right.value().toDouble(), lu);
+        if (converted == 0) throw new ArithmeticException("Division by zero");
+        return left.value().toDouble() / converted;
+    }
+
+    /** Convert a double to Decimal via string (exact representation). */
+    private static Decimal decimalFrom(double d) {
+        // For clean integers, avoid floating-point artifacts
+        if (d == Math.floor(d) && !Double.isInfinite(d)) {
+            return Decimal.ofLong((long) d);
+        }
+        return Decimal.parse(String.valueOf(d));
     }
 
     // ==================================================================================
@@ -426,8 +525,8 @@ public class Operator extends Item {
     private static Map<String, Operator> buildInfixBySymbol() {
         Map<String, Operator> out = new LinkedHashMap<>();
         for (Operator op : SEED_OPERATORS) {
-            if (op.fixity == Fixity.INFIX && op.symbol != null && !op.symbol.isBlank()) {
-                out.put(op.symbol, op);
+            if (op.fixity() == Fixity.INFIX && op.symbol() != null && !op.symbol().isBlank()) {
+                out.put(op.symbol(), op);
             }
         }
         // Aliases
@@ -440,48 +539,15 @@ public class Operator extends Item {
     private static Map<String, Operator> buildPrefixBySymbol() {
         Map<String, Operator> out = new LinkedHashMap<>();
         for (Operator op : SEED_OPERATORS) {
-            if (op.fixity == Fixity.PREFIX && op.symbol != null && !op.symbol.isBlank()) {
-                out.put(op.symbol, op);
+            if (op.fixity() == Fixity.PREFIX && op.symbol() != null && !op.symbol().isBlank()) {
+                out.put(op.symbol(), op);
             }
         }
         return Map.copyOf(out);
     }
 
-    private static String extractNameFromKey(String key) {
-        if (key == null) return null;
-        int lastSlash = key.lastIndexOf('/');
-        if (lastSlash >= 0 && lastSlash < key.length() - 1) {
-            return key.substring(lastSlash + 1);
-        }
-        int lastColon = key.lastIndexOf(':');
-        if (lastColon >= 0 && lastColon < key.length() - 1) {
-            return key.substring(lastColon + 1);
-        }
-        return key;
-    }
-
-    // ==================================================================================
-    // ITEM OVERRIDES
-    // ==================================================================================
-
-    @Override
-    public String displayToken() {
-        return name != null ? name : (symbol != null ? symbol : getClass().getSimpleName());
-    }
-
-    @Override
-    public Stream<TokenEntry> extractTokens() {
-        List<TokenEntry> tokens = new ArrayList<>();
-        // Index symbolic operators (+, -, *, ==, etc.) but not word-form
-        // operators ("in", "contains") — those resolve through sememes.
-        if (symbol != null && !symbol.isBlank() && !symbol.chars().allMatch(Character::isLetter)) {
-            tokens.add(new TokenEntry(symbol, 1.0f));
-        }
-        return tokens.stream();
-    }
-
     @Override
     public String toString() {
-        return symbol + " (" + name + ")";
+        return symbol() + " (" + name() + ")";
     }
 }

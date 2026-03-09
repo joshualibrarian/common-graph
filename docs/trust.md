@@ -266,7 +266,7 @@ The trust matrix tracks a `reciprocity` dimension derived from the net balance o
 - **Freeloading peers** get deprioritized — not blocked, but served last
 - **New peers** get a small "courtesy lane" derived from their broader reputation
 
-This isn't a cryptocurrency or a token economy. There's no global ledger. It's a local accounting of "who has helped me and who hasn't" that naturally incentivizes cooperation without requiring it.
+This isn't a cryptocurrency or a token economy. There's no global ledger. It's a local accounting of "who has helped me and who hasn't" that naturally incentivizes cooperation without requiring it.  This intended to model real social structures.
 
 ---
 

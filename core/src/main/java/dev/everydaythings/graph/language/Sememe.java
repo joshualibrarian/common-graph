@@ -16,11 +16,12 @@ import java.util.stream.Stream;
 /**
  * A Sememe is a unit of meaning, like "meters" are a unit of measure.
  *
- * <p>This is the abstract base of a sealed hierarchy where each part of speech
+ * <p>Abstract base for all meaning-carrying types. Each part of speech
  * has its own subclass carrying POS-specific data:
  * <ul>
  *   <li>{@link VerbSememe} — actions (create, get, move)</li>
- *   <li>{@link NounSememe} — entities, predicates (author, title)</li>
+ *   <li>{@link NounSememe} — entities, predicates, and domain-specific nouns
+ *       (author, title, operators, functions, units, dimensions)</li>
  *   <li>{@link PrepositionSememe} — thematic role carriers (on, from, with)</li>
  *   <li>{@link PronounSememe} — references, variables (any, what)</li>
  *   <li>{@link AdjectiveSememe} — properties (reachable-at)</li>
@@ -28,6 +29,12 @@ import java.util.stream.Stream;
  *   <li>{@link ConjunctionSememe} — connectors</li>
  *   <li>{@link InterjectionSememe} — exclamations</li>
  * </ul>
+ *
+ * <p>{@link NounSememe} is the primary extension point for domain-specific
+ * types that carry meaning: operators (+, -, *), functions (sqrt, abs),
+ * units (meter, kilogram), dimensions (length, mass), etc. These are all
+ * nouns with extra metadata — they inherit glosses, tokens, symbols, and
+ * dictionary registration from this class.
  *
  * <p>Shared fields (canonicalKey, pos, glosses, sources, tokens, indexWeight)
  * live here. POS-specific fields live in the subclass (e.g.,
@@ -38,9 +45,7 @@ import java.util.stream.Stream;
  * enabling compile-time references.
  */
 @Type(value = Sememe.KEY, glyph = "\uD83D\uDCA1", color = 0xF0C040)
-public abstract sealed class Sememe extends Item
-        permits VerbSememe, NounSememe, PrepositionSememe, PronounSememe,
-                AdjectiveSememe, AdverbSememe, ConjunctionSememe, InterjectionSememe {
+public abstract class Sememe extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION

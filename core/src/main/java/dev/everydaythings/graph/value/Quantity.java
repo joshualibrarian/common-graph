@@ -40,8 +40,9 @@ public final class Quantity implements Value {
 
     @Override
     public String token() {
-        // TODO: Resolve unit symbol from Library when available
-        return value.token() + " " + unit.toString();
+        Unit resolved = Unit.lookupSeed(unit);
+        String unitLabel = resolved != null ? resolved.symbol() : unit.toString();
+        return value.token() + " " + unitLabel;
     }
 
     @Override

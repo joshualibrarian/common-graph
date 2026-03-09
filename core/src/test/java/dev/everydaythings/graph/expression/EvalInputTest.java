@@ -823,10 +823,10 @@ class EvalInputTest {
             // Now tab to accept alice
             input.tab();
 
-            // Should have two tokens: "create" as literal + "alice" as ref
+            // Should have two tokens: "create" as name + "alice" as ref
             List<ExpressionToken> tokens = input.tokens();
             assertThat(tokens).hasSize(2);
-            assertThat(tokens.get(0)).isInstanceOf(LiteralToken.class);
+            assertThat(tokens.get(0)).isInstanceOf(NameToken.class);
             assertThat(tokens.get(1)).isInstanceOf(RefToken.class);
         }
     }
@@ -917,6 +917,71 @@ class EvalInputTest {
 
             assertThat(snap.tokens()).hasSize(1);
             assertThat(snap.completions()).hasSize(1);
+        }
+    }
+
+    // ==================================================================================
+    // splitRawTokens
+    // ==================================================================================
+
+    @Nested
+    class SplitRawTokens {
+
+        @Test
+        void numbersAndOperators() {
+            assertThat(EvalInput.splitRawTokens("5+2")).containsExactly("5", "+", "2");
+        }
+
+        @Test
+        void spaceSeparatedExpression() {
+            assertThat(EvalInput.splitRawTokens("5 + 2")).containsExactly("5", "+", "2");
+        }
+
+        @Test
+        void numberAndWord() {
+            assertThat(EvalInput.splitRawTokens("5meter")).containsExactly("5", "meter");
+        }
+
+        @Test
+        void decimalNumber() {
+            assertThat(EvalInput.splitRawTokens("3.14*r")).containsExactly("3.14", "*", "r");
+        }
+
+        @Test
+        void functionCallSyntax() {
+            assertThat(EvalInput.splitRawTokens("sqrt(144)")).containsExactly("sqrt", "(", "144", ")");
+        }
+
+        @Test
+        void multiCharOperator() {
+            assertThat(EvalInput.splitRawTokens("x>=5")).containsExactly("x", ">=", "5");
+        }
+
+        @Test
+        void wordWithDigits() {
+            assertThat(EvalInput.splitRawTokens("x2")).containsExactly("x2");
+        }
+
+        @Test
+        void emptyInput() {
+            assertThat(EvalInput.splitRawTokens("")).isEmpty();
+            assertThat(EvalInput.splitRawTokens(null)).isEmpty();
+        }
+
+        @Test
+        void pureWhitespace() {
+            assertThat(EvalInput.splitRawTokens("   ")).isEmpty();
+        }
+
+        @Test
+        void complexExpression() {
+            assertThat(EvalInput.splitRawTokens("2*(3+4)")).containsExactly("2", "*", "(", "3", "+", "4", ")");
+        }
+
+        @Test
+        void negativeNumber() {
+            // "-5" splits into operator + number; unary minus handled by parser
+            assertThat(EvalInput.splitRawTokens("-5")).containsExactly("-", "5");
         }
     }
 }

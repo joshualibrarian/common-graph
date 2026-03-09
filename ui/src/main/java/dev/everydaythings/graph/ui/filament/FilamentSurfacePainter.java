@@ -1018,7 +1018,7 @@ public class FilamentSurfacePainter implements SurfacePainter {
             float quadH = (float)((layerMetrics.planeTop() - layerMetrics.planeBottom()) * fontSize);
 
             emitGlyphQuad(quadX, quadY, quadW, quadH, layerMetrics, color, atlas, layerZ);
-            layerZ += 0.001f;
+            layerZ += 0.0001f;  // micro-step: keep layers within this glyph's Z budget
         }
     }
 
@@ -1477,7 +1477,7 @@ public class FilamentSurfacePainter implements SurfacePainter {
             float quadH = (float)((layerMetrics.planeTop() - layerMetrics.planeBottom()) * fontSize);
 
             emitGlyphQuadXZ(quadX, quadZ, quadW, quadH, layerMetrics, color, atlas, layerY);
-            layerY += 0.001f;
+            layerY += 0.0001f;  // micro-step: keep layers within this glyph's Y budget
         }
     }
 

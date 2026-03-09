@@ -117,9 +117,19 @@ public class ExpressionParser {
             if (token instanceof ExpressionToken.CloseParen) return true;
             if (token instanceof ExpressionToken.DotToken) return true;
         }
-        // Also check for numeric literals (bare numbers are expressions)
+        // Bare number is an expression
         if (tokens.size() == 1 && tokens.getFirst() instanceof ExpressionToken.LiteralToken lit) {
             return lit.value() instanceof Number;
+        }
+        // Number followed by ref/name — quantity via juxtaposition (5m, 2ft)
+        if (tokens.size() >= 2 && tokens.getFirst() instanceof ExpressionToken.LiteralToken lit) {
+            if (lit.value() instanceof Number) {
+                ExpressionToken second = tokens.get(1);
+                if (second instanceof ExpressionToken.RefToken
+                        || second instanceof ExpressionToken.NameToken) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -128,11 +138,21 @@ public class ExpressionParser {
     // PRATT PARSER CORE
     // ==================================================================================
 
+    // Juxtaposition (implicit multiplication) precedence.
+    // Higher than explicit * (20) so 5m binds before *, but lower than ^ (30)
+    // so 5m^2 → 5*(m^2). Left-associative.
+    private static final int JUXTAPOSITION_PREC = 21;
+
     /**
      * Parse an expression with minimum binding power (precedence).
      *
      * <p>This is the heart of the Pratt parser. It parses a prefix expression,
      * then greedily consumes infix operators that bind tighter than minPrec.
+     *
+     * <p>Juxtaposition (implicit multiplication) is supported: when a prefix
+     * expression is immediately followed by another prefix-starting token with
+     * no operator between, it's treated as multiplication. This enables
+     * natural quantity notation: {@code 5m}, {@code 3.14*r^2}, {@code 2ft}.
      */
     private Expression parseExpression(int minPrec) {
         Expression left = parsePrefix();
@@ -166,23 +186,45 @@ public class ExpressionParser {
 
             // Check for infix operator
             Operator infixOp = getInfixOperator(token);
-            if (infixOp == null) break;
+            if (infixOp != null) {
+                int prec = infixOp.precedence();
+                if (prec < minPrec) break;
 
-            int prec = infixOp.precedence();
-            if (prec < minPrec) break;
+                pos++; // consume the operator
 
-            pos++; // consume the operator
+                // Right-associative operators use same precedence for right side;
+                // left-associative use precedence + 1
+                int nextMinPrec = (infixOp.associativity() == Operator.Associativity.RIGHT)
+                        ? prec : prec + 1;
 
-            // Right-associative operators use same precedence for right side;
-            // left-associative use precedence + 1
-            int nextMinPrec = (infixOp.associativity() == Operator.Associativity.RIGHT)
-                    ? prec : prec + 1;
+                Expression right = parseExpression(nextMinPrec);
+                left = new BinaryExpression(left, infixOp.iid(), right);
+                continue;
+            }
 
-            Expression right = parseExpression(nextMinPrec);
-            left = new BinaryExpression(left, infixOp.iid(), right);
+            // Juxtaposition — implicit multiplication.
+            // If the next token can start a prefix expression and it's not an
+            // operator, treat as implicit multiply: 5m → 5 * m, 2(x+1) → 2*(x+1)
+            if (JUXTAPOSITION_PREC >= minPrec && canStartPrefix(token)) {
+                Expression right = parseExpression(JUXTAPOSITION_PREC + 1);
+                left = new BinaryExpression(left, Operator.MULTIPLY.iid(), right);
+                continue;
+            }
+
+            break;
         }
 
         return left;
+    }
+
+    /**
+     * Check if a token can start a prefix expression (for juxtaposition detection).
+     */
+    private boolean canStartPrefix(ExpressionToken token) {
+        return token instanceof ExpressionToken.LiteralToken
+                || token instanceof ExpressionToken.NameToken
+                || token instanceof ExpressionToken.RefToken
+                || token instanceof ExpressionToken.OpenParen;
     }
 
     /**

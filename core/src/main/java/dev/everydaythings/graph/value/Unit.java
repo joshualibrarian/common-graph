@@ -10,6 +10,7 @@ import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -339,6 +340,38 @@ public class Unit extends Item {
     );
 
     // ==================================================================================
+    // SEED LOOKUP
+    // ==================================================================================
+
+    private static final List<Unit> SEED_UNITS = List.of(
+            METER, MILLIMETER, CENTIMETER, KILOMETER, INCH, FOOT,
+            SECOND, MILLISECOND, MINUTE, HOUR,
+            KILOGRAM, GRAM, POUND,
+            METER_PER_SECOND, NEWTON, JOULE, WATT,
+            CHARACTER_WIDTH, LINE_HEIGHT, PIXEL, PERCENT, FRACTION, EM, REM
+    );
+
+    private static final Map<ItemID, Unit> SEED_BY_ID = buildSeedById();
+
+    /** Look up a seed unit by IID. Returns null if not a known seed unit. */
+    public static Unit lookupSeed(ItemID iid) {
+        return iid != null ? SEED_BY_ID.get(iid) : null;
+    }
+
+    /** Get all seed units. */
+    public static List<Unit> seeds() {
+        return SEED_UNITS;
+    }
+
+    private static Map<ItemID, Unit> buildSeedById() {
+        Map<ItemID, Unit> out = new LinkedHashMap<>();
+        for (Unit u : SEED_UNITS) {
+            out.put(u.iid(), u);
+        }
+        return Map.copyOf(out);
+    }
+
+    // ==================================================================================
     // INSTANCE FIELDS
     // ==================================================================================
 
@@ -548,6 +581,9 @@ public class Unit extends Item {
     @Override
     public String displayToken() {
         String en = nameEn();
+        if (en != null && symbol != null && !symbol.equals(en)) {
+            return en + " (" + symbol + ")";
+        }
         return en != null ? en : (symbol != null ? symbol : getClass().getSimpleName());
     }
 

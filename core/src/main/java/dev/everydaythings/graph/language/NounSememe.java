@@ -14,9 +14,22 @@ import java.util.Map;
  *
  * <p>Nouns serve as predicates in relations (e.g., AUTHOR, TITLE) and
  * as arguments to verbs (e.g., the thing being created).
+ *
+ * <p>This is the primary extension point for domain-specific noun types
+ * that carry meaning beyond a plain noun:
+ * <ul>
+ *   <li>{@link dev.everydaythings.graph.value.Operator} — symbol, precedence, evaluation</li>
+ *   <li>Function — arity, parameters, evaluation</li>
+ *   <li>{@link dev.everydaythings.graph.value.Unit} — dimension, conversion factor</li>
+ *   <li>{@link dev.everydaythings.graph.value.Dimension} — base unit</li>
+ * </ul>
+ *
+ * <p>All domain nouns inherit glosses, tokens, symbols, and dictionary
+ * registration from {@link Sememe}, making them discoverable through
+ * the same vocabulary pipeline as any other sememe.
  */
 @Type(value = NounSememe.KEY, glyph = "\uD83D\uDCA1", color = 0xF0C040)
-public final class NounSememe extends Sememe {
+public class NounSememe extends Sememe {
 
     public static final String KEY = "cg:type/noun-sememe";
 
@@ -43,6 +56,13 @@ public final class NounSememe extends Sememe {
                       Map<String, String> glosses, Map<String, String> sources,
                       List<String> tokens) {
         super(canonicalKey, PartOfSpeech.NOUN, glosses, sources, tokens);
+    }
+
+    /** Seed constructor (with symbols and tokens). */
+    public NounSememe(String canonicalKey,
+                      Map<String, String> glosses, Map<String, String> sources,
+                      List<String> symbols, List<String> tokens) {
+        super(canonicalKey, PartOfSpeech.NOUN, glosses, sources, symbols, tokens);
     }
 
     /** Runtime constructor (with librarian). */
