@@ -44,12 +44,17 @@ import java.util.List;
  * ▶ 📁 Collapsed Folder
  * </pre>
  */
-@Scene.Rule(match = ".chrome!tui", display = "visible", opacity = "dim")
-@Scene.Rule(match = ".chrome!gui", display = "hidden")
-@Scene.Rule(match = ".chrome!space", display = "hidden")
-@Scene.Rule(match = ".chrome", color = "#6C7086", fontFamily = "monospace")
+// Chrome text: visible only in TUI, hidden in graphical renderers
+@Scene.Rule(match = ".chrome-text!tui", display = "visible", opacity = "dim")
+@Scene.Rule(match = ".chrome-text!skia", display = "hidden")
+@Scene.Rule(match = ".chrome-text!gui", display = "hidden")
+@Scene.Rule(match = ".chrome-text!space", display = "hidden")
+@Scene.Rule(match = ".chrome-text", fontFamily = "monospace")
+@Scene.Rule(match = ".chrome", color = "#6C7086")
 @Scene.Rule(match = ".expand-indicator", color = "#89B4FA")
 @Scene.Rule(match = ":expanded .expand-indicator!gui", rotation = "90deg")
+@Scene.Rule(match = ":expanded .expand-indicator!skia", rotation = "90deg")
+@Scene.Rule(match = ":expanded .expand-indicator!space", rotation = "90deg")
 @Scene.Container(direction = Scene.Direction.VERTICAL, style = {"tree"}, gap = "0.125em")
 @Scene.State(when = "selectable", style = {"selectable"})
 public class TreeSurface extends SurfaceSchema {
@@ -197,6 +202,34 @@ public class TreeSurface extends SurfaceSchema {
         public boolean hasChildren() { return expandable || !children.isEmpty(); }
 
         /**
+         * Emit a chrome slot: fixed-width STACK box with TUI text + GUI line shapes.
+         *
+         * <p>In TUI: text renders normally, shape() calls are no-ops.
+         * <p>In GUI: text is hidden via {@code display: hidden} style rule,
+         * line shapes render as proper vector lines.
+         *
+         * @param textFallback Unicode text for TUI renderers
+         * @param styles       Style classes for the chrome slot box
+         * @param lineSpecs    Line shape specs ("x1,y1 x2,y2" percentages), if any
+         */
+        private static void emitChromeSlot(SurfaceRenderer out, String textFallback,
+                                           List<String> styles, String... lineSpecs) {
+            out.beginBox(Scene.Direction.STACK, styles,
+                    BoxBorder.NONE, null, "1.2em", null, null);
+
+            // Text for TUI (hidden in GUI via @Scene.Rule on .chrome-text)
+            out.text(textFallback, List.of("chrome-text"));
+
+            // Line shapes for GUI (no-op in TUI since shape() default does nothing)
+            for (String lineSpec : lineSpecs) {
+                out.shapeSize("1.2em", "1.4em");
+                out.shape("line", null, null, "#6C7086", "1", lineSpec);
+            }
+
+            out.endBox();
+        }
+
+        /**
          * Render this node and its children recursively (entry point for root nodes).
          */
         void render(SurfaceRenderer out, boolean selectable, boolean isLast) {
@@ -235,18 +268,23 @@ public class TreeSurface extends SurfaceSchema {
             for (int i = 0; i < ancestorIsLast.size(); i++) {
                 boolean ancestorWasLast = ancestorIsLast.get(i);
                 if (ancestorWasLast) {
-                    out.text("    ", List.of("chrome", "spacer"));  // No line - ancestor was last
+                    emitChromeSlot(out, "    ", List.of("chrome", "spacer"));
                 } else {
-                    out.text("│   ", List.of("chrome", "continuation"));  // Continuation line
+                    emitChromeSlot(out, "│   ", List.of("chrome", "continuation"),
+                            "50,0 50,100");  // vertical line
                 }
             }
 
             // Emit tree chrome: branch for this node (only if not root level)
             if (!ancestorIsLast.isEmpty()) {
                 if (isLast) {
-                    out.text("└── ", List.of("chrome", "branch", "last"));
+                    emitChromeSlot(out, "└── ", List.of("chrome", "branch", "last"),
+                            "50,0 50,50",    // half vertical (top to center)
+                            "50,50 100,50"); // horizontal (center to right)
                 } else {
-                    out.text("├── ", List.of("chrome", "branch"));
+                    emitChromeSlot(out, "├── ", List.of("chrome", "branch"),
+                            "50,0 50,100",   // full vertical
+                            "50,50 100,50"); // horizontal (center to right)
                 }
             }
 

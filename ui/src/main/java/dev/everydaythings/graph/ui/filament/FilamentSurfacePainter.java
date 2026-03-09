@@ -383,6 +383,7 @@ public class FilamentSurfacePainter implements SurfacePainter {
         if (!fontManager.hasUsableFonts()) {
             return;
         }
+        if (node.hidden()) return;
         // Skip subtree for regions handled by another pane (e.g., 3D detail)
         if (skipId != null && node instanceof LayoutNode.BoxNode box
                 && skipId.equals(box.id())) {
@@ -701,6 +702,8 @@ public class FilamentSurfacePainter implements SurfacePainter {
     // ==================================================================================
 
     private void paintNode(LayoutNode node, float z) {
+        if (node.hidden()) return;
+
         // Skip subtree for regions handled by another pane (e.g., 3D detail)
         if (skipId != null && node instanceof LayoutNode.BoxNode box
                 && skipId.equals(box.id())) {
@@ -1141,11 +1144,19 @@ public class FilamentSurfacePainter implements SurfacePainter {
                     float y1 = by + Float.parseFloat(p1[1]) * bh / 100f;
                     float x2 = bx + Float.parseFloat(p2[0]) * bw / 100f;
                     float y2 = by + Float.parseFloat(p2[1]) * bh / 100f;
-                    // Approximate diagonal line as thin quad
-                    float midX = (x1 + x2) / 2f, midY = (y1 + y2) / 2f;
-                    float dx = x2 - x1, dy = y2 - y1;
-                    float len = (float) Math.sqrt(dx * dx + dy * dy);
-                    emitColoredQuad(midX - len / 2f, midY - sw / 2f, len, sw, color, z);
+                    // Approximate line as axis-aligned thin quad
+                    float dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+                    if (dy > dx) {
+                        // Mostly vertical: tall thin quad
+                        float top = Math.min(y1, y2);
+                        float cx = (x1 + x2) / 2f;
+                        emitColoredQuad(cx - sw / 2f, top, sw, dy, color, z);
+                    } else {
+                        // Mostly horizontal: wide thin quad
+                        float left = Math.min(x1, x2);
+                        float cy = (y1 + y2) / 2f;
+                        emitColoredQuad(left, cy - sw / 2f, dx, sw, color, z);
+                    }
                     return;
                 }
             }
@@ -1277,6 +1288,7 @@ public class FilamentSurfacePainter implements SurfacePainter {
     // ==================================================================================
 
     private void paintNodeElevated(LayoutNode node, float baseY) {
+        if (node.hidden()) return;
         switch (node) {
             case LayoutNode.BoxNode box -> paintBoxElevated(box, baseY);
             case LayoutNode.TextNode text -> paintTextOnPlane(text, baseY);

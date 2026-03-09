@@ -100,6 +100,11 @@ public sealed abstract class LayoutNode
     public boolean bold() { return bold; }
     public void bold(boolean bold) { this.bold = bold; }
 
+    // Display: hidden (node measures as 0×0, not painted)
+    private boolean hidden;
+    public boolean hidden() { return hidden; }
+    public void hidden(boolean hidden) { this.hidden = hidden; }
+
     // ==================================================================================
     // Event record
     // ==================================================================================

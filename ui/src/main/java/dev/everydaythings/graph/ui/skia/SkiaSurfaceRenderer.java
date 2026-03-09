@@ -101,6 +101,7 @@ public class SkiaSurfaceRenderer implements SurfaceRenderer {
     private String pendingShapeFill;
     private String pendingShapeStroke;
     private String pendingShapeStrokeWidth;
+    private String pendingShapePath;
     private String pendingShapeWidth;
     private String pendingShapeHeight;
 
@@ -555,6 +556,8 @@ public class SkiaSurfaceRenderer implements SurfaceRenderer {
     public void shape(String type, String cornerRadius, String fill,
                       String stroke, String strokeWidth, String path) {
         if (querySkipDepth > 0) return;
+        // Flush any previously pending shape as standalone before stashing new one.
+        flushPendingShape();
         // Stash shape properties — if a beginBox() follows immediately,
         // these will be applied to the BoxNode (container+shape composition).
         // If no beginBox() follows before the next primitive, the stashed
@@ -564,6 +567,7 @@ public class SkiaSurfaceRenderer implements SurfaceRenderer {
         pendingShapeFill = fill;
         pendingShapeStroke = stroke;
         pendingShapeStrokeWidth = strokeWidth;
+        pendingShapePath = path;
     }
 
     // ==================== Helpers ====================
@@ -576,7 +580,7 @@ public class SkiaSurfaceRenderer implements SurfaceRenderer {
         if (pendingShapeType != null) {
             var shape = new LayoutNode.ShapeNode(
                     pendingShapeType, pendingCornerRadius, pendingShapeFill,
-                    pendingShapeStroke, pendingShapeStrokeWidth, null, List.of());
+                    pendingShapeStroke, pendingShapeStrokeWidth, pendingShapePath, List.of());
             // Store raw specs for deferred % resolution by LayoutEngine.
             // Pre-resolve non-% values to explicitWidth/Height for backward compat.
             if (pendingShapeWidth != null && !pendingShapeWidth.isEmpty()) {
@@ -730,6 +734,7 @@ public class SkiaSurfaceRenderer implements SurfaceRenderer {
         pendingShapeFill = null;
         pendingShapeStroke = null;
         pendingShapeStrokeWidth = null;
+        pendingShapePath = null;
         pendingShapeWidth = null;
         pendingShapeHeight = null;
     }

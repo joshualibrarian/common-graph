@@ -51,6 +51,8 @@ public class SkiaPainter {
     }
 
     private void paintNode(Canvas canvas, LayoutNode node) {
+        if (node.hidden()) return;
+
         boolean rotated = node.rotation() != 0;
         if (rotated) {
             canvas.save();

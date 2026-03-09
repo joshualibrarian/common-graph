@@ -1,70 +1,105 @@
 # Vocabulary
 
-**Vocabulary** is the linguistic surface of Common Graph. Every interaction — creating, navigating, querying, customizing — flows through a unified language system where tokens resolve to sememes, and sememes drive action. This system is holistic: it handles all parts of speech, works in any human language, and uses the same resolution mechanism for verbs, nouns, proper names, units, and prepositions.
+**Vocabulary** is the linguistic surface of Common Graph. Every interaction — creating, navigating, querying, computing, customizing — flows through a unified language system where tokens resolve to sememes, and sememes drive action. This system is holistic: it handles all parts of speech, works in any human language, and uses the same resolution mechanism for verbs, nouns, proper names, units, operators, functions, and prepositions.
 
 > This document covers the vocabulary system, token resolution, dispatch, the expression input, and how items expose their linguistic surface. For the semantic backbone (what sememes are, how they're anchored), see [Sememes](sememes.md). For how components declare vocabulary contributions, see [Components](components.md).
 
 ## Core Principle: Everything Is Language
 
-Traditional systems separate "commands" from "data" from "names." Common Graph doesn't. Every meaningful interaction is expressed through language — an approach with deep roots in formal semantics and speech act theory. Montague showed that natural language can be given the same formal treatment as programming languages (see [references/Montague 1973](references/Montague%201973%20-%20The%20Proper%20Treatment%20of%20Quantification.pdf)). Austin and Searle showed that utterances are *actions*, not just descriptions (see [references/Austin 1962](references/Austin%201962%20-%20How%20to%20Do%20Things%20with%20Words.pdf), [references/Searle 1969](references/Searle%201969%20-%20Speech%20Acts.pdf)). Common Graph takes both ideas literally: every token resolves to a meaning, and every expression dispatches an action.
+Traditional systems separate "commands" from "data" from "names" from "math." Common Graph doesn't. Every meaningful interaction is expressed through language — an approach with deep roots in formal semantics and speech act theory. Montague showed that natural language can be given the same formal treatment as programming languages (see [references/Montague 1973](references/Montague%201973%20-%20The%20Proper%20Treatment%20of%20Quantification.pdf)). Austin and Searle showed that utterances are *actions*, not just descriptions (see [references/Austin 1962](references/Austin%201962%20-%20How%20to%20Do%20Things%20with%20Words.pdf), [references/Searle 1969](references/Searle%201969%20-%20Speech%20Acts.pdf)). Common Graph takes both ideas literally: every token resolves to a meaning, and every expression dispatches an action or evaluates to a value.
 
 - **Verbs**: "create", "move", "exit" — dispatch to methods
 - **Nouns**: "item", "log", "roster" — type references, navigation targets
 - **Proper nouns**: "My Shopping List", "notes", "chat" — specific items or components
 - **Units**: "meters", "kilograms", "seconds" — nouns with dimensional metadata
+- **Operators**: "+", "-", "=", ">", "|>" — arithmetic, comparison, composition
+- **Functions**: "sqrt", "sin", "max" — pure computation, applied to arguments
 - **Prepositions**: "in", "with", "to", "from" — structure the expression, fill thematic roles
 - **Modifiers**: "all", "recent", "unread" — qualify queries
 
-All of these resolve through the same pipeline: token to sememe to action.
+All of these resolve through the same pipeline: token to sememe to action or value.
 
 ## The Resolution Pipeline
 
 ```
 Token (any language)
     |
-TokenDictionary (global lexicon)
+TokenDictionary (scoped lexicon)
     |
 Sememe (universal meaning unit)
     |
-Part of speech?
+What kind of expression?
     |
-    +-- Verb     --> Dispatch to method via VerbEntry
-    +-- Noun     --> Navigate, reference, or fill argument slot
-    +-- Unit     --> Combine with numeral to form Quantity
-    +-- Preposition --> Fill thematic roles (to, from, with, in)
-    +-- Modifier  --> Qualify or filter
+    +-- Command frame  --> verb + roles --> dispatch to method
+    +-- Math/logic     --> operators + operands --> evaluate via Pratt parser
+    +-- Function call  --> function + arguments --> apply function
+    +-- Quantity       --> numeral + unit --> construct Quantity value
+    +-- Navigation     --> bare noun/proper noun --> resolve and navigate
+    +-- Query          --> modifier + noun --> filter and list
 ```
 
-### Example Flow
+The expression input handles all of these uniformly. Whether you type `create document`, `5 + 3`, `sqrt(144)`, or `notes`, the same token resolution pipeline processes your input — it just routes to different evaluation paths based on what the tokens resolve to.
 
-A user types "create document" into an Item's prompt. This triggers progressive narrowing:
-
-```
-graph> create                        # Verb resolved
-graph> create doc...                 # Completion dropdown:
-                                     #   markdown document
-                                     #   plain text document
-                                     #   JSON document
-graph> create markdown document      # Type concept resolved
-                                     # But multiple implementations exist --
-                                     # dropdown:
-                                     #   BasicMarkdown
-                                     #   CollaborativeMarkdown
-graph> create markdown document BasicMarkdown
-                                     # Fully resolved, dispatch
-```
-
-Each step narrows the expression by filling a thematic role:
+### Example: Command Frame
 
 ```
-verb   = create
-THEME  = markdown document   (narrowed from "document" via sememe hierarchy)
-IMPL   = BasicMarkdown       (narrowed from available implementations)
+alice@project> create document
 ```
 
-The final "implemented-by" step is implicit — the evaluator knows that after a fully-resolved type concept, the only unfilled slot is which implementation. The user doesn't need to type "implemented-by"; the dropdown presents implementations directly. But explicit phrasing works too: "create markdown document implemented-by BasicMarkdown".
+A user types "create document" into an Item's prompt. The tokens resolve:
 
-A Spanish-speaking user typing "crear documento markdown" follows the same narrowing from the sememe stage onward — "crear" and "create" resolve to the same verb sememe, "documento" and "document" to the same noun sememe.
+```
+"create"   --> Sememe(cg.verb:create, VERB)
+"document" --> Sememe(cg:type/document, NOUN)
+```
+
+The FrameAssembler sees a verb + noun and builds a semantic frame: `verb=create, THEME=document`. Dispatch follows the inner-to-outer chain.
+
+### Example: Mathematical Expression
+
+```
+alice@project> (3 + 4) * 2
+```
+
+The tokens resolve:
+
+```
+"("  --> structural (open paren)
+"3"  --> literal number
+"+"  --> Sememe(cg:operator/add, OPERATOR)
+"4"  --> literal number
+")"  --> structural (close paren)
+"*"  --> Sememe(cg:operator/multiply, OPERATOR)
+"2"  --> literal number
+```
+
+The presence of operators and literals triggers the Pratt parser, which builds an AST respecting precedence and associativity. The result evaluates to `14`. No verb, no dispatch — just evaluation.
+
+### Example: Function Application
+
+```
+alice@project> sqrt(144)
+```
+
+```
+"sqrt" --> Sememe(cg:function/sqrt, FUNCTION)
+"("    --> structural
+"144"  --> literal number
+")"    --> structural
+```
+
+The parser recognizes function call syntax: an identifier followed by parenthesized arguments. The function sememe carries its evaluation logic. Result: `12`.
+
+### Example: Mixed
+
+```
+alice@project> move pawn to e4
+alice@project> 5 meters + 3 meters
+alice@project> sin(pi / 4)
+alice@project> notes
+```
+
+All four use the same input system. The first builds a command frame. The second constructs quantities and adds them. The third evaluates a mathematical function. The fourth navigates to a proper noun.
 
 ## TokenDictionary: The Global Lexicon
 
@@ -93,7 +128,7 @@ Posting {
 
 Every posting has one **scope** — an ItemID that says where this mapping is meaningful. The scope is just an ItemID; the TokenDictionary doesn't know or care what *kind* of item it is. The DB key is `<scope><token>`.
 
-The scope can be null for universal postings (language-neutral symbols like "m", "kg", "+", "USD") that resolve for everyone. Everything else has a scope:
+The scope can be null for universal postings (language-neutral symbols like "m", "kg", "+", "USD", "sin", "sqrt") that resolve for everyone. Everything else has a scope:
 
 ```
 Scope: cg:language/eng     Token: "create"     → cg.verb:create
@@ -104,16 +139,17 @@ Scope: <item X>            Token: "notes"      → <component on X>
 Scope: <user Y>            Token: "deploy"     → <user Y's alias>
 Scope: null                Token: "m"          → cg:unit/meter
 Scope: null                Token: "+"          → cg:operator/add
+Scope: null                Token: "sqrt"       → cg:function/sqrt
 ```
 
 ### Scope Chain Resolution
 
 When a user types a token, the TokenDictionary resolves it against a **scope chain** — a list of ItemIDs assembled from context. The caller decides what's in the chain:
 
-- The user's active languages (`cg:language/eng`, `cg:language/spa`)
 - The focused item, its ancestors, the session
+- The user's active languages (`cg:language/eng`, `cg:language/spa`)
 - The user's own item (personal aliases)
-- null (always included — universal symbols)
+- null (always included — universal symbols and operators)
 
 The dictionary looks up `<scope><token>` for each scope in the chain and returns all matching postings. One mechanism, one lookup path.
 
@@ -127,22 +163,63 @@ Postings come from:
 - **Relations**: Named relations (title, alias) scoped to their item
 - **User customization**: Custom aliases and scripted expressions scoped to the user or item
 
+## Operators and Functions
+
+Operators and functions are first-class vocabulary — they resolve through the same TokenDictionary and are represented as sememes. Their precedence, associativity, and behavior are data-driven (carried by the Operator or Function item), not hardcoded syntax.
+
+### Operators
+
+Operator sememes carry metadata: precedence level, associativity (left/right), fixity (prefix/infix/postfix). The ExpressionParser reads this metadata to build correct ASTs without hardcoding any operator.
+
+```
+Operator {
+    symbol:        "+"           # Universal token (null scope)
+    precedence:    6             # Higher binds tighter
+    associativity: LEFT          # Left-to-right grouping
+    fixity:        INFIX         # Between operands
+}
+```
+
+Standard arithmetic (`+`, `-`, `*`, `/`, `^`), comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`), logical (`&&`, `||`, `!`), and composition (`|>`) operators are seed vocabulary. Users and items can define additional operators.
+
+### Functions
+
+Functions are sememes with evaluation semantics — pure computation applied to arguments. Like operators, they resolve through the TokenDictionary:
+
+```
+alice@project> sqrt(144)        # Built-in function
+alice@project> max(a, b, c)     # Multi-argument
+alice@project> f(x) = x^2 + 1  # User-defined function (assignment)
+alice@project> data |> filter(active) |> sort(name)  # Pipe composition
+```
+
+Function definition (`f(x) = expr`) creates a VocabularyContribution: the function name becomes a scoped posting, and the body is stored as an Expression. Subsequent calls to `f(5)` evaluate the stored expression with `x` bound to `5`.
+
+### Parentheses
+
+Parentheses are the **only structural syntax** — they're the sole reserved characters. Everything else (operators, functions, verbs, nouns) is vocabulary that resolves through the TokenDictionary. This means:
+
+- No reserved words. "exit" is vocabulary, not syntax.
+- No escape characters. Quoting uses matched delimiters.
+- Operator precedence is data, not grammar rules.
+
 ## Item Vocabulary
 
 Every Item has a **vocabulary** — its linguistic surface. An item's vocabulary is the **merged union of its components' vocabularies**, combined with its type's code-defined verbs.
 
-### Three Layers
+### Two Layers
 
 ```
 Code Layer (transient, declared in type definitions)
     |
-    +-- Verb methods on the Item type --> base verbs all items of this type share
-    +-- Verb methods on component types --> component-specific verbs
+    +-- @Verb methods on the Item type --> base verbs all items of this type share
+    +-- @Verb methods on component types --> component-specific verbs
     |
 User Layer (persistent, from EntryVocabulary)
     |
     +-- Custom aliases ("deploy" --> cg.verb:commit)
     +-- Scripted expressions ("deploy" --> "commit then push to production")
+    +-- Function definitions (f(x) = x^2 + 1)
     +-- Component proper nouns ("notes", "chat")
     |
 Runtime Merge (on item open/hydrate)
@@ -171,25 +248,29 @@ When an Item is opened (hydrated from storage):
 4. Scoped tokens indexed in TokenDictionary for discoverability
 ```
 
-The result is a live dispatch map: sememeId to VerbEntry, plus all proper nouns and aliases registered as scoped postings.
+The result is a live dispatch map: sememeId to VerbEntry, plus all proper nouns, aliases, operators, and functions registered as scoped postings.
 
 ## Dispatch: Inner to Outer
 
-When a token resolves to a verb sememe, the system checks vocabularies from most specific to most general:
+When a command expression is evaluated, the system checks vocabularies from most specific to most general:
 
 ```
-Component vocabulary   (most specific)
+Component vocabulary   (most specific — focused component's verbs)
     |
 Item vocabulary        (type-level verbs)
     |
-Session vocabulary     (session-level verbs like "exit")
+Session vocabulary     (session-level verbs like "exit", "back")
+    |
+Librarian vocabulary   (system-level)
 ```
 
 This means a component's local meaning wins over the item's general meaning, which wins over the session's global meaning.
 
+Mathematical expressions and function calls don't follow this chain — operators and functions resolve directly from the TokenDictionary (typically at universal/null scope) and evaluate without verb dispatch.
+
 ### Disambiguation Through Language
 
-There are no reserved words. No escape hatches. No special prefixes. When a token is ambiguous — it matches verb entries in multiple scopes — the system presents a **dropdown** of possibilities, and the user refines with more language:
+There are no reserved words. No escape hatches. No special prefixes. When a token is ambiguous — it matches entries in multiple scopes — the system presents a **dropdown** of possibilities, and the user refines with more language:
 
 ```
 User types: "exit"
@@ -213,54 +294,13 @@ No special cases. Just more language. Automatically multilingual — "salir de s
 ## Session as an Item
 
 A Session is an Item. It has:
-- A type (`cg:type/session`) with verb definitions (`exit`, `back`, `switch`)
-- Components (command history, preferences, active context stack)
+- A type (`cg:type/session`) with verb definitions (`exit`, `back`, `switch`, `authenticate`)
+- Components (activity log, preferences, authenticated users)
 - Relations (session to current user, session to focused item)
 
 This means session verbs participate in the same vocabulary system as everything else. "Exit" resolves through the TokenDictionary to `cg.verb:exit`, and the Session's vocabulary has a VerbEntry for it. No special-case string matching.
 
 Sessions can be ephemeral (in-memory, never committed) or persistent (committed, versioned, shareable — like sharing your shell configuration or editor setup).
-
-## VerbEntry and Dispatch
-
-A **VerbEntry** is the runtime binding between a sememe and a callable method:
-
-```
-VerbEntry {
-    sememeId:        ItemID          # The verb sememe this entry handles
-    method:          method ref      # The bound method to invoke
-    doc:             string          # Human-readable description
-    params:          [ParamSpec]     # Parameter metadata
-    source:          ITEM | COMPONENT  # Where this verb was declared
-    componentHandle: string?        # Which component (if source = COMPONENT)
-    target:          object          # The live instance to invoke on
-}
-```
-
-### Verb Sources
-
-**Item-level verbs** — actions on the Item itself:
-
-```
-create    --> Create a new instance
-edit      --> Begin editing
-commit    --> Commit changes
-delete    --> Delete this item
-describe  --> Show item details
-open      --> Open/navigate into
-```
-
-**Component-level verbs** — actions on a specific component:
-
-```
-move      --> On a Space component: move an element
-send      --> On a Chat component: send a message
-add       --> On a Roster component: add a member
-append    --> On a Log component: append an entry
-flag      --> On a Minesweeper component: flag a tile
-```
-
-If multiple components define the same verb sememe, disambiguation follows the same language-based pattern: the user adds a noun to specify which component.
 
 ## Parameters and Thematic Roles
 
@@ -290,7 +330,21 @@ Parameters declare roles from linguistic case grammar. These are the same themat
 
 Roles enable order-independent expression parsing. A verb's parameters can be filled positionally or by role — "move pawn to e4" and "move to e4 pawn" produce the same semantic frame.
 
-## ActionResult
+## VerbEntry and Dispatch
+
+A **VerbEntry** is the runtime binding between a sememe and a callable method:
+
+```
+VerbEntry {
+    sememeId:        ItemID          # The verb sememe this entry handles
+    method:          method ref      # The bound method to invoke
+    doc:             string          # Human-readable description
+    params:          [ParamSpec]     # Parameter metadata
+    source:          ITEM | COMPONENT  # Where this verb was declared
+    componentHandle: string?        # Which component (if source = COMPONENT)
+    target:          object          # The live instance to invoke on
+}
+```
 
 Every verb invocation returns an **ActionResult**:
 
@@ -304,34 +358,22 @@ ActionResult {
 
 This is the universal return type for all dispatch — CLI, GUI, remote session, or inter-item invocation.
 
-## ActionContext
-
-Verbs receive an **ActionContext** providing the invocation environment:
-
-```
-ActionContext {
-    caller:    ItemID       # Who invoked this action
-    item:      Item         # The item being acted upon
-    librarian: Librarian?   # Runtime context
-}
-```
-
 ## The Expression Input System
 
-The vocabulary system connects to the user through the **expression input** — a tokenizing prompt on every Item. This is not a command line. It's a **semi-natural language interface** where tokens are progressively resolved into semantic references, and the system narrows completions based on grammar and context.
+The vocabulary system connects to the user through the **expression input** — a tokenizing prompt on every Item. This is not a command line. It's a **semi-structured language interface** that handles commands, mathematical expressions, function application, and navigation through a single unified input.
 
 ### Every Item Has a Prompt
 
-Each Item has its own prompt. The prompt shows where you are:
+Each Item has its own prompt. The prompt always shows `actor@context>`:
 
 ```
-graph>                          # Default (session level)
-chess>                          # Focused on a chess game
-alice@chess>                    # With principal identity
+alice@session>                  # Session level (the default context)
+alice@chess>                    # Focused on a chess game
 alice@chess/board>              # Navigated into a component
+bob@project>                    # Different user, different item
 ```
 
-Typing into the prompt dispatches through that Item's vocabulary. Different Items have different vocabularies — a chess game offers "move" and "resign", a document offers "edit" and "commit", a roster offers "add" and "remove".
+You are always *somewhere* (the context) and always *someone* (the actor). Typing into the prompt dispatches through that Item's vocabulary, or evaluates an expression. Different Items have different vocabularies — a chess game offers "move" and "resign", a document offers "edit" and "commit", a roster offers "add" and "remove". But mathematical expressions and universal operators work everywhere.
 
 ### Input State
 
@@ -354,12 +396,24 @@ As the user types, input is progressively resolved:
 
 | Token Type | Description | Visual | Example |
 |------------|-------------|--------|---------|
-| **Ref** | Resolved item reference | `[create]` | Verb, noun, or proper noun resolved from token |
+| **Ref** | Resolved item reference | `[create]` | Verb, noun, function, or proper noun resolved from token |
 | **Literal** | Typed value | `42`, `"hello"`, `true` | Numbers, booleans, quoted strings |
-| **Operator** | Logical operator | `AND`, `OR` | Conjunctions |
+| **Operator** | Infix/prefix operator | `+`, `*`, `\|>` | Arithmetic, logic, comparison, pipe |
 | **Paren** | Grouping | `(`, `)` | Expression structure |
 
-Ref tokens are the key — they're resolved references to sememes or items in the graph. When you type "move" and press Tab, it resolves to the `cg.verb:move` sememe. When you type "pawn" and press Tab, it resolves to the pawn item. The expression is a sequence of graph references, not text to be parsed.
+Ref tokens are the key — they're resolved references to sememes or items in the graph. When you type "move" and press Tab, it resolves to the `cg.verb:move` sememe. When you type "sqrt" and it's followed by `(`, it resolves to the `cg:function/sqrt` sememe. The expression is a sequence of graph references, not text to be parsed.
+
+### Expression Routing
+
+The expression input handles multiple expression types through a single pipeline. After tokens are resolved, the system determines which evaluation path to use:
+
+1. **Mathematical expressions** — tokens contain operators, all-numeric operands, or function calls with no verb present. Routed to the Pratt parser, which builds an AST from operator precedence metadata and evaluates it.
+
+2. **Command frames** — tokens contain a verb sememe. Routed to the FrameAssembler, which maps arguments to thematic roles and dispatches via the inner-to-outer vocabulary chain.
+
+3. **Navigation** — a single noun or proper noun with no verb. Resolves the target and navigates.
+
+4. **Mixed** — verbs can take expression arguments: `set width to (3 + 4) * 2`. The Pratt parser handles the parenthesized sub-expression, and its result fills a parameter slot in the command frame.
 
 ### Completion and Semantic Narrowing
 
@@ -370,31 +424,42 @@ The **ExpressionContext** analyzes the current token list:
 1. Find the verb (if any) — the first token whose sememe has part-of-speech VERB
 2. Identify prepositional phrases — a preposition followed by an object fills a thematic role
 3. Match bare nouns to unfilled argument slots
-4. Compute which roles are still unfilled
+4. Detect operator context — after an operator, complete with operands
+5. Compute which roles are still unfilled
 
 Then it **filters completions**:
 
 | Current State | Filter Rule |
 |---------------|-------------|
-| No verb yet | Show everything |
-| Verb selected | Exclude other verbs |
+| Empty | Show everything (verbs, nouns, functions, operators) |
+| Verb selected | Exclude other verbs; show nouns, prepositions, literals |
+| After operator | Show operands: nouns, functions, literals |
+| After open paren | Show everything that can start a sub-expression |
 | Last token is a preposition | Show nouns and proper nouns |
 | All required roles filled | Show optional roles and prepositions |
 
-**Example**: At `chess>`:
+**Example**: At `alice@chess>`:
 
 ```
-chess> m                        # Completions: move, modify, merge...
-chess> move                     # Tab --> resolves to [move] verb
-chess> [move] p                 # Completions: pawn, piece... (no verbs shown)
-chess> [move] [pawn] to         # Tab --> resolves [to] preposition
-chess> [move] [pawn] [to] e     # Completions: e4, e5... (positions only)
-chess> [move] [pawn] [to] [e4]  # Enter --> dispatches move(theme=pawn, target=e4)
+alice@chess> m                         # Completions: move, max, min...
+alice@chess> move                      # Tab --> resolves to [move] verb
+alice@chess> [move] p                  # Completions: pawn, piece... (no verbs)
+alice@chess> [move] [pawn] to          # Tab --> resolves [to] preposition
+alice@chess> [move] [pawn] [to] e      # Completions: e4, e5... (positions)
+alice@chess> [move] [pawn] [to] [e4]   # Enter --> dispatches move(THEME=pawn, TARGET=e4)
+```
+
+**Example**: Mathematical expression:
+
+```
+alice@project> 2 * (                   # After open paren: show operands
+alice@project> 2 * (3 + sq             # Completions: sqrt
+alice@project> 2 * (3 + sqrt(9))       # Enter --> evaluates to 12
 ```
 
 ### Semantic Frame Assembly
 
-When Enter is pressed, the token list is assembled into a **semantic frame** — an order-agnostic structure that maps tokens to verb parameters by thematic role:
+When Enter is pressed on a command expression, the token list is assembled into a **semantic frame** — an order-agnostic structure that maps tokens to verb parameters by thematic role:
 
 ```
 Tokens:  [move] [pawn] [to] [e4]
@@ -406,7 +471,8 @@ The assembly process:
 1. Find the verb (first token with VERB part-of-speech)
 2. Scan for prepositional phrases: `preposition + object` fills the role that preposition implies
 3. Match remaining bare items to argument slots by first-fit
-4. Build the frame
+4. Evaluate any sub-expressions (parenthesized math, function calls)
+5. Build the frame
 
 **Word order doesn't matter** (within limits):
 
@@ -427,7 +493,13 @@ When a numeral precedes a unit noun, the expression parser recognizes the combin
 "3 kg of flour" --> Quantity(3, kg) + preposition(of) + noun(flour)
 ```
 
-The parser knows to form a Quantity because the noun-sememe carries dimensional metadata (it's a unit). No special syntax — just language.
+The parser knows to form a Quantity because the noun-sememe carries dimensional metadata (it's a unit). No special syntax — just language. Quantities support arithmetic with dimensional analysis:
+
+```
+alice@project> 5 meters + 3 meters     # --> 8 meters
+alice@project> 10 km / 2 hours         # --> 5 km/h
+alice@project> 5 meters + 3 kg         # --> error: incompatible dimensions
+```
 
 ### Key Bindings
 
@@ -448,7 +520,7 @@ The parser knows to form a Quantity because the noun-sememe carries dimensional 
 
 Space is a **token boundary**, not just whitespace. When you press Space:
 
-1. If the pending text matches a known operator (`AND`, `OR`) --> commit as operator token
+1. If the pending text matches a known operator (AND, OR) --> commit as operator token
 2. If it's a recognized literal (number, boolean, quoted string) --> commit as literal token
 3. If it's a parenthesis --> commit as structural token
 4. Otherwise --> insert a space (for multi-word lookups)
@@ -458,15 +530,16 @@ Space is a **token boundary**, not just whitespace. When you press Space:
 When Enter is pressed:
 
 1. Any remaining pending text is committed (resolved where possible)
-2. The token list is converted to resolved references
-3. The FrameAssembler builds a semantic frame
-4. The verb is located via the scope chain (component --> item --> session)
-5. The verb is invoked with the frame's bindings as parameters
-6. An ActionResult is returned
+2. The token list is analyzed: does it contain operators/functions (expression) or a verb (command)?
+3. **Expression path**: the Pratt parser builds an AST, evaluates it, returns a value
+4. **Command path**: the FrameAssembler builds a semantic frame, the verb is located via the scope chain (component --> item --> session --> librarian), and invoked with the frame's bindings
+5. **Navigation path**: a single resolved noun/proper noun navigates to that item
+6. An ActionResult or value is returned
 
 Results trigger appropriate actions:
 - **Item result** --> navigate into the item
 - **Value result** --> display the value
+- **Created result** --> show in activity log and tree
 - **Error result** --> show error message
 
 ## Vocabulary Customization and Scripting
@@ -474,6 +547,7 @@ Results trigger appropriate actions:
 Vocabulary is persistent and customizable. Users can:
 - Add custom aliases for existing verbs
 - Create scripted expressions that chain actions
+- Define functions (stored as expressions)
 - Name components with proper nouns
 - All stored in EntryVocabulary contributions on components
 
@@ -520,6 +594,19 @@ When "deploy" is typed, the target expression is parsed through the same vocabul
 
 Language resolving to language resolving to action. Expressions compose through the same mechanism that handles single verbs.
 
+### User-Defined Functions
+
+Functions defined through the input (`f(x) = x^2 + 1`) become VocabularyContributions:
+
+```
+VocabularyContribution {
+    trigger: "f"
+    target:  Expression("x^2 + 1", params=["x"])
+}
+```
+
+Subsequent calls to `f(5)` evaluate the stored expression with `x = 5`, yielding `26`. Functions compose naturally: `g(x) = f(x) + f(x-1)`.
+
 ## Why Semi-Natural Language?
 
 Traditional interfaces force rigid syntax: `git commit -m "message"`, `docker run -it --name foo image`. Common Graph's expression input is different:
@@ -530,7 +617,8 @@ Traditional interfaces force rigid syntax: `git commit -m "message"`, `docker ru
 4. **Multilingual** — the same verb works in any language
 5. **Context-aware** — the focused Item determines available vocabulary
 6. **Customizable** — users add their own vocabulary through components
-7. **Composable** — expressions can chain through scripted aliases
+7. **Composable** — expressions chain through scripted aliases, functions, and pipes
+8. **Mathematical** — arithmetic, functions, and dimensional analysis work everywhere
 
 This isn't trying to understand arbitrary natural language. It's a **structured-but-flexible** input system where the graph's semantic structure guides the user toward valid expressions. The approach is closest to what the NLP literature calls *executable semantic parsing* — mapping language directly to actions on a knowledge graph (see [references/Liang 2016](references/Liang%202016%20-%20Learning%20Executable%20Semantic%20Parsers.pdf), [references/Berant et al 2013](references/Berant%20et%20al%202013%20-%20Semantic%20Parsing%20on%20Freebase.pdf)). The key difference: those systems learn statistical mappings from data, while Common Graph uses deterministic vocabulary resolution through a curated sememe backbone.
 
@@ -551,6 +639,37 @@ This isn't trying to understand arbitrary natural language. It's a **structured-
 | `cg.verb:export` | Export data |
 | `cg.verb:exit` | Exit current context |
 | `cg.verb:back` | Navigate back |
+| `cg.verb:view` | Focus or create a view of an item |
+| `cg.verb:place` | Mount an item in a region |
+
+### Operators
+
+| Symbol | Sememe ID | Precedence | Description |
+|--------|-----------|------------|-------------|
+| `+` | `cg:operator/add` | 6 | Addition |
+| `-` | `cg:operator/subtract` | 6 | Subtraction |
+| `*` | `cg:operator/multiply` | 7 | Multiplication |
+| `/` | `cg:operator/divide` | 7 | Division |
+| `^` | `cg:operator/power` | 8 | Exponentiation |
+| `==` | `cg:operator/equals` | 4 | Equality |
+| `!=` | `cg:operator/not-equals` | 4 | Inequality |
+| `<` | `cg:operator/less-than` | 5 | Less than |
+| `>` | `cg:operator/greater-than` | 5 | Greater than |
+| `&&` | `cg:operator/and` | 2 | Logical AND |
+| `\|\|` | `cg:operator/or` | 1 | Logical OR |
+| `\|>` | `cg:operator/pipe` | 0 | Pipe (composition) |
+
+### Functions
+
+| Symbol | Sememe ID | Description |
+|--------|-----------|-------------|
+| `sqrt` | `cg:function/sqrt` | Square root |
+| `sin` | `cg:function/sin` | Sine |
+| `cos` | `cg:function/cos` | Cosine |
+| `abs` | `cg:function/abs` | Absolute value |
+| `max` | `cg:function/max` | Maximum |
+| `min` | `cg:function/min` | Minimum |
+| `log` | `cg:function/log` | Natural logarithm |
 
 ### Game Verbs
 
@@ -580,6 +699,7 @@ This isn't trying to understand arbitrary natural language. It's a **structured-
 - [Components](components.md) — EntryVocabulary contributions, component proper nouns
 - [Library](library.md) — TokenDictionary storage architecture
 - [Protocol](protocol.md) — DISPATCH and LOOKUP messages
+- [Workspace](workspace.md) — Session, views, navigation, prompt format
 
 **Academic foundations:**
 - [Fillmore 1982 — Frame Semantics](references/Fillmore%201982%20-%20Frame%20Semantics.pdf) — The frame semantics that CG's SemanticFrame + ThematicRole descend from

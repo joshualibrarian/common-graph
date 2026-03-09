@@ -180,18 +180,24 @@ class StylesheetTest {
     void testFromClasspathFindsAnnotatedRules() {
         Stylesheet stylesheet = Stylesheet.fromClasspath();
 
-        // Tree chrome rules from TreeSurface
-        Selector treeChrome = Selector.builder()
-                .type("TreeNode")
-                .addClass("chrome")
+        // Tree chrome-text rules from TreeSurface (visibility per renderer)
+        Selector treeChromeText = Selector.builder()
+                .addClass("chrome-text")
                 .build();
 
-        StyleProperties tuiProps = stylesheet.resolve(treeChrome, RenderContext.tui());
+        StyleProperties tuiProps = stylesheet.resolve(treeChromeText, RenderContext.tui());
         assertThat(tuiProps.isVisible()).isTrue();
         assertThat(tuiProps.isDim()).isTrue();
 
-        StyleProperties guiProps = stylesheet.resolve(treeChrome, RenderContext.gui());
+        StyleProperties guiProps = stylesheet.resolve(treeChromeText, RenderContext.gui());
         assertThat(guiProps.isHidden()).isTrue();
+
+        // Tree chrome color rule from TreeSurface
+        Selector treeChrome = Selector.builder()
+                .addClass("chrome")
+                .build();
+        StyleProperties chromeProps = stylesheet.resolve(treeChrome, RenderContext.gui());
+        assertThat(chromeProps.getColorInt()).isPresent();
 
         // Heading rule from Item
         Selector heading = Selector.ofClasses("heading");

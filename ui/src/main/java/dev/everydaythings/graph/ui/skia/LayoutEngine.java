@@ -252,6 +252,11 @@ public class LayoutEngine {
      *                   should use content width, not fill available width
      */
     private void measure(LayoutNode node, float availableWidth, float availableHeight, boolean shrinkWrap) {
+        // Hidden nodes (display: hidden) take zero space
+        if (node.hidden()) {
+            node.setBounds(0, 0, 0, 0);
+            return;
+        }
         switch (node) {
             case LayoutNode.TextNode text -> measureText(text, availableWidth, availableHeight);
             case LayoutNode.ImageNode image -> measureImage(image, availableWidth, availableHeight);

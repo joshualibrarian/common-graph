@@ -66,6 +66,11 @@ public class StyleResolver {
         StyleProperties props = stylesheet.resolve(element, context);
 
         if (!props.isEmpty()) {
+            // Display: hidden
+            if (props.isHidden()) {
+                node.hidden(true);
+            }
+
             // Color
             OptionalInt color = props.getColorInt();
             if (color.isPresent()) {
