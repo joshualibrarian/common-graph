@@ -7,7 +7,9 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * A natural language with its lexicon.
@@ -115,6 +117,107 @@ public class Language extends Item {
     protected Language(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
         // Fields are set by bindFieldsFromTable() via reflection during super() call
+    }
+
+    // ==================================================================================
+    // MORPHOLOGY
+    // ==================================================================================
+
+    /**
+     * Inflect a lexeme for the given grammatical features.
+     *
+     * <p>Checks the lexeme's irregular form overrides first. If no override
+     * exists for the feature set, falls back to {@link #regularInflection}
+     * which applies the language's algorithmic rules.
+     *
+     * @param lexeme   The lexeme (carries the lemma, POS, and irregular overrides)
+     * @param features Set of grammatical feature IIDs (e.g., {PAST}, {PLURAL})
+     * @return The inflected surface form
+     */
+    public String inflect(Lexeme lexeme, Set<ItemID> features) {
+        if (features == null || features.isEmpty()) return lexeme.word();
+        String override = lexeme.lookupForm(features);
+        if (override != null) return override;
+        return regularInflection(lexeme.word(), lexeme.partOfSpeech(), features);
+    }
+
+    /**
+     * Inflect a bare word with no override data (pure algorithm).
+     *
+     * <p>Useful for generating forms of new/unknown words where no
+     * lexeme with overrides is available.
+     *
+     * @param lemma    The base form of the word
+     * @param pos      Part of speech
+     * @param features Set of grammatical feature IIDs
+     * @return The inflected surface form
+     */
+    public String inflect(String lemma, PartOfSpeech pos, Set<ItemID> features) {
+        if (features == null || features.isEmpty()) return lemma;
+        return regularInflection(lemma, pos, features);
+    }
+
+    /**
+     * Produce the regular inflected form for a given feature set.
+     *
+     * <p>Default returns the lemma unchanged. Language subclasses override
+     * this with their specific regular morphology rules.
+     *
+     * @param lemma    The base form
+     * @param pos      Part of speech
+     * @param features Grammatical features driving inflection
+     * @return The regular inflected form
+     */
+    protected String regularInflection(String lemma, PartOfSpeech pos, Set<ItemID> features) {
+        return lemma;
+    }
+
+    /**
+     * Get the grammatical feature sets that this language's morphology distinguishes.
+     *
+     * <p>Returns the feature combinations that the morphology engine can produce
+     * inflected forms for. For example, English verbs distinguish:
+     * {PAST}, {PARTICIPLE,PRESENT}, {PARTICIPLE,PAST}, {THIRD_PERSON}.
+     *
+     * <p>Used by import to know which inflected forms to generate and register
+     * as TokenDictionary postings, and by UniMorph simplification to map
+     * raw feature sets to the minimal sets this language actually uses.
+     *
+     * <p>Default returns empty — no inflection. Language subclasses override.
+     *
+     * @param pos Part of speech
+     * @return The feature sets this language distinguishes for the given POS
+     */
+    public List<Set<ItemID>> inflectionFeatures(PartOfSpeech pos) {
+        return List.of();
+    }
+
+    /**
+     * Simplify a raw UniMorph feature set to the minimal set this language uses.
+     *
+     * <p>UniMorph provides rich feature sets (e.g., {THIRD_PERSON, SINGULAR,
+     * PRESENT} for English 3rd person singular). This method reduces them to
+     * the minimal set the morphology engine actually keys on (e.g., just
+     * {THIRD_PERSON} for English, since that's sufficient to disambiguate).
+     *
+     * <p>Default implementation finds the largest known feature set (from
+     * {@link #inflectionFeatures}) that is a subset of the raw features.
+     * Language subclasses can override for special cases (e.g., English
+     * maps standalone {PARTICIPLE} to {PARTICIPLE, PRESENT}).
+     *
+     * @param rawFeatures The raw mapped features from UniMorph
+     * @param pos         Part of speech
+     * @return The simplified feature set, or empty if no match
+     */
+    public Set<ItemID> simplifyFeatures(Set<ItemID> rawFeatures, PartOfSpeech pos) {
+        List<Set<ItemID>> known = inflectionFeatures(pos);
+        Set<ItemID> best = Set.of();
+        for (Set<ItemID> candidate : known) {
+            if (rawFeatures.containsAll(candidate) && candidate.size() > best.size()) {
+                best = candidate;
+            }
+        }
+        return best;
     }
 
     // ==================================================================================

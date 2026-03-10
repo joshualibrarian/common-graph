@@ -272,11 +272,11 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i29849"),
             List.of("create", "new", "make")
     ).withArguments(
-            ArgumentSlot.optional(ThematicRole.THEME, "what to create"),
-            ArgumentSlot.optional(ThematicRole.TARGET, "where to place the result"),
-            ArgumentSlot.optional(ThematicRole.NAME, "name for the new item"),
-            ArgumentSlot.optional(ThematicRole.COMITATIVE, "participants or companions"),
-            ArgumentSlot.optional(ThematicRole.SOURCE, "source to import from")
+            ArgumentSlot.optional(Role.THEME.iid(), "what to create"),
+            ArgumentSlot.optional(Role.TARGET.iid(), "where to place the result"),
+            ArgumentSlot.optional(Role.NAME.iid(), "name for the new item"),
+            ArgumentSlot.optional(Role.COMITATIVE.iid(), "participants or companions"),
+            ArgumentSlot.optional(Role.SOURCE.iid(), "source to import from")
     );
 
     public static final String GET = "cg.verb:get";
@@ -288,7 +288,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i28895"),
             List.of("get", "retrieve", "fetch", "lookup")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "what to retrieve")
+            ArgumentSlot.required(Role.THEME.iid(), "what to retrieve")
     );
 
     public static final String PUT = "cg.verb:put";
@@ -300,8 +300,8 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i33146"),
             List.of("put", "store", "add", "insert")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "what to store"),
-            ArgumentSlot.optional(ThematicRole.TARGET, "where to store it")
+            ArgumentSlot.required(Role.THEME.iid(), "what to store"),
+            ArgumentSlot.optional(Role.TARGET.iid(), "where to store it")
     );
 
     public static final String REMOVE = "cg.verb:remove";
@@ -313,7 +313,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i22577"),
             List.of("remove", "delete", "drop")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "what to remove")
+            ArgumentSlot.required(Role.THEME.iid(), "what to remove")
     );
 
     public static final String LIST = "cg.verb:list";
@@ -335,7 +335,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i32905"),
             List.of("import", "ingest", "load")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.SOURCE, "what to import from")
+            ArgumentSlot.required(Role.SOURCE.iid(), "what to import from")
     );
 
     public static final String QUERY = "cg.verb:query";
@@ -347,7 +347,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i25610"),
             List.of("query", "search")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "what to search for")
+            ArgumentSlot.required(Role.THEME.iid(), "what to search for")
     );
 
     public static final String FIND = "cg.verb:find";
@@ -359,9 +359,9 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i33164"),
             List.of("find", "lookup")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "predicate/relation to search by"),
-            ArgumentSlot.optional(ThematicRole.RECIPIENT, "object constraint (e.g. for chess)"),
-            ArgumentSlot.optional(ThematicRole.SOURCE, "subject constraint (e.g. from chess)")
+            ArgumentSlot.required(Role.THEME.iid(), "predicate/relation to search by"),
+            ArgumentSlot.optional(Role.RECIPIENT.iid(), "object constraint (e.g. for chess)"),
+            ArgumentSlot.optional(Role.SOURCE.iid(), "subject constraint (e.g. from chess)")
     );
 
     public static final String SHOW = "cg.verb:show";
@@ -373,7 +373,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i32454"),
             List.of("show", "display", "view")
     ).withArguments(
-            ArgumentSlot.optional(ThematicRole.THEME, "what to display")
+            ArgumentSlot.optional(Role.THEME.iid(), "what to display")
     );
 
     public static final String HELP = "cg.verb:help";
@@ -395,7 +395,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i22726"),
             List.of("edit", "modify", "change")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.PATIENT, "what to edit")
+            ArgumentSlot.required(Role.PATIENT.iid(), "what to edit")
     );
 
     public static final String COUNT = "cg.verb:count";
@@ -437,7 +437,7 @@ public abstract class Sememe extends Item {
             Map.of(),
             List.of("cd", "go", "enter")
     ).withArguments(
-            ArgumentSlot.optional(ThematicRole.TARGET, "where to navigate")
+            ArgumentSlot.optional(Role.TARGET.iid(), "where to navigate")
     );
 
     public static final String EXIT = "cg.session:exit";
@@ -474,7 +474,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i96785"),
             List.of("serve", "use")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "who to serve")
+            ArgumentSlot.required(Role.THEME.iid(), "who to serve")
     );
 
     public static final String INVITE = "cg.verb:invite";
@@ -496,7 +496,7 @@ public abstract class Sememe extends Item {
             Map.of(),
             List.of("authenticate", "auth", "login")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "user to authenticate as")
+            ArgumentSlot.required(Role.THEME.iid(), "user to authenticate as")
     );
 
     public static final String SWITCH = "cg.session:switch";
@@ -508,7 +508,7 @@ public abstract class Sememe extends Item {
             Map.of(),
             List.of("switch", "as")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "user to switch to")
+            ArgumentSlot.required(Role.THEME.iid(), "user to switch to")
     );
 
     public static final String RENAME = "cg.verb:rename";
@@ -520,7 +520,7 @@ public abstract class Sememe extends Item {
             Map.of("cili", "i25424"),
             List.of("rename", "name")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "new name")
+            ArgumentSlot.required(Role.THEME.iid(), "new name")
     );
 
     // ==================================================================================
@@ -611,7 +611,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating target or destination"),
             Map.of(),
             List.of("on", "to", "into"),
-            ThematicRole.TARGET
+            Role.TARGET.iid()
     );
 
     public static final String WITH = "cg.prep:with";
@@ -622,7 +622,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating tool or means"),
             Map.of(),
             List.of("with", "using"),
-            ThematicRole.INSTRUMENT
+            Role.INSTRUMENT.iid()
     );
 
     public static final String FROM = "cg.prep:from";
@@ -633,7 +633,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating origin or source"),
             Map.of(),
             List.of("from"),
-            ThematicRole.SOURCE
+            Role.SOURCE.iid()
     );
 
     public static final String FOR = "cg.prep:for";
@@ -644,7 +644,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating beneficiary or recipient"),
             Map.of(),
             List.of("for"),
-            ThematicRole.RECIPIENT
+            Role.RECIPIENT.iid()
     );
 
     public static final String BETWEEN = "cg.prep:between";
@@ -655,7 +655,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating companions or participants"),
             Map.of(),
             List.of("between"),
-            ThematicRole.COMITATIVE
+            Role.COMITATIVE.iid()
     );
 
     public static final String NAMED = "cg.prep:named";
@@ -666,7 +666,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating designation or label"),
             Map.of(),
             List.of("named", "called"),
-            ThematicRole.NAME
+            Role.NAME.iid()
     );
 
     // ==================================================================================

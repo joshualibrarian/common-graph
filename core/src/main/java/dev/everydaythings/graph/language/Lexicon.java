@@ -114,6 +114,57 @@ public class Lexicon implements Selectable {
     }
 
     /**
+     * Index additional postings (e.g., inflected forms) in the token dictionary.
+     *
+     * <p>Used during import to register inflected surface forms that all resolve
+     * to the same sememe as their base form. For example, "ran" → run's sememe.
+     *
+     * @param postings The postings to index
+     */
+    public void indexForms(Collection<Posting> postings) {
+        if (tokenIndex == null || postings.isEmpty()) return;
+        tokenIndex.runInWriteTransaction(tx -> {
+            for (Posting posting : postings) {
+                tokenIndex.index(posting, tx);
+            }
+        });
+    }
+
+    /**
+     * Generate and register all inflected form postings for every lexeme.
+     *
+     * <p>For each lexeme, generates inflected forms for every feature set the
+     * language distinguishes (via {@link Language#inflectionFeatures}), using
+     * the language's morphology engine (which checks irregular overrides first,
+     * then applies regular rules). Each inflected form is registered as a
+     * TokenDictionary posting that resolves to the same sememe as the base form.
+     *
+     * <p>This enables direct lookup of inflected forms: "ran" → run's sememe,
+     * "cats" → cat's sememe, "biggest" → big's sememe.
+     *
+     * @param language The language (provides morphology engine and feature sets)
+     * @return The number of form postings registered
+     */
+    public int registerInflectedForms(Language language) {
+        List<Posting> postings = new ArrayList<>();
+
+        for (Lexeme lexeme : lexemes) {
+            List<Set<ItemID>> featureSets = language.inflectionFeatures(lexeme.partOfSpeech());
+
+            for (Set<ItemID> features : featureSets) {
+                String form = language.inflect(lexeme, features);
+                // Skip if form equals the base word (already indexed by add())
+                if (form != null && !form.equals(lexeme.word())) {
+                    postings.add(Posting.scoped(form, languageId, lexeme.sememe(), lexeme.frequency()));
+                }
+            }
+        }
+
+        indexForms(postings);
+        return postings.size();
+    }
+
+    /**
      * Look up lexemes by word.
      *
      * @param word The word to look up

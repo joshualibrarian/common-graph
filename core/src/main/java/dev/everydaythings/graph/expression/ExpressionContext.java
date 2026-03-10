@@ -7,7 +7,6 @@ import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.PrepositionSememe;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.VerbSememe;
 
 import java.util.*;
@@ -32,7 +31,7 @@ import java.util.function.Function;
  */
 public record ExpressionContext(
         VerbSememe verb,
-        Set<ThematicRole> filledRoles,
+        Set<ItemID> filledRoles,
         List<ArgumentSlot> unfilledRequired,
         List<ArgumentSlot> unfilledOptional,
         boolean lastTokenIsPreposition

@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.action.ParamSpec;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.language.Role;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -126,7 +127,7 @@ public class VerbInvoker {
     public ActionResult invokeWithBindings(
             VerbEntry verb,
             ActionContext ctx,
-            Map<ThematicRole, Object> bindings,
+            Map<ItemID, Object> bindings,
             List<Object> overflow) {
 
         Objects.requireNonNull(verb, "verb");
@@ -140,18 +141,18 @@ public class VerbInvoker {
             for (int i = 0; i < params.size(); i++) {
                 ParamSpec param = params.get(i);
 
-                // 1. Role match
+                // 1. Role match — convert param role name to ItemID via ThematicRole bridge
                 Object matched = null;
                 boolean found = false;
-                ThematicRole role = null;
                 if (param.role() != null) {
+                    ItemID roleId = null;
                     try {
-                        role = ThematicRole.valueOf(param.role());
+                        roleId = ThematicRole.valueOf(param.role()).iid();
                     } catch (IllegalArgumentException e) {
                         // unknown role string — ignore
                     }
-                    if (role != null && bindings.containsKey(role)) {
-                        matched = bindings.get(role);
+                    if (roleId != null && bindings.containsKey(roleId)) {
+                        matched = bindings.get(roleId);
                         found = true;
                     }
                 }

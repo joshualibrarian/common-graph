@@ -3,40 +3,44 @@ package dev.everydaythings.graph.language.importer;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.language.Lexeme;
-import dev.everydaythings.graph.language.Lexicon;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.language.importer.WordNetImporter.*;
 import dev.everydaythings.graph.runtime.Librarian;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Imports English language data from Open English WordNet (OEWN).
+ * Imports English language data from Open English WordNet (OEWN) and UniMorph.
  *
- * <p>This class encapsulates the OEWN-specific import logic:
+ * <p>This class encapsulates the English-specific import logic:
  * <ul>
- *   <li>POS tag mapping (LMF → Common Graph)</li>
- *   <li>Semantic relation type mapping</li>
- *   <li>Sememe creation from synsets</li>
- *   <li>Lexeme creation from lexical entries</li>
- *   <li>Relation creation between sememes</li>
+ *   <li>Pass 1: OEWN synsets → Sememes + semantic Relations</li>
+ *   <li>Pass 2: OEWN lexical entries → Lexemes (with UniMorph irregular overrides)</li>
+ *   <li>Pass 3: Generate and register all inflected form postings</li>
  * </ul>
+ *
+ * <p>UniMorph data provides irregular form overrides (e.g., "run"→"ran").
+ * If UniMorph data is not present on the classpath, import proceeds with
+ * regular morphology rules only. Pass 3 uses the Language's morphology engine
+ * to generate all inflected forms (regular + irregular) and registers them as
+ * TokenDictionary postings so that inflected forms resolve directly to their
+ * sememes (e.g., "ran" → the same sememe as "run").
  *
  * <p>Usage (from English.generate):
  * <pre>{@code
  * EnglishImporter importer = new EnglishImporter(librarian);
- * EnglishImporter.ImportStats stats = importer.importInto(lexicon, signer, 100);
+ * EnglishImporter.ImportStats stats = importer.importInto(lexicon, language, signer, 100);
  * }</pre>
  */
 public class EnglishImporter {
 
     /** Path to OEWN LMF XML within resources. */
-    private static final String OEWN_PATH = "/wordnet/oewn2025/english-wordnet-2025.xml";
+    private static final String OEWN_PATH = "/english-wordnet-2025.xml";
+
+    /** Path to UniMorph English data within resources. */
+    private static final String UNIMORPH_PATH = "/unimorph/eng";
 
     /** The English language ItemID (for lexeme language reference). */
     private static final ItemID ENGLISH_ID = ItemID.fromString("cg.lang:english");
@@ -62,6 +66,7 @@ public class EnglishImporter {
             int synsetCount,
             int lexemeCount,
             int relationCount,
+            int formPostingCount,
             long durationMs,
             String source
     ) {}
@@ -71,15 +76,19 @@ public class EnglishImporter {
     // ==================================================================================
 
     /**
-     * Import OEWN data into a lexicon.
+     * Import OEWN data into a lexicon, with morphological form registration.
      *
      * @param lexicon    The lexicon to populate with lexemes
+     * @param language   The Language instance (for morphology engine)
      * @param signer     The signer for created items
      * @param maxSynsets Maximum synsets to process (0 = unlimited)
      * @return Import statistics
      */
-    public ImportStats importInto(Lexicon lexicon, Signer signer, int maxSynsets) {
+    public ImportStats importInto(Lexicon lexicon, Language language, Signer signer, int maxSynsets) {
         long startTime = System.currentTimeMillis();
+
+        // Pre-load UniMorph irregular form data
+        Map<String, List<UniMorphReader.Entry>> uniMorphData = UniMorphReader.load(UNIMORPH_PATH);
 
         try (LmfImporter importer = LmfImporter.fromResource(OEWN_PATH)) {
             // Track what we create
@@ -87,7 +96,7 @@ public class EnglishImporter {
             AtomicInteger relationCount = new AtomicInteger(0);
             AtomicInteger synsetCount = new AtomicInteger(0);
 
-            // First pass: create Sememes from synsets
+            // Pass 1: create Sememes from synsets
             importer.synsets()
                     .limit(maxSynsets > 0 ? maxSynsets : Long.MAX_VALUE)
                     .forEach(synset -> {
@@ -100,29 +109,32 @@ public class EnglishImporter {
                         relationCount.addAndGet(rels);
                     });
 
-            // Second pass: create Lexemes from lexical entries
-            // Need a fresh importer since we consumed the first stream
+            // Pass 2: create Lexemes from lexical entries (with UniMorph overrides)
             try (LmfImporter entryImporter = LmfImporter.fromResource(OEWN_PATH)) {
                 AtomicInteger lexemeCount = new AtomicInteger(0);
 
                 entryImporter.lexicalEntries().forEach(entry -> {
                     for (SenseRecord sense : entry.senses()) {
                         Sememe sememe = synsetIdToSememe.get(sense.synsetId());
-                        if (sememe == null) continue;  // Synset not in our set (due to limit)
+                        if (sememe == null) continue;
 
-                        Lexeme lexeme = createLexeme(entry, sense, sememe);
+                        Lexeme lexeme = createLexeme(entry, sense, sememe, language, uniMorphData);
                         lexicon.add(lexeme);
                         lexemeCount.incrementAndGet();
                     }
                 });
+
+                // Pass 3: register all inflected forms as postings
+                int formCount = lexicon.registerInflectedForms(language);
 
                 long duration = System.currentTimeMillis() - startTime;
                 return new ImportStats(
                         synsetCount.get(),
                         lexemeCount.get(),
                         relationCount.get(),
+                        formCount,
                         duration,
-                        "oewn2025"
+                        "oewn2025" + (uniMorphData.isEmpty() ? "" : "+unimorph")
                 );
             }
 
@@ -134,8 +146,8 @@ public class EnglishImporter {
     /**
      * Import all OEWN data (no limit).
      */
-    public ImportStats importInto(Lexicon lexicon, Signer signer) {
-        return importInto(lexicon, signer, 0);
+    public ImportStats importInto(Lexicon lexicon, Language language, Signer signer) {
+        return importInto(lexicon, language, signer, 0);
     }
 
     // ==================================================================================
@@ -143,15 +155,12 @@ public class EnglishImporter {
     // ==================================================================================
 
     private Sememe createSememe(SynsetRecord synset, Signer signer) {
-        // Use ILI as canonical key if available, otherwise use synset ID
         String canonicalKey = synset.ili() != null && !synset.ili().isEmpty()
                 ? "ili:" + synset.ili()
                 : "oewn:" + synset.id();
 
-        // Map LMF POS to our POS
         PartOfSpeech pos = mapPOS(synset.pos());
 
-        // Build sources map
         Map<String, String> sources = new HashMap<>();
         sources.put("oewn", synset.id());
         if (synset.ili() != null && !synset.ili().isEmpty()) {
@@ -183,7 +192,7 @@ public class EnglishImporter {
             if (predicate == null) continue;
 
             Sememe target = synsetMap.get(rel.target());
-            if (target == null) continue;  // Target not in our set
+            if (target == null) continue;
 
             Relation relation = Relation.builder()
                     .subject(source.iid())
@@ -192,7 +201,6 @@ public class EnglishImporter {
                     .build()
                     .sign(signer);
 
-            // Store relation in librarian
             if (librarian != null) {
                 librarian.relation(relation);
             }
@@ -206,13 +214,15 @@ public class EnglishImporter {
     // LEXEME CREATION
     // ==================================================================================
 
-    private Lexeme createLexeme(LexicalEntryRecord entry, SenseRecord sense, Sememe sememe) {
+    private Lexeme createLexeme(LexicalEntryRecord entry, SenseRecord sense, Sememe sememe,
+                                Language language, Map<String, List<UniMorphReader.Entry>> uniMorphData) {
         String lemma = entry.lemma();
         PartOfSpeech pos = mapPOS(entry.pos());
 
-        // Calculate frequency based on sense order (first = most common)
         int senseIndex = entry.senses().indexOf(sense);
         float frequency = 1.0f / (senseIndex + 1);
+
+        List<FormEntry> overrides = findIrregularOverrides(lemma, pos, language, uniMorphData);
 
         return Lexeme.builder()
                 .word(lemma)
@@ -220,32 +230,61 @@ public class EnglishImporter {
                 .sememe(sememe.iid())
                 .partOfSpeech(pos)
                 .frequency(frequency)
+                .forms(overrides)
                 .build();
+    }
+
+    /**
+     * Find UniMorph forms that differ from the regular algorithm — these are irregular overrides.
+     *
+     * <p>For each UniMorph entry matching this lemma and POS, simplify the raw
+     * feature set using the language's rules, then compare the UniMorph form
+     * with what the regular algorithm would produce. If they differ, the form
+     * is irregular and needs a FormEntry override on the Lexeme.
+     */
+    private List<FormEntry> findIrregularOverrides(String lemma, PartOfSpeech pos,
+                                                    Language language,
+                                                    Map<String, List<UniMorphReader.Entry>> uniMorphData) {
+        List<UniMorphReader.Entry> entries = uniMorphData.get(lemma.toLowerCase());
+        if (entries == null || entries.isEmpty()) return List.of();
+
+        List<FormEntry> overrides = new ArrayList<>();
+        Set<Set<ItemID>> seen = new HashSet<>();
+
+        for (UniMorphReader.Entry entry : entries) {
+            if (entry.pos() != pos) continue;
+
+            // Simplify raw UniMorph features to what this language uses
+            Set<ItemID> simplified = language.simplifyFeatures(entry.features(), pos);
+            if (simplified.isEmpty()) continue;
+            if (seen.contains(simplified)) continue;
+            seen.add(simplified);
+
+            // Compare UniMorph form with what the regular algorithm produces
+            String regularForm = language.inflect(lemma, pos, simplified);
+            if (!entry.form().equals(regularForm)) {
+                overrides.add(FormEntry.of(simplified, entry.form()));
+            }
+        }
+
+        return overrides;
     }
 
     // ==================================================================================
     // MAPPING HELPERS
     // ==================================================================================
 
-    /**
-     * Map LMF part-of-speech tags to Common Graph PartOfSpeech.
-     */
     private PartOfSpeech mapPOS(String pos) {
         if (pos == null) return PartOfSpeech.NOUN;
         return switch (pos) {
             case "n" -> PartOfSpeech.NOUN;
             case "v" -> PartOfSpeech.VERB;
-            case "a", "s" -> PartOfSpeech.ADJECTIVE;  // 's' is satellite adjective
+            case "a", "s" -> PartOfSpeech.ADJECTIVE;
             case "r" -> PartOfSpeech.ADVERB;
             default -> PartOfSpeech.NOUN;
         };
     }
 
-    /**
-     * Map LMF relation types to Common Graph semantic relation Sememes.
-     *
-     * @return The predicate ItemID, or null if the relation type should be skipped
-     */
     private ItemID mapRelationType(String relType) {
         return switch (relType) {
             case "hypernym", "instance_hypernym" -> Sememe.HYPERNYM.iid();
@@ -259,7 +298,7 @@ public class EnglishImporter {
             case "entails" -> Sememe.ENTAILS.iid();
             case "causes" -> Sememe.CAUSES.iid();
             case "also" -> Sememe.SEE_ALSO.iid();
-            default -> null;  // Skip unknown relation types
+            default -> null;
         };
     }
 }

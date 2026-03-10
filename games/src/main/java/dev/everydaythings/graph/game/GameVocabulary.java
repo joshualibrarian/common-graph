@@ -2,7 +2,7 @@ package dev.everydaythings.graph.game;
 
 import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.language.ArgumentSlot;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.language.Role;
 import dev.everydaythings.graph.language.VerbSememe;
 
 import java.util.List;
@@ -36,8 +36,8 @@ public final class GameVocabulary {
             Map.of("cili", "i30960"),
             List.of("move", "play", "go")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "what to move"),
-            ArgumentSlot.optional(ThematicRole.TARGET, "where to move it")
+            ArgumentSlot.required(Role.THEME.iid(), "what to move"),
+            ArgumentSlot.optional(Role.TARGET.iid(), "where to move it")
     );
 
     public static final String RESIGN = "cg.verb:resign";
@@ -89,7 +89,7 @@ public final class GameVocabulary {
             Map.of("cili", "i30780"),
             List.of("select", "pick", "choose")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "what to select")
+            ArgumentSlot.required(Role.THEME.iid(), "what to select")
     );
 
     public static final String PLACE = "cg.verb:place";
@@ -101,7 +101,7 @@ public final class GameVocabulary {
             Map.of("cili", "i33107"),
             List.of("place", "drop", "put-down")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.TARGET, "where to place it")
+            ArgumentSlot.required(Role.TARGET.iid(), "where to place it")
     );
 
     // ==================================================================================
@@ -117,7 +117,7 @@ public final class GameVocabulary {
             Map.of("cili", "i28912"),
             List.of("join", "sit")
     ).withArguments(
-            ArgumentSlot.optional(ThematicRole.TARGET, "seat number")
+            ArgumentSlot.optional(Role.TARGET.iid(), "seat number")
     );
 
     public static final String LEAVE = "cg.verb:leave";
@@ -153,7 +153,7 @@ public final class GameVocabulary {
             Map.of("cili", "i33367"),
             List.of("keep", "hold", "retain")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "which items to keep")
+            ArgumentSlot.required(Role.THEME.iid(), "which items to keep")
     );
 
     public static final String SCORE = "cg.verb:score";
@@ -165,7 +165,7 @@ public final class GameVocabulary {
             Map.of("cili", "i35455"),
             List.of("score")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.TARGET, "which category to score in")
+            ArgumentSlot.required(Role.TARGET.iid(), "which category to score in")
     );
 
     // ==================================================================================
@@ -181,7 +181,7 @@ public final class GameVocabulary {
             Map.of("cili", "i33273"),
             List.of("bet", "wager")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "amount to bet")
+            ArgumentSlot.required(Role.THEME.iid(), "amount to bet")
     );
 
     public static final String RAISE = "cg.verb:raise";
@@ -193,7 +193,7 @@ public final class GameVocabulary {
             Map.of("cili", "i27093"),
             List.of("raise")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "amount to raise to")
+            ArgumentSlot.required(Role.THEME.iid(), "amount to raise to")
     );
 
     public static final String FOLD = "cg.verb:fold";
@@ -235,7 +235,7 @@ public final class GameVocabulary {
             Map.of("cili", "i33212"),
             List.of("bid")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "bid amount")
+            ArgumentSlot.required(Role.THEME.iid(), "bid amount")
     );
 
     public static final String PLAY = "cg.verb:play";
@@ -247,7 +247,7 @@ public final class GameVocabulary {
             Map.of("cili", "i29858"),
             List.of("play")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.THEME, "what to play")
+            ArgumentSlot.required(Role.THEME.iid(), "what to play")
     );
 
     public static final String PASS = "cg.verb:pass";
@@ -293,7 +293,7 @@ public final class GameVocabulary {
             Map.of("cili", "i32454"),
             List.of("reveal", "uncover")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.TARGET, "cell to reveal")
+            ArgumentSlot.required(Role.TARGET.iid(), "cell to reveal")
     );
 
     public static final String FLAG = "cg.verb:flag";
@@ -305,7 +305,7 @@ public final class GameVocabulary {
             Map.of("cili", "i32186"),
             List.of("flag", "mark")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.TARGET, "what to flag")
+            ArgumentSlot.required(Role.TARGET.iid(), "what to flag")
     );
 
     public static final String CHORD = "cg.verb:chord";
@@ -317,6 +317,6 @@ public final class GameVocabulary {
             Map.of("cili", "i33515"),
             List.of("chord")
     ).withArguments(
-            ArgumentSlot.required(ThematicRole.TARGET, "cell to chord")
+            ArgumentSlot.required(Role.TARGET.iid(), "cell to chord")
     );
 }

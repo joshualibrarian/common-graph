@@ -19,12 +19,12 @@ class ArgumentSlotTest {
 
     @Test
     void roundTrip_optionalWithoutTypeConstraint() {
-        var slot = ArgumentSlot.optional(ThematicRole.THEME, "what to create");
+        var slot = ArgumentSlot.optional(Role.THEME.iid(), "what to create");
 
         byte[] bytes = slot.encodeBinary(Canonical.Scope.RECORD);
         var decoded = Canonical.decodeBinary(bytes, ArgumentSlot.class, Canonical.Scope.RECORD);
 
-        assertThat(decoded.role()).isEqualTo(ThematicRole.THEME);
+        assertThat(decoded.role()).isEqualTo(Role.THEME.iid());
         assertThat(decoded.required()).isFalse();
         assertThat(decoded.typeConstraint()).isNull();
         assertThat(decoded.descriptions()).containsEntry("en", "what to create");
@@ -33,12 +33,12 @@ class ArgumentSlotTest {
     @Test
     void roundTrip_requiredWithTypeConstraint() {
         ItemID typeId = ItemID.fromString("cg:type/chess");
-        var slot = ArgumentSlot.required(ThematicRole.PATIENT, typeId, "the piece to capture");
+        var slot = ArgumentSlot.required(Role.PATIENT.iid(), typeId, "the piece to capture");
 
         byte[] bytes = slot.encodeBinary(Canonical.Scope.RECORD);
         var decoded = Canonical.decodeBinary(bytes, ArgumentSlot.class, Canonical.Scope.RECORD);
 
-        assertThat(decoded.role()).isEqualTo(ThematicRole.PATIENT);
+        assertThat(decoded.role()).isEqualTo(Role.PATIENT.iid());
         assertThat(decoded.required()).isTrue();
         assertThat(decoded.typeConstraint()).isEqualTo(typeId);
         assertThat(decoded.descriptions()).containsEntry("en", "the piece to capture");
@@ -47,8 +47,8 @@ class ArgumentSlotTest {
     @Test
     void roundTrip_listOfSlots() {
         var slots = List.of(
-                ArgumentSlot.required(ThematicRole.THEME, "what"),
-                ArgumentSlot.optional(ThematicRole.TARGET, "where")
+                ArgumentSlot.required(Role.THEME.iid(), "what"),
+                ArgumentSlot.optional(Role.TARGET.iid(), "where")
         );
 
         // Encode as CBOR array (same path as @ContentField List encoding)
@@ -68,9 +68,9 @@ class ArgumentSlotTest {
         }
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).role()).isEqualTo(ThematicRole.THEME);
+        assertThat(result.get(0).role()).isEqualTo(Role.THEME.iid());
         assertThat(result.get(0).required()).isTrue();
-        assertThat(result.get(1).role()).isEqualTo(ThematicRole.TARGET);
+        assertThat(result.get(1).role()).isEqualTo(Role.TARGET.iid());
         assertThat(result.get(1).required()).isFalse();
     }
 
@@ -87,16 +87,16 @@ class ArgumentSlotTest {
 
     @Test
     void equals_sameValues() {
-        var a = ArgumentSlot.optional(ThematicRole.THEME, "what");
-        var b = ArgumentSlot.optional(ThematicRole.THEME, "what");
+        var a = ArgumentSlot.optional(Role.THEME.iid(), "what");
+        var b = ArgumentSlot.optional(Role.THEME.iid(), "what");
         assertThat(a).isEqualTo(b);
         assertThat(a.hashCode()).isEqualTo(b.hashCode());
     }
 
     @Test
     void equals_differentRole() {
-        var a = ArgumentSlot.optional(ThematicRole.THEME, "what");
-        var b = ArgumentSlot.optional(ThematicRole.TARGET, "what");
+        var a = ArgumentSlot.optional(Role.THEME.iid(), "what");
+        var b = ArgumentSlot.optional(Role.TARGET.iid(), "what");
         assertThat(a).isNotEqualTo(b);
     }
 }

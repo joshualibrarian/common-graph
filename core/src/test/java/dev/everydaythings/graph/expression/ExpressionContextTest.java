@@ -80,9 +80,9 @@ class ExpressionContextTest {
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             assertThat(ctx.verb()).isNotNull();
-            assertThat(ctx.filledRoles()).containsExactly(ThematicRole.THEME);
+            assertThat(ctx.filledRoles()).containsExactly(Role.THEME.iid());
             assertThat(ctx.unfilledOptional()).hasSize(4); // TARGET, NAME, COMITATIVE, SOURCE
-            assertThat(ctx.unfilledOptional().get(0).role()).isEqualTo(ThematicRole.TARGET);
+            assertThat(ctx.unfilledOptional().get(0).role()).isEqualTo(Role.TARGET.iid());
         }
 
         @Test
@@ -96,7 +96,7 @@ class ExpressionContextTest {
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             assertThat(ctx.verb()).isNotNull();
-            assertThat(ctx.filledRoles()).contains(ThematicRole.TARGET);
+            assertThat(ctx.filledRoles()).contains(Role.TARGET.iid());
             assertThat(ctx.lastTokenIsPreposition()).isFalse();
         }
 
@@ -125,7 +125,7 @@ class ExpressionContextTest {
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             assertThat(ctx.verb()).isNotNull();
-            assertThat(ctx.filledRoles()).contains(ThematicRole.THEME, ThematicRole.TARGET);
+            assertThat(ctx.filledRoles()).contains(Role.THEME.iid(), Role.TARGET.iid());
             assertThat(ctx.unfilledRequired()).isEmpty();
             assertThat(ctx.unfilledOptional()).hasSize(3); // NAME, COMITATIVE, SOURCE
         }

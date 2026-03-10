@@ -25,7 +25,7 @@ import java.util.zip.GZIPInputStream;
  *
  * <p>Usage:
  * <pre>{@code
- * try (var importer = LmfImporter.fromResource("/wordnet/oewn2025/english-wordnet-2025.xml")) {
+ * try (var importer = LmfImporter.fromResource("/english-wordnet-2025.xml")) {
  *     importer.synsets().forEach(System.out::println);
  * }
  * }</pre>

@@ -30,25 +30,25 @@ class VerbSememePersistenceTest {
 
             // Verify first slot: THEME (optional, "what to create")
             ArgumentSlot themeSlot = create.arguments().get(0);
-            assertThat(themeSlot.role()).isEqualTo(ThematicRole.THEME);
+            assertThat(themeSlot.role()).isEqualTo(Role.THEME.iid());
             assertThat(themeSlot.required()).isFalse();
             assertThat(themeSlot.typeConstraint()).isNull();
             assertThat(themeSlot.descriptions()).containsEntry("en", "what to create");
 
             // Verify second slot: TARGET (optional, "where to place the result")
             ArgumentSlot targetSlot = create.arguments().get(1);
-            assertThat(targetSlot.role()).isEqualTo(ThematicRole.TARGET);
+            assertThat(targetSlot.role()).isEqualTo(Role.TARGET.iid());
             assertThat(targetSlot.required()).isFalse();
             assertThat(targetSlot.descriptions()).containsEntry("en", "where to place the result");
 
             // Verify third slot: NAME (optional)
-            assertThat(create.arguments().get(2).role()).isEqualTo(ThematicRole.NAME);
+            assertThat(create.arguments().get(2).role()).isEqualTo(Role.NAME.iid());
 
             // Verify fourth slot: COMITATIVE (optional)
-            assertThat(create.arguments().get(3).role()).isEqualTo(ThematicRole.COMITATIVE);
+            assertThat(create.arguments().get(3).role()).isEqualTo(Role.COMITATIVE.iid());
 
             // Verify fifth slot: SOURCE (optional)
-            assertThat(create.arguments().get(4).role()).isEqualTo(ThematicRole.SOURCE);
+            assertThat(create.arguments().get(4).role()).isEqualTo(Role.SOURCE.iid());
         }
     }
 
@@ -67,7 +67,7 @@ class VerbSememePersistenceTest {
 
             // GET has a required THEME slot
             ArgumentSlot themeSlot = get.arguments().get(0);
-            assertThat(themeSlot.role()).isEqualTo(ThematicRole.THEME);
+            assertThat(themeSlot.role()).isEqualTo(Role.THEME.iid());
             assertThat(themeSlot.required()).isTrue();
             assertThat(themeSlot.descriptions()).containsEntry("en", "what to retrieve");
         }

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
 
 import java.util.Collections;
@@ -9,27 +10,25 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * The assembled result of semantic parsing — a verb with its role bindings.
+ * The assembled result of semantic parsing — a predicate with its role bindings.
  *
  * <p>A SemanticFrame captures the meaning of a user expression in an
  * order-agnostic way. The {@link FrameAssembler} scans resolved tokens
- * (in any order), finds the verb, pairs prepositions with their objects,
+ * (in any order), finds the predicate, pairs prepositions with their objects,
  * and matches bare nouns to argument slots. The result is this frame.
  *
- * <p>Eval then uses the frame for dispatch: the verb determines the action,
- * bindings determine the arguments, and unmatched tokens become positional
- * args for VerbInvoker (backwards-compatible with string-arg dispatch).
+ * <p>Frames are the universal structure for three modes:
+ * <ul>
+ *   <li><b>Dispatch</b> — fully filled frame with a code-backed predicate → execute</li>
+ *   <li><b>Assert</b> — fully filled frame → store as signed relation</li>
+ *   <li><b>Query</b> — partially filled frame → search for completions</li>
+ * </ul>
  *
- * <p>Bindings can hold Items (resolved nouns) or plain values (literals
- * bound via prepositions like "with game.pgn"). Use {@link #itemBinding}
- * when you specifically need an Item, or {@link #binding} for any value.
+ * <p>Role keys are {@link ItemID}s referencing {@link Role} sememes, not enum constants.
+ * Use {@code Role.AGENT.iid()}, {@code Role.PATIENT.iid()}, etc.
  *
- * <p>Modifiers capture adjectives and adverbs that qualify the frame.
- * Adverbs modify the verb (keyed by verb's IID); adjectives modify the
- * noun they precede (keyed by the noun's IID or thematic role).
- *
- * @param verb             The verb sememe driving dispatch
- * @param bindings         Thematic role to bound value (Item or literal)
+ * @param verb             The verb sememe driving dispatch (null for non-verb frames)
+ * @param bindings         Role sememe IID → bound value (Item or literal)
  * @param modifiers        Modifier bindings: target IID or role → list of modifier sememes
  * @param unmatchedArgs    Tokens that didn't match any slot (literals, overflow items)
  * @param unboundRequired  Required argument slots still needing values
@@ -37,7 +36,7 @@ import java.util.Optional;
  */
 public record SemanticFrame(
         VerbSememe verb,
-        Map<ThematicRole, Object> bindings,
+        Map<ItemID, Object> bindings,
         Map<String, List<Sememe>> modifiers,
         List<ResolvedToken> unmatchedArgs,
         List<ArgumentSlot> unboundRequired,
@@ -48,7 +47,7 @@ public record SemanticFrame(
      */
     public SemanticFrame(
             VerbSememe verb,
-            Map<ThematicRole, Object> bindings,
+            Map<ItemID, Object> bindings,
             List<ResolvedToken> unmatchedArgs,
             List<ArgumentSlot> unboundRequired,
             List<ArgumentSlot> unboundOptional) {
@@ -63,18 +62,36 @@ public record SemanticFrame(
     }
 
     /**
-     * Get the value bound to a specific thematic role (Item or literal).
+     * Get the value bound to a specific role (Item or literal).
      */
-    public Optional<Object> binding(ThematicRole role) {
+    public Optional<Object> binding(ItemID role) {
         return Optional.ofNullable(bindings.get(role));
     }
 
     /**
-     * Get the Item bound to a specific thematic role, if it is an Item.
+     * Get the value bound to a specific role (Item or literal).
+     * @deprecated Use {@link #binding(ItemID)} with {@code Role.X.iid()}.
      */
-    public Optional<Item> itemBinding(ThematicRole role) {
+    @Deprecated
+    public Optional<Object> binding(ThematicRole role) {
+        return binding(role.iid());
+    }
+
+    /**
+     * Get the Item bound to a specific role, if it is an Item.
+     */
+    public Optional<Item> itemBinding(ItemID role) {
         Object value = bindings.get(role);
         return value instanceof Item item ? Optional.of(item) : Optional.empty();
+    }
+
+    /**
+     * Get the Item bound to a specific role, if it is an Item.
+     * @deprecated Use {@link #itemBinding(ItemID)} with {@code Role.X.iid()}.
+     */
+    @Deprecated
+    public Optional<Item> itemBinding(ThematicRole role) {
+        return itemBinding(role.iid());
     }
 
     /**
@@ -86,10 +103,10 @@ public record SemanticFrame(
     }
 
     /**
-     * Get adjective modifiers for a specific thematic role.
+     * Get adjective modifiers for a specific role.
      */
-    public List<Sememe> modifiersFor(ThematicRole role) {
-        List<Sememe> mods = modifiers.get("role:" + role.name());
+    public List<Sememe> modifiersFor(ItemID role) {
+        List<Sememe> mods = modifiers.get("role:" + role.encodeText());
         return mods != null ? mods : Collections.emptyList();
     }
 }

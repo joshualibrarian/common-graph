@@ -42,7 +42,7 @@ public class FrameAssembler {
      */
     public record Analysis(
             VerbSememe verb,
-            Map<ThematicRole, Object> bindings,
+            Map<ItemID, Object> bindings,
             Map<String, List<Sememe>> modifiers,
             List<ResolvedToken> unmatchedArgs,
             List<ArgumentSlot> unboundRequired,
@@ -112,8 +112,8 @@ public class FrameAssembler {
         consumed.add(verbIndex);
 
         // Step 3: Find prepositional phrases (with conjunction support)
-        Map<ThematicRole, Object> bindings = new LinkedHashMap<>();
-        Map<Integer, ThematicRole> thematicByTokenIndex = new HashMap<>();
+        Map<ItemID, Object> bindings = new LinkedHashMap<>();
+        Map<Integer, ItemID> thematicByTokenIndex = new HashMap<>();
 
         for (int i = 0; i < slots.size(); i++) {
             if (consumed.contains(i)) continue;
@@ -186,7 +186,7 @@ public class FrameAssembler {
 
         // Step 4: Match remaining resolved Items to argument slots (first-fit)
         List<ArgumentSlot> arguments = verb.arguments();
-        Set<ThematicRole> filledRoles = new HashSet<>(bindings.keySet());
+        Set<ItemID> filledRoles = new HashSet<>(bindings.keySet());
 
         for (int i = 0; i < slots.size(); i++) {
             if (consumed.contains(i)) continue;
@@ -209,7 +209,7 @@ public class FrameAssembler {
                     String iidKey = "iid:" + item.iid().encodeText();
                     List<Sememe> mods = modifiers.remove(iidKey);
                     if (mods != null) {
-                        modifiers.put("role:" + slot.role().name(), mods);
+                        modifiers.put("role:" + slot.role().encodeText(), mods);
                     }
                     break;
                 }

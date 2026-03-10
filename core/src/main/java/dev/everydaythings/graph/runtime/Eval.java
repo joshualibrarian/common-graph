@@ -23,6 +23,7 @@ import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ArgumentSlot;
 import dev.everydaythings.graph.language.SemanticFrame;
 import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.language.Role;
 import dev.everydaythings.graph.language.VerbSememe;
 import lombok.extern.log4j.Log4j2;
 import org.jline.reader.*;
@@ -739,7 +740,7 @@ public class Eval {
         // 2. Bound items from the frame (explicit user intent)
         if (target == null) {
             for (var entry : frame.bindings().entrySet()) {
-                if (entry.getKey() == ThematicRole.TARGET) continue;
+                if (entry.getKey().equals(Role.TARGET.iid())) continue;
                 if (!(entry.getValue() instanceof Item item)) continue;
                 if (item.vocabulary().lookup(verbId).isPresent()) {
                     target = item;
@@ -787,7 +788,7 @@ public class Eval {
         EvalResult result = dispatchVerbForResult(target, verbId, frame);
 
         // 3. Wrap with TARGET if present (only for Item targets)
-        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.TARGET);
+        Optional<Item> prepTarget = frame.itemBinding(Role.TARGET.iid());
         if (prepTarget.isPresent() && result instanceof EvalResult.Value(Object value)) {
             return EvalResult.valueWithTarget(value, prepTarget.get());
         }
@@ -1016,7 +1017,7 @@ public class Eval {
     /**
      * Dispatch a verb using typed bindings from a SemanticFrame.
      *
-     * <p>Builds a {@code Map<ThematicRole, Object>} of bindings (excluding
+     * <p>Builds a {@code Map<ItemID, Object>} of bindings (excluding
      * the TARGET role and dispatch target item) and a positional overflow
      * list from unmatched tokens, then delegates to
      * {@link VerbInvoker#invokeWithBindings}.
@@ -1038,9 +1039,9 @@ public class Eval {
         logger.debug("Dispatching verb {} on {}", verb.methodName(), target.iid());
 
         // Build bindings: exclude TARGET role and the dispatch target itself
-        Map<ThematicRole, Object> bindings = new LinkedHashMap<>();
+        Map<ItemID, Object> bindings = new LinkedHashMap<>();
         for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey() == ThematicRole.TARGET) continue;
+            if (entry.getKey().equals(Role.TARGET.iid())) continue;
             Object value = entry.getValue();
             if (value instanceof Item item && item.iid().equals(target.iid())) continue;
             bindings.put(entry.getKey(), value);
@@ -1098,7 +1099,7 @@ public class Eval {
      *
      * @return Error message if a constraint is violated, null if all pass
      */
-    private String validateTypeConstraints(VerbSememe verb, Map<ThematicRole, Object> bindings) {
+    private String validateTypeConstraints(VerbSememe verb, Map<ItemID, Object> bindings) {
         for (ArgumentSlot slot : verb.arguments()) {
             if (slot.typeConstraint() == null) continue;
 
@@ -1123,7 +1124,7 @@ public class Eval {
     }
 
     /**
-     * Match overflow literals to verb parameters by ThematicRole.
+     * Match overflow literals to verb parameters by role.
      *
      * <p>For each ParamSpec with a role that isn't already in bindings,
      * if there's an overflow value available, move it into bindings
@@ -1132,23 +1133,23 @@ public class Eval {
      */
     private void bindLiteralsToParams(
             VerbEntry verb,
-            Map<ThematicRole, Object> bindings,
+            Map<ItemID, Object> bindings,
             List<Object> overflow) {
 
         if (overflow.isEmpty()) return;
 
         for (ParamSpec param : verb.params()) {
             if (param.role() == null) continue;
-            ThematicRole role;
+            ItemID roleId;
             try {
-                role = ThematicRole.valueOf(param.role());
+                roleId = ThematicRole.valueOf(param.role()).iid();
             } catch (IllegalArgumentException e) {
                 continue;
             }
-            if (bindings.containsKey(role)) continue;
+            if (bindings.containsKey(roleId)) continue;
             if (overflow.isEmpty()) break;
 
-            bindings.put(role, overflow.remove(0));
+            bindings.put(roleId, overflow.remove(0));
         }
     }
 

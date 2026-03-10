@@ -5,7 +5,9 @@ import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * A word in a specific language that maps to a sememe (meaning unit).
@@ -69,20 +71,51 @@ public final class Lexeme implements Canonical {
     @Canon(order = 4)
     private final float frequency;
 
+    /**
+     * Irregular inflected forms, keyed by grammatical feature sets.
+     *
+     * <p>Only irregular forms are stored here. If a feature set has no entry,
+     * the {@link Language} subclass computes the regular form algorithmically.
+     * For example, "run" stores {PAST}→"ran" but NOT {THIRD_PERSON,SINGULAR,PRESENT}→"runs"
+     * because "runs" follows the regular English -s rule.
+     */
+    @Canon(order = 5)
+    private final List<FormEntry> forms;
+
     public Lexeme(String word, ItemID language, ItemID sememe,
                   PartOfSpeech partOfSpeech, float frequency) {
+        this(word, language, sememe, partOfSpeech, frequency, List.of());
+    }
+
+    public Lexeme(String word, ItemID language, ItemID sememe,
+                  PartOfSpeech partOfSpeech, float frequency, List<FormEntry> forms) {
         this.word = Objects.requireNonNull(word, "word");
         this.language = Objects.requireNonNull(language, "language");
         this.sememe = Objects.requireNonNull(sememe, "sememe");
         this.partOfSpeech = Objects.requireNonNull(partOfSpeech, "partOfSpeech");
         this.frequency = frequency;
+        this.forms = forms != null ? List.copyOf(forms) : List.of();
     }
 
     /**
-     * Create a Lexeme with default frequency (1.0).
+     * Create a Lexeme with default frequency (1.0) and no irregular forms.
      */
     public static Lexeme of(String word, ItemID language, ItemID sememe, PartOfSpeech pos) {
         return new Lexeme(word, language, sememe, pos, 1.0f);
+    }
+
+    /**
+     * Look up an irregular form for the given feature set.
+     *
+     * @param features The grammatical features to look up
+     * @return The irregular form, or null if regular rules should apply
+     */
+    public String lookupForm(Set<ItemID> features) {
+        if (forms == null || forms.isEmpty()) return null;
+        for (FormEntry entry : forms) {
+            if (entry.matches(features)) return entry.form();
+        }
+        return null;
     }
 
     /**
@@ -105,5 +138,6 @@ public final class Lexeme implements Canonical {
         this.sememe = null;
         this.partOfSpeech = null;
         this.frequency = 0;
+        this.forms = List.of();
     }
 }
