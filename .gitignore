@@ -42,3 +42,19 @@ bin/
 .gradle-local/
 hs_err_pid*.log
 **/hs_err_pid*.log
+
+# Claude Code local settings (agents/ is tracked, settings are local)
+.claude/settings.local.json
+
+# Compiled class files and extracted native libs (use Gradle dependencies)
+*.class
+*.so
+*.dylib
+
+# Runtime-generated librarian/library state
+Template/
+.librarian/
+*.rocks/
+
+# Secrets and credentials
+code.txt

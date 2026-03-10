@@ -157,6 +157,15 @@ public class FilamentSurfacePainter implements SurfacePainter {
     // Dramatically reduces Filament handle count (from hundreds of entities to ~5).
     private final BatchAccumulator flatColorBatch = new BatchAccumulator();
     private final Map<MsdfAtlas, MsdfBatchAccumulator> msdfBatches = new HashMap<>();
+    // Track last atlas to flush on atlas switch — ensures correct draw order between
+    // emoji (color atlas) and regular text (primary atlas) in transparent blending.
+    private MsdfAtlas lastMsdfAtlas;
+    // Monotonically increasing blend order for MSDF text entities.
+    // Filament uses blendOrder (15-bit, 0–32767) to sort transparent primitives
+    // within the same priority level.  Higher blendOrder = drawn later = in front.
+    // This ensures later text nodes overwrite earlier ones' overflow (like Skia's
+    // canvas compositing where later draws naturally appear on top).
+    private int msdfBlendOrder;
 
     // Image rendering: Skia rasterizes SVG/raster images → Filament textures on quads.
     // Textures persist across clear() (expensive to recreate), destroyed in destroy().
@@ -335,6 +344,8 @@ public class FilamentSurfacePainter implements SurfacePainter {
         // aborted before stack unwind, stale clip/rotation must not leak.
         clipStack.clear();
         rotationActive = false;
+        lastMsdfAtlas = null;
+        msdfBlendOrder = 0;
 
         this.baseZ = z;
 
@@ -897,11 +908,18 @@ public class FilamentSurfacePainter implements SurfacePainter {
 
         float textZ = z + 0.01f;
 
+        // Clip glyph quads to this text node's layout bounds.
+        // Prevents glyph visuals that exceed advance width from bleeding
+        // into adjacent sibling text nodes.
+        pushClip(text.x(), text.y(), text.width(), text.height());
+
         // Use pre-built paragraph if available (from ParagraphFactory during measurement)
         Paragraph para = text.paragraph();
         if (para != null) {
             var painter = new GlyphPaintContext(color, textZ);
             para.paint(painter, text.x(), text.y());
+            popClip();
+            flushMsdfBatches();
             return;
         }
 
@@ -937,6 +955,9 @@ public class FilamentSurfacePainter implements SurfacePainter {
 
             i += Character.charCount(cp);
         }
+
+        popClip();
+        flushMsdfBatches();
     }
 
     /**
@@ -2013,6 +2034,49 @@ public class FilamentSurfacePainter implements SurfacePainter {
         if (pw <= 0 || ph <= 0) return;
         if (isClipped(px, py, pw, ph)) return;
 
+        // Flush pending batches when switching atlases to preserve draw order.
+        // The MSDF material uses transparent blending without depth write, so
+        // draw order determines visibility in overlapping areas.  Without this,
+        // emoji (color atlas) and adjacent text (primary atlas) end up in separate
+        // entities whose Filament sort order is ambiguous.
+        if (lastMsdfAtlas != null && lastMsdfAtlas != atlas) {
+            flushMsdfBatches();
+        }
+        lastMsdfAtlas = atlas;
+
+        // Extract UVs before clamping so we can trim them proportionally.
+        float uvL = (float) glyph.uvLeft();
+        float uvR = (float) glyph.uvRight();
+        // V axis: stored UVs are image-space (V=0 at top of atlas).
+        // Filament uses OpenGL convention (V=0 at bottom). Flip V.
+        float uvTopV = 1.0f - (float) glyph.uvTop();
+        float uvBotV = 1.0f - (float) glyph.uvBottom();
+
+        // Clamp quad to clip bounds, trimming UVs proportionally so glyph
+        // visuals that exceed advance width don't bleed into adjacent nodes.
+        if (!clipStack.isEmpty()) {
+            float[] clip = clipStack.peek();
+            float trimL = Math.max(0, clip[0] - px) / pw;
+            float trimR = Math.max(0, (px + pw) - clip[2]) / pw;
+            float trimT = Math.max(0, clip[1] - py) / ph;
+            float trimB = Math.max(0, (py + ph) - clip[3]) / ph;
+
+            if (trimL > 0 || trimR > 0 || trimT > 0 || trimB > 0) {
+                float oUvL = uvL, oUvR = uvR, oUvT = uvTopV, oUvB = uvBotV;
+                uvL    = oUvL + trimL * (oUvR - oUvL);
+                uvR    = oUvR - trimR * (oUvR - oUvL);
+                uvTopV = oUvT + trimT * (oUvB - oUvT);
+                uvBotV = oUvB - trimB * (oUvB - oUvT);
+
+                px = px + trimL * pw;
+                py = py + trimT * ph;
+                pw = pw * (1 - trimL - trimR);
+                ph = ph * (1 - trimT - trimB);
+
+                if (pw <= 0 || ph <= 0) return;
+            }
+        }
+
         int abgr = MsdfTextRenderer.argbToAbgr(argbColor);
 
         // Compute 4 corners in pixel space
@@ -2034,13 +2098,6 @@ public class FilamentSurfacePainter implements SurfacePainter {
         float wx1 = x1 / pixelsPerUnit + originX, wy1 = -y1 / pixelsPerUnit + originY;
         float wx2 = x2 / pixelsPerUnit + originX, wy2 = -y2 / pixelsPerUnit + originY;
         float wx3 = x3 / pixelsPerUnit + originX, wy3 = -y3 / pixelsPerUnit + originY;
-
-        float uvL = (float) glyph.uvLeft();
-        float uvR = (float) glyph.uvRight();
-        // V axis: stored UVs are image-space (V=0 at top of atlas).
-        // Filament uses OpenGL convention (V=0 at bottom). Flip V.
-        float uvTopV = 1.0f - (float) glyph.uvTop();
-        float uvBotV = 1.0f - (float) glyph.uvBottom();
 
         // Compute screenPxRange on the Java side (bypasses fwidth() in shader).
         float uvW = (float)(glyph.uvRight() - glyph.uvLeft());
@@ -2390,7 +2447,10 @@ public class FilamentSurfacePainter implements SurfacePainter {
 
     private void flushMsdfBatches() {
 
-        // Flush MSDF batches (one per atlas)
+        // Flush MSDF batches (one per atlas).
+        // Each entity gets a monotonically increasing blendOrder so that later
+        // text nodes are drawn after earlier ones — matching Skia's immediate-mode
+        // compositing where later canvas draws naturally appear on top.
         for (var entry : msdfBatches.entrySet()) {
             MsdfBatchAccumulator batch = entry.getValue();
             if (batch.isEmpty()) continue;
@@ -2408,10 +2468,37 @@ public class FilamentSurfacePainter implements SurfacePainter {
             mi.setParameter("atlasSize", (float) atlas.atlasWidth(), (float) atlas.atlasHeight());
             mi.setParameter("screenPxRange", batch.screenPxRangeMax);
 
-            emitEntity(vb, ib, batch.indices.size(), batch.boundingBox(), mi, false, false);
+            emitMsdfEntity(vb, ib, batch.indices.size(), batch.boundingBox(), mi);
         }
         msdfBatches.values().forEach(MsdfBatchAccumulator::clear);
         msdfBatches.clear();
+    }
+
+    /**
+     * Emit a Filament entity for MSDF text with blend-order control.
+     * Uses the monotonically increasing {@link #msdfBlendOrder} counter so
+     * later text entities composite on top of earlier ones.
+     */
+    private void emitMsdfEntity(VertexBuffer vb, IndexBuffer ib, int indexCount,
+                                 Box boundingBox, MaterialInstance mi) {
+        PrimitiveMeshes.Mesh mesh = new PrimitiveMeshes.Mesh(vb, ib, indexCount, boundingBox);
+        meshes.add(mesh);
+        materialInstances.add(mi);
+
+        int entity = EntityManager.get().create();
+        entities.add(entity);
+
+        new RenderableManager.Builder(1)
+                .boundingBox(boundingBox)
+                .geometry(0, RenderableManager.PrimitiveType.TRIANGLES, vb, ib, 0, indexCount)
+                .material(0, mi)
+                .culling(false)
+                .castShadows(false)
+                .receiveShadows(false)
+                .blendOrder(0, msdfBlendOrder++)
+                .build(engine, entity);
+
+        scene.addEntity(entity);
     }
 
     /**

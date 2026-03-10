@@ -975,6 +975,10 @@ public class Eval {
         } else if (token instanceof ExpressionToken.OpToken op) {
             // Operators reference Items - treat as Link
             return new ResolvedToken.Link(op.operatorId(), op.displayText());
+        } else if (token instanceof ExpressionToken.CandidateToken candidate) {
+            // Ambiguous — use highest-weight candidate as best guess
+            Posting best = candidate.candidates().get(0);
+            return new ResolvedToken.Link(best.target(), candidate.displayText());
         } else if (token instanceof ExpressionToken.NameToken name) {
             // Unresolved name - treat as unresolved token
             return new ResolvedToken.Unresolved(name.name());

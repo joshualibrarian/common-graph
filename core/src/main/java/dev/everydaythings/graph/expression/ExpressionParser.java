@@ -224,6 +224,7 @@ public class ExpressionParser {
         return token instanceof ExpressionToken.LiteralToken
                 || token instanceof ExpressionToken.NameToken
                 || token instanceof ExpressionToken.RefToken
+                || token instanceof ExpressionToken.CandidateToken
                 || token instanceof ExpressionToken.OpenParen;
     }
 
@@ -268,6 +269,15 @@ public class ExpressionParser {
                 }
                 // Otherwise it's an item reference
                 yield LiteralExpression.item(ref.target());
+            }
+
+            case ExpressionToken.CandidateToken candidate -> {
+                // Ambiguous — use highest-weight candidate as best guess for expression parsing
+                var best = candidate.candidates().getFirst();
+                if (pos < tokens.size() && tokens.get(pos) instanceof ExpressionToken.OpenParen) {
+                    yield parseFunctionCall(candidate.displayText());
+                }
+                yield LiteralExpression.item(best.target());
             }
 
             case ExpressionToken.OpToken op -> {

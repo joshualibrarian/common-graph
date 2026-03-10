@@ -73,6 +73,18 @@ public record EvalInputSnapshot(
     }
 
     /**
+     * Whether any tokens are ambiguous CandidateTokens awaiting resolution.
+     */
+    public boolean hasUnresolvedCandidates() {
+        for (ExpressionToken token : tokens) {
+            if (token instanceof ExpressionToken.CandidateToken) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Build the full display text (all token display texts + pending).
      */
     public String displayText() {

@@ -418,6 +418,7 @@ public class EvalInput {
         pendingText.setLength(0);
         cursor = 0;
         clearCompletions();
+        pruneCandidates();
         notifyChange();
     }
 
@@ -497,9 +498,17 @@ public class EvalInput {
         }
 
         // Dictionary lookup — for words like "create", "sqrt", "in"
-        Posting exactMatch = findExactMatch(trimmed);
-        if (exactMatch != null) {
-            acceptCompletion(exactMatch);
+        List<Posting> exactMatches = findAllExactMatches(trimmed);
+        if (!exactMatches.isEmpty()) {
+            if (exactMatches.size() == 1) {
+                // Unambiguous — resolve immediately
+                acceptCompletion(exactMatches.get(0));
+            } else {
+                // Ambiguous — create a CandidateToken carrying all possibilities
+                tokens.add(new ExpressionToken.CandidateToken(trimmed, exactMatches));
+                resetPending();
+                pruneCandidates();
+            }
             return;
         }
 
@@ -534,6 +543,16 @@ public class EvalInput {
 
         if (tokens.isEmpty()) {
             return Optional.empty();
+        }
+
+        // Final pruning pass with the complete token list
+        pruneCandidates();
+
+        // If CandidateTokens remain, block dispatch and highlight them
+        if (hasUnresolvedCandidates()) {
+            error = "Ambiguous tokens — select a meaning for highlighted words";
+            notifyChange();
+            return Optional.of(Eval.EvalResult.error(error));
         }
 
         // Capture display text before clearing (for history)
@@ -649,20 +668,32 @@ public class EvalInput {
      * Returns the best matching Posting, or null if no exact match found.
      */
     private Posting findExactMatch(String text) {
-        // Check current completions first (already loaded from typing)
+        List<Posting> all = findAllExactMatches(text);
+        return all.isEmpty() ? null : all.get(0);
+    }
+
+    /**
+     * Find ALL exact matches for text — from completions and/or lookup.
+     * Returns postings sorted by weight (highest first), deduplicated by target.
+     */
+    private List<Posting> findAllExactMatches(String text) {
+        List<Posting> matches = new ArrayList<>();
+
+        // Check current completions first
         for (Posting p : completions) {
             if (p.token().equalsIgnoreCase(text)) {
-                return p;
+                matches.add(p);
             }
         }
+
         // If completions empty (typed fast, or min length not met), try lookup
-        if (completions.isEmpty() && lookup != null) {
+        if (matches.isEmpty() && lookup != null) {
             try {
                 List<Posting> results = lookup.apply(text);
                 if (results != null) {
                     for (Posting p : results) {
                         if (p.token().equalsIgnoreCase(text)) {
-                            return p;
+                            matches.add(p);
                         }
                     }
                 }
@@ -670,7 +701,19 @@ public class EvalInput {
                 logger.debug("Exact match lookup failed for '{}'", text, e);
             }
         }
-        return null;
+
+        // Deduplicate by target — same item via different scopes appears once (highest weight wins)
+        if (matches.size() > 1) {
+            Map<ItemID, Posting> byTarget = new LinkedHashMap<>();
+            for (Posting p : matches) {
+                byTarget.merge(p.target(), p, (existing, extra) ->
+                        existing.weight() >= extra.weight() ? existing : extra);
+            }
+            matches = new ArrayList<>(byTarget.values());
+            matches.sort(Comparator.comparing(Posting::weight).reversed());
+        }
+
+        return matches;
     }
 
     /**
@@ -694,9 +737,16 @@ public class EvalInput {
                 if (op != null) { tokens.add(op); continue; }
             }
 
-            // Dictionary lookup
-            Posting match = findExactMatch(word);
-            if (match != null) { tokens.add(enrichedRefToken(match)); continue; }
+            // Dictionary lookup — may produce CandidateToken for ambiguous words
+            List<Posting> matches = findAllExactMatches(word);
+            if (!matches.isEmpty()) {
+                if (matches.size() == 1) {
+                    tokens.add(enrichedRefToken(matches.get(0)));
+                } else {
+                    tokens.add(new ExpressionToken.CandidateToken(word, matches));
+                }
+                continue;
+            }
 
             // Word-form operator (in, contains) — after dictionary
             OpToken op = OpToken.tryParse(word);
@@ -705,6 +755,65 @@ public class EvalInput {
             // Unresolved text → name token (for function calls, variables)
             tokens.add(new NameToken(word));
         }
+    }
+
+    /**
+     * Prune CandidateTokens using the current expression context.
+     *
+     * <p>After each new token is added, re-examine all CandidateTokens. For each:
+     * <ul>
+     *   <li>If the expression has a verb and the candidate is also a verb,
+     *       eliminate the verb candidates (you already have one)</li>
+     *   <li>If only one candidate survives pruning, promote to RefToken</li>
+     *   <li>If zero candidates survive, revert to NameToken</li>
+     * </ul>
+     */
+    private void pruneCandidates() {
+        if (librarianHandle == null) return;
+
+        boolean changed = false;
+        ExpressionContext ctx = getOrUpdateContext();
+
+        for (int i = 0; i < tokens.size(); i++) {
+            if (!(tokens.get(i) instanceof ExpressionToken.CandidateToken candidate)) {
+                continue;
+            }
+
+            // Filter candidates using expression context (same logic as completion filtering)
+            List<Posting> surviving = ctx.filter(candidate.candidates(),
+                    iid -> librarianHandle.get(iid));
+
+            if (surviving.size() == 1) {
+                // Auto-resolve — exactly one candidate survives
+                tokens.set(i, enrichedRefToken(surviving.get(0)));
+                changed = true;
+            } else if (surviving.isEmpty()) {
+                // All pruned — revert to unresolved name
+                tokens.set(i, new ExpressionToken.NameToken(candidate.text()));
+                changed = true;
+            } else if (surviving.size() < candidate.candidates().size()) {
+                // Narrowed but still ambiguous — update candidates
+                tokens.set(i, candidate.narrow(surviving));
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            invalidateContext();
+            notifyChange();
+        }
+    }
+
+    /**
+     * Check whether there are any unresolved CandidateTokens in the token list.
+     */
+    public boolean hasUnresolvedCandidates() {
+        for (ExpressionToken token : tokens) {
+            if (token instanceof ExpressionToken.CandidateToken) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

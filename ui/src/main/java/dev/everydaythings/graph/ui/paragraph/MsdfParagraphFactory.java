@@ -182,9 +182,13 @@ public class MsdfParagraphFactory implements ParagraphFactory {
                         // .notdef in primary font — use fallback chain per-codepoint
                         int cp = fullText.codePointAt(cluster);
                         var rg = fontManager.resolveGlyph(cp);
-                        advances[cluster] = rg != null ? (float)(rg.metrics().advance() * fontSize) : 0;
+                        // Use += to accumulate: HarfBuzz may emit multiple glyphs
+                        // for the same cluster (e.g. base + variation selector).
+                        // A later non-.notdef glyph with xAdvance=0 must not
+                        // overwrite a valid fallback-resolved advance.
+                        advances[cluster] += rg != null ? (float)(rg.metrics().advance() * fontSize) : 0;
                     } else {
-                        advances[cluster] = (float)(sg.xAdvance * fontSize);
+                        advances[cluster] += (float)(sg.xAdvance * fontSize);
                     }
                 }
             } else {

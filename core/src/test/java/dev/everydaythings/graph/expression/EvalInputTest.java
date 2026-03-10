@@ -823,10 +823,12 @@ class EvalInputTest {
             // Now tab to accept alice
             input.tab();
 
-            // Should have two tokens: "create" as name + "alice" as ref
+            // Should have two tokens: "create" resolved via dictionary + "alice" as ref.
+            // findAllExactMatches falls back to dictionary lookup even when completions
+            // are showing results for a different prefix ("ali"), so "create" now resolves.
             List<ExpressionToken> tokens = input.tokens();
             assertThat(tokens).hasSize(2);
-            assertThat(tokens.get(0)).isInstanceOf(NameToken.class);
+            assertThat(tokens.get(0)).isInstanceOf(RefToken.class);
             assertThat(tokens.get(1)).isInstanceOf(RefToken.class);
         }
     }
@@ -982,6 +984,139 @@ class EvalInputTest {
         void negativeNumber() {
             // "-5" splits into operator + number; unary minus handled by parser
             assertThat(EvalInput.splitRawTokens("-5")).containsExactly("-", "5");
+        }
+    }
+
+    // ==================================================================================
+    // Deferred Resolution (CandidateToken)
+    // ==================================================================================
+
+    @Nested
+    class DeferredResolution {
+
+        /** Two items sharing the same token — forces ambiguity. */
+        private static final ItemID PYTHON_LANG_IID = ItemID.random();
+        private static final ItemID PYTHON_ANIMAL_IID = ItemID.random();
+        private static final Posting PYTHON_LANG_POSTING =
+                Posting.universal("python", PYTHON_LANG_IID);
+        private static final Posting PYTHON_ANIMAL_POSTING =
+                Posting.universal("python", PYTHON_ANIMAL_IID);
+
+        private EvalInput ambiguousInput;
+
+        @BeforeEach
+        void setUp() {
+            ambiguousInput = EvalInput.builder()
+                    .lookup(text -> {
+                        String lower = text.toLowerCase();
+                        List<Posting> results = new ArrayList<>();
+                        if ("python".startsWith(lower)) {
+                            results.add(PYTHON_LANG_POSTING);
+                            results.add(PYTHON_ANIMAL_POSTING);
+                        }
+                        if ("create".startsWith(lower)) results.add(CREATE_POSTING);
+                        if ("alice".startsWith(lower)) results.add(ALICE_POSTING);
+                        return results;
+                    })
+                    .prompt("> ")
+                    .minLookupLength(1)
+                    .onChange(snapshots::add)
+                    .build();
+        }
+
+        @Test
+        void ambiguousTokenCreatesCandidateToken() {
+            ambiguousInput.type("python");
+            ambiguousInput.tokenBoundary();
+
+            List<ExpressionToken> tokens = ambiguousInput.tokens();
+            assertThat(tokens).hasSize(1);
+            assertThat(tokens.get(0)).isInstanceOf(ExpressionToken.CandidateToken.class);
+
+            ExpressionToken.CandidateToken candidate =
+                    (ExpressionToken.CandidateToken) tokens.get(0);
+            assertThat(candidate.candidates()).hasSize(2);
+            assertThat(candidate.displayText()).isEqualTo("python");
+        }
+
+        @Test
+        void unambiguousTokenResolvesDirectly() {
+            ambiguousInput.type("alice");
+            ambiguousInput.tokenBoundary();
+
+            List<ExpressionToken> tokens = ambiguousInput.tokens();
+            assertThat(tokens).hasSize(1);
+            assertThat(tokens.get(0)).isInstanceOf(RefToken.class);
+        }
+
+        @Test
+        void hasUnresolvedCandidatesReflectsCandidatePresence() {
+            assertThat(ambiguousInput.hasUnresolvedCandidates()).isFalse();
+
+            ambiguousInput.type("python");
+            ambiguousInput.tokenBoundary();
+            assertThat(ambiguousInput.hasUnresolvedCandidates()).isTrue();
+        }
+
+        @Test
+        void snapshotReportsUnresolvedCandidates() {
+            ambiguousInput.type("python");
+            ambiguousInput.tokenBoundary();
+
+            EvalInputSnapshot snap = ambiguousInput.snapshot();
+            assertThat(snap.hasUnresolvedCandidates()).isTrue();
+        }
+
+        @Test
+        void candidateTokenNarrowReducesCandidates() {
+            var candidate = new ExpressionToken.CandidateToken("python",
+                    List.of(PYTHON_LANG_POSTING, PYTHON_ANIMAL_POSTING));
+
+            // Narrow to one → returns null (should promote to RefToken instead)
+            assertThat(candidate.narrow(List.of(PYTHON_LANG_POSTING))).isNull();
+
+            // Narrow to two → returns new CandidateToken
+            var narrowed = candidate.narrow(
+                    List.of(PYTHON_LANG_POSTING, PYTHON_ANIMAL_POSTING));
+            assertThat(narrowed).isNotNull();
+            assertThat(narrowed.candidates()).hasSize(2);
+        }
+
+        @Test
+        void candidateTokenResolvePromotesToRefToken() {
+            var candidate = new ExpressionToken.CandidateToken("python",
+                    List.of(PYTHON_LANG_POSTING, PYTHON_ANIMAL_POSTING));
+
+            RefToken resolved = candidate.resolve(PYTHON_LANG_POSTING);
+            assertThat(resolved.target()).isEqualTo(PYTHON_LANG_IID);
+            assertThat(resolved.displayText()).isEqualTo("python");
+        }
+
+        @Test
+        void sameTargetDeduplicated() {
+            // Two postings for the same target (different scopes) → should dedup
+            var scopedPosting = Posting.scoped("python",
+                    ItemID.random(), PYTHON_LANG_IID);
+
+            EvalInput dedup = EvalInput.builder()
+                    .lookup(text -> {
+                        if ("python".startsWith(text.toLowerCase())) {
+                            return List.of(PYTHON_LANG_POSTING, scopedPosting);
+                        }
+                        return List.of();
+                    })
+                    .prompt("> ")
+                    .minLookupLength(1)
+                    .onChange(snapshots::add)
+                    .build();
+
+            dedup.type("python");
+            dedup.tokenBoundary();
+
+            // Same target → should resolve to RefToken (deduplicated to 1)
+            List<ExpressionToken> tokens = dedup.tokens();
+            assertThat(tokens).hasSize(1);
+            assertThat(tokens.get(0)).isInstanceOf(RefToken.class);
         }
     }
 }

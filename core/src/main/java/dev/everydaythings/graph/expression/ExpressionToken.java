@@ -4,6 +4,8 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.value.Operator;
 
+import java.util.List;
+
 /**
  * Token in the expression input - the building blocks for user input.
  *
@@ -217,6 +219,52 @@ public sealed interface ExpressionToken {
         @Override
         public String displayText() {
             return ")";
+        }
+    }
+
+    /**
+     * An ambiguous token carrying multiple candidate postings.
+     *
+     * <p>Created when a token matches multiple postings in the TokenDictionary
+     * and the system cannot yet determine which meaning is intended. Later
+     * tokens in the expression may prune the candidate set — when exactly
+     * one candidate survives, the CandidateToken is promoted to a {@link RefToken}.
+     *
+     * <p>Renderers display these differently from resolved RefTokens: as
+     * outlined chips with a dropdown indicator showing the surviving candidates.
+     *
+     * @param text       the original text typed by the user
+     * @param candidates all matching postings (at least 2)
+     */
+    record CandidateToken(
+            String text,
+            List<Posting> candidates
+    ) implements ExpressionToken {
+
+        public CandidateToken {
+            candidates = List.copyOf(candidates);
+        }
+
+        @Override
+        public String displayText() {
+            return text;
+        }
+
+        /**
+         * Promote this candidate to a resolved RefToken using the given posting.
+         */
+        public RefToken resolve(Posting posting) {
+            return RefToken.from(posting);
+        }
+
+        /**
+         * Create a narrowed CandidateToken with fewer candidates.
+         *
+         * @return a new CandidateToken if multiple remain, or null if none survive
+         */
+        public CandidateToken narrow(List<Posting> surviving) {
+            if (surviving.size() < 2) return null;
+            return new CandidateToken(text, surviving);
         }
     }
 

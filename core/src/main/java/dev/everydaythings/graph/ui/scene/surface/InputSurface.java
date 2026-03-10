@@ -54,10 +54,16 @@ public class InputSurface extends SurfaceSchema<Void> {
     public record TokenChip(
             String text,
             String emoji,
-            boolean resolved
+            boolean resolved,
+            boolean candidate
     ) implements Canonical {
         public TokenChip {
             if (text == null) text = "";
+        }
+
+        /** Create a resolved chip. */
+        public TokenChip(String text, String emoji, boolean resolved) {
+            this(text, emoji, resolved, false);
         }
     }
 
@@ -142,7 +148,10 @@ public class InputSurface extends SurfaceSchema<Void> {
         // Build token chips with resolution info
         List<TokenChip> chipList = new ArrayList<>();
         for (ExpressionToken token : snapshot.tokens()) {
-            if (token instanceof RefToken ref && resolver != null) {
+            if (token instanceof ExpressionToken.CandidateToken candidate) {
+                // Ambiguous — outlined chip with dropdown indicator
+                chipList.add(new TokenChip(candidate.displayText(), null, false, true));
+            } else if (token instanceof RefToken ref && resolver != null) {
                 String emoji = null;
                 try {
                     Optional<Item> item = resolver.apply(ref.target());

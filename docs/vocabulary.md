@@ -542,6 +542,139 @@ Results trigger appropriate actions:
 - **Created result** --> show in activity log and tree
 - **Error result** --> show error message
 
+## Deferred Resolution
+
+Token resolution doesn't have to be all-or-nothing. When a token is ambiguous — matching multiple postings across different parts of speech or scopes — the system carries all candidates forward rather than forcing an immediate choice. Later tokens prune earlier candidates, and the expression resolves progressively as context accumulates.
+
+### The Problem with Eager Resolution
+
+Consider: a user types `create python`. At the space boundary after "python", the TokenDictionary returns multiple postings:
+
+```
+"python" --> [
+    Posting(target=cg:language/python, scope=cg:language/eng, weight=0.8),   # Programming language
+    Posting(target=cg:taxon/python,    scope=cg:language/eng, weight=0.6),   # Snake genus
+    Posting(target=cg:mythology/python, scope=cg:language/eng, weight=0.4),  # Greek mythology
+]
+```
+
+Eager resolution would either pick the highest-weight candidate (often wrong) or pop a disambiguation dropdown (interrupting flow). But the user isn't done typing. The *next* token — "script", "image", "document" — determines which "python" was meant.
+
+### Candidate Sets
+
+When a token matches multiple postings, the system creates a **CandidateToken** instead of a resolved RefToken. A CandidateToken carries the full set of postings:
+
+```
+CandidateToken {
+    text:        "python"
+    candidates:  [Posting...]    # All matching postings
+    resolved:    Posting?        # null until disambiguation succeeds
+}
+```
+
+The expression input displays CandidateTokens differently from resolved RefTokens — visually marked as pending (e.g., a chip outline without the filled background, or with a small dropdown indicator).
+
+When only one posting matches, the token resolves immediately to a RefToken — the common case. Deferred resolution only kicks in when there's genuine ambiguity.
+
+### Progressive Pruning
+
+As subsequent tokens are resolved, the system prunes earlier candidate sets by checking semantic compatibility:
+
+```
+User types: create python script
+
+Token 1: [create]  → RefToken(cg.verb:create)           # Unambiguous verb
+Token 2: "python"  → CandidateToken([language, taxon, mythology])  # Ambiguous
+Token 3: "script"  → resolves to Sememe(cg:type/script)  # Noun
+
+Frame assembly tries all combinations:
+  create(THEME=python-language, ???=script)  → python-language IS-A language, script IS-A type → "create python script" ✓
+  create(THEME=python-taxon, ???=script)     → python-taxon IS-A taxon, script doesn't fit → ✗
+  create(THEME=python-mythology, ???=script) → same problem → ✗
+
+Result: "python" auto-resolves to cg:language/python
+```
+
+The pruning uses **semantic fit scoring**:
+
+1. **Role compatibility** — does this candidate make sense in the thematic role it would fill? A programming language can be a THEME of "create script"; a snake genus can't.
+2. **Modifier-noun agreement** — if the candidate acts as a modifier (adjective-like), does it semantically compose with the noun it modifies? "Python script" composes; "python mathematics" doesn't.
+3. **Predicate selectional restrictions** — the verb's `@Param` metadata may declare type constraints on its arguments. If `create` expects a type noun as THEME, candidates that aren't types score lower.
+4. **Relational evidence** — if the candidate item has relations connecting it to other tokens in the expression (e.g., `python-language RELATED-TO script`), that raises its score.
+
+### Auto-Resolution and User Disambiguation
+
+After pruning:
+
+- **One candidate survives** → auto-resolve. The CandidateToken silently becomes a RefToken. The chip fills in. No user action needed.
+- **Multiple candidates survive** → the token stays as a CandidateToken. Its dropdown shows the surviving candidates. The user can click one, or keep typing to provide more context.
+- **Zero candidates survive** → the token reverts to unresolved text. Something doesn't fit; the user sees it hasn't resolved and can retype.
+
+### Visual Model
+
+In the GUI, the expression input renders token states distinctly:
+
+```
+Resolved:     [create]  [script]     — filled chip, icon + label
+Candidates:   [python ▾]             — outlined chip, dropdown indicator
+Unresolved:   python                 — plain text, no chip
+```
+
+The candidate dropdown appears inline, under the token — the same dropdown used for completions, just showing the surviving candidates rather than prefix matches. Selecting a candidate locks it in. If the user keeps typing and a later token auto-resolves the candidate, the dropdown closes and the chip fills.
+
+This means disambiguation is **visual, not verbal**. The system doesn't ask "did you mean X or Y?" — it shows you that "python" is still open, and you can see the options. If you keep typing and the system figures it out, it just resolves. If it can't, the pending candidates stay visible until you choose one.
+
+### Interaction with Frame Assembly
+
+The FrameAssembler already builds `SemanticFrame` objects from resolved tokens. With deferred resolution, it tries all **candidate combinations** and scores each resulting frame:
+
+```
+Given: [create] [python ▾{lang, taxon}] [script]
+
+Candidate frames:
+  Frame A: verb=create, THEME=python-lang + script   → score 0.95 (modifier+noun compose)
+  Frame B: verb=create, THEME=python-taxon + script   → score 0.10 (no composition)
+
+If top score >> second score → auto-resolve python to lang
+If scores are close → leave ambiguous, show candidates
+```
+
+The scoring threshold is tunable — a wide gap auto-resolves; close scores defer to the user. The system errs on the side of showing candidates rather than guessing wrong.
+
+### Interaction with Enter (Submit)
+
+When the user presses Enter with unresolved CandidateTokens still in the expression:
+
+1. Run one final pruning pass with the complete token list
+2. Any tokens that auto-resolve after this pass → resolve them
+3. If CandidateTokens still remain → **do not dispatch**. Instead, highlight the unresolved tokens and focus the first one's dropdown. The user must resolve all ambiguity before dispatch.
+
+This is the same principle as form validation: you can't submit until all fields are filled. But the system tries hard to fill them for you first.
+
+### Scope Chain and Weight Interaction
+
+Deferred resolution interacts with the existing scope chain. When candidates come from different scopes, scope proximity acts as a tiebreaker:
+
+```
+"notes" in context of a Project item:
+  Posting(target=<project's notes component>, scope=<project>, weight=0.9)  # Item scope
+  Posting(target=cg:type/note, scope=cg:language/eng, weight=0.7)          # Language scope
+
+Item scope > Language scope → auto-resolve to the component
+```
+
+Weight already encodes relevance, and scope chain order encodes proximity. Together they handle most ambiguity without needing the full beam-search path. Deferred resolution is the fallback for cases where these signals aren't enough.
+
+### Implementation Sequence
+
+1. **CandidateToken type** — new ExpressionToken subclass carrying `List<Posting>` candidates
+2. **EvalInput changes** — `tokenBoundary()` creates CandidateToken when multiple postings match, instead of taking the first one
+3. **Progressive pruning** — after each new token is accepted, run pruning on all prior CandidateTokens
+4. **Frame scoring** — FrameAssembler generates candidate frames for each combination; score by semantic fit
+5. **Auto-resolution** — when pruning leaves one candidate, promote CandidateToken → RefToken
+6. **Visual feedback** — Surface rendering for CandidateToken (outlined chip + dropdown)
+7. **Submit guard** — Enter with unresolved candidates highlights them instead of dispatching
+
 ## Vocabulary Customization and Scripting
 
 Vocabulary is persistent and customizable. Users can:

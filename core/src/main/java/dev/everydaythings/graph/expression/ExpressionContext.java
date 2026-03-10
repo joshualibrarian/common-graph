@@ -73,7 +73,10 @@ public record ExpressionContext(
         // semantic analyzer used by execution.
         List<dev.everydaythings.graph.runtime.Eval.ResolvedToken> resolved = new ArrayList<>();
         for (ExpressionToken token : tokens) {
-            if (token instanceof ExpressionToken.RefToken ref) {
+            if (token instanceof ExpressionToken.CandidateToken) {
+                // Ambiguous — skip; contributes no definite information to the frame
+                continue;
+            } else if (token instanceof ExpressionToken.RefToken ref) {
                 resolved.add(new dev.everydaythings.graph.runtime.Eval.ResolvedToken.Link(
                         ref.target(), ref.displayText()));
             } else if (token instanceof ExpressionToken.LiteralToken lit) {
