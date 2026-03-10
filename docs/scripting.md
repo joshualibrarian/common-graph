@@ -16,8 +16,9 @@ The scripting system exists on a continuum with what already works:
 | **3. Live editing** | Edit script text, verb changes immediately | Inline editing from prompt or surface |
 | **4. Distributed code** | Code Items fetched from graph, verified, sandboxed | Content-addressed, trust-gated |
 | **5. Self-hosting** | Runtime engines as Items, capability discovery | Graph-native runtime management |
+| **6. Bytecode delivery** | JVM bytecode as content, loaded via `GraphClassLoader` | Replaces package managers, app stores, plugins |
 
-Level 0 exists today. Level 1 exists (ExpressionComponent, scripted expression aliases). Levels 2-5 are what this document specifies.
+Level 0 exists today. Level 1 exists (ExpressionComponent, scripted expression aliases). Levels 2-5 are what this document specifies. Level 6 is the endgame — code itself is content in the graph.
 
 The boundary between levels is porous. A Level 1 expression alias and a Level 2 Groovy script both contribute verbs through the same EntryVocabulary mechanism. A Level 4 distributed WASM module and a Level 0 Java verb both dispatch through the same sememe-based vocabulary pipeline. The user sees verbs. The system doesn't care where the implementation came from.
 
@@ -579,7 +580,114 @@ Phase 1 (ScriptComponent + Groovy)
                        +--→ Phase 6 (Runtimes as Items)
 ```
 
-Phases 2 and 4 can proceed in parallel after Phase 1. Phase 3 depends on Phase 2 (needs sandboxing for the test button). Phase 5 depends on Phase 4 (WASM is the portable format for distribution). Phase 6 depends on Phase 5.
+Phases 2 and 4 can proceed in parallel after Phase 1. Phase 3 depends on Phase 2 (needs sandboxing for the test button). Phase 5 depends on Phase 4 (WASM is the portable format for distribution). Phase 6 depends on Phase 5. Phase 7 can begin independently once Phase 5's trust gating is in place.
+
+---
+
+## Bytecode Delivery: GraphClassLoader
+
+Level 6 is the endgame: compiled bytecode delivered as Item content, loaded by a custom `ClassLoader` that resolves classes from the graph instead of the filesystem. This collapses the distinction between "installed software" and "content" — code is just another component, subject to the same signing, versioning, trust, and content-addressing as everything else.
+
+### BytecodeComponent
+
+A `BytecodeComponent` is a component on a Type Item carrying compiled class files:
+
+```
+BytecodeComponent {
+    bytecode:       byte[]          # Compiled class bytes (content-addressed)
+    language:       string          # Source language ("java", "kotlin", "scala")
+    targetVersion:  integer         # JVM target version (e.g. 21)
+    mainClass:      string          # Fully qualified main class name
+    dependencies:   [ItemID]        # Other code Items this depends on
+}
+```
+
+The bytecode bytes are content-addressed like any other content. Identical classes deduplicate across the entire graph. The Type Item already exists (it's what `@Type` declares) — today it's a seed with annotations scanned from the local classpath. With `BytecodeComponent`, the type carries its own implementation.
+
+### GraphClassLoader
+
+A `GraphClassLoader` is a child classloader that resolves classes from Items:
+
+```
+GraphClassLoader extends ClassLoader {
+    librarian:  Librarian                   # For resolving code Items
+    policy:     PolicySet                   # What code is allowed to run
+    cache:      Map<VersionID, Class<?>>    # Loaded classes by version
+
+    findClass(name):
+        1. Look up Type Item by canonical key
+        2. Check trust policy (signed by trusted signer? threshold met?)
+        3. Get BytecodeComponent from Type Item
+        4. Verify content hash against manifest CID
+        5. defineClass() from bytecode bytes
+        6. Cache by VersionID
+        7. Return loaded class
+}
+```
+
+Classloader hierarchy: system classloader → CG core classloader → `GraphClassLoader` (per-trust-domain). Graph-delivered classes can reference core CG types but are isolated from each other unless explicitly linked via dependency relations.
+
+### Trust Gate
+
+Running someone's compiled bytecode is the highest trust operation — higher than reading their content, higher than running their sandboxed script:
+
+| Operation | Trust Level | Mechanism |
+|-----------|-------------|-----------|
+| Read content | Low | Content addressing + signature verification |
+| Run sandboxed script | Medium | Runtime isolation (GraalVM, WASM) + resource limits |
+| Run compiled bytecode | High | GraphClassLoader + policy + trust threshold |
+
+The Librarian's policy determines the minimum trust score required to load bytecode from a given signer. Local code (from the user's own Items) runs without restriction. Code from highly trusted peers (trust ≥ 0.9, for instance) might be allowed. Code from strangers is refused unless the user explicitly overrides.
+
+### Versioning and Hot Swap
+
+Because Items are versioned, code is versioned. When a Type Item gets a new version:
+
+1. New BytecodeComponent content → new CID → new VID
+2. GraphClassLoader creates a new classloader instance for the new version
+3. New instances use the new class; existing instances continue on the old
+4. Old classloader is GC'd when no instances remain
+
+This is the same model as OSGi bundles or Erlang's hot code loading, but driven by the graph's versioning model instead of a separate module system.
+
+### What It Replaces
+
+| Traditional | Common Graph |
+|-------------|-------------|
+| Maven/Gradle dependencies | Code Items with dependency relations |
+| npm/pip/cargo packages | Same — code is content, `dependencies: [ItemID]` |
+| App stores | Social graph curates what code you trust |
+| Plugin systems | Mount a code Item, its verbs become available |
+| Software updates | New version of the Type Item, classloader swaps |
+| Security reviews | Trust policy + signer reputation + community attestations |
+
+### The Smalltalk Parallel
+
+In Smalltalk, code lives in the image alongside data. In Common Graph, code lives in the graph alongside everything else. The difference: CG has cryptographic identity and trust built in, so code from strangers can be evaluated before execution. This is what Smalltalk's image model would look like if it had been designed for a networked, multi-user, adversarial world.
+
+### Implementation Roadmap: Phase 7
+
+**Phase 7: Bytecode Delivery**
+
+- Define `BytecodeComponent` class (`@Type`, `Canonical`, `Component`)
+- Implement `GraphClassLoader` with trust-gated `findClass()`
+- Dependency resolution: walk `dependencies: [ItemID]` to build classloader chain
+- Classloader isolation: per-trust-domain classloader instances
+- Hot swap: new classloader per VID, old GC'd when unused
+- `@Type` annotation discovery on graph-loaded classes (same `ItemScanner` path)
+- `@Verb`, `@Surface`, `@Canon` annotations work normally on graph-loaded classes
+
+**Dependency graph:**
+
+```
+Phase 5 (Distributed Code + Trust Gating)
+    |
+    +--→ Phase 7 (Bytecode Delivery)
+              |
+              +--→ Phase 6 (Runtimes as Items)
+```
+
+Phase 7 requires Phase 5's trust gating infrastructure. Phase 6 (runtimes as Items) can follow Phase 7, since runtime engines themselves could be delivered as bytecode Items.
 
 ---
 
@@ -666,6 +774,44 @@ alice@notes> convert readme to html
 ```
 
 Alice never installed anything. She never approved a permissions dialog. Her trust policy and bob's reputation made the decision. If bob's trust score drops below her threshold, the converter stops working — automatically, without intervention.
+
+### Deliver a Type via Bytecode
+
+```
+# Carol publishes a new component type — a "Kanban Board" — as a Code Item
+
+carol@kanban-type> describe
+  Type: cg:type/type
+  Signer: carol
+  Components:
+      BytecodeComponent:
+          mainClass: dev.carol.kanban.KanbanBoard
+          targetVersion: 21
+          dependencies: []   # Only depends on core CG types
+      SurfaceTemplateComponent:
+          @Surface annotations on KanbanBoard define the board UI
+  Relations:
+      PROVIDES_TYPE → cg:type/kanban-board
+      HAS_VERB → cg.verb:create, cg.verb:move, cg.verb:archive
+
+# Dave discovers it
+
+dave@session> search items that provide kanban-board
+  --> Found: "Kanban Board" by carol (trust: 0.88)
+
+dave@session> create kanban-board
+  --> Librarian checks: carol's trust (0.88) >= bytecode threshold (0.85) ✓
+  --> GraphClassLoader loads KanbanBoard.class from carol's Type Item
+  --> @Type, @Verb, @Surface annotations discovered normally
+  --> KanbanBoard component created on Dave's item
+  --> Board UI renders via carol's @Surface declarations
+  --> "create", "move", "archive" verbs available in Dave's vocabulary
+
+dave@kanban> move "Fix login bug" to "Done"
+  --> Dispatches carol's @Verb(cg.verb:move) — same pipeline as local code
+```
+
+Dave didn't install a package. He didn't download an app. Carol's Kanban Board type flowed through the graph like any other content. Dave's Librarian loaded it because Dave trusts Carol enough to run her code. If Carol publishes a new version, Dave's Librarian picks it up on the next sync — hot swap, no restart.
 
 ---
 

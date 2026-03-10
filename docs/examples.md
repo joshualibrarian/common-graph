@@ -153,6 +153,25 @@ Or via **mixing**:
 - Multiple hosts relay
 - No single point knows author + content + recipient
 
+## Code Distribution
+
+Code is content. A developer publishes a new component type (a Kanban board, a tax calculator, a game) as an Item carrying `BytecodeComponent` or `ScriptComponent`. Users discover it through the social graph, and their Librarian loads it — trust-gated, content-addressed, hot-swappable.
+
+```
+codeItem:KanbanBoard
+    signer: carol
+    components:
+        BytecodeComponent:
+            mainClass: dev.carol.kanban.KanbanBoard
+            targetVersion: 21
+        SurfaceTemplate: (board UI)
+    relations:
+        PROVIDES_TYPE → cg:type/kanban-board
+        HAS_VERB → cg.verb:create, cg.verb:move
+```
+
+No package manager. No app store. No install step. The social graph curates what code you trust. See [Scripting](scripting.md) for the full model including `GraphClassLoader`, trust thresholds, and sandboxing.
+
 ## Accounting / Ledger
 
 A ledger is an Item with:

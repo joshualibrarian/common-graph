@@ -111,6 +111,8 @@ Components marked `identity: false` don't affect identity:
 | **Model** | Generic key-value model | Snapshot |
 | **QueryComponent** | Stored queries and views | Snapshot |
 | **ExpressionComponent** | Evaluable expressions | Snapshot |
+| **ScriptComponent** | General-purpose code in external languages (Groovy, JS, WASM) | Snapshot |
+| **BytecodeComponent** | Compiled JVM bytecode, loaded via GraphClassLoader (future) | Snapshot |
 | **SurfaceTemplateComponent** | Display metadata (glyph, color, shape) + compiled scene template | Snapshot |
 
 ### Collaboration Components

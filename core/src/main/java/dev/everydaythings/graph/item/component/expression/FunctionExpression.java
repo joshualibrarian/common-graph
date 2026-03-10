@@ -5,6 +5,7 @@ import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
 import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.value.Function;
 
 import java.util.List;

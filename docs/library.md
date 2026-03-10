@@ -34,7 +34,7 @@ ItemStore {
 }
 ```
 
-The store doesn't interpret content — it's pure content-addressed storage. Interpretation happens at higher layers through component types.
+The store doesn't interpret content — it's pure content-addressed storage. Interpretation happens at higher layers through component types. This uniformity means bytecode (compiled classes, WASM modules) is stored and retrieved exactly like documents or images — content-addressed, deduplicated, integrity-verified. See [Scripting](scripting.md) for how `GraphClassLoader` loads code from the store.
 
 ### Store Registry
 

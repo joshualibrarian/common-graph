@@ -303,7 +303,7 @@ The architecture scales because of several reinforcing properties:
 
 2. **Discovery follows social topology.** Small-world networks have short average path lengths. Any content is reachable within a bounded number of hops.
 
-3. **Content replicates along interest paths.** Popular content naturally accumulates copies. Obscure content stays at its origin but is findable through the creator's social circle.
+3. **Content replicates along interest paths.** Popular content naturally accumulates copies. Obscure content stays at its origin but is findable through the creator's social circle. This applies to code as well — a popular component type (Kanban board, game, calculator) replicates through the graph like any other content. See [Scripting](scripting.md) for bytecode delivery via `GraphClassLoader`.
 
 4. **Predicate gossip scales with interest, not with network size.** A chess topic ring has thousands of members, not billions. Each Librarian only subscribes to topics it cares about.
 

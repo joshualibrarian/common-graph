@@ -1,6 +1,6 @@
 # Items
 
-An **Item** is the fundamental unit of the Common Graph. Everything — documents, users, hosts, conversations, games, applications — is an Item.
+An **Item** is the fundamental unit of the Common Graph. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item.
 
 An Item is a **versioned, signed, typed container with stable identity**. Every Item carries its own identity, its own history, its own type definition, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
 

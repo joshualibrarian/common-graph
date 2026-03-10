@@ -304,6 +304,16 @@ Each layer is built from the same primitives:
 3. Does the aggregate score cross my policy threshold?
 4. Show / gray / hide accordingly
 
+**"Should I run this code?"**
+1. Who signed the Code Item (ScriptComponent or BytecodeComponent)?
+2. What is their trust score in the relevant domain?
+3. What kind of code is it? (sandboxed script = medium threshold, compiled bytecode = high threshold)
+4. Does my policy permit this language/runtime from this trust level?
+5. Apply resource limits proportional to trust: higher trust → broader capabilities
+6. Run / sandbox / refuse
+
+See [Scripting](scripting.md) for the full code execution trust model, including `GraphClassLoader` for bytecode delivery.
+
 **"Should I sync with this peer?"**
 1. Service trust: have they been reliable?
 2. Reciprocity: are they freeloading?
