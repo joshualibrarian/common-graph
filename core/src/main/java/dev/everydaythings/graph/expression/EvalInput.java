@@ -1250,15 +1250,6 @@ public class EvalInput {
 
             Eval.EvalResult result = eval.executeTokens(expressionTokens);
 
-            // Handle navigation for item results
-            if (result instanceof Eval.EvalResult.ItemResult(Item item)) {
-                if (context == null || !item.iid().equals(context.iid())) {
-                    if (onNavigate != null) {
-                        onNavigate.accept(item);
-                    }
-                }
-            }
-
             // Handle errors
             if (result instanceof Eval.EvalResult.Error(String message)) {
                 error = message;

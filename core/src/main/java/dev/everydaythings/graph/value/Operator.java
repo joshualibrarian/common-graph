@@ -8,6 +8,7 @@ import dev.everydaythings.graph.item.component.expression.EvaluationContext;
 import dev.everydaythings.graph.item.component.expression.Expression;
 import dev.everydaythings.graph.item.component.expression.FunctionExpression;
 import dev.everydaythings.graph.item.component.expression.ReferenceExpression;
+import dev.everydaythings.graph.item.component.expression.SememeExpression;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -94,6 +95,8 @@ public class Operator extends NounSememe {
     // --- Structural ---
     @Seed public static final Operator ASSIGN = new Operator(
             "cg.op:assign", "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX);
+    @Seed public static final Operator IS = new Operator(
+            "cg.op:is", "is", "is", 2, -5, Associativity.RIGHT, Fixity.INFIX);
     @Seed public static final Operator PIPE = new Operator(
             "cg.op:pipe", "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX);
 
@@ -106,7 +109,7 @@ public class Operator extends NounSememe {
             ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, POWER, NEGATE,
             EQUAL, NOT_EQUAL, LESS_THAN, GREATER_THAN, LESS_OR_EQUAL, GREATER_OR_EQUAL,
             CONCAT, IN, CONTAINS,
-            ASSIGN, PIPE
+            ASSIGN, IS, PIPE
     );
     private static final Map<ItemID, Operator> SEED_BY_ID = buildSeedById();
     private static final Map<String, Operator> INFIX_BY_SYMBOL = buildInfixBySymbol();
@@ -179,6 +182,11 @@ public class Operator extends NounSememe {
             return evaluateAssign(left, right, context);
         }
 
+        // Copula "is": same as assignment but supports inverted form (value is property)
+        if ("cg.op:is".equals(canonicalKey())) {
+            return evaluateIs(left, right, context);
+        }
+
         // Short-circuit: evaluate left first, maybe skip right
         if (isShortCircuit()) {
             return evaluateShortCircuit(left, right, context);
@@ -219,12 +227,13 @@ public class Operator extends NounSememe {
     }
 
     /**
-     * Evaluate assignment: {@code x = expr} or {@code f(x) = expr}.
+     * Evaluate assignment: {@code x = expr}, {@code f(x) = expr}, or {@code sememe = expr}.
      *
      * <p>The LHS determines the kind of assignment:
      * <ul>
-     *   <li>{@link ReferenceExpression} → variable assignment: evaluate RHS, store in context</li>
      *   <li>{@link FunctionExpression} → function definition: store body + param names</li>
+     *   <li>{@link ReferenceExpression} (local) → variable assignment: store expression</li>
+     *   <li>{@link SememeExpression} → sememe-keyed property: store with sememe's token as handle</li>
      * </ul>
      */
     private Object evaluateAssign(Expression left, Expression right, EvaluationContext context) {
@@ -248,29 +257,71 @@ public class Operator extends NounSememe {
             return fn.function() + "(" + String.join(", ", params) + ")";
         }
 
+        // Local reference (NameToken → unresolved handle on the item)
         if (left instanceof ReferenceExpression ref && ref.isLocal()) {
-            String handle = ref.handle();
+            return assignToHandle(ref.handle(), right, owner, context);
+        }
 
-            // Circular reference detection: x = x + 1 is undefined
-            if (right.referencesLocal(handle)) {
-                throw new IllegalArgumentException(
-                        "Circular reference: " + handle + " cannot depend on itself");
-            }
-
-            // Store the expression formula (reactive — re-evaluated on access)
-            owner.addComponent(handle, ExpressionComponent.of(right));
-
-            // Evaluate to show current value
-            try {
-                Object currentValue = right.evaluate(context);
-                return currentValue;
-            } catch (Exception e) {
-                return handle + " = " + right.toExpressionString();
-            }
+        // Sememe reference (RefToken → resolved dictionary match)
+        if (left instanceof SememeExpression sem && sem.token() != null) {
+            return assignToHandle(sem.token(), right, owner, context);
         }
 
         throw new IllegalArgumentException(
                 "Cannot assign to: " + left.toExpressionString());
+    }
+
+    /**
+     * Evaluate copula "is": {@code author is Tolkien} or {@code Tolkien is author}.
+     *
+     * <p>Same as assignment but supports inverted form. If the LHS isn't
+     * assignable (not a local ref or sememe), tries swapping the operands.
+     */
+    private Object evaluateIs(Expression left, Expression right, EvaluationContext context) {
+        // Try normal direction: left is property, right is value
+        if (isAssignableExpression(left)) {
+            return evaluateAssign(left, right, context);
+        }
+
+        // Try inverted: right is property, left is value
+        if (isAssignableExpression(right)) {
+            return evaluateAssign(right, left, context);
+        }
+
+        throw new IllegalArgumentException(
+                "Cannot determine property in: " + left.toExpressionString()
+                        + " is " + right.toExpressionString());
+    }
+
+    /**
+     * Check if an expression can serve as the LHS of assignment.
+     */
+    private static boolean isAssignableExpression(Expression expr) {
+        if (expr instanceof ReferenceExpression ref && ref.isLocal()) return true;
+        if (expr instanceof SememeExpression sem && sem.token() != null) return true;
+        if (expr instanceof FunctionExpression) return true;
+        return false;
+    }
+
+    /**
+     * Assign an expression to a named handle on the owner item.
+     */
+    private Object assignToHandle(String handle, Expression right, Item owner, EvaluationContext context) {
+        // Circular reference detection: x = x + 1 is undefined
+        if (right.referencesLocal(handle)) {
+            throw new IllegalArgumentException(
+                    "Circular reference: " + handle + " cannot depend on itself");
+        }
+
+        // Store the expression formula (reactive — re-evaluated on access)
+        owner.addComponent(handle, ExpressionComponent.of(right));
+
+        // Evaluate to show current value
+        try {
+            return right.evaluate(context);
+        } catch (Exception e) {
+            return handle + " = " + right.toExpressionString();
+        }
     }
 
     private Object applyBinary(Object left, Object right) {

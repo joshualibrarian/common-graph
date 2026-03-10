@@ -6,6 +6,7 @@ import dev.everydaythings.graph.item.component.expression.FunctionExpression;
 import dev.everydaythings.graph.item.component.expression.LiteralExpression;
 import dev.everydaythings.graph.item.component.expression.PropertyAccessExpression;
 import dev.everydaythings.graph.item.component.expression.ReferenceExpression;
+import dev.everydaythings.graph.item.component.expression.SememeExpression;
 import dev.everydaythings.graph.item.component.expression.UnaryExpression;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.value.Operator;
@@ -271,8 +272,9 @@ public class ExpressionParser {
                 if (pos < tokens.size() && tokens.get(pos) instanceof ExpressionToken.OpenParen) {
                     yield parseFunctionCall(ref.displayText());
                 }
-                // Otherwise it's an item reference
-                yield LiteralExpression.item(ref.target());
+                // Sememe expression — carries both ItemID and display text
+                // so assignment can use the token as the component handle
+                yield new SememeExpression(ref.target(), ref.displayText());
             }
 
             case ExpressionToken.CandidateToken candidate -> {
@@ -281,7 +283,7 @@ public class ExpressionParser {
                 if (pos < tokens.size() && tokens.get(pos) instanceof ExpressionToken.OpenParen) {
                     yield parseFunctionCall(candidate.displayText());
                 }
-                yield LiteralExpression.item(best.target());
+                yield new SememeExpression(best.target(), candidate.displayText());
             }
 
             case ExpressionToken.OpToken op -> {
