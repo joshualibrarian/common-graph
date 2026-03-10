@@ -7,6 +7,7 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.BoardState;
 import dev.everydaythings.graph.game.GameBoard;
 import dev.everydaythings.graph.game.GameComponent;
+import dev.everydaythings.graph.game.GameMode;
 import dev.everydaythings.graph.game.Piece;
 import dev.everydaythings.graph.game.Spatial;
 import dev.everydaythings.graph.item.action.ActionContext;
@@ -259,12 +260,25 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * <ul>
      *   <li>{@code players} — list of player Items or strings (max 2: white, black)</li>
      *   <li>{@code source} — FEN string or PGN movetext to load from</li>
+     *   <li>{@code mode} — GameMode or string ("archive", "analysis", "authenticated")</li>
      *   <li>{@code name} — game title (handled by caller, not here)</li>
      * </ul>
+     *
+     * <p>When loading from a PGN source, the mode defaults to ARCHIVE (the game
+     * is a historical record). Players can be Person items, Signer items, or
+     * plain strings (names only, no identity).
      */
     @SuppressWarnings("unchecked")
     public static ChessGame create(Map<String, Object> params) {
         ChessGame game = new ChessGame().withDemoSigner();
+
+        // Set mode (explicit or inferred)
+        Object modeParam = params.get("mode");
+        if (modeParam instanceof GameMode gm) {
+            game.mode = gm;
+        } else if (modeParam instanceof String s) {
+            game.mode = GameMode.valueOf(s.toUpperCase());
+        }
 
         List<?> players = (List<?>) params.get("players");
         if (players != null) {
@@ -275,6 +289,8 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
                 } else if (player instanceof ItemID id) {
                     game.joinAs(i, id, null);
                 } else if (player instanceof String name) {
+                    // Name-only player — no ItemID required (Person, historical, etc.)
+                    while (game.playerSeats.size() <= i) game.playerSeats.add(null);
                     game.playerNames.put(i, name);
                 }
             }
@@ -283,6 +299,10 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
         String source = (String) params.get("source");
         if (source != null) {
             game.loadFromSource(source);
+            // Default to ARCHIVE when loading from source (unless explicitly overridden)
+            if (modeParam == null) {
+                game.mode = GameMode.ARCHIVE;
+            }
         }
 
         return game;
@@ -490,7 +510,10 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     }
 
     /**
-     * Make a move via verb dispatch — authorized, uses ctx signer.
+     * Make a move via verb dispatch.
+     *
+     * <p>In AUTHENTICATED mode, the caller must be seated and it must be their turn.
+     * In ANALYSIS mode, anyone can move freely. In ARCHIVE mode, no moves allowed.
      *
      * @param ctx ActionContext with caller identity
      * @param san Standard Algebraic Notation or UCI (e.g., "e4", "e2e4")
@@ -499,7 +522,8 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     @Verb(value = GameVocabulary.MOVE, doc = "Make a chess move in SAN notation")
     public String move(ActionContext ctx,
                        @Param(value = "san", doc = "Move in algebraic notation") String san) {
-        if (ctx.caller() != null) authorizedSeat(ctx);
+        if (mode == GameMode.ARCHIVE) return "Game is in archive mode — fork to analyze";
+        authorizedSeat(ctx); // no-op in ANALYSIS mode, enforced in AUTHENTICATED
         return doMove(san, resolveSigner(ctx), resolveHasher());
     }
 
@@ -510,6 +534,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * @return null on success, error message on failure
      */
     public String move(String san) {
+        if (mode == GameMode.ARCHIVE) return "Game is in archive mode — fork to analyze";
         return doMove(san, signer, hasher);
     }
 
@@ -544,14 +569,20 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     }
 
     /**
-     * Resign via verb dispatch — authorized, side derived from seat.
+     * Resign via verb dispatch.
+     *
+     * <p>In AUTHENTICATED mode, side is derived from the caller's seat.
+     * In ANALYSIS mode, side must be specified (or defaults to side-to-move).
      */
     @Verb(value = GameVocabulary.RESIGN, doc = "Resign the game")
     public void resign(ActionContext ctx,
                        @Param(value = "side", doc = "Side resigning (WHITE or BLACK)", required = false) Side side) {
-        if (ctx.caller() != null) {
-            int seat = requireSeat(ctx);
+        if (mode == GameMode.ARCHIVE) return;
+        int seat = requireSeat(ctx);
+        if (seat >= 0) {
             side = seat == 0 ? Side.WHITE : Side.BLACK;
+        } else if (side == null) {
+            side = sideToMove(); // default to current side in analysis mode
         }
         doResign(side, resolveSigner(ctx), resolveHasher());
     }
@@ -575,9 +606,12 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     @Verb(value = GameVocabulary.OFFER, doc = "Offer a draw")
     public void offerDraw(ActionContext ctx,
                           @Param(value = "side", doc = "Side offering", required = false) Side side) {
-        if (ctx.caller() != null) {
-            int seat = requireSeat(ctx);
+        if (mode == GameMode.ARCHIVE) return;
+        int seat = requireSeat(ctx);
+        if (seat >= 0) {
             side = seat == 0 ? Side.WHITE : Side.BLACK;
+        } else if (side == null) {
+            side = sideToMove();
         }
         doOfferDraw(side, resolveSigner(ctx), resolveHasher());
     }
@@ -601,9 +635,12 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     @Verb(value = GameVocabulary.ACCEPT, doc = "Accept a draw offer")
     public void acceptDraw(ActionContext ctx,
                            @Param(value = "side", doc = "Side accepting", required = false) Side side) {
-        if (ctx.caller() != null) {
-            int seat = requireSeat(ctx);
+        if (mode == GameMode.ARCHIVE) return;
+        int seat = requireSeat(ctx);
+        if (seat >= 0) {
             side = seat == 0 ? Side.WHITE : Side.BLACK;
+        } else if (side == null) {
+            side = sideToMove();
         }
         doAcceptDraw(side, resolveSigner(ctx), resolveHasher());
     }
@@ -627,9 +664,12 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     @Verb(value = GameVocabulary.DECLINE, doc = "Decline a draw offer")
     public void declineDraw(ActionContext ctx,
                             @Param(value = "side", doc = "Side declining", required = false) Side side) {
-        if (ctx.caller() != null) {
-            int seat = requireSeat(ctx);
+        if (mode == GameMode.ARCHIVE) return;
+        int seat = requireSeat(ctx);
+        if (seat >= 0) {
             side = seat == 0 ? Side.WHITE : Side.BLACK;
+        } else if (side == null) {
+            side = sideToMove();
         }
         doDeclineDraw(side, resolveSigner(ctx), resolveHasher());
     }

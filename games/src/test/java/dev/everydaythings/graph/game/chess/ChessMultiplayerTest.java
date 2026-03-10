@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.game.chess;
 
+import dev.everydaythings.graph.game.GameMode;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -34,9 +35,10 @@ class ChessMultiplayerTest {
         alice = User.create(librarian, "alice");
         bob = User.create(librarian, "bob");
 
-        // Create a game item with chess component
+        // Create a game item with chess component in AUTHENTICATED mode
         gameItem = Item.create(librarian);
         chess = ChessGame.create();
+        chess.setMode(GameMode.AUTHENTICATED);
         gameItem.addComponent("chess", chess);
     }
 

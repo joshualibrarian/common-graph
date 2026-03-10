@@ -11,8 +11,9 @@
  *       type-appropriate widgets per field (toggle for booleans, options for enums, text for strings)</li>
  * </ul>
  *
- * <p>Phase 1 supports boolean toggle and enum selection. String/numeric fields are display-only
- * until text input write-back is implemented.
+ * <p>Supported field types: boolean (toggle), enum (option list), String (editable text),
+ * numeric (editable text with type-aware parsing), nested Canonical (expandable sub-editor).
+ * Collections are display-only (item count) pending list editing support.
  *
  * @see dev.everydaythings.graph.CanonicalSchema
  */

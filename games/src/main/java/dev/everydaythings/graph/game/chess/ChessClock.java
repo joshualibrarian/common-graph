@@ -39,7 +39,7 @@ public class ChessClock implements Canonical {
     @Canon(order = 3) private int blackSeconds;
     @Canon(order = 4) private boolean whiteActive;
     @Canon(order = 5) private boolean running;
-    @Canon(order = 6) private int incrementSeconds;
+    @Canon(order = 6, setting = true) private int incrementSeconds;
 
     // ==================================================================================
     // 2D scene layout — vertical stack of two timer sections

@@ -139,10 +139,19 @@ public class EditModel extends SceneModel<SurfaceSchema> {
                 }
             }
             case "set" -> {
-                if (fs.isString() && target != null) {
+                if (target == null) return false;
+                if (fs.isString()) {
                     fs.setValue(this.target, target);
                     changed();
                     return true;
+                }
+                if (fs.isNumeric()) {
+                    Object parsed = parseNumeric(fs.type(), target);
+                    if (parsed != null) {
+                        fs.setValue(this.target, parsed);
+                        changed();
+                        return true;
+                    }
                 }
             }
         }
@@ -154,6 +163,27 @@ public class EditModel extends SceneModel<SurfaceSchema> {
     private FieldSchema findField(String name) {
         for (FieldSchema fs : fields) {
             if (fs.name().equals(name)) return fs;
+        }
+        return null;
+    }
+
+    /**
+     * Parse a string value to the correct numeric type.
+     *
+     * @return the parsed value, or null if parsing fails
+     */
+    private static Object parseNumeric(Class<?> type, String text) {
+        try {
+            if (type == int.class || type == Integer.class) return Integer.parseInt(text);
+            if (type == long.class || type == Long.class) return Long.parseLong(text);
+            if (type == double.class || type == Double.class) return Double.parseDouble(text);
+            if (type == float.class || type == Float.class) return Float.parseFloat(text);
+            if (type == short.class || type == Short.class) return Short.parseShort(text);
+            if (type == byte.class || type == Byte.class) return Byte.parseByte(text);
+            // Generic Number subclass — try double
+            if (Number.class.isAssignableFrom(type)) return Double.parseDouble(text);
+        } catch (NumberFormatException e) {
+            return null;
         }
         return null;
     }

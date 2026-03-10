@@ -20,11 +20,11 @@ import java.util.List;
  *
  * <table>
  *   <tr><th>Field type</th><th>Widget</th><th>Editable?</th></tr>
- *   <tr><td>boolean</td><td>Toggle track+thumb</td><td>Yes</td></tr>
- *   <tr><td>enum</td><td>Option list</td><td>Yes</td></tr>
- *   <tr><td>String</td><td>Text display</td><td>Display-only</td></tr>
- *   <tr><td>int/long/etc.</td><td>Text display</td><td>Display-only</td></tr>
- *   <tr><td>Canonical</td><td>Type name</td><td>Display-only</td></tr>
+ *   <tr><td>boolean</td><td>Toggle (ON/OFF)</td><td>Yes (click)</td></tr>
+ *   <tr><td>enum</td><td>Option list</td><td>Yes (click)</td></tr>
+ *   <tr><td>String</td><td>Editable text</td><td>Yes (inline edit)</td></tr>
+ *   <tr><td>int/long/etc.</td><td>Editable text</td><td>Yes (inline edit)</td></tr>
+ *   <tr><td>Canonical</td><td>Nested sub-editor</td><td>Read-only (expandable)</td></tr>
  *   <tr><td>List</td><td>Item count</td><td>Display-only</td></tr>
  *   <tr><td>Other</td><td>toString()</td><td>Display-only</td></tr>
  * </table>
@@ -41,8 +41,7 @@ public class CanonicalEditorSurface extends SurfaceSchema<Void> {
     public void render(SurfaceRenderer out) {
         emitCommonProperties(out);
 
-        // Outer vertical container for all field rows
-        out.gap("0.5em");
+        // Outer vertical container — spacing via "editor" style class
         out.beginBox(Scene.Direction.VERTICAL, List.of("editor"));
 
         for (FieldSchema fs : model.schema().fields()) {
@@ -60,7 +59,6 @@ public class CanonicalEditorSurface extends SurfaceSchema<Void> {
             renderEnumField(out, fs, value);
         } else {
             // All other fields use horizontal layout: [label] [widget]
-            out.gap("0.5em");
             out.beginBox(Scene.Direction.HORIZONTAL, List.of("editor-field"));
 
             // Label
@@ -70,11 +68,11 @@ public class CanonicalEditorSurface extends SurfaceSchema<Void> {
             if (fs.isBoolean()) {
                 renderToggle(out, fs, value);
             } else if (fs.isString()) {
-                renderText(out, value);
+                renderEditableText(out, fs, value);
             } else if (fs.isNumeric()) {
-                renderText(out, value);
+                renderEditableText(out, fs, value);
             } else if (fs.isCanonical()) {
-                renderCanonicalRef(out, fs);
+                renderCanonicalNested(out, fs, value);
             } else if (fs.isCollection()) {
                 renderCollection(out, value);
             } else {
@@ -108,7 +106,6 @@ public class CanonicalEditorSurface extends SurfaceSchema<Void> {
         Object[] constants = fs.enumConstants();
         if (constants == null) return;
 
-        out.gap("0.25em");
         out.beginBox(Scene.Direction.VERTICAL, List.of("editor-field", "editor-enum"));
 
         // Label
@@ -133,13 +130,47 @@ public class CanonicalEditorSurface extends SurfaceSchema<Void> {
         out.endBox();
     }
 
-    private void renderText(SurfaceRenderer out, Object value) {
+    /**
+     * Render an editable text field for string and numeric fields.
+     *
+     * <p>Marks the text as editable and attaches a "change" event so the
+     * renderer can fire {@code set:fieldName} when the user modifies it.
+     */
+    private void renderEditableText(SurfaceRenderer out, FieldSchema fs, Object value) {
         String display = value != null ? value.toString() : "";
-        out.text(display, List.of("editor-value"));
+        out.editable(true);
+        out.event("change", "set:" + fs.name(), "");
+        out.text(display, List.of("editor-value", "editor-editable"));
     }
 
-    private void renderCanonicalRef(SurfaceRenderer out, FieldSchema fs) {
-        out.text(fs.type().getSimpleName(), List.of("editor-value", "muted"));
+    /**
+     * Render a nested Canonical field as an inline sub-editor.
+     *
+     * <p>If the value is non-null, recursively renders its @Canon fields
+     * indented within a sub-container. If null, shows the type name.
+     */
+    private void renderCanonicalNested(SurfaceRenderer out, FieldSchema fs, Object value) {
+        if (value instanceof Canonical canonical) {
+            CanonicalSchema nestedSchema = CanonicalSchema.of(canonical.getClass());
+            out.beginBox(Scene.Direction.VERTICAL, List.of("editor-nested"));
+            for (CanonicalSchema.FieldSchema nestedFs : nestedSchema.fields()) {
+                Object nestedValue = nestedFs.getValue(canonical);
+                out.beginBox(Scene.Direction.HORIZONTAL, List.of("editor-field", "editor-nested-field"));
+                out.text(nestedFs.displayName(), List.of("editor-label", "muted"));
+                if (nestedFs.isBoolean()) {
+                    boolean on = nestedValue instanceof Boolean b && b;
+                    out.text(on ? "ON" : "OFF", List.of("editor-value"));
+                } else if (nestedFs.isEnum()) {
+                    out.text(nestedValue != null ? ((Enum<?>) nestedValue).name() : "", List.of("editor-value"));
+                } else {
+                    out.text(nestedValue != null ? nestedValue.toString() : "", List.of("editor-value", "muted"));
+                }
+                out.endBox();
+            }
+            out.endBox();
+        } else {
+            out.text(fs.type().getSimpleName(), List.of("editor-value", "muted"));
+        }
     }
 
     private void renderCollection(SurfaceRenderer out, Object value) {

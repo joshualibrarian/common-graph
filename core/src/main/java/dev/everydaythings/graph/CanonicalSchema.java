@@ -131,7 +131,8 @@ public class CanonicalSchema {
                         toDisplayName(f.getName()),
                         canon.order(),
                         canon.isBody(),
-                        canon.isRecord()
+                        canon.isRecord(),
+                        canon.setting()
                 ));
             }
         }
@@ -195,6 +196,7 @@ public class CanonicalSchema {
         int order;
         boolean isBody;
         boolean isRecord;
+        boolean isSetting;
 
         /**
          * Is this field a Canonical type?

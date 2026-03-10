@@ -303,6 +303,7 @@ class GameComponentTest {
     @Test
     void joinVerb_rejectsAlreadySeated() {
         TestGame game = new TestGame();
+        game.setMode(GameMode.AUTHENTICATED);
         game.joinVerb(ctxFor(pid("alice")), null);
 
         assertThatIllegalStateException()

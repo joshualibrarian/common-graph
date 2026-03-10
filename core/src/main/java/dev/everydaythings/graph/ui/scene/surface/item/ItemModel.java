@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.ui.scene.surface.item;
 
+import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.CanonicalSchema;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Link;
 import dev.everydaythings.graph.item.TreeLink;
@@ -30,6 +32,7 @@ import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneSchema;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
+import dev.everydaythings.graph.ui.scene.surface.bool.ToggleSurface;
 import dev.everydaythings.graph.ui.scene.surface.layout.ConstraintSurface;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
@@ -88,6 +91,14 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * In INSPECT mode, shows raw components (developer view).
      */
     private TreeModel<?> treeModel;
+
+    /**
+     * Config panel surface for the left pane (CONFIG mode only).
+     *
+     * <p>Replaces the tree with an editable settings form. Built from
+     * {@code @Canon(setting = true)} fields on the context item's components.
+     */
+    private SurfaceSchema<?> configPanel;
 
     /**
      * Current structure mode — controls how item structure is interpreted.
@@ -321,7 +332,9 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     public SurfaceSchema tree() {
         ContainerSurface panel = ContainerSurface.vertical().gap("0.25em").style("tree-pane");
         panel.add(buildTreeModeBar());
-        if (treeModel != null) {
+        if (treePaneMode == TreePaneMode.CONFIG && configPanel != null) {
+            panel.add(configPanel);
+        } else if (treeModel != null) {
             panel.add(treeModel.toSurface());
         }
         return panel;
@@ -766,12 +779,18 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         Optional<Item> focused = resolver.apply(context.item());
         if (focused.isEmpty()) {
             treeModel = null;
+            configPanel = null;
             return;
         }
-        treeModel = treePaneMode == TreePaneMode.VOCABULARY
-                ? buildVocabularyTree(focused.get())
-                : buildConfigTree(focused.get());
-        treeModel.onChange(this::changed);
+
+        if (treePaneMode == TreePaneMode.CONFIG) {
+            treeModel = null;
+            configPanel = buildConfigPanel(focused.get());
+        } else {
+            configPanel = null;
+            treeModel = buildVocabularyTree(focused.get());
+            treeModel.onChange(this::changed);
+        }
     }
 
     /**
@@ -934,6 +953,13 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             changed();
             return true;
         }
+        // Config panel setting changes
+        if ("configToggle".equals(action) && target != null) {
+            return handleConfigToggle(target);
+        }
+        if ("configCycle".equals(action) && target != null) {
+            return handleConfigCycle(target);
+        }
         return switch (action) {
             case "back" -> goBack();
             case "select", "expand", "collapse", "toggle", "activate" -> {
@@ -949,6 +975,83 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             }
         };
     }
+
+    // ==================== Config Setting Handlers ====================
+
+    /**
+     * Handle a boolean toggle from the config panel.
+     *
+     * @param fieldKey "handleKey:fieldName" identifying the component and field
+     */
+    private boolean handleConfigToggle(String fieldKey) {
+        var resolved = resolveConfigField(fieldKey);
+        if (resolved == null) return false;
+
+        boolean current = resolved.fs().getValue(resolved.instance()) instanceof Boolean b && b;
+        resolved.fs().setValue(resolved.instance(), !current);
+        rebuildTree();
+        changed();
+        return true;
+    }
+
+    /**
+     * Handle an enum cycle from the config panel.
+     *
+     * @param fieldKey "handleKey:fieldName" identifying the component and field
+     */
+    private boolean handleConfigCycle(String fieldKey) {
+        var resolved = resolveConfigField(fieldKey);
+        if (resolved == null) return false;
+
+        Object[] constants = resolved.fs().enumConstants();
+        if (constants == null || constants.length == 0) return false;
+
+        Object current = resolved.fs().getValue(resolved.instance());
+        int idx = 0;
+        if (current != null) {
+            for (int i = 0; i < constants.length; i++) {
+                if (constants[i].equals(current)) {
+                    idx = (i + 1) % constants.length;
+                    break;
+                }
+            }
+        }
+        resolved.fs().setValue(resolved.instance(), constants[idx]);
+        rebuildTree();
+        changed();
+        return true;
+    }
+
+    /**
+     * Resolve a config field key ("handleKey:fieldName") to the live instance and field schema.
+     */
+    private ConfigFieldRef resolveConfigField(String fieldKey) {
+        int sep = fieldKey.lastIndexOf(':');
+        if (sep <= 0) return null;
+
+        String handleKey = fieldKey.substring(0, sep);
+        String fieldName = fieldKey.substring(sep + 1);
+
+        Optional<Item> focused = resolver.apply(context.item());
+        if (focused.isEmpty()) return null;
+
+        for (ComponentEntry entry : focused.get().content()) {
+            if (!entry.handle().encodeText().equals(handleKey)) continue;
+
+            Object instance = entry.instance();
+            if (instance == null) return null;
+
+            CanonicalSchema schema = CanonicalSchema.of(instance.getClass());
+            for (CanonicalSchema.FieldSchema fs : schema.fields()) {
+                if (fs.isSetting() && fs.name().equals(fieldName)) {
+                    return new ConfigFieldRef(instance, fs, entry);
+                }
+            }
+        }
+        return null;
+    }
+
+    private record ConfigFieldRef(Object instance, CanonicalSchema.FieldSchema fs, ComponentEntry entry) {}
 
     private SurfaceSchema buildTreeModeBar() {
         ContainerSurface modeBar = ContainerSurface.horizontal()
@@ -978,71 +1081,152 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         return button;
     }
 
-    private TreeModel<MetaNode> buildConfigTree(Item item) {
-        MetaNode rootNode = new MetaNode("config-root", "⚙️", "Config", new ArrayList<>());
+    // ==================== Config Panel ====================
+
+    /**
+     * Build the config panel for an item.
+     *
+     * <p>Shows editable settings for each component that has
+     * {@code @Canon(setting = true)} fields. Components are shown as
+     * accordion sections; settings render as appropriate widgets
+     * (toggle for boolean, dropdown for enum, text for string/number).
+     */
+    private SurfaceSchema<?> buildConfigPanel(Item item) {
+        ContainerSurface panel = ContainerSurface.vertical()
+                .gap("0.5em")
+                .style("config-panel");
+
         List<ComponentEntry> entries = new ArrayList<>();
         item.content().forEach(entries::add);
         entries.sort(Comparator.comparing(ComponentEntry::displayToken, String.CASE_INSENSITIVE_ORDER));
 
+        boolean hasSettings = false;
         for (ComponentEntry entry : entries) {
-            List<MetaNode> componentChildren = new ArrayList<>();
-
-            PolicySet policy = entry.policy();
-            if (policy != null) {
-                componentChildren.add(new MetaNode(
-                        "cfg:" + entry.handle().encodeText() + ":policy",
-                        "🛡️",
-                        "Policy: " + policy.getClass().getSimpleName(),
-                        List.of()));
-            }
-
-            Map<String, List<ComponentEntry.ScopedSetting>> byScope = new LinkedHashMap<>();
-            for (ComponentEntry.ScopedSetting setting : entry.config().settings()) {
-                String scope = setting.scopePath() == null || setting.scopePath().isBlank()
-                        ? "/"
-                        : setting.scopePath();
-                byScope.computeIfAbsent(scope, ignored -> new ArrayList<>()).add(setting);
-            }
-            boolean onlyRootScope = byScope.size() == 1 && byScope.containsKey("/");
-            for (Map.Entry<String, List<ComponentEntry.ScopedSetting>> scoped : byScope.entrySet()) {
-                List<MetaNode> scopeChildren = new ArrayList<>();
-                for (ComponentEntry.ScopedSetting setting : scoped.getValue()) {
-                    String value = setting.value() == null ? "" : setting.value();
-                    String type = setting.valueType() == null || setting.valueType().isBlank()
-                            ? ""
-                            : " [" + setting.valueType() + "]";
-                    String label = setting.key() + "=" + value + type;
-                    scopeChildren.add(new MetaNode(
-                            "cfg:" + entry.handle().encodeText() + ":" + scoped.getKey() + ":" + setting.key(),
-                            "🔧",
-                            label,
-                            List.of()));
-                }
-
-                if (onlyRootScope) {
-                    componentChildren.addAll(scopeChildren);
-                } else {
-                    componentChildren.add(new MetaNode(
-                            "cfg:" + entry.handle().encodeText() + ":" + scoped.getKey(),
-                            "📍",
-                            "Scope " + scoped.getKey(),
-                            scopeChildren));
-                }
-            }
-
-            if (!componentChildren.isEmpty()) {
-                rootNode.children.add(new MetaNode(
-                        "cfg:" + entry.handle().encodeText(),
-                        entry.emoji(),
-                        entry.displayToken(),
-                        componentChildren));
+            ContainerSurface section = buildComponentConfigSection(entry);
+            if (section != null) {
+                panel.add(section);
+                hasSettings = true;
             }
         }
 
-        if (rootNode.children.isEmpty()) {
-            rootNode.children.add(new MetaNode("cfg:none", "ℹ️", "No config metadata on current context", List.of()));
+        if (!hasSettings) {
+            panel.add(TextSurface.of("No configurable settings").style("muted"));
         }
-        return metaTree(rootNode);
+
+        return panel;
+    }
+
+    /**
+     * Build a config section for a single component.
+     *
+     * <p>Shows {@code @Canon(setting = true)} fields as editable widgets,
+     * plus the component's policy if present.
+     *
+     * @return a container with header + settings + policy, or null if nothing to show
+     */
+    private ContainerSurface buildComponentConfigSection(ComponentEntry entry) {
+        // Gather settings from live instance
+        List<CanonicalSchema.FieldSchema> settings = List.of();
+        Object instance = entry.instance();
+        if (instance != null) {
+            CanonicalSchema schema = CanonicalSchema.of(instance.getClass());
+            settings = schema.fields().stream()
+                    .filter(CanonicalSchema.FieldSchema::isSetting)
+                    .toList();
+        }
+
+        PolicySet policy = entry.policy();
+
+        // Nothing to show for this component
+        if (settings.isEmpty() && policy == null) return null;
+
+        String handleKey = entry.handle().encodeText();
+
+        // Section container
+        ContainerSurface section = ContainerSurface.vertical()
+                .gap("0.3em")
+                .style("config-section");
+
+        // Component header
+        ContainerSurface header = ContainerSurface.horizontal()
+                .gap("0.4em")
+                .style("config-section-header");
+        header.add(ImageSurface.of(entry.emoji()).size("small"));
+        header.add(TextSurface.of(entry.displayToken()).style("config-section-title"));
+        section.add(header);
+
+        // Setting widgets
+        for (CanonicalSchema.FieldSchema fs : settings) {
+            Object value = fs.getValue(instance);
+            String fieldKey = handleKey + ":" + fs.name();
+            SurfaceSchema<?> widget = buildSettingWidget(fs, value, fieldKey);
+            if (widget != null) {
+                section.add(widget);
+            }
+        }
+
+        // Policy
+        if (policy != null) {
+            ContainerSurface policyRow = ContainerSurface.horizontal()
+                    .gap("0.5em")
+                    .style("config-field");
+            policyRow.add(TextSurface.of("Policy").style("config-label"));
+            policyRow.add(TextSurface.of(policy.getClass().getSimpleName()).style("config-value"));
+            section.add(policyRow);
+        }
+
+        return section;
+    }
+
+    /**
+     * Build the appropriate editable widget for a setting field.
+     *
+     * <p>Boolean → toggle switch. Enum → cycling button (click to advance).
+     * Numeric/string → read-only display (editable input TODO).
+     */
+    private SurfaceSchema<?> buildSettingWidget(
+            CanonicalSchema.FieldSchema fs, Object value, String fieldKey) {
+
+        if (fs.isBoolean()) {
+            boolean on = value instanceof Boolean b && b;
+            ToggleSurface toggle = ToggleSurface.of(on, fs.displayName())
+                    .editable(true);
+            toggle.id("cfg:" + fieldKey);
+            toggle.onClick("configToggle", fieldKey);
+            return toggle;
+        }
+
+        if (fs.isEnum()) {
+            String display = value != null ? ((Enum<?>) value).name() : "—";
+            ContainerSurface row = ContainerSurface.horizontal()
+                    .gap("0.5em")
+                    .style("config-field");
+            row.add(TextSurface.of(fs.displayName()).style("config-label"));
+            ButtonSurface cycleButton = ButtonSurface.of(display, "configCycle");
+            cycleButton.on("click", "configCycle", fieldKey);
+            cycleButton.style("config-enum-button");
+            row.add(cycleButton);
+            return row;
+        }
+
+        if (fs.isNumeric() || fs.isString()) {
+            String display = value != null ? value.toString() : "";
+            ContainerSurface row = ContainerSurface.horizontal()
+                    .gap("0.5em")
+                    .style("config-field");
+            row.add(TextSurface.of(fs.displayName()).style("config-label"));
+            row.add(TextSurface.of(display).style("config-value"));
+            return row;
+        }
+
+        // Fallback: read-only display
+        String display = value != null ? value.toString() : "null";
+        ContainerSurface row = ContainerSurface.horizontal()
+                .gap("0.5em")
+                .style("config-field");
+        row.add(TextSurface.of(fs.displayName()).style("config-label"));
+        row.add(TextSurface.of(display).style("config-value", "muted"));
+        return row;
     }
 
     private TreeModel<MetaNode> buildVocabularyTree(Item item) {

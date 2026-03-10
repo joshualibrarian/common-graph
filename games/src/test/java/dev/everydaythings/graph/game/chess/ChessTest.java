@@ -3,6 +3,7 @@ package dev.everydaythings.graph.game.chess;
 import com.github.bhlangonijr.chesslib.Side;
 import dev.everydaythings.graph.game.BoardState;
 import dev.everydaythings.graph.game.GameBoard;
+import dev.everydaythings.graph.game.GameMode;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemScanner;
 import dev.everydaythings.graph.item.VerbSpec;
@@ -18,6 +19,7 @@ import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -736,6 +738,7 @@ class ChessTest {
     @Test
     void move_withWrongTurn_throwsSecurityException() {
         ChessGame chess = ChessGame.create();
+        chess.setMode(GameMode.AUTHENTICATED);
         ItemID white = pid("white");
         ItemID black = pid("black");
         chess.joinAs(0, white);
@@ -750,6 +753,7 @@ class ChessTest {
     @Test
     void move_withUnseatedCaller_throwsSecurityException() {
         ChessGame chess = ChessGame.create();
+        chess.setMode(GameMode.AUTHENTICATED);
         ItemID white = pid("white");
         chess.joinAs(0, white);
 
@@ -838,7 +842,7 @@ class ChessTest {
 
     @Test
     void createWithPlayers() {
-        var params = java.util.Map.<String, Object>of(
+        var params = Map.<String, Object>of(
                 "players", List.of("Alice", "Bob"));
         ChessGame chess = ChessGame.create(params);
 
@@ -850,7 +854,7 @@ class ChessTest {
     @Test
     void createWithFenSource() {
         String fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
-        var params = java.util.Map.<String, Object>of("source", fen);
+        var params = Map.<String, Object>of("source", fen);
         ChessGame chess = ChessGame.create(params);
 
         assertThat(chess.fen()).isEqualTo(fen);
@@ -859,7 +863,7 @@ class ChessTest {
 
     @Test
     void createWithPgnMoves() {
-        var params = java.util.Map.<String, Object>of(
+        var params = Map.<String, Object>of(
                 "source", "1. e2e4 e7e5 2. g1f3 b8c6");
         ChessGame chess = ChessGame.create(params);
 
@@ -870,7 +874,7 @@ class ChessTest {
     @Test
     void createWithPlayersAndSource() {
         String fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
-        var params = java.util.Map.<String, Object>of(
+        var params = Map.<String, Object>of(
                 "players", List.of("Alice", "Bob"),
                 "source", fen);
         ChessGame chess = ChessGame.create(params);
@@ -887,5 +891,114 @@ class ChessTest {
         assertThat(chess.whiteLabel()).isEqualTo("White");
         assertThat(chess.blackLabel()).isEqualTo("Black");
         assertThat(chess.moveCount()).isEqualTo(0);
+    }
+
+    // ==================================================================================
+    // Game Mode Tests
+    // ==================================================================================
+
+    @Test
+    void defaultMode_isAnalysis() {
+        ChessGame chess = ChessGame.create();
+        assertThat(chess.mode()).isEqualTo(GameMode.ANALYSIS);
+    }
+
+    @Test
+    void analysisMode_anyoneCanMove() {
+        ChessGame chess = ChessGame.create();
+        // No players seated — anyone can move
+        assertThat(chess.move("e2e4")).isNull();
+        assertThat(chess.move("e7e5")).isNull();
+        assertThat(chess.moveCount()).isEqualTo(2);
+    }
+
+    @Test
+    void analysisMode_noTurnEnforcement() {
+        ChessGame chess = ChessGame.create();
+        ItemID alice = pid("alice");
+        ItemID bob = pid("bob");
+        chess.joinAs(0, alice);
+        chess.joinAs(1, bob);
+
+        // In analysis mode, wrong-turn moves still work
+        chess.move(ctxFor(alice), "e2e4");
+        String result = chess.move(ctxFor(alice), "d2d4"); // alice again — would fail in authenticated
+        // Should not throw, but might be illegal chess move (wrong turn for chess rules)
+        // The key point: no SecurityException
+        assertThat(chess.moveCount()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void authenticatedMode_enforcesTurns() {
+        ChessGame chess = ChessGame.create();
+        chess.setMode(GameMode.AUTHENTICATED);
+        ItemID white = pid("white");
+        ItemID black = pid("black");
+        chess.joinAs(0, white);
+        chess.joinAs(1, black);
+
+        chess.move(ctxFor(white), "e2e4");
+
+        // Wrong turn should throw
+        assertThatThrownBy(() -> chess.move(ctxFor(white), "d2d4"))
+                .isInstanceOf(SecurityException.class);
+    }
+
+    @Test
+    void archiveMode_rejectsNewMoves() {
+        ChessGame chess = ChessGame.create();
+        chess.setMode(GameMode.ARCHIVE);
+
+        String result = chess.move("e2e4");
+        assertThat(result).contains("archive");
+        assertThat(chess.moveCount()).isEqualTo(0);
+    }
+
+    @Test
+    void archiveMode_rejectsVerbMoves() {
+        ChessGame chess = ChessGame.create();
+        chess.setMode(GameMode.ARCHIVE);
+
+        String result = chess.move(ctxFor(pid("alice")), "e2e4");
+        assertThat(result).contains("archive");
+    }
+
+    // ==================================================================================
+    // PGN Import Tests
+    // ==================================================================================
+
+    @Test
+    void createFromPgn_loadsMovesAndSetsArchive() {
+        var params = Map.<String, Object>of(
+                "players", List.of("Marshall, Frank", "Capablanca, Jose Raul"),
+                "source", "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6");
+        ChessGame chess = ChessGame.create(params);
+
+        assertThat(chess.mode()).isEqualTo(GameMode.ARCHIVE);
+        assertThat(chess.whiteLabel()).isEqualTo("Marshall, Frank");
+        assertThat(chess.blackLabel()).isEqualTo("Capablanca, Jose Raul");
+        assertThat(chess.moveCount()).isEqualTo(6);
+    }
+
+    @Test
+    void createFromPgn_modeCanBeOverridden() {
+        var params = Map.<String, Object>of(
+                "players", List.of("Alice", "Bob"),
+                "source", "1. e4 e5",
+                "mode", "ANALYSIS");
+        ChessGame chess = ChessGame.create(params);
+
+        // Explicit mode overrides the default archive
+        assertThat(chess.mode()).isEqualTo(GameMode.ANALYSIS);
+        assertThat(chess.moveCount()).isEqualTo(2);
+    }
+
+    @Test
+    void createFromPgn_stringModeParam() {
+        var params = Map.<String, Object>of(
+                "mode", GameMode.AUTHENTICATED);
+        ChessGame chess = ChessGame.create(params);
+
+        assertThat(chess.mode()).isEqualTo(GameMode.AUTHENTICATED);
     }
 }

@@ -30,6 +30,13 @@ class CanonicalEditorTest {
         @Canon(order = 2) int fontSize = 14;
         @Canon(order = 3) TestLayout layout = TestLayout.VERTICAL;
         @Canon(order = 4) List<String> tags = new ArrayList<>();
+        @Canon(order = 5) TestFont font = new TestFont();
+    }
+
+    static class TestFont implements Canonical {
+        @Canon(order = 0) String family = "Inter";
+        @Canon(order = 1) int weight = 400;
+        @Canon(order = 2) boolean italic = false;
     }
 
     // ==================================================================================
@@ -191,14 +198,60 @@ class CanonicalEditorTest {
         }
 
         @Test
-        @DisplayName("set on non-string field is not handled")
-        void setNonString() {
+        @DisplayName("set on boolean field is not handled")
+        void setOnBoolean() {
+            TestConfig config = new TestConfig();
+            EditModel model = new EditModel(config);
+
+            boolean handled = model.handleEvent("set:darkMode", "true");
+
+            assertThat(handled).isFalse();
+        }
+    }
+
+    // ==================================================================================
+    // Numeric set
+    // ==================================================================================
+
+    @Nested
+    @DisplayName("Numeric set events")
+    class NumericSet {
+
+        @Test
+        @DisplayName("set:fontSize changes int value")
+        void setChangesInt() {
             TestConfig config = new TestConfig();
             EditModel model = new EditModel(config);
 
             boolean handled = model.handleEvent("set:fontSize", "20");
 
+            assertThat(handled).isTrue();
+            assertThat(config.fontSize).isEqualTo(20);
+        }
+
+        @Test
+        @DisplayName("set:fontSize with invalid number is not handled")
+        void setInvalidNumber() {
+            TestConfig config = new TestConfig();
+            EditModel model = new EditModel(config);
+
+            boolean handled = model.handleEvent("set:fontSize", "abc");
+
             assertThat(handled).isFalse();
+            assertThat(config.fontSize).isEqualTo(14); // unchanged
+        }
+
+        @Test
+        @DisplayName("set fires onChange for numeric field")
+        void numericSetFiresOnChange() {
+            TestConfig config = new TestConfig();
+            EditModel model = new EditModel(config);
+            AtomicInteger count = new AtomicInteger();
+            model.onChange(count::incrementAndGet);
+
+            model.handleEvent("set:fontSize", "24");
+
+            assertThat(count.get()).isEqualTo(1);
         }
     }
 
@@ -370,6 +423,24 @@ class CanonicalEditorTest {
         }
 
         @Test
+        @DisplayName("render shows nested Canonical fields")
+        void renderShowsNestedFields() {
+            TestConfig config = new TestConfig();
+            EditModel model = new EditModel(config);
+
+            SurfaceSchema surface = model.toSurface();
+            CliSurfaceRenderer renderer = new CliSurfaceRenderer();
+            surface.render(renderer);
+            String output = renderer.result();
+
+            // Nested TestFont fields should appear
+            assertThat(output).contains("Family");
+            assertThat(output).contains("Inter");
+            assertThat(output).contains("Weight");
+            assertThat(output).contains("400");
+        }
+
+        @Test
         @DisplayName("re-render after mutation shows updated values")
         void reRenderAfterMutation() {
             TestConfig config = new TestConfig();
@@ -406,6 +477,7 @@ class CanonicalEditorTest {
             model.handleEvent("set:title", "Round Trip");
             model.handleEvent("toggle:darkMode", "");
             model.handleEvent("select:layout", "GRID");
+            model.handleEvent("set:fontSize", "24");
 
             // Encode
             byte[] bytes = config.encodeBinary(Canonical.Scope.RECORD);
@@ -416,6 +488,7 @@ class CanonicalEditorTest {
             assertThat(decoded.title).isEqualTo("Round Trip");
             assertThat(decoded.darkMode).isTrue();
             assertThat(decoded.layout).isEqualTo(TestLayout.GRID);
+            assertThat(decoded.fontSize).isEqualTo(24);
         }
     }
 
