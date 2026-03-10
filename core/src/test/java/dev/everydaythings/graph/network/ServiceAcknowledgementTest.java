@@ -86,9 +86,9 @@ class ServiceAcknowledgementTest {
                 .findFirst().orElseThrow();
         assertThat(ack.authorKey()).isNotNull();
 
-        // The acknowledgement should have a request-id qualifier
-        assertThat(ack.qualifiers()).containsKey(Host.REQUEST_ID.iid());
-        Literal requestIdLit = (Literal) ack.qualifiers().get(Host.REQUEST_ID.iid());
+        // The acknowledgement should have a request-id binding
+        assertThat(ack.bindings()).containsKey(Host.REQUEST_ID.iid());
+        Literal requestIdLit = (Literal) ack.bindings().get(Host.REQUEST_ID.iid());
         assertThat(requestIdLit.asInteger()).isGreaterThan(0);
     }
 

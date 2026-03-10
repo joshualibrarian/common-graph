@@ -1,8 +1,10 @@
 package dev.everydaythings.graph.library;
 
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.RelationID;
 import dev.everydaythings.graph.item.id.VersionID;
+import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
@@ -15,11 +17,22 @@ import java.util.stream.Stream;
 /**
  * Unified index for relation queries across all stores in a Library.
  *
+ * <p>Fan-out indexes map binding participants to RECORD CIDs, which are then
+ * used to load the actual relation bytes from {@link ItemStore}.
+ *
+ * <p>Two fan-out columns:
+ * <ul>
+ *   <li>{@code REL_BY_ITEM} — indexes every IidTarget binding:
+ *       Key: itemIID | predicate | recordCID → empty value.
+ *       Enables "all relations involving item X" and "all relations
+ *       involving item X via predicate P".</li>
+ *   <li>{@code REL_BY_PRED} — indexes by predicate alone:
+ *       Key: predicate | recordCID → empty value.
+ *       Enables "all relations of type P".</li>
+ * </ul>
+ *
  * <p>Implementations must also implement a ByteStore with {@link Column}.
  * All operations are provided as default methods using the underlying ByteStore.
- *
- * <p>LibraryIndex extends {@link Service} for lifecycle management and UI presentation.
- * Service methods are provided by the underlying ByteStore implementation.
  *
  * <p>Example implementation:
  * <pre>{@code
@@ -32,10 +45,11 @@ import java.util.stream.Stream;
 public interface LibraryIndex extends Service {
 
     /**
-     * A lightweight reference to a relation: its subject and RID.
-     * Used to resolve relation bytes from ItemStore.RELATION column.
+     * A lightweight reference to a relation: its RID and RECORD CID.
+     * RECORD CID is used to load bytes from ItemStore.RELATION column.
+     * RID is the semantic identity (hash of BODY).
      */
-    record RelationRef(ItemID subject, RelationID rid) {}
+    record RelationRef(RelationID rid, ContentID recordCid) {}
 
     // ==================================================================================
     // ByteStore Access
@@ -54,22 +68,22 @@ public interface LibraryIndex extends Service {
     // ==================================================================================
 
     /**
-     * Query relation refs by subject.
+     * Query relation refs by a participating item (any role).
      */
-    default Stream<RelationRef> bySubject(ItemID subject) {
-        Objects.requireNonNull(subject, "subject");
-        byte[] prefix = Column.REL_BY_SUBJ.keyPrefix(subject);
-        return streamRefsWithPrefix(Column.REL_BY_SUBJ, prefix);
+    default Stream<RelationRef> byItem(ItemID item) {
+        Objects.requireNonNull(item, "item");
+        byte[] prefix = Column.REL_BY_ITEM.keyPrefix(item);
+        return streamRefsWithPrefix(Column.REL_BY_ITEM, prefix);
     }
 
     /**
-     * Query relation refs by subject and predicate.
+     * Query relation refs by a participating item and predicate.
      */
-    default Stream<RelationRef> bySubjectPredicate(ItemID subject, ItemID predicate) {
-        Objects.requireNonNull(subject, "subject");
+    default Stream<RelationRef> byItemPredicate(ItemID item, ItemID predicate) {
+        Objects.requireNonNull(item, "item");
         Objects.requireNonNull(predicate, "predicate");
-        byte[] prefix = Column.REL_BY_SUBJ.keyPrefix(subject, predicate);
-        return streamRefsWithPrefix(Column.REL_BY_SUBJ, prefix);
+        byte[] prefix = Column.REL_BY_ITEM.keyPrefix(item, predicate);
+        return streamRefsWithPrefix(Column.REL_BY_ITEM, prefix);
     }
 
     /**
@@ -82,33 +96,13 @@ public interface LibraryIndex extends Service {
     }
 
     /**
-     * Query relation refs by object.
-     */
-    default Stream<RelationRef> byObject(ItemID object) {
-        Objects.requireNonNull(object, "object");
-        byte[] prefix = Column.REL_BY_OBJ.keyPrefix(object);
-        return streamRefsWithPrefix(Column.REL_BY_OBJ, prefix);
-    }
-
-    /**
-     * Query relation refs by object and predicate.
-     */
-    default Stream<RelationRef> byObjectPredicate(ItemID object, ItemID predicate) {
-        Objects.requireNonNull(object, "object");
-        Objects.requireNonNull(predicate, "predicate");
-        byte[] prefix = Column.REL_BY_OBJ.keyPrefix(object, predicate);
-        return streamRefsWithPrefix(Column.REL_BY_OBJ, prefix);
-    }
-
-    /**
-     * Extract (subject, rid) pairs from fan-out index entries.
+     * Extract RelationRefs from fan-out index entries.
      *
-     * <p>Fan-out values store the subject IID bytes. RID is extracted from
-     * the end of the key. Together they form the lookup key for
-     * ItemStore.RELATION column.
+     * <p>The RECORD CID is extracted from the last 34 bytes of the key.
+     * The RID is stored as the value.
      */
     private Stream<RelationRef> streamRefsWithPrefix(Column cf, byte[] prefix) {
-        final int ridSize = 34;
+        final int cidSize = 34;
         List<RelationRef> results = new ArrayList<>();
 
         try (var it = store().iterate(cf, prefix)) {
@@ -116,18 +110,18 @@ public interface LibraryIndex extends Service {
                 var kv = it.next();
                 byte[] key = kv.key();
 
-                if (key.length < ridSize) continue;
+                if (key.length < cidSize) continue;
 
-                // Extract RID from end of key
-                byte[] ridBytes = new byte[ridSize];
-                System.arraycopy(key, key.length - ridSize, ridBytes, 0, ridSize);
-                RelationID rid = new RelationID(ridBytes);
+                // Extract RECORD CID from end of key
+                byte[] cidBytes = new byte[cidSize];
+                System.arraycopy(key, key.length - cidSize, cidBytes, 0, cidSize);
+                ContentID recordCid = new ContentID(cidBytes);
 
-                // Extract subject from value (stored during indexing)
+                // Extract RID from value
                 byte[] value = kv.value();
-                if (value != null && value.length >= ridSize) {
-                    ItemID subject = new ItemID(value);
-                    results.add(new RelationRef(subject, rid));
+                if (value != null && value.length > 0) {
+                    RelationID rid = new RelationID(value);
+                    results.add(new RelationRef(rid, recordCid));
                 }
             }
         }
@@ -174,28 +168,37 @@ public interface LibraryIndex extends Service {
     // ==================================================================================
 
     /**
-     * Index a relation.
+     * Index a relation by its bindings.
+     *
+     * <p>Creates fan-out entries for every IidTarget binding, enabling
+     * lookup by any participating item. The RECORD CID is the storage key;
+     * the RID (semantic identity) is stored as the value.
+     *
+     * @param relation The relation to index
+     * @param recordCid The content ID of the stored RECORD bytes
+     * @param wtx Write transaction
      */
-    default void indexRelation(ItemID subject, ItemID predicate, ItemID object,
-                               RelationID rid, byte[] relationRecord, WriteTransaction wtx) {
-        Objects.requireNonNull(subject, "subject");
-        Objects.requireNonNull(predicate, "predicate");
-        Objects.requireNonNull(rid, "rid");
-        Objects.requireNonNull(relationRecord, "relationRecord");
+    default void indexRelation(Relation relation, ContentID recordCid, WriteTransaction wtx) {
+        Objects.requireNonNull(relation, "relation");
+        Objects.requireNonNull(recordCid, "recordCid");
         Objects.requireNonNull(wtx, "wtx");
 
-        // Fan-out values store subject IID for later resolution via ItemStore.RELATION
-        byte[] subjectBytes = subject.encodeBinary();
+        ItemID predicate = relation.predicate();
+        byte[] ridBytes = relation.rid().encodeBinary();
 
-        // Index by subject + predicate
-        store().put(Column.REL_BY_SUBJ, Column.REL_BY_SUBJ.key(subject, predicate, rid), subjectBytes, wtx);
+        // Index by predicate
+        store().put(Column.REL_BY_PRED, Column.REL_BY_PRED.key(predicate, recordCid), ridBytes, wtx);
 
-        // Index by predicate alone
-        store().put(Column.REL_BY_PRED, Column.REL_BY_PRED.key(predicate, rid), subjectBytes, wtx);
-
-        // Index by object + predicate (only if object is an IID)
-        if (object != null) {
-            store().put(Column.REL_BY_OBJ, Column.REL_BY_OBJ.key(object, predicate, rid), subjectBytes, wtx);
+        // Index by each IidTarget binding (any role)
+        if (relation.bindings() != null) {
+            for (var entry : relation.bindings().entrySet()) {
+                if (entry.getValue() instanceof Relation.IidTarget iidTarget) {
+                    ItemID participantIid = iidTarget.iid();
+                    store().put(Column.REL_BY_ITEM,
+                            Column.REL_BY_ITEM.key(participantIid, predicate, recordCid),
+                            ridBytes, wtx);
+                }
+            }
         }
     }
 
@@ -292,9 +295,13 @@ public interface LibraryIndex extends Service {
     enum Column implements ColumnSchema {
         DEFAULT("default", null, null, KeyEncoder.RAW),
         ITEMS("item.index", null, 10, KeyEncoder.ID),
-        REL_BY_SUBJ("rel.subject.index", 64, 10, KeyEncoder.ID, KeyEncoder.ID, KeyEncoder.ID),
-        REL_BY_OBJ("rel.object.index", 64, 10, KeyEncoder.ID, KeyEncoder.ID, KeyEncoder.ID),
-        REL_BY_PRED("rel.predicate.index", 32, 10, KeyEncoder.ID, KeyEncoder.ID),
+
+        /** Fan-out by participating item: itemIID | predicate | recordCID → RID bytes. */
+        REL_BY_ITEM("rel.item.index", 34, 10, KeyEncoder.ID, KeyEncoder.ID, KeyEncoder.ID),
+
+        /** Fan-out by predicate: predicate | recordCID → RID bytes. */
+        REL_BY_PRED("rel.predicate.index", 34, 10, KeyEncoder.ID, KeyEncoder.ID),
+
         REL_HANDLE("rel.handle.index", 32, 10, KeyEncoder.ID, KeyEncoder.HANDLE),
         HEADS("heads", 34, 10, KeyEncoder.ID, KeyEncoder.ID);
 

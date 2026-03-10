@@ -169,15 +169,15 @@ public record PatternExpression(
                                             ItemID subj, ItemID pred, ItemID obj) {
         // Choose query strategy based on what constraints we have
         if (subj != null && pred != null) {
-            return library.bySubjectPredicate(subj, pred);
+            return library.byItemPredicate(subj, pred);
         } else if (obj != null && pred != null) {
-            return library.byObjectPredicate(obj, pred);
+            return library.byItemPredicate(obj, pred);
         } else if (subj != null) {
-            return library.bySubject(subj);
+            return library.byItem(subj);
         } else if (pred != null) {
             return library.byPredicate(pred);
         } else if (obj != null) {
-            return library.byObject(obj);
+            return library.byItem(obj);
         } else {
             // No constraints - would need full scan (not ideal)
             return Stream.empty();

@@ -150,24 +150,25 @@ Relations are additionally stored in the library's relation index during commit 
 
 ## Relations
 
-A `Relation` is a signed semantic assertion — an RDF-like triple with qualifiers:
+A `Relation` is a signed semantic assertion — a filled frame based on Fillmore's frame semantics:
 
 ```
-subject → predicate → object
+predicate { role₁: value₁, role₂: value₂, ... }
 ```
 
-- **Subject**: an ItemID (the item making the assertion)
-- **Predicate**: an ItemID pointing to a sememe (the meaning of the assertion)
-- **Object**: either an ItemID (linking to another item) or a Literal (text, number, date)
-- **Qualifiers**: optional map of predicate→value pairs (structured metadata on the assertion)
+- **Predicate**: an ItemID pointing to a sememe (names the frame — the meaning of the assertion)
+- **Bindings**: a map of thematic roles → targets (fill the frame's argument slots)
+- **Targets**: either an ItemID (linking to another item) or a Literal (text, number, date)
+
+Thematic roles (THEME, TARGET, AGENT, PATIENT, etc.) are sememes themselves — reusable across predicates.
 
 ```
-item:Book → AUTHOR    → person:Tolkien
-item:Book → TITLE     → "The Hobbit"
-item:Book → PUBLISHED → 1937-09-21
+AUTHOR  { theme: item:Book, target: person:Tolkien }
+TITLE   { theme: item:Book, target: "The Hobbit" }
+PUBLISHED { theme: item:Book, target: 1937-09-21 }
 ```
 
-Relations are **signable** — they bind a body hash to a signer's key and timestamp, so you can verify who asserted what, and when.
+Relations are **signable** — they bind a body hash to a signer's key and timestamp, so you can verify who asserted what, and when. The signer (RECORD-only) is separate from any AGENT binding — same fact from different signers produces the same RID (semantic identity).
 
 ### Relation fields on Item types
 

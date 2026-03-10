@@ -15,7 +15,7 @@ chatRoom {
         roster: Roster (stream)
         chat: ChatLog (stream)
     relations:
-        chatRoom → TITLE → "Project Discussion"
+        TITLE { theme: chatRoom, target: "Project Discussion" }
 }
 ```
 
@@ -29,9 +29,9 @@ A group is an Item with:
 - **Owned items** — Via relations
 
 ```
-group:RainbowOps → hasMember → user:Alice { role: "admin" }
-group:RainbowOps → hasMember → user:Bob { role: "member" }
-group:RainbowOps → owns → item:SharedDocs
+HAS_MEMBER { theme: group:RainbowOps, target: user:Alice, role: "admin" }
+HAS_MEMBER { theme: group:RainbowOps, target: user:Bob, role: "member" }
+OWNS       { theme: group:RainbowOps, target: item:SharedDocs }
 ```
 
 ## Private Messaging
@@ -56,9 +56,9 @@ A game is an Item with a `GameComponent<Op>` (extends `Dag<Op>`) and composes be
 | **Randomized** | Deterministic RNG | Dice, card shuffles |
 
 ```
-game:Chess123 → hasPlayer → user:Alice { color: "white" }
-game:Chess123 → hasPlayer → user:Bob { color: "black" }
-game:Chess123 → usesRules → item:ChessRulesV1
+HAS_PLAYER { theme: game:Chess123, target: user:Alice, color: "white" }
+HAS_PLAYER { theme: game:Chess123, target: user:Bob, color: "black" }
+USES_RULES { theme: game:Chess123, target: item:ChessRulesV1 }
 ```
 
 Moves are signed stream entries. State can be recomputed from move history.

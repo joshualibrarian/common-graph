@@ -440,9 +440,9 @@ public final class Library implements Component, Canonical, AutoCloseable {
      * is both persisted and queryable.
      *
      * @param relation The relation to store
-     * @return The relation ID (hash of the body)
+     * @return The record CID (content-addressed storage key)
      */
-    public RelationID relation(Relation relation) {
+    public ContentID relation(Relation relation) {
         ItemStore store = writableStore()
                 .orElseThrow(() -> new LibraryException("No writable store available"));
         return relation(relation, store);
@@ -487,29 +487,20 @@ public final class Library implements Component, Canonical, AutoCloseable {
      *
      * @param relation The relation to store
      * @param targetStore The store to put the block in (item's own store)
-     * @return The relation ID
+     * @return The record CID
      */
-    public RelationID relation(Relation relation, ItemStore targetStore) {
-        // Store the relation block
-        RelationID rid = targetStore.relation(relation);
+    public ContentID relation(Relation relation, ItemStore targetStore) {
+        // Store the relation block (content-addressed)
+        ContentID recordCid = targetStore.relation(relation);
 
         // Index in library's index
         index().ifPresent(idx -> {
-            byte[] record = relation.encodeBinary(Canonical.Scope.RECORD);
-            ItemID subject = relation.subject();
-            ItemID predicate = relation.predicate();
-            ItemID objectIid = null;
-            if (relation.object() instanceof Relation.IidTarget iidTarget) {
-                objectIid = iidTarget.iid();
-            }
-
-            final ItemID object = objectIid;
             idx.runInWriteTransaction(tx -> {
-                idx.indexRelation(subject, predicate, object, rid, record, tx);
+                idx.indexRelation(relation, recordCid, tx);
             });
         });
 
-        return rid;
+        return recordCid;
     }
 
     /**
@@ -555,7 +546,7 @@ public final class Library implements Component, Canonical, AutoCloseable {
 
         // 3. Store all relations AND index tokens
         //    IMPLEMENTED_BY relations first (needed for type hydration during token indexing)
-        List<Relation> allRelations = source.relations(null).toList();
+        List<Relation> allRelations = source.relations().toList();
         logger.info("importFrom: {} relations to import", allRelations.size());
         ItemID implByPred = Sememe.IMPLEMENTED_BY.iid();
         List<Relation> deferredRelations = new ArrayList<>();
@@ -626,38 +617,35 @@ public final class Library implements Component, Canonical, AutoCloseable {
      * Execute a relation query against the library's index.
      *
      * <p>The index is internal to the library - this is the query interface.
+     * With frame-based relations, queries are by item (any role) and/or predicate.
      */
-    public Stream<Relation> executeQuery(ItemID subject, ItemID predicate, ItemID object) {
-        if (subject == null && predicate == null && object == null) {
-            throw new IllegalArgumentException("At least one constraint (from, via, or to) required");
+    public Stream<Relation> executeQuery(ItemID item, ItemID predicate) {
+        if (item == null && predicate == null) {
+            throw new IllegalArgumentException("At least one constraint (item or predicate) required");
         }
 
-        if (subject != null && predicate != null) {
-            return bySubjectPredicate(subject, predicate);
-        } else if (object != null && predicate != null) {
-            return byObjectPredicate(object, predicate);
-        } else if (subject != null) {
-            return bySubject(subject);
-        } else if (predicate != null) {
-            return byPredicate(predicate);
+        if (item != null && predicate != null) {
+            return byItemPredicate(item, predicate);
+        } else if (item != null) {
+            return byItem(item);
         } else {
-            return byObject(object);
+            return byPredicate(predicate);
         }
     }
 
     /**
-     * Query relations by subject.
+     * Query relations involving a specific item (in any role).
      */
-    public Stream<Relation> bySubject(ItemID subject) {
-        return index().map(idx -> idx.bySubject(subject)).orElse(Stream.empty())
+    public Stream<Relation> byItem(ItemID item) {
+        return index().map(idx -> idx.byItem(item)).orElse(Stream.empty())
                 .map(this::hydrateRef).flatMap(Optional::stream);
     }
 
     /**
-     * Query relations by subject and predicate.
+     * Query relations involving a specific item via a specific predicate.
      */
-    public Stream<Relation> bySubjectPredicate(ItemID subject, ItemID predicate) {
-        return index().map(idx -> idx.bySubjectPredicate(subject, predicate)).orElse(Stream.empty())
+    public Stream<Relation> byItemPredicate(ItemID item, ItemID predicate) {
+        return index().map(idx -> idx.byItemPredicate(item, predicate)).orElse(Stream.empty())
                 .map(this::hydrateRef).flatMap(Optional::stream);
     }
 
@@ -670,26 +658,10 @@ public final class Library implements Component, Canonical, AutoCloseable {
     }
 
     /**
-     * Query relations by object.
-     */
-    public Stream<Relation> byObject(ItemID object) {
-        return index().map(idx -> idx.byObject(object)).orElse(Stream.empty())
-                .map(this::hydrateRef).flatMap(Optional::stream);
-    }
-
-    /**
-     * Query relations by object and predicate.
-     */
-    public Stream<Relation> byObjectPredicate(ItemID object, ItemID predicate) {
-        return index().map(idx -> idx.byObjectPredicate(object, predicate)).orElse(Stream.empty())
-                .map(this::hydrateRef).flatMap(Optional::stream);
-    }
-
-    /**
      * Hydrate a RelationRef into a full Relation by looking up the RELATION column.
      */
     private Optional<Relation> hydrateRef(LibraryIndex.RelationRef ref) {
-        return store.relation(ref.subject(), ref.rid());
+        return store.relation(ref.recordCid());
     }
 
     // ==================================================================================

@@ -175,9 +175,8 @@ public class CgProtocol implements Protocol {
 
                 case Request.Target.Relations relTarget -> {
                     List<Relation> relations = context.queryRelations(
-                            relTarget.subject(),
-                            relTarget.predicate(),
-                            relTarget.object()
+                            relTarget.item(),
+                            relTarget.predicate()
                     );
 
                     if (!relations.isEmpty()) {
@@ -191,8 +190,8 @@ public class CgProtocol implements Protocol {
                                 subscriptions.computeIfAbsent(connection, k -> ConcurrentHashMap.newKeySet());
                         if (peerSubs.size() < MAX_SUBSCRIPTIONS_PER_PEER) {
                             peerSubs.add(relTarget);
-                            log.debug("Added subscription for relations (s={}, p={}, o={})",
-                                    relTarget.subject(), relTarget.predicate(), relTarget.object());
+                            log.debug("Added subscription for relations (item={}, p={})",
+                                    relTarget.item(), relTarget.predicate());
                         } else {
                             log.warn("Subscription limit ({}) reached for {}",
                                     MAX_SUBSCRIPTIONS_PER_PEER, connection.remoteAddress());
@@ -454,21 +453,22 @@ public class CgProtocol implements Protocol {
     }
 
     private boolean matchesFilter(Relation relation, Request.Target.Relations filter) {
-        if (filter.subject() != null && !filter.subject().equals(relation.subject())) {
-            return false;
+        if (filter.item() != null) {
+            // Check if any binding in the relation has an IidTarget matching the filter's item
+            boolean found = false;
+            for (Relation.Target target : relation.bindings().values()) {
+                if (target instanceof Relation.IidTarget iidTarget
+                        && filter.item().equals(iidTarget.iid())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
         }
         if (filter.predicate() != null && !filter.predicate().equals(relation.predicate())) {
             return false;
-        }
-        if (filter.object() != null && relation.object() != null) {
-            Relation.Target target = relation.object();
-            if (target instanceof Relation.IidTarget iidTarget) {
-                if (!filter.object().equals(iidTarget.iid())) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
         }
         return true;
     }

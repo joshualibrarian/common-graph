@@ -366,20 +366,6 @@ public abstract class ItemTest {
         }
 
         @Test
-        @DisplayName("relationsTo() returns a stream")
-        void relationsToReturnsStream() {
-            var relations = item.relationsTo();
-
-            assertThat(relations)
-                    .as("RelationsTo stream")
-                    .isNotNull();
-
-            // Consume the stream to verify it works
-            var list = relations.toList();
-            assertThat(list).isNotNull();
-        }
-
-        @Test
         @DisplayName("relations(predicate) returns a stream")
         void relationsWithPredicateReturnsStream() {
             ItemID predicate = ItemID.fromString("cg.predicate:test");

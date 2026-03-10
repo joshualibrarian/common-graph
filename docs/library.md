@@ -127,8 +127,8 @@ The production backend. Uses column families to separate data types:
 |---------------|----------|
 | **MANIFEST** | Item manifests keyed by IID (latest) and IID+VID (specific version) |
 | **CONTENT** | Content blocks keyed by CID |
-| **RELATION** | Relations keyed by RID |
-| **INDEX** | Derived indexes (by-subject, by-predicate, by-object) |
+| **RELATION** | Relations keyed by RECORD CID (content-addressed) |
+| **INDEX** | Derived indexes (by-item, by-predicate) |
 | **TOKEN** | Token dictionary entries |
 | **ITEM_DIR** | Item directory mappings |
 

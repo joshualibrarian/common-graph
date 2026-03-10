@@ -22,7 +22,7 @@ An **Item** is the fundamental unit. Items can represent anything — documents,
 
 **Sememes** are the vocabulary. Seeded from [WordNet](https://wordnet.princeton.edu/) via the [Collaborative Interlingual Index](https://github.com/globalwordnet/cili), sememes anchor concepts globally — "create" in English, "crear" in Spanish, and "创建" in Chinese resolve to the same meaning. Every part of speech participates: verbs dispatch actions, nouns name types, prepositions bind arguments, units carry dimensional metadata. There are no reserved words. Disambiguation happens through more language, not escape characters.
 
-**Relations** make the graph. Signed semantic triples — `book:Hobbit → author → person:Tolkien` — are first-class, queryable, and auditable. Not hidden in platform databases. Not trapped behind APIs. Anyone can assert, dispute, or extend them.
+**Relations** make the graph. Signed semantic frames — `AUTHORED_BY { theme: book:Hobbit, agent: person:Tolkien }` — are first-class, queryable, and auditable. Each relation is anchored by a predicate sememe whose thematic roles (agent, theme, instrument, etc.) give structure to the assertion. Not hidden in platform databases. Not trapped behind APIs. Anyone can assert, dispute, or extend them.
 
 **Trust is explicit — and it's the whole game.** Every manifest and relation is signed with Ed25519 keys. Trust isn't binary — it's policy-driven with thresholds, scopes, decay, and revocation. Trust policies live on items as configuration, inspectable and adjustable.
 
@@ -36,7 +36,7 @@ Communities form their own trust topologies: a research group might trust each o
 
 These aren't independent features — they reinforce each other. Content addressing means any node can verify any data without trusting the source. Signed relations mean assertions are attributable and disputable. Sememes mean the same concept can be expressed in any language and still resolve to the same action. Local-first storage means no single point of failure or control. And the vocabulary system means items aren't inert data — they're interactive objects with behavior you can invoke.
 
-A concrete example: you create a document (an item). It gets a cryptographic identity, you sign the manifest with your device key, and its content is hashed for integrity. You add a relation: `myDoc → author → me`. You share it with a colleague by syncing to their node — they can verify your signature, verify the content hasn't been tampered with, and query the relation to see who wrote it. They add their own relation: `myDoc → reviewed_by → them`. Both assertions coexist in the graph, signed by their respective authors, neither requiring a central authority. Their node doesn't need to speak English — the sememe for "author" is language-neutral.
+A concrete example: you create a document (an item). It gets a cryptographic identity, you sign the manifest with your device key, and its content is hashed for integrity. You add a relation: `AUTHORED_BY { theme: myDoc, agent: me }`. You share it with a colleague by syncing to their node — they can verify your signature, verify the content hasn't been tampered with, and query the relation to see who wrote it. They add their own relation: `REVIEWED_BY { theme: myDoc, agent: them }`. Both assertions coexist in the graph, signed by their respective authors, neither requiring a central authority. Their node doesn't need to speak English — the sememe for "authored by" is language-neutral.
 
 ---
 
@@ -49,7 +49,7 @@ Files and folders don't disappear — but they stop being the organizing princip
 | Renaming and sorting files into folders | Items that organize themselves by meaning and relationship |
 | Remembering which app opens what | Items that carry their own behavior and presentation |
 | Signing into platforms to access your own data | Cryptographic identity on your device — your keys, your data |
-| Copying text between apps to "link" things | First-class semantic relations: `photo → depicts → Alice` |
+| Copying text between apps to "link" things | First-class semantic relations: `DEPICTS { theme: photo, patient: Alice }` |
 | Learning different command syntaxes per tool | One vocabulary that works across everything, in your language |
 | Searching by keyword and hoping | Traversing a graph of typed, signed, semantic relationships |
 | Trusting platforms with your messages and files | Local-first storage with explicit, auditable sync |
@@ -111,7 +111,7 @@ The Librarian itself is an Item — a Signer with its own identity in the graph.
 
 Most distributed systems start with a routing problem: how does node A find data on node B? DHTs like Chord and Kademlia solve this with structured overlay networks — elegant, but mechanical. They route by hash distance, not by meaning or trust.
 
-Common Graph starts from a different place: **people form relationships, and their devices form relationships too.** Your Librarian (the local runtime node) connects to other Librarians the way you connect to other people — explicitly, with signed attestations recorded in the graph itself. When your node peers with another, that's a first-class relation: `myDevice → PEERS_WITH → theirDevice`. When it learns a network address, that's a relation too: `theirDevice → REACHABLE_AT → Endpoint(...)`. Your network topology isn't hidden metadata — it's part of your graph, queryable and auditable like anything else.
+Common Graph starts from a different place: **people form relationships, and their devices form relationships too.** Your Librarian (the local runtime node) connects to other Librarians the way you connect to other people — explicitly, with signed attestations recorded in the graph itself. When your node peers with another, that's a first-class relation: `PEERS_WITH { agent: myDevice, co-agent: theirDevice }`. When it learns a network address, that's a relation too: `REACHABLE_AT { theme: theirDevice, location: Endpoint(...) }`. Your network topology isn't hidden metadata — it's part of your graph, queryable and auditable like anything else.
 
 This means:
 
@@ -121,7 +121,7 @@ This means:
 - **Network topology emerges from community.** Rather than a global DHT with uniform routing, the graph's connectivity reflects actual human and organizational relationships. A research group's nodes cluster naturally. A family's devices find each other through their shared relations. This won't scale like Kademlia for anonymous global lookup — but Common Graph isn't trying to be a CDN. It's trying to be the connective tissue between people and their data.
 - **Moderation is trust, not authority.** Centralized platforms solve moderation by hiring humans or training classifiers to make content decisions for billions of people. Common Graph doesn't have a "content moderation layer" because trust policies already do this work. If someone floods your peer network with spam, you lower their trust scope or sever the peer relation — and the effect cascades naturally through the graph. Communities that peer densely with each other form natural trust boundaries. A node that behaves badly loses peer relationships, which means it loses routing, which means it loses reach — the same way a person who behaves badly loses social connections. This isn't a metaphor for social dynamics. It literally *is* social dynamics, modeled in signed relations.
 
-**Reactions replace algorithms.** On social media, a "like" is a row in a corporate database, visible only through the platform's algorithm. In Common Graph, a like is a signed relation — `post → liked_by → alice`, signed by Alice. So is a dislike, a "funny," an "insightful," a "misleading" — any sememe can be a reaction predicate. These are first-class graph data, queryable by anyone who can see them, filterable by your trust policies. The interesting part is what happens next: relations can target other relations. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a relation targeting Alice's like as spam. Now everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. There's no appeals process, no review board, no algorithm deciding what's "really" spam — just overlapping trust graphs producing different views of the same underlying data. A community of cryptographers and a community of flat-earthers can coexist in the same graph, each seeing the reactions and endorsements of the people they trust, without a platform making editorial decisions for either of them.
+**Reactions replace algorithms.** On social media, a "like" is a row in a corporate database, visible only through the platform's algorithm. In Common Graph, a like is a signed relation — `LIKED_BY { theme: post, experiencer: alice }`, signed by Alice. So is a dislike, a "funny," an "insightful," a "misleading" — any sememe can be a reaction predicate. These are first-class graph data, queryable by anyone who can see them, filterable by your trust policies. The interesting part is what happens next: relations can target other relations. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a relation targeting Alice's like as spam. Now everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. There's no appeals process, no review board, no algorithm deciding what's "really" spam — just overlapping trust graphs producing different views of the same underlying data. A community of cryptographers and a community of flat-earthers can coexist in the same graph, each seeing the reactions and endorsements of the people they trust, without a platform making editorial decisions for either of them.
 
 The protocol is designed to be extended without changing the wire format. New relation predicates can express new routing policies, new storage strategies, new trust models — all as graph data, not protocol upgrades.
 
@@ -264,7 +264,7 @@ See [`docs/working-tree.md`](docs/working-tree.md) for the full specification.
 Common Graph does not invent from scratch. It integrates decades of prior work:
 
 - **Content addressing** (Merkle 1979, Git, IPFS) — all content identified by cryptographic hash
-- **Semantic web** (Berners-Lee 2001, RDF, linked data) — semantic triples as first-class data, though CG replaces URLs with content-addressed IDs
+- **Semantic web** (Berners-Lee 2001, RDF, linked data) — relations as first-class data. CG started from RDF triples but evolved to Fillmore-style frame semantics, where each relation is a predicate with named thematic roles rather than a bare subject-predicate-object triple
 - **Computational linguistics** (WordNet, CILI, FrameNet, Montague semantics) — meaning as computable structure
 - **Speech act theory** (Austin 1962, Searle 1969) — the insight that utterances are actions, not just descriptions
 - **Actor model** (Hewitt 1973) and **message passing** (Kay/Smalltalk) — independent entities communicating through messages
@@ -300,7 +300,7 @@ This is an early-stage, ambitious, in-progress research project. It functions, b
 
 **What's still in flux:**
 - Data formats are not yet stable — expect breaking changes
-- The vocabulary system is undergoing active redesign (see [`docs/roadmap-vocabulary.md`](docs/roadmap-vocabulary.md))
+- The vocabulary system is undergoing active redesign (see [`docs/roadmap-vocabulary.md`](docs/roadmap-vocabulary.md)); frame-based relations are implemented
 - WordNet/CILI import pipeline is partially implemented
 - Networking is functional but not hardened
 - No stable public API yet
@@ -377,7 +377,7 @@ Detailed specifications live in `docs/`:
 | [`vocabulary.md`](docs/vocabulary.md) | Vocabulary system, dispatch, expression input |
 | [`sememes.md`](docs/sememes.md) | Meaning units, parts of speech, WordNet/CILI anchoring |
 | [`components.md`](docs/components.md) | Component system, types, modes, vocabulary facet |
-| [`relations.md`](docs/relations.md) | Semantic triples, qualifiers, indexing |
+| [`relations.md`](docs/relations.md) | Frame-based semantic relations, thematic roles, indexing |
 | [`library.md`](docs/library.md) | Storage architecture, backends, bootstrap |
 | [`presentation.md`](docs/presentation.md) | Rendering pipeline, scene system, style |
 | [`trust.md`](docs/trust.md) | Trust matrix, moderation, reactions, policy-driven views |

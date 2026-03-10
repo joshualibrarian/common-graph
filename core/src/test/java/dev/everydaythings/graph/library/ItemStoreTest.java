@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.language.Role;
 import dev.everydaythings.graph.language.Sememe;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
@@ -100,9 +101,9 @@ public abstract class ItemStoreTest {
      */
     protected Relation testRelation(ItemID subject, ItemID predicate, String literalValue) {
         return Relation.builder()
-                .subject(subject)
                 .predicate(predicate)
-                .object(Literal.ofText(literalValue))
+                .bind(Role.THEME.iid(), Relation.iid(subject))
+                .bind(Role.TARGET.iid(), Literal.ofText(literalValue))
                 .build();
     }
 
@@ -111,9 +112,9 @@ public abstract class ItemStoreTest {
      */
     protected Relation testRelation(ItemID subject, ItemID predicate, ItemID object) {
         return Relation.builder()
-                .subject(subject)
                 .predicate(predicate)
-                .object(Relation.iid(object))
+                .bind(Role.THEME.iid(), Relation.iid(subject))
+                .bind(Role.TARGET.iid(), Relation.iid(object))
                 .build();
     }
 
@@ -245,14 +246,14 @@ public abstract class ItemStoreTest {
             Relation relation = testRelation(subject, Sememe.TITLE.iid(), "Test Title");
 
             // Persist
-            RelationID rid = store.relation(relation);
+            ContentID cid = store.relation(relation);
 
-            assertThat(rid)
-                    .as("RelationID from persist")
+            assertThat(cid)
+                    .as("ContentID from persist")
                     .isNotNull();
 
             // Retrieve
-            var retrieved = store.relation(subject, rid);
+            var retrieved = store.relation(cid);
 
             assertThat(retrieved)
                     .as("Retrieved relation")
@@ -266,10 +267,9 @@ public abstract class ItemStoreTest {
         @Test
         @DisplayName("retrieve non-existent relation returns empty")
         void retrieveNonExistentRelationReturnsEmpty() {
-            ItemID subject = testItemID("nonexistent");
-            RelationID rid = new RelationID(new byte[32], dev.everydaythings.graph.Hash.DEFAULT);
+            ContentID cid = new ContentID(new byte[32], dev.everydaythings.graph.Hash.DEFAULT);
 
-            var retrieved = store.relation(subject, rid);
+            var retrieved = store.relation(cid);
 
             assertThat(retrieved)
                     .as("Non-existent relation")
@@ -284,17 +284,17 @@ public abstract class ItemStoreTest {
             Relation r1 = testRelation(subject, Sememe.TITLE.iid(), "Title");
             Relation r2 = testRelation(subject, Sememe.DESCRIPTION.iid(), "Description");
 
-            RelationID rid1 = store.relation(r1);
-            RelationID rid2 = store.relation(r2);
+            ContentID cid1 = store.relation(r1);
+            ContentID cid2 = store.relation(r2);
 
-            // RIDs should be different
-            assertThat(rid1)
+            // CIDs should be different
+            assertThat(cid1)
                     .as("First relation")
-                    .isNotEqualTo(rid2);
+                    .isNotEqualTo(cid2);
 
             // Both should be retrievable
-            assertThat(store.relation(subject, rid1)).isPresent();
-            assertThat(store.relation(subject, rid2)).isPresent();
+            assertThat(store.relation(cid1)).isPresent();
+            assertThat(store.relation(cid2)).isPresent();
         }
 
         @Test
@@ -305,7 +305,9 @@ public abstract class ItemStoreTest {
             store.relation(testRelation(subject, Sememe.TITLE.iid(), "Title"));
             store.relation(testRelation(subject, Sememe.DESCRIPTION.iid(), "Desc"));
 
-            var relations = store.relations(subject).toList();
+            var relations = store.relations()
+                    .filter(r -> subject.equals(r.subject()))
+                    .toList();
 
             assertThat(relations)
                     .as("Relations for subject")
@@ -320,7 +322,7 @@ public abstract class ItemStoreTest {
             store.relation(testRelation(testItemID("s2"), Sememe.TITLE.iid(), "T2"));
             store.relation(testRelation(testItemID("s3"), Sememe.TITLE.iid(), "T3"));
 
-            var relations = store.relations(null).toList();
+            var relations = store.relations().toList();
 
             assertThat(relations)
                     .as("All relations")
@@ -491,7 +493,7 @@ public abstract class ItemStoreTest {
 
                 // Multiple relations
                 Relation r1 = testRelation(iid, Sememe.TITLE.iid(), "Title");
-                store.persistRelation(iid, r1.encodeBinary(Canonical.Scope.RECORD), tx);
+                store.persistRelation(r1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Content
                 store.persistContent("Transaction content".getBytes(StandardCharsets.UTF_8), tx);
@@ -502,7 +504,9 @@ public abstract class ItemStoreTest {
                     .as("Manifests in transaction")
                     .isGreaterThanOrEqualTo(1);
 
-            assertThat(store.relations(iid).count())
+            assertThat(store.relations()
+                    .filter(r -> iid.equals(r.subject()))
+                    .count())
                     .as("Relations in transaction")
                     .isGreaterThanOrEqualTo(1);
         }

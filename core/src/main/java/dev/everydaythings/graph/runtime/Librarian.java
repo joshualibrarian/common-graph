@@ -1100,8 +1100,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 case Request.Target.Content content ->
                     logger.debug("  Local request for content {}", content.cid());
                 case Request.Target.Relations rel ->
-                    logger.debug("  Local request for relations (sub={}, pred={}, obj={})",
-                            rel.subject(), rel.predicate(), rel.object());
+                    logger.debug("  Local request for relations (item={}, pred={})",
+                            rel.item(), rel.predicate());
             }
         }
     }
@@ -1491,7 +1491,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
         // Reload from stored relation (reboot case)
         ItemID servesId = ItemID.fromString("cg.core:serves");
-        library().bySubjectPredicate(iid(), servesId)
+        library().byItemPredicate(iid(), servesId)
                 .findFirst()
                 .ifPresent(rel -> {
                     if (rel.object() instanceof Relation.IidTarget target) {
@@ -1531,7 +1531,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
         // Reload from stored relation (reboot case)
         ItemID availableAtId = ItemID.fromString("cg.core:available-at");
-        library().bySubjectPredicate(iid(), availableAtId)
+        library().byItemPredicate(iid(), availableAtId)
                 .findFirst()
                 .ifPresent(rel -> {
                     if (rel.object() instanceof Relation.IidTarget target) {
@@ -2004,16 +2004,17 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
         Stream<Relation> relations;
         if (subject != null && object != null) {
-            relations = library().bySubjectPredicate(subject, predicate)
+            // Both provided: query by one, filter by the other
+            relations = library().byItemPredicate(subject, predicate)
                     .filter(r -> {
                         Relation.Target tgt = r.object();
                         return tgt instanceof Relation.IidTarget iidTarget
                                 && object.equals(iidTarget.iid());
                     });
         } else if (subject != null) {
-            relations = library().bySubjectPredicate(subject, predicate);
+            relations = library().byItemPredicate(subject, predicate);
         } else if (object != null) {
-            relations = library().byObjectPredicate(object, predicate);
+            relations = library().byItemPredicate(object, predicate);
         } else {
             relations = library().byPredicate(predicate);
         }

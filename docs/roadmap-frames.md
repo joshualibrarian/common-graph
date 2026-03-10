@@ -9,19 +9,24 @@ filled to different degrees, used in different modes.
 
 One structure. Three modes determined by context.
 
-## Current State (What Exists)
+## Current State
 
-- **Relations**: `Relation(subject, predicate, object, qualifiers)` — RDF triple + qualifier hack
+- **Relations**: `Relation(predicate, bindings)` with Role sememes as keys, content-addressed storage by RECORD CID, two fan-out indexes (REL_BY_ITEM, REL_BY_PRED). Frame-based model fully implemented.
+- **Grammatical features**: `GrammaticalFeature.java` seeds all feature sememes (tense, aspect, mood, voice, person, number, case, politeness, evidentiality, form type). Registered in SeedVocabulary.
+- **Lexemes**: `Lexeme` stores `forms: List<FormEntry>`, each with `Set<ItemID>` feature tags mapped to a surface form string. Irregular form overrides supported.
+- **English morphology**: `English.java` provides `regularInflection()`, `addS()`, `addEd()`, `addIng()`, `addEr()`, `addEst()`, `shouldDoubleConsonant()`, etc.
+- **UniMorph import**: `UniMorphReader` (core, universal TSV parser) + `EnglishImporter` loads `/unimorph/eng`, simplifies features via `Language.simplifyFeatures()`, detects irregular overrides by comparing UniMorph forms with regular algorithm output.
 - **Verb dispatch**: `@Verb` on component methods, `@Param(role=...)` for arguments
 - **Queries**: `PatternExpression(S, P, O)` and `QueryComponent` — triple patterns only
 - **Sememes**: Language-agnostic meaning units, seeded from WordNet/CILI
-- **Lexemes**: Exist in model but only store lemma (base form), no inflected forms
-- **TokenDictionary**: Maps tokens → sememes, but only base forms registered
+- **TokenDictionary**: Maps tokens → sememes, with inflected forms registered
 - **Expression parser**: Pratt parser for math/expressions, FrameAssembler for verbs
 
-## Phase 1: Frame-Based Relations
+## Phase 1: Frame-Based Relations -- DONE
 
 **Goal**: Replace `Relation(S, P, O, qualifiers)` with `Relation(predicate, roles)`.
+
+**Status**: Completed. The relation model is now `Relation(predicate, bindings)` with Role sememes as binding keys, content-addressed storage by RECORD CID, and two fan-out indexes (REL_BY_ITEM, REL_BY_PRED).
 
 ### 1.1 Frame Schema on Predicates
 
@@ -46,9 +51,9 @@ WROTE {
 ```java
 Relation {
     predicate: ItemID                    // Sememe defining frame type
-    roles: Map<ItemID, Target>           // RoleSememe → value (IidTarget or Literal)
+    bindings: Map<ItemID, Target>        // RoleSememe → value (IidTarget or Literal)
     createdAt: Instant
-    rid: RelationID                      // Hash of predicate + identity-bearing roles
+    rid: RelationID                      // Content-addressed by RECORD CID
     signing: Signing
 }
 ```
@@ -56,7 +61,7 @@ Relation {
 - No more `subject`, `object`, `qualifiers` fields
 - Agent and patient are just conventional role names for the two most common roles
 - Qualifiers become regular roles (time, place, confidence, etc.)
-- Predicate's FrameSchema defines which roles are identity-bearing (for RID)
+- Content-addressed by RECORD CID with two fan-out indexes: REL_BY_ITEM and REL_BY_PRED
 
 ### 1.3 Migration
 
@@ -67,30 +72,26 @@ Relation {
 
 ### 1.4 Index Redesign
 
-Current: 5 column families (by_subj, by_obj, by_pred, by_subj_pred, by_obj_pred)
+Current indexes:
+- **REL_BY_ITEM**: `ITEM → [RID...]` — "everything involving this item in any role"
+- **REL_BY_PRED**: `PRED → [RID...]` — "all relations with this predicate"
 
-New:
-- **by predicate**: `PRED → [RID...]`
-- **by predicate + role + value**: `(PRED, ROLE, VALUE) → [RID...]` — the workhorse
-- **by value (any role)**: `VALUE → [(PRED, ROLE, RID)...]` — "everything involving X"
+### 1.5 Files Changed
 
-The "by value" index is key — it's what makes "bob" work as a query (find every frame
-where "bob" fills any role).
-
-### 1.5 Files to Change
-
-- `Relation.java` — new data model
+- `Relation.java` — new data model with predicate + bindings
 - `RelationTable.java` — updated storage
 - `RelationEntry.java` — updated entry type
-- `LibraryIndex.java` — new column families
+- `LibraryIndex.java` — REL_BY_ITEM and REL_BY_PRED column families
 - `RelationQuery.java` — role-based fluent API
 - `PatternExpression.java` — frame pattern matching
 - `QueryComponent.java` — stored frame queries
 - `Sememe.java` — add FrameSchema
 
-## Phase 2: Grammatical Feature Sememes
+## Phase 2: Grammatical Feature Sememes -- DONE
 
 **Goal**: Seed sememes for grammatical features so lexeme forms can reference them.
+
+**Status**: Completed. `GrammaticalFeature.java` contains all seed feature sememes, registered in SeedVocabulary.
 
 ### 2.1 Feature Categories
 
@@ -109,20 +110,22 @@ Not all universal — each language uses a subset:
 
 ### 2.2 Seeding
 
-- Create seed sememes under `cg:grammar/` namespace
+- Seed sememes created under `cg:grammar/` namespace
 - Each is a NounSememe (they're concepts)
-- Map UniMorph feature tags to these sememes for import
+- UniMorph feature tags mapped to these sememes for import
 - Languages reference whichever features they use
 
-### 2.3 Files to Create/Change
+### 2.3 Files Created/Changed
 
-- New: `GrammaticalFeature.java` (or just seed sememes in appropriate place)
-- `SeedVocabulary` additions for grammar feature seeds
-- Mapping table: UniMorph tag → CG grammatical feature sememe
+- `GrammaticalFeature.java` — all seed grammatical feature sememes
+- `SeedVocabulary` — registers grammar feature seeds
+- Mapping table: UniMorph tag → CG grammatical feature sememe (in GrammaticalFeature)
 
-## Phase 3: Lexeme Data Model
+## Phase 3: Lexeme Data Model -- DONE
 
 **Goal**: Lexemes store all inflected forms, each tagged with grammatical features.
+
+**Status**: Completed. Lexeme stores `forms: List<FormEntry>`, each mapping a `Set<ItemID>` of grammatical feature IDs to a surface form string. Irregular form overrides supported.
 
 ### 3.1 Form Table
 
@@ -131,8 +134,8 @@ Lexeme {
     sememe: ItemID                              // The meaning
     language: ItemID                            // Which language
     pos: PartOfSpeech
-    forms: Map<Set<ItemID>, String>             // Feature set → surface form
-    inflectionClass: String                     // "regular", "irregular", pattern name
+    forms: List<FormEntry>                      // Each: Set<ItemID> features → surface form
+    // Irregular form overrides supported
 }
 ```
 
@@ -154,15 +157,17 @@ Every form gets its own posting with feature metadata:
 
 Token resolution returns the sememe + grammatical context.
 
-### 3.3 Files to Change
+### 3.3 Files Changed
 
-- `Lexeme.java` — redesigned with form table
+- `Lexeme.java` — redesigned with `List<FormEntry>` form table
 - `TokenDictionary` — postings carry feature metadata
-- `Posting.java` (or equivalent) — add grammatical features field
+- `Posting.java` (or equivalent) — grammatical features field added
 
-## Phase 4: English Morphology Engine
+## Phase 4: English Morphology Engine -- DONE
 
 **Goal**: Generate regular inflected forms automatically from base + POS.
+
+**Status**: Completed. `English.java` implements `regularInflection()` plus individual rule methods: `addS()`, `addEd()`, `addIng()`, `addEr()`, `addEst()`, `shouldDoubleConsonant()`, etc.
 
 ### 4.1 Regular Rules
 
@@ -181,21 +186,23 @@ Token resolution returns the sememe + grammatical context.
 
 ### 4.2 Implementation
 
-- `EnglishMorphology` class with static methods
+- `English.java` with `regularInflection()` and individual methods (`addS()`, `addEd()`, `addIng()`, `addEr()`, `addEst()`, `shouldDoubleConsonant()`)
 - Input: (lemma, POS, inflectionClass)
-- Output: Map<Set<FeatureSememe>, String> of generated forms
-- Regular verbs auto-generated; irregulars stored explicitly
-- Called during seed vocabulary population and WordNet import
+- Output: generated forms
+- Regular verbs auto-generated; irregulars stored explicitly via UniMorph import
+- Called during seed vocabulary population and language import
 
-### 4.3 Files to Create
+### 4.3 Files Created
 
-- New: `EnglishMorphology.java` in english module
+- `English.java` in english module — morphology engine
 - Integration with `SeedVocabulary` for seed lexemes
-- Integration with WordNet/LMF importer for imported lexemes
+- Integration with `EnglishImporter` for imported lexemes
 
-## Phase 5: UniMorph Import
+## Phase 5: UniMorph Import -- DONE
 
 **Goal**: Import irregular forms and complete paradigms from UniMorph data.
+
+**Status**: Completed. `UniMorphReader` in core provides a universal TSV parser. `EnglishImporter` loads `/unimorph/eng`, simplifies features via `Language.simplifyFeatures()`, and detects irregular overrides by comparing UniMorph forms against the regular morphology algorithm output.
 
 ### 5.1 Data Source
 
@@ -209,11 +216,12 @@ write   writing   V;V.PTCP;PRS
 
 ### 5.2 Import Pipeline
 
-1. Parse UniMorph TSV
-2. Map UniMorph feature tags to CG grammatical feature sememes
+1. `UniMorphReader` parses UniMorph TSV (universal, works for any language)
+2. `Language.simplifyFeatures()` maps UniMorph feature tags to CG grammatical feature sememes
 3. Match lemma to existing sememe (via WordNet lemma → sememe mapping)
 4. Create/update Lexeme with form entries
-5. Post all forms to TokenDictionary
+5. Detect irregular overrides by comparing UniMorph forms with `English.regularInflection()` output
+6. Post all forms to TokenDictionary
 
 ### 5.3 Feature Tag Mapping
 
@@ -226,15 +234,18 @@ UniMorph uses a standardized schema (UniMorph Schema):
 - `PL` → PLURAL
 - etc.
 
-### 5.4 Files to Create
+### 5.4 Files Created
 
-- New: `UniMorphImporter.java` in english module
-- UniMorph data file bundled as resource (or downloaded on first use)
-- Feature tag mapping table
+- `UniMorphReader.java` in core — universal TSV parser for any language's UniMorph data
+- `EnglishImporter.java` in english module — loads `/unimorph/eng`, drives import pipeline
+- `Language.simplifyFeatures()` — feature tag mapping and simplification
+- UniMorph data file bundled as resource
 
-## Phase 6: Unified Frame Pipeline
+## Phase 6: Unified Frame Pipeline -- IN PROGRESS
 
 **Goal**: Input → frame assembly → dispatch/assert/query, driven by grammatical context.
+
+**Status**: In progress. FrameAssembler exists but needs updating for the new Relation model (predicate + bindings).
 
 ### 6.1 Frame Assembly
 
@@ -269,12 +280,12 @@ No special query mode. The system always shows what matches the current partial 
 
 ### 6.4 Files to Change
 
-- `FrameAssembler.java` — generalized frame building
+- `FrameAssembler.java` — generalized frame building (update for new Relation model)
 - `EvalInput.java` — intent detection from grammatical features
 - `ExpressionParser.java` — frame expressions alongside math expressions
 - New: `FrameExpression.java` — AST node for frame (replacing PatternExpression)
 
-## Phase 7: Result Presentation
+## Phase 7: Result Presentation -- FUTURE
 
 **Goal**: Query results shown naturally in the UI.
 
@@ -287,24 +298,23 @@ No special query mode. The system always shows what matches the current partial 
 ## Implementation Order
 
 ```
-Phase 1 (Frame Relations)     ← Foundation, everything builds on this
+Phase 1 (Frame Relations)     [DONE]
    ↓
-Phase 2 (Grammar Sememes)     ← Needed for lexeme forms
+Phase 2 (Grammar Sememes)     [DONE]
    ↓
-Phase 3 (Lexeme Model)        ← Needed for morphology
+Phase 3 (Lexeme Model)        [DONE]
    ↓
-Phase 4 (English Morphology)  ← Generate regular forms
+Phase 4 (English Morphology)  [DONE]
    ↓
-Phase 5 (UniMorph Import)     ← Fill in irregulars
+Phase 5 (UniMorph Import)     [DONE]
    ↓
-Phase 6 (Unified Pipeline)    ← The big payoff
+Phase 6 (Unified Pipeline)    [IN PROGRESS] ← current focus
    ↓
-Phase 7 (Result Presentation) ← User-facing polish
+Phase 7 (Result Presentation) [FUTURE]
 ```
 
-Phases 2-3 can start in parallel with Phase 1 since they're mostly independent.
-Phases 4-5 depend on 2-3.
-Phase 6 depends on everything.
+Phases 1-5 are complete. Phase 6 is next — updating FrameAssembler for the new
+frame-based Relation model. Phase 7 depends on Phase 6.
 
 ## Design Principles
 

@@ -452,7 +452,7 @@ public final class WorkingTreeStore implements ItemStore {
      * <p>Iterates local filesystem relations, falling back to the parent store if configured.
      */
     @Override
-    public Iterable<byte[]> iterateRelations(ItemID subject) {
+    public Iterable<byte[]> iterateRelations() {
         List<byte[]> results = new ArrayList<>();
 
         // Local filesystem relations
@@ -469,7 +469,7 @@ public final class WorkingTreeStore implements ItemStore {
 
         // Fallback store relations (if configured)
         if (fallback != null) {
-            for (byte[] relation : fallback.iterateRelations(subject)) {
+            for (byte[] relation : fallback.iterateRelations()) {
                 results.add(relation);
             }
         }
@@ -702,32 +702,27 @@ public final class WorkingTreeStore implements ItemStore {
     // --- Relation ---
 
     @Override
-    public RelationID persistRelation(ItemID subject, byte[] record, WriteTransaction wtx) {
-        Objects.requireNonNull(subject, "subject");
+    public ContentID persistRelation(byte[] record, WriteTransaction wtx) {
         Objects.requireNonNull(record, "record");
         Objects.requireNonNull(wtx, "wtx");
 
-        // Decode to compute RID (hash of BODY)
-        Relation r = Relation.decode(record);
-        byte[] body = r.encodeBinary(dev.everydaythings.graph.Canonical.Scope.BODY);
-        RelationID rid = new RelationID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
-
-        Path p = relationPath(rid);
+        ContentID cid = ContentID.of(record);
+        Path p = relationPath(cid);
         if (!Files.exists(p)) {
             ((FsTx) wtx).stageAtomicReplace(p, record);
         }
-        return rid;
+        return cid;
     }
 
     @Override
-    public byte[] retrieveRelation(ItemID subject, RelationID rid) {
-        Objects.requireNonNull(rid, "rid");
+    public byte[] retrieveRelation(ContentID recordCid) {
+        Objects.requireNonNull(recordCid, "recordCid");
 
-        Path p = relationPath(rid);
+        Path p = relationPath(recordCid);
         if (Files.exists(p)) return readAllBytes(p);
 
         if (fallback != null) {
-            return fallback.retrieveRelation(subject, rid);
+            return fallback.retrieveRelation(recordCid);
         }
         return null;
     }
@@ -846,8 +841,8 @@ public final class WorkingTreeStore implements ItemStore {
         return root.resolve(DOT_ITEM).resolve(DIR_VERSIONS).resolve(hex(vid.encodeBinary()));
     }
 
-    private Path relationPath(RelationID rid) {
-        return root.resolve(DOT_ITEM).resolve(DIR_RELATIONS).resolve(hex(rid.encodeBinary()));
+    private Path relationPath(ContentID cid) {
+        return root.resolve(DOT_ITEM).resolve(DIR_RELATIONS).resolve(hex(cid.encodeBinary()));
     }
 
     private Path contentPath(ContentID cid) {

@@ -13,6 +13,7 @@ import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.language.Role;
 import dev.everydaythings.graph.value.Value;
 import dev.everydaythings.graph.value.address.AddressSpace;
 import lombok.Getter;
@@ -157,37 +158,40 @@ public class ItemSchema {
     }
 
     /**
-     * Build a Relation from a spec and object value.
+     * Build a Relation from a spec and target value.
+     *
+     * <p>Maps the item to THEME and the field value to TARGET, matching
+     * the frame-based relation model.
      */
-    private Relation buildRelation(Item item, RelationFieldSpec spec, Object object) {
-        if (object == null) return null;
+    private Relation buildRelation(Item item, RelationFieldSpec spec, Object target) {
+        if (target == null) return null;
 
-        Relation.RelationBuilder builder = Relation.builder()
-                .subject(item.iid())
-                .predicate(spec.predicate());
-
-        // Set object based on type
-        if (object instanceof ItemID itemId) {
-            builder.object(Relation.iid(itemId));
-        } else if (object instanceof Item targetItem) {
-            builder.object(Relation.iid(targetItem.iid()));
-        } else if (object instanceof AddressSpace.ParsedAddress addr) {
-            builder.object(Literal.ofText(addr.canonical()));
-        } else if (object instanceof Value value) {
-            builder.object(Literal.of(value));
-        } else if (object instanceof String str) {
-            builder.object(Literal.ofText(str));
-        } else if (object instanceof Number num) {
+        Relation.Target targetValue;
+        if (target instanceof ItemID itemId) {
+            targetValue = Relation.iid(itemId);
+        } else if (target instanceof Item targetItem) {
+            targetValue = Relation.iid(targetItem.iid());
+        } else if (target instanceof AddressSpace.ParsedAddress addr) {
+            targetValue = Literal.ofText(addr.canonical());
+        } else if (target instanceof Value value) {
+            targetValue = Literal.of(value);
+        } else if (target instanceof String str) {
+            targetValue = Literal.ofText(str);
+        } else if (target instanceof Number num) {
             // CG-CBOR forbids floats - only accept integer types
             if (num instanceof Float || num instanceof Double) {
                 return null;
             }
-            builder.object(Literal.ofInteger(num.longValue()));
+            targetValue = Literal.ofInteger(num.longValue());
         } else {
-            builder.object(Literal.ofText(object.toString()));
+            targetValue = Literal.ofText(target.toString());
         }
 
-        return builder.build();
+        return Relation.builder()
+                .predicate(spec.predicate())
+                .bind(Role.THEME.iid(), Relation.iid(item.iid()))
+                .bind(Role.TARGET.iid(), targetValue)
+                .build();
     }
 
     // ==================================================================================

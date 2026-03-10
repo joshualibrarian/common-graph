@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.Role;
 import dev.everydaythings.graph.item.component.ComponentFieldSpec;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
@@ -1503,70 +1504,53 @@ This public non- profit land trust’s top founding principle is to promote and 
         if (librarian == null) {
             return Stream.empty();
         }
-        return librarian.library().find().from(this).relations();
+        return librarian.library().find().involving(this).relations();
     }
 
     /**
-     * Get relations where this item is the subject with a specific predicate.
+     * Get relations involving this item with a specific predicate.
      *
      * <p>Convenience method for common pattern:
      * <pre>{@code
-     * // Get all "authored by" relations
+     * // Get all "authored by" relations involving this item
      * item.relations(Sememe.AUTHORED_BY).forEach(r -> ...);
      * }</pre>
      *
      * @param predicate The predicate to filter by
-     * @return Stream of relations matching subject=this and the predicate
+     * @return Stream of relations involving this item via the predicate
      */
     public Stream<Relation> relations(ItemID predicate) {
         if (librarian == null) {
             return Stream.empty();
         }
-        return librarian.library().find().from(this).via(predicate).relations();
+        return librarian.library().find().involving(this).via(predicate).relations();
     }
 
     /**
-     * Get all relations where this item is the object (reverse lookup).
+     * Create a relation with this item as THEME and another as TARGET.
      *
-     * <p>Returns relations that point TO this item:
+     * <p>This is the most common relation pattern: this item is what the
+     * relation is about, and the target is what it points to.
      * <pre>{@code
-     * // Who wrote this book?
-     * book.relationsTo().filter(r -> r.predicate().equals(wroteId)).forEach(...);
-     * }</pre>
+     * // This animal IS-A mammal
+     * animal.relate(Sememe.HYPERNYM.iid(), mammal.iid());
      *
-     * @return Stream of relations where this item is the object
-     */
-    public Stream<Relation> relationsTo() {
-        if (librarian == null) {
-            return Stream.empty();
-        }
-        return librarian.library().find().to(this).relations();
-    }
-
-    /**
-     * Create a relation from this item to another.
-     *
-     * <p>Creates, signs (if signer available), and stores the relation:
-     * <pre>{@code
-     * // This author wrote this book
-     * author.relate(Sememe.WROTE.iid(), book.iid());
-     *
-     * // With a literal object
+     * // With a literal target
      * item.relate(predicateId, Literal.ofText("some value"));
      * }</pre>
      *
      * @param predicate The predicate (relationship type)
-     * @param object The object (target of the relation)
+     * @param target The target (value bound to TARGET role)
      * @return The created relation
      */
-    public Relation relate(ItemID predicate, Relation.Target object) {
+    public Relation relate(ItemID predicate, Relation.Target target) {
         Objects.requireNonNull(predicate, "predicate");
-        Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(target, "target");
 
         Relation relation = Relation.builder()
-                .subject(iid)
                 .predicate(predicate)
-                .object(object)
+                .bind(Role.THEME.iid(), Relation.iid(iid))
+                .bind(Role.TARGET.iid(), target)
                 .build();
 
         // Sign if we have a signer
@@ -1583,35 +1567,30 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Create a relation from this item to another item.
+     * Create a relation with this item as THEME and another item as TARGET.
      *
      * <p>Convenience overload for item-to-item relations:
      * <pre>{@code
-     * author.relate(Sememe.WROTE.iid(), book);
+     * animal.relate(Sememe.HYPERNYM.iid(), mammal);
      * }</pre>
      *
      * @param predicate The predicate (relationship type)
-     * @param object The target item
+     * @param target The target item
      * @return The created relation
      */
-    public Relation relate(ItemID predicate, Item object) {
-        return relate(predicate, Relation.iid(object.iid()));
+    public Relation relate(ItemID predicate, Item target) {
+        return relate(predicate, Relation.iid(target.iid()));
     }
 
     /**
-     * Create a relation from this item to another item by ID.
-     *
-     * <p>Convenience overload:
-     * <pre>{@code
-     * author.relate(Sememe.WROTE.iid(), bookId);
-     * }</pre>
+     * Create a relation with this item as THEME and another item (by ID) as TARGET.
      *
      * @param predicate The predicate (relationship type)
-     * @param objectId The target item ID
+     * @param targetId The target item ID
      * @return The created relation
      */
-    public Relation relate(ItemID predicate, ItemID objectId) {
-        return relate(predicate, Relation.iid(objectId));
+    public Relation relate(ItemID predicate, ItemID targetId) {
+        return relate(predicate, Relation.iid(targetId));
     }
 
     // ==================================================================================
@@ -2473,10 +2452,10 @@ This public non- profit land trust’s top founding principle is to promote and 
     // ==================================================================================
 
     /**
-     * Start building a relation with this item as subject.
+     * Start building a relation with this item as THEME.
      */
     public Relation.RelationBuilder relate() {
-        return Relation.builder().subject(iid);
+        return Relation.builder().bind(Role.THEME.iid(), Relation.iid(iid));
     }
 
     /**

@@ -18,6 +18,7 @@ import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.Role;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import io.github.classgraph.ClassGraph;
@@ -344,9 +345,9 @@ public final class SeedVocabulary {
 
         // HYPERNYM relation: this type is-a-kind-of ComponentType
         storeRelation(Relation.builder()
-                .subject(typeId)
                 .predicate(Sememe.HYPERNYM.iid())
-                .object(Relation.iid(ItemID.fromString(ComponentType.KEY)))
+                .bind(Role.THEME.iid(), Relation.iid(typeId))
+                .bind(Role.TARGET.iid(), Relation.iid(ItemID.fromString(ComponentType.KEY)))
                 .build());
     }
 
@@ -358,9 +359,9 @@ public final class SeedVocabulary {
 
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
         storeRelation(Relation.builder()
-                .subject(typeId)
                 .predicate(Sememe.IMPLEMENTED_BY.iid())
-                .object(Literal.ofJavaClass(type))
+                .bind(Role.THEME.iid(), Relation.iid(typeId))
+                .bind(Role.TARGET.iid(), Literal.ofJavaClass(type))
                 .build());
     }
 
@@ -524,9 +525,9 @@ public final class SeedVocabulary {
 
     private Relation createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
         Relation relation = Relation.builder()
-                .subject(typeId)
                 .predicate(Sememe.IMPLEMENTED_BY.iid())
-                .object(Literal.ofJavaClass(implementingClass))
+                .bind(Role.THEME.iid(), Relation.iid(typeId))
+                .bind(Role.TARGET.iid(), Literal.ofJavaClass(implementingClass))
                 .build();
 
         // Add to item's component table as a relation entry
@@ -543,9 +544,9 @@ public final class SeedVocabulary {
 
     private Relation createTitleRelation(ItemID itemId, String key) {
         return Relation.builder()
-                .subject(itemId)
                 .predicate(Sememe.TITLE.iid())
-                .object(Literal.ofText(key))
+                .bind(Role.THEME.iid(), Relation.iid(itemId))
+                .bind(Role.TARGET.iid(), Literal.ofText(key))
                 .build();
     }
 
@@ -560,9 +561,9 @@ public final class SeedVocabulary {
         if (instanceId.equals(typeId)) return null;
 
         return Relation.builder()
-                .subject(instanceId)
                 .predicate(Sememe.INSTANCE_OF.iid())
-                .object(Relation.iid(typeId))
+                .bind(Role.THEME.iid(), Relation.iid(instanceId))
+                .bind(Role.TARGET.iid(), Relation.iid(typeId))
                 .build();
     }
 
@@ -608,7 +609,7 @@ public final class SeedVocabulary {
         if (relation == null) return;
         try {
             byte[] record = relation.encodeBinary(Canonical.Scope.RECORD);
-            store.persistRelation(relation.subject(), record, tx);
+            store.persistRelation(record, tx);
         } catch (Exception e) {
             logger.warn("Failed to store relation: {}", e.getMessage());
         }

@@ -60,15 +60,15 @@ public record Request(
     /**
      * Request relations with filters.
      */
-    public static Request relations(long requestId, ItemID subject, ItemID predicate, ItemID object) {
-        return new Request(requestId, List.of(new Target.Relations(subject, predicate, object, false)));
+    public static Request relations(long requestId, ItemID item, ItemID predicate) {
+        return new Request(requestId, List.of(new Target.Relations(item, predicate, false)));
     }
 
     /**
      * Subscribe to relation updates (streaming).
      */
-    public static Request subscribe(long requestId, ItemID subject, ItemID predicate, ItemID object) {
-        return new Request(requestId, List.of(new Target.Relations(subject, predicate, object, true)));
+    public static Request subscribe(long requestId, ItemID item, ItemID predicate) {
+        return new Request(requestId, List.of(new Target.Relations(item, predicate, true)));
     }
 
     @Override
@@ -159,26 +159,25 @@ public record Request(
 
         /**
          * Request relations matching filters (any null = wildcard).
+         * Frame-based: queries by participating item and/or predicate.
          * If subscribe=true, this is a subscription that streams updates.
          */
-        record Relations(ItemID subject, ItemID predicate, ItemID object, boolean subscribe) implements Target {
+        record Relations(ItemID item, ItemID predicate, boolean subscribe) implements Target {
             @Override
             public CBORObject toCbor() {
                 CBORObject obj = CBORObject.NewMap();
                 obj.set("kind", CBORObject.FromString("relations"));
-                if (subject != null) obj.set("s", CBORObject.FromByteArray(subject.encodeBinary()));
+                if (item != null) obj.set("item", CBORObject.FromByteArray(item.encodeBinary()));
                 if (predicate != null) obj.set("p", CBORObject.FromByteArray(predicate.encodeBinary()));
-                if (object != null) obj.set("o", CBORObject.FromByteArray(object.encodeBinary()));
                 obj.set("subscribe", CBORObject.FromBool(subscribe));
                 return obj;
             }
 
             static Relations fromCbor(CBORObject obj) {
-                ItemID s = obj.ContainsKey("s") ? new ItemID(obj.get("s").GetByteString()) : null;
+                ItemID item = obj.ContainsKey("item") ? new ItemID(obj.get("item").GetByteString()) : null;
                 ItemID p = obj.ContainsKey("p") ? new ItemID(obj.get("p").GetByteString()) : null;
-                ItemID o = obj.ContainsKey("o") ? new ItemID(obj.get("o").GetByteString()) : null;
                 boolean subscribe = obj.get("subscribe").AsBoolean();
-                return new Relations(s, p, o, subscribe);
+                return new Relations(item, p, subscribe);
             }
         }
     }

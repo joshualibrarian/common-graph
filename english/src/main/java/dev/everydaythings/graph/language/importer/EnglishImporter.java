@@ -195,9 +195,9 @@ public class EnglishImporter {
             if (target == null) continue;
 
             Relation relation = Relation.builder()
-                    .subject(source.iid())
                     .predicate(predicate)
-                    .object(Relation.iid(target.iid()))
+                    .bind(Role.THEME.iid(), Relation.iid(source.iid()))
+                    .bind(Role.TARGET.iid(), Relation.iid(target.iid()))
                     .build()
                     .sign(signer);
 

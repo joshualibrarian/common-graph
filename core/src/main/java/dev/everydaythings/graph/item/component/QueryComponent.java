@@ -197,22 +197,22 @@ public class QueryComponent implements Component, Canonical {
                                             ItemID subject, ItemID predicate, ItemID object) {
         // Choose query strategy based on what constraints we have
         if (subject != null && predicate != null) {
-            logger.info(">>> queryRelations: bySubjectPredicate({}, {})", subject, predicate);
-            return library.bySubjectPredicate(subject, predicate);
+            logger.info(">>> queryRelations: byItemPredicate({}, {})", subject, predicate);
+            return library.byItemPredicate(subject, predicate);
         } else if (object != null && predicate != null) {
-            logger.info(">>> queryRelations: byObjectPredicate({}, {})", object, predicate);
-            return library.byObjectPredicate(object, predicate);
+            logger.info(">>> queryRelations: byItemPredicate({}, {})", object, predicate);
+            return library.byItemPredicate(object, predicate);
         } else if (subject != null) {
-            logger.info(">>> queryRelations: bySubject({})", subject);
-            return library.bySubject(subject);
+            logger.info(">>> queryRelations: byItem({})", subject);
+            return library.byItem(subject);
         } else if (predicate != null) {
             logger.info(">>> queryRelations: byPredicate({})", predicate);
             List<Relation> rels = library.byPredicate(predicate).toList();
             logger.info(">>> byPredicate returned {} relations", rels.size());
             return rels.stream();
         } else if (object != null) {
-            logger.info(">>> queryRelations: byObject({})", object);
-            return library.byObject(object);
+            logger.info(">>> queryRelations: byItem({})", object);
+            return library.byItem(object);
         } else {
             // No constraints - would need full scan (not ideal)
             logger.warn("Query pattern has no constraints - cannot evaluate efficiently");

@@ -108,29 +108,28 @@ public interface ItemStore extends Service {
     // --- Relation ---
 
     /**
-     * Get a relation by subject ID and relation ID.
+     * Get a relation by its record CID (content-addressed).
      *
-     * @param subject The subject item ID
-     * @param rid     The relation ID
+     * @param recordCid The CID of the RECORD bytes
      * @return The relation, or empty if not found
      */
-    default Optional<Relation> relation(ItemID subject, RelationID rid) {
-        byte[] bytes = retrieveRelation(subject, rid);
+    default Optional<Relation> relation(ContentID recordCid) {
+        byte[] bytes = retrieveRelation(recordCid);
         if (bytes == null) return Optional.empty();
         return Optional.of(Relation.decode(bytes));
     }
 
     /**
-     * Store a relation.
+     * Store a relation. Content-addressed by RECORD CID.
      *
      * @param r The relation to store
-     * @return The relation ID (hash of the body)
+     * @return The content ID of the stored RECORD bytes
      */
-    default RelationID relation(Relation r) {
+    default ContentID relation(Relation r) {
         byte[] record = r.encodeBinary(Canonical.Scope.RECORD);
-        var rid = new RelationID[1];
-        runInWriteTransaction(tx -> rid[0] = persistRelation(r.subject(), record, tx));
-        return rid[0];
+        var cid = new ContentID[1];
+        runInWriteTransaction(tx -> cid[0] = persistRelation(record, tx));
+        return cid[0];
     }
 
     // --- Content ---
@@ -204,27 +203,25 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Persist a relation record. Computes RID from the record and stores by SubjectIID|RID.
+     * Persist a relation record. Content-addressed by RECORD CID.
      *
-     * @param subject The subject item ID
-     * @param record  The relation RECORD bytes (includes signature)
-     * @param tx      Write transaction
-     * @return The relation ID (hash of BODY extracted from record)
+     * @param record The relation RECORD bytes (includes signature)
+     * @param tx     Write transaction
+     * @return The content ID of the RECORD bytes
      */
-    default RelationID persistRelation(ItemID subject, byte[] record, WriteTransaction tx) {
-        Objects.requireNonNull(subject, "subject");
+    default ContentID persistRelation(byte[] record, WriteTransaction tx) {
         Objects.requireNonNull(record, "record");
         Objects.requireNonNull(tx, "tx");
 
-        // Decode to compute RID (hash of BODY)
-        Relation r = Relation.decode(record);
-        byte[] body = r.encodeBinary(Canonical.Scope.BODY);
-        RelationID rid = new RelationID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
+        ContentID cid = ContentID.of(record);
+        byte[] key = Column.RELATION.key(cid);
 
-        byte[] key = Column.RELATION.key(subject, rid);
-        store().put(Column.RELATION, key, record, tx);
+        // Content-addressed dedup
+        if (!store().exists(Column.RELATION, key)) {
+            store().put(Column.RELATION, key, record, tx);
+        }
 
-        return rid;
+        return cid;
     }
 
     /**
@@ -267,17 +264,15 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Retrieve raw relation bytes by subject IID and RID.
+     * Retrieve raw relation bytes by record CID.
      *
-     * @param subject The subject item ID
-     * @param rid     The relation ID
+     * @param recordCid The CID of the RECORD bytes
      * @return The relation record bytes, or null if not found
      */
-    default byte[] retrieveRelation(ItemID subject, RelationID rid) {
-        Objects.requireNonNull(subject, "subject");
-        Objects.requireNonNull(rid, "rid");
+    default byte[] retrieveRelation(ContentID recordCid) {
+        Objects.requireNonNull(recordCid, "recordCid");
 
-        byte[] key = Column.RELATION.key(subject, rid);
+        byte[] key = Column.RELATION.key(recordCid);
         return store().get(Column.RELATION, key);
     }
 
@@ -409,11 +404,12 @@ public interface ItemStore extends Service {
      * @return The implementing Java class, or empty if not found
      */
     default Optional<Class<?>> findImplementation(ItemID typeId) {
-        return relations(typeId)
+        return relations()
                 .filter(rel -> rel.predicate().equals(Sememe.IMPLEMENTED_BY.iid()))
+                .filter(rel -> typeId.equals(rel.bindingId(ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .map(rel -> {
-                    Relation.Target target = rel.object();
+                    Relation.Target target = rel.binding(ItemID.fromString("cg.role:target"));
                     if (target instanceof Literal lit) {
                         return lit.asJavaClass();
                     }
@@ -505,13 +501,12 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Stream relations, optionally filtered by subject.
+     * Stream all relations.
      *
-     * @param subject The subject item ID to filter by, or null for all relations
      * @return Stream of decoded relations
      */
-    default Stream<Relation> relations(ItemID subject) {
-        return StreamSupport.stream(iterateRelations(subject).spliterator(), false)
+    default Stream<Relation> relations() {
+        return StreamSupport.stream(iterateRelations().spliterator(), false)
                 .map(Relation::decode);
     }
 
@@ -548,16 +543,14 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Iterate relation records, optionally filtered by subject.
+     * Iterate all relation records.
      *
-     * @param subject The subject item ID to filter by, or null for all relations
      * @return Iterable of relation record bytes
      */
-    default Iterable<byte[]> iterateRelations(ItemID subject) {
+    default Iterable<byte[]> iterateRelations() {
         List<byte[]> results = new ArrayList<>();
-        byte[] prefix = subject != null ? Column.RELATION.keyPrefix(subject) : new byte[0];
 
-        try (var it = store().iterate(Column.RELATION, prefix)) {
+        try (var it = store().iterate(Column.RELATION, new byte[0])) {
             while (it.hasNext()) {
                 results.add(it.next().value());
             }
@@ -633,11 +626,11 @@ public interface ItemStore extends Service {
         MANIFEST("manifest", 34, 10, KeyEncoder.ID, KeyEncoder.ID),
 
         /**
-         * Relation blocks (RDF triples).
-         * Key: SubjectIID|RID → relation record bytes
-         * Enables prefix scan by subject to find all relations from an item.
+         * Relation blocks (content-addressed frames).
+         * Key: RECORD CID → relation record bytes
+         * All queries go through LibraryIndex fan-outs → RECORD CID → load bytes.
          */
-        RELATION("relation", 34, 10, KeyEncoder.ID, KeyEncoder.ID),
+        RELATION("relation", null, 10, KeyEncoder.ID),
 
         /**
          * Payload blocks (content blobs).

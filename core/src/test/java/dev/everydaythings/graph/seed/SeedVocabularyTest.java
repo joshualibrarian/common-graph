@@ -49,8 +49,9 @@ class SeedVocabularyTest {
     }
 
     private boolean hasImplementedByRelation(ItemID typeId) {
-        return store.relations(typeId)
-                .anyMatch(r -> r.predicate().equals(Sememe.IMPLEMENTED_BY.iid()));
+        return store.relations()
+                .filter(r -> r.predicate().equals(Sememe.IMPLEMENTED_BY.iid()))
+                .anyMatch(r -> typeId.equals(r.bindingId(ItemID.fromString("cg.role:theme"))));
     }
 
     private List<Manifest> allManifestsOfType(ItemID typeId) {

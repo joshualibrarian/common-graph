@@ -31,7 +31,7 @@ Sememe {
     partOfSpeech:   PartOfSpeech    # VERB, NOUN, ADJECTIVE, etc.
     thematicRoles:  [Role]          # For verbs: argument structure
     domain:         [ItemID]        # For predicates: valid subject types
-    range:          [ItemID]        # For predicates: valid object types
+    range:          [ItemID]        # For predicates: valid target types
     symbols:        [string]        # Language-neutral symbols ("m", "kg", "+")
     dimension:      Dimension?      # For units: physical dimension
     conversions:    [Conversion]    # For units: conversion factors

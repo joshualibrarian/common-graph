@@ -149,8 +149,8 @@ Content replicates along interest paths. When you interact with an item — view
 The CG Protocol's subscription mechanism (see [Protocol](protocol.md)) provides real-time replication for content you care about:
 
 ```
-Subscribe to: Relations(subject=chessClub, predicate=*, subscribe=true)
---> Receive all new relations on the chess club item as they're created
+Subscribe to: Relations(item=chessClub, predicate=*, subscribe=true)
+--> Receive all new relations involving the chess club item as they're created
 ```
 
 Your Librarian subscribes to items and predicates relevant to your interests. When peers create new relations or versions, you receive them via push. This is how chat messages arrive, game moves propagate, and shared documents sync.

@@ -322,7 +322,7 @@ class LibrarianTest extends SignerTest {
 
             author.relate(wroteId, book);
 
-            List<Relation> relations = book.relationsTo().toList();
+            List<Relation> relations = book.relations().toList();
 
             assertThat(relations)
                     .as("Relations to book")

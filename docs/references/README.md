@@ -154,7 +154,7 @@ Common Graph's type system, relations, and sememe hierarchy are ontological stru
 
 ## Semantic Web and Linked Data
 
-Common Graph's relation triples (Subject -> Predicate -> Object) and content addressing share DNA with the Semantic Web vision, though CG replaces URLs with content-addressed IIDs.
+Common Graph's relations (filled semantic frames with predicate + role bindings) and content addressing share DNA with the Semantic Web vision, though CG replaces RDF triples with Fillmore-inspired frame semantics and URLs with content-addressed IIDs.
 
 - **Berners-Lee, Hendler, Lassila 2001 - The Semantic Web.pdf** — Berners-Lee, T., Hendler, J., & Lassila, O. (2001). "The Semantic Web." *Scientific American*, May 2001. *The original vision paper for machine-readable meaning on the web.*
 

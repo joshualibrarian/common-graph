@@ -6,6 +6,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.language.Role;
 import dev.everydaythings.graph.runtime.Host;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Endpoint;
@@ -70,15 +71,16 @@ public class ProtocolContext {
     }
 
     /**
-     * Query relations (subject, predicate, object - any can be null for wildcard).
+     * Query relations (item, predicate - either can be null for wildcard).
+     * Frame-based: queries by participating item and/or predicate.
      */
-    public List<Relation> queryRelations(ItemID subject, ItemID predicate, ItemID object) {
+    public List<Relation> queryRelations(ItemID item, ItemID predicate) {
         // Use library's relation query via predicates
         // For now, just query by predicate if provided
         if (predicate != null) {
             return librarian.library().byPredicate(predicate).toList();
         }
-        // TODO: Full SPO query support
+        // TODO: Full item-based query support (search bindings for matching IidTarget)
         return List.of();
     }
 
@@ -125,9 +127,9 @@ public class ProtocolContext {
 
         // Create peers-with relation: local --peers-with--> remote
         Relation peersWith = Relation.builder()
-                .subject(localId)
                 .predicate(Host.PEERS_WITH.iid())
-                .object(Relation.iid(remoteId))
+                .bind(Role.THEME.iid(), Relation.iid(localId))
+                .bind(Role.TARGET.iid(), Relation.iid(remoteId))
                 .build()
                 .sign(librarian);
         librarian.relation(peersWith);
@@ -139,9 +141,9 @@ public class ProtocolContext {
                 remoteAddress.getPort()
         );
         Relation reachableAt = Relation.builder()
-                .subject(remoteId)
                 .predicate(Host.REACHABLE_AT.iid())
-                .object(Literal.of(endpoint))
+                .bind(Role.THEME.iid(), Relation.iid(remoteId))
+                .bind(Role.TARGET.iid(), Literal.of(endpoint))
                 .build()
                 .sign(librarian);
         librarian.relation(reachableAt);
@@ -173,9 +175,9 @@ public class ProtocolContext {
         if (fromPeer == null || toPeer == null) return;
 
         Relation relay = Relation.builder()
-                .subject(librarian.iid())
                 .predicate(Host.ACKNOWLEDGES_RELAY.iid())
-                .object(Relation.iid(fromPeer))
+                .bind(Role.THEME.iid(), Relation.iid(librarian.iid()))
+                .bind(Role.TARGET.iid(), Relation.iid(fromPeer))
                 .build()
                 .sign(librarian);
 
@@ -187,10 +189,10 @@ public class ProtocolContext {
         ItemID localId = librarian.iid();
 
         Relation ack = Relation.builder()
-                .subject(localId)
                 .predicate(Host.ACKNOWLEDGES_DELIVERY.iid())
-                .object(Relation.iid(remoteLibrarianIid))
-                .qualify(Host.REQUEST_ID.iid(), Literal.ofInteger(requestId))
+                .bind(Role.THEME.iid(), Relation.iid(localId))
+                .bind(Role.TARGET.iid(), Relation.iid(remoteLibrarianIid))
+                .bind(Host.REQUEST_ID.iid(), Literal.ofInteger(requestId))
                 .build()
                 .sign(librarian);
 

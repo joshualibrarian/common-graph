@@ -20,8 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OperatorTest {
 
     private boolean hasImplementedByRelation(ItemStore store, dev.everydaythings.graph.item.id.ItemID typeId) {
-        return store.relations(typeId)
+        return store.relations()
                 .filter(r -> r.predicate().equals(Sememe.IMPLEMENTED_BY.iid()))
+                .filter(r -> typeId.equals(r.bindingId(dev.everydaythings.graph.item.id.ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .isPresent();
     }

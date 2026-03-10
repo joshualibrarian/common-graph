@@ -11,55 +11,72 @@ import java.util.stream.Stream;
 /**
  * Fluent builder for querying relations.
  *
- * <p>Reads like constructing a sentence pattern:
+ * <p>With frame-based relations, queries are by participating item and/or predicate:
  * <pre>{@code
- * // "author WROTE ?"
+ * // All relations involving 'author'
  * library.find()
- *     .from(author)
- *     .via(Sememe.WROTE)
+ *     .involving(author)
  *     .relations();
  *
- * // "? AGREES_WITH ?" - all agreements
+ * // All HYPERNYM relations involving 'animal'
+ * library.find()
+ *     .involving(animal)
+ *     .via(Sememe.HYPERNYM)
+ *     .relations();
+ *
+ * // All AGREES_WITH relations
  * library.find()
  *     .via(Sememe.AGREES_WITH)
  *     .relations();
- *
- * // "? ? book" - all relations TO book
- * library.find()
- *     .to(book)
- *     .relations();
  * }</pre>
  *
- * <p>At least one constraint (from, via, or to) must be specified.
+ * <p>At least one constraint (involving or via) must be specified.
  */
 public final class RelationQuery {
 
     private final Library library;
-    private ItemID subject;
+    private ItemID item;
     private ItemID predicate;
-    private ItemID object;
 
     RelationQuery(Library library) {
         this.library = library;
     }
 
     // ==================================================================================
-    // Subject (from)
+    // Item constraint (involving)
     // ==================================================================================
 
     /**
-     * Constrain by subject (the "from" in subject → predicate → object).
+     * Constrain to relations involving this item (in any role).
      */
-    public RelationQuery from(Item subject) {
-        return from(subject.iid());
+    public RelationQuery involving(Item item) {
+        return involving(item.iid());
     }
 
     /**
-     * Constrain by subject ID.
+     * Constrain to relations involving this item ID (in any role).
      */
-    public RelationQuery from(ItemID subject) {
-        this.subject = subject;
+    public RelationQuery involving(ItemID item) {
+        this.item = item;
         return this;
+    }
+
+    /**
+     * Alias for {@link #involving(ItemID)} — reads well for subject-like queries.
+     * @deprecated Use {@link #involving(ItemID)} for clarity
+     */
+    @Deprecated
+    public RelationQuery from(ItemID item) {
+        return involving(item);
+    }
+
+    /**
+     * Alias for {@link #involving(Item)}.
+     * @deprecated Use {@link #involving(Item)} for clarity
+     */
+    @Deprecated
+    public RelationQuery from(Item item) {
+        return involving(item);
     }
 
     // ==================================================================================
@@ -89,25 +106,6 @@ public final class RelationQuery {
     }
 
     // ==================================================================================
-    // Object (to)
-    // ==================================================================================
-
-    /**
-     * Constrain by object (the "to" in subject → predicate → object).
-     */
-    public RelationQuery to(Item object) {
-        return to(object.iid());
-    }
-
-    /**
-     * Constrain by object ID.
-     */
-    public RelationQuery to(ItemID object) {
-        this.object = object;
-        return this;
-    }
-
-    // ==================================================================================
     // Terminal Operations
     // ==================================================================================
 
@@ -118,63 +116,38 @@ public final class RelationQuery {
      * @throws IllegalArgumentException if no constraints specified
      */
     public Stream<Relation> relations() {
-        return library.executeQuery(subject, predicate, object);
+        return library.executeQuery(item, predicate);
     }
 
     /**
-     * Execute the query and return the objects of matching relations.
+     * Get a specific role's binding across all matching relations.
      *
-     * <p>Convenience for traversing: "author WROTE ?" → returns the books.
+     * <p>Convenience for extracting a particular role's value:
+     * <pre>{@code
+     * // Get all items in the TARGET role of HYPERNYM relations involving 'animal'
+     * library.find().involving(animal).via(Sememe.HYPERNYM)
+     *     .bindingIds(Role.TARGET.iid())
+     * }</pre>
      *
-     * @return Stream of Items that are objects in matching relations
+     * @param role The role to extract
+     * @return Stream of ItemIDs bound to that role in matching relations
      */
-    public Stream<Item> objects() {
+    public Stream<ItemID> bindingIds(ItemID role) {
         return relations()
-                .map(Relation::object)
-                .filter(t -> t instanceof Relation.IidTarget)
-                .map(t -> ((Relation.IidTarget) t).iid())
+                .map(r -> r.bindingId(role))
+                .filter(id -> id != null);
+    }
+
+    /**
+     * Get a specific role's binding as hydrated Items.
+     *
+     * @param role The role to extract
+     * @return Stream of Items bound to that role in matching relations
+     */
+    public Stream<Item> bindings(ItemID role) {
+        return bindingIds(role)
                 .map(library::get)
                 .flatMap(Optional::stream);
-    }
-
-    /**
-     * Execute the query and return the object IDs of matching relations.
-     *
-     * <p>Like objects() but returns IDs instead of hydrated Items.
-     *
-     * @return Stream of ItemIDs that are objects in matching relations
-     */
-    public Stream<ItemID> objectIds() {
-        return relations()
-                .map(Relation::object)
-                .filter(t -> t instanceof Relation.IidTarget)
-                .map(t -> ((Relation.IidTarget) t).iid());
-    }
-
-    /**
-     * Execute the query and return the subjects of matching relations.
-     *
-     * <p>Convenience for reverse traversal: "? WROTE book" → returns the authors.
-     *
-     * @return Stream of Items that are subjects in matching relations
-     */
-    public Stream<Item> subjects() {
-        return relations()
-                .map(Relation::subject)
-                .map(library::get)
-                .flatMap(Optional::stream);
-    }
-
-    /**
-     * Execute the query and return the subject IDs of matching relations.
-     *
-     * <p>Like subjects() but returns IDs instead of hydrated Items.
-     *
-     * @return Stream of ItemIDs that are subjects in matching relations
-     */
-    public Stream<ItemID> subjectIds() {
-        return relations()
-                .map(Relation::subject);
     }
 
     /**

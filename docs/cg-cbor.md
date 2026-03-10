@@ -203,12 +203,12 @@ Parsers distinguish by the first element:
 
 ### Address Space Optimization
 
-When an **AddressSpace is the relation predicate**, the object can be bare text:
+When an **AddressSpace is the relation predicate**, the target binding can be bare text:
 
 ```
 // In relation with AddressSpace predicate — bare text is fine
-alice -> AtDomain -> "alice@example.com"
-alice -> E164Phone -> "+1-555-123-4567"
+REACHABLE_AT { theme: alice, target: "alice@example.com" }   (predicate = AtDomain)
+REACHABLE_AT { theme: alice, target: "+1-555-123-4567" }     (predicate = E164Phone)
 
 // Standalone (no predicate context) — use Tag 7
 Tag(7, [bytes(<AtDomain-iid>), "alice@example.com"])
@@ -347,7 +347,7 @@ The escape hatch exists for interop scenarios where IEEE 754 bit patterns must b
 
 ## Operand Types
 
-An **Operand** is any value that can appear as a relation object, qualifier value, or expression result. There are two kinds:
+An **Operand** is any value that can appear as a relation binding target or expression result. There are two kinds:
 
 ### Item Reference (encodes as CG-REF, Tag 6)
 

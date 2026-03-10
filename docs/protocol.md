@@ -43,7 +43,7 @@ Request {
 |--------|--------|-------------|
 | **Item** | `iid`, `vid?` | Request an item's manifest, optionally at a specific version |
 | **Content** | `cid` | Request content bytes by hash |
-| **Relations** | `subject?`, `predicate?`, `object?`, `subscribe?` | Query relations with optional filters; optionally subscribe to updates |
+| **Relations** | `item?`, `predicate?`, `subscribe?` | Query relations involving an item and/or predicate; optionally subscribe to updates |
 
 A single Request can ask for multiple things at once.
 
@@ -142,7 +142,7 @@ Subscriber                          Publisher
      |                                    |
 ```
 
-Subscription filters support wildcards — a null subject, predicate, or object means "any." Per-connection subscription limits prevent abuse (default: 100 per peer).
+Subscription filters support wildcards — a null item or predicate means "any." Per-connection subscription limits prevent abuse (default: 100 per peer).
 
 ### Relay Forwarding
 

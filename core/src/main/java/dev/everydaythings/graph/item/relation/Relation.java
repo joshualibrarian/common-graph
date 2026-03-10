@@ -23,6 +23,33 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * A semantic relation — a filled frame connecting items by meaning.
+ *
+ * <p>Based on Fillmore's Case Grammar / Frame Semantics. The predicate names
+ * the frame (e.g., HYPERNYM, LIKES, TITLE). The bindings fill the roles
+ * (e.g., THEME → subject, TARGET → object, NAME → literal value).
+ *
+ * <p>BODY fields (contribute to RID — semantic identity):
+ * <ul>
+ *   <li>{@code version} — format version</li>
+ *   <li>{@code predicate} — the frame type (a Sememe IID)</li>
+ *   <li>{@code bindings} — role→target map filling the frame's slots</li>
+ *   <li>{@code createdAt} — timestamp</li>
+ * </ul>
+ *
+ * <p>RECORD-only fields (don't affect RID):
+ * <ul>
+ *   <li>{@code rid} — hash of BODY bytes (semantic identity)</li>
+ *   <li>{@code authorKey} — who asserts this claim</li>
+ *   <li>{@code signing} — cryptographic signature</li>
+ *   <li>{@code inputText} — raw input text that produced this relation (debugging/audit)</li>
+ * </ul>
+ *
+ * <p>The same assertion by different signers produces the same RID. Multiple
+ * signed records for the same RID represent independent attestations of the
+ * same fact. Storage is keyed by RECORD CID (content-addressed).
+ */
 @Getter
 public final class Relation implements Signing.Target {
 
@@ -32,33 +59,38 @@ public final class Relation implements Signing.Target {
     /** Deterministic ItemID for the relation type. */
     public static final ItemID TYPE_ID = ItemID.fromString(TYPE_KEY);
 
+    // ==================================================================================
+    // BODY fields — contribute to RID (semantic identity)
+    // ==================================================================================
+
     @Canon(order = 0)
     private final int version = 1;
 
-    @Canon(order = 1, isBody = false)
-    private final RelationID rid;                 // set at commit()
-
-    @Canon(order = 2)
-    private final ItemID subject;
-
-    @Canon(order = 3)
+    @Canon(order = 1)
     private final ItemID predicate;
 
-    @Canon(order = 4)
-    private final Target object;       // optional
+    @Canon(order = 2)
+    private final Map<ItemID, Target> bindings;
 
-    @Canon(order = 5)
-    private final Map<ItemID, Target> qualifiers;
+    @Canon(order = 3)
+    private final Instant createdAt;
 
-    @Canon(order = 6)
-    private final Instant createdAt;   // filled at sign/commit if null
+    // ==================================================================================
+    // RECORD-only fields — do not affect RID
+    // ==================================================================================
 
-    // TODO: wrap signatures in an object and return defensively
-    @Canon(order = 7, isBody = false)
+    @Canon(order = 4, isBody = false)
+    private final RelationID rid;
+
+    @Canon(order = 5, isBody = false)
     private SigningPublicKey authorKey;
 
-    @Canon(order = 8, isBody = false)
+    @Canon(order = 6, isBody = false)
     private Signing signing;
+
+    /** Raw input text that produced this relation (nullable, for debugging/auditing). */
+    @Canon(order = 7, isBody = false)
+    private final String inputText;
 
     private final transient byte[] body;
 
@@ -67,8 +99,12 @@ public final class Relation implements Signing.Target {
         return rid;
     }
 
+    // ==================================================================================
+    // Target interface
+    // ==================================================================================
+
     /**
-     * Marker interface for relation objects/qualifiers.
+     * Marker interface for relation binding values.
      *
      * <p>Implementations:
      * <ul>
@@ -100,11 +136,9 @@ public final class Relation implements Signing.Target {
     }
 
     /**
-     * Object/qualifier target that references another Item.
+     * Binding value that references another Item.
      *
      * <p>Encodes as a CBOR byte string containing the ItemID multihash.
-     *
-     * <p>TODO: This will be replaced by Link (tag 6) in the CG-CBOR redesign.
      */
     public static final class IidTarget implements Target {
 
@@ -136,40 +170,43 @@ public final class Relation implements Signing.Target {
         }
     }
 
-    /** Convenience factory for item-object relations. */
+    /** Convenience factory for item references in bindings. */
     public static IidTarget iid(ItemID iid) { return IidTarget.of(iid); }
+
+    // ==================================================================================
+    // Constructors
+    // ==================================================================================
 
     /**
      * No-arg constructor for Canonical decoding.
      * Fields are populated via reflection.
      */
     private Relation() {
-        this.subject = null;
         this.predicate = null;
-        this.object = null;
-        this.qualifiers = null;
+        this.bindings = null;
         this.createdAt = null;
         this.rid = null;
+        this.inputText = null;
         this.body = null;
     }
 
-    // ---- Builder (subject & predicate required) ----
     @Builder(builderClassName = "RelationBuilder")
-    private Relation(@NonNull ItemID subject,
-                     @NonNull ItemID predicate,
-                     Target object,
-                     @Singular("qualify") Map<ItemID, Target> qualifiers,
-                     Clock clock) {
-        this.subject = subject;
+    private Relation(@NonNull ItemID predicate,
+                     @Singular("bind") Map<ItemID, Target> bindings,
+                     Clock clock,
+                     String inputText) {
         this.predicate = predicate;
-        this.object = object;
-        this.qualifiers = qualifiers;
+        this.bindings = bindings;
         this.createdAt = clock != null ? clock.instant() : Instant.now();
+        this.inputText = inputText;
 
         body = encodeBinary(Scope.BODY);
-        // rid is the content hash of the signed body (not the body bytes themselves)
         rid = new RelationID(Hash.DEFAULT.digestToMultihash(body).toBytes());
     }
+
+    // ==================================================================================
+    // Signing
+    // ==================================================================================
 
     public Relation sign(Signer signer) {
         if (!verify()) throw new IllegalStateException("verification failed!");
@@ -189,6 +226,62 @@ public final class Relation implements Signing.Target {
 
         return (Arrays.equals(actualBody, body)
                 && Arrays.equals(actualHash.toBytes(), rid.encodeBinary()));
+    }
+
+    // ==================================================================================
+    // Binding accessors (vocabulary-agnostic — no dependency on Role)
+    // ==================================================================================
+
+    /**
+     * Get the target bound to a specific role.
+     *
+     * @param role The role IID (e.g., Role.THEME.iid())
+     * @return The target, or null if role not filled
+     */
+    public Target binding(ItemID role) {
+        return bindings != null ? bindings.get(role) : null;
+    }
+
+    /**
+     * Get the ItemID bound to a specific role (convenience for IidTarget bindings).
+     *
+     * @param role The role IID
+     * @return The bound item's IID, or null if role not filled or not an IidTarget
+     */
+    public ItemID bindingId(ItemID role) {
+        Target target = binding(role);
+        return target instanceof IidTarget iidTarget ? iidTarget.iid() : null;
+    }
+
+    // ==================================================================================
+    // Backwards compatibility — bridging helpers during migration
+    // ==================================================================================
+
+    /**
+     * Get the THEME binding as a subject-like accessor.
+     *
+     * <p>During migration from subject/object to bindings, this provides
+     * the most common binding (THEME) via the familiar name.
+     *
+     * @return The THEME binding's ItemID, or null
+     * @deprecated Use {@code bindingId(Role.THEME.iid())} directly
+     */
+    @Deprecated
+    public ItemID subject() {
+        // Role.THEME.iid() — but we don't want to depend on Role here.
+        // The canonical key is "cg.role:theme" → deterministic ItemID.
+        return bindingId(ItemID.fromString("cg.role:theme"));
+    }
+
+    /**
+     * Get the TARGET binding as an object-like accessor.
+     *
+     * @return The TARGET binding as a Target, or null
+     * @deprecated Use {@code binding(Role.TARGET.iid())} directly
+     */
+    @Deprecated
+    public Target object() {
+        return binding(ItemID.fromString("cg.role:target"));
     }
 
     // ==================================================================================
