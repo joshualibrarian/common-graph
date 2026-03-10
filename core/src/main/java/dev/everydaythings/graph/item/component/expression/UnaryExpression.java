@@ -215,4 +215,9 @@ public record UnaryExpression(
     public boolean hasDependencies() {
         return operand.hasDependencies();
     }
+
+    @Override
+    public boolean referencesLocal(String handle) {
+        return operand.referencesLocal(handle);
+    }
 }

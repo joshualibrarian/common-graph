@@ -2,6 +2,9 @@ package dev.everydaythings.graph.item.component.expression;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.component.ExpressionComponent;
+import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.util.ArrayList;
@@ -62,6 +65,19 @@ public record FunctionExpression(
 
     @Override
     public Object evaluate(EvaluationContext context) {
+        // Check for user-defined function on the owner item
+        Item owner = context.owner();
+        if (owner != null) {
+            HandleID hid = HandleID.of(function);
+            var exprOpt = owner.content().getLive(hid, ExpressionComponent.class);
+            if (exprOpt.isPresent()) {
+                ExpressionComponent fn = exprOpt.get();
+                if (fn.isFunction()) {
+                    return evaluateItemFunction(fn, context);
+                }
+            }
+        }
+
         // Evaluate all arguments
         List<Object> args = arguments.stream()
                 .map(arg -> arg.evaluate(context))
@@ -69,6 +85,21 @@ public record FunctionExpression(
 
         // Dispatch to built-in functions
         return evaluateBuiltin(function, args, context);
+    }
+
+    private Object evaluateItemFunction(ExpressionComponent fn, EvaluationContext context) {
+        List<String> params = fn.params();
+        if (arguments.size() != params.size()) {
+            throw new IllegalArgumentException(
+                    "Function expects " + params.size() + " argument(s), got " + arguments.size());
+        }
+        // Evaluate arguments and bind to parameter names
+        EvaluationContext fnContext = context;
+        for (int i = 0; i < params.size(); i++) {
+            Object argValue = arguments.get(i).evaluate(context);
+            fnContext = fnContext.withBinding(params.get(i), argValue);
+        }
+        return fn.expression().evaluate(fnContext);
     }
 
     @SuppressWarnings("unchecked")
@@ -297,5 +328,10 @@ public record FunctionExpression(
     @Override
     public boolean hasDependencies() {
         return arguments.stream().anyMatch(Expression::hasDependencies);
+    }
+
+    @Override
+    public boolean referencesLocal(String handle) {
+        return arguments.stream().anyMatch(arg -> arg.referencesLocal(handle));
     }
 }

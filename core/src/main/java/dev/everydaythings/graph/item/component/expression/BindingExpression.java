@@ -81,4 +81,9 @@ public record BindingExpression(
     public boolean hasDependencies() {
         return value.hasDependencies() || body.hasDependencies();
     }
+
+    @Override
+    public boolean referencesLocal(String handle) {
+        return value.referencesLocal(handle) || body.referencesLocal(handle);
+    }
 }

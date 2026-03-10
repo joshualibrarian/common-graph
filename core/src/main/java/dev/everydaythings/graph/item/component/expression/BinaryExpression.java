@@ -161,4 +161,9 @@ public record BinaryExpression(
     public boolean hasDependencies() {
         return left.hasDependencies() || right.hasDependencies();
     }
+
+    @Override
+    public boolean referencesLocal(String handle) {
+        return left.referencesLocal(handle) || right.referencesLocal(handle);
+    }
 }

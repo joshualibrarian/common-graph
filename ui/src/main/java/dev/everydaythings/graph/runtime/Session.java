@@ -920,6 +920,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     protected void handleInputResult(Eval.EvalResult result) {
         handleEvalResult(result);
 
+        // Refresh tree — dispatch may have added/changed components on the focused item
+        if (itemModel != null && !(result instanceof Eval.EvalResult.Empty)) {
+            itemModel.refresh();
+        }
+
         // Log to the session activity log and update feedback display
         if (!(result instanceof Eval.EvalResult.Empty)) {
             String inputText = evalInput != null ? evalInput.lastSubmittedText() : null;

@@ -133,4 +133,9 @@ public record PropertyAccessExpression(
     public boolean hasDependencies() {
         return object.hasDependencies();
     }
+
+    @Override
+    public boolean referencesLocal(String handle) {
+        return object.referencesLocal(handle);
+    }
 }

@@ -94,4 +94,9 @@ public record SequenceExpression(
     public boolean hasDependencies() {
         return expressions.stream().anyMatch(Expression::hasDependencies);
     }
+
+    @Override
+    public boolean referencesLocal(String handle) {
+        return expressions.stream().anyMatch(e -> e.referencesLocal(handle));
+    }
 }

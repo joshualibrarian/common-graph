@@ -4,6 +4,7 @@ import dev.everydaythings.graph.expression.ExpressionToken.*;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.item.component.expression.EvaluationContext;
 import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import lombok.extern.log4j.Log4j2;
@@ -414,12 +415,28 @@ public class EvalInput {
             }
         }
 
-        tokens.add(enrichedRefToken(posting));
+        // Local component handle → NameToken (for expression evaluation)
+        // Global dictionary match → RefToken (for item reference)
+        if (isLocalPosting(posting)) {
+            tokens.add(new NameToken(posting.token()));
+        } else {
+            tokens.add(enrichedRefToken(posting));
+        }
         pendingText.setLength(0);
         cursor = 0;
         clearCompletions();
         pruneCandidates();
         notifyChange();
+    }
+
+    /**
+     * Check if a posting is a local component handle (from context item's vocabulary).
+     */
+    private boolean isLocalPosting(Posting posting) {
+        return context != null
+                && posting.scope() != null
+                && posting.scope().equals(context.iid())
+                && posting.target().equals(context.iid());
     }
 
     // ==================================================================================
@@ -548,11 +565,18 @@ public class EvalInput {
         // Final pruning pass with the complete token list
         pruneCandidates();
 
-        // If CandidateTokens remain, block dispatch and highlight them
+        // If CandidateTokens remain after pruning:
+        // - In expression context (operators present): auto-resolve to NameTokens
+        //   because bare names are valid (variable/parameter references)
+        // - In command context (no operators): block and ask user to disambiguate
         if (hasUnresolvedCandidates()) {
-            error = "Ambiguous tokens — select a meaning for highlighted words";
-            notifyChange();
-            return Optional.of(Eval.EvalResult.error(error));
+            if (hasOperators()) {
+                autoResolveCandidates();
+            } else {
+                error = "Ambiguous tokens — select a meaning for highlighted words";
+                notifyChange();
+                return Optional.of(Eval.EvalResult.error(error));
+            }
         }
 
         // Capture display text before clearing (for history)
@@ -679,14 +703,19 @@ public class EvalInput {
     private List<Posting> findAllExactMatches(String text) {
         List<Posting> matches = new ArrayList<>();
 
-        // Check current completions first
+        // Check context item's local vocabulary first (component handles — highest priority)
+        if (context != null) {
+            context.vocabulary().exactMatch(text).ifPresent(matches::add);
+        }
+
+        // Check current completions
         for (Posting p : completions) {
             if (p.token().equalsIgnoreCase(text)) {
                 matches.add(p);
             }
         }
 
-        // If completions empty (typed fast, or min length not met), try lookup
+        // If no matches yet (typed fast, or min length not met), try global lookup
         if (matches.isEmpty() && lookup != null) {
             try {
                 List<Posting> results = lookup.apply(text);
@@ -741,7 +770,12 @@ public class EvalInput {
             List<Posting> matches = findAllExactMatches(word);
             if (!matches.isEmpty()) {
                 if (matches.size() == 1) {
-                    tokens.add(enrichedRefToken(matches.get(0)));
+                    Posting match = matches.get(0);
+                    if (isLocalPosting(match)) {
+                        tokens.add(new NameToken(match.token()));
+                    } else {
+                        tokens.add(enrichedRefToken(match));
+                    }
                 } else {
                     tokens.add(new ExpressionToken.CandidateToken(word, matches));
                 }
@@ -814,6 +848,37 @@ public class EvalInput {
             }
         }
         return false;
+    }
+
+    /**
+     * Check whether the token list contains operators (indicating expression context).
+     *
+     * <p>When operators are present, the input is a mathematical/assignment expression
+     * rather than a verb-frame command. In expression context, ambiguous tokens are
+     * treated as bare names (variable/parameter references).
+     */
+    private boolean hasOperators() {
+        for (ExpressionToken token : tokens) {
+            if (token instanceof ExpressionToken.OpToken) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Auto-resolve remaining CandidateTokens to NameTokens.
+     *
+     * <p>Used in expression context where bare names are valid references
+     * (variables, parameters). The expression parser handles NameTokens
+     * by treating them as local references on the focused item.
+     */
+    private void autoResolveCandidates() {
+        for (int i = 0; i < tokens.size(); i++) {
+            if (tokens.get(i) instanceof ExpressionToken.CandidateToken candidate) {
+                tokens.set(i, new ExpressionToken.NameToken(candidate.text()));
+            }
+        }
     }
 
     /**
@@ -891,6 +956,16 @@ public class EvalInput {
             try {
                 completions = lookup.apply(lookupText);
                 if (completions == null) completions = List.of();
+
+                // Prepend local component handle matches (highest priority)
+                if (context != null) {
+                    List<Posting> local = context.vocabulary().prefixMatch(lookupText);
+                    if (!local.isEmpty()) {
+                        List<Posting> merged = new ArrayList<>(local);
+                        merged.addAll(completions);
+                        completions = merged;
+                    }
+                }
 
                 // Deduplicate by target — same item via different tokens appears only once.
                 // Multiple matching tokens boost the merged posting's weight.

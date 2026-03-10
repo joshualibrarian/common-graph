@@ -15,10 +15,14 @@ import java.util.Optional;
  * <p>Provides access to:
  * <ul>
  *   <li>The graph (via Librarian) for resolving references</li>
- *   <li>The owning Item for local references</li>
- *   <li>Local bindings from let-expressions</li>
+ *   <li>The owning Item for local references and component storage</li>
+ *   <li>Local bindings from let-expressions and function parameters</li>
  *   <li>Evaluation cache to avoid re-computing the same expression</li>
  * </ul>
+ *
+ * <p>Persistent state (variables, functions) lives on the owner Item as
+ * ExpressionComponents — not in this context. This context is ephemeral
+ * and created fresh for each evaluation.
  *
  * <p>Contexts can be nested for let-bindings, creating a scope chain.
  */
@@ -53,7 +57,7 @@ public class EvaluationContext {
         this.owner = parent.owner;
         this.parent = parent;
         this.bindings = bindings;
-        this.cache = parent.cache; // Share cache with parent
+        this.cache = parent.cache;
     }
 
     // ==================================================================================
@@ -86,7 +90,7 @@ public class EvaluationContext {
     }
 
     /**
-     * Get the owning item (for local references).
+     * Get the owning item (for local references and component storage).
      */
     public Item owner() {
         return owner;
@@ -101,13 +105,15 @@ public class EvaluationContext {
     }
 
     // ==================================================================================
-    // Bindings (for let-expressions)
+    // Bindings (for let-expressions and function parameters)
     // ==================================================================================
 
     /**
      * Look up a binding by name.
      *
-     * <p>Searches local bindings first, then parent scopes.
+     * <p>Searches the let-binding chain only. Persistent values
+     * (variables, functions) are stored as components on the owner Item
+     * and resolved by {@link ReferenceExpression} and {@link FunctionExpression}.
      */
     public Optional<Object> lookup(String name) {
         if (bindings.containsKey(name)) {

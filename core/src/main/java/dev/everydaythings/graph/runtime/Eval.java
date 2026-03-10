@@ -78,10 +78,13 @@ public class Eval {
     private final boolean interactive;
     private final boolean jsonOutput;
     private final int depth;
+    /** Evaluation context for expression evaluation (created lazily from context item). */
+    private final EvaluationContext evaluationContext;
 
     private Eval(LibrarianHandle librarianHandle, Item context, String focusedComponent,
                  Item session, DiscourseHistory discourseHistory,
-                 boolean interactive, boolean jsonOutput, int depth) {
+                 boolean interactive, boolean jsonOutput, int depth,
+                 EvaluationContext evaluationContext) {
         this.librarianHandle = librarianHandle;
         this.context = context;
         this.focusedComponent = focusedComponent;
@@ -90,6 +93,7 @@ public class Eval {
         this.interactive = interactive;
         this.jsonOutput = jsonOutput;
         this.depth = depth;
+        this.evaluationContext = evaluationContext;
     }
 
     // ==================================================================================
@@ -108,6 +112,7 @@ public class Eval {
         private DiscourseHistory discourseHistory;
         private boolean interactive = true;
         private boolean jsonOutput = false;
+        private EvaluationContext evaluationContext;
 
         public Builder librarian(LibrarianHandle ref) {
             this.librarianHandle = ref;
@@ -152,12 +157,18 @@ public class Eval {
             return this;
         }
 
+        /** Set an evaluation context for expression evaluation. */
+        public Builder evaluationContext(EvaluationContext evalCtx) {
+            this.evaluationContext = evalCtx;
+            return this;
+        }
+
         public Eval build() {
             if (librarianHandle == null) {
                 throw new IllegalStateException("LibrarianHandle is required");
             }
             return new Eval(librarianHandle, context, focusedComponent, session,
-                    discourseHistory, interactive, jsonOutput, 0);
+                    discourseHistory, interactive, jsonOutput, 0, evaluationContext);
         }
     }
 
@@ -571,7 +582,7 @@ public class Eval {
                 expanded.addAll(args.subList(1, args.size()));
             }
             Eval child = new Eval(librarianHandle, context, focusedComponent, session,
-                    discourseHistory, interactive, jsonOutput, depth + 1);
+                    discourseHistory, interactive, jsonOutput, depth + 1, evaluationContext);
             return child.evaluateCommand(expanded);
         }
 
@@ -919,7 +930,7 @@ public class Eval {
                 expanded.add(tokens.get(i).displayText());
             }
             Eval child = new Eval(librarianHandle, context, focusedComponent, session,
-                    discourseHistory, interactive, jsonOutput, depth + 1);
+                    discourseHistory, interactive, jsonOutput, depth + 1, evaluationContext);
             return child.evaluateCommand(expanded);
         }
 
@@ -929,13 +940,7 @@ public class Eval {
             var exprResult = ExpressionParser.tryParse(tokens);
             if (exprResult.isPresent()) {
                 Expression expr = exprResult.get();
-                Librarian librarian = librarianHandle instanceof LocalLibrarian local
-                        ? local.librarian() : null;
-                EvaluationContext evalCtx = (librarian != null && context != null)
-                        ? EvaluationContext.forItem(librarian, context)
-                        : (librarian != null)
-                            ? EvaluationContext.forLibrarian(librarian)
-                            : new EvaluationContext(null, null);
+                EvaluationContext evalCtx = getOrCreateEvalContext();
                 try {
                     Object value = expr.evaluate(evalCtx);
                     logger.debug("Expression evaluated: {} → {}", expr.toExpressionString(), value);
@@ -962,6 +967,26 @@ public class Eval {
         logger.debug("Executing {} tokens: {}", resolved.size(), resolved);
 
         return evaluateResolved(resolved);
+    }
+
+    /**
+     * Get or create an evaluation context for expression evaluation.
+     *
+     * <p>Persistent state (variables, functions) lives on the focused item
+     * as ExpressionComponents. The context itself is ephemeral.
+     */
+    private EvaluationContext getOrCreateEvalContext() {
+        if (evaluationContext != null) {
+            return evaluationContext;
+        }
+        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                ? local.librarian() : null;
+        if (librarian != null && context != null) {
+            return EvaluationContext.forItem(librarian, context);
+        } else if (librarian != null) {
+            return EvaluationContext.forLibrarian(librarian);
+        }
+        return new EvaluationContext(null, null);
     }
 
     /**

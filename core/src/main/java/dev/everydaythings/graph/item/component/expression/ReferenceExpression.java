@@ -153,6 +153,11 @@ public record ReferenceExpression(
         return item == null;
     }
 
+    @Override
+    public boolean referencesLocal(String handle) {
+        return isLocal() && this.handle.equals(handle);
+    }
+
     /**
      * Check if this is a remote reference.
      */

@@ -121,6 +121,10 @@ public class ExpressionParser {
         if (tokens.size() == 1 && tokens.getFirst() instanceof ExpressionToken.LiteralToken lit) {
             return lit.value() instanceof Number;
         }
+        // Single name — could be a component reference (variable lookup)
+        if (tokens.size() == 1 && tokens.getFirst() instanceof ExpressionToken.NameToken) {
+            return true;
+        }
         // Number followed by ref/name — quantity via juxtaposition (5m, 2ft)
         if (tokens.size() >= 2 && tokens.getFirst() instanceof ExpressionToken.LiteralToken lit) {
             if (lit.value() instanceof Number) {

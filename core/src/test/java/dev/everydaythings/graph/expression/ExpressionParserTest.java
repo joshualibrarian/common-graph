@@ -350,8 +350,9 @@ class ExpressionParserTest {
 
     @Test
     void looksLikeExpression_nameOnly() {
+        // Single name is a valid expression — component variable lookup
         assertThat(ExpressionParser.looksLikeExpression(
-                List.of(name("create")))).isFalse();
+                List.of(name("x")))).isTrue();
     }
 
     // ==================================================================================

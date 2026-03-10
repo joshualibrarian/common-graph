@@ -74,4 +74,17 @@ public interface Expression {
     default boolean hasDependencies() {
         return false;
     }
+
+    /**
+     * Check if this expression contains a local reference to the given handle.
+     *
+     * <p>Used for circular reference detection: {@code x = x + 1} is rejected
+     * because the RHS references the same handle as the LHS.
+     *
+     * @param handle The handle name to check for
+     * @return true if this expression tree contains a local reference to the handle
+     */
+    default boolean referencesLocal(String handle) {
+        return false;
+    }
 }

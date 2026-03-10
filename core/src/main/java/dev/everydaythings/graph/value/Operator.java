@@ -1,9 +1,13 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.component.ExpressionComponent;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.expression.EvaluationContext;
 import dev.everydaythings.graph.item.component.expression.Expression;
+import dev.everydaythings.graph.item.component.expression.FunctionExpression;
+import dev.everydaythings.graph.item.component.expression.ReferenceExpression;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -170,6 +174,11 @@ public class Operator extends NounSememe {
             throw new UnsupportedOperationException("Operator has no canonical key");
         }
 
+        // Assignment: LHS is a name (or function definition), not a value to evaluate
+        if ("cg.op:assign".equals(canonicalKey())) {
+            return evaluateAssign(left, right, context);
+        }
+
         // Short-circuit: evaluate left first, maybe skip right
         if (isShortCircuit()) {
             return evaluateShortCircuit(left, right, context);
@@ -209,6 +218,61 @@ public class Operator extends NounSememe {
         };
     }
 
+    /**
+     * Evaluate assignment: {@code x = expr} or {@code f(x) = expr}.
+     *
+     * <p>The LHS determines the kind of assignment:
+     * <ul>
+     *   <li>{@link ReferenceExpression} → variable assignment: evaluate RHS, store in context</li>
+     *   <li>{@link FunctionExpression} → function definition: store body + param names</li>
+     * </ul>
+     */
+    private Object evaluateAssign(Expression left, Expression right, EvaluationContext context) {
+        Item owner = context.owner();
+        if (owner == null) {
+            throw new IllegalStateException("Cannot assign: no focused item");
+        }
+
+        if (left instanceof FunctionExpression fn) {
+            // Function definition: f(x, y) = body → store as ExpressionComponent with params
+            List<String> params = fn.arguments().stream()
+                    .map(arg -> {
+                        if (arg instanceof ReferenceExpression ref && ref.isLocal()) {
+                            return ref.handle();
+                        }
+                        throw new IllegalArgumentException(
+                                "Function parameters must be names, got: " + arg.toExpressionString());
+                    })
+                    .toList();
+            owner.addComponent(fn.function(), ExpressionComponent.function(params, right));
+            return fn.function() + "(" + String.join(", ", params) + ")";
+        }
+
+        if (left instanceof ReferenceExpression ref && ref.isLocal()) {
+            String handle = ref.handle();
+
+            // Circular reference detection: x = x + 1 is undefined
+            if (right.referencesLocal(handle)) {
+                throw new IllegalArgumentException(
+                        "Circular reference: " + handle + " cannot depend on itself");
+            }
+
+            // Store the expression formula (reactive — re-evaluated on access)
+            owner.addComponent(handle, ExpressionComponent.of(right));
+
+            // Evaluate to show current value
+            try {
+                Object currentValue = right.evaluate(context);
+                return currentValue;
+            } catch (Exception e) {
+                return handle + " = " + right.toExpressionString();
+            }
+        }
+
+        throw new IllegalArgumentException(
+                "Cannot assign to: " + left.toExpressionString());
+    }
+
     private Object applyBinary(Object left, Object right) {
         return switch (canonicalKey()) {
             // Arithmetic
@@ -217,7 +281,15 @@ public class Operator extends NounSememe {
                     yield quantityAdd(lq, rq);
                 if (left instanceof Number l && right instanceof Number r)
                     yield toNumber(l) + toNumber(r);
-                yield String.valueOf(left) + String.valueOf(right);
+                // String concatenation only when at least one side is a string
+                if (left instanceof String || right instanceof String)
+                    yield String.valueOf(left) + String.valueOf(right);
+                // Null operand — undefined reference
+                if (left == null || right == null)
+                    throw new IllegalArgumentException(
+                            "Cannot add: operand is undefined (null)");
+                // Fallback: try numeric coercion
+                yield toNumber(left) + toNumber(right);
             }
             case "cg.op:sub" -> {
                 if (left instanceof Quantity lq && right instanceof Quantity rq)

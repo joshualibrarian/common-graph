@@ -105,4 +105,11 @@ public record ConditionalExpression(
                thenExpr.hasDependencies() ||
                (elseExpr != null && elseExpr.hasDependencies());
     }
+
+    @Override
+    public boolean referencesLocal(String handle) {
+        return condition.referencesLocal(handle) ||
+               thenExpr.referencesLocal(handle) ||
+               (elseExpr != null && elseExpr.referencesLocal(handle));
+    }
 }

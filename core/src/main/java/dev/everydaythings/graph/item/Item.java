@@ -3,6 +3,8 @@ package dev.everydaythings.graph.item;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.component.Components;
+import dev.everydaythings.graph.item.component.ExpressionComponent;
+import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.item.component.ComponentFieldSpec;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
@@ -1383,16 +1385,30 @@ public class Item implements Property {
         // 2. Register live instance
         content().setLive(hid, handle, component);
 
-        // 3. Call lifecycle hook (only if Component)
+        // 3. Invalidate expression caches — any formula might reference this handle
+        // TODO: Build dependency graph so only expressions referencing this handle are
+        //  invalidated (referencesLocal() infrastructure exists). Blanket invalidation
+        //  is fine for now but won't scale to items with many expressions.
+        content().forEachLive(ExpressionComponent.class, ExpressionComponent::invalidate);
+
+        // 4. Call lifecycle hook (only if Component)
         if (component instanceof Component c) {
             c.initComponent(this);
         }
 
-        // 4. Scan component class for verbs and register them
+        // 5. Scan component class for verbs and register them
         List<VerbSpec> verbs = ItemScanner.scanComponentVerbs(component.getClass(), handle);
         for (VerbSpec spec : verbs) {
             vocabulary().add(VerbEntry.componentVerb(spec, handle, component));
         }
+
+        // 6. Register handle as local vocabulary posting (completions + token resolution)
+        vocabulary().addLocalPosting(Posting.builder()
+                .token(handle)
+                .scope(iid())
+                .target(iid())
+                .weight(1.0f)
+                .build());
     }
 
     // ==================================================================================

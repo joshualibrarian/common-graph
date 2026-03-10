@@ -119,6 +119,9 @@ public class Vocabulary implements Canonical, Component, Property, Iterable<Verb
     /** Expression macros: trigger token → expression string (rebuilt from EntryVocabulary). */
     private transient final Map<String, String> expressions = new LinkedHashMap<>();
 
+    /** Local postings for component handles (transient, rebuilt from component entries). */
+    private transient final Map<String, Posting> localPostings = new LinkedHashMap<>();
+
     // ==================================================================================
     // Add Methods
     // ==================================================================================
@@ -289,6 +292,7 @@ public class Vocabulary implements Canonical, Component, Property, Iterable<Verb
         bySememeId.clear();
         byComponentHandle.clear();
         expressions.clear();
+        localPostings.clear();
     }
 
     /**
@@ -351,6 +355,46 @@ public class Vocabulary implements Canonical, Component, Property, Iterable<Verb
      */
     public boolean hasCustomizations() {
         return !aliases.isEmpty() || !presets.isEmpty();
+    }
+
+    // ==================================================================================
+    // Local Postings (component handles, transient)
+    // ==================================================================================
+
+    /**
+     * Register a local posting for a component handle.
+     *
+     * <p>These are transient entries rebuilt from component entries on the item.
+     * They provide completions and token resolution for handles like "x", "y",
+     * "chess" — anything added via {@code addComponent()}.
+     */
+    public void addLocalPosting(Posting posting) {
+        localPostings.put(posting.token().toLowerCase(), posting);
+    }
+
+    /**
+     * Remove a local posting by token.
+     */
+    public void removeLocalPosting(String token) {
+        localPostings.remove(token.toLowerCase());
+    }
+
+    /**
+     * Find local postings matching a prefix.
+     */
+    public List<Posting> prefixMatch(String prefix) {
+        String lower = prefix.toLowerCase();
+        return localPostings.entrySet().stream()
+                .filter(e -> e.getKey().startsWith(lower))
+                .map(Map.Entry::getValue)
+                .toList();
+    }
+
+    /**
+     * Find exact local posting match.
+     */
+    public Optional<Posting> exactMatch(String token) {
+        return Optional.ofNullable(localPostings.get(token.toLowerCase()));
     }
 
     // ==================================================================================

@@ -75,6 +75,19 @@ public class ExpressionComponent implements Component, Canonical {
     @Canon(order = 1)
     private final ItemID resultType;
 
+    /**
+     * Parameter names for function definitions.
+     *
+     * <p>When non-null and non-empty, this ExpressionComponent represents a callable
+     * function rather than a simple value. The expression field is the function body,
+     * and params lists the parameter names that callers must provide.
+     *
+     * <p>Example: {@code f(x, y) = x + y} stores params=["x","y"], expression=add(ref("x"),ref("y"))
+     */
+    @Getter
+    @Canon(order = 2)
+    private final List<String> params;
+
     // ==================================================================================
     // Transient State
     // ==================================================================================
@@ -93,9 +106,10 @@ public class ExpressionComponent implements Component, Canonical {
     // Constructors
     // ==================================================================================
 
-    private ExpressionComponent(Expression expression, ItemID resultType) {
+    private ExpressionComponent(Expression expression, ItemID resultType, List<String> params) {
         this.expression = expression;
         this.resultType = resultType;
+        this.params = params != null && !params.isEmpty() ? List.copyOf(params) : null;
     }
 
     /**
@@ -105,6 +119,7 @@ public class ExpressionComponent implements Component, Canonical {
     private ExpressionComponent() {
         this.expression = null;
         this.resultType = null;
+        this.params = null;
     }
 
     // ==================================================================================
@@ -115,49 +130,58 @@ public class ExpressionComponent implements Component, Canonical {
      * Create an expression component from an expression.
      */
     public static ExpressionComponent of(Expression expression) {
-        return new ExpressionComponent(expression, expression.resultType());
+        return new ExpressionComponent(expression, expression.resultType(), null);
     }
 
     /**
      * Create an expression component from an expression with explicit type.
      */
     public static ExpressionComponent of(Expression expression, ItemID resultType) {
-        return new ExpressionComponent(expression, resultType);
+        return new ExpressionComponent(expression, resultType, null);
     }
 
     /**
      * Create a literal expression component.
      */
     public static ExpressionComponent literal(Object value) {
-        return new ExpressionComponent(LiteralExpression.of(value), null);
+        return new ExpressionComponent(LiteralExpression.of(value), null, null);
     }
 
     /**
      * Create a literal integer expression component.
      */
     public static ExpressionComponent integer(long value) {
-        return new ExpressionComponent(LiteralExpression.integer(value), null);
+        return new ExpressionComponent(LiteralExpression.integer(value), null, null);
     }
 
     /**
      * Create a literal string expression component.
      */
     public static ExpressionComponent string(String value) {
-        return new ExpressionComponent(LiteralExpression.string(value), null);
+        return new ExpressionComponent(LiteralExpression.string(value), null, null);
     }
 
     /**
      * Create a literal boolean expression component.
      */
     public static ExpressionComponent bool(boolean value) {
-        return new ExpressionComponent(LiteralExpression.bool(value), null);
+        return new ExpressionComponent(LiteralExpression.bool(value), null, null);
     }
 
     /**
      * Wrap an existing Value (Quantity, Endpoint, etc.) as an expression component.
      */
     public static ExpressionComponent value(Value value) {
-        return new ExpressionComponent(LiteralExpression.of(value), null);
+        return new ExpressionComponent(LiteralExpression.of(value), null, null);
+    }
+
+    /**
+     * Create a function expression component (callable with parameters).
+     *
+     * <p>Example: {@code f(x, y) = x + y} → {@code function(List.of("x","y"), add(ref("x"),ref("y")))}
+     */
+    public static ExpressionComponent function(List<String> params, Expression body) {
+        return new ExpressionComponent(body, null, params);
     }
 
     /**
@@ -167,7 +191,7 @@ public class ExpressionComponent implements Component, Canonical {
         return new ExpressionComponent(
                 dev.everydaythings.graph.item.component.expression.PatternExpression.pattern(
                         subject, predicate, object),
-                null);
+                null, null);
     }
 
     /**
@@ -176,7 +200,7 @@ public class ExpressionComponent implements Component, Canonical {
     public static ExpressionComponent subjects(ItemID predicate) {
         return new ExpressionComponent(
                 dev.everydaythings.graph.item.component.expression.PatternExpression.subjects(predicate),
-                null);
+                null, null);
     }
 
     /**
@@ -185,7 +209,7 @@ public class ExpressionComponent implements Component, Canonical {
     public static ExpressionComponent objects(ItemID predicate) {
         return new ExpressionComponent(
                 dev.everydaythings.graph.item.component.expression.PatternExpression.objects(predicate),
-                null);
+                null, null);
     }
 
     /**
@@ -294,6 +318,13 @@ public class ExpressionComponent implements Component, Canonical {
     }
 
     /**
+     * Check if this is a callable function (has parameter names).
+     */
+    public boolean isFunction() {
+        return params != null && !params.isEmpty();
+    }
+
+    /**
      * Check if this is a pure literal (no computation needed).
      */
     public boolean isLiteral() {
@@ -338,9 +369,12 @@ public class ExpressionComponent implements Component, Canonical {
 
     @Override
     public String displaySubtitle() {
-        // Show the expression formula as subtitle
         if (expression == null) return "null";
-        return expression.toExpressionString();
+        String formula = expression.toExpressionString();
+        if (cacheValid && cachedResult != null) {
+            return formula + " → " + cachedResult;
+        }
+        return formula;
     }
 
     @Override
