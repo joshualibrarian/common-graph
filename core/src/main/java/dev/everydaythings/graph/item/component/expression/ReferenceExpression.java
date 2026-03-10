@@ -104,7 +104,9 @@ public record ReferenceExpression(
             return null;
         }
 
-        // Get the expression component from the target item's content
+        // Get the component from the target item's content
+        // TODO: The double lookup (ExpressionComponent then Object) could be simplified
+        //  to one getLive(handleId, Object.class) call with instanceof dispatch.
         HandleID handleId = HandleID.of(handle);
         var exprOpt = targetItem.content().getLive(handleId, ExpressionComponent.class);
         if (exprOpt.isEmpty()) {

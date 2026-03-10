@@ -8,6 +8,11 @@ import java.util.List;
 /**
  * Tokenizes raw expression strings into {@link ExpressionToken} lists.
  *
+ * <p>TODO: Unify with {@link EvalInput#resolveOrCommit} — both produce
+ * {@link ExpressionToken}s but this lexer works from raw strings (no dictionary),
+ * while EvalInput resolves interactively with vocabulary lookup. They should share
+ * a common tokenization core, with dictionary resolution as an optional layer.
+ *
  * <p>This is the bridge between text (bind paths, user input, stored expressions)
  * and the {@link ExpressionParser}. The lexer handles:
  * <ul>

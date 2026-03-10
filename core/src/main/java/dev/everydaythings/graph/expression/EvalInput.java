@@ -748,6 +748,12 @@ public class EvalInput {
     /**
      * Resolve each word in text, using the same priority order as tokenBoundary:
      * literal → symbolic operator → dictionary → word operator → name token.
+     *
+     * <p>TODO: Unify with {@link ExpressionLexer} — these are two tokenization paths
+     * producing the same {@link ExpressionToken} types but with different resolution
+     * semantics. EvalInput resolves interactively (with dictionary/vocabulary lookup),
+     * ExpressionLexer resolves from raw strings (no dictionary). They should share a
+     * common tokenization core, with dictionary resolution as an optional layer.
      */
     private void resolveOrCommit(String text) {
         for (String word : splitRawTokens(text)) {

@@ -2,14 +2,18 @@ package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.component.expression.EvaluationContext;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A Function — a noun sememe with arity, category, and evaluation semantics.
@@ -22,10 +26,10 @@ import java.util.Map;
  * <p>The function name is registered as a universal symbol (language-neutral,
  * like mathematical notation). English aliases are registered as tokens.
  *
- * <p>Evaluation is currently handled by
- * {@link dev.everydaythings.graph.item.component.expression.FunctionExpression},
- * which dispatches by name. The Function Item provides the vocabulary entry;
- * evaluation can migrate here in the future.
+ * <p>Evaluation lives on the Function itself via {@link #evaluate(List, EvaluationContext)},
+ * dispatched by canonical key — same pattern as {@link Operator}.
+ * {@link dev.everydaythings.graph.item.component.expression.FunctionExpression}
+ * looks up the Function by name and delegates.
  */
 @Type(value = Function.KEY, glyph = "ƒ")
 public class Function extends NounSememe {
@@ -251,6 +255,221 @@ public class Function extends NounSememe {
     /** Whether this function accepts a variable number of arguments. */
     public boolean isVariadic() {
         return maxArity < 0;
+    }
+
+    // ==================================================================================
+    // EVALUATION
+    // ==================================================================================
+
+    /**
+     * Evaluate this function with the given arguments.
+     *
+     * <p>Dispatches by canonical key, same pattern as {@link Operator#evaluate}.
+     */
+    @SuppressWarnings("unchecked")
+    public Object evaluate(List<Object> args, EvaluationContext context) {
+        return switch (canonicalKey()) {
+            // --- Type coercion ---
+            case "cg.fn:tostring" -> args.isEmpty() ? "" : String.valueOf(args.getFirst());
+            case "cg.fn:tonumber" -> {
+                if (args.isEmpty()) yield 0.0;
+                Object arg = args.getFirst();
+                if (arg instanceof Number n) yield n.doubleValue();
+                try {
+                    yield Double.parseDouble(String.valueOf(arg));
+                } catch (NumberFormatException e) {
+                    yield 0.0;
+                }
+            }
+            case "cg.fn:tobool" -> {
+                if (args.isEmpty()) yield false;
+                Object arg = args.getFirst();
+                if (arg instanceof Boolean b) yield b;
+                if (arg instanceof Number n) yield n.doubleValue() != 0;
+                if (arg instanceof String s) yield !s.isEmpty();
+                yield arg != null;
+            }
+
+            // --- String ---
+            case "cg.fn:format" -> {
+                if (args.isEmpty()) yield "";
+                String fmt = String.valueOf(args.getFirst());
+                Object[] fmtArgs = args.subList(1, args.size()).toArray();
+                yield String.format(fmt, fmtArgs);
+            }
+            case "cg.fn:upper" -> args.isEmpty() ? "" : String.valueOf(args.getFirst()).toUpperCase();
+            case "cg.fn:lower" -> args.isEmpty() ? "" : String.valueOf(args.getFirst()).toLowerCase();
+            case "cg.fn:trim" -> args.isEmpty() ? "" : String.valueOf(args.getFirst()).trim();
+            case "cg.fn:length" -> {
+                if (args.isEmpty()) yield 0;
+                Object arg = args.getFirst();
+                if (arg instanceof String s) yield s.length();
+                if (arg instanceof List<?> l) yield l.size();
+                yield 0;
+            }
+            case "cg.fn:substring" -> {
+                if (args.size() < 2) yield "";
+                String s = String.valueOf(args.get(0));
+                int start = ((Number) args.get(1)).intValue();
+                if (args.size() >= 3) {
+                    int end = ((Number) args.get(2)).intValue();
+                    yield s.substring(Math.max(0, start), Math.min(s.length(), end));
+                }
+                yield s.substring(Math.max(0, start));
+            }
+            case "cg.fn:split" -> {
+                if (args.size() < 2) yield List.of();
+                String s = String.valueOf(args.get(0));
+                String delim = String.valueOf(args.get(1));
+                yield List.of(s.split(delim));
+            }
+            case "cg.fn:join" -> {
+                if (args.size() < 2) yield "";
+                Object list = args.get(0);
+                String delim = String.valueOf(args.get(1));
+                if (list instanceof List<?> l) {
+                    yield l.stream()
+                            .map(String::valueOf)
+                            .collect(Collectors.joining(delim));
+                }
+                yield "";
+            }
+
+            // --- Collection ---
+            case "cg.fn:map" -> {
+                // TODO: Needs lambda support
+                if (args.isEmpty()) yield List.of();
+                yield args.getFirst();
+            }
+            case "cg.fn:filter" -> {
+                // TODO: Needs lambda support
+                if (args.isEmpty()) yield List.of();
+                yield args.getFirst();
+            }
+            case "cg.fn:reduce" -> {
+                // TODO: Needs lambda support
+                if (args.size() < 2) yield null;
+                yield args.get(1);
+            }
+            case "cg.fn:range" -> {
+                if (args.isEmpty()) yield List.of();
+                int start = 0;
+                int end;
+                int step = 1;
+                if (args.size() == 1) {
+                    end = ((Number) args.get(0)).intValue();
+                } else {
+                    start = ((Number) args.get(0)).intValue();
+                    end = ((Number) args.get(1)).intValue();
+                    if (args.size() >= 3) {
+                        step = ((Number) args.get(2)).intValue();
+                    }
+                }
+                List<Integer> result = new ArrayList<>();
+                for (int i = start; step > 0 ? i < end : i > end; i += step) {
+                    result.add(i);
+                }
+                yield result;
+            }
+            case "cg.fn:reverse" -> {
+                if (args.isEmpty()) yield List.of();
+                Object arg = args.getFirst();
+                if (arg instanceof List<?> list) {
+                    List<Object> reversed = new ArrayList<>(list);
+                    Collections.reverse(reversed);
+                    yield reversed;
+                }
+                if (arg instanceof String s) {
+                    yield new StringBuilder(s).reverse().toString();
+                }
+                yield arg;
+            }
+            case "cg.fn:sort" -> {
+                if (args.isEmpty()) yield List.of();
+                Object arg = args.getFirst();
+                if (arg instanceof List<?> list) {
+                    List<Object> sorted = new ArrayList<>(list);
+                    sorted.sort((a, b) -> {
+                        if (a instanceof Comparable c && b != null) {
+                            try {
+                                return c.compareTo(b);
+                            } catch (ClassCastException e) {
+                                return 0;
+                            }
+                        }
+                        return 0;
+                    });
+                    yield sorted;
+                }
+                yield arg;
+            }
+            case "cg.fn:unique" -> {
+                if (args.isEmpty()) yield List.of();
+                Object arg = args.getFirst();
+                if (arg instanceof List<?> list) {
+                    yield list.stream().distinct().toList();
+                }
+                yield arg;
+            }
+            case "cg.fn:flatten" -> {
+                if (args.isEmpty()) yield List.of();
+                Object arg = args.getFirst();
+                if (arg instanceof List<?> list) {
+                    List<Object> flat = new ArrayList<>();
+                    for (Object item : list) {
+                        if (item instanceof List<?> inner) {
+                            flat.addAll(inner);
+                        } else {
+                            flat.add(item);
+                        }
+                    }
+                    yield flat;
+                }
+                yield arg;
+            }
+
+            // --- Math ---
+            case "cg.fn:abs" -> args.isEmpty() ? 0 : Math.abs(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:ceil" -> args.isEmpty() ? 0 : Math.ceil(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:floor" -> args.isEmpty() ? 0 : Math.floor(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:round" -> args.isEmpty() ? 0 : Math.round(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:sqrt" -> args.isEmpty() ? 0 : Math.sqrt(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:pow" -> args.size() < 2 ? 0 :
+                    Math.pow(((Number) args.get(0)).doubleValue(), ((Number) args.get(1)).doubleValue());
+            case "cg.fn:log" -> args.isEmpty() ? 0 : Math.log(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:sin" -> args.isEmpty() ? 0 : Math.sin(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:cos" -> args.isEmpty() ? 0 : Math.cos(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:tan" -> args.isEmpty() ? 0 : Math.tan(((Number) args.getFirst()).doubleValue());
+            case "cg.fn:random" -> Math.random();
+
+            // --- Time ---
+            case "cg.fn:now" -> System.currentTimeMillis();
+            case "cg.fn:timestamp" -> System.currentTimeMillis() / 1000;
+
+            // --- Utility ---
+            case "cg.fn:typeof" -> {
+                if (args.isEmpty()) yield "null";
+                Object arg = args.getFirst();
+                if (arg == null) yield "null";
+                if (arg instanceof Number) yield "number";
+                if (arg instanceof String) yield "string";
+                if (arg instanceof Boolean) yield "boolean";
+                if (arg instanceof List) yield "list";
+                if (arg instanceof ItemID) yield "item";
+                yield arg.getClass().getSimpleName().toLowerCase();
+            }
+            case "cg.fn:isnull" -> args.isEmpty() || args.getFirst() == null;
+            case "cg.fn:coalesce" -> args.stream().filter(a -> a != null).findFirst().orElse(null);
+            case "cg.fn:default" -> {
+                if (args.size() < 2) yield null;
+                Object val = args.get(0);
+                Object def = args.get(1);
+                yield val != null ? val : def;
+            }
+
+            default -> throw new UnsupportedOperationException(
+                    "No evaluator for function: " + canonicalKey());
+        };
     }
 
     // ==================================================================================

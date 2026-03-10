@@ -143,6 +143,10 @@ public class EvaluationContext {
 
     // ==================================================================================
     // Caching
+    // TODO: Cache is keyed implicitly (assumes same context). If the same
+    //  ExpressionComponent is evaluated with different contexts (different owner,
+    //  different bindings), stale results could be returned. Currently safe because
+    //  contexts are always fresh, but would need context-keyed caching if that changes.
     // ==================================================================================
 
     /**
