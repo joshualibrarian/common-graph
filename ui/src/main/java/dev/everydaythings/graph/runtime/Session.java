@@ -980,7 +980,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // Refresh tree to pick up the new component, then select it
         if (itemModel != null) {
             itemModel.refresh();
-            // Build link with HandleID-encoded path to match ComponentEntry.link() format
+            // Build link with HandleID-encoded path to match FrameEntry.link() format
             Link componentLink = Link.of(actual.iid(),
                     "/" + dev.everydaythings.graph.item.id.HandleID.of(handleName).encodeText());
             itemModel.select(componentLink);

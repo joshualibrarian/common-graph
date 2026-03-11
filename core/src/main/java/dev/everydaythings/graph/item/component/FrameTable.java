@@ -5,6 +5,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Property;
 import dev.everydaythings.graph.item.collection.ItemCollection;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.mount.Mount;
 
@@ -15,27 +16,27 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * Table of components within an Item.
+ * Table of frames within an Item.
  *
- * <p>Components are functional building blocks that compose Item behavior.
- * This table holds both the component metadata (entries) and the live
- * decoded instances.
+ * <p>Frames are the single primitive — endorsed semantic assertions that
+ * compose an Item's identity and behavior. This table holds both frame
+ * metadata (entries) and live decoded instances.
  *
  * <p>Extends {@link ItemCollection} for unified CRUD action generation.
- * The key is {@link HandleID}, entries are {@link ComponentEntry}.
+ * The primary key is {@link HandleID} (migrating to {@link FrameKey}).
+ * Entries are {@link FrameEntry}.
  *
- * <p>The ComponentTable is the source of truth for what an item contains.
- * Field bindings (@ComponentField) are optional developer ergonomics that
- * bind to entries in this table.
- *
+ * <p>The FrameTable is the source of truth for what an item contains.
+ * Field bindings ({@code @ContentField}) are optional developer ergonomics
+ * that bind to entries in this table.
  */
-public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> implements Canonical, Component, Property {
+public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements Canonical, Component, Property {
 
     // ==================================================================================
     // Owner Tracking
     // ==================================================================================
 
-    /** The Item that owns this ComponentTable. */
+    /** The Item that owns this FrameTable. */
     private transient Item owningItem;
 
     /**
@@ -44,7 +45,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
     public void setOwner(Item owner) {
         this.owningItem = owner;
         // Propagate to existing entries so entry.link() works
-        for (ComponentEntry entry : entries.values()) {
+        for (FrameEntry entry : entries.values()) {
             entry.setOwner(owner);
         }
     }
@@ -55,7 +56,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
 
     @Override
     public String displayToken() {
-        return "Components";
+        return "Frames";
     }
 
     @Override
@@ -65,13 +66,13 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
 
     @Override
     public String colorCategory() {
-        return "components";
+        return "frames";
     }
 
     @Override
     public String displaySubtitle() {
         int count = size();
-        return count + " component" + (count == 1 ? "" : "s");
+        return count + " frame" + (count == 1 ? "" : "s");
     }
 
     @Override
@@ -109,8 +110,8 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
         }
 
         // 3) Alias / aliasRef lookup (exact match)
-        for (Map.Entry<HandleID, ComponentEntry> e : entries.entrySet()) {
-            ComponentEntry entry = e.getValue();
+        for (Map.Entry<HandleID, FrameEntry> e : entries.entrySet()) {
+            FrameEntry entry = e.getValue();
             if (token.equals(entry.alias())) {
                 return Optional.of(e.getKey());
             }
@@ -143,10 +144,10 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
 
     @Override
     public void add(String key, Object value) {
-        if (value instanceof ComponentEntry entry) {
+        if (value instanceof FrameEntry entry) {
             add(entry);
         } else {
-            throw new IllegalArgumentException("ComponentTable only accepts ComponentEntry values");
+            throw new IllegalArgumentException("FrameTable only accepts FrameEntry values");
         }
     }
 
@@ -155,8 +156,8 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
         removeByKey(HandleID.of(key));
     }
 
-    /** Metadata entries (handle -> ComponentEntry with type, CID, etc.) */
-    private final Map<HandleID, ComponentEntry> entries = new LinkedHashMap<>();
+    /** Metadata entries (handle -> FrameEntry with type, CID, etc.) */
+    private final Map<HandleID, FrameEntry> entries = new LinkedHashMap<>();
 
     // ==================================================================================
     // ItemCollection Implementation
@@ -164,27 +165,49 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
 
     @Override
     public String collectionName() {
-        return "components";
+        return "frames";
     }
 
     @Override
-    public Class<ComponentEntry> entryType() {
-        return ComponentEntry.class;
+    public Class<FrameEntry> entryType() {
+        return FrameEntry.class;
     }
 
     @Override
-    public HandleID keyOf(ComponentEntry entry) {
+    public HandleID keyOf(FrameEntry entry) {
         return entry.handle();
     }
 
     @Override
-    public Optional<ComponentEntry> get(HandleID hid) {
+    public Optional<FrameEntry> get(HandleID hid) {
         return Optional.ofNullable(entries.get(hid));
+    }
+
+    /**
+     * Get an entry by FrameKey.
+     *
+     * <p>First tries the FrameKey's derived HandleID for direct map lookup.
+     * If that misses, falls back to scanning entries for matching FrameKeys
+     * (handles aliasRef-derived keys and explicitly set FrameKeys).
+     */
+    public Optional<FrameEntry> get(FrameKey key) {
+        // Fast path: try HandleID lookup
+        HandleID hid = key.toHandleID();
+        FrameEntry direct = entries.get(hid);
+        if (direct != null) return Optional.of(direct);
+
+        // Slow path: scan for matching derived FrameKey
+        for (FrameEntry entry : entries.values()) {
+            if (key.equals(entry.frameKey())) {
+                return Optional.of(entry);
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
     public boolean removeByKey(HandleID hid) {
-        ComponentEntry entry = entries.get(hid);
+        FrameEntry entry = entries.get(hid);
         boolean had = entry != null;
         if (had) {
             entries.remove(hid);
@@ -193,7 +216,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
     }
 
     @Override
-    protected boolean addEntry(ComponentEntry entry) {
+    protected boolean addEntry(FrameEntry entry) {
         HandleID key = entry.handle();
         boolean isNew = !entries.containsKey(key);
         entries.put(key, entry);
@@ -205,7 +228,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
     }
 
     @Override
-    public Iterator<ComponentEntry> iterator() {
+    public Iterator<FrameEntry> iterator() {
         return entries.values().iterator();
     }
 
@@ -241,9 +264,9 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      * @param instance The decoded instance
      */
     public void setLive(HandleID handle, String alias, Object instance) {
-        ComponentEntry entry = entries.get(handle);
+        FrameEntry entry = entries.get(handle);
         if (entry == null) {
-            throw new IllegalArgumentException("No ComponentEntry for handle: " + handle.encodeText());
+            throw new IllegalArgumentException("No FrameEntry for handle: " + handle.encodeText());
         }
         entry.setInstance(instance);
         if (alias != null && !alias.isBlank()) {
@@ -260,7 +283,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      */
     @SuppressWarnings("unchecked")
     public <T> Optional<T> getLive(HandleID handle, Class<T> type) {
-        ComponentEntry entry = entries.get(handle);
+        FrameEntry entry = entries.get(handle);
         if (entry == null) return Optional.empty();
         Object instance = entry.instance();
         if (instance != null && (type.isInstance(instance) || primitiveMatches(type, instance))) {
@@ -289,14 +312,14 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      * Get a live decoded instance by handle (untyped).
      */
     public Optional<Object> getLive(HandleID handle) {
-        return Optional.ofNullable(entries.get(handle)).map(ComponentEntry::instance);
+        return Optional.ofNullable(entries.get(handle)).map(FrameEntry::instance);
     }
 
     /**
      * Iterate over all live instances.
      */
     public void forEachLive(Consumer<Object> action) {
-        for (ComponentEntry entry : entries.values()) {
+        for (FrameEntry entry : entries.values()) {
             Object instance = entry.instance();
             if (instance != null) action.accept(instance);
         }
@@ -310,7 +333,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      */
     @SuppressWarnings("unchecked")
     public <T> void forEachLive(Class<T> filter, Consumer<T> action) {
-        for (ComponentEntry entry : entries.values()) {
+        for (FrameEntry entry : entries.values()) {
             Object instance = entry.instance();
             if (instance == null) continue;
             if (filter.isInstance(instance)) {
@@ -323,7 +346,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      * Check if a live instance exists for the given handle.
      */
     public boolean hasLive(HandleID handle) {
-        ComponentEntry entry = entries.get(handle);
+        FrameEntry entry = entries.get(handle);
         return entry != null && entry.instance() != null;
     }
 
@@ -332,7 +355,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      */
     public int liveCount() {
         int count = 0;
-        for (ComponentEntry entry : entries.values()) {
+        for (FrameEntry entry : entries.values()) {
             if (entry.instance() != null) count++;
         }
         return count;
@@ -347,15 +370,15 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      *
      * @return Stream of entries where type == Relation.TYPE_ID
      */
-    public java.util.stream.Stream<ComponentEntry> relationEntries() {
-        return entries.values().stream().filter(ComponentEntry::isRelation);
+    public java.util.stream.Stream<FrameEntry> relationEntries() {
+        return entries.values().stream().filter(FrameEntry::isRelation);
     }
 
     /**
      * Count of relation entries.
      */
     public int relationCount() {
-        return (int) entries.values().stream().filter(ComponentEntry::isRelation).count();
+        return (int) entries.values().stream().filter(FrameEntry::isRelation).count();
     }
 
     /**
@@ -363,8 +386,8 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      */
     public void removeRelationEntries() {
         var toRemove = entries.values().stream()
-                .filter(ComponentEntry::isRelation)
-                .map(ComponentEntry::handle)
+                .filter(FrameEntry::isRelation)
+                .map(FrameEntry::handle)
                 .toList();
         for (var hid : toRemove) {
             removeByKey(hid);
@@ -380,9 +403,9 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      *
      * @return Stream of entries with path mounts
      */
-    public java.util.stream.Stream<ComponentEntry> mounted() {
+    public java.util.stream.Stream<FrameEntry> mounted() {
         return entries.values().stream()
-                .filter(ComponentEntry::hasPathMount);
+                .filter(FrameEntry::hasPathMount);
     }
 
     /**
@@ -391,7 +414,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      * @param path The path to look up (e.g., "/vault")
      * @return The entry if found at that path
      */
-    public Optional<ComponentEntry> atPath(String path) {
+    public Optional<FrameEntry> atPath(String path) {
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(path);
         return entries.values().stream()
                 .filter(e -> e.pathMounts().stream()
@@ -404,7 +427,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      *
      * @return List of entries mounted at the root level
      */
-    public java.util.List<ComponentEntry> roots() {
+    public java.util.List<FrameEntry> roots() {
         return entries.values().stream()
                 .filter(e -> e.pathMounts().stream()
                         .anyMatch(pm -> dev.everydaythings.graph.item.mount.PathUtil.depth(pm.path()) == 1))
@@ -417,7 +440,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      * @param parentPath The parent path
      * @return List of entries whose PathMount is a direct child of parentPath
      */
-    public java.util.List<ComponentEntry> children(String parentPath) {
+    public java.util.List<FrameEntry> children(String parentPath) {
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(parentPath);
         return entries.values().stream()
                 .filter(e -> e.pathMounts().stream()
@@ -431,7 +454,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      * @param path The ancestor path
      * @return Stream of entries mounted under the given path
      */
-    public java.util.stream.Stream<ComponentEntry> descendants(String path) {
+    public java.util.stream.Stream<FrameEntry> descendants(String path) {
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(path);
         String prefix = canonical.equals("/") ? "/" : canonical + "/";
         return entries.values().stream()
@@ -460,9 +483,9 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      *
      * @param segment the child's name (last path segment)
      * @param fullPath the full canonical path (e.g., "/documents")
-     * @param entry the backing ComponentEntry, or null for virtual directories
+     * @param entry the backing FrameEntry, or null for virtual directories
      */
-    public record PathChild(String segment, String fullPath, ComponentEntry entry) {
+    public record PathChild(String segment, String fullPath, FrameEntry entry) {
         /** True if this is a virtual directory (no backing component). */
         public boolean isVirtual() { return entry == null; }
     }
@@ -486,10 +509,10 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
         int targetDepth = dev.everydaythings.graph.item.mount.PathUtil.depth(canon) + 1;
         String prefix = canon.equals("/") ? "/" : canon + "/";
 
-        // Track: fullPath → ComponentEntry (null for virtual)
-        Map<String, ComponentEntry> childMap = new LinkedHashMap<>();
+        // Track: fullPath → FrameEntry (null for virtual)
+        Map<String, FrameEntry> childMap = new LinkedHashMap<>();
 
-        for (ComponentEntry entry : entries.values()) {
+        for (FrameEntry entry : entries.values()) {
             for (Mount.PathMount pm : entry.pathMounts()) {
                 String mountPath = pm.path();
 
@@ -537,7 +560,7 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
      */
     public Optional<String> pathForHandle(HandleID handle) {
         return get(handle)
-                .map(ComponentEntry::primaryPathMount)
+                .map(FrameEntry::primaryPathMount)
                 .map(Mount.PathMount::path);
     }
 
@@ -548,13 +571,13 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
     /**
      * Serialize the content table to CBOR.
      *
-     * <p>Serializes as an array of ComponentEntry records.
+     * <p>Serializes as an array of FrameEntry records.
      * Live instances are not serialized - they are decoded on hydration.
      */
     @Override
     public CBORObject toCborTree(Scope scope) {
         CBORObject array = CBORObject.NewArray();
-        for (ComponentEntry entry : entries.values()) {
+        for (FrameEntry entry : entries.values()) {
             array.Add(entry.toCborTree(scope));
         }
         return array;
@@ -563,14 +586,14 @@ public class ComponentTable extends ItemCollection<HandleID, ComponentEntry> imp
     /**
      * Deserialize a content table from CBOR.
      *
-     * <p>Expects a CBOR array of ComponentEntry records.
+     * <p>Expects a CBOR array of FrameEntry records.
      */
     @Factory
-    public static ComponentTable fromCborTree(CBORObject node) {
-        ComponentTable table = new ComponentTable();
+    public static FrameTable fromCborTree(CBORObject node) {
+        FrameTable table = new FrameTable();
         if (node != null && node.getType() == com.upokecenter.cbor.CBORType.Array) {
             for (CBORObject entryNode : node.getValues()) {
-                ComponentEntry entry = Canonical.fromCborTree(entryNode, ComponentEntry.class, Scope.RECORD);
+                FrameEntry entry = Canonical.fromCborTree(entryNode, FrameEntry.class, Scope.RECORD);
                 if (entry != null) {
                     table.add(entry);
                 }

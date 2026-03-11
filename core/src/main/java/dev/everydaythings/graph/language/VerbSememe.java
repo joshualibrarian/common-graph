@@ -41,7 +41,7 @@ public final class VerbSememe extends Sememe {
      * <p>Empty for relation verbs (HYPERNYM, etc.) which are predicates,
      * not user-facing actions.
      */
-    @ContentField
+    @Frame
     private List<ArgumentSlot> arguments;
 
     /**

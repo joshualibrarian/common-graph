@@ -5,7 +5,7 @@ import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.relation.Relation;
@@ -25,18 +25,18 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * Core storage interface for Items, manifests, relations, and content.
+ * Core storage interface — a single content-addressed object store.
+ *
+ * <p>All data (manifests, frame bodies, frame records, content blobs) lives
+ * in one OBJECTS column keyed by content hash. The store doesn't interpret
+ * what's inside — callers know what they're fetching because they followed
+ * a typed reference to get the CID.
  *
  * <p>This interface has two conceptual APIs:
  * <ul>
  *   <li><b>Consumer API</b>: High-level methods using domain objects (Manifest, Relation, Item)</li>
  *   <li><b>Implementor API</b>: Low-level byte operations (persist/retrieve) for concrete stores</li>
  * </ul>
- *
- * <p>The consumer API uses unified naming: {@code manifest}, {@code relation}, {@code content}, {@code item}.
- * Each has getter (by ID) and setter (by object) overloads.
- *
- * <p>The implementor API uses {@code persistX} for storage and {@code retrieve} (overloaded) for retrieval.
  *
  * <p>ItemStore extends {@link Service} for lifecycle management and UI presentation.
  * Implementations typically also implement {@link dev.everydaythings.graph.library.bytestore.ByteStore}
@@ -64,10 +64,14 @@ public interface ItemStore extends Service {
     // --- Manifest ---
 
     /**
-     * Get a manifest by item ID and version ID.
+     * Get a manifest by version ID.
      *
-     * @param iid The item ID
-     * @param vid The version ID
+     * <p>Fetches from OBJECTS by VID. The iid parameter is accepted for
+     * backward compatibility but ignored for ByteStore-backed stores
+     * (manifests are keyed solely by VID in the unified object store).
+     *
+     * @param iid The item ID (ignored for OBJECTS lookup, used by WorkingTreeStore)
+     * @param vid The version ID (hash of manifest body)
      * @return The manifest, or empty if not found
      */
     default Optional<Manifest> manifest(ItemID iid, VersionID vid) {
@@ -77,19 +81,16 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Check if a manifest exists for the given item and version.
+     * Check if a manifest exists for the given version.
      *
-     * <p>This is more efficient than {@code manifest(iid, vid).isPresent()}
-     * as it only checks for key existence without reading the full manifest.
-     *
-     * @param iid The item ID
+     * @param iid The item ID (ignored for OBJECTS lookup)
      * @param vid The version ID
-     * @return true if a manifest exists
+     * @return true if a manifest exists in OBJECTS
      */
     default boolean hasManifest(ItemID iid, VersionID vid) {
-        Objects.requireNonNull(iid, "iid");
         Objects.requireNonNull(vid, "vid");
-        return store().db(Column.MANIFEST).key(iid, vid).exists();
+        byte[] key = Column.OBJECTS.key(vid);
+        return store().exists(Column.OBJECTS, key);
     }
 
     /**
@@ -128,7 +129,7 @@ public interface ItemStore extends Service {
     default ContentID relation(Relation r) {
         byte[] record = r.encodeBinary(Canonical.Scope.RECORD);
         var cid = new ContentID[1];
-        runInWriteTransaction(tx -> cid[0] = persistRelation(record, tx));
+        runInWriteTransaction(tx -> cid[0] = persistContent(record, tx));
         return cid[0];
     }
 
@@ -179,15 +180,19 @@ public interface ItemStore extends Service {
     // --- Persist (store raw bytes) ---
 
     /**
-     * Persist a manifest record. Computes VID from the record and stores by IID|VID.
+     * Persist a manifest record. Computes VID and stores in OBJECTS by VID.
      *
-     * @param iid    The item ID
+     * <p>The VID (hash of the BODY portion) is used as the key. The full
+     * record bytes (including signature) are the value. This means
+     * manifests are keyed by body hash, not by record hash — the VID
+     * is the meaningful identity of the version.
+     *
+     * @param iid    The item ID (used by WorkingTreeStore, ignored by ByteStore default)
      * @param record The manifest RECORD bytes (includes signature)
      * @param tx     Write transaction
      * @return The version ID (hash of BODY extracted from record)
      */
     default VersionID persistManifest(ItemID iid, byte[] record, WriteTransaction tx) {
-        Objects.requireNonNull(iid, "iid");
         Objects.requireNonNull(record, "record");
         Objects.requireNonNull(tx, "tx");
 
@@ -196,36 +201,16 @@ public interface ItemStore extends Service {
         byte[] body = m.encodeBinary(Canonical.Scope.BODY);
         VersionID vid = new VersionID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
 
-        byte[] key = Column.MANIFEST.key(iid, vid);
-        store().put(Column.MANIFEST, key, record, tx);
+        byte[] key = Column.OBJECTS.key(vid);
+        if (!store().exists(Column.OBJECTS, key)) {
+            store().put(Column.OBJECTS, key, record, tx);
+        }
 
         return vid;
     }
 
     /**
-     * Persist a relation record. Content-addressed by RECORD CID.
-     *
-     * @param record The relation RECORD bytes (includes signature)
-     * @param tx     Write transaction
-     * @return The content ID of the RECORD bytes
-     */
-    default ContentID persistRelation(byte[] record, WriteTransaction tx) {
-        Objects.requireNonNull(record, "record");
-        Objects.requireNonNull(tx, "tx");
-
-        ContentID cid = ContentID.of(record);
-        byte[] key = Column.RELATION.key(cid);
-
-        // Content-addressed dedup
-        if (!store().exists(Column.RELATION, key)) {
-            store().put(Column.RELATION, key, record, tx);
-        }
-
-        return cid;
-    }
-
-    /**
-     * Persist content data. Computes CID from the data and stores by CID.
+     * Persist content data. Content-addressed: computes CID and stores in OBJECTS.
      *
      * @param data The content bytes
      * @param tx   Write transaction
@@ -236,11 +221,11 @@ public interface ItemStore extends Service {
         Objects.requireNonNull(tx, "tx");
 
         ContentID cid = new ContentID(Hash.DEFAULT.digest(data), Hash.DEFAULT);
-        byte[] key = Column.PAYLOAD.key(cid);
+        byte[] key = Column.OBJECTS.key(cid);
 
         // Only store if not already present (content-addressed dedup)
-        if (!store().exists(Column.PAYLOAD, key)) {
-            store().put(Column.PAYLOAD, key, data, tx);
+        if (!store().exists(Column.OBJECTS, key)) {
+            store().put(Column.OBJECTS, key, data, tx);
         }
 
         return cid;
@@ -249,35 +234,31 @@ public interface ItemStore extends Service {
     // --- Retrieve (get raw bytes) ---
 
     /**
-     * Retrieve raw manifest bytes by IID and VID.
+     * Retrieve raw manifest bytes by VID from OBJECTS.
      *
-     * @param iid The item ID
+     * @param iid The item ID (ignored — manifests keyed by VID in OBJECTS)
      * @param vid The version ID
      * @return The manifest record bytes, or null if not found
      */
     default byte[] retrieveManifest(ItemID iid, VersionID vid) {
-        Objects.requireNonNull(iid, "iid");
         Objects.requireNonNull(vid, "vid");
 
-        byte[] key = Column.MANIFEST.key(iid, vid);
-        return store().get(Column.MANIFEST, key);
+        byte[] key = Column.OBJECTS.key(vid);
+        return store().get(Column.OBJECTS, key);
     }
 
     /**
-     * Retrieve raw relation bytes by record CID.
+     * Retrieve raw relation bytes by record CID from OBJECTS.
      *
      * @param recordCid The CID of the RECORD bytes
      * @return The relation record bytes, or null if not found
      */
     default byte[] retrieveRelation(ContentID recordCid) {
-        Objects.requireNonNull(recordCid, "recordCid");
-
-        byte[] key = Column.RELATION.key(recordCid);
-        return store().get(Column.RELATION, key);
+        return retrieveContent(recordCid);
     }
 
     /**
-     * Retrieve raw content bytes by CID.
+     * Retrieve raw content bytes by CID from OBJECTS.
      *
      * @param cid The content ID
      * @return The content bytes, or null if not found
@@ -285,74 +266,8 @@ public interface ItemStore extends Service {
     default byte[] retrieveContent(ContentID cid) {
         Objects.requireNonNull(cid, "cid");
 
-        byte[] key = Column.PAYLOAD.key(cid);
-        return store().get(Column.PAYLOAD, key);
-    }
-
-    // --- Chunk ---
-
-    /**
-     * Persist a chunk of large content.
-     *
-     * @param cid   The parent content ID
-     * @param index The chunk index
-     * @param data  The chunk bytes
-     * @param tx    Write transaction
-     */
-    default void persistChunk(ContentID cid, long index, byte[] data, WriteTransaction tx) {
-        Objects.requireNonNull(cid, "cid");
-        Objects.requireNonNull(data, "data");
-        Objects.requireNonNull(tx, "tx");
-
-        byte[] key = Column.CHUNK.key(cid, index);
-        store().put(Column.CHUNK, key, data, tx);
-    }
-
-    /**
-     * Retrieve a chunk of large content.
-     *
-     * @param cid   The parent content ID
-     * @param index The chunk index
-     * @return The chunk bytes, or null if not found
-     */
-    default byte[] retrieveChunk(ContentID cid, long index) {
-        Objects.requireNonNull(cid, "cid");
-
-        byte[] key = Column.CHUNK.key(cid, index);
-        return store().get(Column.CHUNK, key);
-    }
-
-    // --- Bundle ---
-
-    /**
-     * Persist a bundle (packaged collection of items).
-     *
-     * @param data The bundle bytes
-     * @param tx   Write transaction
-     * @return The bundle ID
-     */
-    default ContentID persistBundle(byte[] data, WriteTransaction tx) {
-        Objects.requireNonNull(data, "data");
-        Objects.requireNonNull(tx, "tx");
-
-        ContentID bid = new ContentID(Hash.DEFAULT.digest(data), Hash.DEFAULT);
-        byte[] key = Column.BUNDLE.key(bid);
-        store().put(Column.BUNDLE, key, data, tx);
-
-        return bid;
-    }
-
-    /**
-     * Retrieve a bundle by ID.
-     *
-     * @param bid The bundle ID
-     * @return The bundle bytes, or null if not found
-     */
-    default byte[] retrieveBundle(ContentID bid) {
-        Objects.requireNonNull(bid, "bid");
-
-        byte[] key = Column.BUNDLE.key(bid);
-        return store().get(Column.BUNDLE, key);
+        byte[] key = Column.OBJECTS.key(cid);
+        return store().get(Column.OBJECTS, key);
     }
 
     // ==================================================================================
@@ -462,7 +377,7 @@ public interface ItemStore extends Service {
      * @param entries Component entries to save
      * @param tx      Write transaction
      */
-    default void saveHeadComponents(List<ComponentEntry> entries, WriteTransaction tx) {
+    default void saveHeadComponents(List<FrameEntry> entries, WriteTransaction tx) {
         // Default: no-op
     }
 
@@ -471,7 +386,7 @@ public interface ItemStore extends Service {
      *
      * @return List of component entries, or empty if not supported
      */
-    default List<ComponentEntry> loadHeadComponents() {
+    default List<FrameEntry> loadHeadComponents() {
         return List.of();
     }
 
@@ -490,33 +405,59 @@ public interface ItemStore extends Service {
     // ==================================================================================
 
     /**
-     * Stream manifests, optionally filtered by item.
+     * Stream manifests by trial-decoding objects.
+     *
+     * <p>With the unified OBJECTS store, manifests are not in a separate column.
+     * This iterates all objects and trial-decodes each as a Manifest, skipping
+     * non-manifest content.
      *
      * @param iid The item ID to filter by, or null for all manifests
      * @return Stream of decoded manifests
      */
     default Stream<Manifest> manifests(ItemID iid) {
-        return StreamSupport.stream(iterateManifests(iid).spliterator(), false)
-                .map(Manifest::decode);
+        return StreamSupport.stream(iterateObjects().spliterator(), false)
+                .flatMap(bytes -> {
+                    try {
+                        Manifest m = Manifest.decode(bytes);
+                        if (m == null || m.iid() == null) return Stream.empty();
+                        if (iid != null && !iid.equals(m.iid())) return Stream.empty();
+                        return Stream.of(m);
+                    } catch (Exception e) {
+                        return Stream.empty();
+                    }
+                });
     }
 
     /**
-     * Stream all relations.
+     * Stream all relations by trial-decoding objects.
+     *
+     * <p>Iterates OBJECTS and attempts to decode each as a Relation,
+     * silently skipping non-relation content.
      *
      * @return Stream of decoded relations
+     * @deprecated Relations are frames. Use frame index queries instead.
      */
+    @Deprecated
     default Stream<Relation> relations() {
-        return StreamSupport.stream(iterateRelations().spliterator(), false)
-                .map(Relation::decode);
+        return StreamSupport.stream(iterateObjects().spliterator(), false)
+                .flatMap(bytes -> {
+                    try {
+                        Relation r = Relation.decode(bytes);
+                        if (r == null || r.predicate() == null) return Stream.empty();
+                        return Stream.of(r);
+                    } catch (Exception e) {
+                        return Stream.empty();
+                    }
+                });
     }
 
     /**
-     * Stream all content blocks.
+     * Stream all content blocks from OBJECTS.
      *
      * @return Stream of content bytes
      */
     default Stream<byte[]> contents() {
-        return StreamSupport.stream(iterateContent().spliterator(), false);
+        return StreamSupport.stream(iterateObjects().spliterator(), false);
     }
 
     // ==================================================================================
@@ -524,50 +465,14 @@ public interface ItemStore extends Service {
     // ==================================================================================
 
     /**
-     * Iterate manifest records, optionally filtered by item.
+     * Iterate all objects in the store.
      *
-     * @param iid The item ID to filter by, or null for all manifests
-     * @return Iterable of manifest record bytes
+     * @return Iterable of object bytes
      */
-    default Iterable<byte[]> iterateManifests(ItemID iid) {
-        List<byte[]> results = new ArrayList<>();
-        byte[] prefix = iid != null ? Column.MANIFEST.keyPrefix(iid) : new byte[0];
-
-        try (var it = store().iterate(Column.MANIFEST, prefix)) {
-            while (it.hasNext()) {
-                results.add(it.next().value());
-            }
-        }
-
-        return results;
-    }
-
-    /**
-     * Iterate all relation records.
-     *
-     * @return Iterable of relation record bytes
-     */
-    default Iterable<byte[]> iterateRelations() {
+    default Iterable<byte[]> iterateObjects() {
         List<byte[]> results = new ArrayList<>();
 
-        try (var it = store().iterate(Column.RELATION, new byte[0])) {
-            while (it.hasNext()) {
-                results.add(it.next().value());
-            }
-        }
-
-        return results;
-    }
-
-    /**
-     * Iterate all content blocks.
-     *
-     * @return Iterable of content bytes
-     */
-    default Iterable<byte[]> iterateContent() {
-        List<byte[]> results = new ArrayList<>();
-
-        try (var it = store().iterate(Column.PAYLOAD, new byte[0])) {
+        try (var it = store().iterate(Column.OBJECTS, new byte[0])) {
             while (it.hasNext()) {
                 results.add(it.next().value());
             }
@@ -602,14 +507,9 @@ public interface ItemStore extends Service {
     /**
      * Column schema for ItemStore implementations.
      *
-     * <p>This enum defines the storage layout used by all ItemStore backends
-     * (RocksDB, MapDB, etc.). Each column has:
-     * <ul>
-     *   <li>A unique name</li>
-     *   <li>Optional prefix length for optimized iteration</li>
-     *   <li>Key composition (sequence of encoders)</li>
-     *   <li>Optional bloom filter bits (used by RocksDB, ignored by MapDB)</li>
-     * </ul>
+     * <p>Unified object store: all content-addressed data (manifests, frame bodies,
+     * frame records, content blobs) lives in a single OBJECTS column keyed by
+     * content hash (CID or VID).
      */
     @Getter
     enum Column implements ColumnSchema {
@@ -619,36 +519,12 @@ public interface ItemStore extends Service {
         DEFAULT("default", null, null, KeyEncoder.RAW),
 
         /**
-         * Manifest blocks (version records).
-         * Key: IID|VID → manifest record bytes
-         * Enables prefix scan by IID to find all versions of an item.
+         * Unified object store. All content-addressed data:
+         * manifests (keyed by VID), frame bodies, frame records,
+         * content blobs, chunks, bundles (keyed by CID).
+         * Key: hash → bytes
          */
-        MANIFEST("manifest", 34, 10, KeyEncoder.ID, KeyEncoder.ID),
-
-        /**
-         * Relation blocks (content-addressed frames).
-         * Key: RECORD CID → relation record bytes
-         * All queries go through LibraryIndex fan-outs → RECORD CID → load bytes.
-         */
-        RELATION("relation", null, 10, KeyEncoder.ID),
-
-        /**
-         * Payload blocks (content blobs).
-         * Key: CID → content bytes
-         */
-        PAYLOAD("payload", null, 10, KeyEncoder.ID),
-
-        /**
-         * Chunk blocks (parts of large content).
-         * Key: CID|index → chunk bytes
-         */
-        CHUNK("chunk", null, 10, KeyEncoder.ID, KeyEncoder.U64),
-
-        /**
-         * Bundle blocks (packaged collections).
-         * Key: BID|index → bundle bytes
-         */
-        BUNDLE("bundle", null, 10, KeyEncoder.ID, KeyEncoder.U64);
+        OBJECTS("objects", null, 10, KeyEncoder.ID);
 
         private final String schemaName;
         private final Integer prefixLen;

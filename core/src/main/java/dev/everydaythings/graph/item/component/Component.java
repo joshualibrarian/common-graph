@@ -5,12 +5,12 @@ import dev.everydaythings.graph.item.Item;
 import java.util.List;
 
 /**
- * Optional interface for objects stored in a ComponentTable.
+ * Optional interface for objects stored in a FrameTable.
  *
  * <p>Any object can be a component — implementing this interface is optional.
  * Objects that implement it get display customization in tree views,
  * lifecycle hooks, and inspect entries. Objects that don't implement it
- * use defaults from their ComponentEntry metadata.
+ * use defaults from their FrameEntry metadata.
  */
 public interface Component {
 

@@ -5,11 +5,11 @@ import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.ComponentTable;
+import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.LibraryException;
@@ -269,7 +269,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param components The component entries to save
      * @param wtx        Write transaction
      */
-    public void saveHeadComponents(List<ComponentEntry> components, WriteTransaction wtx) {
+    public void saveHeadComponents(List<FrameEntry> components, WriteTransaction wtx) {
         Objects.requireNonNull(components, "components");
         Objects.requireNonNull(wtx, "wtx");
 
@@ -290,7 +290,7 @@ public final class WorkingTreeStore implements ItemStore {
         }
 
         // Write each component entry
-        for (ComponentEntry entry : components) {
+        for (FrameEntry entry : components) {
             String filename = hex(entry.handle().encodeBinary()) + ".cbor";
             Path file = componentsDir.resolve(filename);
             byte[] bytes = entry.encodeBinary(Canonical.Scope.RECORD);
@@ -304,17 +304,17 @@ public final class WorkingTreeStore implements ItemStore {
      *
      * @return List of component entries
      */
-    public List<ComponentEntry> loadHeadComponents() {
+    public List<FrameEntry> loadHeadComponents() {
         Path componentsDir = headDir().resolve(DIR_COMPONENTS);
         if (!Files.exists(componentsDir)) {
             return List.of();
         }
 
-        List<ComponentEntry> components = new ArrayList<>();
+        List<FrameEntry> components = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(componentsDir, "*.cbor")) {
             for (Path file : stream) {
                 byte[] bytes = Files.readAllBytes(file);
-                ComponentEntry entry = ComponentEntry.decode(bytes);
+                FrameEntry entry = FrameEntry.decode(bytes);
                 components.add(entry);
             }
         } catch (IOException e) {
@@ -330,7 +330,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param handle The component handle ID
      * @return The component entry, or empty if not found
      */
-    public Optional<ComponentEntry> loadHeadComponent(HandleID handle) {
+    public Optional<FrameEntry> loadHeadComponent(HandleID handle) {
         Objects.requireNonNull(handle, "handle");
 
         Path file = headDir().resolve(DIR_COMPONENTS).resolve(hex(handle.encodeBinary()) + ".cbor");
@@ -340,7 +340,7 @@ public final class WorkingTreeStore implements ItemStore {
 
         try {
             byte[] bytes = Files.readAllBytes(file);
-            return Optional.of(ComponentEntry.decode(bytes));
+            return Optional.of(FrameEntry.decode(bytes));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to load component: " + handle, e);
         }
@@ -377,8 +377,8 @@ public final class WorkingTreeStore implements ItemStore {
      *
      * @param content The content table to derive mount paths from
      */
-    public void materializeMountPaths(ComponentTable content) {
-        for (ComponentEntry entry : content) {
+    public void materializeMountPaths(FrameTable content) {
+        for (FrameEntry entry : content) {
             if (entry.isLocalResource()) continue;
             for (Mount.PathMount pm : entry.pathMounts()) {
                 String mountPath = pm.path();
@@ -416,20 +416,29 @@ public final class WorkingTreeStore implements ItemStore {
     }
 
     /**
-     * Iterate manifest records.
+     * Stream manifests from the filesystem versions directory.
      *
-     * <p>Iterates local filesystem versions, falling back to the parent store if configured.
+     * <p>WorkingTreeStore keeps manifests in the versions/ directory (keyed by VID),
+     * separate from content. This overrides the default trial-decode approach.
      */
     @Override
-    public Iterable<byte[]> iterateManifests(ItemID iid) {
-        List<byte[]> results = new ArrayList<>();
+    public java.util.stream.Stream<Manifest> manifests(ItemID iid) {
+        List<Manifest> results = new ArrayList<>();
 
         // Local filesystem manifests
         Path versionsDir = root.resolve(DOT_ITEM).resolve(DIR_VERSIONS);
         if (Files.exists(versionsDir)) {
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(versionsDir)) {
                 for (Path file : stream) {
-                    results.add(Files.readAllBytes(file));
+                    byte[] bytes = Files.readAllBytes(file);
+                    try {
+                        Manifest m = Manifest.decode(bytes);
+                        if (m != null && (iid == null || iid.equals(m.iid()))) {
+                            results.add(m);
+                        }
+                    } catch (Exception e) {
+                        // Skip corrupt manifests
+                    }
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException("Failed to iterate manifests", e);
@@ -438,52 +447,19 @@ public final class WorkingTreeStore implements ItemStore {
 
         // Fallback store manifests (if configured)
         if (fallback != null) {
-            for (byte[] manifest : fallback.iterateManifests(iid)) {
-                results.add(manifest);
-            }
+            fallback.manifests(iid).forEach(results::add);
         }
 
-        return results;
+        return results.stream();
     }
 
     /**
-     * Iterate relation records.
-     *
-     * <p>Iterates local filesystem relations, falling back to the parent store if configured.
-     */
-    @Override
-    public Iterable<byte[]> iterateRelations() {
-        List<byte[]> results = new ArrayList<>();
-
-        // Local filesystem relations
-        Path relationsDir = root.resolve(DOT_ITEM).resolve(DIR_RELATIONS);
-        if (Files.exists(relationsDir)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(relationsDir)) {
-                for (Path file : stream) {
-                    results.add(Files.readAllBytes(file));
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to iterate relations", e);
-            }
-        }
-
-        // Fallback store relations (if configured)
-        if (fallback != null) {
-            for (byte[] relation : fallback.iterateRelations()) {
-                results.add(relation);
-            }
-        }
-
-        return results;
-    }
-
-    /**
-     * Iterate all content blocks.
+     * Iterate all objects.
      *
      * <p>Iterates local filesystem content, falling back to the parent store if configured.
      */
     @Override
-    public Iterable<byte[]> iterateContent() {
+    public Iterable<byte[]> iterateObjects() {
         List<byte[]> results = new ArrayList<>();
 
         // Local filesystem content
@@ -498,59 +474,14 @@ public final class WorkingTreeStore implements ItemStore {
             }
         }
 
-        // Fallback store content (if configured)
+        // Fallback store objects (if configured)
         if (fallback != null) {
-            for (byte[] content : fallback.iterateContent()) {
-                results.add(content);
+            for (byte[] obj : fallback.iterateObjects()) {
+                results.add(obj);
             }
         }
 
         return results;
-    }
-
-    /**
-     * Persist a chunk - delegates to fallback if available.
-     */
-    @Override
-    public void persistChunk(ContentID cid, long index, byte[] data, WriteTransaction tx) {
-        if (fallback != null) {
-            fallback.persistChunk(cid, index, data, tx);
-        } else {
-            throw new UnsupportedOperationException("Chunk storage requires a fallback store");
-        }
-    }
-
-    /**
-     * Retrieve a chunk - delegates to fallback if available.
-     */
-    @Override
-    public byte[] retrieveChunk(ContentID cid, long index) {
-        if (fallback != null) {
-            return fallback.retrieveChunk(cid, index);
-        }
-        return null;
-    }
-
-    /**
-     * Persist a bundle - delegates to fallback if available.
-     */
-    @Override
-    public ContentID persistBundle(byte[] data, WriteTransaction tx) {
-        if (fallback != null) {
-            return fallback.persistBundle(data, tx);
-        }
-        throw new UnsupportedOperationException("Bundle storage requires a fallback store");
-    }
-
-    /**
-     * Retrieve a bundle - delegates to fallback if available.
-     */
-    @Override
-    public byte[] retrieveBundle(ContentID bid) {
-        if (fallback != null) {
-            return fallback.retrieveBundle(bid);
-        }
-        return null;
     }
 
     // ==================================================================================
@@ -695,34 +626,6 @@ public final class WorkingTreeStore implements ItemStore {
 
         if (fallback != null) {
             return fallback.retrieveManifest(iid, vid);
-        }
-        return null;
-    }
-
-    // --- Relation ---
-
-    @Override
-    public ContentID persistRelation(byte[] record, WriteTransaction wtx) {
-        Objects.requireNonNull(record, "record");
-        Objects.requireNonNull(wtx, "wtx");
-
-        ContentID cid = ContentID.of(record);
-        Path p = relationPath(cid);
-        if (!Files.exists(p)) {
-            ((FsTx) wtx).stageAtomicReplace(p, record);
-        }
-        return cid;
-    }
-
-    @Override
-    public byte[] retrieveRelation(ContentID recordCid) {
-        Objects.requireNonNull(recordCid, "recordCid");
-
-        Path p = relationPath(recordCid);
-        if (Files.exists(p)) return readAllBytes(p);
-
-        if (fallback != null) {
-            return fallback.retrieveRelation(recordCid);
         }
         return null;
     }

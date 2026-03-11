@@ -10,15 +10,15 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("ComponentEntry facets")
-class ComponentEntryFacetTest {
+@DisplayName("FrameEntry facets")
+class FrameEntryFacetTest {
 
     private static final ItemID TYPE = ItemID.fromString("cg:type/test");
 
     @Test
     @DisplayName("legacy mount wiring populates presentation layout mounts")
     void presentationLayoutContainsMounts() {
-        ComponentEntry entry = ComponentEntry.builder()
+        FrameEntry entry = FrameEntry.builder()
                 .handle(HandleID.of("docs"))
                 .type(TYPE)
                 .identity(true)
@@ -35,7 +35,7 @@ class ComponentEntryFacetTest {
     @Test
     @DisplayName("policy lives in config facet")
     void policyInConfigFacet() {
-        ComponentEntry entry = ComponentEntry.builder()
+        FrameEntry entry = FrameEntry.builder()
                 .handle(HandleID.of("policy"))
                 .type(TYPE)
                 .identity(true)
@@ -51,7 +51,7 @@ class ComponentEntryFacetTest {
     @Test
     @DisplayName("scene override lives in presentation skin")
     void sceneOverrideInPresentationSkin() {
-        ComponentEntry entry = ComponentEntry.builder()
+        FrameEntry entry = FrameEntry.builder()
                 .handle(HandleID.of("scene"))
                 .type(TYPE)
                 .identity(true)

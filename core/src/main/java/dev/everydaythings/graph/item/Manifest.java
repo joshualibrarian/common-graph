@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.VersionID;
@@ -102,7 +102,7 @@ public final class Manifest implements Signing.Target {
     /**
      * Get the component entries.
      */
-    public List<ComponentEntry> components() {
+    public List<FrameEntry> components() {
         return state != null ? state.componentSnapshot() : List.of();
     }
 

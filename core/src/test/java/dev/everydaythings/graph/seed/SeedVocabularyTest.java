@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.Link;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.TreeLink;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -199,7 +199,7 @@ class SeedVocabularyTest {
         Manifest manifest = store.manifests(itemTypeId).findFirst().orElse(null);
         assertThat(manifest).isNotNull();
 
-        ComponentEntry surfaceEntry = manifest.components().stream()
+        FrameEntry surfaceEntry = manifest.components().stream()
                 .filter(e -> e.handle().equals(SurfaceTemplateComponent.HANDLE))
                 .findFirst()
                 .orElse(null);

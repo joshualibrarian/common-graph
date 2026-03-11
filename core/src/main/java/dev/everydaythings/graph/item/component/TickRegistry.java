@@ -28,7 +28,7 @@ public class TickRegistry {
      *
      * @param table the component table to scan
      */
-    public void rebuild(ComponentTable table) {
+    public void rebuild(FrameTable table) {
         List<TickTarget> newTargets = new ArrayList<>();
         table.forEachLive(instance -> {
             ComponentScanner.ComponentMeta meta = ComponentScanner.metaFor(instance.getClass());

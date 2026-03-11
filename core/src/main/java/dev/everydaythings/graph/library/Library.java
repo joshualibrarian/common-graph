@@ -441,7 +441,9 @@ public final class Library implements Component, Canonical, AutoCloseable {
      *
      * @param relation The relation to store
      * @return The record CID (content-addressed storage key)
+     * @deprecated Use {@link #storeFrame} instead. Relations are frames.
      */
+    @Deprecated
     public ContentID relation(Relation relation) {
         ItemStore store = writableStore()
                 .orElseThrow(() -> new LibraryException("No writable store available"));
@@ -449,9 +451,11 @@ public final class Library implements Component, Canonical, AutoCloseable {
     }
 
     /**
-     * Store a manifest: persist in primary store AND index.
+     * Store a manifest: persist in OBJECTS AND index in ITEMS.
      *
-     * <p>This is the ONE path for manifest storage.
+     * <p>This is the ONE path for manifest storage. It stores the manifest
+     * bytes in OBJECTS (keyed by VID), indexes the version in ITEMS
+     * (IID|VID → timestamp), and indexes all endorsed frames.
      *
      * @param manifest The manifest to store
      * @return The version ID (hash of the body)
@@ -460,13 +464,20 @@ public final class Library implements Component, Canonical, AutoCloseable {
         ItemStore store = writableStore()
                 .orElseThrow(() -> new LibraryException("No writable store available"));
 
-        // Store the manifest block
+        // Store the manifest in OBJECTS (keyed by VID)
         VersionID vid = store.manifest(manifest);
 
-        // Index: update item record with VID
+        // Index: ITEMS[IID|VID] → timestamp, endorsed frames
         index().ifPresent(idx -> {
             idx.runInWriteTransaction(tx -> {
-                idx.putItemRecord(manifest.iid(), vid.encodeBinary(), tx);
+                idx.indexVersion(manifest.iid(), vid, System.currentTimeMillis(), tx);
+
+                // Index all endorsed frames for cross-item discovery
+                if (manifest.components() != null) {
+                    for (var entry : manifest.components()) {
+                        idx.indexEndorsedFrame(manifest.iid(), entry, tx);
+                    }
+                }
             });
         });
 
@@ -488,7 +499,9 @@ public final class Library implements Component, Canonical, AutoCloseable {
      * @param relation The relation to store
      * @param targetStore The store to put the block in (item's own store)
      * @return The record CID
+     * @deprecated Use {@link #storeFrame} instead. Relations are frames.
      */
+    @Deprecated
     public ContentID relation(Relation relation, ItemStore targetStore) {
         // Store the relation block (content-addressed)
         ContentID recordCid = targetStore.relation(relation);
@@ -501,6 +514,49 @@ public final class Library implements Component, Canonical, AutoCloseable {
         });
 
         return recordCid;
+    }
+
+    // ==================================================================================
+    // Frame Storage
+    // ==================================================================================
+
+    /**
+     * Store a frame: persist body and record in OBJECTS, and index.
+     *
+     * <p>This is the canonical path for frame storage. Both the body and
+     * record are stored content-addressed in OBJECTS (deduped). Both are indexed.
+     *
+     * @param body   the frame body (semantic assertion)
+     * @param record the frame record (signed envelope)
+     * @return the record CID
+     */
+    public ContentID storeFrame(
+            dev.everydaythings.graph.item.component.FrameBody body,
+            dev.everydaythings.graph.item.component.FrameRecord record) {
+        ItemStore targetStore = writableStore()
+                .orElseThrow(() -> new LibraryException("No writable store available"));
+
+        // Store body and record in OBJECTS (content-addressed, deduped)
+        byte[] recordBytes = record.encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
+        var recordCid = new ContentID[1];
+        targetStore.runInWriteTransaction(tx -> {
+            targetStore.persistContent(body.bodyBytes(), tx);
+            recordCid[0] = targetStore.persistContent(recordBytes, tx);
+        });
+
+        // Index the frame and the record
+        index().ifPresent(idx -> {
+            idx.runInWriteTransaction(tx -> {
+                idx.indexFrame(body.predicate(), body.bindings(),
+                        body.hash(), recordCid[0], tx);
+                if (record.signer() != null && record.signer().keyId() != null) {
+                    ContentID signerKeyId = ContentID.of(record.signer().keyId());
+                    idx.indexRecord(body.hash(), signerKeyId, recordCid[0], tx);
+                }
+            });
+        });
+
+        return recordCid[0];
     }
 
     /**
@@ -633,35 +689,79 @@ public final class Library implements Component, Canonical, AutoCloseable {
         }
     }
 
+    // ==================================================================================
+    // Frame Query API
+    // ==================================================================================
+
+    /**
+     * Query frame refs involving a specific item.
+     */
+    public Stream<LibraryIndex.FrameRef> framesByItem(ItemID item) {
+        return index().map(idx -> idx.framesByItem(item)).orElse(Stream.empty());
+    }
+
+    /**
+     * Query frame refs involving a specific item via a specific predicate.
+     */
+    public Stream<LibraryIndex.FrameRef> framesByItemPredicate(ItemID item, ItemID predicate) {
+        return index().map(idx -> idx.framesByItemPredicate(item, predicate)).orElse(Stream.empty());
+    }
+
+    /**
+     * Query frame refs by predicate only.
+     */
+    public Stream<LibraryIndex.FrameRef> framesByPredicate(ItemID predicate) {
+        return index().map(idx -> idx.framesByPredicate(predicate)).orElse(Stream.empty());
+    }
+
+    /**
+     * Query records attesting a specific frame body.
+     */
+    public Stream<LibraryIndex.RecordRef> recordsByBody(ContentID bodyHash) {
+        return index().map(idx -> idx.recordsByBody(bodyHash)).orElse(Stream.empty());
+    }
+
+    /**
+     * Count independent attestations for a frame body.
+     */
+    public long attestationCount(ContentID bodyHash) {
+        return index().map(idx -> idx.attestationCount(bodyHash)).orElse(0L);
+    }
+
+    // ==================================================================================
+    // Relation Query API (delegates to frame queries)
+    // ==================================================================================
+
     /**
      * Query relations involving a specific item (in any role).
      */
     public Stream<Relation> byItem(ItemID item) {
-        return index().map(idx -> idx.byItem(item)).orElse(Stream.empty())
-                .map(this::hydrateRef).flatMap(Optional::stream);
+        return framesByItem(item).map(this::hydrateFrameRef).flatMap(Optional::stream);
     }
 
     /**
      * Query relations involving a specific item via a specific predicate.
      */
     public Stream<Relation> byItemPredicate(ItemID item, ItemID predicate) {
-        return index().map(idx -> idx.byItemPredicate(item, predicate)).orElse(Stream.empty())
-                .map(this::hydrateRef).flatMap(Optional::stream);
+        return framesByItemPredicate(item, predicate).map(this::hydrateFrameRef).flatMap(Optional::stream);
     }
 
     /**
      * Query relations by predicate only.
      */
     public Stream<Relation> byPredicate(ItemID predicate) {
-        return index().map(idx -> idx.byPredicate(predicate)).orElse(Stream.empty())
-                .map(this::hydrateRef).flatMap(Optional::stream);
+        return framesByPredicate(predicate).map(this::hydrateFrameRef).flatMap(Optional::stream);
     }
 
     /**
-     * Hydrate a RelationRef into a full Relation by looking up the RELATION column.
+     * Hydrate a FrameRef into a full Relation by looking up the RELATION column.
+     *
+     * <p>The storageCid in the FrameRef is used to look up the relation bytes.
+     * Returns empty if the storageCid doesn't correspond to a stored Relation
+     * (e.g., it's an endorsed component frame, not a relation).
      */
-    private Optional<Relation> hydrateRef(LibraryIndex.RelationRef ref) {
-        return store.relation(ref.recordCid());
+    private Optional<Relation> hydrateFrameRef(LibraryIndex.FrameRef ref) {
+        return store.relation(ref.storageCid());
     }
 
     // ==================================================================================
@@ -669,15 +769,23 @@ public final class Library implements Component, Canonical, AutoCloseable {
     // ==================================================================================
 
     /**
-     * Get the opaque record bytes (typically VID) for an item.
-     *
-     * <p>Used by hydration to find the current version of an item.
+     * Find the latest version ID for an item from the ITEMS index.
      *
      * @param iid The item ID
-     * @return The record bytes, or empty if not found
+     * @return The latest VID, or empty if no versions exist
      */
+    public Optional<VersionID> latestVersion(ItemID iid) {
+        return index().flatMap(idx -> idx.latestVersion(iid));
+    }
+
+    /**
+     * Get the opaque record bytes (typically VID) for an item.
+     *
+     * @deprecated Use {@link #latestVersion(ItemID)}
+     */
+    @Deprecated
     public Optional<byte[]> getItemRecord(ItemID iid) {
-        return index().flatMap(idx -> idx.getItemRecord(iid));
+        return latestVersion(iid).map(VersionID::encodeBinary);
     }
 
     // ==================================================================================
@@ -718,14 +826,13 @@ public final class Library implements Component, Canonical, AutoCloseable {
             }
         }
 
-        // Get VID from index
-        Optional<byte[]> vidBytes = getItemRecord(iid);
-        if (vidBytes.isEmpty()) {
+        // Get latest VID from ITEMS index
+        Optional<VersionID> vidOpt = latestVersion(iid);
+        if (vidOpt.isEmpty()) {
             return Optional.empty();
         }
 
-        // Decode VID (stored as raw multihash bytes)
-        VersionID vid = new VersionID(vidBytes.get());
+        VersionID vid = vidOpt.get();
 
         // Find the store that has this item
         ItemStore store = null;

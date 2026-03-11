@@ -43,7 +43,7 @@ import java.util.Optional;
  * link.child("subdir").parent()
  * }</pre>
  *
- * @see dev.everydaythings.graph.item.component.ComponentTable
+ * @see dev.everydaythings.graph.item.component.FrameTable
  */
 public final class Link {
 

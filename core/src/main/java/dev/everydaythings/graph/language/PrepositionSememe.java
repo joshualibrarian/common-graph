@@ -34,7 +34,7 @@ public final class PrepositionSememe extends Sememe {
      * TARGET role of the predicate "create".
      */
     @Getter
-    @ContentField
+    @Frame
     private ItemID assignedRole;
 
     // ==================================================================================

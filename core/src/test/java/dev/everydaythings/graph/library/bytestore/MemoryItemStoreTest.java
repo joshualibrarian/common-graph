@@ -42,9 +42,9 @@ class MemoryItemStoreTest {
             ItemID contentId = ItemID.fromString("test:content");
             byte[] value = "hello".getBytes();
 
-            store.db(dev.everydaythings.graph.library.ItemStore.Column.PAYLOAD).key(contentId).put(value);
+            store.db(dev.everydaythings.graph.library.ItemStore.Column.OBJECTS).key(contentId).put(value);
 
-            byte[] retrieved = store.db(dev.everydaythings.graph.library.ItemStore.Column.PAYLOAD).key(contentId).get();
+            byte[] retrieved = store.db(dev.everydaythings.graph.library.ItemStore.Column.OBJECTS).key(contentId).get();
             assertThat(retrieved).isEqualTo(value);
         }
     }

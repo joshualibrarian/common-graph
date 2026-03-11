@@ -109,15 +109,9 @@ Content bytes → CID (verified by hash)
 
 See [Trust](trust.md) for the full verification chain.
 
-## Content vs Manifests vs Relations
+## Object Store
 
-| Type | Addressed By | Contains |
-|------|--------------|----------|
-| **Content** | CID (hash of bytes) | Raw payload data |
-| **Manifest** | VID (hash of manifest body) | Item version structure |
-| **Relation** | RID (hash of identity parts) | Semantic assertions |
-
-All three are content-addressed, but serve different purposes.
+All content-addressed data — frame bodies, frame records, manifests, content blobs — lives in a single object store. See [Storage Architecture](storage.md) for the unified storage design.
 
 ## Privacy Considerations
 

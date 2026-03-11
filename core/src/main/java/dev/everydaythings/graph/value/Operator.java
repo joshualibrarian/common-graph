@@ -119,16 +119,16 @@ public class Operator extends NounSememe {
     // INSTANCE FIELDS (operator-specific; canonicalKey, glosses, symbols inherited)
     // ==================================================================================
 
-    @Getter @ContentField
+    @Getter @Frame
     private int arity;
 
-    @Getter @ContentField
+    @Getter @Frame
     private int precedence;
 
-    @Getter @ContentField
+    @Getter @Frame
     private Associativity associativity;
 
-    @Getter @ContentField
+    @Getter @Frame
     private Fixity fixity;
 
     // ==================================================================================

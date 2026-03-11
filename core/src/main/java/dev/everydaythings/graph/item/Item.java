@@ -6,7 +6,6 @@ import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Role;
-import dev.everydaythings.graph.item.component.ComponentFieldSpec;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
@@ -15,8 +14,8 @@ import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.action.ActionContext;
 import dev.everydaythings.graph.item.action.ActionResult;
-import dev.everydaythings.graph.item.component.ComponentEntry;
-import dev.everydaythings.graph.item.component.ComponentTable;
+import dev.everydaythings.graph.item.component.FrameEntry;
+import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.component.ComponentType;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -156,9 +155,15 @@ public class Item implements Property {
     // State Accessors (delegate to ItemState)
     // ==================================================================================
 
-    /** Component table - content building blocks. */
-    public ComponentTable content() {
-        return state.content();
+    /** Frame table — all endorsed frames on this item. */
+    public FrameTable frames() {
+        return state.frames();
+    }
+
+    /** @deprecated Use {@link #frames()} */
+    @Deprecated
+    public FrameTable content() {
+        return frames();
     }
 
     /**
@@ -177,7 +182,7 @@ public class Item implements Property {
     }
 
 
-    /** Per-item policies — stored in ComponentTable under well-known handle. */
+    /** Per-item policies — stored in FrameTable under well-known handle. */
     public PolicySet policy() {
         return content().getLive(BuiltinHandles.POLICY, PolicySet.class).orElse(null);
     }
@@ -215,7 +220,7 @@ public class Item implements Property {
         // Strip leading slash
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        // Check ComponentTable for content()
+        // Check FrameTable for content()
         if (handle.equals("content")) {
             return Optional.of(content().displayToken());
         }
@@ -227,7 +232,7 @@ public class Item implements Property {
 
         // Prefer stable entry metadata to avoid label mutation when a component
         // gets lazily hydrated after first render.
-        Optional<String> entryLabel = content().get(hid).map(ComponentEntry::displayToken);
+        Optional<String> entryLabel = content().get(hid).map(FrameEntry::displayToken);
         if (entryLabel.isPresent()) {
             return entryLabel;
         }
@@ -254,7 +259,7 @@ public class Item implements Property {
         // Strip leading slash
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        // Check ComponentTable for content()
+        // Check FrameTable for content()
         if (handle.equals("content")) {
             return Optional.of(content().emoji());
         }
@@ -282,7 +287,7 @@ public class Item implements Property {
     /**
      * Resolve emoji from entry metadata with semantic type fallback.
      */
-    private String resolveEntryEmoji(ComponentEntry entry) {
+    private String resolveEntryEmoji(FrameEntry entry) {
         if (entry == null) return "📦";
         String typeGlyph = resolveTypeGlyph(entry.type());
         if (typeGlyph != null && !typeGlyph.isBlank()) {
@@ -333,7 +338,7 @@ public class Item implements Property {
     /**
      * Resolve an emoji/glyph for an arbitrary live payload object.
      *
-     * <p>ComponentTable payloads are open-ended and not required to implement
+     * <p>FrameTable payloads are open-ended and not required to implement
      * {@link Component}, so this must not rely on a single interface.
      */
     private static String resolvePayloadEmoji(Object payload) {
@@ -496,7 +501,7 @@ public class Item implements Property {
         // All non-built-in component entries (content components, relations).
         // Policy now lives under component config metadata and should not appear
         // as a standalone inspect tree component.
-        for (ComponentEntry entry : content()) {
+        for (FrameEntry entry : content()) {
             if (BuiltinHandles.POLICY.equals(entry.handle())) {
                 continue;
             }
@@ -941,7 +946,7 @@ public class Item implements Property {
     /**
      * Hydrate an existing item from a manifest.
      *
-     * <p>This constructor populates the ComponentTable from the manifest,
+     * <p>This constructor populates the FrameTable from the manifest,
      * then calls hydrate() to decode all components and bind fields.
      *
      * @param librarian The librarian (provides store access for content fetching)
@@ -959,7 +964,7 @@ public class Item implements Property {
         state.setOwner(this);
 
         // Populate component table from manifest
-        for (ComponentEntry entry : manifest.components()) {
+        for (FrameEntry entry : manifest.components()) {
             content().add(entry);
         }
 
@@ -998,8 +1003,8 @@ public class Item implements Property {
             this.freshBoot = false;
             this.dirty = false;
 
-            // Load component entries from store into ComponentTable
-            for (ComponentEntry entry : wts.loadHeadComponents()) {
+            // Load component entries from store into FrameTable
+            for (FrameEntry entry : wts.loadHeadComponents()) {
                 content().add(entry);
             }
 
@@ -1012,7 +1017,7 @@ public class Item implements Property {
             this.freshBoot = true;
             this.dirty = true;
 
-            // Initialize fresh components (creates defaults, populates ComponentTable)
+            // Initialize fresh components (creates defaults, populates FrameTable)
             initializeFreshComponents();
 
             // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1052,7 +1057,7 @@ public class Item implements Property {
         // Set owner on state tables before populating them
         state.setOwner(this);
 
-        // Initialize fresh components (creates defaults, populates ComponentTable)
+        // Initialize fresh components (creates defaults, populates FrameTable)
         initializeFreshComponents();
 
         // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1102,8 +1107,8 @@ public class Item implements Property {
             this.freshBoot = false;
             this.dirty = false;
 
-            // Load component entries from store into ComponentTable
-            for (ComponentEntry entry : wts.loadHeadComponents()) {
+            // Load component entries from store into FrameTable
+            for (FrameEntry entry : wts.loadHeadComponents()) {
                 content().add(entry);
             }
 
@@ -1116,7 +1121,7 @@ public class Item implements Property {
             this.freshBoot = true;
             this.dirty = true;
 
-            // Initialize fresh components (creates defaults, populates ComponentTable)
+            // Initialize fresh components (creates defaults, populates FrameTable)
             initializeFreshComponents();
 
             // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1150,7 +1155,7 @@ public class Item implements Property {
         // Set owner on state tables before populating them
         state.setOwner(this);
 
-        // Initialize fresh components (creates defaults, populates ComponentTable)
+        // Initialize fresh components (creates defaults, populates FrameTable)
         initializeFreshComponents();
 
         // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1183,28 +1188,28 @@ public class Item implements Property {
         initBuiltinComponents();
         populateVocabulary();
         populateRelationTable();
-        // Sync pre-initialized field values to ComponentTable (handles subclass field initializers)
+        // Sync pre-initialized field values to FrameTable (handles subclass field initializers)
         syncFieldValuesToTable();
     }
 
     /**
-     * Sync pre-initialized field values to the ComponentTable.
+     * Sync pre-initialized field values to the FrameTable.
      *
      * <p>This handles the case where a subclass has field initializers like:
      * {@code ExpressionComponent typesExpr = ExpressionComponent.subjects(...)}
      *
      * <p>Since superclass constructor runs before subclass field initializers,
-     * the ComponentTable may have a default instance while the field has the
+     * the FrameTable may have a default instance while the field has the
      * actual desired value. This method syncs them.
      */
     private void syncFieldValuesToTable() {
         if (!freshBoot) return; // Only needed for fresh creation
 
-        for (ComponentFieldSpec spec : schema().componentFields()) {
+        for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
             Object fieldValue = spec.getValue(this);
             if (fieldValue == null) continue;
 
-            // Check if ComponentTable has a different instance
+            // Check if FrameTable has a different instance
             var tableValue = content().getLive(spec.handle(), Object.class);
             if (tableValue.isPresent() && tableValue.get() != fieldValue) {
                 // Field has a different value - sync it to the table
@@ -1216,7 +1221,7 @@ public class Item implements Property {
     /**
      * Populate relation entries in the component table from the cached schema.
      *
-     * <p>Uses {@link ItemSchema#populateRelationEntries(ComponentTable, Item)} to add
+     * <p>Uses {@link ItemSchema#populateRelationEntries(FrameTable, Item)} to add
      * all relations from {@code @Item.RelationField} annotations as ComponentEntries.
      *
      * <p>Called automatically from {@link #onFullyInitialized()} for path-based items.
@@ -1295,7 +1300,7 @@ public class Item implements Property {
         if (live.isPresent()) return live.get();
 
         // Lazy decode from metadata entry when live cache is cold.
-        Optional<ComponentEntry> entryOpt = content().get(handle);
+        Optional<FrameEntry> entryOpt = content().get(handle);
         if (entryOpt.isEmpty()) return null;
 
         try {
@@ -1309,8 +1314,8 @@ public class Item implements Property {
         }
 
         // Final fallback: read the bound schema field directly.
-        // This keeps simple @ContentField values visible even if no live decode path exists.
-        ComponentFieldSpec spec = schema().getComponentField(handle);
+        // This keeps simple @Frame values visible even if no live decode path exists.
+        FrameFieldSpec spec = schema().getFrameField(handle);
         if (spec != null) {
             Object fieldValue = spec.getValue(this);
             if (fieldValue != null) {
@@ -1322,7 +1327,7 @@ public class Item implements Property {
     }
 
     /**
-     * Find the ComponentEntry that owns a given live component instance.
+     * Find the FrameEntry that owns a given live component instance.
      *
      * <p>This is useful for component-level logic that needs to update
      * entry facets (config/presentation/vocabulary) for itself.
@@ -1330,9 +1335,9 @@ public class Item implements Property {
      * @param componentInstance live component instance
      * @return matching entry, if present
      */
-    public Optional<ComponentEntry> componentEntry(Object componentInstance) {
+    public Optional<FrameEntry> componentEntry(Object componentInstance) {
         if (componentInstance == null) return Optional.empty();
-        for (ComponentEntry entry : content()) {
+        for (FrameEntry entry : content()) {
             if (entry.instance() == componentInstance) {
                 return Optional.of(entry);
             }
@@ -1375,7 +1380,7 @@ public class Item implements Property {
         ItemID typeId = Components.typeId(component.getClass());
 
         // 1. Add metadata entry
-        ComponentEntry entry = ComponentEntry.builder()
+        FrameEntry entry = FrameEntry.builder()
                 .handle(hid)
                 .alias(handle)
                 .type(typeId)
@@ -1598,7 +1603,7 @@ This public non- profit land trust’s top founding principle is to promote and 
     // ==================================================================================
 
     /**
-     * Ensure built-in components (PolicySet) exist in the ComponentTable.
+     * Ensure built-in components (PolicySet) exist in the FrameTable.
      *
      * <p>Policy is persisted as an intrinsic component. Vocabulary is intrinsic runtime
      * state derived from schema/content and is not stored as a component entry.
@@ -1613,12 +1618,12 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Add a built-in component (Vocabulary or PolicySet) to the ComponentTable.
+     * Add a built-in component (Vocabulary or PolicySet) to the FrameTable.
      */
     private void addBuiltinComponent(String handle, Object component) {
         HandleID hid = HandleID.of(handle);
         ItemID typeId = Components.typeId(component.getClass());
-        ComponentEntry entry = ComponentEntry.builder()
+        FrameEntry entry = FrameEntry.builder()
                 .handle(hid).alias(handle).type(typeId).identity(true).build();
         content().add(entry);
         content().setLive(hid, handle, component);
@@ -1631,17 +1636,17 @@ This public non- profit land trust’s top founding principle is to promote and 
      * annotations and create each component. For local resource components, opens at
      * the mount path. For other components, creates a default instance.
      *
-     * <p>This method populates the ComponentTable with both entries (metadata) and
+     * <p>This method populates the FrameTable with both entries (metadata) and
      * live instances. Field binding and initComponent() callbacks are handled
      * by hydrate() which is called afterward.
      */
     private void initializeFreshComponents() {
         ItemSchema itemSchema = schema();
-        List<ComponentEntry> entries = new ArrayList<>();
+        List<FrameEntry> entries = new ArrayList<>();
 
         // Create instances for all Component-typed @ComponentField fields
         // (Non-Component fields like SigningPublicKey are handled during commit)
-        for (ComponentFieldSpec spec : itemSchema.componentFields()) {
+        for (FrameFieldSpec spec : itemSchema.endorsedFrameFields()) {
             // Skip fields that don't have @Type annotation
             if (!spec.fieldType().isAnnotationPresent(Type.class)) {
                 continue;
@@ -1653,16 +1658,15 @@ This public non- profit land trust’s top founding principle is to promote and 
             Class<?> type = spec.fieldType();
 
             Object instance;
-            ComponentEntry entry;
+            FrameEntry entry;
 
-            // Determine alias: use spec.alias() if set, otherwise fall back to handleKey
-            String alias = spec.alias().isEmpty() ? spec.handleKey() : spec.alias();
+            String alias = spec.handleKey();
 
             if (spec.localOnly() && store != null && store.root() != null) {
                 // Local resource with filesystem: open at mount path
                 Path componentPath = store.root().resolve(spec.path());
                 instance = Components.openPathBased(type, componentPath);
-                entry = ComponentEntry.builder()
+                entry = FrameEntry.builder()
                         .handle(spec.handle()).alias(alias)
                         .type(spec.type()).identity(spec.identity()).build();
             } else if (spec.localOnly()) {
@@ -1670,7 +1674,7 @@ This public non- profit land trust’s top founding principle is to promote and 
                 instance = Components.createDefault(type)
                         .orElseThrow(() -> new IllegalStateException(
                                 "Cannot create default in-memory instance of local resource: " + type.getName()));
-                entry = ComponentEntry.builder()
+                entry = FrameEntry.builder()
                         .handle(spec.handle()).alias(alias)
                         .type(spec.type()).identity(spec.identity()).build();
             } else {
@@ -1689,27 +1693,27 @@ This public non- profit land trust’s top founding principle is to promote and 
                 // Create appropriate entry type based on component kind
                 if (spec.stream()) {
                     // Stream component: starts with empty heads, content added via append
-                    entry = ComponentEntry.builder()
+                    entry = FrameEntry.builder()
                             .handle(spec.handle()).alias(alias)
                             .type(spec.type()).identity(spec.identity())
-                            .payload(ComponentEntry.EntryPayload.builder().streamBased(true).build())
+                            .payload(FrameEntry.EntryPayload.builder().streamBased(true).build())
                             .build();
                 } else {
                     // Snapshot component: CID computed during commit, use placeholder for now
                     // Note: The actual CID is computed in scanAndBindFields() during commit
-                    entry = ComponentEntry.builder()
+                    entry = FrameEntry.builder()
                             .handle(spec.handle()).alias(alias)
                             .type(spec.type()).identity(spec.identity()).build();
                 }
             }
 
-            // Add mount to ComponentEntry for path-based components
+            // Add mount to FrameEntry for path-based components
             if (spec.hasMountPath()) {
                 String mountPath = "/" + spec.path();  // Convert filesystem path to presentation path
                 entry.addMount(new Mount.PathMount(mountPath));
             }
 
-            // Add to ComponentTable: both metadata and live instance
+            // Add to FrameTable: both metadata and live instance
             content().add(entry);
             content().setLive(spec.handle(), alias, instance);
 
@@ -1822,12 +1826,12 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         logger.debug("Persisting item {} (type={})", iid, getClass().getSimpleName());
 
-        List<ComponentEntry> entries = new ArrayList<>();
+        List<FrameEntry> entries = new ArrayList<>();
 
         store.runInWriteTransaction(tx -> {
             // Persist each component
-            for (ComponentEntry entry : content()) {
-                ComponentEntry updatedEntry = persistComponent(entry, store, tx);
+            for (FrameEntry entry : content()) {
+                FrameEntry updatedEntry = persistComponent(entry, store, tx);
                 entries.add(updatedEntry);
             }
 
@@ -1849,7 +1853,7 @@ This public non- profit land trust’s top founding principle is to promote and 
     /**
      * Persist a single component, returning an updated entry with CID if applicable.
      */
-    private ComponentEntry persistComponent(ComponentEntry entry, ItemStore targetStore,
+    private FrameEntry persistComponent(FrameEntry entry, ItemStore targetStore,
                                           dev.everydaythings.graph.library.WriteTransaction tx) {
         // Local resources are managed by the component itself - nothing to persist
         if (entry.isLocalResource()) {
@@ -1885,7 +1889,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         ContentID cid = targetStore.persistContent(bytes, tx);
 
         // Return updated entry with new CID
-        return ComponentEntry.snapshot(entry.handle(), entry.type(), cid, entry.identity());
+        return FrameEntry.snapshot(entry.handle(), entry.type(), cid, entry.identity());
     }
 
     /**
@@ -1947,7 +1951,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      */
     public byte[] encodeComponentValue(HandleID handle) {
         // Find the field spec with this handle from cached schema
-        for (ComponentFieldSpec spec : schema().componentFields()) {
+        for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
             if (!spec.handle().equals(handle)) continue;
 
             Object value = spec.getValue(this);
@@ -2017,16 +2021,16 @@ This public non- profit land trust’s top founding principle is to promote and 
     // ==================================================================================
 
     /**
-     * Unified hydration: decode components from store, populate ComponentTable, bind fields.
+     * Unified hydration: decode components from store, populate FrameTable, bind fields.
      *
-     * <p>The ComponentTable is the source of truth for what an item contains.
+     * <p>The FrameTable is the source of truth for what an item contains.
      * Fields (@ComponentField) are optional developer ergonomics that bind to
      * entries in the table.
      *
      * <p>Flow:
      * <ol>
-     *   <li>For each ComponentEntry in the table, decode the content from the store</li>
-     *   <li>Store the live instance in ComponentTable</li>
+     *   <li>For each FrameEntry in the table, decode the content from the store</li>
+     *   <li>Store the live instance in FrameTable</li>
      *   <li>Bind matching @ComponentField fields</li>
      *   <li>Invoke initComponent() callbacks on all Component instances</li>
      * </ol>
@@ -2040,7 +2044,7 @@ This public non- profit land trust’s top founding principle is to promote and 
     protected void hydrate() {
         // Phase 1: Decode components that don't already have live instances
         // (Fresh items may already have live instances from initializeFreshComponents())
-        for (ComponentEntry entry : content()) {
+        for (FrameEntry entry : content()) {
             if (content().hasLive(entry.handle())) {
                 continue;  // Already decoded/created
             }
@@ -2056,7 +2060,7 @@ This public non- profit land trust’s top founding principle is to promote and 
             }
         }
 
-        // Phase 2: Bind @ComponentField fields from ComponentTable
+        // Phase 2: Bind @ComponentField fields from FrameTable
         bindFieldsFromTable();
 
         // Phase 3: Invoke initComponent() callbacks on Component instances
@@ -2064,13 +2068,13 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Decode a component from its ComponentEntry.
+     * Decode a component from its FrameEntry.
      *
      * @param entry The component metadata
      * @return The decoded instance, or null if content unavailable
      */
     @SuppressWarnings("unchecked")
-    private Object decodeComponent(ComponentEntry entry) {
+    private Object decodeComponent(FrameEntry entry) {
         // Reference → resolve the target item via librarian
         if (entry.isReference()) {
             return resolveReference(entry);
@@ -2115,7 +2119,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @return A fresh component instance, or null if the type can't be created
      */
     @SuppressWarnings("unchecked")
-    private Object createStreamComponent(ComponentEntry entry) {
+    private Object createStreamComponent(FrameEntry entry) {
         Optional<Class<?>> impl = findImplementation(entry.type());
         if (impl.isEmpty()) {
             logger.debug("createStreamComponent() - no implementation for type {}", entry.type());
@@ -2140,7 +2144,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @param entry The reference component entry
      * @return The resolved Item, or null if unavailable
      */
-    private Object resolveReference(ComponentEntry entry) {
+    private Object resolveReference(FrameEntry entry) {
         if (librarian == null) {
             return null;
         }
@@ -2159,7 +2163,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @return The opened component, or null if no filesystem access
      */
     @SuppressWarnings("unchecked")
-    private Object openLocalResource(ComponentEntry entry) {
+    private Object openLocalResource(FrameEntry entry) {
         // Need filesystem access to open local resources
         Path root = (store != null) ? store.root() : null;
         if (root == null) {
@@ -2209,7 +2213,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * <p>Priority: Relation, then primitive types, then Canonical types via universal decoder.
      */
     @SuppressWarnings("unchecked")
-    private Object decodeContent(ComponentEntry entry, byte[] bytes) {
+    private Object decodeContent(FrameEntry entry, byte[] bytes) {
         ItemID typeId = entry.type();
         // Relation entries → decode directly (Relation is Canonical, not a Component)
         if (Relation.TYPE_ID.equals(typeId)) {
@@ -2226,10 +2230,10 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // Fallback for intrinsic schema-backed fields:
         // decode using the declared field type.
-        ComponentFieldSpec spec = schema().getComponentField(entry.handle());
-        if (spec != null) {
+        FrameFieldSpec frameSpec = schema().getFrameField(entry.handle());
+        if (frameSpec != null) {
             CBORObject node = CBORObject.DecodeFromBytes(bytes);
-            return Canonical.decodeIntoType(spec.fieldType(), spec.fieldType(), node, Canonical.Scope.RECORD);
+            return Canonical.decodeIntoType(frameSpec.fieldType(), frameSpec.fieldType(), node, Canonical.Scope.RECORD);
         }
 
         return null;
@@ -2273,7 +2277,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         }
 
         // Check cached schema for path
-        for (ComponentFieldSpec spec : schema().componentFields()) {
+        for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
             if (spec.handle().equals(handle) && spec.hasMountPath()) {
                 return root.resolve(spec.path());
             }
@@ -2291,9 +2295,9 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Bind @ComponentField fields from the ComponentTable's live instances.
+     * Bind @ComponentField fields from the FrameTable's live instances.
      *
-     * <p>Uses {@link ItemSchema#bindFieldsFromTable(Item, ComponentTable)} to inject
+     * <p>Uses {@link ItemSchema#bindFieldsFromTable(Item, FrameTable)} to inject
      * live instances into their corresponding fields.
      *
      * <p>For simple types (String, int, etc.) that weren't decoded during hydrate(),
@@ -2304,14 +2308,14 @@ This public non- profit land trust’s top founding principle is to promote and 
         schema().bindFieldsFromTable(this, content());
 
         // Handle simple types that weren't decoded - decode and cache
-        for (ComponentFieldSpec spec : schema().componentFields()) {
+        for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
             HandleID handle = spec.handle();
 
             // Skip if already has a live instance in the table
             if (content().hasLive(handle)) continue;
 
             // Try to decode from stored content
-            Optional<ComponentEntry> entryOpt = content().get(handle);
+            Optional<FrameEntry> entryOpt = content().get(handle);
             if (entryOpt.isPresent() && entryOpt.get().hasSnapshot()) {
                 Optional<byte[]> bytesOpt = fetchContent(entryOpt.get().payload().snapshotCid());
                 if (bytesOpt.isPresent()) {
@@ -2520,94 +2524,60 @@ This public non- profit land trust’s top founding principle is to promote and 
     public @interface Seed {}
 
     // ==================================================================================
-    // Field Annotations for Components & Relations
+    // Frame Annotation
     // ==================================================================================
 
     /**
-     * Declares a component field on this Item.
+     * Declares a frame field on this Item.
      *
-     * <p>Components are the building blocks of Items. They can be:
-     * <ul>
-     *   <li><b>Snapshot</b> - immutable content-addressed bytes</li>
-     *   <li><b>Stream</b> - mutable CRDT-based content</li>
-     *   <li><b>Local-only</b> - path-based, never synced (e.g., vaults, databases)</li>
-     * </ul>
+     * <p>Frames are the universal primitive in Common Graph. Endorsed frames
+     * (default) are stored in the manifest. Unendorsed frames are stored as
+     * FrameRecord envelopes and indexed for cross-item queries.
      *
-     * <p>The component's type (via {@code @Type}) provides defaults for
-     * snapshot/stream/localOnly. These can be overridden in the annotation.
-     *
-     * <p>If {@code path} is specified, the component lives at that path relative
-     * to the item root, and a mount entry is created. For localOnly components,
-     * path is required.
+     * <p>The {@code key} attribute provides semantic FrameKey tokens (ItemID strings).
+     * The {@code handle} attribute provides a literal key. If both are specified,
+     * {@code key} takes precedence.
      *
      * <p>Usage:
      * <pre>{@code
-     * @Item.ContentField(handleKey = "key")
-     * private SigningPublicKey publicKey;
-     *
-     * @Item.ContentField(path = ".vault", localOnly = true)
+     * // Endorsed frame (in manifest)
+     * @Item.Frame(handle = "vault", path = ".vault", localOnly = true)
      * private Vault vault;
      *
-     * @Item.ContentField(handleKey = "keys", path = ".keys", stream = true)
-     * private KeyLog keyLog;
-     * }</pre>
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.FIELD)
-    public @interface ContentField {
-        /** HandleID seed. Empty = use field name (deterministic for hydration binding). */
-        String handleKey() default "";
-
-        /** Human-facing name (sememe token or literal). Empty = no alias. */
-        String alias() default "";
-
-        /** Mount path relative to item root. Required for localOnly, optional otherwise. */
-        String path() default EMPTY;
-
-        /** Override: store as snapshot content. Default from type. */
-        boolean snapshot() default true;
-
-        /** Override: store as stream content. Default from type. */
-        boolean stream() default false;
-
-        /** Override: local-only (no sync). Default from type's @Type. */
-        boolean localOnly() default false;
-
-        /** Contributes to version identity (VID). Default true for snapshots. */
-        boolean identity() default true;
-    }
-
-    /**
-     * Declares a relation field on this Item.
+     * // Endorsed frame with semantic key
+     * @Item.Frame(key = {"cg:pred/title"})
+     * private String title;
      *
-     * <p>Relations are RDF-like triples with this item as the subject:
-     * {@code (this item) —[predicate]→ (object)}
-     *
-     * <p>The field value becomes the object. Supported types:
-     * <ul>
-     *   <li>{@code ItemID} or {@code Item} - relation to another item</li>
-     *   <li>{@code String} - text literal</li>
-     *   <li>{@code Number} - numeric literal</li>
-     *   <li>{@code AddressSpace.ParsedAddress} - address literal</li>
-     *   <li>{@code Iterable} - multiple relations with same predicate</li>
-     * </ul>
-     *
-     * <p>Usage:
-     * <pre>{@code
-     * @Item.RelationField(predicate = "cg.address:at-domain")
-     * private List<AtDomain.Parsed> addresses;
-     *
-     * @Item.RelationField(predicate = "cg.predicate:author")
+     * // Unendorsed frame (indexed, not in manifest)
+     * @Item.Frame(key = {"cg:pred/author"}, endorsed = false)
      * private ItemID author;
      * }</pre>
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
-    public @interface RelationField {
-        /** Predicate for this relation (required). */
-        String predicate();
+    public @interface Frame {
+        /** Semantic FrameKey tokens (ItemID canonical strings). Takes precedence over handle. */
+        String[] key() default {};
 
-        /** Include in manifest's relation list. Default true. */
-        boolean canonical() default true;
+        /** Literal handle key. Empty = use field name (deterministic for hydration binding). */
+        String handle() default "";
+
+        /** Mount path relative to item root. Required for localOnly. */
+        String path() default EMPTY;
+
+        /** Store as snapshot content. Default true. */
+        boolean snapshot() default true;
+
+        /** Store as stream content. Default false. */
+        boolean stream() default false;
+
+        /** Local-only (no sync). Default false. */
+        boolean localOnly() default false;
+
+        /** Contributes to version identity (VID). Default true. */
+        boolean identity() default true;
+
+        /** Endorsed = in manifest. False = unendorsed (relation-style). Default true. */
+        boolean endorsed() default true;
     }
 }

@@ -377,17 +377,17 @@ public class Unit extends Item {
 
     /** The canonical key (e.g., "cg.unit:meter") */
     @Getter
-    @ContentField(handleKey = "key")
+    @Frame(handle = "key")
     private String canonicalKey;
 
     /** Short symbol (e.g., "m", "mm", "in") */
     @Getter
-    @ContentField
+    @Frame
     private String symbol;
 
     /** Language-tagged display names */
     @Getter
-    @ContentField
+    @Frame
     private Map<String, String> names;
 
     /**
@@ -395,7 +395,7 @@ public class Unit extends Item {
      * e.g., velocity = {LENGTH: 1, TIME: -1}
      */
     @Getter
-    @ContentField
+    @Frame
     private Map<ItemID, Integer> dimensions;
 
     /**
@@ -403,14 +403,14 @@ public class Unit extends Item {
      * value_in_base = value_in_this * (scaleP / scaleQ)
      */
     @Getter
-    @ContentField
+    @Frame
     private long scaleP;
 
     /**
      * Rational scale denominator for conversion to base unit.
      */
     @Getter
-    @ContentField
+    @Frame
     private long scaleQ;
 
     // ==================================================================================

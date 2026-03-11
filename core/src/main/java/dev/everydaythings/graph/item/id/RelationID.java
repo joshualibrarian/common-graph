@@ -7,6 +7,10 @@ import lombok.Getter;
 
 import java.util.Objects;
 
+/**
+ * @deprecated Relations are frames. Use body hash ({@link ContentID}) instead.
+ */
+@Deprecated
 @Getter
 @EqualsAndHashCode(callSuper = true)
 public final class RelationID extends HashID implements BlockID {

@@ -42,12 +42,12 @@ public class Language extends Item {
 
     /** ISO 639 language code (2 or 3 letter). */
     @Getter
-    @ContentField(handleKey = "code")
+    @Frame(handle = "code")
     protected String languageCode;
 
     /** The lexicon for this language. */
     @Getter
-    @ContentField
+    @Frame
     protected Lexicon lexicon;
 
     // ==================================================================================

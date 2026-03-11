@@ -137,27 +137,27 @@ public class ValueType extends Item {
 
     /** The canonical key (e.g., "cg.value:decimal") */
     @Getter
-    @ContentField(handleKey = "key")
+    @Frame(handle = "key")
     private String canonicalKey;
 
     /** Human-readable name */
     @Getter
-    @ContentField
+    @Frame
     private String name;
 
     /** Canonicalization rules (optional) */
     @Getter
-    @ContentField(handleKey = "canon")
+    @Frame(handle = "canon")
     private CanonRules canonRules;
 
     /** Value bounds (optional) */
     @Getter
-    @ContentField
+    @Frame
     private Bounds bounds;
 
     /** Unit rules for values of this type (optional) */
     @Getter
-    @ContentField
+    @Frame
     private UnitRules unitRules;
 
     // ==================================================================================

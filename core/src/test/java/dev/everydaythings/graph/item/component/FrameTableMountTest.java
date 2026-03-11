@@ -12,22 +12,22 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for ComponentTable mount-based tree navigation methods.
+ * Tests for FrameTable mount-based tree navigation methods.
  */
-@DisplayName("ComponentTable mount navigation")
-class ComponentTableMountTest {
+@DisplayName("FrameTable mount navigation")
+class FrameTableMountTest {
 
-    private ComponentTable table;
+    private FrameTable table;
     private ItemID docType;
 
     @BeforeEach
     void setUp() {
-        table = new ComponentTable();
+        table = new FrameTable();
         docType = ItemID.fromString("cg:type/document");
     }
 
-    private ComponentEntry entryWithMount(String handleName, String path) {
-        ComponentEntry entry = ComponentEntry.builder()
+    private FrameEntry entryWithMount(String handleName, String path) {
+        FrameEntry entry = FrameEntry.builder()
                 .handle(HandleID.of(handleName))
                 .type(docType)
                 .identity(true)
@@ -52,7 +52,7 @@ class ComponentTableMountTest {
     @Test
     @DisplayName("atPath finds entry at exact path")
     void atPathFindsEntry() {
-        ComponentEntry docs = entryWithMount("docs", "/documents");
+        FrameEntry docs = entryWithMount("docs", "/documents");
 
         assertThat(table.atPath("/documents")).isPresent();
         assertThat(table.atPath("/documents").get()).isSameAs(docs);
@@ -101,7 +101,7 @@ class ComponentTableMountTest {
         entryWithMount("docs", "/documents");
 
         // Entry without mount
-        ComponentEntry unmounted = ComponentEntry.builder()
+        FrameEntry unmounted = FrameEntry.builder()
                 .handle(HandleID.of("internal"))
                 .type(docType)
                 .identity(true)
@@ -115,7 +115,7 @@ class ComponentTableMountTest {
     @Test
     @DisplayName("entry with multiple mounts appears in multiple lookups")
     void multiplePathMounts() {
-        ComponentEntry entry = ComponentEntry.builder()
+        FrameEntry entry = FrameEntry.builder()
                 .handle(HandleID.of("shared"))
                 .type(docType)
                 .identity(true)
@@ -141,7 +141,7 @@ class ComponentTableMountTest {
     @Test
     @DisplayName("pathForHandle returns empty for unmounted entry")
     void pathForHandleEmptyWhenNoMount() {
-        ComponentEntry unmounted = ComponentEntry.builder()
+        FrameEntry unmounted = FrameEntry.builder()
                 .handle(HandleID.of("internal"))
                 .type(docType)
                 .identity(true)
@@ -161,7 +161,7 @@ class ComponentTableMountTest {
         // Mount at /bar/foo/funk/bob.txt — implies /bar is a virtual directory at root
         entryWithMount("bob", "/bar/foo/funk/bob.txt");
 
-        List<ComponentTable.PathChild> rootChildren = table.childrenAt("/");
+        List<FrameTable.PathChild> rootChildren = table.childrenAt("/");
         assertThat(rootChildren).hasSize(1);
         assertThat(rootChildren.get(0).segment()).isEqualTo("bar");
         assertThat(rootChildren.get(0).fullPath()).isEqualTo("/bar");
@@ -174,10 +174,10 @@ class ComponentTableMountTest {
         entryWithMount("docs", "/documents");
         entryWithMount("settings", "/settings");
 
-        List<ComponentTable.PathChild> rootChildren = table.childrenAt("/");
+        List<FrameTable.PathChild> rootChildren = table.childrenAt("/");
         assertThat(rootChildren).hasSize(2);
         assertThat(rootChildren).allMatch(c -> !c.isVirtual());
-        assertThat(rootChildren).extracting(ComponentTable.PathChild::segment)
+        assertThat(rootChildren).extracting(FrameTable.PathChild::segment)
                 .containsExactlyInAnyOrder("documents", "settings");
     }
 
@@ -189,7 +189,7 @@ class ComponentTableMountTest {
         // Real mount at /docs overrides the virtual
         entryWithMount("docs", "/docs");
 
-        List<ComponentTable.PathChild> rootChildren = table.childrenAt("/");
+        List<FrameTable.PathChild> rootChildren = table.childrenAt("/");
         assertThat(rootChildren).hasSize(1);
         assertThat(rootChildren.get(0).segment()).isEqualTo("docs");
         assertThat(rootChildren.get(0).isVirtual()).isFalse();
@@ -203,20 +203,20 @@ class ComponentTableMountTest {
         entryWithMount("ted", "/bar/foo/dank/ted.txt");
 
         // /bar has one child: foo (virtual)
-        List<ComponentTable.PathChild> barChildren = table.childrenAt("/bar");
+        List<FrameTable.PathChild> barChildren = table.childrenAt("/bar");
         assertThat(barChildren).hasSize(1);
         assertThat(barChildren.get(0).segment()).isEqualTo("foo");
         assertThat(barChildren.get(0).isVirtual()).isTrue();
 
         // /bar/foo has two children: funk, dank (both virtual)
-        List<ComponentTable.PathChild> fooChildren = table.childrenAt("/bar/foo");
+        List<FrameTable.PathChild> fooChildren = table.childrenAt("/bar/foo");
         assertThat(fooChildren).hasSize(2);
-        assertThat(fooChildren).extracting(ComponentTable.PathChild::segment)
+        assertThat(fooChildren).extracting(FrameTable.PathChild::segment)
                 .containsExactlyInAnyOrder("funk", "dank");
-        assertThat(fooChildren).allMatch(ComponentTable.PathChild::isVirtual);
+        assertThat(fooChildren).allMatch(FrameTable.PathChild::isVirtual);
 
         // /bar/foo/funk has one child: bob.txt (real)
-        List<ComponentTable.PathChild> funkChildren = table.childrenAt("/bar/foo/funk");
+        List<FrameTable.PathChild> funkChildren = table.childrenAt("/bar/foo/funk");
         assertThat(funkChildren).hasSize(1);
         assertThat(funkChildren.get(0).segment()).isEqualTo("bob.txt");
         assertThat(funkChildren.get(0).isVirtual()).isFalse();
@@ -225,7 +225,7 @@ class ComponentTableMountTest {
     @Test
     @DisplayName("childrenAt returns empty when no mounts exist")
     void childrenAt_emptyWhenNoMounts() {
-        List<ComponentTable.PathChild> rootChildren = table.childrenAt("/");
+        List<FrameTable.PathChild> rootChildren = table.childrenAt("/");
         assertThat(rootChildren).isEmpty();
     }
 
@@ -234,7 +234,7 @@ class ComponentTableMountTest {
     void childrenAt_emptyForLeafPath() {
         entryWithMount("bob", "/bar/bob.txt");
 
-        List<ComponentTable.PathChild> leafChildren = table.childrenAt("/bar/bob.txt");
+        List<FrameTable.PathChild> leafChildren = table.childrenAt("/bar/bob.txt");
         assertThat(leafChildren).isEmpty();
     }
 
@@ -246,12 +246,12 @@ class ComponentTableMountTest {
         // /archive/old.txt implies /archive as virtual
         entryWithMount("old", "/archive/old.txt");
 
-        List<ComponentTable.PathChild> rootChildren = table.childrenAt("/");
+        List<FrameTable.PathChild> rootChildren = table.childrenAt("/");
         assertThat(rootChildren).hasSize(2);
 
-        ComponentTable.PathChild docsChild = rootChildren.stream()
+        FrameTable.PathChild docsChild = rootChildren.stream()
                 .filter(c -> c.segment().equals("docs")).findFirst().orElseThrow();
-        ComponentTable.PathChild archiveChild = rootChildren.stream()
+        FrameTable.PathChild archiveChild = rootChildren.stream()
                 .filter(c -> c.segment().equals("archive")).findFirst().orElseThrow();
 
         assertThat(docsChild.isVirtual()).isFalse();

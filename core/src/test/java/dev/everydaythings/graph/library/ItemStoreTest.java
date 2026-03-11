@@ -493,7 +493,7 @@ public abstract class ItemStoreTest {
 
                 // Multiple relations
                 Relation r1 = testRelation(iid, Sememe.TITLE.iid(), "Title");
-                store.persistRelation(r1.encodeBinary(Canonical.Scope.RECORD), tx);
+                store.persistContent(r1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Content
                 store.persistContent("Transaction content".getBytes(StandardCharsets.UTF_8), tx);

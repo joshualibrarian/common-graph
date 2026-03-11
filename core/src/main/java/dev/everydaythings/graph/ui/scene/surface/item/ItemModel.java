@@ -7,7 +7,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Link;
 import dev.everydaythings.graph.item.TreeLink;
 import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -432,7 +432,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 // Check the item's components for a @Surface annotation.
                 // This allows navigating to an Item (e.g., a clock) and
                 // automatically seeing its component's rendered surface.
-                for (ComponentEntry entry : ci.content()) {
+                for (FrameEntry entry : ci.content()) {
                     Object live = ci.component(entry.handle());
                     if (live != null) {
                         SurfaceSchema cs = resolveLiveSurface(live);
@@ -563,7 +563,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     @SuppressWarnings("unchecked")
     private SurfaceSchema assembleSurfaceMounts(Item item) {
         List<SurfaceSchema> surfaces = new ArrayList<>();
-        for (ComponentEntry entry : item.content()) {
+        for (FrameEntry entry : item.content()) {
             for (Mount mount : entry.presentation().layout().mounts()) {
                 if (mount instanceof Mount.SurfaceMount) {
                     Object live = item.component(entry.handle());
@@ -1035,7 +1035,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         Optional<Item> focused = resolver.apply(context.item());
         if (focused.isEmpty()) return null;
 
-        for (ComponentEntry entry : focused.get().content()) {
+        for (FrameEntry entry : focused.get().content()) {
             if (!entry.handle().encodeText().equals(handleKey)) continue;
 
             Object instance = entry.instance();
@@ -1051,7 +1051,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         return null;
     }
 
-    private record ConfigFieldRef(Object instance, CanonicalSchema.FieldSchema fs, ComponentEntry entry) {}
+    private record ConfigFieldRef(Object instance, CanonicalSchema.FieldSchema fs, FrameEntry entry) {}
 
     private SurfaceSchema buildTreeModeBar() {
         ContainerSurface modeBar = ContainerSurface.horizontal()
@@ -1096,12 +1096,12 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 .gap("0.5em")
                 .style("config-panel");
 
-        List<ComponentEntry> entries = new ArrayList<>();
+        List<FrameEntry> entries = new ArrayList<>();
         item.content().forEach(entries::add);
-        entries.sort(Comparator.comparing(ComponentEntry::displayToken, String.CASE_INSENSITIVE_ORDER));
+        entries.sort(Comparator.comparing(FrameEntry::displayToken, String.CASE_INSENSITIVE_ORDER));
 
         boolean hasSettings = false;
-        for (ComponentEntry entry : entries) {
+        for (FrameEntry entry : entries) {
             ContainerSurface section = buildComponentConfigSection(entry);
             if (section != null) {
                 panel.add(section);
@@ -1124,7 +1124,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      *
      * @return a container with header + settings + policy, or null if nothing to show
      */
-    private ContainerSurface buildComponentConfigSection(ComponentEntry entry) {
+    private ContainerSurface buildComponentConfigSection(FrameEntry entry) {
         // Gather settings from live instance
         List<CanonicalSchema.FieldSchema> settings = List.of();
         Object instance = entry.instance();
@@ -1245,12 +1245,12 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             rootNode.children.add(new MetaNode("vocab:verbs", "🧭", "Effective Verbs", verbChildren));
         }
 
-        List<ComponentEntry> entries = new ArrayList<>();
+        List<FrameEntry> entries = new ArrayList<>();
         item.content().forEach(entries::add);
-        entries.sort(Comparator.comparing(ComponentEntry::displayToken, String.CASE_INSENSITIVE_ORDER));
-        for (ComponentEntry entry : entries) {
-            Map<String, List<ComponentEntry.VocabularyContribution>> byScope = new LinkedHashMap<>();
-            for (ComponentEntry.VocabularyContribution term : entry.vocabulary().contributions()) {
+        entries.sort(Comparator.comparing(FrameEntry::displayToken, String.CASE_INSENSITIVE_ORDER));
+        for (FrameEntry entry : entries) {
+            Map<String, List<FrameEntry.VocabularyContribution>> byScope = new LinkedHashMap<>();
+            for (FrameEntry.VocabularyContribution term : entry.vocabulary().contributions()) {
                 String scope = term.scope() == null || term.scope().isBlank()
                         ? "/"
                         : term.scope();
@@ -1259,9 +1259,9 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             if (byScope.isEmpty()) continue;
 
             List<MetaNode> componentChildren = new ArrayList<>();
-            for (Map.Entry<String, List<ComponentEntry.VocabularyContribution>> scoped : byScope.entrySet()) {
+            for (Map.Entry<String, List<FrameEntry.VocabularyContribution>> scoped : byScope.entrySet()) {
                 List<MetaNode> scopeChildren = new ArrayList<>();
-                for (ComponentEntry.VocabularyContribution term : scoped.getValue()) {
+                for (FrameEntry.VocabularyContribution term : scoped.getValue()) {
                     String token = term.token();
                     if (token == null || token.isBlank()) {
                         token = term.termRef() != null ? shortSememe(term.termRef()) : "(unnamed)";

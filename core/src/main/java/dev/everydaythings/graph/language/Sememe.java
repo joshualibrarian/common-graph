@@ -699,12 +699,12 @@ public abstract class Sememe extends Item {
 
     /** The canonical key (e.g., "cg.core:author") */
     @Getter
-    @ContentField(handleKey = "key")
+    @Frame(handle = "key")
     private String canonicalKey;
 
     /** Part of speech */
     @Getter
-    @ContentField
+    @Frame
     private PartOfSpeech pos;
 
     /**
@@ -720,16 +720,16 @@ public abstract class Sememe extends Item {
 
     /** External source references (e.g., {"cili": "i25412"}) */
     @Getter
-    @ContentField
+    @Frame
     private Map<String, String> sources;
 
     /** Predicate facets (for complex predicates) */
-    @ContentField
+    @Frame
     private List<PredicateFacet> facets;
 
     /** Language-neutral symbols for universal lookup (e.g., "*", "?", "+", "m", "kg"). */
     @Getter
-    @ContentField
+    @Frame
     private List<String> symbols;
 
     /**
@@ -754,7 +754,7 @@ public abstract class Sememe extends Item {
      * <p>Examples: TITLE = 1000 (1.0), DESCRIPTION = 500 (0.5), NAME = 1000 (1.0).
      */
     @Getter
-    @ContentField
+    @Frame
     private int indexWeight;
 
     // ==================================================================================

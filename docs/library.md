@@ -8,33 +8,18 @@ A Library is composed of five cooperating parts:
 
 ```
 Library
-├── Primary ItemStore       # Block storage (manifests, content, relations)
+├── Object Store            # Single content-addressed blob store (CID → bytes)
 ├── Store Registry          # Additional stores in priority order
-├── LibraryIndex            # Relation fan-outs, head tracking
+├── Indexes                 # ITEMS, HEADS, FRAME_BY_ITEM, RECORD_BY_BODY
 ├── ItemDirectory           # Fast item location (which store has item X?)
 └── TokenDictionary         # Human text → item resolution
 ```
 
-### Primary ItemStore
+See [Storage Architecture](storage.md) for the full storage design — object store, indexes, large object support, and the migration from the previous multi-column architecture.
 
-The core block store. All content is stored as content-addressed blocks:
+### Object Store
 
-```
-ItemStore {
-    putBlock(bytes) → BlockID       # Store content, return its hash
-    getBlock(id) → bytes            # Retrieve by hash
-    exists(id) → boolean            # Check existence
-
-    putManifest(manifest)           # Store a signed manifest
-    getManifest(iid) → Manifest     # Get latest manifest for an item
-    getManifest(iid, vid) → Manifest # Get specific version
-
-    putRelation(relation)           # Store a signed relation
-    getRelations(query) → [Relation] # Query relations
-}
-```
-
-The store doesn't interpret content — it's pure content-addressed storage. Interpretation happens at higher layers through component types. This uniformity means bytecode (compiled classes, WASM modules) is stored and retrieved exactly like documents or images — content-addressed, deduplicated, integrity-verified. See [Scripting](scripting.md) for how `GraphClassLoader` loads code from the store.
+A single content-addressed store: `persist(bytes) → CID`, `fetch(CID) → bytes`. All data — manifests, frame bodies, frame records, content blobs — lives here. The store doesn't interpret content; interpretation happens at higher layers. See [Storage Architecture](storage.md) for details including large object support (inline, store-managed external, and user-named external files).
 
 ### Store Registry
 
@@ -49,26 +34,18 @@ Store Registry
 
 This layering lets a Librarian have local working copies overlaid on a persistent store, with peer fallback for items it doesn't have locally. When a `get()` call misses in the local stores, the Librarian can query peers through the [discovery mechanism](network.md#discovery) — concentric ripple search through the social graph.
 
-### LibraryIndex
+### Indexes
 
-Derived indexes for fast queries. These are rebuildable from the canonical data (manifests + relations):
+Four derived indexes, all rebuildable from the object store:
 
-| Index | Purpose |
-|-------|---------|
-| **By subject** | "All relations about item X" |
-| **By predicate** | "All 'author' relations in the library" |
-| **By object** | "All items pointing to person Y" |
-| **Head tracking** | Current latest version of each item |
-| **Type index** | Items by type (for browsing/discovery) |
+| Index | Key | Purpose |
+|-------|-----|---------|
+| **ITEMS** | IID \| VID → timestamp | Version history per item |
+| **HEADS** | Principal \| IID → VID | Current version per principal |
+| **FRAME_BY_ITEM** | ItemID \| Pred \| BodyHash → CID | Unified frame lookup (predicates are items too) |
+| **RECORD_BY_BODY** | BodyHash \| SignerKeyID → CID | Attestation tracking |
 
-Indexes use composite binary keys for efficient range scans:
-
-```
-By-subject key:  [SUBJECT_IID_32] [SEP] [PRED_32] [SEP] [VID_32]
-By-predicate key: [PRED_32] [SEP] [SUBJECT_IID_32] [SEP] [VID_32]
-```
-
-All keys are fixed-width (32 bytes per hash field) with 0x1F separator bytes, enabling lexicographic ordering and efficient prefix scans.
+See [Storage Architecture](storage.md) for key formats, query patterns, and rebuild procedure.
 
 ### ItemDirectory
 
@@ -121,18 +98,19 @@ All backends implement the same ItemStore interface. The choice is transparent t
 
 ### RocksDB Backend
 
-The production backend. Uses column families to separate data types:
+The production backend. Uses column families:
 
 | Column Family | Contents |
 |---------------|----------|
-| **MANIFEST** | Item manifests keyed by IID (latest) and IID+VID (specific version) |
-| **CONTENT** | Content blocks keyed by CID |
-| **RELATION** | Relations keyed by RECORD CID (content-addressed) |
-| **INDEX** | Derived indexes (by-item, by-predicate) |
+| **OBJECTS** | All content-addressed blobs (manifests, bodies, records, content) |
+| **ITEMS** | Version history index (IID \| VID → timestamp) |
+| **HEADS** | Current version per principal (Principal \| IID → VID) |
+| **FRAME_BY_ITEM** | Frame lookup index (ItemID \| Pred \| BodyHash → CID) |
+| **RECORD_BY_BODY** | Attestation index (BodyHash \| SignerKeyID → CID) |
 | **TOKEN** | Token dictionary entries |
 | **ITEM_DIR** | Item directory mappings |
 
-Small content (< 256 KB) is stored directly in RocksDB. Large content is stored as files on the filesystem, with RocksDB holding only the CID-to-path mapping (see [Content](content.md)).
+See [Storage Architecture](storage.md) for large object support (inline vs external files).
 
 ### Transaction Model
 
@@ -194,45 +172,7 @@ Working tree stores sit at the highest priority in the store registry, so local 
 
 ## Content Lifecycle
 
-Content flows through the Library in a consistent pattern:
-
-### Storing Content
-
-```
-1. Encode component value to bytes (via component type)
-2. Compute CID = hash(bytes)
-3. Store bytes in ItemStore keyed by CID
-4. Record CID in ComponentEntry
-5. Include ComponentEntry in Manifest
-6. Sign Manifest → produces VID
-7. Store Manifest in ItemStore keyed by IID + VID
-```
-
-### Retrieving Content
-
-```
-1. Look up Manifest by IID (latest version) or IID + VID (specific version)
-2. Extract ComponentEntry from Manifest
-3. Read CID from ComponentEntry
-4. Fetch bytes from ItemStore by CID
-5. Decode bytes via component type → live value
-```
-
-### Verification
-
-At any point, content integrity can be verified:
-
-```
-1. Fetch bytes by CID
-2. Recompute hash(bytes)
-3. Compare with CID — must match exactly
-4. Fetch Manifest by VID
-5. Recompute hash(manifest body)
-6. Compare with VID — must match exactly
-7. Verify Manifest signature against signer's public key
-```
-
-This chain of verification — from content bytes through manifest to signature — is what makes Common Graph tamper-evident without requiring a central authority.
+See [Storage Architecture](storage.md) for the full content lifecycle — storing (commit and unendorsed frames), retrieving (hydration), querying, and the verification chain.
 
 ## References
 

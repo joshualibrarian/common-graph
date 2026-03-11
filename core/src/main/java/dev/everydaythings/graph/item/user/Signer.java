@@ -74,7 +74,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Local-only component - never synced. Contains private keys.
      * For referenced Signers (others' identities), this is null.
      */
-    @ContentField(path = ".vault", localOnly = true)
+    @Frame(handle = "vault", path = ".vault", localOnly = true)
     private transient Vault vault;
 
     /**
@@ -83,7 +83,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Syncable stream component. Tracks all public keys this signer has used,
      * which keys are current for which purposes, and tombstoned keys.
      */
-    @ContentField(handleKey = "keys", path = ".keys", stream = true)
+    @Frame(handle = "keys", path = ".keys", stream = true)
     private KeyLog keyLog;
 
     /**
@@ -92,7 +92,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Syncable stream component. Tracks certificates issued by this signer
      * to attest to other identities, grant trust, etc.
      */
-    @ContentField(handleKey = "certs", path = ".certs", stream = true)
+    @Frame(handle = "certs", path = ".certs", stream = true)
     private CertLog certLog;
 
     /**
@@ -102,7 +102,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * For Hosts this defaults to the hostname; for Librarians it can be
      * set by the user (e.g. "dax", "riker-lib").
      */
-    @RelationField(predicate = "cg.core:name")
+    @Frame(key = {"cg.core:name"}, endorsed = false)
     private String name;
 
     /**
@@ -170,7 +170,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      */
     protected Signer(Path path, ItemStore fallbackStore) {
         super(path, fallbackStore);
-        // Vault, KeyLog, CertLog are set by Item's hydrate() via ComponentTable
+        // Vault, KeyLog, CertLog are set by Item's hydrate() via FrameTable
         // Key initialization happens in onFullyInitialized()
     }
 

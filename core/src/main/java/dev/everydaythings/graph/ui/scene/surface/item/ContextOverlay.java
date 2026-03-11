@@ -2,7 +2,7 @@ package dev.everydaythings.graph.ui.scene.surface.item;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.language.Sememe;
 
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public final class ContextOverlay {
         List<Entry> out = new ArrayList<>();
 
         // Component nouns/keys (local component aliases/handles) — lower than verbs.
-        for (ComponentEntry entry : item.content()) {
+        for (FrameEntry entry : item.content()) {
             String key = entry.alias() != null && !entry.alias().isBlank()
                     ? entry.alias()
                     : entry.handle().encodeText();

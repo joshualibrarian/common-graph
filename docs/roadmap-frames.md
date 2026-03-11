@@ -319,15 +319,17 @@ One query mechanism. Queries are frames with holes.
 
 **Goal**: Remove deprecated shims, old types, dead code.
 
-1. Remove `ComponentEntry` → `FrameEntry`
-2. Remove `ComponentTable` → `FrameTable`
-3. Remove `HandleID` usage → `FrameKey`
-4. Remove `Relation` class → absorbed into Frame
-5. Remove `RelationID` → body hash
-6. Remove `@ContentField` / `@RelationField` → `@Frame`
-7. Remove `ComponentFieldSpec` / `RelationFieldSpec` → `FrameFieldSpec`
-8. Clean up LibraryIndex column names
-9. Update all documentation and CLAUDE.md
+1. ~~Remove `ComponentEntry` → `FrameEntry`~~ (done in Phase 1)
+2. ~~Remove `ComponentTable` → `FrameTable`~~ (done in Phase 1)
+3. ~~Remove `HandleID` usage → `FrameKey`~~ (HandleID still used internally by FrameKey)
+4. ~~Remove `RelationID` → body hash~~ (done in Phase 4)
+5. Remove `@ContentField` / `@RelationField` annotation definitions ✅
+6. Remove `ComponentFieldSpec.java` / `RelationFieldSpec.java` files ✅
+7. Remove backward-compat generation in `ItemScanner` (no more dual-spec creation) ✅
+8. Update `ItemSchema` constructor: 4-param (frameFields only, no componentFields/relationFields) ✅
+9. Update all `Item.java` callers: `componentFields()` → `endorsedFrameFields()`, `getComponentField()` → `getFrameField()` ✅
+10. Update `FrameAnnotationTest` to use frame-only API ✅
+11. Remove `toComponentFieldSpec()` / `toRelationFieldSpec()` from `FrameFieldSpec` ✅
 
 ### Deliverable
 Clean codebase. One primitive. Frames all the way down.
@@ -337,14 +339,14 @@ Clean codebase. One primitive. Frames all the way down.
 ## Phase Order
 
 ```
-Phase 0: FrameKey           ← foundation, no dependencies
-Phase 1: FrameEntry/Table   ← depends on FrameKey
-Phase 2: Body/Record        ← depends on FrameEntry
-Phase 3: Index Expansion    ← depends on Body/Record
-Phase 4: Relation Absorption← depends on Index
-Phase 5: Annotation         ← depends on FrameEntry + FrameKey
-Phase 6: Query              ← depends on Index + Relations absorbed
-Phase 7: Cleanup            ← depends on everything
+Phase 0: FrameKey           ✅ DONE
+Phase 1: FrameEntry/Table   ✅ DONE
+Phase 2: Body/Record        ✅ DONE
+Phase 3: Index Expansion    ✅ DONE
+Phase 4: Relation Absorption✅ DONE
+Phase 5: Annotation         ✅ DONE
+Phase 6: Query              ✅ DONE
+Phase 7: Cleanup            ✅ DONE
 ```
 
 Each phase produces a working system. Tests pass at every boundary. No big-bang migration.

@@ -14,7 +14,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class ComponentEntryTest {
+class FrameEntryTest {
 
     static final HandleID HANDLE = HandleID.of("test");
     static final ItemID TYPE = ItemID.fromString("cg:type/test");
@@ -27,7 +27,7 @@ class ComponentEntryTest {
         @Test
         @DisplayName("reference() creates entry with referenceTarget set")
         void referenceFactoryCreatesEntry() {
-            ComponentEntry entry = ComponentEntry.reference(HANDLE, TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
 
             assertThat(entry.isReference()).isTrue();
             assertThat(entry.payload().referenceTarget()).isEqualTo(TARGET);
@@ -38,14 +38,14 @@ class ComponentEntryTest {
         @Test
         @DisplayName("reference() defaults identity to false")
         void referenceDefaultsIdentityFalse() {
-            ComponentEntry entry = ComponentEntry.reference(HANDLE, TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
             assertThat(entry.identity()).isFalse();
         }
 
         @Test
         @DisplayName("reference with string handle preserves alias")
         void referenceWithStringHandle() {
-            ComponentEntry entry = ComponentEntry.reference("myref", TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference("myref", TYPE, TARGET);
 
             assertThat(entry.alias()).isEqualTo("myref");
             assertThat(entry.handle()).isEqualTo(HandleID.of("myref"));
@@ -54,49 +54,49 @@ class ComponentEntryTest {
         @Test
         @DisplayName("reference with explicit identity flag")
         void referenceWithExplicitIdentity() {
-            ComponentEntry entry = ComponentEntry.reference("myref", TYPE, TARGET, true);
+            FrameEntry entry = FrameEntry.reference("myref", TYPE, TARGET, true);
             assertThat(entry.identity()).isTrue();
         }
 
         @Test
         @DisplayName("reference() rejects null target")
         void referenceRejectsNullTarget() {
-            assertThatThrownBy(() -> ComponentEntry.reference(HANDLE, TYPE, null))
+            assertThatThrownBy(() -> FrameEntry.reference(HANDLE, TYPE, null))
                     .isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("reference has no snapshot")
         void referenceHasNoSnapshot() {
-            ComponentEntry entry = ComponentEntry.reference(HANDLE, TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
             assertThat(entry.hasSnapshot()).isFalse();
         }
 
         @Test
         @DisplayName("reference is not stream-based")
         void referenceIsNotStream() {
-            ComponentEntry entry = ComponentEntry.reference(HANDLE, TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
             assertThat(entry.hasStream()).isFalse();
         }
 
         @Test
         @DisplayName("reference is not a local resource")
         void referenceIsNotLocalResource() {
-            ComponentEntry entry = ComponentEntry.reference(HANDLE, TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
             assertThat(entry.isLocalResource()).isFalse();
         }
 
         @Test
         @DisplayName("reference emoji is link symbol")
         void referenceEmojiIsLink() {
-            ComponentEntry entry = ComponentEntry.reference(HANDLE, TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
             assertThat(entry.emoji()).isEqualTo("\uD83D\uDD17");
         }
 
         @Test
         @DisplayName("reference displaySubtitle shows arrow to target")
         void referenceDisplaySubtitle() {
-            ComponentEntry entry = ComponentEntry.reference("chess", TYPE, TARGET);
+            FrameEntry entry = FrameEntry.reference("chess", TYPE, TARGET);
             String subtitle = entry.displaySubtitle();
             assertThat(subtitle).startsWith("\u2192 ");
         }
@@ -110,21 +110,21 @@ class ComponentEntryTest {
         @DisplayName("snapshot is not a reference")
         void snapshotIsNotReference() {
             ContentID cid = new ContentID(new byte[32], Hash.DEFAULT);
-            ComponentEntry entry = ComponentEntry.snapshot(HANDLE, TYPE, cid);
+            FrameEntry entry = FrameEntry.snapshot(HANDLE, TYPE, cid);
             assertThat(entry.isReference()).isFalse();
         }
 
         @Test
         @DisplayName("stream is not a reference")
         void streamIsNotReference() {
-            ComponentEntry entry = ComponentEntry.stream(HANDLE, TYPE, List.of(), true);
+            FrameEntry entry = FrameEntry.stream(HANDLE, TYPE, List.of(), true);
             assertThat(entry.isReference()).isFalse();
         }
 
         @Test
         @DisplayName("local resource is not a reference")
         void localResourceIsNotReference() {
-            ComponentEntry entry = ComponentEntry.localResource(HANDLE, TYPE);
+            FrameEntry entry = FrameEntry.localResource(HANDLE, TYPE);
             assertThat(entry.isReference()).isFalse();
             assertThat(entry.isLocalResource()).isTrue();
         }
@@ -137,9 +137,9 @@ class ComponentEntryTest {
         @Test
         @DisplayName("reference entry survives encode/decode")
         void referenceRoundTrip() {
-            ComponentEntry original = ComponentEntry.reference("myref", TYPE, TARGET);
+            FrameEntry original = FrameEntry.reference("myref", TYPE, TARGET);
             byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
-            ComponentEntry decoded = ComponentEntry.decode(bytes);
+            FrameEntry decoded = FrameEntry.decode(bytes);
 
             assertThat(decoded.isReference()).isTrue();
             assertThat(decoded.payload().referenceTarget()).isEqualTo(TARGET);
@@ -152,9 +152,9 @@ class ComponentEntryTest {
         @DisplayName("snapshot entry still decodes correctly (backward compat)")
         void snapshotStillDecodes() {
             ContentID cid = new ContentID(new byte[32], Hash.DEFAULT);
-            ComponentEntry original = ComponentEntry.snapshot("snap", TYPE, cid);
+            FrameEntry original = FrameEntry.snapshot("snap", TYPE, cid);
             byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
-            ComponentEntry decoded = ComponentEntry.decode(bytes);
+            FrameEntry decoded = FrameEntry.decode(bytes);
 
             assertThat(decoded.isReference()).isFalse();
             assertThat(decoded.payload().referenceTarget()).isNull();

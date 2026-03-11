@@ -4,7 +4,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.component.ComponentType;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -468,11 +468,11 @@ public final class SeedVocabulary {
             byte[] bytes = ((Canonical) component).encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
 
-            ComponentEntry entry = ComponentEntry.builder()
+            FrameEntry entry = FrameEntry.builder()
                     .handle(handle)
                     .type(ItemID.fromString(SurfaceTemplateComponent.KEY))
                     .identity(false)
-                    .payload(ComponentEntry.EntryPayload.builder().snapshotCid(cid).build())
+                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                     .build();
 
             contentTable.add(entry);
@@ -507,11 +507,11 @@ public final class SeedVocabulary {
             byte[] bytes = gloss.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
 
-            ComponentEntry ce = ComponentEntry.builder()
+            FrameEntry ce = FrameEntry.builder()
                     .handle(handle)
                     .type(ItemID.fromString(SememeGloss.KEY))
                     .identity(false)
-                    .payload(ComponentEntry.EntryPayload.builder().snapshotCid(cid).build())
+                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                     .build();
 
             contentTable.add(ce);
@@ -534,7 +534,7 @@ public final class SeedVocabulary {
         if (item != null) {
             byte[] bytes = relation.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
-            ComponentEntry entry = ComponentEntry.forRelation(relation.predicate(), cid, true);
+            FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
             item.content().add(entry);
             item.content().setLive(entry.handle(), relation);
         }
@@ -578,7 +578,7 @@ public final class SeedVocabulary {
             store.persistManifest(item.iid(), record, tx);
 
             // Store component content
-            for (ComponentEntry entry : manifest.components()) {
+            for (FrameEntry entry : manifest.components()) {
                 if (entry.payload().snapshotCid() != null) {
                     // Try @ContentField-based encoding first
                     byte[] content = item.encodeComponentValue(entry.handle());
@@ -609,7 +609,7 @@ public final class SeedVocabulary {
         if (relation == null) return;
         try {
             byte[] record = relation.encodeBinary(Canonical.Scope.RECORD);
-            store.persistRelation(record, tx);
+            store.persistContent(record, tx);
         } catch (Exception e) {
             logger.warn("Failed to store relation: {}", e.getMessage());
         }

@@ -103,10 +103,10 @@ public class Host extends Signer {
     // INSTANCE FIELDS
     // ==================================================================================
 
-    @RelationField(predicate = "cg.core:reachable-at", canonical = false)
+    @Frame(key = {"cg.core:reachable-at"}, endorsed = false)
     private List<InetAddress> ipAddresses;
 
-    @ContentField(handleKey = "monitor", path = ".monitor")
+    @Frame(handle = "monitor", path = ".monitor")
     private SystemMonitor systemMonitor;
 
     // ==================================================================================

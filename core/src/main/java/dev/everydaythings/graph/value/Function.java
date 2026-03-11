@@ -40,13 +40,13 @@ public class Function extends NounSememe {
     // INSTANCE FIELDS (function-specific; canonicalKey, glosses, symbols inherited)
     // ==================================================================================
 
-    @Getter @ContentField
+    @Getter @Frame
     private int minArity;
 
-    @Getter @ContentField
+    @Getter @Frame
     private int maxArity;  // -1 for variadic
 
-    @Getter @ContentField
+    @Getter @Frame
     private String category;
 
     // ==================================================================================

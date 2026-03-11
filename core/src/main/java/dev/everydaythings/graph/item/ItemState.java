@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.ComponentEntry;
-import dev.everydaythings.graph.item.component.ComponentTable;
+import dev.everydaythings.graph.item.component.FrameEntry;
+import dev.everydaythings.graph.item.component.FrameTable;
 import lombok.Getter;
 
 import java.util.List;
@@ -10,49 +10,67 @@ import java.util.List;
 /**
  * Unified state for an Item version.
  *
- * <p>ItemState wraps a {@link ComponentTable} that holds all of an Item's
- * versioned state: content components, relations, vocabulary, and policy.
+ * <p>ItemState wraps a {@link FrameTable} that holds all of an Item's
+ * versioned state: frames (components, relations, vocabulary, policy).
  */
 @Getter
 @Canonical.Canonization
 public class ItemState implements Canonical {
 
     @Canon(order = 0)
-    private final ComponentTable content;
+    private final FrameTable frames;
 
     public ItemState() {
-        this.content = new ComponentTable();
+        this.frames = new FrameTable();
     }
 
-    public ItemState(ComponentTable content) {
-        this.content = content != null ? content : new ComponentTable();
+    public ItemState(FrameTable frames) {
+        this.frames = frames != null ? frames : new FrameTable();
     }
 
     public void setOwner(Item owner) {
-        content.setOwner(owner);
+        frames.setOwner(owner);
     }
 
-    public List<ComponentEntry> componentSnapshot() {
-        return content.stream().toList();
+    /** @deprecated Use {@link #frameSnapshot()} */
+    @Deprecated
+    public List<FrameEntry> componentSnapshot() {
+        return frameSnapshot();
     }
 
-    public void loadComponents(List<ComponentEntry> entries) {
+    public List<FrameEntry> frameSnapshot() {
+        return frames.stream().toList();
+    }
+
+    /** @deprecated Use {@link #loadFrames(List)} */
+    @Deprecated
+    public void loadComponents(List<FrameEntry> entries) {
+        loadFrames(entries);
+    }
+
+    public void loadFrames(List<FrameEntry> entries) {
         if (entries == null) return;
-        for (ComponentEntry entry : entries) {
-            content.add(entry);
+        for (FrameEntry entry : entries) {
+            frames.add(entry);
         }
     }
 
+    /** @deprecated Use {@link #frames()} */
+    @Deprecated
+    public FrameTable content() {
+        return frames;
+    }
+
     public int totalEntries() {
-        return content.size();
+        return frames.size();
     }
 
     public boolean isEmpty() {
-        return content.isEmpty();
+        return frames.isEmpty();
     }
 
     @Override
     public String toString() {
-        return "ItemState[components=" + content.size() + "]";
+        return "ItemState[frames=" + frames.size() + "]";
     }
 }

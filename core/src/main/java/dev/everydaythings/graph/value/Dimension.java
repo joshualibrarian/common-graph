@@ -111,22 +111,22 @@ public class Dimension extends Item {
 
     /** The canonical key (e.g., "cg.dim:length") */
     @Getter
-    @ContentField(handleKey = "key")
+    @Frame(handle = "key")
     private String canonicalKey;
 
     /** Symbol used in dimensional formulas (e.g., "L", "T", "M") */
     @Getter
-    @ContentField
+    @Frame
     private String symbol;
 
     /** Human-readable name (e.g., "length", "time") */
     @Getter
-    @ContentField
+    @Frame
     private String name;
 
     /** Descriptions by language */
     @Getter
-    @ContentField
+    @Frame
     private Map<String, String> descriptions;
 
     // ==================================================================================

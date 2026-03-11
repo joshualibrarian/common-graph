@@ -24,6 +24,8 @@ import java.util.stream.Stream;
  *   <li>A concrete ItemID - a filter constraint</li>
  * </ul>
  *
+ * @deprecated Use {@link FrameQuery} instead. Queries are incomplete frames.
+ *
  * <p>Examples:
  * <pre>{@code
  * // All types: what is implemented by anything?
@@ -46,11 +48,19 @@ import java.util.stream.Stream;
  * @param predicate Predicate pattern (ANY, WHAT, or concrete ItemID)
  * @param object    Object pattern (ANY, WHAT, or concrete ItemID)
  */
+@Deprecated
 public record PatternExpression(
         @Canon(order = 0) ItemID subject,
         @Canon(order = 1) ItemID predicate,
         @Canon(order = 2) ItemID object
 ) implements Expression, Canonical {
+
+    /**
+     * Convert this pattern to a FrameQuery.
+     */
+    public FrameQuery toFrameQuery() {
+        return FrameQuery.fromPattern(this);
+    }
 
     private static final Logger log = LogManager.getLogger(PatternExpression.class);
 

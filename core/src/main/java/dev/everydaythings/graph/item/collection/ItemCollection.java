@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.collection;
 
-import dev.everydaythings.graph.item.component.ComponentTable;
+import dev.everydaythings.graph.item.component.FrameTable;
 
 import java.util.AbstractSet;
 import java.util.Iterator;
@@ -22,7 +22,7 @@ import java.util.Optional;
  *
  * <p>Implementations:
  * <ul>
- *   <li>{@link ComponentTable} - components (with embedded mount info)</li>
+ *   <li>{@link FrameTable} - components (with embedded mount info)</li>
  * </ul>
  *
  * @param <K> Key type for lookup

@@ -167,11 +167,11 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     // - LibraryIndex (relation queries, head tracking)
     // - ItemDirectory (which store has item X?)
     // - TokenDictionary (human text → item lookup)
-    @ContentField(path = "library", localOnly = true)
+    @Frame(handle = "library", path = "library", localOnly = true)
     private Library library;
 
     // Expression: ? → implemented-by → * (all types - subjects of implemented-by relations)
-    @ContentField(handleKey = "types")
+    @Frame(handle = "types")
     ExpressionComponent typesExpr = ExpressionComponent.subjects(Sememe.IMPLEMENTED_BY.iid());
 
     // --- Services ---
@@ -191,10 +191,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * <p>Principal is a role, not a type - any Signer can be a principal.
      */
-    @RelationField(predicate = "cg.core:serves")
+    @Frame(key = {"cg.core:serves"}, endorsed = false)
     private Signer principal;
 
-    @RelationField(predicate = "cg.core:available-at")
+    @Frame(key = {"cg.core:available-at"}, endorsed = false)
     private Host host;
 
     /**
@@ -217,7 +217,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     private ItemID fullscreenWorkspace;
 
     // --- Librarian's own relations ---
-    @RelationField(predicate = "cg.core:reachable-at", canonical = false)
+    @Frame(key = {"cg.core:reachable-at"}, endorsed = false)
     private List<Endpoint> endpoints;
 
     // ==================================================================================

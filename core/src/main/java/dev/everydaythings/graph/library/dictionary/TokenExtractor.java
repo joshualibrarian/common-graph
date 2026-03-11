@@ -61,7 +61,7 @@ public final class TokenExtractor {
      * @return list of postings (currently empty - see note above)
      */
     public static List<Posting> fromManifest(Manifest manifest) {
-        // HandleIDs in ComponentEntry are hashes - we can't recover the original
+        // HandleIDs in FrameEntry are hashes - we can't recover the original
         // handle strings. Handle indexing needs to happen at component creation
         // time when the original names are available.
         return List.of();

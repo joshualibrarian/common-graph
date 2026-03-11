@@ -3,10 +3,10 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.item.action.ActionContext;
 import dev.everydaythings.graph.item.action.ParamSpec;
 import dev.everydaythings.graph.item.component.Components;
-import dev.everydaythings.graph.item.component.ComponentFieldSpec;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
 
@@ -22,8 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>ItemScanner performs a single walk through an Item class hierarchy,
  * extracting all annotation-based metadata:
  * <ul>
- *   <li>@Item.ContentField → ComponentFieldSpec</li>
- *   <li>@Item.RelationField → RelationFieldSpec</li>
+ *   <li>@Item.Frame → FrameFieldSpec (endorsed + unendorsed)</li>
  *   <li>@Verb → VerbSpec (on methods and component classes)</li>
  * </ul>
  *
@@ -90,8 +89,7 @@ public final class ItemScanner {
      */
     @SuppressWarnings("unchecked")
     private static ItemSchema scan(Class<?> itemClass) {
-        List<ComponentFieldSpec> componentFields = new ArrayList<>();
-        List<RelationFieldSpec> relationFields = new ArrayList<>();
+        List<FrameFieldSpec> frameFields = new ArrayList<>();
         List<VerbSpec> verbSpecs = new ArrayList<>();
         Map<String, List<VerbSpec>> componentVerbs = new HashMap<>();
 
@@ -101,29 +99,25 @@ public final class ItemScanner {
 
         // Walk class hierarchy (child first → parent)
         for (Class<?> c = itemClass; c != null && c != Object.class; c = c.getSuperclass()) {
-            // Scan fields
+            // Scan fields for @Item.Frame
             for (Field field : c.getDeclaredFields()) {
-                // @Item.ContentField
-                Item.ContentField cf = field.getAnnotation(Item.ContentField.class);
-                if (cf != null) {
-                    ComponentFieldSpec spec = extractComponentField(field, cf);
-                    validateComponentField(spec, handles, paths);
-                    componentFields.add(spec);
+                Item.Frame frame = field.getAnnotation(Item.Frame.class);
+                if (frame != null) {
+                    FrameFieldSpec frameSpec = extractFrameField(field, frame);
 
-                    // Scan the component class for @Verb methods
-                    // Any class with @Type can declare verbs
-                    if (field.getType().isAnnotationPresent(Type.class)) {
-                        List<VerbSpec> verbs = scanComponentVerbs(field.getType(), spec.handleKey());
-                        if (!verbs.isEmpty()) {
-                            componentVerbs.put(spec.handleKey(), verbs);
+                    if (frameSpec.endorsed()) {
+                        validateFrameField(frameSpec, handles, paths);
+
+                        // Scan component class for @Verb methods
+                        if (field.getType().isAnnotationPresent(Type.class)) {
+                            List<VerbSpec> verbs = scanComponentVerbs(field.getType(), frameSpec.handleKey());
+                            if (!verbs.isEmpty()) {
+                                componentVerbs.put(frameSpec.handleKey(), verbs);
+                            }
                         }
                     }
-                }
 
-                // @Item.RelationField
-                Item.RelationField rf = field.getAnnotation(Item.RelationField.class);
-                if (rf != null) {
-                    relationFields.add(extractRelationField(field, rf));
+                    frameFields.add(frameSpec);
                 }
             }
 
@@ -142,8 +136,7 @@ public final class ItemScanner {
 
         return new ItemSchema(
                 (Class<? extends Item>) itemClass,
-                componentFields,
-                relationFields,
+                frameFields,
                 verbSpecs,
                 componentVerbs
         );
@@ -154,29 +147,44 @@ public final class ItemScanner {
     // ==================================================================================
 
     /**
-     * Extract a ComponentFieldSpec from a field and annotation.
+     * Extract a FrameFieldSpec from a field and @Frame annotation.
      */
-    @SuppressWarnings("unchecked")
-    private static ComponentFieldSpec extractComponentField(Field field, Item.ContentField ann) {
-        // handleKey defaults to field name if empty
-        String handleKey = ann.handleKey().isEmpty() ? field.getName() : ann.handleKey();
-        HandleID handle = HandleID.of(handleKey);
-        String alias = ann.alias();
-        String path = ann.path();
+    private static FrameFieldSpec extractFrameField(Field field, Item.Frame ann) {
+        // Determine FrameKey and handleKey
+        FrameKey frameKey;
+        String handleKey;
 
-        // Determine type and defaults from field type
+        if (ann.key().length > 0) {
+            // Semantic key from annotation
+            ItemID[] tokens = new ItemID[ann.key().length];
+            for (int i = 0; i < ann.key().length; i++) {
+                tokens[i] = ItemID.fromString(ann.key()[i]);
+            }
+            frameKey = FrameKey.of(tokens);
+            // HandleKey derived from first token for backward compat
+            handleKey = ann.handle().isEmpty() ? ann.key()[0] : ann.handle();
+        } else if (!ann.handle().isEmpty()) {
+            // Literal key
+            frameKey = FrameKey.literal(ann.handle());
+            handleKey = ann.handle();
+        } else {
+            // Default to field name
+            String name = field.getName();
+            frameKey = FrameKey.literal(name);
+            handleKey = name;
+        }
+
+        HandleID handle = HandleID.of(handleKey);
+
+        // Determine type
         Class<?> fieldType = field.getType();
         ItemID type;
-
         if (fieldType.isAnnotationPresent(Type.class)) {
-            // Has @Type - get type from annotation
             type = Components.typeId(fieldType);
         } else {
-            // Non-component type (e.g., SigningPublicKey) - derive type from class name
             type = ItemID.fromString("cg:type/" + fieldType.getSimpleName().toLowerCase());
         }
 
-        // localOnly and stream come only from @ContentField annotation now
         boolean localOnly = ann.localOnly();
         boolean stream = ann.stream();
         boolean snapshot = ann.snapshot() && !localOnly;
@@ -184,25 +192,11 @@ public final class ItemScanner {
 
         field.setAccessible(true);
 
-        return new ComponentFieldSpec(field, handle, handleKey, alias, type, path, snapshot, stream, localOnly, identity);
+        return new FrameFieldSpec(
+                field, frameKey, handle, handleKey, type,
+                ann.path(), snapshot, stream, localOnly, identity, ann.endorsed());
     }
 
-    /**
-     * Extract a RelationFieldSpec from a field and annotation.
-     */
-    private static RelationFieldSpec extractRelationField(Field field, Item.RelationField ann) {
-        String predicateStr = ann.predicate();
-        if (predicateStr == null || predicateStr.isEmpty()) {
-            throw new IllegalStateException(
-                    "@Item.RelationField on " + field.getDeclaringClass().getName() + "." + field.getName() +
-                    " must specify a predicate");
-        }
-
-        ItemID predicate = ItemID.fromString(predicateStr);
-        field.setAccessible(true);
-
-        return new RelationFieldSpec(field, predicate, ann.canonical());
-    }
 
     // ==================================================================================
     // Verb Extraction
@@ -312,13 +306,13 @@ public final class ItemScanner {
     // ==================================================================================
 
     /**
-     * Validate a component field spec for uniqueness.
+     * Validate an endorsed frame field spec for uniqueness.
      */
-    private static void validateComponentField(ComponentFieldSpec spec, Set<String> handles, Set<String> paths) {
+    private static void validateFrameField(FrameFieldSpec spec, Set<String> handles, Set<String> paths) {
         String handleStr = spec.handle().toString();
         if (handles.contains(handleStr)) {
             throw new IllegalStateException(
-                    "Duplicate component handle '" + handleStr + "' on field " + spec.field().getName());
+                    "Duplicate frame handle '" + handleStr + "' on field " + spec.field().getName());
         }
         handles.add(handleStr);
 
@@ -333,7 +327,7 @@ public final class ItemScanner {
         // localOnly requires path
         if (spec.localOnly() && !spec.hasMountPath()) {
             throw new IllegalStateException(
-                    "@Item.ComponentField on local-only component must specify path, " +
+                    "@Frame on local-only field must specify path, " +
                     "but field '" + spec.field().getName() + "' has no path");
         }
     }

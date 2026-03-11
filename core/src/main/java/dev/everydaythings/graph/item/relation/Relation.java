@@ -38,6 +38,11 @@ import java.util.Objects;
  *   <li>{@code createdAt} — timestamp</li>
  * </ul>
  *
+ * @deprecated Relations are frames. Use {@link dev.everydaythings.graph.item.component.FrameBody}
+ * and {@link dev.everydaythings.graph.item.component.FrameRecord} instead.
+ * This class is retained as a helper for constructing frames with relational
+ * semantics and for backward compatibility during migration.
+ *
  * <p>RECORD-only fields (don't affect RID):
  * <ul>
  *   <li>{@code rid} — hash of BODY bytes (semantic identity)</li>
@@ -50,6 +55,7 @@ import java.util.Objects;
  * signed records for the same RID represent independent attestations of the
  * same fact. Storage is keyed by RECORD CID (content-addressed).
  */
+@Deprecated
 @Getter
 public final class Relation implements Signing.Target {
 
@@ -251,6 +257,35 @@ public final class Relation implements Signing.Target {
     public ItemID bindingId(ItemID role) {
         Target target = binding(role);
         return target instanceof IidTarget iidTarget ? iidTarget.iid() : null;
+    }
+
+    // ==================================================================================
+    // Frame Bridge — Phase 2 of Frame Unification
+    // ==================================================================================
+
+    /**
+     * Convert this Relation to a FrameBody.
+     *
+     * <p>Extracts the predicate and bindings to produce the body/record
+     * split's assertion half. The theme must be supplied — it's the item
+     * this assertion is about (typically the THEME binding's target).
+     *
+     * @param theme the item this assertion is about
+     * @return a FrameBody representing the same semantic assertion
+     */
+    public dev.everydaythings.graph.item.component.FrameBody toFrameBody(ItemID theme) {
+        return dev.everydaythings.graph.item.component.FrameBody.fromRelation(this, theme);
+    }
+
+    /**
+     * Convert this Relation to a FrameBody, using the THEME binding as the theme.
+     *
+     * @return a FrameBody, or null if no THEME binding exists
+     */
+    public dev.everydaythings.graph.item.component.FrameBody toFrameBody() {
+        ItemID theme = subject();  // subject() reads THEME binding
+        if (theme == null) return null;
+        return toFrameBody(theme);
     }
 
     // ==================================================================================

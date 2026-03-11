@@ -4,9 +4,8 @@ import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.item.component.ComponentEntry;
-import dev.everydaythings.graph.item.component.ComponentFieldSpec;
-import dev.everydaythings.graph.item.component.ComponentTable;
+import dev.everydaythings.graph.item.component.FrameEntry;
+import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -24,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Cached schema for an Item class.
@@ -40,8 +40,7 @@ import java.util.function.Consumer;
  *
  * <p>The schema contains:
  * <ul>
- *   <li>Component field specs from @Item.ContentField</li>
- *   <li>Relation field specs from @Item.RelationField</li>
+ *   <li>Frame field specs from @Item.Frame</li>
  *   <li>Item-level verbs from @Verb on methods</li>
  *   <li>Component verbs from @Verb on component classes</li>
  * </ul>
@@ -52,11 +51,8 @@ public class ItemSchema {
     /** The Item class this schema describes. */
     @NonNull private final Class<? extends Item> itemClass;
 
-    /** All @Item.ContentField annotations. */
-    private final List<ComponentFieldSpec> componentFields;
-
-    /** All @Item.RelationField annotations. */
-    private final List<RelationFieldSpec> relationFields;
+    /** All frame fields (endorsed + unendorsed). */
+    private final List<FrameFieldSpec> frameFields;
 
     /** All @Verb methods on the item class. */
     private final List<VerbSpec> verbSpecs;
@@ -66,13 +62,11 @@ public class ItemSchema {
 
     public ItemSchema(
             @NonNull Class<? extends Item> itemClass,
-            List<ComponentFieldSpec> componentFields,
-            List<RelationFieldSpec> relationFields,
+            List<FrameFieldSpec> frameFields,
             List<VerbSpec> verbSpecs,
             Map<String, List<VerbSpec>> componentVerbs) {
         this.itemClass = itemClass;
-        this.componentFields = componentFields != null ? List.copyOf(componentFields) : List.of();
-        this.relationFields = relationFields != null ? List.copyOf(relationFields) : List.of();
+        this.frameFields = frameFields != null ? List.copyOf(frameFields) : List.of();
         this.verbSpecs = verbSpecs != null ? List.copyOf(verbSpecs) : List.of();
         this.componentVerbs = componentVerbs != null ? Map.copyOf(componentVerbs) : Map.of();
     }
@@ -109,24 +103,96 @@ public class ItemSchema {
     }
 
     // ==================================================================================
-    // Relation Population (into ComponentTable)
+    // Endorsed Frame Fields (Components)
+    // ==================================================================================
+
+    /** Get all endorsed frame fields. */
+    public List<FrameFieldSpec> endorsedFrameFields() {
+        return frameFields.stream().filter(FrameFieldSpec::endorsed).collect(Collectors.toList());
+    }
+
+    /** Get all unendorsed frame fields. */
+    public List<FrameFieldSpec> unendorsedFrameFields() {
+        return frameFields.stream().filter(f -> !f.endorsed()).collect(Collectors.toList());
+    }
+
+    /** Check if this schema has any endorsed (component) fields. */
+    public boolean hasComponentFields() {
+        return frameFields.stream().anyMatch(FrameFieldSpec::endorsed);
+    }
+
+    /** Check if this schema has any unendorsed (relation) fields. */
+    public boolean hasRelationFields() {
+        return frameFields.stream().anyMatch(f -> !f.endorsed());
+    }
+
+    /** Check if this schema has any frame fields. */
+    public boolean hasFrameFields() {
+        return !frameFields.isEmpty();
+    }
+
+    // ==================================================================================
+    // Field Binding (Hydration)
     // ==================================================================================
 
     /**
-     * Populate the ComponentTable with relation entries from @RelationField values.
+     * Bind endorsed frame fields from loaded data during hydration.
+     *
+     * <p>For each endorsed frame field, looks up the live instance in the
+     * FrameTable and injects it into the field.
+     *
+     * @param item  The item to bind fields on
+     * @param table The content table with live instances
+     */
+    public void bindFieldsFromTable(Item item, FrameTable table) {
+        for (FrameFieldSpec spec : frameFields) {
+            if (!spec.endorsed()) continue;
+            HandleID handle = spec.handle();
+            table.getLive(handle, spec.fieldType())
+                    .ifPresent(value -> spec.setValue(item, value));
+        }
+    }
+
+    /**
+     * Get a frame field spec by handle string.
+     */
+    public FrameFieldSpec getFrameField(String handle) {
+        HandleID hid = HandleID.of(handle);
+        return frameFields.stream()
+                .filter(spec -> spec.handle().equals(hid))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Get a frame field spec by handle ID.
+     */
+    public FrameFieldSpec getFrameField(HandleID handle) {
+        return frameFields.stream()
+                .filter(spec -> spec.handle().equals(handle))
+                .findFirst()
+                .orElse(null);
+    }
+
+    // ==================================================================================
+    // Relation Population (into FrameTable)
+    // ==================================================================================
+
+    /**
+     * Populate the FrameTable with relation entries from unendorsed frame fields.
      *
      * <p>This is the display-time path (not commit-time). Relations are built and
-     * stored as live instances in the ComponentTable with computed CIDs.
-     * The DB storage (RELATION column) only happens during commit.
+     * stored as live instances in the FrameTable with computed CIDs.
      *
-     * @param table The component table to populate
+     * @param table The frame table to populate
      * @param item  The item to read field values from
      */
-    public void populateRelationEntries(ComponentTable table, Item item) {
-        // Clear existing relation entries before re-populating
+    @SuppressWarnings("deprecation")
+    public void populateRelationEntries(FrameTable table, Item item) {
         table.removeRelationEntries();
 
-        for (RelationFieldSpec spec : relationFields) {
+        for (FrameFieldSpec spec : frameFields) {
+            if (spec.endorsed()) continue;
             Object value = spec.getValue(item);
             if (value == null) continue;
 
@@ -146,24 +212,17 @@ public class ItemSchema {
         }
     }
 
-    /**
-     * Add a single relation as a ComponentEntry with its live instance.
-     */
-    private void addRelationEntry(ComponentTable table, Relation relation) {
+    @SuppressWarnings("deprecation")
+    private void addRelationEntry(FrameTable table, Relation relation) {
         byte[] bytes = relation.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = ContentID.of(bytes);
-        ComponentEntry entry = ComponentEntry.forRelation(relation.predicate(), cid, true);
+        FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
         table.add(entry);
         table.setLive(entry.handle(), relation);
     }
 
-    /**
-     * Build a Relation from a spec and target value.
-     *
-     * <p>Maps the item to THEME and the field value to TARGET, matching
-     * the frame-based relation model.
-     */
-    private Relation buildRelation(Item item, RelationFieldSpec spec, Object target) {
+    @SuppressWarnings("deprecation")
+    private Relation buildRelation(Item item, FrameFieldSpec spec, Object target) {
         if (target == null) return null;
 
         Relation.Target targetValue;
@@ -178,7 +237,6 @@ public class ItemSchema {
         } else if (target instanceof String str) {
             targetValue = Literal.ofText(str);
         } else if (target instanceof Number num) {
-            // CG-CBOR forbids floats - only accept integer types
             if (num instanceof Float || num instanceof Double) {
                 return null;
             }
@@ -195,96 +253,33 @@ public class ItemSchema {
     }
 
     // ==================================================================================
-    // Field Binding (Hydration)
-    // ==================================================================================
-
-    /**
-     * Bind fields from loaded data during hydration.
-     *
-     * <p>For each component field spec, looks up the live instance in the
-     * ComponentTable and injects it into the field.
-     *
-     * @param item  The item to bind fields on
-     * @param table The content table with live instances
-     */
-    public void bindFieldsFromTable(Item item, ComponentTable table) {
-        for (ComponentFieldSpec spec : componentFields) {
-            HandleID handle = spec.handle();
-            table.getLive(handle, spec.fieldType())
-                    .ifPresent(value -> spec.setValue(item, value));
-        }
-    }
-
-    /**
-     * Get a component field spec by handle.
-     *
-     * @param handle The handle to look up
-     * @return The spec, or null if not found
-     */
-    public ComponentFieldSpec getComponentField(String handle) {
-        HandleID hid = HandleID.of(handle);
-        return componentFields.stream()
-                .filter(spec -> spec.handle().equals(hid))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * Get a component field spec by handle ID.
-     *
-     * @param handle The handle to look up
-     * @return The spec, or null if not found
-     */
-    public ComponentFieldSpec getComponentField(HandleID handle) {
-        return componentFields.stream()
-                .filter(spec -> spec.handle().equals(handle))
-                .findFirst()
-                .orElse(null);
-    }
-
-    // ==================================================================================
     // Field Binding (Commit-time)
     // ==================================================================================
 
     /**
-     * Bind all component fields for commit - encode values and add to content table.
-     *
-     * <p>For each @ContentField, reads the field value and:
-     * <ul>
-     *   <li>Local-only components: adds metadata entry only</li>
-     *   <li>@Type-annotated components: encodes via Components.encode(), stores payload</li>
-     *   <li>Canonical types: encodes via encodeBinary(), stores payload</li>
-     *   <li>Simple types: encodes via CBOR, stores payload</li>
-     * </ul>
+     * Bind all endorsed frame fields for commit — encode values and add to content table.
      *
      * @param item         The item to read field values from
      * @param contentTable The content table to add entries to
-     * @param storePayload Function to store payload bytes (e.g., librarian::storePayload)
+     * @param storePayload Function to store payload bytes
      */
-    public void bindComponentFieldsForCommit(Item item, ComponentTable contentTable, Consumer<byte[]> storePayload) {
-        for (ComponentFieldSpec spec : componentFields) {
+    public void bindComponentFieldsForCommit(Item item, FrameTable contentTable, Consumer<byte[]> storePayload) {
+        for (FrameFieldSpec spec : frameFields) {
+            if (!spec.endorsed()) continue;
             Object value = spec.getValue(item);
             if (value == null) continue;
 
-            ComponentEntry entry = encodeComponentField(spec, value, storePayload);
+            FrameEntry entry = encodeFrameField(spec, value, storePayload);
             if (entry != null) {
                 contentTable.add(entry);
-                // Preserve the live instance on the new entry so subsequent
-                // lookups return the same object (not a lazy-decoded copy
-                // that loses transient state like Dag's materialized maps).
-                String alias = spec.alias().isEmpty() ? spec.handleKey() : spec.alias();
-                contentTable.setLive(spec.handle(), alias, value);
+                contentTable.setLive(spec.handle(), spec.handleKey(), value);
             }
         }
     }
 
-    /**
-     * Encode a single component field value and return the ComponentEntry.
-     */
-    @SuppressWarnings("unchecked")
-    private ComponentEntry encodeComponentField(ComponentFieldSpec spec, Object value, Consumer<byte[]> storePayload) {
+    private FrameEntry encodeFrameField(FrameFieldSpec spec, Object value, Consumer<byte[]> storePayload) {
         HandleID handle = spec.handle();
-        String alias = spec.alias().isEmpty() ? spec.handleKey() : spec.alias();
+        String alias = spec.handleKey();
 
         // For types with @Type annotation
         if (value.getClass().isAnnotationPresent(Type.class)) {
@@ -292,36 +287,29 @@ public class ItemSchema {
             boolean isLocalOnly = spec.localOnly();
 
             if (isLocalOnly) {
-                // Local-only: just metadata, no content storage
-                return ComponentEntry.builder()
+                return FrameEntry.builder()
                         .handle(handle).alias(alias)
                         .type(typeId).identity(spec.identity()).build();
             }
 
-            // Canonical types use encodeBinary (preferred over Components.encode)
             if (value instanceof Canonical canonical) {
                 byte[] bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
                 ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-                if (storePayload != null) {
-                    storePayload.accept(bytes);
-                }
-                return ComponentEntry.builder()
+                if (storePayload != null) storePayload.accept(bytes);
+                return FrameEntry.builder()
                         .handle(handle).alias(alias)
                         .type(typeId).identity(spec.identity())
-                        .payload(ComponentEntry.EntryPayload.builder().snapshotCid(cid).build())
+                        .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                         .build();
             }
 
-            // Non-Canonical @Type components: encode via Components.encode()
             byte[] bytes = Components.encode(value);
             ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-            if (storePayload != null) {
-                storePayload.accept(bytes);
-            }
-            return ComponentEntry.builder()
+            if (storePayload != null) storePayload.accept(bytes);
+            return FrameEntry.builder()
                     .handle(handle).alias(alias)
                     .type(typeId).identity(spec.identity())
-                    .payload(ComponentEntry.EntryPayload.builder().snapshotCid(cid).build())
+                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                     .build();
         }
 
@@ -329,14 +317,12 @@ public class ItemSchema {
         if (value instanceof Canonical canonical) {
             byte[] bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-            if (storePayload != null) {
-                storePayload.accept(bytes);
-            }
+            if (storePayload != null) storePayload.accept(bytes);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return ComponentEntry.builder()
+            return FrameEntry.builder()
                     .handle(handle).alias(alias)
                     .type(typeId).identity(spec.identity())
-                    .payload(ComponentEntry.EntryPayload.builder().snapshotCid(cid).build())
+                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                     .build();
         }
 
@@ -344,14 +330,12 @@ public class ItemSchema {
         if (isSimpleSerializableType(value)) {
             byte[] bytes = encodeSimpleValue(value);
             ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-            if (storePayload != null) {
-                storePayload.accept(bytes);
-            }
+            if (storePayload != null) storePayload.accept(bytes);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return ComponentEntry.builder()
+            return FrameEntry.builder()
                     .handle(handle).alias(alias)
                     .type(typeId).identity(spec.identity())
-                    .payload(ComponentEntry.EntryPayload.builder().snapshotCid(cid).build())
+                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                     .build();
         }
 
@@ -360,24 +344,21 @@ public class ItemSchema {
     }
 
     /**
-     * Bind relation fields for commit - create relations, store them, and add as ComponentEntries.
-     *
-     * <p>Each @RelationField value is built into a Relation, stored in the DB via
-     * storeRelation (ItemStore.RELATION column + index fan-outs), and then added
-     * as a ComponentEntry in the ComponentTable.
+     * Bind unendorsed frame fields for commit — create relations, store them, add as entries.
      *
      * @param item           The item to read field values from
-     * @param componentTable The component table to add relation entries to
+     * @param componentTable The frame table to add relation entries to
      * @param storePayload   Function to store payload bytes and return CID
-     * @param storeRelation  Function to store canonical relations (DB RELATION column + indexing)
+     * @param storeRelation  Function to store relations (indexing)
      */
-    public void bindRelationFieldsForCommit(Item item, ComponentTable componentTable,
+    @SuppressWarnings("deprecation")
+    public void bindRelationFieldsForCommit(Item item, FrameTable componentTable,
                                             java.util.function.Function<byte[], ContentID> storePayload,
                                             Consumer<Relation> storeRelation) {
-        // Clear any existing relation entries before re-binding
         componentTable.removeRelationEntries();
 
-        for (RelationFieldSpec spec : relationFields) {
+        for (FrameFieldSpec spec : frameFields) {
+            if (spec.endorsed()) continue;
             Object value = spec.getValue(item);
             if (value == null) continue;
 
@@ -391,31 +372,23 @@ public class ItemSchema {
         }
     }
 
-    /**
-     * Bind a single relation value — store in DB and add as ComponentEntry.
-     */
-    private void bindSingleRelation(Item item, RelationFieldSpec spec, Object object,
-                                    ComponentTable componentTable,
+    @SuppressWarnings("deprecation")
+    private void bindSingleRelation(Item item, FrameFieldSpec spec, Object object,
+                                    FrameTable componentTable,
                                     java.util.function.Function<byte[], ContentID> storePayload,
                                     Consumer<Relation> storeRelation) {
         Relation relation = buildRelation(item, spec, object);
         if (relation == null) return;
 
-        // Store canonical relations in DB (RELATION column + index fan-outs)
-        if (spec.canonical() && storeRelation != null) {
+        if (storeRelation != null) {
             storeRelation.accept(relation);
         }
 
-        // Encode relation bytes and store as content payload
         byte[] bytes = relation.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = (storePayload != null) ? storePayload.apply(bytes) : ContentID.of(bytes);
 
-        // Add as ComponentEntry in the component table
-        // Relations are identity=true by default (they define the item's endorsed content)
-        ComponentEntry entry = ComponentEntry.forRelation(relation.predicate(), cid, true);
+        FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
         componentTable.add(entry);
-
-        // Store the live Relation instance for runtime access
         componentTable.setLive(entry.handle(), relation);
     }
 
@@ -423,19 +396,12 @@ public class ItemSchema {
     // Encoding Helpers
     // ==================================================================================
 
-    /**
-     * Derive a type ID from a Java class.
-     */
+    /** Derive a type ID from a Java class. */
     public static ItemID deriveTypeId(Class<?> type) {
         return ItemID.fromString("cg.type:" + type.getSimpleName().toLowerCase());
     }
 
-    /**
-     * Check if a value is a simple serializable type.
-     *
-     * <p>Simple types include: String, Number, Boolean, Enum, Map, Collection, arrays.
-     * These can be directly encoded to CBOR without implementing Canonical.
-     */
+    /** Check if a value is a simple serializable type. */
     public static boolean isSimpleSerializableType(Object value) {
         return value instanceof CharSequence
                 || value instanceof Number
@@ -446,58 +412,26 @@ public class ItemSchema {
                 || value.getClass().isArray();
     }
 
-    /**
-     * Encode a simple value to CBOR bytes.
-     *
-     * <p>Uses the Canonical encoding infrastructure to produce deterministic CBOR.
-     */
+    /** Encode a simple value to CBOR bytes. */
     public static byte[] encodeSimpleValue(Object value) {
         CBORObject cbor = Canonical.encodeValue(value, Canonical.Scope.RECORD);
         return cbor.EncodeToBytes(CBOREncodeOptions.DefaultCtap2Canonical);
     }
 
-    /**
-     * Decode a simple value from CBOR bytes.
-     *
-     * <p>Uses the field's declared type to guide decoding.
-     *
-     * @param field The field to decode into (for type information)
-     * @param bytes The CBOR bytes to decode
-     * @return The decoded value, or null if decoding fails
-     */
+    /** Decode a simple value from CBOR bytes. */
     public static Object decodeSimpleValue(Field field, byte[] bytes) {
         try {
             CBORObject cbor = CBORObject.DecodeFromBytes(bytes);
             return Canonical.decodeIntoType(field.getGenericType(), field.getType(), cbor, Canonical.Scope.RECORD);
         } catch (Exception e) {
-            // If CBOR decode fails, this wasn't a simple type - return null
             return null;
         }
-    }
-
-    // ==================================================================================
-    // Statistics
-    // ==================================================================================
-
-    /**
-     * Check if this schema has any component fields.
-     */
-    public boolean hasComponentFields() {
-        return !componentFields.isEmpty();
-    }
-
-    /**
-     * Check if this schema has any relation fields.
-     */
-    public boolean hasRelationFields() {
-        return !relationFields.isEmpty();
     }
 
     @Override
     public String toString() {
         return "ItemSchema[" + itemClass.getSimpleName() +
-                ", components=" + componentFields.size() +
-                ", relations=" + relationFields.size() +
+                ", frames=" + frameFields.size() +
                 ", verbs=" + verbSpecs.size() + "]";
     }
 }

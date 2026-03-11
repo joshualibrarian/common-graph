@@ -213,6 +213,33 @@ public class ExpressionComponent implements Component, Canonical {
     }
 
     /**
+     * Create a frame query: predicate + theme, target is the variable.
+     */
+    public static ExpressionComponent frameQuery(ItemID predicate, ItemID theme) {
+        return new ExpressionComponent(
+                dev.everydaythings.graph.item.component.expression.FrameQuery.of(predicate, theme),
+                null, null);
+    }
+
+    /**
+     * Create a frame query: all frames about a theme.
+     */
+    public static ExpressionComponent framesAbout(ItemID theme) {
+        return new ExpressionComponent(
+                dev.everydaythings.graph.item.component.expression.FrameQuery.about(theme),
+                null, null);
+    }
+
+    /**
+     * Create a frame query: all frames with a given predicate.
+     */
+    public static ExpressionComponent framesWithPredicate(ItemID predicate) {
+        return new ExpressionComponent(
+                dev.everydaythings.graph.item.component.expression.FrameQuery.withPredicate(predicate),
+                null, null);
+    }
+
+    /**
      * Create a default empty expression.
      */
     @Factory(label = "Empty", glyph = "🧮", primary = true,

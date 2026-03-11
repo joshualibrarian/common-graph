@@ -1,6 +1,7 @@
-package dev.everydaythings.graph.item.component;
+package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
@@ -9,27 +10,28 @@ import lombok.NonNull;
 import java.lang.reflect.Field;
 
 /**
- * Specification for a field annotated with @Item.ComponentField.
+ * Specification for a field annotated with @Item.Frame.
  *
- * <p>This captures all metadata from the annotation plus the field
- * reference for value access during commit and hydration.
+ * <p>Endorsed frames (endorsed=true) are stored in the manifest and hydrated
+ * as components. Unendorsed frames (endorsed=false) are stored as FrameRecord
+ * envelopes and indexed for cross-item queries.
  */
 @Getter
-public class ComponentFieldSpec {
+public class FrameFieldSpec {
 
     /** The annotated field. */
     @NonNull private final Field field;
 
-    /** The component's handle ID. */
+    /** The frame's semantic key. */
+    @NonNull private final FrameKey frameKey;
+
+    /** The frame's handle ID (derived from frameKey or literal). */
     @NonNull private final HandleID handle;
 
-    /** The original string key for the handle (e.g., "library"). */
+    /** The original handle key string. */
     @NonNull private final String handleKey;
 
-    /** Human-facing alias (sememe token or literal). Empty if unset. */
-    @NonNull private final String alias;
-
-    /** The component's type ID (from field type or annotation). */
+    /** The frame's type ID (from field type or derived). */
     @NonNull private final ItemID type;
 
     /** Mount path relative to item root (empty if not mounted). */
@@ -41,40 +43,61 @@ public class ComponentFieldSpec {
     /** Whether to store as stream content. */
     private final boolean stream;
 
-    /** Whether this is a local-only component (no sync). */
+    /** Whether this is a local-only frame (no sync). */
     private final boolean localOnly;
 
-    /** Whether this component contributes to version identity. */
+    /** Whether this frame contributes to version identity. */
     private final boolean identity;
 
-    public ComponentFieldSpec(
+    /** Whether this is an endorsed frame (in manifest). */
+    private final boolean endorsed;
+
+    public FrameFieldSpec(
             @NonNull Field field,
+            @NonNull FrameKey frameKey,
             @NonNull HandleID handle,
             @NonNull String handleKey,
-            @NonNull String alias,
             @NonNull ItemID type,
             String path,
             boolean snapshot,
             boolean stream,
             boolean localOnly,
-            boolean identity) {
+            boolean identity,
+            boolean endorsed) {
         this.field = field;
+        this.frameKey = frameKey;
         this.handle = handle;
         this.handleKey = handleKey;
-        this.alias = alias;
         this.type = type;
         this.path = path != null ? path : "";
         this.snapshot = snapshot;
         this.stream = stream;
         this.localOnly = localOnly;
         this.identity = identity;
+        this.endorsed = endorsed;
+    }
+
+    /** Check if this frame has a mount path. */
+    public boolean hasMountPath() {
+        return !path.isEmpty();
+    }
+
+    /** Whether this frame has a semantic (non-literal) key. */
+    public boolean isSemantic() {
+        return frameKey.isSemantic();
     }
 
     /**
-     * Check if this component has a mount path.
+     * Get the predicate ItemID (head of the FrameKey).
+     * Only meaningful for semantic keys.
      */
-    public boolean hasMountPath() {
-        return !path.isEmpty();
+    public ItemID predicate() {
+        FrameKey.FrameToken head = frameKey.head();
+        if (head instanceof FrameKey.Sememe sememe) {
+            return sememe.id();
+        }
+        // Literal keys don't have a predicate ItemID — derive one
+        return ItemID.fromString(((FrameKey.Literal) head).value());
     }
 
     /**
@@ -107,17 +130,19 @@ public class ComponentFieldSpec {
         }
     }
 
-    /**
-     * Check if the field type has a @Type annotation.
-     */
+    /** Check if the field type has a @Type annotation. */
     public boolean isAnnotatedType() {
         return field.getType().isAnnotationPresent(Type.class);
     }
 
-    /**
-     * Get the field's declared type.
-     */
+    /** Check if the field type is iterable (can hold multiple values). */
+    public boolean isIterable() {
+        return Iterable.class.isAssignableFrom(field.getType());
+    }
+
+    /** Get the field's declared type. */
     public Class<?> fieldType() {
         return field.getType();
     }
+
 }

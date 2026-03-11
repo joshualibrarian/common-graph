@@ -88,17 +88,17 @@ public class ComponentType extends Item {
 
     /** The canonical type key (e.g., "cg:type/expression") */
     @Getter
-    @ContentField(handleKey = "key")
+    @Frame(handle = "key")
     private String canonicalKey;
 
     /** Human-readable name */
     @Getter
-    @ContentField
+    @Frame
     private String name;
 
     /** The implementing Java class name (for debugging/introspection) */
     @Getter
-    @ContentField(handleKey = "impl")
+    @Frame(handle = "impl")
     private String implementingClass;
 
     // ==================================================================================

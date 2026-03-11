@@ -3,7 +3,7 @@ package dev.everydaythings.graph.game.minesweeper;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.ComponentEntry;
+import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
@@ -202,25 +202,25 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
 
     private void publishConfigSettings(Item owningItem) {
         owningItem.componentEntry(this).ifPresent(entry -> {
-            entry.putSetting(ComponentEntry.ScopedSetting.builder()
+            entry.putSetting(FrameEntry.ScopedSetting.builder()
                     .scopePath(CONFIG_SCOPE_ROOT)
                     .key(CONFIG_DIFFICULTY)
                     .value(difficulty.name().toLowerCase(Locale.ROOT))
                     .valueType("enum")
                     .build());
-            entry.putSetting(ComponentEntry.ScopedSetting.builder()
+            entry.putSetting(FrameEntry.ScopedSetting.builder()
                     .scopePath(CONFIG_SCOPE_ROOT)
                     .key(CONFIG_COLS)
                     .value(Integer.toString(cols))
                     .valueType("int")
                     .build());
-            entry.putSetting(ComponentEntry.ScopedSetting.builder()
+            entry.putSetting(FrameEntry.ScopedSetting.builder()
                     .scopePath(CONFIG_SCOPE_ROOT)
                     .key(CONFIG_ROWS)
                     .value(Integer.toString(rows))
                     .valueType("int")
                     .build());
-            entry.putSetting(ComponentEntry.ScopedSetting.builder()
+            entry.putSetting(FrameEntry.ScopedSetting.builder()
                     .scopePath(CONFIG_SCOPE_ROOT)
                     .key(CONFIG_MINES)
                     .value(Integer.toString(mineCount))

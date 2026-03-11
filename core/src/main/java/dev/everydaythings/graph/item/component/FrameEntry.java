@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Link;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
@@ -21,18 +22,18 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * An entry in an item's component table.
+ * An entry in an item's frame table — an endorsed semantic frame.
  *
- * <p>Components are functional building blocks that compose Item behavior.
- * Each component has a handle (local identifier), a type (defines codec/behavior),
- * and optionally snapshot content and/or stream heads.
+ * <p>Each frame has a key ({@link FrameKey}, compound semantic address),
+ * a type (defines codec/behavior), and a payload (snapshot content,
+ * stream heads, or item reference).
  *
- * <p>The identity flag determines whether this component's content contributes
- * to the item's version identity (VID). Non-identity components are "registered"
+ * <p>The identity flag determines whether this frame's content contributes
+ * to the item's version identity (VID). Non-identity frames are "registered"
  * (we know they exist) but their content doesn't affect the VID.
  */
 @Getter
-public final class ComponentEntry implements Canonical {
+public final class FrameEntry implements Canonical {
 
     /** Local handle ID for this component (unique within the item). */
     @Canon(order = 0)
@@ -67,6 +68,32 @@ public final class ComponentEntry implements Canonical {
     @Canon(order = 9)
     private ItemID aliasRef;
 
+    /**
+     * Compound semantic key for this frame.
+     *
+     * <p>The FrameKey is the primary address for this entry. If null, a
+     * FrameKey is derived from {@link #handle} (literal key) or
+     * {@link #aliasRef} (semantic key) for backward compatibility.
+     *
+     * <p>When set explicitly, the handle is derived from it via
+     * {@link FrameKey#toHandleID()}.
+     */
+    @Canon(order = 10)
+    private FrameKey frameKey;
+
+    /**
+     * Hash of the frame's body — the semantic assertion identity.
+     *
+     * <p>Computed from the deterministic CBOR encoding of the frame's
+     * predicate, theme, and bindings ({@link FrameBody}). Two identical
+     * assertions from different signers produce the same body hash.
+     *
+     * <p>For endorsed frames, the manifest signature covers this hash.
+     * For unendorsed frames, the body hash lives in the {@link FrameRecord}.
+     */
+    @Canon(order = 11)
+    private ContentID bodyHash;
+
     /** Structured payload facet (content mode and references). */
     @Canon(order = 20)
     private EntryPayload payload;
@@ -90,10 +117,12 @@ public final class ComponentEntry implements Canonical {
     private transient Object instance;
 
     @Builder
-    public ComponentEntry(
+    public FrameEntry(
             HandleID handle,
             String alias,
             ItemID aliasRef,
+            FrameKey frameKey,
+            ContentID bodyHash,
             ItemID type,
             boolean identity,
             @Singular List<Mount> mounts,
@@ -105,6 +134,8 @@ public final class ComponentEntry implements Canonical {
         this.handle = Objects.requireNonNull(handle, "handle");
         this.alias = alias;  // May be null for legacy entries
         this.aliasRef = aliasRef;
+        this.frameKey = frameKey;
+        this.bodyHash = bodyHash;
         this.type = Objects.requireNonNull(type, "type");
         this.identity = identity;
 
@@ -121,13 +152,13 @@ public final class ComponentEntry implements Canonical {
      * No-arg constructor for Canonical decode support.
      */
     @SuppressWarnings("unused")
-    private ComponentEntry() {}
+    private FrameEntry() {}
 
     /**
      * Create a snapshot-only component entry (identity=true by default).
      */
-    public static ComponentEntry snapshot(HandleID handle, ItemID type, ContentID cid) {
-        return ComponentEntry.builder()
+    public static FrameEntry snapshot(HandleID handle, ItemID type, ContentID cid) {
+        return FrameEntry.builder()
                 .handle(handle)
                 .type(type)
                 .identity(true)
@@ -138,8 +169,8 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a snapshot-only component entry with alias.
      */
-    public static ComponentEntry snapshot(String alias, ItemID type, ContentID cid) {
-        return ComponentEntry.builder()
+    public static FrameEntry snapshot(String alias, ItemID type, ContentID cid) {
+        return FrameEntry.builder()
                 .handle(HandleID.of(alias))
                 .alias(alias)
                 .type(type)
@@ -151,8 +182,8 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a snapshot-only component entry with explicit identity flag.
      */
-    public static ComponentEntry snapshot(HandleID handle, ItemID type, ContentID cid, boolean identity) {
-        return ComponentEntry.builder()
+    public static FrameEntry snapshot(HandleID handle, ItemID type, ContentID cid, boolean identity) {
+        return FrameEntry.builder()
                 .handle(handle)
                 .type(type)
                 .identity(identity)
@@ -163,8 +194,8 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a snapshot-only component entry with alias and explicit identity flag.
      */
-    public static ComponentEntry snapshot(String alias, ItemID type, ContentID cid, boolean identity) {
-        return ComponentEntry.builder()
+    public static FrameEntry snapshot(String alias, ItemID type, ContentID cid, boolean identity) {
+        return FrameEntry.builder()
                 .handle(HandleID.of(alias))
                 .alias(alias)
                 .type(type)
@@ -176,8 +207,8 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a stream-only component entry.
      */
-    public static ComponentEntry stream(HandleID handle, ItemID type, List<ContentID> heads, boolean identity) {
-        return ComponentEntry.builder()
+    public static FrameEntry stream(HandleID handle, ItemID type, List<ContentID> heads, boolean identity) {
+        return FrameEntry.builder()
                 .handle(handle)
                 .type(type)
                 .identity(identity)
@@ -188,8 +219,8 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a stream-only component entry with alias.
      */
-    public static ComponentEntry stream(String alias, ItemID type, List<ContentID> heads, boolean identity) {
-        return ComponentEntry.builder()
+    public static FrameEntry stream(String alias, ItemID type, List<ContentID> heads, boolean identity) {
+        return FrameEntry.builder()
                 .handle(HandleID.of(alias))
                 .alias(alias)
                 .type(type)
@@ -209,8 +240,8 @@ public final class ComponentEntry implements Canonical {
      * @param type The component type
      * @return A local resource component entry
      */
-    public static ComponentEntry localResource(HandleID handle, ItemID type) {
-        return ComponentEntry.builder()
+    public static FrameEntry localResource(HandleID handle, ItemID type) {
+        return FrameEntry.builder()
                 .handle(handle)
                 .type(type)
                 .identity(false)  // local resources don't affect VID
@@ -220,8 +251,8 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a local resource component entry with alias.
      */
-    public static ComponentEntry localResource(String alias, ItemID type) {
-        return ComponentEntry.builder()
+    public static FrameEntry localResource(String alias, ItemID type) {
+        return FrameEntry.builder()
                 .handle(HandleID.of(alias))
                 .alias(alias)
                 .type(type)
@@ -237,8 +268,8 @@ public final class ComponentEntry implements Canonical {
      * @param identity Whether this component contributes to item identity
      * @return A local resource component entry
      */
-    public static ComponentEntry localResource(HandleID handle, ItemID type, boolean identity) {
-        return ComponentEntry.builder()
+    public static FrameEntry localResource(HandleID handle, ItemID type, boolean identity) {
+        return FrameEntry.builder()
                 .handle(handle)
                 .type(type)
                 .identity(identity)
@@ -248,8 +279,8 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a local resource component entry with alias and identity flag.
      */
-    public static ComponentEntry localResource(String alias, ItemID type, boolean identity) {
-        return ComponentEntry.builder()
+    public static FrameEntry localResource(String alias, ItemID type, boolean identity) {
+        return FrameEntry.builder()
                 .handle(HandleID.of(alias))
                 .alias(alias)
                 .type(type)
@@ -264,7 +295,7 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a component entry representing an endorsed relation.
      *
-     * <p>Relations stored in the ComponentTable use the relation's content hash
+     * <p>Relations stored in the FrameTable use the relation's content hash
      * as the snapshot CID, and a handle derived from that CID for uniqueness
      * (an item may endorse multiple relations with the same predicate).
      *
@@ -273,10 +304,10 @@ public final class ComponentEntry implements Canonical {
      * @param identity  Whether this relation contributes to version identity
      * @return A component entry for the relation
      */
-    public static ComponentEntry forRelation(ItemID predicate, ContentID cid, boolean identity) {
+    public static FrameEntry forRelation(ItemID predicate, ContentID cid, boolean identity) {
         String alias = formatPredicate(predicate);
         HandleID handle = HandleID.of("rel:" + cid.encodeText());
-        return ComponentEntry.builder()
+        return FrameEntry.builder()
                 .handle(handle)
                 .alias(alias)
                 .type(Relation.TYPE_ID)
@@ -314,9 +345,9 @@ public final class ComponentEntry implements Canonical {
      * @param target The referenced item
      * @return A reference component entry
      */
-    public static ComponentEntry reference(HandleID handle, ItemID type, ItemID target) {
+    public static FrameEntry reference(HandleID handle, ItemID type, ItemID target) {
         Objects.requireNonNull(target, "reference target");
-        return ComponentEntry.builder()
+        return FrameEntry.builder()
                 .handle(handle)
                 .type(type)
                 .identity(false)
@@ -327,9 +358,9 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a reference component entry with alias.
      */
-    public static ComponentEntry reference(String alias, ItemID type, ItemID target) {
+    public static FrameEntry reference(String alias, ItemID type, ItemID target) {
         Objects.requireNonNull(target, "reference target");
-        return ComponentEntry.builder()
+        return FrameEntry.builder()
                 .handle(HandleID.of(alias))
                 .alias(alias)
                 .type(type)
@@ -341,9 +372,9 @@ public final class ComponentEntry implements Canonical {
     /**
      * Create a reference component entry with alias and explicit identity flag.
      */
-    public static ComponentEntry reference(String alias, ItemID type, ItemID target, boolean identity) {
+    public static FrameEntry reference(String alias, ItemID type, ItemID target, boolean identity) {
         Objects.requireNonNull(target, "reference target");
-        return ComponentEntry.builder()
+        return FrameEntry.builder()
                 .handle(HandleID.of(alias))
                 .alias(alias)
                 .type(type)
@@ -387,7 +418,7 @@ public final class ComponentEntry implements Canonical {
      * <p>Reference components point to another item by ItemID rather than
      * storing content bytes. The referenced item has its own versioning.
      * This is the containment primitive: items "inside" a container are
-     * reference entries in that container's ComponentTable.
+     * reference entries in that container's FrameTable.
      */
     public boolean isReference() {
         return payload().referenceTarget != null;
@@ -415,10 +446,10 @@ public final class ComponentEntry implements Canonical {
     }
 
     /**
-     * Decode a ComponentEntry from CBOR bytes.
+     * Decode a FrameEntry from CBOR bytes.
      */
-    public static ComponentEntry decode(byte[] bytes) {
-        return Canonical.decodeBinary(bytes, ComponentEntry.class, Canonical.Scope.RECORD);
+    public static FrameEntry decode(byte[] bytes) {
+        return Canonical.decodeBinary(bytes, FrameEntry.class, Canonical.Scope.RECORD);
     }
 
     // ==================================================================================
@@ -426,7 +457,7 @@ public final class ComponentEntry implements Canonical {
     // ==================================================================================
 
     /**
-     * Set the owner Item. Called when adding to a ComponentTable.
+     * Set the owner Item. Called when adding to a FrameTable.
      */
     public void setOwner(Item owner) {
         this.owner = owner;
@@ -445,6 +476,45 @@ public final class ComponentEntry implements Canonical {
      */
     public void setAliasRef(ItemID aliasRef) {
         this.aliasRef = aliasRef;
+    }
+
+    /**
+     * Get or derive the FrameKey for this entry.
+     *
+     * <p>If explicitly set, returns that. Otherwise derives from aliasRef
+     * (semantic single key) or alias/handle (literal single key).
+     */
+    public FrameKey frameKey() {
+        if (frameKey != null) return frameKey;
+        if (aliasRef != null) return FrameKey.of(aliasRef);
+        if (alias != null && !alias.isBlank()) return FrameKey.literal(alias);
+        // Final fallback: use the raw handle text
+        return FrameKey.literal(handle.encodeText());
+    }
+
+    /**
+     * Set an explicit FrameKey for this entry.
+     */
+    public void setFrameKey(FrameKey frameKey) {
+        this.frameKey = frameKey;
+    }
+
+    /**
+     * Get the body hash for this frame entry.
+     *
+     * <p>Returns the explicitly set body hash. May be null for entries
+     * that predate the body/record split or that derive identity from
+     * the payload CID rather than a FrameBody.
+     */
+    public ContentID bodyHash() {
+        return bodyHash;
+    }
+
+    /**
+     * Set the body hash for this frame entry.
+     */
+    public void setBodyHash(ContentID bodyHash) {
+        this.bodyHash = bodyHash;
     }
 
     /**
@@ -919,6 +989,6 @@ public final class ComponentEntry implements Canonical {
     @Override
     public String toString() {
         // Provide a concise toString for debugging
-        return "ComponentEntry{" + displayToken() + "}";
+        return "FrameEntry{" + displayToken() + "}";
     }
 }
