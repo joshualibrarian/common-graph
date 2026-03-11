@@ -14,6 +14,7 @@ import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.trust.Algorithm;
 import dev.everydaythings.graph.trust.CertLog;
+import dev.everydaythings.graph.trust.EncryptionPublicKey;
 import dev.everydaythings.graph.trust.KeyLog;
 import dev.everydaythings.graph.trust.Purpose;
 import dev.everydaythings.graph.trust.Signing;
@@ -112,6 +113,14 @@ public abstract class Signer extends Item implements Signing.Signer {
      * first boot (after key generation) and on reload (from KeyLog state).
      */
     private transient SigningPublicKey publicKey;
+
+    /**
+     * The current encryption public key (X25519).
+     *
+     * <p>Cached from the KeyLog. Used for ECDH key agreement in
+     * the encryption system (Tag 10 envelopes).
+     */
+    private transient EncryptionPublicKey encryptionPublicKey;
 
     // ==================================================================================
     // Constructors
@@ -275,21 +284,34 @@ public abstract class Signer extends Item implements Signing.Signer {
             throw new IllegalStateException("Vault has no signing key");
         }
 
-        // Get public key from vault (private key stays in vault)
-        PublicKey jcaPublicKey = vault.signingPublicKey()
+        // Get signing public key from vault (private key stays in vault)
+        PublicKey jcaSigningKey = vault.signingPublicKey()
                 .orElseThrow(() -> new IllegalStateException("Vault has no signing public key"));
 
         // Build SigningPublicKey wrapper
         this.publicKey = SigningPublicKey.builder()
-                .jcaPublicKey(jcaPublicKey)
+                .jcaPublicKey(jcaSigningKey)
                 .owner(this.iid())
                 .build();
+
+        // Generate encryption key if vault doesn't have one yet
+        if (!vault.canEncrypt()) {
+            vault.generateEncryptionKey();
+        }
+
+        // Build EncryptionPublicKey wrapper
+        vault.encryptionPublicKey().ifPresent(jcaEncKey -> {
+            this.encryptionPublicKey = EncryptionPublicKey.builder()
+                    .jcaPublicKey(jcaEncKey)
+                    .owner(this.iid())
+                    .build();
+        });
 
         // Publish to KeyLog if available
         // Note: KeyLog might not be initialized yet in some bootstrap scenarios
         // (e.g., Librarian which has special initialization order)
         if (keyLog != null) {
-            publishKeyToLog();
+            publishKeysToLog();
         }
 
         // Publish TLS certificate to CertLog if available
@@ -299,27 +321,30 @@ public abstract class Signer extends Item implements Signing.Signer {
     }
 
     /**
-     * Publish the current public key to the KeyLog.
+     * Publish signing and encryption public keys to the KeyLog.
      *
-     * <p>This is called on first boot to record the signing key in the public
-     * key history. The key CID becomes the reference used for signing events.
+     * <p>Called on first boot to record both keys in the public key history.
+     * The signing key is set as current for {@link Purpose#SIGN}, the encryption
+     * key for {@link Purpose#ENCRYPT}.
      */
-    private void publishKeyToLog() {
+    private void publishKeysToLog() {
         if (keyLog == null || publicKey == null) {
             return;
         }
 
-        // Sequence numbers start at 1
         long seq = 1;
 
-        // Add the key to the log (this Signer implements Signing.Signer)
+        // Add signing key and set it as current for SIGN
         keyLog.append(new KeyLog.AddKey(publicKey), seq++, this, Signing.defaultHasher());
+        byte[] signKeyCid = KeyLog.keyCidBytes(publicKey);
+        keyLog.append(new KeyLog.SetCurrent(signKeyCid, Purpose.SIGN, true), seq++, this, Signing.defaultHasher());
 
-        // Compute the key CID for SetCurrent
-        byte[] keyCid = KeyLog.keyCidBytes(publicKey);
-
-        // Set it as current for signing
-        keyLog.append(new KeyLog.SetCurrent(keyCid, Purpose.SIGN, true), seq, this, Signing.defaultHasher());
+        // Add encryption key and set it as current for ENCRYPT (if available)
+        if (encryptionPublicKey != null) {
+            keyLog.append(new KeyLog.AddKey(encryptionPublicKey), seq++, this, Signing.defaultHasher());
+            byte[] encKeyCid = KeyLog.keyCidBytes(encryptionPublicKey);
+            keyLog.append(new KeyLog.SetCurrent(encKeyCid, Purpose.ENCRYPT, true), seq, this, Signing.defaultHasher());
+        }
     }
 
     /**
@@ -406,15 +431,25 @@ public abstract class Signer extends Item implements Signing.Signer {
      * or unavailable, falls back to building from Vault.
      */
     private void loadCurrentKey() {
-        // Try to get current key from KeyLog
+        // Try to get current signing key from KeyLog
         if (keyLog != null) {
             keyLog.currentSigningKey().ifPresent(key -> this.publicKey = key);
+            keyLog.currentEncryptionKey().ifPresent(key -> this.encryptionPublicKey = key);
         }
 
         // Fallback: build from Vault if KeyLog didn't have it
         if (publicKey == null && vault != null) {
             vault.signingPublicKey().ifPresent(jcaPublicKey -> {
                 this.publicKey = SigningPublicKey.builder()
+                        .jcaPublicKey(jcaPublicKey)
+                        .owner(this.iid())
+                        .build();
+            });
+        }
+
+        if (encryptionPublicKey == null && vault != null) {
+            vault.encryptionPublicKey().ifPresent(jcaPublicKey -> {
+                this.encryptionPublicKey = EncryptionPublicKey.builder()
                         .jcaPublicKey(jcaPublicKey)
                         .owner(this.iid())
                         .build();
@@ -499,6 +534,24 @@ public abstract class Signer extends Item implements Signing.Signer {
     }
 
     /**
+     * Decrypt an encrypted envelope using this signer's encryption key.
+     *
+     * <p>The private key never leaves the vault — decryption happens inside it.
+     *
+     * @param envelope the encrypted envelope
+     * @param keyId    the recipient key ID to match
+     * @return the decrypted plaintext
+     * @throws IllegalStateException if no vault or encryption key is available
+     * @throws SecurityException     if decryption fails (tampered, wrong key, etc.)
+     */
+    public byte[] decryptEnvelope(dev.everydaythings.graph.crypt.EncryptedEnvelope envelope, byte[] keyId) {
+        if (vault == null) {
+            throw new IllegalStateException("No vault available for decryption");
+        }
+        return dev.everydaythings.graph.crypt.EnvelopeOps.decrypt(envelope, vault, keyId);
+    }
+
+    /**
      * Sign a target (Manifest, Relation, etc.).
      *
      * <p>This uses sign-in-place semantics: the private key never leaves the Vault.
@@ -547,9 +600,18 @@ public abstract class Signer extends Item implements Signing.Signer {
     }
 
     /**
-     * Get the public key (for Manifest.sign() and Relation.sign()).
+     * Get the signing public key (for Manifest.sign() and Relation.sign()).
      */
     public SigningPublicKey publicKey() {
         return publicKey;
+    }
+
+    /**
+     * Get the encryption public key (for ECDH key agreement).
+     *
+     * @return The current encryption key, or null if not yet initialized
+     */
+    public EncryptionPublicKey encryptionPublicKey() {
+        return encryptionPublicKey;
     }
 }

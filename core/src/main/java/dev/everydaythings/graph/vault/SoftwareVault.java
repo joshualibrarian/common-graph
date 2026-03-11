@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.vault;
 
 import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.trust.Algorithm;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -9,6 +10,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
+import javax.crypto.KeyAgreement;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -42,7 +44,7 @@ public final class SoftwareVault extends Vault {
     private Path storagePath;
     private final KeyStore keyStore;
     private final char[] password;
-    private final Map<String, KeyType> keyTypes = new HashMap<>();
+    private final Map<String, Algorithm.Asymmetric> algorithms = new HashMap<>();
 
     private SoftwareVault(KeyStore keyStore, char[] password) {
         this.keyStore = keyStore;
@@ -64,7 +66,7 @@ public final class SoftwareVault extends Vault {
             SoftwareVault vault = new SoftwareVault(ks, DEFAULT_PASSWORD);
 
             // Generate default signing key
-            vault.generateKey(SIGNING_KEY_ALIAS, KeyType.ED25519);
+            vault.generateKey(SIGNING_KEY_ALIAS, Algorithm.Sign.ED25519);
 
             return vault;
         } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
@@ -75,7 +77,7 @@ public final class SoftwareVault extends Vault {
     /**
      * Open or create a vault at the given path.
      */
-    @Factory(label = "Software Vault (PKCS12)", glyph = "🗝️",
+    @Factory(label = "Software Vault (PKCS12)", glyph = "\uD83D\uDDDD\uFE0F",
             doc = "Software-based vault using PKCS12 keystore file.")
     public static SoftwareVault open(Path path) {
         if (Files.exists(path)) {
@@ -112,10 +114,10 @@ public final class SoftwareVault extends Vault {
 
             SoftwareVault vault = new SoftwareVault(ks, DEFAULT_PASSWORD);
 
-            // Infer key types from stored keys
+            // Infer algorithms from stored keys
             for (String alias : Collections.list(ks.aliases())) {
                 if (ks.isKeyEntry(alias)) {
-                    vault.inferKeyType(alias);
+                    vault.inferAlgorithm(alias);
                 }
             }
 
@@ -130,17 +132,23 @@ public final class SoftwareVault extends Vault {
     // ==================================================================================
 
     @Override
-    public void generateKey(String alias, KeyType type) {
+    public void generateKey(String alias, Algorithm.Asymmetric algorithm) {
         if (containsKey(alias)) {
             throw new IllegalStateException("Key already exists: " + alias);
         }
 
         try {
-            KeyPair keyPair = generateKeyPair(type);
-            X509Certificate cert = generateSelfSignedCertificate(keyPair, type);
+            KeyPair keyPair = generateKeyPair(algorithm);
+            X509Certificate cert;
+            if (algorithm.canSign()) {
+                cert = generateSelfSignedCertificate(keyPair, (Algorithm.Sign) algorithm);
+            } else {
+                // Non-signing key: cross-sign with the signing key
+                cert = crossSignCertificate(keyPair);
+            }
 
             keyStore.setKeyEntry(alias, keyPair.getPrivate(), password, new Certificate[]{cert});
-            keyTypes.put(alias, type);
+            algorithms.put(alias, algorithm);
 
             persist();
         } catch (KeyStoreException e) {
@@ -180,7 +188,7 @@ public final class SoftwareVault extends Vault {
 
         try {
             keyStore.deleteEntry(alias);
-            keyTypes.remove(alias);
+            algorithms.remove(alias);
             persist();
         } catch (KeyStoreException e) {
             throw new RuntimeException("Failed to delete key: " + alias, e);
@@ -188,17 +196,17 @@ public final class SoftwareVault extends Vault {
     }
 
     @Override
-    public Optional<KeyType> keyType(String alias) {
+    public Optional<Algorithm.Asymmetric> algorithm(String alias) {
         if (!containsKey(alias)) {
             return Optional.empty();
         }
 
-        KeyType type = keyTypes.get(alias);
-        if (type == null) {
-            inferKeyType(alias);
-            type = keyTypes.get(alias);
+        Algorithm.Asymmetric alg = algorithms.get(alias);
+        if (alg == null) {
+            inferAlgorithm(alias);
+            alg = algorithms.get(alias);
         }
-        return Optional.ofNullable(type);
+        return Optional.ofNullable(alg);
     }
 
     // ==================================================================================
@@ -228,11 +236,17 @@ public final class SoftwareVault extends Vault {
             throw new IllegalStateException("Key doesn't exist: " + alias);
         }
 
+        Algorithm.Asymmetric alg = algorithm(alias).orElse(Algorithm.Sign.ED25519);
+        if (!alg.canSign()) {
+            throw new IllegalStateException(
+                    "Key '" + alias + "' (" + alg + ") is not a signing key");
+        }
+
         try {
             PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, password);
-            KeyType type = keyType(alias).orElse(KeyType.ED25519);
+            Algorithm.Sign signAlg = (Algorithm.Sign) alg;
 
-            Signature sig = Signature.getInstance(type.signatureAlgorithm());
+            Signature sig = Signature.getInstance(signAlg.signatureName());
             sig.initSign(privateKey);
             sig.update(data);
             return sig.sign();
@@ -250,16 +264,54 @@ public final class SoftwareVault extends Vault {
             return false;
         }
 
-        try {
-            KeyType type = keyType(alias).orElse(KeyType.ED25519);
+        Algorithm.Asymmetric alg = algorithm(alias).orElse(Algorithm.Sign.ED25519);
+        if (!alg.canSign()) {
+            return false;
+        }
 
-            Signature sig = Signature.getInstance(type.signatureAlgorithm());
+        try {
+            Algorithm.Sign signAlg = (Algorithm.Sign) alg;
+
+            Signature sig = Signature.getInstance(signAlg.signatureName());
             sig.initVerify(pubKey.get());
             sig.update(data);
             return sig.verify(signature);
 
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
             throw new RuntimeException("Failed to verify signature", e);
+        }
+    }
+
+    // ==================================================================================
+    // Vault Implementation - Key Agreement
+    // ==================================================================================
+
+    @Override
+    public byte[] deriveSharedSecret(String alias, PublicKey peerPublicKey) {
+        if (!containsKey(alias)) {
+            throw new IllegalStateException("Key doesn't exist: " + alias);
+        }
+
+        Algorithm.Asymmetric alg = algorithm(alias)
+                .orElseThrow(() -> new IllegalStateException("Unknown algorithm for key: " + alias));
+        if (!(alg instanceof Algorithm.KeyMgmt keyMgmt)) {
+            throw new IllegalStateException(
+                    "Key '" + alias + "' (" + alg + ") is not a key-agreement key");
+        }
+        if (keyMgmt.agreementName() == null) {
+            throw new IllegalStateException(
+                    "Algorithm " + keyMgmt + " does not support key agreement");
+        }
+
+        try {
+            PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, password);
+            KeyAgreement ka = KeyAgreement.getInstance(keyMgmt.agreementName());
+            ka.init(privateKey);
+            ka.doPhase(peerPublicKey, true);
+            return ka.generateSecret();
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException |
+                 InvalidKeyException e) {
+            throw new RuntimeException("Failed to derive shared secret with key: " + alias, e);
         }
     }
 
@@ -293,25 +345,19 @@ public final class SoftwareVault extends Vault {
     // Key Generation Helpers
     // ==================================================================================
 
-    private static KeyPair generateKeyPair(KeyType type) {
+    private static KeyPair generateKeyPair(Algorithm.Asymmetric algorithm) {
         try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(type.algorithm());
-
-            // Configure key size for RSA and EC
-            if (type == KeyType.RSA_4096) {
-                keyGen.initialize(4096);
-            } else if (type == KeyType.EC_P256) {
-                keyGen.initialize(256);
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algorithm.keyGeneratorName());
+            if (algorithm.keyBits() > 0) {
+                keyGen.initialize(algorithm.keyBits());
             }
-            // Ed25519 doesn't need explicit size
-
             return keyGen.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Failed to generate " + type + " keypair", e);
+            throw new RuntimeException("Failed to generate " + algorithm + " keypair", e);
         }
     }
 
-    private static X509Certificate generateSelfSignedCertificate(KeyPair keyPair, KeyType type) {
+    private static X509Certificate generateSelfSignedCertificate(KeyPair keyPair, Algorithm.Sign algorithm) {
         try {
             long now = System.currentTimeMillis();
             Date notBefore = new Date(now);
@@ -326,14 +372,7 @@ public final class SoftwareVault extends Vault {
                     keyPair.getPublic()
             );
 
-            // Use appropriate signature algorithm
-            String sigAlg = switch (type) {
-                case ED25519 -> "Ed25519";
-                case EC_P256 -> "SHA256withECDSA";
-                case RSA_4096 -> "SHA256withRSA";
-            };
-
-            ContentSigner signer = new JcaContentSignerBuilder(sigAlg)
+            ContentSigner signer = new JcaContentSignerBuilder(algorithm.signatureName())
                     .build(keyPair.getPrivate());
 
             return new JcaX509CertificateConverter()
@@ -344,24 +383,70 @@ public final class SoftwareVault extends Vault {
         }
     }
 
-    private void inferKeyType(String alias) {
+    /**
+     * Cross-sign a non-signing key's certificate with the existing signing key.
+     */
+    private X509Certificate crossSignCertificate(KeyPair subjectKeyPair) {
+        try {
+            PrivateKey signingKey = (PrivateKey) keyStore.getKey(SIGNING_KEY_ALIAS, password);
+            Algorithm.Asymmetric signingAlg = algorithms.get(SIGNING_KEY_ALIAS);
+            Certificate signingCert = keyStore.getCertificate(SIGNING_KEY_ALIAS);
+
+            if (signingKey == null || signingAlg == null || signingCert == null) {
+                throw new IllegalStateException(
+                        "Signing key must exist before generating non-signing keys");
+            }
+            if (!signingAlg.canSign()) {
+                throw new IllegalStateException("Signing key algorithm cannot sign: " + signingAlg);
+            }
+
+            Algorithm.Sign signAlg = (Algorithm.Sign) signingAlg;
+
+            long now = System.currentTimeMillis();
+            Date notBefore = new Date(now);
+            Date notAfter = new Date(now + 365L * 24 * 60 * 60 * 1000 * 100);
+
+            X500Name issuer = new X500Name("CN=CommonGraph Vault");
+            X500Name subject = new X500Name("CN=CG Key");
+            BigInteger serial = BigInteger.valueOf(now);
+
+            X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                    issuer, serial, notBefore, notAfter,
+                    subject,
+                    subjectKeyPair.getPublic()
+            );
+
+            ContentSigner signer = new JcaContentSignerBuilder(signAlg.signatureName())
+                    .build(signingKey);
+
+            return new JcaX509CertificateConverter()
+                    .getCertificate(builder.build(signer));
+
+        } catch (CertificateException | OperatorCreationException | KeyStoreException |
+                 NoSuchAlgorithmException | UnrecoverableKeyException e) {
+            throw new RuntimeException("Failed to cross-sign certificate", e);
+        }
+    }
+
+    private void inferAlgorithm(String alias) {
         try {
             Certificate cert = keyStore.getCertificate(alias);
             if (cert == null) return;
 
-            String algorithm = cert.getPublicKey().getAlgorithm();
-            KeyType type = switch (algorithm) {
-                case "Ed25519", "EdDSA" -> KeyType.ED25519;
-                case "EC" -> KeyType.EC_P256;
-                case "RSA" -> KeyType.RSA_4096;
-                default -> null;
+            String jcaAlgName = cert.getPublicKey().getAlgorithm();
+            Algorithm.Asymmetric alg = switch (jcaAlgName) {
+                case "Ed25519", "EdDSA" -> Algorithm.Sign.ED25519;
+                case "EC"               -> Algorithm.Sign.ES256;
+                case "RSA"              -> Algorithm.Sign.PS256;
+                case "XDH", "X25519"    -> Algorithm.KeyMgmt.ECDH_ES_HKDF_256;
+                default                 -> null;
             };
 
-            if (type != null) {
-                keyTypes.put(alias, type);
+            if (alg != null) {
+                algorithms.put(alias, alg);
             }
         } catch (KeyStoreException e) {
-            // Ignore - key type will remain unknown
+            // Ignore - algorithm will remain unknown
         }
     }
 

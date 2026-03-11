@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.component.Factory;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Picker;
 import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.trust.Algorithm;
 
 import java.nio.file.Path;
 import java.security.PublicKey;
@@ -34,7 +34,7 @@ import java.util.Set;
  *
  * // Generate a key (if needed)
  * if (!vault.containsKey("signing")) {
- *     vault.generateKey("signing", KeyType.ED25519);
+ *     vault.generateKey("signing", Algorithm.Sign.ED25519);
  * }
  *
  * // Get public key (this CAN leave the vault)
@@ -44,7 +44,7 @@ import java.util.Set;
  * byte[] signature = vault.sign("signing", dataToSign);
  * }</pre>
  */
-@Type(value = Vault.KEY, glyph = "🔐")
+@Type(value = Vault.KEY, glyph = "\uD83D\uDD10")
 public abstract class Vault implements Component {
 
     // === TYPE DEFINITION ===
@@ -53,30 +53,8 @@ public abstract class Vault implements Component {
     /** Default alias for the primary signing key */
     public static final String SIGNING_KEY_ALIAS = "signing";
 
-    /**
-     * Supported key types.
-     */
-    public enum KeyType {
-        /** Ed25519 - fast, secure, small signatures (recommended) */
-        ED25519("Ed25519", "Ed25519"),
-
-        /** ECDSA with P-256 - widely supported, good for interop */
-        EC_P256("EC", "SHA256withECDSA"),
-
-        /** RSA 4096-bit - legacy compatibility */
-        RSA_4096("RSA", "SHA256withRSA");
-
-        private final String algorithm;
-        private final String signatureAlgorithm;
-
-        KeyType(String algorithm, String signatureAlgorithm) {
-            this.algorithm = algorithm;
-            this.signatureAlgorithm = signatureAlgorithm;
-        }
-
-        public String algorithm() { return algorithm; }
-        public String signatureAlgorithm() { return signatureAlgorithm; }
-    }
+    /** Default alias for the primary encryption key */
+    public static final String ENCRYPTION_KEY_ALIAS = "encryption";
 
     // ==================================================================================
     // Factory Methods
@@ -89,7 +67,7 @@ public abstract class Vault implements Component {
      * For persistent storage, use {@link SoftwareVault#open(Path)} directly.
      * Future versions may auto-detect available hardware backends.
      */
-    @Factory(label = "In-Memory Vault", glyph = "🔐", primary = true,
+    @Factory(label = "In-Memory Vault", glyph = "\uD83D\uDD10", primary = true,
                               doc = "Ephemeral in-memory vault for testing. Keys lost on exit.")
     public static Vault open(@Param(label = "Vault File",
                                                      doc = "Path (ignored for in-memory)",
@@ -105,7 +83,7 @@ public abstract class Vault implements Component {
      * <p>Returns an {@link InMemoryVault}. For persistent storage,
      * use {@link SoftwareVault#create()} directly.
      */
-    @Factory(label = "In-Memory", glyph = "🔐",
+    @Factory(label = "In-Memory", glyph = "\uD83D\uDD10",
             doc = "Ephemeral in-memory vault. Keys lost on exit.")
     public static Vault create() {
         return InMemoryVault.create();
@@ -116,19 +94,26 @@ public abstract class Vault implements Component {
     // ==================================================================================
 
     /**
-     * Generate a new key with the given alias and type.
+     * Generate a new key with the given alias and algorithm.
      *
-     * @param alias Unique identifier for the key
-     * @param type  The key type to generate
+     * @param alias     Unique identifier for the key
+     * @param algorithm The algorithm (determines key type, size, and capabilities)
      * @throws IllegalStateException if alias already exists
      */
-    public abstract void generateKey(String alias, KeyType type);
+    public abstract void generateKey(String alias, Algorithm.Asymmetric algorithm);
 
     /**
      * Generate a new Ed25519 signing key with the default alias.
      */
     public void generateSigningKey() {
-        generateKey(SIGNING_KEY_ALIAS, KeyType.ED25519);
+        generateKey(SIGNING_KEY_ALIAS, Algorithm.Sign.ED25519);
+    }
+
+    /**
+     * Generate a new X25519 encryption key with the default alias.
+     */
+    public void generateEncryptionKey() {
+        generateKey(ENCRYPTION_KEY_ALIAS, Algorithm.KeyMgmt.ECDH_ES_HKDF_256);
     }
 
     /**
@@ -149,9 +134,9 @@ public abstract class Vault implements Component {
     public abstract void deleteKey(String alias);
 
     /**
-     * Get the key type for an alias.
+     * Get the algorithm for a key alias.
      */
-    public abstract Optional<KeyType> keyType(String alias);
+    public abstract Optional<Algorithm.Asymmetric> algorithm(String alias);
 
     // ==================================================================================
     // Public Key Access (public keys CAN leave the vault)
@@ -171,6 +156,13 @@ public abstract class Vault implements Component {
         return publicKey(SIGNING_KEY_ALIAS);
     }
 
+    /**
+     * Get the default encryption public key.
+     */
+    public Optional<PublicKey> encryptionPublicKey() {
+        return publicKey(ENCRYPTION_KEY_ALIAS);
+    }
+
     // ==================================================================================
     // Sign-in-Place Operations (private key NEVER leaves the vault)
     // ==================================================================================
@@ -185,7 +177,7 @@ public abstract class Vault implements Component {
      * @param alias The key alias to sign with
      * @param data  The data to sign
      * @return The signature bytes
-     * @throws IllegalStateException if alias doesn't exist or can't sign
+     * @throws IllegalStateException if alias doesn't exist or key can't sign
      */
     public abstract byte[] sign(String alias, byte[] data);
 
@@ -207,21 +199,24 @@ public abstract class Vault implements Component {
     public abstract boolean verify(String alias, byte[] data, byte[] signature);
 
     // ==================================================================================
-    // Encryption Operations (for future use)
+    // Key Agreement Operations (private key NEVER leaves the vault)
     // ==================================================================================
 
     /**
-     * Decrypt data using the key at the given alias.
+     * Perform ECDH key agreement using the private key at the given alias
+     * and a peer's public key.
      *
-     * <p><b>The private key never leaves the vault.</b>
+     * <p><b>The private key never leaves the vault.</b> For hardware-backed
+     * vaults, the ECDH computation happens entirely within the secure hardware.
      *
-     * @param alias      The key alias to decrypt with
-     * @param ciphertext The encrypted data
-     * @return The decrypted plaintext
+     * @param alias         The key alias (must be a key-agreement key, e.g., X25519)
+     * @param peerPublicKey The peer's public key
+     * @return The shared secret bytes
+     * @throws IllegalStateException if alias doesn't exist or key can't do key agreement
      */
-    public byte[] decrypt(String alias, byte[] ciphertext) {
+    public byte[] deriveSharedSecret(String alias, PublicKey peerPublicKey) {
         throw new UnsupportedOperationException(
-                "Decryption not yet implemented for " + getClass().getSimpleName());
+                "Key agreement not yet implemented for " + getClass().getSimpleName());
     }
 
     // ==================================================================================
@@ -245,6 +240,13 @@ public abstract class Vault implements Component {
      */
     public boolean canSign() {
         return containsKey(SIGNING_KEY_ALIAS);
+    }
+
+    /**
+     * Check if this vault can do key agreement (has an encryption key).
+     */
+    public boolean canEncrypt() {
+        return containsKey(ENCRYPTION_KEY_ALIAS);
     }
 
     // ==================================================================================

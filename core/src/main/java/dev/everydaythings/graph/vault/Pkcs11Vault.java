@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.vault;
 
 import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.trust.Algorithm;
 
 import java.nio.file.Path;
 import java.security.PublicKey;
@@ -82,7 +83,7 @@ public final class Pkcs11Vault extends Vault {
     }
 
     @Override
-    public void generateKey(String alias, KeyType type) {
+    public void generateKey(String alias, Algorithm.Asymmetric type) {
         // Key generation happens ON the hardware token
         throw new UnsupportedOperationException("Pkcs11Vault not yet implemented");
     }
@@ -103,7 +104,7 @@ public final class Pkcs11Vault extends Vault {
     }
 
     @Override
-    public Optional<KeyType> keyType(String alias) {
+    public Optional<Algorithm.Asymmetric> algorithm(String alias) {
         throw new UnsupportedOperationException("Pkcs11Vault not yet implemented");
     }
 

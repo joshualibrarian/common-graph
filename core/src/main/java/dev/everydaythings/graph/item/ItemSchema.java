@@ -264,12 +264,33 @@ public class ItemSchema {
      * @param storePayload Function to store payload bytes
      */
     public void bindComponentFieldsForCommit(Item item, FrameTable contentTable, Consumer<byte[]> storePayload) {
+        bindComponentFieldsForCommit(item, contentTable, storePayload, null, id -> java.util.List.of());
+    }
+
+    /**
+     * Bind all endorsed frame fields for commit with optional encryption.
+     *
+     * @param item              The item to read field values from
+     * @param contentTable      The content table to add entries to
+     * @param storePayload      Function to store payload bytes
+     * @param encryptionContext  Encryption policy (null or {@code EncryptionContext.NONE} for no encryption)
+     * @param keyResolver       Resolves a principal ItemID to their current encryption public keys
+     */
+    public void bindComponentFieldsForCommit(Item item, FrameTable contentTable,
+                                             Consumer<byte[]> storePayload,
+                                             dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
+                                             java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
         for (FrameFieldSpec spec : frameFields) {
             if (!spec.endorsed()) continue;
             Object value = spec.getValue(item);
             if (value == null) continue;
 
-            FrameEntry entry = encodeFrameField(spec, value, storePayload);
+            // Snapshot existing entry's config before it gets replaced
+            FrameEntry.EntryConfig existingConfig = contentTable.get(spec.handle())
+                    .map(FrameEntry::config)
+                    .orElse(null);
+
+            FrameEntry entry = encodeFrameField(spec, value, storePayload, encryptionContext, existingConfig, keyResolver);
             if (entry != null) {
                 contentTable.add(entry);
                 contentTable.setLive(spec.handle(), spec.handleKey(), value);
@@ -277,9 +298,17 @@ public class ItemSchema {
         }
     }
 
-    private FrameEntry encodeFrameField(FrameFieldSpec spec, Object value, Consumer<byte[]> storePayload) {
+    private FrameEntry encodeFrameField(FrameFieldSpec spec, Object value, Consumer<byte[]> storePayload,
+                                        dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
+                                        FrameEntry.EntryConfig existingConfig,
+                                        java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
         HandleID handle = spec.handle();
         String alias = spec.handleKey();
+
+        // Determine effective encryption context: explicit parameter wins,
+        // otherwise derive from existing frame's EncryptionPolicy
+        dev.everydaythings.graph.crypt.EncryptionContext effectiveContext =
+                resolveEncryptionContext(encryptionContext, existingConfig, keyResolver);
 
         // For types with @Type annotation
         if (value.getClass().isAnnotationPresent(Type.class)) {
@@ -292,55 +321,182 @@ public class ItemSchema {
                         .type(typeId).identity(spec.identity()).build();
             }
 
+            byte[] bytes;
             if (value instanceof Canonical canonical) {
-                byte[] bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
-                ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-                if (storePayload != null) storePayload.accept(bytes);
-                return FrameEntry.builder()
-                        .handle(handle).alias(alias)
-                        .type(typeId).identity(spec.identity())
-                        .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
-                        .build();
+                bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
+            } else {
+                bytes = Components.encode(value);
             }
-
-            byte[] bytes = Components.encode(value);
-            ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-            if (storePayload != null) storePayload.accept(bytes);
-            return FrameEntry.builder()
-                    .handle(handle).alias(alias)
-                    .type(typeId).identity(spec.identity())
-                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
-                    .build();
+            return storeAndBuildEntry(handle, alias, typeId, spec.identity(),
+                    bytes, storePayload, effectiveContext, existingConfig);
         }
 
         // For Canonical types without @Type
         if (value instanceof Canonical canonical) {
             byte[] bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
-            ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-            if (storePayload != null) storePayload.accept(bytes);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return FrameEntry.builder()
-                    .handle(handle).alias(alias)
-                    .type(typeId).identity(spec.identity())
-                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
-                    .build();
+            return storeAndBuildEntry(handle, alias, typeId, spec.identity(),
+                    bytes, storePayload, effectiveContext, existingConfig);
         }
 
         // For simple serializable types
         if (isSimpleSerializableType(value)) {
             byte[] bytes = encodeSimpleValue(value);
-            ContentID cid = new ContentID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-            if (storePayload != null) storePayload.accept(bytes);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return FrameEntry.builder()
-                    .handle(handle).alias(alias)
-                    .type(typeId).identity(spec.identity())
-                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
-                    .build();
+            return storeAndBuildEntry(handle, alias, typeId, spec.identity(),
+                    bytes, storePayload, effectiveContext, existingConfig);
         }
 
         throw new IllegalStateException("Cannot encode field with handle '" + handle +
                 "': value is not a supported type (@Type component, Canonical, or simple serializable)");
+    }
+
+    /**
+     * Resolve the effective EncryptionContext for a frame.
+     *
+     * <p>If an explicit context was passed to commit(), it takes precedence.
+     * Otherwise, if the existing frame entry has an EncryptionPolicy on its
+     * config, we derive an EncryptionContext from it by resolving ItemID
+     * recipients to EncryptionPublicKeys via the key resolver.
+     *
+     * <p>For {@code encryptToReaders} policies, the access policy's READ rules
+     * are inspected to find subjects, which are then resolved to keys.
+     */
+    private dev.everydaythings.graph.crypt.EncryptionContext resolveEncryptionContext(
+            dev.everydaythings.graph.crypt.EncryptionContext explicit,
+            FrameEntry.EntryConfig existingConfig,
+            java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
+        // Explicit context always wins
+        if (explicit != null && explicit != dev.everydaythings.graph.crypt.EncryptionContext.NONE) {
+            return explicit;
+        }
+        // No per-frame policy — no encryption
+        if (existingConfig == null || existingConfig.policy() == null) {
+            return explicit; // null or NONE
+        }
+        var encryption = existingConfig.policy().encryption();
+        if (encryption == null || !encryption.isEnabled()) {
+            return explicit;
+        }
+
+        // Resolve recipients from the EncryptionPolicy
+        java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> resolvedKeys;
+
+        if (encryption.encryptToReaders()) {
+            // Derive recipients from the access policy's READ rules
+            resolvedKeys = resolveReadersToKeys(existingConfig.policy(), keyResolver);
+        } else if (encryption.hasExplicitRecipients()) {
+            // Resolve explicit ItemID recipients to keys
+            resolvedKeys = encryption.recipients().stream()
+                    .flatMap(id -> keyResolver.apply(id).stream())
+                    .collect(java.util.stream.Collectors.toList());
+        } else {
+            // Enabled but no recipients specified — nothing to encrypt to
+            return explicit;
+        }
+
+        if (resolvedKeys.isEmpty()) {
+            return explicit; // Can't encrypt without recipients
+        }
+
+        return dev.everydaythings.graph.crypt.EncryptionContext.fromEncryptionPolicy(encryption, resolvedKeys);
+    }
+
+    /**
+     * Resolve the access policy's READ subjects to encryption keys.
+     *
+     * <p>Inspects all ALLOW READ rules in the access policy, extracts subject
+     * identifiers, and resolves those that are ItemIDs to encryption public keys.
+     * Handles special subjects: "owner" is skipped (would need item context),
+     * "any" is skipped (can't encrypt to everyone), others are tried as ItemIDs.
+     */
+    private java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> resolveReadersToKeys(
+            dev.everydaythings.graph.policy.PolicySet policy,
+            java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
+        if (policy.access() == null || !policy.access().hasRules()) {
+            return java.util.List.of();
+        }
+
+        java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> keys = new java.util.ArrayList<>();
+        for (var rule : policy.access().rules()) {
+            if (rule.effect() != dev.everydaythings.graph.policy.PolicySet.AccessPolicy.Effect.ALLOW) continue;
+            if (rule.action() != dev.everydaythings.graph.policy.PolicySet.AccessPolicy.Action.READ) continue;
+            if (rule.subject() == null || rule.subject().who() == null) continue;
+
+            String who = rule.subject().who();
+            // Skip non-resolvable subjects
+            if ("any".equals(who) || "participants".equals(who) || "hosts".equals(who)) continue;
+
+            // Try to parse as an ItemID (iid:... format) and resolve
+            try {
+                ItemID subjectId = ItemID.parse(who);
+                keys.addAll(keyResolver.apply(subjectId));
+            } catch (Exception e) {
+                // Not a valid ItemID — skip (could be "owner" or other symbolic ref)
+            }
+        }
+        return keys;
+    }
+
+    /**
+     * Store encoded bytes (optionally encrypting) and build the FrameEntry.
+     *
+     * <p>The plaintext CID ({@code snapshotCid}) is always computed from the plaintext bytes
+     * and used for VID stability. If encryption is enabled for this frame, the bytes are
+     * encrypted into a Tag 10 envelope, stored under the envelope's CID, and the
+     * {@code encryptedCid} is set on the entry.
+     *
+     * <p>If {@code existingConfig} is non-null, it is carried forward to the new entry
+     * so that per-frame config (policy, settings) survives across commits.
+     */
+    private FrameEntry storeAndBuildEntry(HandleID handle, String alias, ItemID typeId, boolean identity,
+                                          byte[] plaintextBytes, Consumer<byte[]> storePayload,
+                                          dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
+                                          FrameEntry.EntryConfig existingConfig) {
+
+        ContentID snapshotCid = new ContentID(Hash.DEFAULT.digest(plaintextBytes), Hash.DEFAULT);
+        ContentID encryptedCid = null;
+
+        boolean shouldEncrypt = encryptionContext != null
+                && encryptionContext != dev.everydaythings.graph.crypt.EncryptionContext.NONE
+                && encryptionContext.shouldEncrypt(handle);
+
+        if (shouldEncrypt) {
+            var recipients = encryptionContext.recipients(handle);
+            if (!recipients.isEmpty()) {
+                // Encrypt the plaintext into a Tag 10 envelope
+                var envelope = dev.everydaythings.graph.crypt.EnvelopeOps.encryptAnonymous(
+                        plaintextBytes, Hash.DEFAULT.digest(plaintextBytes), null,
+                        encryptionContext.aeadAlgorithm(), recipients);
+                byte[] envelopeBytes = envelope.encodeBinary(Canonical.Scope.RECORD);
+                encryptedCid = new ContentID(Hash.DEFAULT.digest(envelopeBytes), Hash.DEFAULT);
+
+                // Store the encrypted envelope (not the plaintext)
+                if (storePayload != null) storePayload.accept(envelopeBytes);
+            } else {
+                // No recipients — store cleartext
+                if (storePayload != null) storePayload.accept(plaintextBytes);
+            }
+        } else {
+            // No encryption — store cleartext
+            if (storePayload != null) storePayload.accept(plaintextBytes);
+        }
+
+        FrameEntry entry = FrameEntry.builder()
+                .handle(handle).alias(alias)
+                .type(typeId).identity(identity)
+                .payload(FrameEntry.EntryPayload.builder()
+                        .snapshotCid(snapshotCid)
+                        .encryptedCid(encryptedCid)
+                        .build())
+                .build();
+
+        // Carry forward existing config (policy, settings) from previous version
+        if (existingConfig != null && existingConfig.policy() != null) {
+            entry.setPolicy(existingConfig.policy());
+        }
+
+        return entry;
     }
 
     /**

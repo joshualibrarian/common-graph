@@ -12,7 +12,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.time.Clock;
 import java.time.Instant;
 
-@Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+@Canonical.Canonization(classType = Canonical.ClassCollectionType.ARRAY)
 @Getter
 public abstract class GraphPublicKey implements Canonical {
 

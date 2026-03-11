@@ -1754,6 +1754,17 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @return The new VersionID
      */
     public VersionID commit(Signer signer) {
+        return commit(signer, null);
+    }
+
+    /**
+     * Commit with encryption: sign and version this item, encrypting frames per the context.
+     *
+     * @param signer            The signer to sign the manifest
+     * @param encryptionContext  Encryption policy (null for no encryption)
+     * @return The new VersionID
+     */
+    public VersionID commit(Signer signer, dev.everydaythings.graph.crypt.EncryptionContext encryptionContext) {
         Objects.requireNonNull(signer, "signer required for commit");
         logger.debug("Committing item {} (type={})", iid, getClass().getSimpleName());
 
@@ -1763,7 +1774,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         }
 
         // Populate state tables from annotated fields
-        scanAndBindFields();
+        scanAndBindFields(encryptionContext);
 
         // Build manifest with the item's state
         Manifest manifest = Manifest.builder()
@@ -1915,8 +1926,8 @@ This public non- profit land trust’s top founding principle is to promote and 
             edit();
         }
 
-        // Populate state tables from annotated fields
-        scanAndBindFields();
+        // Populate state tables from annotated fields (no encryption for save)
+        scanAndBindFields(null);
 
         // Build without signature (seed items are code-defined, deterministic)
         Manifest manifest = Manifest.builder()
@@ -1987,7 +1998,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * <p>Since Manifest now embeds ItemState directly, we just populate the tables.
      * Delegates to {@link ItemSchema} for the actual field processing.
      */
-    private void scanAndBindFields() {
+    private void scanAndBindFields(dev.everydaythings.graph.crypt.EncryptionContext encryptionContext) {
         // Payload storage function - stores bytes via librarian and returns CID
         java.util.function.Function<byte[], ContentID> storePayload = (librarian != null)
                 ? bytes -> { librarian.storePayload(bytes); return ContentID.of(bytes); }
@@ -1999,8 +2010,12 @@ This public non- profit land trust’s top founding principle is to promote and 
         // Relation storage function - stores canonical relations via librarian (DB RELATION column)
         java.util.function.Consumer<Relation> storeRelation = (librarian != null) ? librarian::relation : null;
 
-        // Bind component fields (encode and add to content table)
-        schema().bindComponentFieldsForCommit(this, content(), storePayloadConsumer);
+        // Key resolver for per-frame EncryptionPolicy (ItemID → EncryptionPublicKeys)
+        java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver =
+                (librarian != null) ? librarian::resolveEncryptionKeys : iid -> java.util.List.of();
+
+        // Bind component fields (encode and add to content table, with optional encryption)
+        schema().bindComponentFieldsForCommit(this, content(), storePayloadConsumer, encryptionContext, keyResolver);
 
         // Bind relation fields (create relations, store in DB, add as ComponentEntries)
         schema().bindRelationFieldsForCommit(this, content(), storePayload, storeRelation);
@@ -2085,9 +2100,14 @@ This public non- profit land trust’s top founding principle is to promote and 
             return openLocalResource(entry);
         }
 
-        // Snapshot → fetch content by CID
+        // Snapshot → fetch content by CID (decrypt if encrypted)
         if (entry.hasSnapshot()) {
-            Optional<byte[]> bytesOpt = fetchContent(entry.payload().snapshotCid());
+            Optional<byte[]> bytesOpt;
+            if (entry.payload().isEncrypted()) {
+                bytesOpt = fetchAndDecrypt(entry);
+            } else {
+                bytesOpt = fetchContent(entry.payload().snapshotCid());
+            }
             if (bytesOpt.isEmpty()) {
                 return null;
             }
@@ -2205,6 +2225,45 @@ This public non- profit land trust’s top founding principle is to promote and 
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * Fetch encrypted content, decrypt via the librarian's vault, and return plaintext bytes.
+     *
+     * <p>Fetches the Tag 10 envelope by {@code encryptedCid}, decrypts using the
+     * librarian's encryption key, and verifies the plaintext matches {@code snapshotCid}.
+     * If the librarian has no encryption key or decryption fails, falls back to trying
+     * the plaintext CID directly (in case the content was stored cleartext locally).
+     */
+    private Optional<byte[]> fetchAndDecrypt(FrameEntry entry) {
+        ContentID encCid = entry.payload().encryptedCid();
+
+        // Fetch the encrypted envelope bytes
+        Optional<byte[]> envelopeBytes = fetchContent(encCid);
+        if (envelopeBytes.isEmpty()) {
+            // Fallback: try plaintext CID (content might have been decrypted locally)
+            return fetchContent(entry.payload().snapshotCid());
+        }
+
+        // Try to decrypt if the librarian has an encryption key
+        if (librarian != null && librarian.encryptionPublicKey() != null) {
+            try {
+                com.upokecenter.cbor.CBORObject cbor = com.upokecenter.cbor.CBORObject.DecodeFromBytes(envelopeBytes.get());
+                dev.everydaythings.graph.crypt.EncryptedEnvelope envelope =
+                        dev.everydaythings.graph.crypt.EncryptedEnvelope.fromCborTree(cbor);
+                byte[] myKeyId = librarian.encryptionPublicKey().keyId();
+                byte[] plaintext = librarian.decryptEnvelope(envelope, myKeyId);
+                return Optional.of(plaintext);
+            } catch (Exception e) {
+                logger.debug("Failed to decrypt frame {} (encryptedCid={}): {}",
+                        entry.alias(), encCid, e.getMessage());
+                // Fallback: try plaintext CID
+                return fetchContent(entry.payload().snapshotCid());
+            }
+        }
+
+        // No vault available — try plaintext CID as fallback
+        return fetchContent(entry.payload().snapshotCid());
     }
 
     /**

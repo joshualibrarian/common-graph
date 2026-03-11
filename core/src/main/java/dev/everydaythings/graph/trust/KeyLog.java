@@ -5,7 +5,6 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.component.Factory;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Dag;
-import dev.everydaythings.graph.item.id.ItemID;
 
 import lombok.AllArgsConstructor;
 
@@ -18,7 +17,7 @@ import java.util.*;
  * <p>KeyLog is a stream component that tracks the public key history for a Signer.
  * It supports:
  * <ul>
- *   <li>Adding new keys</li>
+ *   <li>Adding new keys (signing or encryption)</li>
  *   <li>Setting keys as current for specific purposes (sign, encrypt, authenticate)</li>
  *   <li>Tombstoning compromised or retired keys</li>
  * </ul>
@@ -26,8 +25,7 @@ import java.util.*;
  * <p>Unlike the private key (stored in Vault), KeyLog content is syncable
  * and can be shared to prove identity and key history.
  */
-@Type(value = KeyLog.KEY, glyph = "🔑", icon = "/icons/key.png")
-// TODO: 3D model for handle icon (not detail panel): mesh="/models/key-quaternius.glb", color=0xC9B037
+@Type(value = KeyLog.KEY, glyph = "\uD83D\uDD11", icon = "/icons/key.png")
 public class KeyLog extends Dag<KeyLog.Op> {
 
     // === TYPE DEFINITION ===
@@ -38,14 +36,14 @@ public class KeyLog extends Dag<KeyLog.Op> {
      *
      * <p>Used by the component system to instantiate KeyLog components.
      */
-    @Factory(label = "Empty", glyph = "🔑", primary = true,
+    @Factory(label = "Empty", glyph = "\uD83D\uDD11", primary = true,
             doc = "New empty key log")
     public static KeyLog create() {
         return new KeyLog();
     }
 
     /* ============== materialized state (transient, not encoded) ============== */
-    private final Map<String, SigningPublicKey> keys = new LinkedHashMap<>();
+    private final Map<String, GraphPublicKey> keys = new LinkedHashMap<>();
     private final Set<String> tombstoned = new HashSet<>();
     // purpose mask -> (keyCid -> LWW info)
     private final Map<Integer, Map<String, Lww>> currentByPurpose = new HashMap<>();
@@ -62,12 +60,12 @@ public class KeyLog extends Dag<KeyLog.Op> {
     public sealed interface Op permits AddKey, SetCurrent, TombstoneKey {}
 
     /**
-     * Add a new key to the log.
+     * Add a new key to the log (signing or encryption).
      */
     public static final class AddKey implements Op {
-        public final SigningPublicKey key;
+        public final GraphPublicKey key;
 
-        public AddKey(SigningPublicKey k) {
+        public AddKey(GraphPublicKey k) {
             this.key = k;
         }
     }
@@ -157,11 +155,31 @@ public class KeyLog extends Dag<KeyLog.Op> {
     protected Op decodeOp(CBORObject c) {
         int t = c.get(num(0)).AsInt32();
         return switch (t) {
-            case 1 -> new AddKey(Canonical.fromCborTree(c.get(num(1)), SigningPublicKey.class, Canonical.Scope.RECORD));
+            case 1 -> {
+                CBORObject keyNode = c.get(num(1));
+                GraphPublicKey key = decodeGraphPublicKey(keyNode);
+                yield new AddKey(key);
+            }
             case 2 -> new SetCurrent(c.get(num(1)).GetByteString(), c.get(num(2)).AsInt32(), c.get(num(3)).AsBoolean());
             case 3 -> new TombstoneKey(c.get(num(1)).GetByteString(), c.get(num(2)).AsInt32());
             default -> throw new IllegalArgumentException("bad t=" + t);
         };
+    }
+
+    /**
+     * Decode a GraphPublicKey from CBOR, dispatching to the correct concrete class
+     * based on the algorithm kind (SIGN → SigningPublicKey, KEY_MGMT → EncryptionPublicKey).
+     */
+    private static GraphPublicKey decodeGraphPublicKey(CBORObject node) {
+        // Algorithm is at index 0 in the ARRAY encoding (first field by @Canon(order=1))
+        CBORObject algNode = node.get(0);
+        Algorithm alg = Algorithm.fromCose(algNode.AsInt32());
+        if (alg.kind() == Algorithm.Kind.SIGN) {
+            return Canonical.fromCborTree(node, SigningPublicKey.class, Canonical.Scope.RECORD);
+        } else if (alg.kind() == Algorithm.Kind.KEY_MGMT) {
+            return Canonical.fromCborTree(node, EncryptionPublicKey.class, Canonical.Scope.RECORD);
+        }
+        throw new IllegalArgumentException("Unsupported algorithm kind for key: " + alg);
     }
 
     private static CBORObject num(int i) {
@@ -265,8 +283,9 @@ public class KeyLog extends Dag<KeyLog.Op> {
             boolean dead = tombstoned.contains(entry.getKey());
             sb.append(dead ? "  \uD83D\uDEAB " : "  \uD83D\uDD11 ");
             sb.append(shortId);
-            SigningPublicKey k = entry.getValue();
-            sb.append("  ").append(k.algorithm().name());
+            GraphPublicKey k = entry.getValue();
+            sb.append("  ").append(((Enum<?>) k.algorithm()).name());
+            if (k instanceof EncryptionPublicKey) sb.append(" (encrypt)");
             if (dead) sb.append("  (tombstoned)");
             sb.append("\n");
         }
@@ -278,7 +297,7 @@ public class KeyLog extends Dag<KeyLog.Op> {
     /**
      * Get all keys in this log (including tombstoned).
      */
-    public Map<String, SigningPublicKey> keys() {
+    public Map<String, GraphPublicKey> keys() {
         return Collections.unmodifiableMap(keys);
     }
 
@@ -316,15 +335,43 @@ public class KeyLog extends Dag<KeyLog.Op> {
     public Optional<SigningPublicKey> currentSigningKey() {
         Set<String> cids = currentKeyCids(Purpose.SIGN);
         if (cids.isEmpty()) return Optional.empty();
-        // Return the first (should typically be only one)
         String cid = cids.iterator().next();
-        return Optional.ofNullable(keys.get(cid));
+        GraphPublicKey key = keys.get(cid);
+        if (key instanceof SigningPublicKey spk) return Optional.of(spk);
+        return Optional.empty();
+    }
+
+    /**
+     * Get the current encryption key, if one is set.
+     *
+     * @return The current encryption key, or empty if none set
+     */
+    public Optional<EncryptionPublicKey> currentEncryptionKey() {
+        Set<String> cids = currentKeyCids(Purpose.ENCRYPT);
+        if (cids.isEmpty()) return Optional.empty();
+        String cid = cids.iterator().next();
+        GraphPublicKey key = keys.get(cid);
+        if (key instanceof EncryptionPublicKey epk) return Optional.of(epk);
+        return Optional.empty();
+    }
+
+    /**
+     * Get all current encryption keys (multi-device scenarios).
+     */
+    public Set<EncryptionPublicKey> currentEncryptionKeys() {
+        Set<String> cids = currentKeyCids(Purpose.ENCRYPT);
+        Set<EncryptionPublicKey> result = new LinkedHashSet<>();
+        for (String cid : cids) {
+            GraphPublicKey key = keys.get(cid);
+            if (key instanceof EncryptionPublicKey epk) result.add(epk);
+        }
+        return result;
     }
 
     /**
      * Compute the CID (hex) for a key.
      */
-    public static String keyCid(SigningPublicKey key) {
+    public static String keyCid(GraphPublicKey key) {
         byte[] keyRec = key.encodeBinary(Canonical.Scope.BODY);
         return hex(hash(keyRec));
     }
@@ -332,7 +379,7 @@ public class KeyLog extends Dag<KeyLog.Op> {
     /**
      * Compute the CID (raw bytes) for a key.
      */
-    public static byte[] keyCidBytes(SigningPublicKey key) {
+    public static byte[] keyCidBytes(GraphPublicKey key) {
         byte[] keyRec = key.encodeBinary(Canonical.Scope.BODY);
         return hash(keyRec);
     }

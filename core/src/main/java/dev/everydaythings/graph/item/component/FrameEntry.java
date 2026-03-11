@@ -827,17 +827,37 @@ public final class FrameEntry implements Canonical {
         @Canon(order = 1) private List<ContentID> streamHeads;
         @Canon(order = 2) private boolean streamBased;
         @Canon(order = 3) private ItemID referenceTarget;
+
+        /**
+         * CID of the encrypted envelope (Tag 10) in the object store.
+         *
+         * <p>When set, the actual content in the object store is a Tag 10 encrypted
+         * envelope stored at this CID. The {@code snapshotCid} still holds the
+         * <b>plaintext</b> CID for identity/VID purposes — the item's version
+         * identity is based on semantic content, not encryption artifacts.
+         *
+         * <p>When null, the frame content is stored cleartext at {@code snapshotCid}.
+         */
+        @Canon(order = 4) private ContentID encryptedCid;
+
         private transient Object instance;
 
         @Builder
         public EntryPayload(ContentID snapshotCid,
                             @Singular List<ContentID> streamHeads,
                             boolean streamBased,
-                            ItemID referenceTarget) {
+                            ItemID referenceTarget,
+                            ContentID encryptedCid) {
             this.snapshotCid = snapshotCid;
             this.streamHeads = streamHeads == null ? List.of() : List.copyOf(streamHeads);
             this.streamBased = streamBased || !this.streamHeads.isEmpty();
             this.referenceTarget = referenceTarget;
+            this.encryptedCid = encryptedCid;
+        }
+
+        /** True if this frame's content is encrypted. */
+        public boolean isEncrypted() {
+            return encryptedCid != null;
         }
 
         @SuppressWarnings("unused")

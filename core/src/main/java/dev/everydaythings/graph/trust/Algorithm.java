@@ -88,7 +88,16 @@ public sealed interface Algorithm extends Canonical
 
         KeyFamily keyFamily();
 
-        String keyFactoryName();               // JCA KeyFactory (e.g., "Ed25519", "EC", "RSA")
+        String keyFactoryName();               // JCA KeyFactory (e.g., "Ed25519", "XDH", "EC", "RSA")
+
+        /** JCA algorithm name for KeyPairGenerator. Defaults to keyFactoryName. */
+        default String keyGeneratorName() { return keyFactoryName(); }
+
+        /** Key size in bits for KeyPairGenerator.initialize(), 0 = use algorithm default. */
+        default int keyBits() { return 0; }
+
+        /** True for signing algorithms, false for key-agreement / transport. */
+        default boolean canSign() { return kind() == Kind.SIGN; }
 
         enum KeyFamily { OKP, EC, RSA }
     }
@@ -96,10 +105,10 @@ public sealed interface Algorithm extends Canonical
     /* SIGNING algorithms (Ed25519, ES256, PS256, …) */
     @AllArgsConstructor @Getter
     enum Sign implements Asymmetric {
-        ED25519(-8,  KeyFamily.OKP, "Ed25519", "Ed25519",      null),          // curveName null for OKP
-        ES256  (-7,  KeyFamily.EC,  "EC",      "SHA256withECDSA", "secp256r1"),
-        ES256K (-47, KeyFamily.EC,  "EC",      "SHA256withECDSA", "secp256k1"),
-        PS256  (-37, KeyFamily.RSA, "RSA",     "RSASSA-PSS",      null);
+        ED25519(-8,  KeyFamily.OKP, "Ed25519", "Ed25519",         null,        0),
+        ES256  (-7,  KeyFamily.EC,  "EC",      "SHA256withECDSA", "secp256r1", 256),
+        ES256K (-47, KeyFamily.EC,  "EC",      "SHA256withECDSA", "secp256k1", 256),
+        PS256  (-37, KeyFamily.RSA, "RSA",     "RSASSA-PSS",      null,        4096);
 
         private final int coseId;
         private final Kind kind = Kind.SIGN;
@@ -107,6 +116,7 @@ public sealed interface Algorithm extends Canonical
         private final String keyFactoryName;
         private final String signatureName;
         private final String curveName;
+        private final int keyBits;
 
         // inside Algorithm.Sign enum
         public static Sign byJcaAlgorithmName(String algName) {
@@ -124,17 +134,29 @@ public sealed interface Algorithm extends Canonical
     /* KEY MANAGEMENT (agreement / transport for CEKs) */
     @AllArgsConstructor @Getter
     enum KeyMgmt implements Asymmetric {
-        // Agreement: ECDH-ES + HKDF-SHA256 (curves driven by key material: P-256, X25519)
-        ECDH_ES_HKDF_256(-25, KeyFamily.EC,  "EC",  "ECDH",  "HKDF-SHA256"),
+        // Agreement: ECDH-ES + HKDF-SHA256 with X25519 (OKP family)
+        ECDH_ES_HKDF_256(-25, KeyFamily.OKP, "XDH", "X25519", "XDH", "HKDF-SHA256", 0),
         // Transport: RSA-OAEP with SHA-256
-        RSA_OAEP_256     (-41, KeyFamily.RSA, "RSA", null,    "OAEP-SHA256");
+        RSA_OAEP_256     (-41, KeyFamily.RSA, "RSA", "RSA",    null,  "OAEP-SHA256",  4096);
 
         private final int coseId;
         private final Kind kind = Kind.KEY_MGMT;
         private final KeyFamily keyFamily;
         private final String keyFactoryName;
-        private final String agreementName;   // "ECDH" for agreement; null for transport
-        private final String kdfOrWrap;       // "HKDF-SHA256" or "OAEP-SHA256"
+        private final String keyGeneratorName;  // may differ from keyFactoryName (e.g., "X25519" vs "XDH")
+        private final String agreementName;     // "XDH" for X25519 agreement; null for transport
+        private final String kdfOrWrap;         // "HKDF-SHA256" or "OAEP-SHA256"
+        private final int keyBits;
+
+        public static KeyMgmt byJcaAlgorithmName(String algName) {
+            if (algName == null) throw new IllegalArgumentException("algName is null");
+            return switch (algName) {
+                case "XDH", "X25519" -> ECDH_ES_HKDF_256;
+                case "RSA"           -> RSA_OAEP_256;
+                default -> throw new IllegalArgumentException(
+                        "Unsupported JCA algorithm for key management: " + algName);
+            };
+        }
     }
 
     /* AEAD content ciphers (symmetric) */

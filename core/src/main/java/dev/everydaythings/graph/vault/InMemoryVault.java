@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.vault;
 
 import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.trust.Algorithm;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -9,6 +10,7 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
+import javax.crypto.KeyAgreement;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.security.*;
@@ -38,7 +40,7 @@ import java.util.*;
  *
  * // Or create empty and add keys manually
  * Vault vault = InMemoryVault.createEmpty();
- * vault.generateKey("mykey", KeyType.ED25519);
+ * vault.generateKey("mykey", Algorithm.Sign.ED25519);
  *
  * // Use for signing
  * byte[] sig = vault.sign("mykey", data);
@@ -59,7 +61,7 @@ public final class InMemoryVault extends Vault {
      */
     public static InMemoryVault create() {
         InMemoryVault vault = new InMemoryVault();
-        vault.generateKey(SIGNING_KEY_ALIAS, KeyType.ED25519);
+        vault.generateKey(SIGNING_KEY_ALIAS, Algorithm.Sign.ED25519);
         return vault;
     }
 
@@ -76,7 +78,7 @@ public final class InMemoryVault extends Vault {
      * <p>Note: The path is ignored - this is always in-memory. This factory
      * exists for compatibility with the component system.
      */
-    @Factory(label = "In-Memory (Testing)", glyph = "🧪", primary = true,
+    @Factory(label = "In-Memory (Testing)", glyph = "\uD83E\uDDEA", primary = true,
             doc = "Ephemeral in-memory vault. Keys are lost on exit. For testing only.")
     public static Vault open(@SuppressWarnings("unused") Path path) {
         return create();
@@ -89,7 +91,7 @@ public final class InMemoryVault extends Vault {
      * createDefault() from instantiating InMemoryVault. This no-arg factory
      * enables in-memory Signer creation without a filesystem path.
      */
-    @Factory(label = "In-Memory Default", glyph = "🧪",
+    @Factory(label = "In-Memory Default", glyph = "\uD83E\uDDEA",
             doc = "Create an in-memory vault with default signing key.")
     public static InMemoryVault createInMemory() {
         return create();
@@ -100,15 +102,29 @@ public final class InMemoryVault extends Vault {
     // ==================================================================================
 
     @Override
-    public void generateKey(String alias, KeyType type) {
+    public void generateKey(String alias, Algorithm.Asymmetric algorithm) {
         if (containsKey(alias)) {
             throw new IllegalStateException("Key already exists: " + alias);
         }
 
         try {
-            KeyPair keyPair = generateKeyPair(type);
-            X509Certificate cert = generateSelfSignedCertificate(keyPair, type);
-            keys.put(alias, new KeyEntry(keyPair, cert, type));
+            KeyPair keyPair = generateKeyPair(algorithm);
+            X509Certificate cert;
+            if (algorithm.canSign()) {
+                cert = generateSelfSignedCertificate(keyPair, (Algorithm.Sign) algorithm);
+            } else {
+                // Non-signing key: cross-sign with the signing key
+                KeyEntry signingEntry = keys.get(SIGNING_KEY_ALIAS);
+                if (signingEntry == null) {
+                    throw new IllegalStateException(
+                            "Signing key must exist before generating non-signing keys");
+                }
+                cert = issueCertificate(keyPair.getPublic(),
+                        signingEntry.keyPair.getPrivate(),
+                        signingEntry.certificate.getSubjectX500Principal(),
+                        (Algorithm.Sign) signingEntry.algorithm);
+            }
+            keys.put(alias, new KeyEntry(keyPair, cert, algorithm));
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate key: " + alias, e);
         }
@@ -133,9 +149,9 @@ public final class InMemoryVault extends Vault {
     }
 
     @Override
-    public Optional<KeyType> keyType(String alias) {
+    public Optional<Algorithm.Asymmetric> algorithm(String alias) {
         KeyEntry entry = keys.get(alias);
-        return entry != null ? Optional.of(entry.type) : Optional.empty();
+        return entry != null ? Optional.of(entry.algorithm) : Optional.empty();
     }
 
     // ==================================================================================
@@ -158,9 +174,14 @@ public final class InMemoryVault extends Vault {
         if (entry == null) {
             throw new IllegalStateException("Key doesn't exist: " + alias);
         }
+        if (!entry.algorithm.canSign()) {
+            throw new IllegalStateException(
+                    "Key '" + alias + "' (" + entry.algorithm + ") is not a signing key");
+        }
 
         try {
-            Signature sig = Signature.getInstance(entry.type.signatureAlgorithm());
+            Algorithm.Sign signAlg = (Algorithm.Sign) entry.algorithm;
+            Signature sig = Signature.getInstance(signAlg.signatureName());
             sig.initSign(entry.keyPair.getPrivate());
             sig.update(data);
             return sig.sign();
@@ -175,14 +196,47 @@ public final class InMemoryVault extends Vault {
         if (entry == null) {
             return false;
         }
+        if (!entry.algorithm.canSign()) {
+            return false;
+        }
 
         try {
-            Signature sig = Signature.getInstance(entry.type.signatureAlgorithm());
+            Algorithm.Sign signAlg = (Algorithm.Sign) entry.algorithm;
+            Signature sig = Signature.getInstance(signAlg.signatureName());
             sig.initVerify(entry.keyPair.getPublic());
             sig.update(data);
             return sig.verify(signature);
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
             throw new RuntimeException("Failed to verify signature", e);
+        }
+    }
+
+    // ==================================================================================
+    // Key Agreement Operations
+    // ==================================================================================
+
+    @Override
+    public byte[] deriveSharedSecret(String alias, PublicKey peerPublicKey) {
+        KeyEntry entry = keys.get(alias);
+        if (entry == null) {
+            throw new IllegalStateException("Key doesn't exist: " + alias);
+        }
+        if (!(entry.algorithm instanceof Algorithm.KeyMgmt keyMgmt)) {
+            throw new IllegalStateException(
+                    "Key '" + alias + "' (" + entry.algorithm + ") is not a key-agreement key");
+        }
+        if (keyMgmt.agreementName() == null) {
+            throw new IllegalStateException(
+                    "Algorithm " + keyMgmt + " does not support key agreement");
+        }
+
+        try {
+            KeyAgreement ka = KeyAgreement.getInstance(keyMgmt.agreementName());
+            ka.init(entry.keyPair.getPrivate());
+            ka.doPhase(peerPublicKey, true);
+            return ka.generateSecret();
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new RuntimeException("Failed to derive shared secret with key: " + alias, e);
         }
     }
 
@@ -219,12 +273,12 @@ public final class InMemoryVault extends Vault {
                 throw new IllegalStateException("No signing key — cannot create TLS context");
             }
 
-            KeyPair tlsKeyPair = generateKeyPair(KeyType.EC_P256);
+            KeyPair tlsKeyPair = generateKeyPair(Algorithm.Sign.ES256);
             X509Certificate tlsCert = issueCertificate(
                     tlsKeyPair.getPublic(),
                     signingEntry.keyPair.getPrivate(),
                     signingEntry.certificate.getSubjectX500Principal(),
-                    signingEntry.type
+                    (Algorithm.Sign) signingEntry.algorithm
             );
 
             KeyStore ks = KeyStore.getInstance("PKCS12");
@@ -265,12 +319,12 @@ public final class InMemoryVault extends Vault {
                 throw new IllegalStateException("No signing key — cannot create TLS context");
             }
 
-            KeyPair tlsKeyPair = generateKeyPair(KeyType.EC_P256);
+            KeyPair tlsKeyPair = generateKeyPair(Algorithm.Sign.ES256);
             X509Certificate tlsCert = issueCertificate(
                     tlsKeyPair.getPublic(),
                     signingEntry.keyPair.getPrivate(),
                     signingEntry.certificate.getSubjectX500Principal(),
-                    signingEntry.type
+                    (Algorithm.Sign) signingEntry.algorithm
             );
 
             return io.netty.handler.ssl.SslContextBuilder
@@ -291,12 +345,12 @@ public final class InMemoryVault extends Vault {
                 throw new IllegalStateException("No signing key — cannot create TLS context");
             }
 
-            KeyPair tlsKeyPair = generateKeyPair(KeyType.EC_P256);
+            KeyPair tlsKeyPair = generateKeyPair(Algorithm.Sign.ES256);
             X509Certificate tlsCert = issueCertificate(
                     tlsKeyPair.getPublic(),
                     signingEntry.keyPair.getPrivate(),
                     signingEntry.certificate.getSubjectX500Principal(),
-                    signingEntry.type
+                    (Algorithm.Sign) signingEntry.algorithm
             );
 
             return io.netty.handler.ssl.SslContextBuilder
@@ -313,24 +367,19 @@ public final class InMemoryVault extends Vault {
     // Key Generation Helpers
     // ==================================================================================
 
-    private static KeyPair generateKeyPair(KeyType type) {
+    private static KeyPair generateKeyPair(Algorithm.Asymmetric algorithm) {
         try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(type.algorithm());
-
-            if (type == KeyType.RSA_4096) {
-                keyGen.initialize(4096);
-            } else if (type == KeyType.EC_P256) {
-                keyGen.initialize(256);
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algorithm.keyGeneratorName());
+            if (algorithm.keyBits() > 0) {
+                keyGen.initialize(algorithm.keyBits());
             }
-            // Ed25519 doesn't need explicit size
-
             return keyGen.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Failed to generate " + type + " keypair", e);
+            throw new RuntimeException("Failed to generate " + algorithm + " keypair", e);
         }
     }
 
-    private static X509Certificate generateSelfSignedCertificate(KeyPair keyPair, KeyType type) {
+    private static X509Certificate generateSelfSignedCertificate(KeyPair keyPair, Algorithm.Sign algorithm) {
         try {
             long now = System.currentTimeMillis();
             Date notBefore = new Date(now);
@@ -345,13 +394,7 @@ public final class InMemoryVault extends Vault {
                     keyPair.getPublic()
             );
 
-            String sigAlg = switch (type) {
-                case ED25519 -> "Ed25519";
-                case EC_P256 -> "SHA256withECDSA";
-                case RSA_4096 -> "SHA256withRSA";
-            };
-
-            ContentSigner signer = new JcaContentSignerBuilder(sigAlg)
+            ContentSigner signer = new JcaContentSignerBuilder(algorithm.signatureName())
                     .build(keyPair.getPrivate());
 
             return new JcaX509CertificateConverter()
@@ -364,20 +407,21 @@ public final class InMemoryVault extends Vault {
 
     /**
      * Issue a certificate for {@code subjectKey}, signed by {@code issuerKey}.
-     * Used to create TLS certs signed by the Ed25519 signing key.
+     * Used to create TLS certs signed by the Ed25519 signing key,
+     * and to cross-sign non-signing keys (X25519).
      */
     private static X509Certificate issueCertificate(
             PublicKey subjectKey,
             PrivateKey issuerKey,
             javax.security.auth.x500.X500Principal issuerPrincipal,
-            KeyType issuerKeyType) {
+            Algorithm.Sign issuerAlgorithm) {
         try {
             long now = System.currentTimeMillis();
             Date notBefore = new Date(now);
             Date notAfter = new Date(now + 365L * 24 * 60 * 60 * 1000);
 
             X500Name issuer = new X500Name(issuerPrincipal.getName());
-            X500Name subject = new X500Name("CN=CG TLS");
+            X500Name subject = new X500Name("CN=CG Key");
             BigInteger serial = BigInteger.valueOf(now);
 
             X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
@@ -386,13 +430,7 @@ public final class InMemoryVault extends Vault {
                     subjectKey
             );
 
-            String sigAlg = switch (issuerKeyType) {
-                case ED25519 -> "Ed25519";
-                case EC_P256 -> "SHA256withECDSA";
-                case RSA_4096 -> "SHA256withRSA";
-            };
-
-            ContentSigner signer = new JcaContentSignerBuilder(sigAlg)
+            ContentSigner signer = new JcaContentSignerBuilder(issuerAlgorithm.signatureName())
                     .build(issuerKey);
 
             return new JcaX509CertificateConverter()
@@ -407,5 +445,5 @@ public final class InMemoryVault extends Vault {
     // Internal Types
     // ==================================================================================
 
-    private record KeyEntry(KeyPair keyPair, X509Certificate certificate, KeyType type) {}
+    private record KeyEntry(KeyPair keyPair, X509Certificate certificate, Algorithm.Asymmetric algorithm) {}
 }

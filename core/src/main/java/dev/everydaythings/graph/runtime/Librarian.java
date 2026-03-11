@@ -1231,6 +1231,32 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     }
 
     /**
+     * Resolve a principal's current encryption public keys.
+     *
+     * <p>Looks up the principal item by ID, hydrates it as a Signer, and
+     * returns all current encryption keys from its KeyLog. Returns an empty
+     * list if the principal is not found or has no encryption keys.
+     *
+     * <p>Used by the commit flow to resolve {@code EncryptionPolicy.recipients}
+     * (ItemIDs) into actual {@code EncryptionPublicKey} objects for envelope creation.
+     */
+    public java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> resolveEncryptionKeys(ItemID principalId) {
+        if (principalId == null) return java.util.List.of();
+
+        // Check if it's us (common case — encrypting to self)
+        if (principalId.equals(iid()) && encryptionPublicKey() != null) {
+            return java.util.List.of(encryptionPublicKey());
+        }
+
+        return get(principalId, dev.everydaythings.graph.item.user.Signer.class)
+                .map(signer -> {
+                    var key = signer.encryptionPublicKey();
+                    return key != null ? java.util.List.of(key) : java.util.List.<dev.everydaythings.graph.trust.EncryptionPublicKey>of();
+                })
+                .orElse(java.util.List.of());
+    }
+
+    /**
      * Load a manifest for an item from a store.
      */
     private Optional<Manifest> loadManifest(ItemID iid, ItemStore store) {
