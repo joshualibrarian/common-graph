@@ -2,22 +2,23 @@
 
 An **Item** is the fundamental unit of the Common Graph. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item.
 
-An Item is a **versioned, signed, typed container with stable identity**. Every Item carries its own identity, its own history, its own type definition, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
+An Item is a **versioned, signed, typed collection of frames with stable identity**. Every Item carries its own identity, its own history, its own type definition, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
 
 The Item model draws from several traditions: Smalltalk's "everything is an object" with message-passing dispatch (see [references/Kay 1993](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf)), the Actor model's independent entities communicating through messages (see [references/Hewitt et al 1973](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf)), and Engelbart's vision of augmenting human intellect through integrated artifact-language-methodology systems (see [references/Engelbart 1962](references/Engelbart%201962%20-%20Augmenting%20Human%20Intellect.pdf)). Like Bush's memex (see [references/Bush 1945](references/Bush%201945%20-%20As%20We%20May%20Think.pdf)), items are found by meaning and association rather than hierarchical location.
 
 ## Anatomy of an Item
 
-An Item has exactly four parts:
+An Item has exactly three parts:
 
 | Part | What it is |
 |------|-----------|
 | **IID** | Stable 32-byte identity that persists across all versions |
 | **Manifest** | Signed, immutable snapshot of a specific version |
-| **ComponentTable** | Unified table of all content — components, relations, policy |
-| **Vocabulary** | Linguistic surface — merged from component vocabularies at runtime |
+| **FrameTable** | All content — every frame the item contains |
 
-Everything is in the ComponentTable. Components, relations, policy — all stored as entries in one table, serialized as one CBOR array in the manifest, versioned together. Vocabulary is derived at runtime from component verb definitions and persistent EntryVocabulary contributions (see [Vocabulary](vocabulary.md)).
+Everything is in the FrameTable. Content, metadata, streams, policy — all stored as frame entries in one table, serialized as one CBOR array in the manifest, versioned together. Vocabulary is derived at runtime from frame type verb definitions and persistent EntryVocabulary contributions (see [Vocabulary](vocabulary.md)).
+
+See [Frames](frames.md) for the frame primitive itself — the single data model unit that unifies content, assertions, properties, streams, and more.
 
 ## Item Identity (IID)
 
@@ -53,29 +54,28 @@ V1 (parent: null)
 
 The VID hashes only BODY fields (content), not the full manifest. Signatures are non-BODY fields — the VID is computed first, then signed. BODY scope = content identity. RECORD scope = everything including signatures.
 
-## The ComponentTable
+## The FrameTable
 
-The ComponentTable is the **single source of truth** for what an Item contains. Every piece of content, every relation, every policy — all stored as entries in one table. Relations are just components whose type happens to be `cg:type/relation`.
+The FrameTable is the **single source of truth** for what an Item contains. Every frame — content, streams, properties, policy — stored as entries in one table.
 
 ### Structure
 
-The ComponentTable holds two parallel maps:
+The FrameTable holds two parallel maps:
 
 ```
-entries:    HandleID → ComponentEntry    (metadata: type, CID, mounts, identity flag)
-live:       HandleID → Object            (decoded instance: the actual Roster, Log, Relation, etc.)
-aliasIndex: String   → HandleID          (human names: "vault" → HID, "chat" → HID)
+entries:    HandleID → FrameEntry     (metadata: type, CID, mounts, identity flag)
+live:       HandleID → Object         (decoded instance: the actual Roster, Log, etc.)
+aliasIndex: String   → HandleID       (human names: "vault" → HID, "chat" → HID)
 ```
 
 **Entries** are the serialized truth — they go into the manifest, get content-addressed, and sync over the network. **Live instances** are the in-memory decoded forms — they exist only at runtime. The alias index is transient convenience for resolving human-friendly names to handles.
 
-### Component Entries
+### Frame Entries
 
-A `ComponentEntry` is the metadata record for one component. New entries are
-written in **facet form**:
+A `FrameEntry` is the metadata record for one frame. Entries use a **faceted structure**:
 
 ```
-ComponentEntry {
+FrameEntry {
     handle:          HandleID       — local identifier (unique within the item)
     type:            ItemID         — what kind of thing this is (defines codec)
     identity:        boolean        — does this contribute to the VID?
@@ -104,27 +104,22 @@ ComponentEntry {
 }
 ```
 
-Legacy flat fields (`snapshotCid`, `streamHeads`, `streamBased`,
-`referenceTarget`, `mounts`) have been retired; facet fields are now the
-authoritative shape and write path.
-
 This single structure covers every mode of content:
 
 | Mode | What's set | Used for |
 |------|-----------|----------|
 | **Snapshot** | `payload.snapshotCid` | Immutable, content-addressed. Documents, config, images. |
 | **Stream** | `payload.streamHeads`, `payload.streamBased` | Append-only logs. Chat messages, key history, activity feeds. Multiple heads enable branching. |
-| **Local-only** | nothing (no CID, not stream, no reference) | Never syncs. Private keys, caches, device-specific state. The absence of content references implies locality. |
-| **Reference** | `payload.referenceTarget` | Points to another item by IID. The containment primitive — items "inside" a container are references. |
-| **Relation** | `payload.snapshotCid`, `type = Relation.TYPE_ID` | Semantic assertions. Stored like snapshots, typed as relations for query indexing. |
+| **Local-only** | nothing (no CID, not stream, no reference) | Never syncs. Private keys, caches, device-specific state. |
+| **Reference** | `payload.referenceTarget` | Points to another item by IID. The containment primitive. |
 
 ### The identity flag
 
-The `identity` flag on each entry controls whether that component's content contributes to the VID. A vault (local private keys) or a cache doesn't create a new VID when updated — it's registered in the table but its content doesn't affect version identity.
+The `identity` flag on each entry controls whether that frame's content contributes to the VID. A vault (local private keys) or a cache doesn't create a new VID when updated — it's registered in the table but its content doesn't affect version identity.
 
 ### Mounts
 
-Components can have **mounts** — presentation descriptors that control where and how a component appears:
+Frames can have **mounts** — presentation descriptors that control where a frame appears in different views:
 
 | Mount type | Purpose |
 |-----------|---------|
@@ -132,54 +127,25 @@ Components can have **mounts** — presentation descriptors that control where a
 | `SurfaceMount` | 2D UI placement (region in a surface layout) |
 | `SpatialMount` | 3D placement (position/rotation in a space) |
 
-A component can have multiple mounts (like hard links). Components with no mounts are internal entries — they exist in the table but don't appear in navigation.
+A frame can have multiple mounts (like hard links). Frames with no mounts are internal entries — they exist in the table but don't appear in navigation.
 
-### Relations in the ComponentTable
+## Frames
 
-Relations are stored as regular component entries with `type = Relation.TYPE_ID`. The handle is derived from the relation's content hash (`"rel:" + cid`), making it unique even when multiple relations share a predicate.
+A **frame** is the single primitive of Common Graph. Everything an item contains is a frame — content, metadata, streams, assertions. See [Frames](frames.md) for the complete frame model, including:
 
-```
-ComponentEntry.forRelation(predicate, contentCid, identity)
-→ handle:      HandleID.of("rel:" + cid.encodeText())
-→ type:        Relation.TYPE_ID
-→ alias:       formatted predicate (e.g., "author")
-→ snapshotCid: the relation's encoded bytes
-```
+- The body/record split (assertion vs attestation)
+- FrameKeys (compound semantic addresses)
+- Endorsed vs unendorsed frames
+- Queries as incomplete frames
+- Config cascade (scene + policy)
 
-Relations are additionally stored in the library's relation index during commit for efficient fan-out queries. The ComponentTable remains the source of truth.
+### Endorsed and Unendorsed
 
-## Relations
+**Endorsed frames** are included in the item's manifest — the owner commits and signs them. Title, content, roster — these are endorsed.
 
-A `Relation` is a signed semantic assertion — a filled frame based on Fillmore's frame semantics:
+**Unendorsed frames** are attached by others, independently signed. Likes, comments, spam labels, trust attestations — these are unendorsed.
 
-```
-predicate { role₁: value₁, role₂: value₂, ... }
-```
-
-- **Predicate**: an ItemID pointing to a sememe (names the frame — the meaning of the assertion)
-- **Bindings**: a map of thematic roles → targets (fill the frame's argument slots)
-- **Targets**: either an ItemID (linking to another item) or a Literal (text, number, date)
-
-Thematic roles (THEME, TARGET, AGENT, PATIENT, etc.) are sememes themselves — reusable across predicates.
-
-```
-AUTHOR  { theme: item:Book, target: person:Tolkien }
-TITLE   { theme: item:Book, target: "The Hobbit" }
-PUBLISHED { theme: item:Book, target: 1937-09-21 }
-```
-
-Relations are **signable** — they bind a body hash to a signer's key and timestamp, so you can verify who asserted what, and when. The signer (RECORD-only) is separate from any AGENT binding — same fact from different signers produces the same RID (semantic identity).
-
-### Relation fields on Item types
-
-Item types can declare relation fields that are automatically managed:
-
-```java
-@Item.RelationField(predicate = "cg:predicate/author")
-private ItemID author;
-```
-
-During hydration, the field is populated from the relation in the ComponentTable. During commit, the field value is encoded as a Relation, stored in the library index, and added to the ComponentTable as a component entry.
+The structural difference is only manifest inclusion. Same frame format, same hash mechanism, same signing mechanism.
 
 ## Item Types
 
@@ -196,8 +162,7 @@ The type defines:
 |--------|-----|
 | **Identity** | `@Type(value = "cg:type/...")` — deterministic IID for the type item |
 | **Display** | `glyph`, `color`, `shape` — visual identity |
-| **Components** | `@Item.ContentField` on fields — what content this type includes |
-| **Relations** | `@Item.RelationField` on fields — what semantic links this type makes |
+| **Frames** | `@Item.Frame` on fields — what frames this type includes |
 | **Verbs** | `@Verb` on methods — what actions this type supports |
 | **Scene** | `@Scene.*` annotations — unified 2D + 3D rendering |
 
@@ -209,11 +174,11 @@ An Item's versioned state is encapsulated in `ItemState`:
 
 ```
 ItemState {
-    content: ComponentTable    — everything the item contains
+    frames: FrameTable    — everything the item contains
 }
 ```
 
-ItemState wraps the ComponentTable so the Manifest has a named field for "the state of this version." ItemState is shared between the live Item and the Manifest — the Item mutates its state during editing, and the Manifest snapshots it at commit time.
+ItemState wraps the FrameTable so the Manifest has a named field for "the state of this version." ItemState is shared between the live Item and the Manifest — the Item mutates its state during editing, and the Manifest snapshots it at commit time.
 
 ## The Manifest
 
@@ -225,7 +190,7 @@ Manifest {
     iid:        ItemID            — which item this is
     parents:    List<VersionID>   — parent versions (history chain)
     type:       ItemID            — item type
-    state:      ItemState         — all content (the ComponentTable)
+    state:      ItemState         — all content (the FrameTable)
     ─── non-BODY fields (excluded from VID hash) ───
     authorKey:  SigningPublicKey   — who signed this
     signature:  Signing           — the signature itself
@@ -250,9 +215,8 @@ All IDs are multihash values — self-describing hashes that include the algorit
 | **VersionID** | `hash(manifest.BODY)` | Identifies a specific version |
 | **ContentID** | `hash(content_bytes)` | Content-addresses a block of bytes |
 | **HandleID** | `hash(handle_string)` | Local identifier within an item |
-| **RelationID** | `hash(relation.BODY)` | Identifies a specific relation |
 
-All inherit from `HashID`, which implements `Canonical` for serialization. `VersionID`, `ContentID`, and `RelationID` also implement `BlockID` for use as keys in block storage.
+All inherit from `HashID`, which implements `Canonical` for serialization. `VersionID` and `ContentID` also implement `BlockID` for use as keys in block storage.
 
 ## Item Lifecycle
 
@@ -261,30 +225,28 @@ All inherit from `HashID`, which implements `Canonical` for serialization. `Vers
 ```
 new Item(librarian)
  → random IID generated
- → ItemState created with empty ComponentTable
+ → ItemState created with empty FrameTable
  → initializeFreshComponents():
-     for each @Item.ContentField:
+     for each @Item.Frame field:
        1. Create default instance via Components.createDefault()
-       2. Build ComponentEntry (snapshot/stream/local-only)
-       3. Add entry + live instance to ComponentTable
+       2. Build FrameEntry (snapshot/stream/local-only)
+       3. Add entry + live instance to FrameTable
  → onFullyInitialized():
      1. initBuiltinComponents() — add PolicySet
      2. buildVocabulary() — collect verb definitions, merge EntryVocabulary contributions
-     3. populateRelationTable() — add @Item.RelationField values as entries
-     4. syncFieldValuesToTable() — sync subclass field initializers
 ```
 
 ### Hydration (Loading)
 
 ```
 Item loaded from Manifest
- → ComponentEntries extracted from Manifest.state.content
+ → FrameEntries extracted from Manifest.state.frames
  → hydrate():
-     Phase 1: For each ComponentEntry:
+     Phase 1: For each FrameEntry:
        1. Fetch content by CID from the store
        2. Decode via Components.decode() or Canonical.decodeBinary()
-       3. Store live instance in ComponentTable
-     Phase 2: Bind @ContentField fields from table
+       3. Store live instance in FrameTable
+     Phase 2: Bind @Item.Frame fields from table
      Phase 3: Invoke initComponent() on all Component instances
  → onFullyInitialized()
 ```
@@ -293,7 +255,7 @@ Item loaded from Manifest
 
 ```
 item.edit()                    — enter edit mode
-item.addComponent(...)         — modify the ComponentTable
+item.addComponent(...)         — modify the FrameTable
 item.component("chat").add()   — modify a live component
 ```
 
@@ -304,8 +266,7 @@ Edit mode is a flag — it doesn't create a copy. You mutate the item's state di
 ```
 item.commit(signer)
  → scanAndBindFields():
-     1. For each @ContentField: encode value → CID → update ComponentEntry
-     2. For each @RelationField: build Relation → store in library index → add to ComponentTable
+     For each @Item.Frame field: encode value → CID → update FrameEntry
  → Build Manifest (iid, type, parents, state)
  → manifest.sign(signer) — sign BODY bytes with signer's key
  → storeManifest() — serialize and store via librarian
@@ -316,7 +277,7 @@ item.commit(signer)
 
 ```
 item.persist()
- → For each ComponentEntry:
+ → For each FrameEntry:
      1. Encode content
      2. Store bytes in the item's store
      3. Update entry CID
@@ -326,9 +287,9 @@ item.persist()
 
 Persist saves content without creating a version — for auto-save and work-in-progress.
 
-## Components
+## Frame Types
 
-Components can be **any object** — there's no required base class. The `Component` interface is optional, providing lifecycle hooks and display methods:
+Frames can hold **any typed object**. The `Component` interface is optional, providing lifecycle hooks and display methods:
 
 ```java
 public interface Component {
@@ -339,59 +300,49 @@ public interface Component {
 }
 ```
 
-The `@Type` annotation provides type identity. `Components.encode()/decode()` handles serialization. The `Component` interface is only for items that need lifecycle hooks or display customization.
+The `@Type` annotation provides type identity. `Components.encode()/decode()` handles serialization. The `Component` interface is only for frame types that need lifecycle hooks or display customization.
 
-### Built-in Components
+### Built-in Frame
 
-Every Item always has one built-in component, added during `initBuiltinComponents()`:
+Every Item always has one built-in frame, added during `initBuiltinComponents()`:
 
-| Component | Handle | Purpose |
-|-----------|--------|---------|
+| Frame | Handle | Purpose |
+|-------|--------|---------|
 | **PolicySet** | `"policy"` | Per-item authorization rules |
 
 PolicySet is always `identity=true` — changing who can do what changes the version.
 
-**Vocabulary is derived at runtime.** An item's vocabulary — its linguistic surface (verbs it handles, nouns it recognizes, proper names for its components) — is built by merging:
+**Vocabulary is derived at runtime.** An item's vocabulary — its linguistic surface (verbs it handles, nouns it recognizes, proper names for its frames) — is built by merging:
 1. Verb definitions on the item type (code layer)
-2. Verb definitions on each component type (code layer)
-3. `EntryVocabulary` contributions on each ComponentEntry (persistent user layer)
+2. Verb definitions on each frame's type (code layer)
+3. `EntryVocabulary` contributions on each FrameEntry (persistent user layer)
 
 See [Vocabulary](vocabulary.md) for the full vocabulary system.
 
 ## Field Annotations
 
-### @Item.ContentField
+### @Item.Frame
 
-Declares a component field on an Item type:
+Declares a frame field on an Item type:
 
 ```java
-@Item.ContentField(alias = "chat", stream = true)
+@Item.Frame(handle = "chat", stream = true)
 private Log chatLog;
+
+@Item.Frame(key = {"cg.core:name"}, endorsed = false)
+private String name;
 ```
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `handleKey` | `""` (derived from field name) | Seed for HandleID computation |
-| `alias` | `""` | Human-facing name in the tree |
-| `path` | `""` | Filesystem path for local-only components |
+| `key` | `{}` | Semantic FrameKey tokens (sememe canonical keys) |
+| `handle` | `""` (derived from field name) | Literal handle for HandleID computation |
+| `path` | `""` | Mount path for presentation |
 | `snapshot` | `true` | Store as immutable snapshot? |
 | `stream` | `false` | Store as append-only stream? |
 | `localOnly` | `false` | Path-based, never synced? |
 | `identity` | `true` | Contributes to VID? |
-
-### @Item.RelationField
-
-Declares a relation that this item endorses:
-
-```java
-@Item.RelationField(predicate = "cg:predicate/author")
-private ItemID author;
-```
-
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `predicate` | (required) | The relation's predicate sememe |
-| `canonical` | `true` | Include in manifest (for indexing)? |
+| `endorsed` | `true` | Include in manifest? (false = independently signed) |
 
 ### @Item.Seed
 
@@ -406,21 +357,21 @@ Seed items have deterministic IIDs, timestamp 0, and no signature. They're impor
 
 ## Composable Items
 
-Items compose behavior from components. There are no special "chat room" or "shared folder" types baked into the system — everything is assembled from primitives:
+Items compose behavior from typed frames. There are no special "chat room" or "shared folder" types baked into the system — everything is assembled from primitives:
 
 | Want | Compose |
 |------|---------|
-| Chat room | Item + Roster + Log (stream) |
-| Shared folder | Item + mounted content components |
+| Chat room | Item + Roster (stream) + Log (stream) |
+| Shared folder | Item + mounted content frames |
 | Game | Item + GameComponent (Dag stream) + Roster |
 | User profile | Item + KeyLog (stream) + Vault (local) |
-| Document | Item + content snapshot + relations (author, title) |
+| Document | Item + content snapshot + assertion frames (author, title) |
 
-The same ComponentTable holds all of these. A "chat room" is just an item where one of the entries happens to be a stream-based Log component.
+The same FrameTable holds all of these. A "chat room" is just an item where one of the frames happens to be a stream-based Log.
 
 ## Vocabulary
 
-Every Item has a vocabulary — its linguistic surface. Verbs, nouns, proper names for components — all resolved through sememes:
+Every Item has a vocabulary — its linguistic surface. Verbs, nouns, proper names for frames — all resolved through sememes:
 
 ```
 "create" (English)  --+
@@ -428,8 +379,8 @@ Every Item has a vocabulary — its linguistic surface. Verbs, nouns, proper nam
 ```
 
 The vocabulary is derived at runtime from:
-- Verb definitions on the item type and its component types (code layer)
-- `EntryVocabulary` contributions on component entries (persistent user layer)
+- Verb definitions on the item type and its frame types (code layer)
+- `EntryVocabulary` contributions on frame entries (persistent user layer)
 
 Typing into an Item's prompt dispatches through the vocabulary system. See [Vocabulary](vocabulary.md) for the full dispatch pipeline, expression input, and customization.
 
@@ -450,4 +401,4 @@ my-item/
     └── content/           # Content blocks (by CID)
 ```
 
-The working tree is a view of the ComponentTable — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.
+The working tree is a view of the FrameTable — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.

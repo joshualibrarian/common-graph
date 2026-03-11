@@ -5,16 +5,16 @@ How Common Graph handles common application patterns.
 ## Chat Room
 
 A chat room is an Item with:
-- **Roster component** — Participant list (stream)
-- **Chat component** — Message log (stream)
-- **Title relation** — Room name
+- **Roster frame** — Participant list (stream)
+- **Chat frame** — Message log (stream)
+- **Title assertion** — Room name
 
 ```
 chatRoom {
-    components:
+    frames:
         roster: Roster (stream)
         chat: ChatLog (stream)
-    relations:
+    assertions:
         TITLE { theme: chatRoom, target: "Project Discussion" }
 }
 ```
@@ -24,9 +24,9 @@ Messages are signed entries in the chat stream. Roster changes are signed entrie
 ## Group / Organization
 
 A group is an Item with:
-- **Roster component** — Members with roles
-- **Trust policy component** — Who can do what
-- **Owned items** — Via relations
+- **Roster frame** — Members with roles
+- **Trust policy frame** — Who can do what
+- **Owned items** — Via assertions
 
 ```
 HAS_MEMBER { theme: group:RainbowOps, target: user:Alice, role: "admin" }
@@ -87,9 +87,9 @@ Card games share a `Deck` abstraction built on the Zoned trait — zones represe
 ## Voting / Polls
 
 A poll is an Item with:
-- **Options component** — Available choices
-- **Votes component** — Cast votes (stream)
-- **Eligibility relation** — Who can vote
+- **Options frame** — Available choices
+- **Votes frame** — Cast votes (stream)
+- **Eligibility assertion** — Who can vote
 
 ```
 poll:Budget2024 → hasOption → "Option A: Increase spending"
@@ -97,15 +97,15 @@ poll:Budget2024 → hasOption → "Option B: Maintain current"
 poll:Budget2024 → eligibleVoter → group:BoardMembers
 ```
 
-Votes are signed relations: `user:Alice → votesFor → "Option A" { poll: poll:Budget2024 }`
+Votes are signed assertions: `user:Alice → votesFor → "Option A" { poll: poll:Budget2024 }`
 
 ## Commerce
 
 A product listing is an Item with:
-- **Description component** — Product details
-- **Price relation** — Current price
-- **Inventory relation** — Stock level
-- **Images** — Mounted media components
+- **Description frame** — Product details
+- **Price assertion** — Current price
+- **Inventory assertion** — Stock level
+- **Images** — Mounted media frames
 
 ```
 product:Widget123 → hasPrice → quantity(29.99, USD)
@@ -118,7 +118,7 @@ Orders are Items linking buyer, seller, products, and payment.
 ## File Sharing
 
 A shared folder is an Item with:
-- **Mounted components** — Files at paths
+- **Mounted frames** — Files at paths
 - **Access roster** — Who can read/write
 
 ```
@@ -134,7 +134,7 @@ Sync is automatic between participants who have the item.
 
 ## Moderation
 
-Moderation is expressed through relations:
+Moderation is expressed through signed assertions:
 - Reports: `user:Alice → reports → post:123 { reason: "spam" }`
 - Actions: `moderator:Bob → hides → post:123 { reason: "confirmed spam" }`
 - Appeals: `user:Charlie → appeals → action:456`
@@ -155,17 +155,17 @@ Or via **mixing**:
 
 ## Code Distribution
 
-Code is content. A developer publishes a new component type (a Kanban board, a tax calculator, a game) as an Item carrying `BytecodeComponent` or `ScriptComponent`. Users discover it through the social graph, and their Librarian loads it — trust-gated, content-addressed, hot-swappable.
+Code is content. A developer publishes a new frame type (a Kanban board, a tax calculator, a game) as an Item carrying `BytecodeComponent` or `ScriptComponent`. Users discover it through the social graph, and their Librarian loads it — trust-gated, content-addressed, hot-swappable.
 
 ```
 codeItem:KanbanBoard
     signer: carol
-    components:
+    frames:
         BytecodeComponent:
             mainClass: dev.carol.kanban.KanbanBoard
             targetVersion: 21
         SurfaceTemplate: (board UI)
-    relations:
+    assertions:
         PROVIDES_TYPE → cg:type/kanban-board
         HAS_VERB → cg.verb:create, cg.verb:move
 ```
@@ -175,7 +175,7 @@ No package manager. No app store. No install step. The social graph curates what
 ## Accounting / Ledger
 
 A ledger is an Item with:
-- **Transaction log** — Append-only stream
+- **Transaction log** — Append-only stream frame
 - **Balance computations** — Derived from log
 
 ```

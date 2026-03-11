@@ -1,15 +1,15 @@
-# Components
+# Frame Types
 
-**Components** are the typed building blocks inside Items. They hold content — documents, streams, models, keys — with explicit types that define encoding, behavior, and capabilities.
+**Frame types** are the typed building blocks inside Items. Each frame in an item's FrameTable has a type that defines its encoding, behavior, and capabilities. Frame types range from simple data holders (text, config) to complex interactive objects (game boards, chat streams, key stores).
 
-## Component Structure
+## Frame Entry Structure
 
-Every component in a manifest is described by a **ComponentEntry** with a faceted structure:
+Every frame in a manifest is described by a **FrameEntry** with a faceted structure:
 
 ```
-ComponentEntry {
+FrameEntry {
     handle:    HandleID     # Stable identifier within the item
-    type:      ItemID       # Component type (defines codec/behavior)
+    type:      ItemID       # Frame type (defines codec/behavior)
     identity:  boolean      # Does this contribute to item identity?
 
     payload: {
@@ -30,48 +30,48 @@ ComponentEntry {
     }
 
     vocabulary: {
-        contributions: [VocabularyContribution]  # Vocabulary terms this component provides
+        contributions: [VocabularyContribution]  # Vocabulary terms this frame provides
     }
 }
 ```
 
-At runtime, the ComponentEntry is metadata. The actual component value is decoded from the store and held as a **live instance** alongside the entry.
+At runtime, the FrameEntry is metadata. The actual typed value is decoded from the store and held as a **live instance** alongside the entry.
 
 ## Handles (HID)
 
-A **HandleID** is the component's stable name within its Item:
+A **HandleID** is the frame's stable name within its Item:
 
 - Persists across versions (content changes, handle stays)
 - Human-readable text or hash-based
 - Scoped to the item (not globally unique)
-- Used in mount paths, verb dispatch, and component references
+- Used in mount paths, verb dispatch, and frame references
 
 ## Types
 
-Every component has a **type** — an ItemID pointing to a type definition. The type determines:
+Every frame has a **type** — an ItemID pointing to a type definition. The type determines:
 
 | Aspect | What It Defines |
 |--------|-----------------|
 | **Encoding** | How to serialize/deserialize content |
 | **Capabilities** | Snapshot, stream, or both |
 | **Display** | Glyph, color, shape for rendering |
-| **Verbs** | Actions available on this component type |
-| **Local-only** | Whether this component is ever synced |
+| **Verbs** | Actions available on this frame type |
+| **Local-only** | Whether this frame is ever synced |
 
 Types are themselves Items (sememes), so they participate in the graph: they can be queried, related, and extended.
 
 ## Snapshot vs Stream
 
-Components hold content in one of two modes:
+Frames hold content in one of two modes:
 
-### Snapshot Components
+### Snapshot Frames
 
 Immutable content addressed by CID:
 - Documents, images, configuration, models
 - Replace entirely on update (new CID each time)
 - `snapshotCid` points to the content block
 
-### Stream Components
+### Stream Frames
 
 Append-only logs addressed by head CIDs:
 - Chat messages, key history, activity logs, roster changes
@@ -81,7 +81,7 @@ Append-only logs addressed by head CIDs:
 
 ### Authority: Snapshot vs Stream
 
-Some components support both modes. The **authority** determines which is the source of truth:
+Some frame types support both modes. The **authority** determines which is the source of truth:
 
 | Authority | Truth | Other |
 |-----------|-------|-------|
@@ -90,19 +90,19 @@ Some components support both modes. The **authority** determines which is the so
 
 A CRDT document might use STREAM authority — edits append to the stream, and the snapshot is a materialized view.
 
-## Identity Components
+## Identity Frames
 
-Components marked `identity: true` contribute to the Item's semantic identity:
-- Changes to identity components are meaningful changes to "what this Item IS"
-- The manifest hash includes all components, but identity flags signal intent
+Frames marked `identity: true` contribute to the Item's semantic identity:
+- Changes to identity frames are meaningful changes to "what this Item IS"
+- The manifest hash includes all frames, but identity flags signal intent
 
-Components marked `identity: false` don't affect identity:
+Frames marked `identity: false` don't affect identity:
 - Caches, indexes, local state, derived views
 - Can change without changing the Item's core meaning
 
-## Core Component Types
+## Core Frame Types
 
-### Data Components
+### Data Types
 
 | Type | Description | Mode |
 |------|-------------|------|
@@ -112,17 +112,17 @@ Components marked `identity: false` don't affect identity:
 | **QueryComponent** | Stored queries and views | Snapshot |
 | **ExpressionComponent** | Evaluable expressions | Snapshot |
 | **ScriptComponent** | General-purpose code in external languages (Groovy, JS, WASM) | Snapshot |
-| **BytecodeComponent** | Compiled JVM bytecode, loaded via GraphClassLoader (future) | Snapshot |
+| **BytecodeComponent** | Compiled JVM bytecode, loaded via GraphClassLoader | Snapshot |
 | **SurfaceTemplateComponent** | Display metadata (glyph, color, shape) + compiled scene template | Snapshot |
 
-### Collaboration Components
+### Collaboration Types
 
 | Type | Description | Mode |
 |------|-------------|------|
 | **Roster** | Set of members with join/leave tracking | Stream |
 | **Space** | Spatial coordinate map (positions in 2D/3D) | Stream |
 
-### Security Components
+### Security Types
 
 | Type | Description | Mode | Local-Only |
 |------|-------------|------|------------|
@@ -132,7 +132,7 @@ Components marked `identity: false` don't affect identity:
 
 ### How Vault Differs
 
-The Vault is a special case: a **local-only** component that never leaves the device. Private keys are generated inside the Vault and all cryptographic operations (signing, decryption) happen in-place — the key material never leaves.
+The Vault is a special case: a **local-only** frame that never leaves the device. Private keys are generated inside the Vault and all cryptographic operations (signing, decryption) happen in-place — the key material never leaves.
 
 Vault backends provide different security guarantees:
 
@@ -148,7 +148,7 @@ The choice of vault backend is a local runtime decision — it doesn't affect th
 
 ## Mounts
 
-Components can declare **mounts** — presentation positions that determine where a component appears in different views. A single component can have multiple mounts of different types, appearing simultaneously in tree views, 2D layouts, and 3D spaces.
+Frames can declare **mounts** — presentation positions that determine where a frame appears in different views. A single frame can have multiple mounts of different types, appearing simultaneously in tree views, 2D layouts, and 3D spaces.
 
 ### Mount Types
 
@@ -164,9 +164,9 @@ SpatialMounts use quaternion rotation (identity: `0, 0, 0, 1`). A 4-element form
 
 See [Presentation](presentation.md) for how mounts drive the rendering pipeline.
 
-## Component Vocabulary
+## Frame Vocabulary
 
-Each component has a **vocabulary facet** (`EntryVocabulary`) that holds persistent vocabulary contributions. This is how components customize an item's linguistic surface.
+Each frame has a **vocabulary facet** (`EntryVocabulary`) that holds persistent vocabulary contributions. This is how frames customize an item's linguistic surface.
 
 ### VocabularyContribution
 
@@ -174,28 +174,28 @@ Each component has a **vocabulary facet** (`EntryVocabulary`) that holds persist
 VocabularyContribution {
     trigger:  SememeRef OR LiteralToken   # What activates this entry
     target:   SememeID OR Expression      # What it resolves to
-    scope:    string                      # Scope within the component ("/" = root)
+    scope:    string                      # Scope within the frame ("/" = root)
 }
 ```
 
 The trigger is **either** a sememe reference (pointing to an existing sememe that has its own language tokens) **or** a literal token string (a proper name, optionally with a language tag). It cannot be both — if you want to add tokens to a sememe, you do so on the sememe itself.
 
-### Component Names as Vocabulary
+### Frame Names as Vocabulary
 
-A component's **proper noun** — what it's called in the UI and in expressions — is a vocabulary contribution. The component's name is a `VocabularyContribution` with scope "/" and the appropriate trigger:
+A frame's **proper noun** — what it's called in the UI and in expressions — is a vocabulary contribution. The frame's name is a `VocabularyContribution` with scope "/" and the appropriate trigger:
 
 ```
 # Name via literal token (specific name):
 VocabularyContribution {
     trigger: "notes"             # Literal proper noun
-    target:  <this component>    # Registers this name
+    target:  <this frame>        # Registers this name
     scope:   "/"
 }
 
 # Name via sememe (language-agnostic):
 VocabularyContribution {
     trigger: Sememe(cg:concept/notes)   # Has tokens in every language
-    target:  <this component>
+    target:  <this frame>
     scope:   "/"
 }
 ```
@@ -204,7 +204,7 @@ Proper nouns can carry a language tag ("France" in English, "Frankreich" in Germ
 
 ### Verb Registration
 
-Components register which verb sememes they handle:
+Frames register which verb sememes they handle:
 
 ```
 VocabularyContribution {
@@ -221,7 +221,7 @@ Users can add aliases that map tokens to existing verbs:
 ```
 VocabularyContribution {
     trigger: "post"                 # Literal token
-    target:  Sememe(cg.verb:create) # Maps "post" to "create" in this component
+    target:  Sememe(cg.verb:create) # Maps "post" to "create" in this frame
     scope:   "/"
 }
 ```
@@ -242,20 +242,20 @@ See [Vocabulary](vocabulary.md) for how expressions are parsed and executed recu
 
 ### Vocabulary and Item Hydration
 
-When an item is opened, its vocabulary is rebuilt from all components:
+When an item is opened, its vocabulary is rebuilt from all frames:
 
 1. Collect verb definitions from the item type (code layer)
-2. For each component:
-   a. Collect verb definitions from the component type (code layer)
+2. For each frame:
+   a. Collect verb definitions from the frame type (code layer)
    b. Load `EntryVocabulary` contributions (persistent user layer)
 3. Merge: user-layer entries overlay code-layer entries (user wins on conflict)
 4. Register scoped tokens in the TokenDictionary for discoverability
 
-The item's vocabulary is the **union** of all its components' vocabularies.
+The item's vocabulary is the **union** of all its frames' vocabularies.
 
-## Local-Only Components
+## Local-Only Frames
 
-Some component types are **local-only** — they are never synced, replicated, or shared:
+Some frame types are **local-only** — they are never synced, replicated, or shared:
 
 - Stored in the item's local directory, not the content store
 - Not included in sync/replication
@@ -264,7 +264,7 @@ Some component types are **local-only** — they are never synced, replicated, o
 
 ## Selectors
 
-**Selectors** address fragments within component content:
+**Selectors** address fragments within frame content:
 
 | Selector | Format | Example | Use |
 |----------|--------|---------|-----|
@@ -272,44 +272,44 @@ Some component types are **local-only** — they are never synced, replicated, o
 | JSON path | `[$.path]` | `[$.users[0].name]` | Structured data (future) |
 | Time range | `[t0-t1]` | `[00:30-01:45]` | Media content (future) |
 
-Selectors are type-specific — the component type determines which selectors are valid and how they're interpreted.
+Selectors are type-specific — the frame type determines which selectors are valid and how they're interpreted.
 
-## Component Lifecycle
+## Frame Lifecycle
 
 ### Creation
 
-When an Item is created, its type determines which components are initialized:
+When an Item is created, its type determines which frames are initialized:
 
-1. The Item's type declaration lists required component fields
-2. Each field specifies a handle, component type, and mode (snapshot/stream/local-only)
-3. Default components are created and populated
+1. The Item's type declaration lists required frame fields via `@Item.Frame`
+2. Each field specifies a handle, frame type, and mode (snapshot/stream/local-only)
+3. Default instances are created and populated
 4. Live instances are bound to the Item's fields
 
 ### Hydration
 
 When an Item is loaded from a manifest:
 
-1. ComponentEntries are read from the manifest
+1. FrameEntries are read from the manifest
 2. For each entry, content bytes are fetched from the store by CID
-3. Bytes are decoded via the component type's decoder
+3. Bytes are decoded via the frame type's decoder
 4. Live instances are stored and bound to fields
-5. Each component's initialization callback is invoked
+5. Each Component's initialization callback is invoked
 
 ### Commit
 
 When an Item is committed:
 
-1. Live component values are encoded to bytes via their type's encoder
+1. Live frame values are encoded to bytes via their type's encoder
 2. Content bytes are stored, producing CIDs
-3. ComponentEntries are updated with new CIDs
+3. FrameEntries are updated with new CIDs
 4. All entries are included in the new Manifest
 5. The Manifest is signed and stored
 
-## Creating Components
+## Creating Frames
 
 ### In a Working Tree
 
-Edit `.item/head/components/<hid>.json`:
+Edit `.item/head/frames/<hid>.json`:
 
 ```json
 {
@@ -323,9 +323,9 @@ Then edit the mounted content at the mount path, and commit to mint a new versio
 
 ### Programmatically
 
-Components are typically created by declaring fields on an Item type. The type system automatically creates, hydrates, and commits component values as part of the Item lifecycle.
+Frames are typically created by declaring fields on an Item type with `@Item.Frame`. The type system automatically creates, hydrates, and commits frame values as part of the Item lifecycle.
 
-Components can also be added dynamically at runtime — the ComponentTable supports adding and removing entries between commits.
+Frames can also be added dynamically at runtime — the FrameTable supports adding and removing entries between commits.
 
 ## Schema-Driven Editing
 
@@ -338,12 +338,12 @@ Any Canonical type can be edited through a schema-driven form. The `editing` pac
 
 ## Policy and Access Control
 
-Items carry a `PolicySet` component that defines access rules. The `ItemPolicyResolver` resolves policy subjects against live item state:
+Items carry a `PolicySet` frame that defines access rules. The `ItemPolicyResolver` resolves policy subjects against live item state:
 
 | Subject | Resolution |
 |---------|------------|
 | `"owner"` | Checks `PolicySet.authority().ownerId()` |
-| `"participants"` | Checks membership in the item's `Roster` component |
+| `"participants"` | Checks membership in the item's `Roster` frame |
 | `"hosts"` | Compares against the local librarian's IID |
 | Explicit ID | Direct equality check |
 

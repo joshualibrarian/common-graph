@@ -54,14 +54,14 @@ BindSource = ITEM           # The owning Item
 
 ### Attachment
 
-Scripts attach to items the same way any component does — via `@Item.ContentField` or dynamic addition:
+Scripts attach to items the same way any frame does — via `@Item.Frame` or dynamic addition:
 
 ```java
-@Item.ContentField(handle = "greeting-script", path = "/scripts")
+@Item.Frame(handle = "greeting-script", path = "/scripts")
 private ScriptComponent greetingScript;
 ```
 
-Or dynamically at runtime: add a ScriptComponent to any item's component table, commit, and the new verbs are live.
+Or dynamically at runtime: add a ScriptComponent to any item's frame table, commit, and the new verbs are live.
 
 ### Relationship to ExpressionComponent
 
@@ -128,7 +128,7 @@ Engines are initialized lazily on first use. The Librarian does not start a Pyth
 
 ## Vocabulary Integration
 
-Scripts provide verbs through the same mechanism as everything else: **EntryVocabulary contributions** on their ComponentEntry.
+Scripts provide verbs through the same mechanism as everything else: **EntryVocabulary contributions** on their FrameEntry.
 
 ### Declaring Verbs
 
@@ -361,7 +361,7 @@ ScriptComponents use the same `ScopedSetting` mechanism as any component entry f
 alice@myitem/greeting-script> set greeting-prefix to "Hey"
 ```
 
-This writes a scoped setting on the ComponentEntry. The script reads it through the SETTING binding source. Settings are editable from both prompt and surface, versionable, and scoped (per-user, per-device, per-context). No config files. No environment variables. Settings on a component entry.
+This writes a scoped setting on the FrameEntry. The script reads it through the SETTING binding source. Settings are editable from both prompt and surface, versionable, and scoped (per-user, per-device, per-context). No config files. No environment variables. Settings on a component entry.
 
 ---
 
@@ -522,7 +522,7 @@ Full sandboxing and JavaScript support.
 - `SandboxConfig` from `PolicySet` → GraalVM `Context.Builder` options
 - Host access control (NONE/READONLY/RESTRICTED/FULL)
 - CPU and memory limits via GraalVM resource limits
-- `ScriptPolicy` on ComponentEntry and PolicySet
+- `ScriptPolicy` on FrameEntry and PolicySet
 
 ### Phase 3: Inline Editing + Surface
 

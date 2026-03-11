@@ -247,7 +247,7 @@ DISPATCH {
 }
 ```
 
-The Librarian resolves the token to a sememe via the TokenDictionary, checks the target item's vocabulary for a matching VerbEntry (inner-to-outer: component, then item, then session), invokes the method, and returns the result as OK or ERROR.
+The Librarian resolves the token to a sememe via the TokenDictionary, checks the target item's vocabulary for a matching VerbEntry (inner-to-outer: frame, then item, then session), invokes the method, and returns the result as OK or ERROR.
 
 ### LOOKUP
 
@@ -262,7 +262,7 @@ LOOKUP {
 --> Response: list of Posting records (matched sememes/items with relevance)
 ```
 
-The Librarian performs a scoped prefix search: `tokenDictionary.prefix(text, limit, context)`. Results include both global postings (language-level: verbs, nouns, types) and scoped postings (context-specific: component names, custom aliases). See [Vocabulary](vocabulary.md) for how the expression input uses these completions.
+The Librarian performs a scoped prefix search: `tokenDictionary.prefix(text, limit, context)`. Results include both global postings (language-level: verbs, nouns, types) and scoped postings (context-specific: frame names, custom aliases). See [Vocabulary](vocabulary.md) for how the expression input uses these completions.
 
 ### SUBSCRIBE / EVENT
 

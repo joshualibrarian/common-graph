@@ -1,6 +1,6 @@
 # Streams and Logs
 
-**Streams** are append-only components used for logs, chat, activity feeds, key history, and other growing data. Unlike snapshot components (immutable content replaced on each version), stream components grow over time while maintaining integrity through hash-linked entries.
+**Streams** are append-only frame types used for logs, chat, activity feeds, key history, and other growing data. Unlike snapshot frames (immutable content replaced on each version), stream frames grow over time while maintaining integrity through hash-linked entries.
 
 ## Stream Structure
 
@@ -20,10 +20,10 @@ Each entry is content-addressed: its CID is the hash of its bytes. Each entry re
 
 ## In the Manifest
 
-Stream components record their current state in the manifest's ComponentEntry:
+Stream frames record their current state in the manifest's FrameEntry:
 
 ```
-ComponentEntry {
+FrameEntry {
     handle: "chat"
     type: ChatLog type IID
     streamBased: true
@@ -100,7 +100,7 @@ This lets you:
 
 ## Authority: SNAPSHOT vs STREAM
 
-Components can be either SNAPSHOT-authoritative or STREAM-authoritative:
+Frame types can be either SNAPSHOT-authoritative or STREAM-authoritative:
 
 | Authority | Truth | Other |
 |-----------|-------|-------|

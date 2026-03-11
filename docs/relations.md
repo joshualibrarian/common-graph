@@ -1,12 +1,14 @@
-# Relations
+# Semantic Assertions
 
-**Relations** are signed semantic assertions about Items. They form the queryable graph that connects everything in Common Graph. The relation model is based on Fillmore's Case Grammar (1968) and Frame Semantics (1982): a **predicate** names a frame, and **bindings** fill the frame's roles with items or literal values.
+**Semantic assertions** are signed statements about Items — filled frames based on Fillmore's Case Grammar (1968) and Frame Semantics (1982). A **predicate** names a frame, and **bindings** fill the frame's roles with items or literal values. Assertions are the queryable graph that connects everything in Common Graph.
 
-Early versions of Common Graph used RDF-style triples (Subject -> Predicate -> Object), following the Semantic Web data model. That structure works for simple binary relationships but becomes awkward when a relation involves more than two participants, or when you need to distinguish *who did something* from *what it was done to*. Frames generalize triples: a two-role frame is isomorphic to a triple, but a frame can also express "Alice sent the book to Bob using FedEx on Tuesday" as a single, signed assertion with five roles filled.
+In the frame model, assertions are frames like any other. Endorsed assertions are included in the item's manifest (the owner asserts them). Unendorsed assertions are attached by others and independently signed. See [Frames](frames.md) for the unified frame primitive.
 
-## Relation Structure
+Early versions of Common Graph used RDF-style triples (Subject → Predicate → Object), following the Semantic Web data model. That structure works for simple binary relationships but becomes awkward when a relation involves more than two participants, or when you need to distinguish *who did something* from *what it was done to*. Frames generalize triples: a two-role frame is isomorphic to a triple, but a frame can also express "Alice sent the book to Bob using FedEx on Tuesday" as a single, signed assertion with five roles filled.
 
-A relation is a **filled frame** — a predicate with role bindings:
+## Assertion Structure
+
+An assertion is a **filled frame** — a predicate with role bindings:
 
 ```
 Predicate (Sememe)
@@ -18,16 +20,13 @@ Predicate (Sememe)
 
 | Field | Type | Scope | Description |
 |-------|------|-------|-------------|
-| `version` | int | BODY | Format version (currently 1) |
 | `predicate` | ItemID | BODY | A sememe naming the frame type |
 | `bindings` | Map\<ItemID, Target\> | BODY | Role-to-target map filling the frame's slots |
-| `createdAt` | Instant | BODY | When this relation was created |
-| `rid` | RelationID | RECORD | Hash of BODY bytes (semantic identity) |
-| `authorKey` | SigningPublicKey | RECORD | Who asserts this relation |
-| `signing` | Signing | RECORD | Cryptographic signature |
-| `inputText` | String (nullable) | RECORD | Raw input text that produced this relation (debugging/audit) |
+| `theme` | ItemID | BODY | The item this frame is about (REQUIRED) |
 
-**BODY** fields define the semantic content. **RECORD** fields are metadata about the assertion itself.
+**BODY** fields define the semantic content — they are hashed to produce the frame's body hash (its semantic identity).
+
+**Endorsed assertions** inherit the manifest signature — no separate envelope. **Unendorsed assertions** carry their own signer, timestamp, and signature as RECORD fields.
 
 ## Roles
 
@@ -48,7 +47,7 @@ Roles are **sememes** — language-agnostic concepts referenced by ItemID. Each 
 | `COMITATIVE` | `cg.role:comitative` | A companion or co-participant |
 | `NAME` | `cg.role:name` | A name, label, or designation being assigned |
 
-Most relations use just two roles: **THEME** (what the relation is about) and **TARGET** (what it points to). This is the frame equivalent of a triple's subject and object. Additional roles are filled when the semantics require them.
+Most assertions use just two roles: **THEME** (what the assertion is about) and **TARGET** (what it points to). This is the frame equivalent of a triple's subject and object. Additional roles are filled when the semantics require them.
 
 Roles are not a closed set. New roles can be added as seed vocabulary without changing any code — for example, an evidentiality role for languages that grammaticalize how knowledge was acquired.
 
@@ -74,23 +73,23 @@ TITLE    { THEME: book:Hobbit, NAME: "The Hobbit" }
 READING  { THEME: sensor:temp01, TARGET: 72.5°F }
 ```
 
-## Relation ID (RID)
+## Body Hash (Semantic Identity)
 
-The **RID** is the hash of the relation's BODY bytes — the semantic identity of the assertion:
+The body hash is the hash of the assertion's BODY bytes — the semantic identity:
 
 ```
-RID = Hash( CBOR_canonical( version, predicate, bindings, createdAt ) )
+BodyHash = Hash( CBOR_canonical( predicate, theme, bindings ) )
 ```
 
-Because all BODY fields contribute to the RID, two structurally identical assertions produce the same RID. This is the key design property:
+Because all BODY fields contribute to the hash, two structurally identical assertions produce the same body hash. This is the key design property:
 
-- **Same assertion, different signers:** "The Hobbit is titled 'The Hobbit'" has the same RID regardless of who signs it. Multiple signed records for the same RID represent independent attestations of the same fact.
-- **Different assertions:** "Alice likes Post" and "Bob likes Post" have *different* RIDs because AGENT is a BODY field in the bindings. The agent of the action (an AGENT role binding) is distinct from the agent of the assertion (the signer).
-- **Signer is not in the RID:** The `authorKey` and `signing` fields are RECORD-only. Who *asserts* a fact is metadata about the assertion, not part of the fact itself.
+- **Same assertion, different signers:** "The Hobbit is titled 'The Hobbit'" has the same body hash regardless of who asserts it. Multiple signed records for the same body hash represent independent attestations of the same fact.
+- **Different assertions:** "Alice likes Post" and "Bob likes Post" have *different* body hashes because AGENT is a BODY field in the bindings.
+- **Signer is not in the body:** Who *asserts* a fact is metadata about the assertion, not part of the fact itself.
 
-## Signing Relations
+## Signing Assertions
 
-Relations are signed independently of the Items they describe:
+Assertions are signed independently of the Items they describe:
 
 ```java
 Relation relation = Relation.builder()
@@ -101,25 +100,7 @@ Relation relation = Relation.builder()
     .sign(signer);
 ```
 
-Signing produces a `Signing` envelope binding the RID, the body hash, and the signer's key:
-
-```
-Signed Relation {
-    body: [version, predicate, bindings, createdAt]
-    rid: hash(body)
-    authorKey: signer's public key
-    signing: Signing {
-        targetId: rid
-        bodyHash: hash(body)
-        sig: Sig {
-            algorithm: Ed25519
-            keyId: signer's key hash
-            timestamp: signing time
-            signature: bytes
-        }
-    }
-}
-```
+For endorsed assertions, the manifest signature covers all endorsed frame body hashes — no separate envelope needed. For unendorsed assertions, each carries its own signature binding the body hash to a signer key and timestamp.
 
 This means:
 - Anyone can assert a relation about any item
@@ -140,9 +121,9 @@ book.relate(Sememe.TITLE.iid(), Literal.ofText("The Hobbit"));
 // Creates: predicate=TITLE, { THEME: book, TARGET: "The Hobbit" }
 ```
 
-If the item is a `Signer`, the relation is automatically signed. If the item has a `Librarian`, the relation is automatically stored.
+If the item is a `Signer`, the assertion is automatically signed. If the item has a `Librarian`, the assertion is automatically stored.
 
-For relations that need more roles, use the builder directly:
+For assertions that need more roles, use the builder directly:
 
 ```java
 Relation.builder()
@@ -174,12 +155,12 @@ This ensures:
 
 See [Sememes](sememes.md) for the full semantic backbone.
 
-## Frames Unify Relations, Dispatch, and Queries
+## Frames Unify Assertions, Dispatch, and Queries
 
-Relations, verb dispatch, and queries are the same thing — a frame filled to different degrees:
+Assertions, verb dispatch, and queries are the same thing — a frame filled to different degrees:
 
 - **Fully filled + code:** A verb dispatch. The predicate names the action, the bindings are the arguments, and a `@Verb` method executes it.
-- **Fully filled + no code:** An assertion. The predicate names the relationship, the bindings state the fact, and the relation is stored and signed.
+- **Fully filled + no code:** An assertion. The predicate names the relationship, the bindings state the fact, and the frame is stored and signed.
 - **Partially filled:** A query. The predicate constrains the search, filled roles are filters, and empty roles are the unknowns to be resolved.
 
 This unification is why predicates, roles, and the vocabulary system are shared across all three. "Create a chess game" and "animal IS-A mammal" use the same frame machinery — one dispatches, the other asserts.
@@ -207,59 +188,47 @@ Literal {
 
 See [CG-CBOR](cg-cbor.md) for encoding details.
 
-## Storage
+## Storage and Indexing
 
-Relations are content-addressed by **RECORD CID** — the hash of the full RECORD bytes including the signature. This is different from the RID:
+Assertion frames are stored in the unified object store alongside all other content. See [Storage Architecture](storage.md) for the full storage design.
 
-- **RID** = hash of BODY = semantic identity of the assertion
-- **RECORD CID** = hash of RECORD = identity of this specific signed attestation
+**Endorsed assertions** are referenced by the manifest's frame table (body hash in the FrameEntry). The manifest signature is the record — no separate envelope stored.
 
-The same RID from different signers produces different RECORD CIDs. Both are stored:
-- The RECORD bytes (the full signed relation) are stored by RECORD CID in the item store
-- The RID is stored as the value in fan-out index entries, enabling deduplication queries
+**Unendorsed assertions** are stored as independent records in the object store, linked to items via the FRAME_BY_ITEM index. Each record is self-contained: body hash + signer + signature.
 
-All queries go through LibraryIndex fan-outs, which return RECORD CIDs, which are used to load the full relation bytes from the store.
+### FRAME_BY_ITEM Index
 
-## Indexing
-
-Two fan-out indexes enable efficient relation queries:
-
-### REL_BY_ITEM
-
-Indexes every IidTarget binding — every item that participates in the relation, regardless of role:
+Indexes every ItemID that participates in any frame binding:
 
 ```
-Key:   participantIID | predicate | recordCID
-Value: RID bytes
+Key:   ItemID | Predicate | BodyHash
+Value: CID (pointing to body or record in OBJECTS)
 ```
 
-This enables:
-- **byItem(iid)** — "All relations involving this item" (any role)
-- **byItemPredicate(iid, pred)** — "All HYPERNYM relations involving this item"
+Because predicates are ItemIDs, querying by predicate is just a prefix scan where the ItemID happens to be a predicate:
 
-### REL_BY_PRED
+| Query | Scan |
+|-------|------|
+| All frames involving item X | Prefix `[X]` |
+| Frames involving X via predicate P | Prefix `[X | P]` |
+| All frames with predicate P | Prefix `[P]` (P is an ItemID too) |
 
-Indexes by predicate alone:
+### RECORD_BY_BODY Index
+
+Indexes records by body hash:
 
 ```
-Key:   predicate | recordCID
-Value: RID bytes
+Key:   BodyHash | SignerKeyID
+Value: CID (pointing to record in OBJECTS)
 ```
 
-This enables:
-- **byPredicate(pred)** — "All HYPERNYM relations in the library"
-
-### Predicate-Specific Indexing
-
-Not every binding should be indexed the same way. HYPERNYM should index both the theme and the target — you want to find both "what is animal a hypernym of?" and "what are the hypernyms of mammal?". But LIKES probably should not fan out every liker into an index entry, because the fan-out would be enormous and the query "who likes this?" is better served by a predicate-scoped search.
-
-This is a predicate-level policy decision. The current implementation indexes all IidTarget bindings uniformly. Selective indexing based on predicate metadata is a planned refinement.
+Enables "who attests to this assertion?" and "how many independent attestations does this fact have?"
 
 ### Index Properties
 
-Indexes use composite binary keys with fixed-width hash fields and separator bytes, enabling efficient prefix scans and range queries. See [Library](library.md) for the storage architecture.
+Indexes use composite binary keys with fixed-width hash fields, enabling efficient prefix scans and range queries. See [Library](library.md) for the storage architecture.
 
-Indexes are derived and rebuildable — canonical truth lives in the signed relations themselves.
+Indexes are derived and rebuildable — canonical truth lives in the signed frames themselves.
 
 ## Examples
 
@@ -295,9 +264,9 @@ PEERS_WITH   { THEME: librarian:A, TARGET: librarian:B }
 REACHABLE_AT { THEME: librarian:B, TARGET: Endpoint("cg", 192.168.1.1, 7432) }
 ```
 
-Network relations double as the routing layer — predicates like PEERS_WITH and REACHABLE_AT are indexed, so querying them gives you the peer list and topology. See [Network: Predicates ARE Indexes](network.md#predicates-are-indexes).
+Network assertions double as the routing layer — predicates like PEERS_WITH and REACHABLE_AT are indexed, so querying them gives you the peer list and topology. See [Network: Predicates ARE Indexes](network.md#predicates-are-indexes).
 
-**Rich relations with multiple roles:**
+**Rich assertions with multiple roles:**
 ```
 SENT { AGENT: user:Alice, PATIENT: book:Hobbit, RECIPIENT: user:Bob,
        INSTRUMENT: "FedEx", TIME: 2024-01-15T10:30:00Z }
@@ -316,7 +285,7 @@ ABOUT { THEME: comment:457, TARGET: doc:789, CAUSE: "clarification" }
 - Fillmore, Charles J. (1982) "Frame Semantics" — Extends case grammar into a theory of meaning based on conceptual frames that predicates evoke
 
 **Knowledge representation:**
-- [Berners-Lee et al 2001 — The Semantic Web](references/Berners-Lee%2C%20Hendler%2C%20Lassila%202001%20-%20The%20Semantic%20Web.pdf) — The original vision for machine-readable meaning on the web. RDF triples were the starting point for CG's relation model
+- [Berners-Lee et al 2001 — The Semantic Web](references/Berners-Lee%2C%20Hendler%2C%20Lassila%202001%20-%20The%20Semantic%20Web.pdf) — The original vision for machine-readable meaning on the web. RDF triples were the starting point for CG's assertion model
 - [Bizer et al 2009 — Linked Data](references/Bizer%2C%20Heath%2C%20Berners-Lee%202009%20-%20Linked%20Data%20The%20Story%20So%20Far.pdf) — Linked data principles and practice
 - [Hogan et al 2021 — Knowledge Graphs](references/Hogan%20et%20al%202021%20-%20Knowledge%20Graphs.pdf) — Comprehensive survey of graph data models, query languages, and knowledge extraction
 - [Gruber 1993 — Ontology Design](references/Gruber%201993%20-%20Toward%20Principles%20for%20the%20Design%20of%20Ontologies.pdf) — "An ontology is an explicit specification of a conceptualization"

@@ -2,7 +2,7 @@
 
 This document specifies the **Scene** data model — Common Graph's unified presentation format. A Scene is a tree of nodes that describes how an Item looks. It is CBOR-serializable, content-addressed, and renderable by any platform.
 
-Scenes are data. They can be produced by annotation compilers, WYSIWYG editors, text tools, or remote peers. They can be stored as Item components, sent over the wire, diffed, and versioned. This document specifies the data model itself — not any particular way of producing it.
+Scenes are data. They can be produced by annotation compilers, WYSIWYG editors, text tools, or remote peers. They can be stored as Item frames, sent over the wire, diffed, and versioned. This document specifies the data model itself — not any particular way of producing it.
 
 > **Status**: Implemented. `Scene.java`, `SceneRenderer`, `SceneSchema`, and `SceneCompiler` are in `core/src/main/java/.../ui/scene/`.
 

@@ -642,7 +642,7 @@ Parent transforms multiply with children: `M_world = M_parent * M_child`.
 
 ## The Mount System
 
-Components within an Item are positioned using **mounts** — presentation descriptors that say *where* a component appears within the Scene. A single component can have multiple mounts of different types, appearing simultaneously in tree views, 2D Surfaces, and 3D Spaces.
+Frames within an Item are positioned using **mounts** — presentation descriptors that say *where* a frame appears within the Scene. A single frame can have multiple mounts of different types, appearing simultaneously in tree views, 2D Surfaces, and 3D Spaces.
 
 ### Mount Types
 
@@ -696,31 +696,31 @@ Construction helpers:
 
 ### Mount Resolution
 
-Mounts live on `ContentEntry` — the metadata record for each component in an Item's content table:
+Mounts live on `FrameEntry` — the metadata record for each frame in an Item's frame table:
 
 | Field | Type | Canon | Description |
 |-------|------|-------|-------------|
 | `handle` | HandleID | 0 | Local handle (unique within item) |
-| `type` | ItemID | 1 | Component type reference |
+| `type` | ItemID | 1 | Frame type reference |
 | `identity` | boolean | 2 | Contributes to version identity? |
 | `snapshotCid` | ContentID | 3 | Content hash for snapshot |
 | `streamHeads` | ContentID list | 4 | Stream head hashes |
 | `streamBased` | boolean | 5 | Is stream-based? |
 | `handleText` | string | 6 | Display name |
-| `referenceTarget` | ItemID | 7 | Target for reference components |
+| `referenceTarget` | ItemID | 7 | Target for reference frames |
 | `mounts` | Mount list | 8 | Presentation positions |
 
-When a component is spatially mounted, the renderer reads its type annotations and emits:
+When a frame is spatially mounted, the renderer reads its type annotations and emits:
 - **Body** (geometry) at the mount position
 - **Light** (if the component type declares one) offset from mount position
 - **Audio** (if the component type declares one) offset from mount position
 - **Face fallback** (if no body is declared) at the mount position
 
-This is how mounting a "light sconce" component 5 times at different positions gives you 5 sconces with 5 lights — the component type defines the appearance once, and each mount instantiates it.
+This is how mounting a "light sconce" frame 5 times at different positions gives you 5 sconces with 5 lights — the frame type defines the appearance once, and each mount instantiates it.
 
 ### Tree Navigation via PathMounts
 
-The content table supports tree navigation through path mounts:
+The frame table supports tree navigation through path mounts:
 - `roots()` — entries with depth-1 paths (immediate children of "/")
 - `atPath(path)` — entry at an exact path
 - `children(parentPath)` — entries one level below a path
@@ -1103,12 +1103,12 @@ The default 3D presentation for any Item: a white room with the item's component
 
 The camera is deliberately close — the scene feels like a 2D view until the user orbits or zooms. This gives a gentle on-ramp to 3D.
 
-**Component rendering:** iterates each content entry with a SpatialMount. For each:
+**Frame rendering:** iterates each frame entry with a SpatialMount. For each:
 1. `pushTransform()` at the mount's position and rotation
-2. If the component type has a `@Scene.Body`: render the body
+2. If the frame type has a `@Scene.Body`: render the body
 3. If no body: render a Face fallback (2D surface in 3D space)
-4. If the component type has a `@Scene.Light`: add the light
-5. If the component type has a `@Scene.Audio`: add the audio source
+4. If the frame type has a `@Scene.Light`: add the light
+5. If the frame type has a `@Scene.Audio`: add the audio source
 6. `popTransform()`
 
 ### TreeBody (Botanical Tree)
@@ -1257,12 +1257,12 @@ Conditional styles with `!tui` or `!gui` platform conditions allow surfaces to p
 
 ## Policy and Access Control
 
-Items carry a `PolicySet` component that defines access rules. The `ItemPolicyResolver` resolves policy subjects against live item state:
+Items carry a `PolicySet` frame that defines access rules. The `ItemPolicyResolver` resolves policy subjects against live item state:
 
 | Subject | Resolution |
 |---------|------------|
 | `"owner"` | Checks `PolicySet.authority().ownerId()` |
-| `"participants"` | Checks membership in the item's `Roster` component |
+| `"participants"` | Checks membership in the item's `Roster` frame |
 | `"hosts"` | Compares against the local librarian's IID |
 | Explicit ID | Direct equality check |
 
@@ -1282,6 +1282,6 @@ Policy checks are performed via `PolicyEngine.check(accessPolicy, resolver, item
 
 **Every item has its own prompt** — typing into it dispatches the item's verbs. That's the item's API surface.
 
-**Items declare their rendering.** The class IS the definition: `@Scene.*` annotations + component fields + verb methods define everything. No separate handler/descriptor needed. A WYSIWYG editor or text tool could produce the same CBOR schema that the annotations generate.
+**Items declare their rendering.** The class IS the definition: `@Scene.*` annotations + `@Item.Frame` fields + verb methods define everything. No separate handler/descriptor needed. A WYSIWYG editor or text tool could produce the same CBOR schema that the annotations generate.
 
-**Types carry their own editing surfaces.** Every type can declare how its instances are edited. The `editing` package provides the foundation: `EditModel` wraps any `Canonical` for form-based editing, `CanonicalEditorSurface` renders type-appropriate widgets per field. In the future, type Items will carry edit surfaces as components — users can fork/override any type's editing UI.
+**Types carry their own editing surfaces.** Every type can declare how its instances are edited. The `editing` package provides the foundation: `EditModel` wraps any `Canonical` for form-based editing, `CanonicalEditorSurface` renders type-appropriate widgets per field. In the future, type Items will carry edit surfaces as frames — users can fork/override any type's editing UI.

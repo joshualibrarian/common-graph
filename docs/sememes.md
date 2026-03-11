@@ -324,12 +324,12 @@ The hierarchy enables:
 - **Subsumption queries**: "Find all animals" includes dogs, cats, birds
 - **Semantic reasoning**: A dog is a mammal is an animal is a living thing
 - **Faceted navigation**: Browse by broader/narrower relationships
-- **Type compatibility**: Is this component compatible with that slot?
+- **Type compatibility**: Is this frame type compatible with that slot?
 - **Progressive narrowing**: "document" narrows to "markdown document" narrows to a specific implementation (see [Vocabulary](vocabulary.md))
 
 ## Sememes as Types
 
-Component types, scalar types, and item types are all sememes. The type system and the semantic system are unified:
+Frame types, scalar types, and item types are all sememes. The type system and the semantic system are unified:
 
 ```
 plainText (noun sememe) {
@@ -434,7 +434,7 @@ This is one of Common Graph's most fundamental design decisions: meaning is a fi
 
 **Internal:**
 - [Vocabulary](vocabulary.md) — Dispatch, expression input, customization
-- [Components](components.md) — EntryVocabulary and component vocabulary contributions
+- [Frame Types](components.md) — EntryVocabulary and frame vocabulary contributions
 
 **External resources:**
 - [WordNet](https://wordnet.princeton.edu/) — Lexical database of English

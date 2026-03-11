@@ -135,7 +135,7 @@ Scope: cg:language/eng     Token: "create"     → cg.verb:create
 Scope: cg:language/spa     Token: "crear"      → cg.verb:create
 Scope: cg:language/eng     Token: "meter"      → cg:unit/meter
 Scope: cg:language/spa     Token: "metro"      → cg:unit/meter
-Scope: <item X>            Token: "notes"      → <component on X>
+Scope: <item X>            Token: "notes"      → <frame on X>
 Scope: <user Y>            Token: "deploy"     → <user Y's alias>
 Scope: null                Token: "m"          → cg:unit/meter
 Scope: null                Token: "+"          → cg:operator/add
@@ -159,8 +159,8 @@ Postings come from:
 - **Sememe symbols**: Language-neutral shorthand declared on sememes — indexed with null scope
 - **Seed vocabulary**: Bootstrap English tokens indexed under `cg:language/eng`
 - **Lexicon imports**: WordNet, CILI — each language's lexemes scoped to its Language Item, merged idempotently
-- **Component vocabulary**: EntryVocabulary contributions scoped to their item
-- **Relations**: Named relations (title, alias) scoped to their item
+- **Frame vocabulary**: EntryVocabulary contributions scoped to their item
+- **Assertions**: Named assertion frames (title, alias) scoped to their item
 - **User customization**: Custom aliases and scripted expressions scoped to the user or item
 
 ## Operators and Functions
@@ -213,14 +213,14 @@ Every Item has a **vocabulary** — its linguistic surface. An item's vocabulary
 Code Layer (transient, declared in type definitions)
     |
     +-- @Verb methods on the Item type --> base verbs all items of this type share
-    +-- @Verb methods on component types --> component-specific verbs
+    +-- @Verb methods on frame types --> frame-specific verbs
     |
 User Layer (persistent, from EntryVocabulary)
     |
     +-- Custom aliases ("deploy" --> cg.verb:commit)
     +-- Scripted expressions ("deploy" --> "commit then push to production")
     +-- Function definitions (f(x) = x^2 + 1)
-    +-- Component proper nouns ("notes", "chat")
+    +-- Frame proper nouns ("notes", "chat")
     |
 Runtime Merge (on item open/hydrate)
     |
@@ -230,9 +230,9 @@ Runtime Merge (on item open/hydrate)
 
 ### Vocabulary Is Derived
 
-An item's runtime vocabulary is rebuilt each time the item is opened — merged from its type's code-defined verbs and its components' persistent EntryVocabulary contributions.
+An item's runtime vocabulary is rebuilt each time the item is opened — merged from its type's code-defined verbs and its frames' persistent EntryVocabulary contributions.
 
-All persistent vocabulary customization happens through **components**. Adding components is how you customize items. Writing a new type is how you define new behavior.
+All persistent vocabulary customization happens through **frames**. Adding frames is how you customize items. Writing a new type is how you define new behavior.
 
 ### Hydration: Synchronizing Persistent and Runtime State
 
@@ -240,9 +240,9 @@ When an Item is opened (hydrated from storage):
 
 ```
 1. Collect verb definitions from the item type --> base verb entries
-2. For each component:
-   a. Collect verb definitions from the component type --> component verb entries
-   b. Load component's EntryVocabulary contributions --> persistent customizations
+2. For each frame:
+   a. Collect verb definitions from the frame type --> frame verb entries
+   b. Load frame's EntryVocabulary contributions --> persistent customizations
    c. Merge into runtime dispatch surface
 3. User-layer entries overlay code-layer entries (user wins on conflict)
 4. Scoped tokens indexed in TokenDictionary for discoverability
@@ -255,7 +255,7 @@ The result is a live dispatch map: sememeId to VerbEntry, plus all proper nouns,
 When a command expression is evaluated, the system checks vocabularies from most specific to most general:
 
 ```
-Component vocabulary   (most specific — focused component's verbs)
+Frame vocabulary        (most specific — focused frame's verbs)
     |
 Item vocabulary        (type-level verbs)
     |
@@ -264,7 +264,7 @@ Session vocabulary     (session-level verbs like "exit", "back")
 Librarian vocabulary   (system-level)
 ```
 
-This means a component's local meaning wins over the item's general meaning, which wins over the session's global meaning.
+This means a frame's local meaning wins over the item's general meaning, which wins over the session's global meaning.
 
 Mathematical expressions and function calls don't follow this chain — operators and functions resolve directly from the TokenDictionary (typically at universal/null scope) and evaluate without verb dispatch.
 
@@ -286,7 +286,7 @@ User types: "exit"
 
 This works because:
 - Session knows it's a `cg:type/session` (its type sememe, which has the token "session")
-- The game component knows it's a `cg:type/game` (its type sememe, which has the token "game")
+- The game frame knows it's a `cg:type/game` (its type sememe, which has the token "game")
 - The expression parser sees `verb + noun` and uses the noun to scope the verb
 
 No special cases. Just more language. Automatically multilingual — "salir de sesion" works the same way once Spanish lexemes are loaded.
@@ -295,8 +295,8 @@ No special cases. Just more language. Automatically multilingual — "salir de s
 
 A Session is an Item. It has:
 - A type (`cg:type/session`) with verb definitions (`exit`, `back`, `switch`, `authenticate`)
-- Components (activity log, preferences, authenticated users)
-- Relations (session to current user, session to focused item)
+- Frames (activity log, preferences, authenticated users)
+- Assertion frames (session to current user, session to focused item)
 
 This means session verbs participate in the same vocabulary system as everything else. "Exit" resolves through the TokenDictionary to `cg.verb:exit`, and the Session's vocabulary has a VerbEntry for it. No special-case string matching.
 
@@ -340,8 +340,8 @@ VerbEntry {
     method:          method ref      # The bound method to invoke
     doc:             string          # Human-readable description
     params:          [ParamSpec]     # Parameter metadata
-    source:          ITEM | COMPONENT  # Where this verb was declared
-    componentHandle: string?        # Which component (if source = COMPONENT)
+    source:          ITEM | FRAME     # Where this verb was declared
+    frameHandle:     string?        # Which frame (if source = FRAME)
     target:          object          # The live instance to invoke on
 }
 ```
@@ -369,7 +369,7 @@ Each Item has its own prompt. The prompt always shows `actor@context>`:
 ```
 alice@session>                  # Session level (the default context)
 alice@chess>                    # Focused on a chess game
-alice@chess/board>              # Navigated into a component
+alice@chess/board>              # Navigated into a frame
 bob@project>                    # Different user, different item
 ```
 
@@ -532,7 +532,7 @@ When Enter is pressed:
 1. Any remaining pending text is committed (resolved where possible)
 2. The token list is analyzed: does it contain operators/functions (expression) or a verb (command)?
 3. **Expression path**: the Pratt parser builds an AST, evaluates it, returns a value
-4. **Command path**: the FrameAssembler builds a semantic frame, the verb is located via the scope chain (component --> item --> session --> librarian), and invoked with the frame's bindings
+4. **Command path**: the FrameAssembler builds a semantic frame, the verb is located via the scope chain (frame --> item --> session --> librarian), and invoked with the frame's bindings
 5. **Navigation path**: a single resolved noun/proper noun navigates to that item
 6. An ActionResult or value is returned
 
@@ -657,10 +657,10 @@ Deferred resolution interacts with the existing scope chain. When candidates com
 
 ```
 "notes" in context of a Project item:
-  Posting(target=<project's notes component>, scope=<project>, weight=0.9)  # Item scope
+  Posting(target=<project's notes frame>, scope=<project>, weight=0.9)      # Item scope
   Posting(target=cg:type/note, scope=cg:language/eng, weight=0.7)          # Language scope
 
-Item scope > Language scope → auto-resolve to the component
+Item scope > Language scope → auto-resolve to the frame
 ```
 
 Weight already encodes relevance, and scope chain order encodes proximity. Together they handle most ambiguity without needing the full beam-search path. Deferred resolution is the fallback for cases where these signals aren't enough.
@@ -681,12 +681,12 @@ Vocabulary is persistent and customizable. Users can:
 - Add custom aliases for existing verbs
 - Create scripted expressions that chain actions
 - Define functions (stored as expressions)
-- Name components with proper nouns
-- All stored in EntryVocabulary contributions on components
+- Name frames with proper nouns
+- All stored in EntryVocabulary contributions on frame entries
 
 ### Custom Aliases
 
-A user adds an alias to a component's EntryVocabulary:
+A user adds an alias to a frame's EntryVocabulary:
 
 ```
 VocabularyContribution {
@@ -700,7 +700,7 @@ Or a literal proper noun:
 ```
 VocabularyContribution {
     trigger: "shopping list"            # Literal token, optionally with language tag
-    target:  <this component>           # Registers a name
+    target:  <this frame>               # Registers a name
 }
 ```
 
@@ -829,7 +829,7 @@ This isn't trying to understand arbitrary natural language. It's a **structured-
 
 **Internal:**
 - [Sememes](sememes.md) — The semantic backbone (what sememes are, hierarchies, anchoring)
-- [Components](components.md) — EntryVocabulary contributions, component proper nouns
+- [Frame Types](components.md) — EntryVocabulary contributions, frame proper nouns
 - [Library](library.md) — TokenDictionary storage architecture
 - [Protocol](protocol.md) — DISPATCH and LOOKUP messages
 - [Workspace](workspace.md) — Session, views, navigation, prompt format

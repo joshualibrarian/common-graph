@@ -1,6 +1,6 @@
 # Library
 
-The **Library** is the local storage engine for a Common Graph node. It manages everything a Librarian knows: item manifests, content blocks, relations, and the indexes that make them queryable.
+The **Library** is the local storage engine for a Common Graph node. It manages everything a Librarian knows: item manifests, content blocks, frames, and the indexes that make them queryable.
 
 ## Architecture
 
@@ -81,8 +81,8 @@ Token sources:
 - **Sememe symbols**: Language-neutral shorthand indexed with null scope
 - **Seed vocabulary**: English tokens indexed under `cg:language/eng` at bootstrap
 - **Lexicon imports**: WordNet, CILI — each language's lexemes scoped to its Language Item, merged idempotently
-- **Component vocabulary**: EntryVocabulary contributions scoped to their item
-- **Relations**: Named relations (title, alias) scoped to their item
+- **Frame vocabulary**: EntryVocabulary contributions scoped to their item
+- **Assertions**: Named assertion frames (title, alias) scoped to their item
 
 ## Storage Backends
 
@@ -143,7 +143,7 @@ Seed items include:
 |----------|----------|
 | **Language items** | English (`cg:language/eng`) — with seed lexicon |
 | **Core types** | Item, Signer, Host, Sememe |
-| **Component types** | Log, Dag, Roster, Space, Model, Vault, KeyLog |
+| **Frame types** | Log, Dag, Roster, Space, Model, Vault, KeyLog |
 | **Value types** | Text, Integer, Decimal, Rational, Boolean, Instant, Quantity |
 | **Predicates** | Author, Title, Description, Created, Modified |
 | **Semantic relations** | Hypernym, Hyponym, Instance-of, Holonym, Meronym |
@@ -162,8 +162,8 @@ The **WorkingTreeStore** provides filesystem-backed storage for items being acti
 ```
 WorkingTreeStore {
     exists(path) → boolean          # Is there an item at this path?
-    load(path) → [ComponentEntry]   # Load component entries from .item/
-    save(path, entries)             # Write component entries to .item/
+    load(path) → [FrameEntry]       # Load frame entries from .item/
+    save(path, entries)             # Write frame entries to .item/
     commit(path, signer) → Manifest # Build and sign manifest from working tree
 }
 ```

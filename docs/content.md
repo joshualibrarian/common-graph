@@ -31,7 +31,7 @@ See [Library](library.md) for the storage backends (RocksDB, MapDB, in-memory).
 
 ## Encoding
 
-Content is encoded through **component types**. Different types encode differently:
+Content is encoded through **frame types**. Different types encode differently:
 - Plain text → UTF-8 bytes
 - Structured data → Canonical CG-CBOR
 - Binary → Raw bytes
@@ -54,7 +54,7 @@ iid:<hex>\<cid>[selector]
 | Line/column (future) | `[line:col-line:col]` | `[10:5-15:20]` |
 | Time range (future) | `[t0-t1]` | `[00:30-01:45]` |
 
-Selectors are type-specific — the component type determines which selectors are valid and how they're interpreted. See [Syntax](syntax.md) for the full reference syntax.
+Selectors are type-specific — the frame type determines which selectors are valid and how they're interpreted. See [Syntax](syntax.md) for the full reference syntax.
 
 ## Large Content
 
@@ -103,7 +103,7 @@ This happens automatically on fetch. Corrupted or tampered content fails verific
 
 ```
 Content bytes → CID (verified by hash)
-    → ComponentEntry → Manifest → VID (verified by hash)
+    → FrameEntry → Manifest → VID (verified by hash)
         → Signature (verified by public key)
 ```
 
@@ -121,7 +121,7 @@ Content hashes reveal nothing about content (one-way function), but:
 
 For sensitive content:
 - Encrypt before hashing (produces a different CID each encryption)
-- Use access control at the item/component level
+- Use access control at the item/frame level
 - Don't share CIDs of private content
 
 ## Content on the Network

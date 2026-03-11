@@ -18,12 +18,12 @@ Both produce the same `SemanticFrame(PLACE, {THEME: chess, TARGET: main})`.
 
 ## Views Are Mounts
 
-A **view** is an on-screen presence of an item. Under the hood, a view is a **reference stub** component on the session item, mounted in a display or in another item's surface region. No special "view" data structure — it's the existing component + mount system.
+A **view** is an on-screen presence of an item. Under the hood, a view is a **reference stub** frame on the session item, mounted in a display or in another item's surface region. No special "view" data structure — it's the existing frame + mount system.
 
 When you `view chess-club`:
-1. The session creates a **reference component** pointing to chess-club
+1. The session creates a **reference frame** pointing to chess-club
 2. That reference gets **mounted** on the current display (or in a workspace region)
-3. The reference component carries session-local state: internal focus, actor, view preferences
+3. The reference frame carries session-local state: internal focus, actor, view preferences
 
 The same item can have multiple reference stubs → multiple views on screen. Each is an independent mount.
 
@@ -41,7 +41,7 @@ Host Item (macbook-pro)               Host Item (iphone)
 └── key-log
 ```
 
-When a host participates in a session, its displays become available as mount targets. Each display component has a surface representing its screen real estate.
+When a host participates in a session, its displays become available as mount targets. Each display frame has a surface representing its screen real estate.
 
 ### Multiple Librarians Per Machine
 
@@ -130,14 +130,14 @@ Whether floating items and layouts are implemented as actual OS windows or as si
 | `place X in main` | Move mount to "main" region |
 | `place X on external-1` | Move mount to a display |
 | `fullscreen X` | Expand to fill current display |
-| `create X` | Create component on current item |
-| `move X to Y` | Move component between items |
+| `create X` | Create frame on current item |
+| `move X to Y` | Move frame between items |
 
 All reuse existing verbs: `create`, `place`, `move`, `focus`, `dismiss`, `view`. Only `view` and `dismiss` are new sememes. `view` is a real verb on the session (`@Verb(Sememe.VIEW)`) — it parses normally as `SemanticFrame(VIEW, {THEME: chess-club})` with smart focus-or-create behavior in the verb implementation.
 
 ### Within a View
 
-When you're looking at a view, you can browse its item's components via the tree or keyboard. Selecting a component shows its scene in the view's detail area. This is **intra-view navigation** — you never leave the view. The on-screen presence stays put, only its internal focus changes.
+When you're looking at a view, you can browse its item's frames via the tree or keyboard. Selecting a frame shows its scene in the view's detail area. This is **intra-view navigation** — you never leave the view. The on-screen presence stays put, only its internal focus changes.
 
 ```
 # Looking at chess-club view:
@@ -172,7 +172,7 @@ The session manages:
 - **Host references** — which devices participate (and thus which displays are available)
 - **View reference stubs** — on-screen items with their mount locations and session-local state
 - **Authenticated users** — who has proven key possession (challenge-response)
-- **Activity log** — a Log component recording all session interactions
+- **Activity log** — a Log frame recording all session interactions
 
 ### Multi-User
 
@@ -214,19 +214,19 @@ The host owns the tray because the host owns the displays. Librarians are tenant
 
 Clicking a view entry focuses it. The tray icon badge or color indicates host state: all healthy (green), syncing (blue), offline (gray), error (red).
 
-## Items, Components, and Mounting
+## Items, Frames, and Mounting
 
 Three distinct concerns:
 
 | Concern | What it means |
 |---------|---------------|
-| **Composition** | A component belongs to an item (in its component table) |
-| **Mounting** | A component is assigned to a region in an item's surface |
+| **Composition** | A frame belongs to an item (in its frame table) |
+| **Mounting** | A frame is assigned to a region in an item's surface |
 | **Viewing** | A reference stub is mounted on a display (making the item visible) |
 
 These are independent:
-- A component can exist without being mounted (in the tree, not in a surface region)
-- A mounted component is visible when you're looking at that item's root view
+- A frame can exist without being mounted (in the tree, not in a surface region)
+- A mounted frame is visible when you're looking at that item's root view
 - An item can exist in the graph without any views (no reference stubs mounted anywhere)
 
 Viewing is just mounting at a different scope. Same mechanism.

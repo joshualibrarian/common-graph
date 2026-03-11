@@ -7,7 +7,7 @@ Common Graph uses a consistent syntax for referencing items, versions, content, 
 ```
 iid:<hex>                    # Item by identity
 iid:<hex>@<vid>              # Specific version
-iid:<hex>#<rid>              # Specific relation
+iid:<hex>#<bodyhash>         # Specific frame (by body hash)
 iid:<hex>\<cid>              # Content block
 iid:<hex>\<cid>[selector]    # Content fragment
 ```
@@ -21,7 +21,7 @@ iid:a1b2c3d4e5f6...
 # Specific version
 iid:a1b2c3d4e5f6...@f9e8d7c6b5a4...
 
-# A relation on the item
+# A specific frame on the item (by body hash)
 iid:a1b2c3d4e5f6...#1234abcd...
 
 # A content block
@@ -43,7 +43,7 @@ Selectors address fragments within content:
 
 ## Human-Readable Aliases
 
-Human-readable names are **relations**, not magic namespaces:
+Human-readable names are **assertion frames**, not magic namespaces:
 
 ```
 user:Alice → hasAlias → literal("~alice") { scope: "local" }
@@ -51,7 +51,7 @@ user:Alice → hasAlias → literal("~alice") { scope: "local" }
 
 Resolution:
 1. Start from a known item (your host, a directory)
-2. Follow alias relations
+2. Follow alias frames
 3. Apply trust policy to choose among conflicts
 
 ## Encoding Conventions

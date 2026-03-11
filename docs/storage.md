@@ -272,26 +272,6 @@ Content bytes → CID (verified by hash)
 
 Any object can be verified at any time: fetch bytes, recompute hash, compare to CID. The store does this automatically for external files on fetch.
 
-## Migration from Previous Architecture
-
-The previous storage used separate columns for MANIFEST, PAYLOAD, RELATION, RECORD, CHUNK, and BUNDLE, plus separate FRAME_BY_ITEM and FRAME_BY_PRED indexes. The new architecture collapses these:
-
-| Previous | New |
-|----------|-----|
-| MANIFEST column | OBJECTS (manifests are just objects; ITEMS index provides IID→VID lookup) |
-| PAYLOAD column | OBJECTS |
-| RELATION column | OBJECTS (was already deprecated, delegated to PAYLOAD) |
-| RECORD column | OBJECTS |
-| CHUNK column | OBJECTS (chunks are regular objects) |
-| BUNDLE column | OBJECTS (bundles are regular objects) |
-| FRAME_BY_ITEM index | FRAME_BY_ITEM (unchanged) |
-| FRAME_BY_PRED index | FRAME_BY_ITEM (predicates are items — same index) |
-| RECORD_BY_BODY index | RECORD_BY_BODY (unchanged) |
-| ITEMS index | ITEMS (expanded: IID\|VID key instead of IID-only) |
-| HEADS index | HEADS (unchanged) |
-
-Seven storage columns and two index columns become one storage column and four index columns. Five total.
-
 ## References
 
 - [Git Object Store](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) — Single content-addressed object store for all object types

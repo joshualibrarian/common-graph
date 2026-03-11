@@ -15,7 +15,7 @@ my-item/
     ├── iid                # Item identity
     ├── head/
     │   ├── base           # Symlink to current version
-    │   ├── components/    # Component descriptors (JSON)
+    │   ├── frames/        # Frame descriptors (JSON)
     │   ├── mounts/        # Mount descriptors (JSON)
     │   └── actions/       # Action descriptors (JSON)
     ├── manifests/         # Immutable version snapshots
@@ -23,26 +23,24 @@ my-item/
     ├── channels/          # Named branches
     │   ├── main -> ../manifests/<vid>
     │   └── draft -> ../manifests/<vid>
-    ├── content/           # Content blocks
-    │   └── <cid>
-    └── relations/         # Relation data
-        └── <rid>
+    └── content/           # Content blocks
+        └── <cid>
 ```
 
 ## Two Editable Surfaces
 
 ### 1. Root Directory (Mounted Content)
 
-The visible "files" are mount projections of components:
-- `README.md` → component with handle "readme"
-- `src/main.java` → component with handle "src/main"
+The visible "files" are mount projections of frames:
+- `README.md` → frame with handle "readme"
+- `src/main.java` → frame with handle "src/main"
 
 Edit these files with any tool, then commit.
 
 ### 2. `.item/head/` (Metadata)
 
 The editable metadata overlay:
-- `components/*.json` — Add/modify component definitions
+- `frames/*.json` — Add/modify frame definitions
 - `mounts/*.json` — Change path mappings
 - `actions/*.json` — Declare item actions
 
@@ -59,9 +57,9 @@ base -> ../channels/main       # Following a channel
 
 This determines what's "checked out" in the working tree.
 
-## Component Descriptors
+## Frame Descriptors
 
-`.item/head/components/<hid>.json`:
+`.item/head/frames/<hid>.json`:
 ```json
 {
   "handle": "readme",
@@ -77,7 +75,7 @@ This determines what's "checked out" in the working tree.
 ```json
 {
   "path": "README.md",
-  "component": "readme",
+  "frame": "readme",
   "readonly": false
 }
 ```
@@ -95,7 +93,7 @@ This determines what's "checked out" in the working tree.
 Working trees can be:
 
 ### FULL
-Contains all versions, content, and relations locally.
+Contains all versions, content, and frames locally.
 
 ### THIN
 Contains current head and working edits; falls back to main store for historical content.
@@ -112,8 +110,8 @@ Think of it like Git:
 - `base` = HEAD
 
 But unlike Git:
-- Components have types and behaviors (see [Components](components.md))
-- Relations are first-class semantic assertions (see [Relations](relations.md))
+- Frames have types and behaviors (see [Frame Types](components.md))
+- Semantic assertions are first-class (see [Semantic Assertions](relations.md))
 - Content is globally content-addressed and deduplicated (see [Content](content.md))
 - Everything is cryptographically signed (see [Trust](trust.md))
 - Items can be presented in 2D and 3D (see [Presentation](presentation.md))

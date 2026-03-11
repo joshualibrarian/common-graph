@@ -113,7 +113,7 @@ Item {
 }
 ```
 
-That's it. No separate ComponentTable, RelationTable, MountTable, content store. Just an identity and frames.
+That's it. An identity and frames.
 
 But an item is more than a bag — it's a **coherent collection**. A Book item expects certain frames (TITLE, AUTHOR, CONTENT) and arranges them into a meaningful whole. A Chat item expects a roster and a message stream. A Game item expects players and a move log.
 
@@ -261,7 +261,7 @@ AUTHOR { theme: ?, target: Tolkien }
 AUTHOR { theme: ?, target: ? }
 ```
 
-Evaluation fills the holes by searching the graph. This unifies all query mechanisms — pattern queries, relation queries, component lookups — into one model: find frames matching this pattern.
+Evaluation fills the holes by searching the graph. This unifies all query mechanisms — pattern queries, predicate queries, frame lookups — into one model: find frames matching this pattern.
 
 Query execution searches frames across items:
 - If theme is specified: search that item's frames
@@ -292,35 +292,26 @@ Three indexes enable efficient queries:
 
 Body indexes cover both endorsed and unendorsed frames. Endorsed frames are indexed at commit time. Unendorsed frames are indexed when received. Record indexes are updated whenever a new record arrives for any body.
 
-## Concept Mapping
+## What Frames Cover
 
-Every current concept maps to frames:
+Everything in Common Graph is a frame:
 
-| Current Concept | Frame Equivalent |
+| Kind | Frame Form |
 |---|---|
-| Component | Endorsed frame with semantic or literal key |
-| Relation | Unendorsed frame (or endorsed, depending on asserter) |
-| Content / body | Endorsed frame keyed by `(CONTENT)`, large target |
-| Mount entry | Mount path in FrameEntry metadata |
-| Property | Endorsed frame with semantic key and simple target |
-| Gloss | Endorsed frame keyed by `(GLOSS, LANG)` |
-| External ID (CILI) | Endorsed frame keyed by `(CILI)` |
-| Expression / formula | Endorsed frame whose target is an expression |
-| Stream (chat, log) | Endorsed frame with mode=stream |
-| Vault | Endorsed frame with mode=local-only |
-| PolicySet | Config on item or individual frames |
-| RelationTable | Subset of endorsed frames (those that are relational) |
-| ComponentTable | The frame table itself |
-| MountTable | Mount paths in FrameEntry metadata |
-| Like / reaction | Unendorsed frame signed by reactor |
-| Comment | Unendorsed annotation frame signed by commenter |
-| Spam label | Unendorsed frame signed by moderator |
-| Trust attestation | Unendorsed frame signed by attester |
-| Moderation endorsement | Frame about a frame (cosigning) |
-| QueryComponent | Incomplete frame (frame with holes) |
-| @ContentField | `@Frame(key = SEMEME)` on the type class |
-| @RelationField | `@Frame` with unendorsed semantics |
-| HandleID | Degenerate FrameKey (single literal segment) |
+| **Content / body** | Endorsed frame keyed by `(CONTENT)`, large target |
+| **Property** | Endorsed frame with semantic key and simple target |
+| **Gloss** | Endorsed frame keyed by `(GLOSS, LANG)` |
+| **External ID (CILI)** | Endorsed frame keyed by `(CILI)` |
+| **Expression / formula** | Endorsed frame whose target is an expression |
+| **Stream (chat, log)** | Endorsed frame with mode=stream |
+| **Vault** | Endorsed frame with mode=local-only |
+| **Policy** | Config on item or individual frames |
+| **Like / reaction** | Unendorsed frame signed by reactor |
+| **Comment** | Unendorsed annotation frame signed by commenter |
+| **Spam label** | Unendorsed frame signed by moderator |
+| **Trust attestation** | Unendorsed frame signed by attester |
+| **Verification** | Frame about a frame (cosigning) |
+| **Query** | Incomplete frame (frame with holes) |
 
 ## The Prompt
 

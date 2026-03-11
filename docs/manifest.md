@@ -10,7 +10,7 @@ Manifest {
     iid: ItemID                 # Item identity
     parents: [VersionID]        # Parent version(s) — null for initial
     type: ItemID                # Item type reference
-    state: ItemState            # Components, actions, relations, policy
+    state: ItemState            # All frames (the FrameTable)
     authorKey: SigningPublicKey  # Signer's public key (outside body hash)
     signature: Signing          # Cryptographic signature (outside body hash)
 }
@@ -42,19 +42,19 @@ The manifest's state is the unified container for all versioned content:
 
 ```
 ItemState {
-    content: ComponentTable     # All component entries (handles, types, CIDs)
+    frames: FrameTable     # All frame entries (handles, types, CIDs)
 }
 ```
 
-Each ComponentEntry in the content table records:
+Each FrameEntry in the frame table records:
 
 | Field | Description |
 |-------|-------------|
 | `handle` | Stable HID within this item |
-| `type` | Component type (ItemID) |
-| `identity` | Does this component contribute to item identity? |
-| `snapshotCid` | Content hash (for snapshot components) |
-| `streamHeads` | Head hashes (for stream components) |
+| `type` | Frame type (ItemID) |
+| `identity` | Does this frame contribute to item identity? |
+| `snapshotCid` | Content hash (for snapshot frames) |
+| `streamHeads` | Head hashes (for stream frames) |
 | `mounts` | Presentation positions (path, surface, spatial) |
 
 ## Signing
