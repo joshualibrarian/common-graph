@@ -2,6 +2,7 @@ package dev.everydaythings.graph.network.transport;
 
 import dev.everydaythings.graph.network.message.ProtocolMessage;
 import dev.everydaythings.graph.network.peer.PeerConnection;
+import dev.everydaythings.graph.vault.Vault;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -14,6 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.InetSocketAddress;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +31,7 @@ import java.util.concurrent.TimeUnit;
  * <ol>
  *   <li>SSL (optional) — TLS encryption</li>
  *   <li>Frame decoder/encoder — length-prefixed framing</li>
+ *   <li>Transport encryption (optional) — Noise XX handshake + AEAD session</li>
  *   <li>CgProtocolCodec — CBOR ↔ ProtocolMessage conversion</li>
  *   <li>IdleStateHandler — idle detection</li>
  *   <li>HeartbeatHandler — heartbeat/dead-peer handling</li>
@@ -42,25 +45,41 @@ public class PeerServer implements AutoCloseable {
     private final int port;
     private final IncomingHandler handler;
     private final SslContext sslContext;
+    private final Vault transportVault;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
     /**
-     * Create a server without TLS (for testing).
+     * Create a server without TLS or transport encryption (for testing).
      */
     public PeerServer(int port, IncomingHandler handler) {
-        this(port, handler, null);
+        this(port, handler, null, null);
     }
 
     /**
      * Create a server with TLS.
      */
     public PeerServer(int port, IncomingHandler handler, SslContext sslContext) {
+        this(port, handler, sslContext, null);
+    }
+
+    /**
+     * Create a server with CG transport encryption (Noise XX).
+     */
+    public PeerServer(int port, IncomingHandler handler, Vault transportVault) {
+        this(port, handler, null, transportVault);
+    }
+
+    /**
+     * Create a server with optional TLS and/or transport encryption.
+     */
+    public PeerServer(int port, IncomingHandler handler, SslContext sslContext, Vault transportVault) {
         this.port = port;
         this.handler = handler;
         this.sslContext = sslContext;
+        this.transportVault = transportVault;
     }
 
     /**
@@ -89,17 +108,24 @@ public class PeerServer implements AutoCloseable {
                         p.addLast("frameDecoder", new LengthFieldBasedFrameDecoder(16 * 1024 * 1024, 0, 4, 0, 4));
                         p.addLast("frameEncoder", new LengthFieldPrepender(4));
 
-                        // 3. CG Protocol codec (ByteBuf ↔ ProtocolMessage)
+                        // 3. CG transport encryption (if enabled)
+                        if (transportVault != null) {
+                            p.addLast("transport", new TransportEncryptionHandler(
+                                    TransportCrypto.Role.RESPONDER, transportVault));
+                        }
+
+                        // 4. CG Protocol codec (ByteBuf ↔ ProtocolMessage)
                         p.addLast("codec", new CgProtocolCodec());
 
-                        // 4. Idle detection: reader=30s, writer=15s
+                        // 5. Idle detection: reader=30s, writer=15s
                         p.addLast("idle", new IdleStateHandler(30, 15, 0, TimeUnit.SECONDS));
 
-                        // 5. Heartbeat / dead-peer handler
+                        // 6. Heartbeat / dead-peer handler
                         p.addLast("heartbeat", new HeartbeatHandler());
 
-                        // 6. Application handler
-                        p.addLast("handler", new ServerChannelHandler(handler, sslContext != null));
+                        // 7. Application handler
+                        p.addLast("handler", new ServerChannelHandler(
+                                handler, sslContext != null, transportVault != null));
                     }
                 })
                 .option(ChannelOption.SO_BACKLOG, 128)
@@ -153,6 +179,13 @@ public class PeerServer implements AutoCloseable {
     }
 
     /**
+     * Check if CG transport encryption is enabled.
+     */
+    public boolean isTransportEncrypted() {
+        return transportVault != null;
+    }
+
+    /**
      * Handler for incoming connections and messages.
      */
     public interface IncomingHandler {
@@ -181,21 +214,23 @@ public class PeerServer implements AutoCloseable {
     private static class ServerChannelHandler extends ChannelInboundHandlerAdapter {
         private final IncomingHandler handler;
         private final boolean tlsEnabled;
+        private final boolean transportEncrypted;
         private PeerConnection connection;
 
-        ServerChannelHandler(IncomingHandler handler, boolean tlsEnabled) {
+        ServerChannelHandler(IncomingHandler handler, boolean tlsEnabled, boolean transportEncrypted) {
             this.handler = handler;
             this.tlsEnabled = tlsEnabled;
+            this.transportEncrypted = transportEncrypted;
         }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             connection = new PeerConnection(ctx.channel());
-            log.debug("Peer connected: {} (TLS: {})", connection.remoteAddress(), tlsEnabled);
+            log.debug("Peer connected: {} (TLS: {}, transport-encrypted: {})",
+                    connection.remoteAddress(), tlsEnabled, transportEncrypted);
 
-            if (tlsEnabled) {
-                // Defer onConnect until the TLS handshake completes — channelActive fires
-                // when the TCP connection is established, before TLS negotiation finishes.
+            if (tlsEnabled && !transportEncrypted) {
+                // TLS only — defer until TLS handshake completes
                 SslHandler sslHandler = ctx.pipeline().get(SslHandler.class);
                 sslHandler.handshakeFuture().addListener(future -> {
                     if (future.isSuccess()) {
@@ -207,8 +242,14 @@ public class PeerServer implements AutoCloseable {
                         ctx.close();
                     }
                 });
-            } else {
+            } else if (!transportEncrypted) {
+                // No encryption — immediate connect
                 handler.onConnect(connection, null);
+            } else {
+                // Transport encryption is enabled. channelActive arrives here
+                // AFTER the Noise handshake completes (deferred by TransportEncryptionHandler).
+                X509Certificate peerCert = tlsEnabled ? extractPeerCertificate(ctx) : null;
+                handler.onConnect(connection, peerCert);
             }
         }
 

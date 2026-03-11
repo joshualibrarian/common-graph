@@ -3,6 +3,7 @@ package dev.everydaythings.graph.network.transport;
 import dev.everydaythings.graph.network.message.ProtocolMessage;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.value.Endpoint;
+import dev.everydaythings.graph.vault.Vault;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -15,6 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.InetAddress;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +30,7 @@ import java.util.concurrent.TimeUnit;
  * <ol>
  *   <li>SSL (optional) — TLS encryption</li>
  *   <li>Frame decoder/encoder — length-prefixed framing</li>
+ *   <li>Transport encryption (optional) — Noise XX handshake + AEAD session</li>
  *   <li>CgProtocolCodec — CBOR ↔ ProtocolMessage conversion</li>
  *   <li>IdleStateHandler — idle detection</li>
  *   <li>HeartbeatHandler — heartbeat/dead-peer handling</li>
@@ -41,21 +44,41 @@ public class PeerClient implements AutoCloseable {
     private final EventLoopGroup group;
     private final MessageHandler handler;
     private final SslContext sslContext;
+    private final Vault transportVault;
 
     /**
-     * Create a client without TLS (for testing).
+     * Create a client without TLS or transport encryption (for testing).
      */
     public PeerClient(MessageHandler handler) {
-        this(handler, (SslContext) null);
+        this(handler, (SslContext) null, null);
     }
 
     /**
      * Create a client with TLS.
      */
     public PeerClient(MessageHandler handler, SslContext sslContext) {
+        this(handler, sslContext, null);
+    }
+
+    /**
+     * Create a client with CG transport encryption (Noise XX).
+     */
+    public PeerClient(MessageHandler handler, Vault transportVault) {
+        this(handler, null, transportVault);
+    }
+
+    /**
+     * Create a client with optional TLS and/or transport encryption.
+     *
+     * @param handler        Message handler
+     * @param sslContext     Netty SslContext for TLS (null to disable)
+     * @param transportVault Vault with X25519 key for CG transport encryption (null to disable)
+     */
+    public PeerClient(MessageHandler handler, SslContext sslContext, Vault transportVault) {
         this.group = TransportDetector.newEventLoopGroup();
         this.handler = handler;
         this.sslContext = sslContext;
+        this.transportVault = transportVault;
     }
 
     /**
@@ -88,17 +111,24 @@ public class PeerClient implements AutoCloseable {
                         p.addLast("frameDecoder", new LengthFieldBasedFrameDecoder(16 * 1024 * 1024, 0, 4, 0, 4));
                         p.addLast("frameEncoder", new LengthFieldPrepender(4));
 
-                        // 3. CG Protocol codec (ByteBuf ↔ ProtocolMessage)
+                        // 3. CG transport encryption (if enabled, as alternative/addition to TLS)
+                        if (transportVault != null) {
+                            p.addLast("transport", new TransportEncryptionHandler(
+                                    TransportCrypto.Role.INITIATOR, transportVault));
+                        }
+
+                        // 4. CG Protocol codec (ByteBuf ↔ ProtocolMessage)
                         p.addLast("codec", new CgProtocolCodec());
 
-                        // 4. Idle detection: reader=30s, writer=15s
+                        // 5. Idle detection: reader=30s, writer=15s
                         p.addLast("idle", new IdleStateHandler(30, 15, 0, TimeUnit.SECONDS));
 
-                        // 5. Heartbeat / dead-peer handler
+                        // 6. Heartbeat / dead-peer handler
                         p.addLast("heartbeat", new HeartbeatHandler());
 
-                        // 6. Application handler
-                        p.addLast("handler", new ClientChannelHandler(handler, future, sslContext != null));
+                        // 7. Application handler
+                        p.addLast("handler", new ClientChannelHandler(
+                                handler, future, sslContext != null, transportVault != null));
                     }
                 })
                 .option(ChannelOption.SO_KEEPALIVE, true)
@@ -120,6 +150,13 @@ public class PeerClient implements AutoCloseable {
      */
     public boolean isTlsEnabled() {
         return sslContext != null;
+    }
+
+    /**
+     * Check if CG transport encryption is enabled.
+     */
+    public boolean isTransportEncrypted() {
+        return transportVault != null;
     }
 
     /**
@@ -160,29 +197,35 @@ public class PeerClient implements AutoCloseable {
         private final MessageHandler handler;
         private final CompletableFuture<PeerConnection> connectFuture;
         private final boolean tlsEnabled;
+        private final boolean transportEncrypted;
         private PeerConnection connection;
 
-        ClientChannelHandler(MessageHandler handler, CompletableFuture<PeerConnection> connectFuture, boolean tlsEnabled) {
+        ClientChannelHandler(MessageHandler handler, CompletableFuture<PeerConnection> connectFuture,
+                             boolean tlsEnabled, boolean transportEncrypted) {
             this.handler = handler;
             this.connectFuture = connectFuture;
             this.tlsEnabled = tlsEnabled;
+            this.transportEncrypted = transportEncrypted;
         }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             connection = new PeerConnection(ctx.channel());
-            log.debug("Connected to peer: {} (TLS: {})", connection.remoteAddress(), tlsEnabled);
+            log.debug("Connected to peer: {} (TLS: {}, transport-encrypted: {})",
+                    connection.remoteAddress(), tlsEnabled, transportEncrypted);
 
             if (tlsEnabled) {
-                // Defer until TLS handshake completes — channelActive fires on TCP connect,
-                // before TLS negotiation finishes. Certificate extraction would return null
-                // and early writes would race with the handshake.
+                // Defer until TLS handshake completes
                 SslHandler sslHandler = ctx.pipeline().get(SslHandler.class);
                 sslHandler.handshakeFuture().addListener(future -> {
                     if (future.isSuccess()) {
                         X509Certificate peerCert = extractPeerCertificate(ctx);
-                        connectFuture.complete(connection);
-                        handler.onConnect(connection, peerCert);
+                        if (!transportEncrypted) {
+                            connectFuture.complete(connection);
+                            handler.onConnect(connection, peerCert);
+                        }
+                        // If transport encrypted, wait for that handshake too
+                        // (channelActive from TransportEncryptionHandler will fire later)
                     } else {
                         log.warn("TLS handshake failed to {}: {}",
                                 connection.remoteAddress(), future.cause().getMessage());
@@ -190,9 +233,25 @@ public class PeerClient implements AutoCloseable {
                         ctx.close();
                     }
                 });
-            } else {
+            } else if (!transportEncrypted) {
+                // No encryption at all — immediately connected
                 connectFuture.complete(connection);
                 handler.onConnect(connection, null);
+            }
+
+            // When transport encryption is enabled (with or without TLS),
+            // channelActive arrives here AFTER the Noise handshake completes
+            // (TransportEncryptionHandler defers fireChannelActive).
+            if (transportEncrypted && !tlsEnabled) {
+                // channelActive was deferred by TransportEncryptionHandler
+                connectFuture.complete(connection);
+                handler.onConnect(connection, null);
+            } else if (transportEncrypted && tlsEnabled) {
+                // Both TLS and transport — TLS handshake already done by this point
+                // (TransportEncryptionHandler deferred until after TLS)
+                X509Certificate peerCert = extractPeerCertificate(ctx);
+                connectFuture.complete(connection);
+                handler.onConnect(connection, peerCert);
             }
         }
 

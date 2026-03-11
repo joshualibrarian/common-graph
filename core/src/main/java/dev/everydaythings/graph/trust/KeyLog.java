@@ -117,8 +117,10 @@ public class KeyLog extends Dag<KeyLog.Op> {
      *   <li>1 - Key compromised</li>
      *   <li>2 - Key retired (superseded)</li>
      *   <li>3 - Affiliation changed</li>
+     *   <li>4 - Consumed (single-use OPK used in X3DH)</li>
      * </ul>
      */
+    public static final int REASON_CONSUMED = 4;
     @AllArgsConstructor
     public static final class TombstoneKey implements Op {
         public final byte[] keyCid;
@@ -362,6 +364,42 @@ public class KeyLog extends Dag<KeyLog.Op> {
         Set<String> cids = currentKeyCids(Purpose.ENCRYPT);
         Set<EncryptionPublicKey> result = new LinkedHashSet<>();
         for (String cid : cids) {
+            GraphPublicKey key = keys.get(cid);
+            if (key instanceof EncryptionPublicKey epk) result.add(epk);
+        }
+        return result;
+    }
+
+    /**
+     * Get the current signed pre-key (SPK), if one is set.
+     *
+     * <p>The SPK is the medium-term X25519 key used in X3DH key agreement.
+     * There should be at most one current SPK at a time.
+     *
+     * @return The current SPK, or empty if none set
+     */
+    public Optional<EncryptionPublicKey> currentPreKey() {
+        Set<String> cids = currentKeyCids(Purpose.PRE_KEY);
+        if (cids.isEmpty()) return Optional.empty();
+        String cid = cids.iterator().next();
+        GraphPublicKey key = keys.get(cid);
+        if (key instanceof EncryptionPublicKey epk) return Optional.of(epk);
+        return Optional.empty();
+    }
+
+    /**
+     * Get all available (non-tombstoned, current) one-time pre-keys.
+     *
+     * <p>OPKs are single-use X25519 keys consumed during X3DH exchanges.
+     * After use, they should be tombstoned with reason {@link #REASON_CONSUMED}.
+     *
+     * @return List of available OPKs (may be empty)
+     */
+    public List<EncryptionPublicKey> availableOneTimePreKeys() {
+        Set<String> cids = currentKeyCids(Purpose.ONE_TIME_PRE_KEY);
+        List<EncryptionPublicKey> result = new ArrayList<>();
+        for (String cid : cids) {
+            if (tombstoned.contains(cid)) continue;
             GraphPublicKey key = keys.get(cid);
             if (key instanceof EncryptionPublicKey epk) result.add(epk);
         }

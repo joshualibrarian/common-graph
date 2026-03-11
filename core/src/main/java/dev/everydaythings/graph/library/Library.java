@@ -17,10 +17,12 @@ import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.dictionary.TokenExtractor;
 import dev.everydaythings.graph.library.directory.ItemDirectory;
+import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.library.mapdb.*;
 import dev.everydaythings.graph.library.rocksdb.*;
 import dev.everydaythings.graph.library.skiplist.*;
 import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.vault.Vault;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
@@ -116,6 +118,9 @@ public final class Library implements Component, Canonical, AutoCloseable {
     @Canonical.Canon(order = 5)
     private final TokenDictionary tokenDict; // Part 5: Text lookup
 
+    // At-rest encryption (null if not encrypted)
+    private AtRestEncryption atRestEncryption;
+
     // Librarian reference (set after construction)
     private Librarian librarian;
 
@@ -181,15 +186,62 @@ public final class Library implements Component, Canonical, AutoCloseable {
         return new Library(Backend.MAPDB, null);
     }
 
+    // --- Encrypted variants ---
+
+    /**
+     * Create an in-memory library with at-rest encryption.
+     *
+     * <p>Values are encrypted with AES-256-GCM. The encryption key is derived
+     * from the Vault's encryption key via HKDF. Key is zeroized on close.
+     *
+     * @param vault Vault with X25519 encryption key for key derivation
+     * @return A new encrypted in-memory Library
+     */
+    public static Library memoryEncrypted(Vault vault) {
+        return new Library(Backend.SKIPLIST, null, vault);
+    }
+
+    /**
+     * Create a persistent library with at-rest encryption.
+     *
+     * @param rootPath The directory to store databases in
+     * @param vault    Vault with X25519 encryption key for key derivation
+     * @return A new encrypted file-backed Library
+     */
+    public static Library fileEncrypted(Path rootPath, Vault vault) {
+        return new Library(Backend.ROCKS, rootPath, vault);
+    }
+
+    /**
+     * Create a persistent MapDB library with at-rest encryption.
+     *
+     * @param rootPath The directory to store databases in
+     * @param vault    Vault with X25519 encryption key for key derivation
+     * @return A new encrypted MapDB Library
+     */
+    public static Library mapdbEncrypted(Path rootPath, Vault vault) {
+        return new Library(Backend.MAPDB, rootPath, vault);
+    }
+
     // ==================================================================================
     // Constructor
     // ==================================================================================
 
     private Library(Backend backend, Path rootPath) {
+        this(backend, rootPath, null);
+    }
+
+    private Library(Backend backend, Path rootPath, Vault encryptionVault) {
         this.backend = backend;
         this.rootPath = rootPath;
 
-        logger.debug("Creating Library: backend={}, path={}", backend, rootPath);
+        // Derive at-rest encryption key if vault provided
+        if (encryptionVault != null) {
+            this.atRestEncryption = AtRestEncryption.fromVault(encryptionVault);
+            logger.debug("Creating Library: backend={}, path={}, encrypted=true", backend, rootPath);
+        } else {
+            logger.debug("Creating Library: backend={}, path={}", backend, rootPath);
+        }
 
         // Create backend-specific components
         ItemStore theStore;
@@ -235,6 +287,11 @@ public final class Library implements Component, Canonical, AutoCloseable {
                 theDirectory.registerStore(storePath, theStore);
             }
             default -> throw new IllegalArgumentException("Unknown backend: " + backend);
+        }
+
+        // Enable at-rest encryption on the store if configured
+        if (atRestEncryption != null) {
+            theStore.enableEncryption(atRestEncryption);
         }
 
         this.store = theStore;
@@ -997,6 +1054,19 @@ public final class Library implements Component, Canonical, AutoCloseable {
         try { index.close(); } catch (Exception ignore) {}
         try { store.close(); } catch (Exception ignore) {}
         stores.clear();
+
+        // Zeroize at-rest encryption key material
+        if (atRestEncryption != null) {
+            atRestEncryption.destroy();
+            logger.debug("At-rest encryption key zeroized");
+        }
+    }
+
+    /**
+     * Check if at-rest encryption is enabled.
+     */
+    public boolean isEncrypted() {
+        return atRestEncryption != null && !atRestEncryption.isDestroyed();
     }
 
     // ==================================================================================

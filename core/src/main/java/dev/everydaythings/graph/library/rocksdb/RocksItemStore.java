@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library.rocksdb;
 
+import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.library.ItemStore;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -27,6 +28,8 @@ public class RocksItemStore implements ItemStore, RocksStore<ItemStore.Column> {
     @Accessors(fluent = false)
     private final Path path;
 
+    private AtRestEncryption encryption;
+
     /**
      * Open a RocksItemStore at the given path.
      * Creates the database if it doesn't exist.
@@ -38,6 +41,16 @@ public class RocksItemStore implements ItemStore, RocksStore<ItemStore.Column> {
     public RocksItemStore(Path rootPath) {
         this.path = rootPath;
         this.opened = RocksStore.open(rootPath, Column.class);
+    }
+
+    @Override
+    public AtRestEncryption atRestEncryption() {
+        return encryption;
+    }
+
+    @Override
+    public void enableEncryption(AtRestEncryption encryption) {
+        this.encryption = encryption;
     }
 
     /**

@@ -5,6 +5,7 @@ import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.transport.PeerClient;
 import dev.everydaythings.graph.network.transport.PeerServer;
 import dev.everydaythings.graph.value.Endpoint;
+import dev.everydaythings.graph.vault.Vault;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +34,7 @@ public class NetworkManager implements AutoCloseable {
     private final MessageDispatcher dispatcher;
     private final SslContext serverSslContext;
     private final SslContext clientSslContext;
+    private final Vault transportVault;
 
     private PeerServer server;
     private PeerClient client;
@@ -43,10 +45,10 @@ public class NetworkManager implements AutoCloseable {
     private final Map<InetSocketAddress, PeerConnection> connections = new ConcurrentHashMap<>();
 
     /**
-     * Create a NetworkManager without TLS (for testing).
+     * Create a NetworkManager without TLS or transport encryption (for testing).
      */
     public NetworkManager(int port, MessageDispatcher dispatcher) {
-        this(port, dispatcher, null, null);
+        this(port, dispatcher, null, null, null);
     }
 
     /**
@@ -59,10 +61,37 @@ public class NetworkManager implements AutoCloseable {
      */
     public NetworkManager(int port, MessageDispatcher dispatcher,
                           SslContext serverSslContext, SslContext clientSslContext) {
+        this(port, dispatcher, serverSslContext, clientSslContext, null);
+    }
+
+    /**
+     * Create a NetworkManager with CG transport encryption.
+     *
+     * @param port           The port to listen on (0 for auto-assign)
+     * @param dispatcher     Handler for incoming messages
+     * @param transportVault Vault with X25519 key for Noise XX handshake
+     */
+    public NetworkManager(int port, MessageDispatcher dispatcher, Vault transportVault) {
+        this(port, dispatcher, null, null, transportVault);
+    }
+
+    /**
+     * Create a NetworkManager with optional TLS and/or CG transport encryption.
+     *
+     * @param port             The port to listen on (0 for auto-assign)
+     * @param dispatcher       Handler for incoming messages
+     * @param serverSslContext Netty SslContext for server (null to disable)
+     * @param clientSslContext Netty SslContext for client (null to disable)
+     * @param transportVault   Vault for CG transport encryption (null to disable)
+     */
+    public NetworkManager(int port, MessageDispatcher dispatcher,
+                          SslContext serverSslContext, SslContext clientSslContext,
+                          Vault transportVault) {
         this.port = port;
         this.dispatcher = dispatcher;
         this.serverSslContext = serverSslContext;
         this.clientSslContext = clientSslContext;
+        this.transportVault = transportVault;
     }
 
     /**
@@ -71,10 +100,12 @@ public class NetworkManager implements AutoCloseable {
      * @return Future that completes when the server is bound
      */
     public CompletableFuture<Void> start() {
-        log.info("Starting NetworkManager on port {} (TLS: {})", port, isTlsEnabled());
+        log.info("Starting NetworkManager on port {} (TLS: {}, transport-encrypted: {})",
+                port, isTlsEnabled(), isTransportEncrypted());
 
         // Create and start server
         server = new PeerServer(port, new PeerServer.IncomingHandler() {
+
             @Override
             public void onConnect(PeerConnection connection, X509Certificate peerCert) {
                 connections.put(connection.remoteAddress(), connection);
@@ -91,7 +122,7 @@ public class NetworkManager implements AutoCloseable {
                 connections.remove(connection.remoteAddress());
                 dispatcher.onPeerDisconnected(connection);
             }
-        }, serverSslContext);
+        }, serverSslContext, transportVault);
 
         // Create client for outbound connections
         client = new PeerClient(new PeerClient.MessageHandler() {
@@ -110,7 +141,7 @@ public class NetworkManager implements AutoCloseable {
                 connections.remove(connection.remoteAddress());
                 dispatcher.onPeerDisconnected(connection);
             }
-        }, clientSslContext);
+        }, clientSslContext, transportVault);
 
         return server.start().thenAccept(addr -> {
             this.boundAddress = addr;
@@ -172,6 +203,13 @@ public class NetworkManager implements AutoCloseable {
      */
     public boolean isTlsEnabled() {
         return serverSslContext != null || clientSslContext != null;
+    }
+
+    /**
+     * Check if CG transport encryption is enabled.
+     */
+    public boolean isTransportEncrypted() {
+        return transportVault != null;
     }
 
     /**

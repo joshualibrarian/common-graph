@@ -32,7 +32,19 @@ public enum Purpose {
      * Key can be used for authentication protocols.
      * Examples: TLS client certificates, SSH authentication.
      */
-    AUTHENTICATE(4);
+    AUTHENTICATE(4),
+
+    /**
+     * Key is a signed pre-key (SPK) for X3DH key agreement.
+     * Medium-term key, rotated periodically, signed by the identity key.
+     */
+    PRE_KEY(8),
+
+    /**
+     * Key is a one-time pre-key (OPK) for X3DH key agreement.
+     * Single-use: consumed and tombstoned after one X3DH exchange.
+     */
+    ONE_TIME_PRE_KEY(16);
 
     private final int bit;
 

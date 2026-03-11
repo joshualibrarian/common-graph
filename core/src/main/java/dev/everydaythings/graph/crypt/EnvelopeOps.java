@@ -380,7 +380,7 @@ public final class EnvelopeOps {
      * @param len  Desired output length in bytes
      * @return Derived key material
      */
-    static byte[] hkdfSha256(byte[] ikm, byte[] salt, byte[] info, int len) {
+    public static byte[] hkdfSha256(byte[] ikm, byte[] salt, byte[] info, int len) {
         try {
             // Extract
             if (salt == null || salt.length == 0) {

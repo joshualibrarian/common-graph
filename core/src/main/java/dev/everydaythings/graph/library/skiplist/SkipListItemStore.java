@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library.skiplist;
 
+import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.library.ItemStore;
 import lombok.Getter;
 
@@ -14,12 +15,24 @@ public class SkipListItemStore implements ItemStore, SkipListStore<ItemStore.Col
     @Getter
     private final SkipListStore.Opened<Column> opened;
 
+    private AtRestEncryption encryption;
+
     public static SkipListItemStore create() {
         return new SkipListItemStore();
     }
 
     private SkipListItemStore() {
         this.opened = SkipListStore.create(Column.class);
+    }
+
+    @Override
+    public AtRestEncryption atRestEncryption() {
+        return encryption;
+    }
+
+    @Override
+    public void enableEncryption(AtRestEncryption encryption) {
+        this.encryption = encryption;
     }
 
     @Override

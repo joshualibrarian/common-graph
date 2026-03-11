@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library.mapdb;
 
+import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.library.ItemStore;
 import lombok.Getter;
 
@@ -24,6 +25,8 @@ public class MapDBItemStore implements ItemStore, MapDBStore<ItemStore.Column> {
     @Getter
     private final MapDBStore.Opened<Column> opened;
 
+    private AtRestEncryption encryption;
+
     /**
      * Create an in-memory MapDBItemStore.
      *
@@ -44,6 +47,16 @@ public class MapDBItemStore implements ItemStore, MapDBStore<ItemStore.Column> {
 
     private MapDBItemStore(MapDBStore.Opened<Column> opened) {
         this.opened = opened;
+    }
+
+    @Override
+    public AtRestEncryption atRestEncryption() {
+        return encryption;
+    }
+
+    @Override
+    public void enableEncryption(AtRestEncryption encryption) {
+        this.encryption = encryption;
     }
 
     @Override

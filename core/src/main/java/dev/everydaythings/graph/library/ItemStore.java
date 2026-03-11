@@ -2,6 +2,7 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
+import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.component.Type;
@@ -203,7 +204,7 @@ public interface ItemStore extends Service {
 
         byte[] key = Column.OBJECTS.key(vid);
         if (!store().exists(Column.OBJECTS, key)) {
-            store().put(Column.OBJECTS, key, record, tx);
+            store().put(Column.OBJECTS, key, encryptValue(record), tx);
         }
 
         return vid;
@@ -225,7 +226,7 @@ public interface ItemStore extends Service {
 
         // Only store if not already present (content-addressed dedup)
         if (!store().exists(Column.OBJECTS, key)) {
-            store().put(Column.OBJECTS, key, data, tx);
+            store().put(Column.OBJECTS, key, encryptValue(data), tx);
         }
 
         return cid;
@@ -244,7 +245,7 @@ public interface ItemStore extends Service {
         Objects.requireNonNull(vid, "vid");
 
         byte[] key = Column.OBJECTS.key(vid);
-        return store().get(Column.OBJECTS, key);
+        return decryptValue(store().get(Column.OBJECTS, key));
     }
 
     /**
@@ -267,7 +268,7 @@ public interface ItemStore extends Service {
         Objects.requireNonNull(cid, "cid");
 
         byte[] key = Column.OBJECTS.key(cid);
-        return store().get(Column.OBJECTS, key);
+        return decryptValue(store().get(Column.OBJECTS, key));
     }
 
     // ==================================================================================
@@ -303,6 +304,45 @@ public interface ItemStore extends Service {
      */
     default boolean isWritable() {
         return true;
+    }
+
+    // ==================================================================================
+    // At-Rest Encryption
+    // ==================================================================================
+
+    /**
+     * Get the at-rest encryption instance, if configured.
+     *
+     * <p>When non-null, all values stored in the OBJECTS column are encrypted
+     * before writing and decrypted after reading. Keys remain in the clear
+     * for prefix scanning.
+     *
+     * @return The encryption instance, or null if not encrypted
+     */
+    default AtRestEncryption atRestEncryption() {
+        return null;
+    }
+
+    /**
+     * Enable at-rest encryption on this store.
+     *
+     * <p>Implementations must override to accept the encryption instance.
+     *
+     * @param encryption The at-rest encryption to use
+     */
+    default void enableEncryption(AtRestEncryption encryption) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + " does not support at-rest encryption");
+    }
+
+    private byte[] encryptValue(byte[] value) {
+        AtRestEncryption enc = atRestEncryption();
+        return enc != null ? enc.encrypt(value) : value;
+    }
+
+    private byte[] decryptValue(byte[] value) {
+        AtRestEncryption enc = atRestEncryption();
+        return enc != null ? enc.decrypt(value) : value;
     }
 
     // ==================================================================================
@@ -474,7 +514,7 @@ public interface ItemStore extends Service {
 
         try (var it = store().iterate(Column.OBJECTS, new byte[0])) {
             while (it.hasNext()) {
-                results.add(it.next().value());
+                results.add(decryptValue(it.next().value()));
             }
         }
 
