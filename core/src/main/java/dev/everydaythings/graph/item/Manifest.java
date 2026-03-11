@@ -6,7 +6,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.VersionID;
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.trust.GraphPublicKey;
 import dev.everydaythings.graph.trust.SigningPublicKey;
 import dev.everydaythings.graph.item.user.Signer;
@@ -43,7 +43,7 @@ public final class Manifest implements Signing.Target {
     private ItemID iid;
 
     @Canon(order = 2)
-    private List<VersionID> parents;
+    private List<ContentID> parents;
 
     @Canon(order = 3)
     private ItemID type;
@@ -64,7 +64,7 @@ public final class Manifest implements Signing.Target {
     private transient volatile byte[] bodyBytes;
 
     @Getter(AccessLevel.NONE)
-    private transient volatile VersionID vid;
+    private transient volatile ContentID vid;
 
     // ==================================================================================
     // Constructors
@@ -73,7 +73,7 @@ public final class Manifest implements Signing.Target {
     @Builder(builderClassName = "ManifestBuilder")
     private Manifest(
             @NonNull ItemID iid,
-            @Singular("parent") List<VersionID> parents,
+            @Singular("parent") List<ContentID> parents,
             ItemID type,
             ItemState state
     ) {
@@ -84,7 +84,7 @@ public final class Manifest implements Signing.Target {
 
         // Precompute caches for newly-built instances
         this.bodyBytes = encodeBinary(Canonical.Scope.BODY);
-        this.vid = new VersionID(Hash.DEFAULT.digest(this.bodyBytes), Hash.DEFAULT);
+        this.vid = new ContentID(Hash.DEFAULT.digest(this.bodyBytes), Hash.DEFAULT);
     }
 
     /**
@@ -129,16 +129,16 @@ public final class Manifest implements Signing.Target {
     }
 
     /**
-     * VersionID (derived from BODY bytes).
+     * ContentID (derived from BODY bytes).
      */
-    public VersionID vid() {
-        VersionID local = vid;
+    public ContentID vid() {
+        ContentID local = vid;
         if (local == null) {
             synchronized (this) {
                 local = vid;
                 if (local == null) {
                     byte[] body = encodeBinary(Canonical.Scope.BODY);
-                    local = new VersionID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
+                    local = new ContentID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
                     vid = local;
                 }
             }

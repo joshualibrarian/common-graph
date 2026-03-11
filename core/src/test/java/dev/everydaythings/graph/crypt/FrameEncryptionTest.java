@@ -7,7 +7,6 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.VersionID;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.trust.EncryptionPublicKey;
@@ -66,7 +65,7 @@ class FrameEncryptionTest {
             // Edit and re-commit with encryption
             librarian.edit();
             EncryptionContext ctx = EncryptionContext.allFrames(List.of(libEncKey));
-            VersionID vid = librarian.commit(librarian, ctx);
+            ContentID vid = librarian.commit(librarian, ctx);
             assertThat(vid).isNotNull();
 
             // Check that at least one non-local frame entry has an encryptedCid

@@ -3,7 +3,7 @@ package dev.everydaythings.graph.library;
 import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.library.skiplist.SkipListLibraryIndex;
@@ -235,12 +235,12 @@ class FrameIndexTest {
             ContentID bodyHash = ContentID.of(new byte[]{99});
 
             FrameEntry entry = FrameEntry.builder()
-                    .handle(HandleID.of("title"))
+                    .frameKey(FrameKey.literal("title"))
                     .type(ItemID.fromString("cg:type/text"))
                     .identity(true)
                     .bodyHash(bodyHash)
                     .payload(FrameEntry.EntryPayload.builder().snapshotCid(snapshotCid).build())
-                    .frameKey(dev.everydaythings.graph.item.id.FrameKey.of(TITLE))
+                    .frameKey(FrameKey.of(TITLE))
                     .build();
 
             index.runInWriteTransaction(tx ->
@@ -262,7 +262,7 @@ class FrameIndexTest {
             ContentID snapshotCid = ContentID.of(new byte[]{42});
 
             FrameEntry entry = FrameEntry.builder()
-                    .handle(HandleID.of("vault"))
+                    .frameKey(FrameKey.literal("vault"))
                     .type(ItemID.fromString("cg:type/vault"))
                     .identity(false)
                     .payload(FrameEntry.EntryPayload.builder().snapshotCid(snapshotCid).build())
@@ -279,7 +279,7 @@ class FrameIndexTest {
         @DisplayName("endorsed frame with no content is not indexed")
         void noContentNotIndexed() {
             FrameEntry entry = FrameEntry.builder()
-                    .handle(HandleID.of("vault"))
+                    .frameKey(FrameKey.literal("vault"))
                     .type(ItemID.fromString("cg:type/vault"))
                     .identity(false)
                     .build();
@@ -296,12 +296,12 @@ class FrameIndexTest {
             ContentID bodyHash = ContentID.of(new byte[]{77});
 
             FrameEntry entry = FrameEntry.builder()
-                    .handle(HandleID.of("author"))
+                    .frameKey(FrameKey.literal("author"))
                     .type(ItemID.fromString("cg:type/person"))
                     .identity(false)
                     .bodyHash(bodyHash)
                     .payload(FrameEntry.EntryPayload.builder().referenceTarget(TOLKIEN).build())
-                    .frameKey(dev.everydaythings.graph.item.id.FrameKey.of(AUTHOR))
+                    .frameKey(FrameKey.of(AUTHOR))
                     .build();
 
             index.runInWriteTransaction(tx ->

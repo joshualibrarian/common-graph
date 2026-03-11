@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item.component.expression;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.lang.reflect.Method;
@@ -66,8 +66,8 @@ public record PropertyAccessExpression(
 
         // Item component by handle
         if (obj instanceof Item item) {
-            HandleID handleId = HandleID.of(prop);
-            Optional<?> component = item.content().getLive(handleId, Object.class);
+            FrameKey frameKey = FrameKey.literal(prop);
+            Optional<?> component = item.content().getLive(frameKey, Object.class);
             if (component.isPresent()) return component.get();
         }
 

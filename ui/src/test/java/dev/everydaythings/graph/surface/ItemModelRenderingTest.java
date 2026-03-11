@@ -3,7 +3,7 @@ package dev.everydaythings.graph.surface;
 import dev.everydaythings.graph.game.chess.ChessGame;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Link;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
@@ -100,8 +100,8 @@ class ItemModelRenderingTest {
         System.err.println("liveCount after: " + hostItem.content().liveCount());
 
         // Verify the live instance is stored
-        HandleID hid = HandleID.of("chess");
-        Optional<Object> live = hostItem.content().getLive(hid);
+        FrameKey chessKey = FrameKey.literal("chess");
+        Optional<Object> live = hostItem.content().getLive(chessKey);
         System.err.println("getLive(chess): " + (live.isPresent() ? live.get().getClass().getName() : "EMPTY"));
         assertThat(live).isPresent();
 
@@ -109,7 +109,7 @@ class ItemModelRenderingTest {
         Item resolved = resolver.apply(hostItem.iid()).orElseThrow();
         System.err.println("Same instance? " + (resolved == hostItem));
         System.err.println("resolved liveCount: " + resolved.content().liveCount());
-        Optional<Object> resolvedLive = resolved.content().getLive(hid);
+        Optional<Object> resolvedLive = resolved.content().getLive(chessKey);
         System.err.println("resolved getLive(chess): " + (resolvedLive.isPresent() ? resolvedLive.get().getClass().getName() : "EMPTY"));
 
         // Now create the ItemModel and select the chess component

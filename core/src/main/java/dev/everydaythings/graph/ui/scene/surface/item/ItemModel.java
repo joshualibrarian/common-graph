@@ -9,7 +9,7 @@ import dev.everydaythings.graph.item.TreeLink;
 import dev.everydaythings.graph.item.VerbEntry;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.Component;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.policy.PolicySet;
@@ -433,7 +433,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 // This allows navigating to an Item (e.g., a clock) and
                 // automatically seeing its component's rendered surface.
                 for (FrameEntry entry : ci.content()) {
-                    Object live = ci.component(entry.handle());
+                    Object live = ci.component(entry.frameKey());
                     if (live != null) {
                         SurfaceSchema cs = resolveLiveSurface(live);
                         if (cs != null) return cs;
@@ -454,7 +454,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * Resolve a component path to its surface panel.
      *
      * <p>Follows the same path resolution as {@link Item#resolvePathDisplayToken}:
-     * strip leading slash, resolve HandleID, get live component, check @Surface.
+     * strip leading slash, resolve FrameKey, get live component, check @Surface.
      * Falls back to {@link SceneCompiler#compile} for auto-generated surfaces.
      *
      * <p>Also handles entry paths containing {@code #} (e.g., "/keyLog#abc123"),
@@ -472,14 +472,12 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         }
 
         String handle = path.startsWith("/") ? path.substring(1) : path;
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
+        FrameKey key = FrameKey.literal(handle);
 
-        // Resolve by textual ref first (alias/literal/hid), then by parsed HID.
+        // Resolve by textual ref first, then by FrameKey.
         Object component = item.component(handle);
         if (component == null) {
-            component = item.component(hid);
+            component = item.component(key);
         }
         if (component == null) {
             return null;
@@ -529,11 +527,9 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         String entryId = parts[1];
 
         String handle = compPath.startsWith("/") ? compPath.substring(1) : compPath;
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
+        FrameKey key = FrameKey.literal(handle);
 
-        Object comp = item.component(hid);
+        Object comp = item.component(key);
         if (comp == null) return null;
         if (comp instanceof Component cc) {
             Object entryValue = cc.inspectEntries().stream()
@@ -566,7 +562,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         for (FrameEntry entry : item.content()) {
             for (Mount mount : entry.presentation().layout().mounts()) {
                 if (mount instanceof Mount.SurfaceMount) {
-                    Object live = item.component(entry.handle());
+                    Object live = item.component(entry.frameKey());
                     if (live != null) {
                         SurfaceSchema s = resolveLiveSurface(live);
                         if (s != null) surfaces.add(s);
@@ -1036,7 +1032,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         if (focused.isEmpty()) return null;
 
         for (FrameEntry entry : focused.get().content()) {
-            if (!entry.handle().encodeText().equals(handleKey)) continue;
+            if (!entry.frameKey().toCanonicalString().equals(handleKey)) continue;
 
             Object instance = entry.instance();
             if (instance == null) return null;
@@ -1140,7 +1136,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         // Nothing to show for this component
         if (settings.isEmpty() && policy == null) return null;
 
-        String handleKey = entry.handle().encodeText();
+        String handleKey = entry.frameKey().toCanonicalString();
 
         // Section container
         ContainerSurface section = ContainerSurface.vertical()
@@ -1268,20 +1264,20 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                     }
                     String label = token;
                     scopeChildren.add(new MetaNode(
-                            "vocab:" + entry.handle().encodeText() + ":" + scoped.getKey() + ":" + token,
+                            "vocab:" + entry.frameKey().toCanonicalString() + ":" + scoped.getKey() + ":" + token,
                             "🏷️",
                             label,
                             List.of()));
                 }
                 componentChildren.add(new MetaNode(
-                        "vocab:" + entry.handle().encodeText() + ":" + scoped.getKey(),
+                        "vocab:" + entry.frameKey().toCanonicalString() + ":" + scoped.getKey(),
                         "📍",
                         "Scope " + scoped.getKey(),
                         scopeChildren));
             }
 
             rootNode.children.add(new MetaNode(
-                    "vocab:" + entry.handle().encodeText(),
+                    "vocab:" + entry.frameKey().toCanonicalString(),
                     entry.emoji(),
                     entry.displayToken(),
                     componentChildren));

@@ -9,7 +9,7 @@ import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
@@ -461,7 +461,7 @@ public final class SeedVocabulary {
      * <p>Encodes the component to CBOR, computes a ContentID, and stores
      * the entry with a snapshot CID so it survives manifest generation.
      */
-    private void attachComponent(Item item, HandleID handle, String alias, Object component) {
+    private void attachComponent(Item item, FrameKey key, String alias, Object component) {
         var contentTable = item.content();
         if (contentTable != null) {
             // Encode and compute CID upfront so the entry has a snapshot
@@ -469,14 +469,14 @@ public final class SeedVocabulary {
             ContentID cid = ContentID.of(bytes);
 
             FrameEntry entry = FrameEntry.builder()
-                    .handle(handle)
+                    .frameKey(key)
                     .type(ItemID.fromString(SurfaceTemplateComponent.KEY))
                     .identity(false)
                     .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                     .build();
 
             contentTable.add(entry);
-            contentTable.setLive(handle, alias, component);
+            contentTable.setLive(key, alias, component);
             logger.debug("Attached surface template to {}", item.displayToken());
         }
     }
@@ -502,20 +502,20 @@ public final class SeedVocabulary {
             SememeGloss gloss = new SememeGloss(langIid, text);
 
             String handleKey = SememeGloss.handleKeyFor(iso3);
-            HandleID handle = HandleID.of(handleKey);
+            FrameKey key = FrameKey.literal(handleKey);
 
             byte[] bytes = gloss.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
 
             FrameEntry ce = FrameEntry.builder()
-                    .handle(handle)
+                    .frameKey(key)
                     .type(ItemID.fromString(SememeGloss.KEY))
                     .identity(false)
                     .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
                     .build();
 
             contentTable.add(ce);
-            contentTable.setLive(handle, handleKey, gloss);
+            contentTable.setLive(key, handleKey, gloss);
         }
     }
 
@@ -536,7 +536,7 @@ public final class SeedVocabulary {
             ContentID cid = ContentID.of(bytes);
             FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
             item.content().add(entry);
-            item.content().setLive(entry.handle(), relation);
+            item.content().setLive(entry.frameKey(), relation);
         }
 
         return relation;
@@ -581,11 +581,11 @@ public final class SeedVocabulary {
             for (FrameEntry entry : manifest.components()) {
                 if (entry.payload().snapshotCid() != null) {
                     // Try @ContentField-based encoding first
-                    byte[] content = item.encodeComponentValue(entry.handle());
+                    byte[] content = item.encodeComponentValue(entry.frameKey());
 
                     // Fall back to live value in content table (for manually-attached components)
                     if (content == null && item.content() != null) {
-                        Object live = item.content().getLive(entry.handle()).orElse(null);
+                        Object live = item.content().getLive(entry.frameKey()).orElse(null);
                         if (live instanceof Canonical c) {
                             content = c.encodeBinary(Canonical.Scope.RECORD);
                         } else if (live != null) {

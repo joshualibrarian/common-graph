@@ -61,7 +61,7 @@ public final class ContextOverlay {
         for (FrameEntry entry : item.content()) {
             String key = entry.alias() != null && !entry.alias().isBlank()
                     ? entry.alias()
-                    : entry.handle().encodeText();
+                    : entry.frameKey().toCanonicalString();
             out.add(new Entry(
                     key,
                     key,

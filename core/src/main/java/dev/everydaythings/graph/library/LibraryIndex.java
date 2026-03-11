@@ -5,7 +5,6 @@ import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.RelationID;
-import dev.everydaythings.graph.item.id.VersionID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
@@ -77,7 +76,7 @@ public interface LibraryIndex extends Service {
      * @param timestamp storage timestamp (millis since epoch)
      * @param wtx       write transaction
      */
-    default void indexVersion(ItemID iid, VersionID vid, long timestamp, WriteTransaction wtx) {
+    default void indexVersion(ItemID iid, ContentID vid, long timestamp, WriteTransaction wtx) {
         Objects.requireNonNull(iid, "iid");
         Objects.requireNonNull(vid, "vid");
         Objects.requireNonNull(wtx, "wtx");
@@ -94,11 +93,11 @@ public interface LibraryIndex extends Service {
      * @param iid the item ID
      * @return the latest VID, or empty if no versions exist
      */
-    default Optional<VersionID> latestVersion(ItemID iid) {
+    default Optional<ContentID> latestVersion(ItemID iid) {
         Objects.requireNonNull(iid, "iid");
         byte[] prefix = Column.ITEMS.keyPrefix(iid);
 
-        VersionID bestVid = null;
+        ContentID bestVid = null;
         long bestTimestamp = Long.MIN_VALUE;
         final int idSize = 34;
 
@@ -121,7 +120,7 @@ public interface LibraryIndex extends Service {
 
                 if (ts >= bestTimestamp) {
                     bestTimestamp = ts;
-                    bestVid = new VersionID(vidBytes);
+                    bestVid = new ContentID(vidBytes);
                 }
             }
         }
@@ -143,17 +142,17 @@ public interface LibraryIndex extends Service {
     /** @deprecated Use {@link #latestVersion(ItemID)} */
     @Deprecated
     default Optional<byte[]> getItemRecord(ItemID iid) {
-        return latestVersion(iid).map(VersionID::encodeBinary);
+        return latestVersion(iid).map(ContentID::encodeBinary);
     }
 
-    /** @deprecated Use {@link #indexVersion(ItemID, VersionID, long, WriteTransaction)} */
+    /** @deprecated Use {@link #indexVersion(ItemID, ContentID, long, WriteTransaction)} */
     @Deprecated
     default void putItemRecord(ItemID iid, byte[] recordBytes, WriteTransaction wtx) {
         Objects.requireNonNull(iid, "iid");
         Objects.requireNonNull(recordBytes, "recordBytes");
         Objects.requireNonNull(wtx, "wtx");
         // Legacy: recordBytes is VID bytes, timestamp defaults to now
-        VersionID vid = new VersionID(recordBytes);
+        ContentID vid = new ContentID(recordBytes);
         indexVersion(iid, vid, System.currentTimeMillis(), wtx);
     }
 
@@ -411,7 +410,7 @@ public interface LibraryIndex extends Service {
     // Head Tracking
     // ==================================================================================
 
-    default void setHead(ItemID principal, ItemID item, String channel, VersionID vid, WriteTransaction wtx) {
+    default void setHead(ItemID principal, ItemID item, String channel, ContentID vid, WriteTransaction wtx) {
         Objects.requireNonNull(principal, "principal");
         Objects.requireNonNull(item, "item");
         Objects.requireNonNull(vid, "vid");
@@ -419,18 +418,18 @@ public interface LibraryIndex extends Service {
         store().put(Column.HEADS, Column.HEADS.key(principal, item), vid.encodeBinary(), wtx);
     }
 
-    default VersionID getHead(ItemID principal, ItemID item, String channel) {
+    default ContentID getHead(ItemID principal, ItemID item, String channel) {
         Objects.requireNonNull(principal, "principal");
         Objects.requireNonNull(item, "item");
         byte[] vidBytes = store().get(Column.HEADS, Column.HEADS.key(principal, item));
-        return vidBytes != null ? new VersionID(vidBytes) : null;
+        return vidBytes != null ? new ContentID(vidBytes) : null;
     }
 
-    default Stream<Map.Entry<ItemID, VersionID>> headsFor(ItemID principal) {
+    default Stream<Map.Entry<ItemID, ContentID>> headsFor(ItemID principal) {
         Objects.requireNonNull(principal, "principal");
         byte[] prefix = Column.HEADS.keyPrefix(principal);
 
-        List<Map.Entry<ItemID, VersionID>> results = new ArrayList<>();
+        List<Map.Entry<ItemID, ContentID>> results = new ArrayList<>();
         try (var it = store().iterate(Column.HEADS, prefix)) {
             while (it.hasNext()) {
                 var kv = it.next();
@@ -440,7 +439,7 @@ public interface LibraryIndex extends Service {
                 System.arraycopy(key, 34, iidBytes, 0, 34);
                 ItemID iid = new ItemID(iidBytes);
 
-                VersionID vid = new VersionID(kv.value());
+                ContentID vid = new ContentID(kv.value());
                 results.add(Map.entry(iid, vid));
             }
         }

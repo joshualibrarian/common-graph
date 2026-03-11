@@ -21,7 +21,7 @@ import dev.everydaythings.graph.expression.EvalInputSnapshot;
 import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.ui.scene.AnimationState;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
@@ -1292,11 +1292,9 @@ public class GraphicalSession extends Session {
         }
 
         String handle = path.get().startsWith("/") ? path.get().substring(1) : path.get();
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
+        FrameKey key = FrameKey.literal(handle);
 
-        Object component = item.content().getLive(hid).orElse(null);
+        Object component = item.content().getLive(key).orElse(null);
         if (component == null) {
             hideDetailPane();
             return;

@@ -980,9 +980,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // Refresh tree to pick up the new component, then select it
         if (itemModel != null) {
             itemModel.refresh();
-            // Build link with HandleID-encoded path to match FrameEntry.link() format
+            // Build link with handle name path to match FrameEntry.link() format
             Link componentLink = Link.of(actual.iid(),
-                    "/" + dev.everydaythings.graph.item.id.HandleID.of(handleName).encodeText());
+                    "/" + handleName);
             itemModel.select(componentLink);
         }
 
@@ -1038,7 +1038,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         String candidate = normalized;
         int n = 2;
-        while (item.content().get(dev.everydaythings.graph.item.id.HandleID.of(candidate)).isPresent()) {
+        while (item.content().get(dev.everydaythings.graph.item.id.FrameKey.literal(candidate)).isPresent()) {
             candidate = normalized + "-" + n++;
         }
         return candidate;

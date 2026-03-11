@@ -52,7 +52,7 @@ public final class TokenExtractor {
     /**
      * Extract postings from a manifest.
      *
-     * <p>Note: Component handles in manifests are stored as HandleIDs (hashes),
+     * <p>Note: Component handles in manifests are stored as FrameKeys,
      * not as the original string names. To index component handles by their
      * human-readable names, the original strings must be provided separately
      * when components are created. This method currently returns empty.
@@ -61,7 +61,7 @@ public final class TokenExtractor {
      * @return list of postings (currently empty - see note above)
      */
     public static List<Posting> fromManifest(Manifest manifest) {
-        // HandleIDs in FrameEntry are hashes - we can't recover the original
+        // FrameKeys in FrameEntry are semantic addresses - we can't recover the original
         // handle strings. Handle indexing needs to happen at component creation
         // time when the original names are available.
         return List.of();

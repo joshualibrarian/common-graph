@@ -4,7 +4,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.util.Optional;
@@ -107,11 +107,11 @@ public record ReferenceExpression(
         // Get the component from the target item's content
         // TODO: The double lookup (ExpressionComponent then Object) could be simplified
         //  to one getLive(handleId, Object.class) call with instanceof dispatch.
-        HandleID handleId = HandleID.of(handle);
-        var exprOpt = targetItem.content().getLive(handleId, ExpressionComponent.class);
+        FrameKey frameKey = FrameKey.literal(handle);
+        var exprOpt = targetItem.content().getLive(frameKey, ExpressionComponent.class);
         if (exprOpt.isEmpty()) {
             // Try getting any component with that handle
-            var anyOpt = targetItem.content().getLive(handleId, Object.class);
+            var anyOpt = targetItem.content().getLive(frameKey, Object.class);
             if (anyOpt.isPresent()) {
                 Object component = anyOpt.get();
                 // If it's an ExpressionComponent, evaluate it

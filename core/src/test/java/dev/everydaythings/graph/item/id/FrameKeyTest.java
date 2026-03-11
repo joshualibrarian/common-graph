@@ -96,33 +96,22 @@ class FrameKeyTest {
     }
 
     @Nested
-    @DisplayName("HandleID compatibility")
-    class HandleCompat {
+    @DisplayName("Canonical string")
+    class CanonicalString {
 
         @Test
-        @DisplayName("literal key produces same HandleID as HandleID.of()")
-        void literalHandleMatchesOriginal() {
-            FrameKey key = FrameKey.literal("vault");
-            HandleID fromKey = key.toHandleID();
-            HandleID direct = HandleID.of("vault");
-
-            assertThat(fromKey).isEqualTo(direct);
+        @DisplayName("toCanonicalString returns literal value for literal keys")
+        void canonicalStringForLiteral() {
+            assertThat(FrameKey.literal("vault").toCanonicalString()).isEqualTo("vault");
         }
 
         @Test
-        @DisplayName("toHandleString returns literal value for literal keys")
-        void handleStringForLiteral() {
-            assertThat(FrameKey.literal("vault").toHandleString()).isEqualTo("vault");
-        }
-
-        @Test
-        @DisplayName("toHandleString is deterministic for semantic keys")
-        void handleStringDeterministic() {
+        @DisplayName("toCanonicalString is deterministic for semantic keys")
+        void canonicalStringDeterministic() {
             FrameKey key1 = FrameKey.of(GLOSS, ENG);
             FrameKey key2 = FrameKey.of(GLOSS, ENG);
 
-            assertThat(key1.toHandleString()).isEqualTo(key2.toHandleString());
-            assertThat(key1.toHandleID()).isEqualTo(key2.toHandleID());
+            assertThat(key1.toCanonicalString()).isEqualTo(key2.toCanonicalString());
         }
     }
 
@@ -281,50 +270,35 @@ class FrameKeyTest {
     class EntryIntegration {
 
         @Test
-        @DisplayName("entry with explicit frameKey returns it")
-        void explicitFrameKey() {
+        @DisplayName("entry with explicit semantic frameKey returns it")
+        void explicitSemanticFrameKey() {
             FrameKey key = FrameKey.of(TITLE);
             dev.everydaythings.graph.item.component.FrameEntry entry =
                     dev.everydaythings.graph.item.component.FrameEntry.builder()
-                            .handle(HandleID.of("title"))
-                            .type(ItemID.fromString("cg:type/text"))
                             .frameKey(key)
+                            .type(ItemID.fromString("cg:type/text"))
                             .identity(true)
                             .build();
 
             assertThat(entry.frameKey()).isEqualTo(key);
+            assertThat(entry.frameKey().isSemantic()).isTrue();
+            assertThat(entry.frameKey().headSememe()).isEqualTo(TITLE);
         }
 
         @Test
-        @DisplayName("entry with aliasRef derives semantic frameKey")
-        void derivedFromAliasRef() {
+        @DisplayName("entry with explicit literal frameKey returns it")
+        void explicitLiteralFrameKey() {
+            FrameKey key = FrameKey.literal("vault");
             dev.everydaythings.graph.item.component.FrameEntry entry =
                     dev.everydaythings.graph.item.component.FrameEntry.builder()
-                            .handle(HandleID.of("title"))
-                            .aliasRef(TITLE)
-                            .type(ItemID.fromString("cg:type/text"))
-                            .identity(true)
-                            .build();
-
-            FrameKey derived = entry.frameKey();
-            assertThat(derived.isSemantic()).isTrue();
-            assertThat(derived.headSememe()).isEqualTo(TITLE);
-        }
-
-        @Test
-        @DisplayName("entry with alias derives literal frameKey")
-        void derivedFromAlias() {
-            dev.everydaythings.graph.item.component.FrameEntry entry =
-                    dev.everydaythings.graph.item.component.FrameEntry.builder()
-                            .handle(HandleID.of("vault"))
-                            .alias("vault")
+                            .frameKey(key)
                             .type(ItemID.fromString("cg:type/vault"))
                             .identity(true)
                             .build();
 
-            FrameKey derived = entry.frameKey();
-            assertThat(derived.isLiteral()).isTrue();
-            assertThat(derived.literalValue()).isEqualTo("vault");
+            assertThat(entry.frameKey()).isEqualTo(key);
+            assertThat(entry.frameKey().isLiteral()).isTrue();
+            assertThat(entry.frameKey().literalValue()).isEqualTo("vault");
         }
     }
 }

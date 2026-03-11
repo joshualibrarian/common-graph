@@ -169,7 +169,7 @@ public abstract class ItemTest {
         void baseVersionIsNullOrValid() {
             var base = item.base();
 
-            // base can be null (uncommitted) or a valid VersionID
+            // base can be null (uncommitted) or a valid ContentID
             if (base != null) {
                 assertThat(base.encodeBinary())
                         .as("Base version binary encoding")

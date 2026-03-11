@@ -78,7 +78,7 @@ class RocksItemStoreTest extends ItemStoreTest {
 
             try (RocksItemStore rocksStore = RocksItemStore.open(dbPath)) {
                 var iid = testItemID("nonexistent");
-                var vid = new dev.everydaythings.graph.item.id.VersionID(
+                var vid = new dev.everydaythings.graph.item.id.ContentID(
                         new byte[32], dev.everydaythings.graph.Hash.DEFAULT);
 
                 assertThat(rocksStore.hasManifest(iid, vid))

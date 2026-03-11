@@ -6,7 +6,9 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.item.id.*;
+import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.FrameTable;
@@ -224,7 +226,7 @@ public final class WorkingTreeStore implements ItemStore {
     /**
      * Get the current version ID (what's checked out), if set.
      */
-    public Optional<VersionID> currentVersion() {
+    public Optional<ContentID> currentVersion() {
         Path path = currentVersionPath();
         if (!Files.exists(path)) {
             return Optional.empty();
@@ -233,7 +235,7 @@ public final class WorkingTreeStore implements ItemStore {
             String ref = Files.readString(path, StandardCharsets.UTF_8).trim();
             // Reference format: "../versions/<vid>" or just "<vid>"
             String vidStr = ref.contains("/") ? ref.substring(ref.lastIndexOf('/') + 1) : ref;
-            return Optional.of(new VersionID(unhex(vidStr)));
+            return Optional.of(new ContentID(unhex(vidStr)));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read current version", e);
         }
@@ -242,7 +244,7 @@ public final class WorkingTreeStore implements ItemStore {
     /**
      * Set the current version (what's checked out).
      */
-    public void setCurrentVersion(VersionID vid, WriteTransaction wtx) {
+    public void setCurrentVersion(ContentID vid, WriteTransaction wtx) {
         Objects.requireNonNull(vid, "vid");
         Objects.requireNonNull(wtx, "wtx");
 
@@ -291,7 +293,7 @@ public final class WorkingTreeStore implements ItemStore {
 
         // Write each component entry
         for (FrameEntry entry : components) {
-            String filename = hex(entry.handle().encodeBinary()) + ".cbor";
+            String filename = hex(entry.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
             Path file = componentsDir.resolve(filename);
             byte[] bytes = entry.encodeBinary(Canonical.Scope.RECORD);
             fsTx.stageAtomicReplace(file, bytes);
@@ -327,13 +329,14 @@ public final class WorkingTreeStore implements ItemStore {
     /**
      * Load a specific component entry from head/components/.
      *
-     * @param handle The component handle ID
+     * @param key The component frame key
      * @return The component entry, or empty if not found
      */
-    public Optional<FrameEntry> loadHeadComponent(HandleID handle) {
-        Objects.requireNonNull(handle, "handle");
+    public Optional<FrameEntry> loadHeadComponent(FrameKey key) {
+        Objects.requireNonNull(key, "key");
 
-        Path file = headDir().resolve(DIR_COMPONENTS).resolve(hex(handle.encodeBinary()) + ".cbor");
+        Path file = headDir().resolve(DIR_COMPONENTS).resolve(
+                hex(key.toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor");
         if (!Files.exists(file)) {
             return Optional.empty();
         }
@@ -342,7 +345,7 @@ public final class WorkingTreeStore implements ItemStore {
             byte[] bytes = Files.readAllBytes(file);
             return Optional.of(FrameEntry.decode(bytes));
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to load component: " + handle, e);
+            throw new UncheckedIOException("Failed to load component: " + key, e);
         }
     }
 
@@ -600,7 +603,7 @@ public final class WorkingTreeStore implements ItemStore {
     // --- Manifest ---
 
     @Override
-    public VersionID persistManifest(ItemID iid, byte[] record, WriteTransaction wtx) {
+    public ContentID persistManifest(ItemID iid, byte[] record, WriteTransaction wtx) {
         Objects.requireNonNull(iid, "iid");
         Objects.requireNonNull(record, "record");
         Objects.requireNonNull(wtx, "wtx");
@@ -608,7 +611,7 @@ public final class WorkingTreeStore implements ItemStore {
         // Decode to compute VID (hash of BODY)
         Manifest m = Manifest.decode(record);
         byte[] body = m.encodeBinary(dev.everydaythings.graph.Canonical.Scope.BODY);
-        VersionID vid = new VersionID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
+        ContentID vid = new ContentID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
 
         Path p = manifestPath(vid);
         if (!Files.exists(p)) {
@@ -618,7 +621,7 @@ public final class WorkingTreeStore implements ItemStore {
     }
 
     @Override
-    public byte[] retrieveManifest(ItemID iid, VersionID vid) {
+    public byte[] retrieveManifest(ItemID iid, ContentID vid) {
         Objects.requireNonNull(vid, "vid");
 
         Path p = manifestPath(vid);
@@ -740,7 +743,7 @@ public final class WorkingTreeStore implements ItemStore {
         }
     }
 
-    private Path manifestPath(VersionID vid) {
+    private Path manifestPath(ContentID vid) {
         return root.resolve(DOT_ITEM).resolve(DIR_VERSIONS).resolve(hex(vid.encodeBinary()));
     }
 
@@ -802,50 +805,50 @@ public final class WorkingTreeStore implements ItemStore {
     }
 
     /**
-     * Get the path for a local component by handle.
+     * Get the path for a local component by frame key.
      */
-    public Path localComponentPath(HandleID hid) {
-        return localDir().resolve(Encoding.hex(hid.encodeBinary()));
+    public Path localComponentPath(FrameKey key) {
+        return localDir().resolve(Encoding.hex(key.toCanonicalString().getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
      * Get the path for a local component with a relative sub-path.
      * Used for path-based resources like RocksDB.
      *
-     * @param hid          The component handle
+     * @param key          The component frame key
      * @param relativePath Relative path within the component's local directory
      * @return Full path to the resource
      */
-    public Path localComponentPath(HandleID hid, String relativePath) {
-        return localComponentPath(hid).resolve(relativePath);
+    public Path localComponentPath(FrameKey key, String relativePath) {
+        return localComponentPath(key).resolve(relativePath);
     }
 
     /**
      * Store local-only component content (raw bytes).
      *
-     * @param hid     The component handle
+     * @param key     The component frame key
      * @param content The content bytes
      * @param wtx     Write transaction
      */
-    public void putLocalContent(HandleID hid, byte[] content, WriteTransaction wtx) {
-        Objects.requireNonNull(hid, "hid");
+    public void putLocalContent(FrameKey key, byte[] content, WriteTransaction wtx) {
+        Objects.requireNonNull(key, "key");
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(wtx, "wtx");
 
-        Path file = localComponentPath(hid);
+        Path file = localComponentPath(key);
         ((FsTx) wtx).stageAtomicReplace(file, content);
     }
 
     /**
      * Get local-only component content (raw bytes).
      *
-     * @param hid The component handle
+     * @param key The component frame key
      * @return The content bytes, or empty if not found
      */
-    public Optional<byte[]> getLocalContent(HandleID hid) {
-        Objects.requireNonNull(hid, "hid");
+    public Optional<byte[]> getLocalContent(FrameKey key) {
+        Objects.requireNonNull(key, "key");
 
-        Path file = localComponentPath(hid);
+        Path file = localComponentPath(key);
         if (Files.exists(file) && Files.isRegularFile(file)) {
             return Optional.of(readAllBytes(file));
         }
@@ -855,12 +858,12 @@ public final class WorkingTreeStore implements ItemStore {
     /**
      * Check if a local component directory exists (for path-based resources).
      *
-     * @param hid The component handle
+     * @param key The component frame key
      * @return True if the local component directory exists
      */
-    public boolean hasLocalComponent(HandleID hid) {
-        Objects.requireNonNull(hid, "hid");
-        Path path = localComponentPath(hid);
+    public boolean hasLocalComponent(FrameKey key) {
+        Objects.requireNonNull(key, "key");
+        Path path = localComponentPath(key);
         return Files.exists(path);
     }
 

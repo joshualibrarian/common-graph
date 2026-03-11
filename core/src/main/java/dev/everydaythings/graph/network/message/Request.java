@@ -4,7 +4,7 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.VersionID;
+import dev.everydaythings.graph.item.id.ContentID;
 
 import java.util.List;
 import java.util.Objects;
@@ -46,7 +46,7 @@ public record Request(
     /**
      * Request a specific version of an item.
      */
-    public static Request itemVersion(long requestId, ItemID iid, VersionID vid) {
+    public static Request itemVersion(long requestId, ItemID iid, ContentID vid) {
         return new Request(requestId, List.of(new Target.Item(iid, vid)));
     }
 
@@ -118,7 +118,7 @@ public record Request(
         /**
          * Request an item (optionally at a specific version).
          */
-        record Item(ItemID iid, VersionID vid) implements Target {
+        record Item(ItemID iid, ContentID vid) implements Target {
             @Override
             public CBORObject toCbor() {
                 CBORObject obj = CBORObject.NewMap();
@@ -132,8 +132,8 @@ public record Request(
 
             static Item fromCbor(CBORObject obj) {
                 ItemID iid = new ItemID(obj.get("iid").GetByteString());
-                VersionID vid = obj.ContainsKey("vid")
-                        ? new VersionID(obj.get("vid").GetByteString())
+                ContentID vid = obj.ContainsKey("vid")
+                        ? new ContentID(obj.get("vid").GetByteString())
                         : null;
                 return new Item(iid, vid);
             }

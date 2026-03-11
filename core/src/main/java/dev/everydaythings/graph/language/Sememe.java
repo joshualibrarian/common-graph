@@ -956,7 +956,7 @@ public abstract class Sememe extends Item {
         // Try SememeGloss component
         if (content() != null) {
             var live = content().getLive(
-                    dev.everydaythings.graph.item.id.HandleID.of(
+                    dev.everydaythings.graph.item.id.FrameKey.literal(
                             SememeGloss.handleKeyFor(iso3)));
             if (live.isPresent() && live.get() instanceof SememeGloss sg) {
                 return sg.text();

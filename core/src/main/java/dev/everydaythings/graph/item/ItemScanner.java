@@ -7,7 +7,6 @@ import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.lang.reflect.Field;
@@ -93,7 +92,7 @@ public final class ItemScanner {
         List<VerbSpec> verbSpecs = new ArrayList<>();
         Map<String, List<VerbSpec>> componentVerbs = new HashMap<>();
 
-        Set<String> handles = new HashSet<>(); // Track for uniqueness
+        Set<FrameKey> frameKeys = new HashSet<>(); // Track for uniqueness
         Set<String> paths = new HashSet<>();   // Track for uniqueness
         Set<ItemID> seenVerbSememes = new HashSet<>(); // Track verb sememe IDs for child-wins precedence
 
@@ -106,13 +105,14 @@ public final class ItemScanner {
                     FrameFieldSpec frameSpec = extractFrameField(field, frame);
 
                     if (frameSpec.endorsed()) {
-                        validateFrameField(frameSpec, handles, paths);
+                        validateFrameField(frameSpec, frameKeys, paths);
 
                         // Scan component class for @Verb methods
                         if (field.getType().isAnnotationPresent(Type.class)) {
-                            List<VerbSpec> verbs = scanComponentVerbs(field.getType(), frameSpec.handleKey());
+                            String keyString = frameSpec.canonicalKeyString();
+                            List<VerbSpec> verbs = scanComponentVerbs(field.getType(), keyString);
                             if (!verbs.isEmpty()) {
-                                componentVerbs.put(frameSpec.handleKey(), verbs);
+                                componentVerbs.put(keyString, verbs);
                             }
                         }
                     }
@@ -150,9 +150,8 @@ public final class ItemScanner {
      * Extract a FrameFieldSpec from a field and @Frame annotation.
      */
     private static FrameFieldSpec extractFrameField(Field field, Item.Frame ann) {
-        // Determine FrameKey and handleKey
+        // Determine FrameKey
         FrameKey frameKey;
-        String handleKey;
 
         if (ann.key().length > 0) {
             // Semantic key from annotation
@@ -161,20 +160,13 @@ public final class ItemScanner {
                 tokens[i] = ItemID.fromString(ann.key()[i]);
             }
             frameKey = FrameKey.of(tokens);
-            // HandleKey derived from first token for backward compat
-            handleKey = ann.handle().isEmpty() ? ann.key()[0] : ann.handle();
         } else if (!ann.handle().isEmpty()) {
             // Literal key
             frameKey = FrameKey.literal(ann.handle());
-            handleKey = ann.handle();
         } else {
             // Default to field name
-            String name = field.getName();
-            frameKey = FrameKey.literal(name);
-            handleKey = name;
+            frameKey = FrameKey.literal(field.getName());
         }
-
-        HandleID handle = HandleID.of(handleKey);
 
         // Determine type
         Class<?> fieldType = field.getType();
@@ -193,7 +185,7 @@ public final class ItemScanner {
         field.setAccessible(true);
 
         return new FrameFieldSpec(
-                field, frameKey, handle, handleKey, type,
+                field, frameKey, type,
                 ann.path(), snapshot, stream, localOnly, identity, ann.endorsed());
     }
 
@@ -308,13 +300,13 @@ public final class ItemScanner {
     /**
      * Validate an endorsed frame field spec for uniqueness.
      */
-    private static void validateFrameField(FrameFieldSpec spec, Set<String> handles, Set<String> paths) {
-        String handleStr = spec.handle().toString();
-        if (handles.contains(handleStr)) {
+    private static void validateFrameField(FrameFieldSpec spec, Set<FrameKey> frameKeys, Set<String> paths) {
+        FrameKey key = spec.frameKey();
+        if (frameKeys.contains(key)) {
             throw new IllegalStateException(
-                    "Duplicate frame handle '" + handleStr + "' on field " + spec.field().getName());
+                    "Duplicate frame key " + key + " on field " + spec.field().getName());
         }
-        handles.add(handleStr);
+        frameKeys.add(key);
 
         if (spec.hasMountPath()) {
             if (paths.contains(spec.path())) {

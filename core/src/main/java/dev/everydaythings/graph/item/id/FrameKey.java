@@ -28,9 +28,8 @@ import java.util.Objects;
  * <p>The first token is the <em>head</em> — the primary predicate. Additional
  * tokens are qualifiers that distinguish multiple instances of the same predicate.
  *
- * <p>A single-literal FrameKey is the degenerate case that corresponds to
- * the current {@link HandleID} — a hash of a string. The migration path is:
- * {@code HandleID.of("vault")} → {@code FrameKey.literal("vault")}.
+ * <p>A single-literal FrameKey is the simplest case — a direct string key.
+ * Example: {@code FrameKey.literal("vault")}.
  *
  * <p>CBOR format: array of tokens. Sememe tokens encode as byte strings
  * (ItemID multihash), literal tokens as text strings. The CBOR type
@@ -39,7 +38,6 @@ import java.util.Objects;
 public final class FrameKey implements Canonical, Comparable<FrameKey> {
 
     private final List<FrameToken> tokens;
-    private transient HandleID cachedHandleID;
 
     private FrameKey(List<FrameToken> tokens) {
         if (tokens == null || tokens.isEmpty()) {
@@ -146,8 +144,7 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
     /**
      * Create a single-literal FrameKey.
      *
-     * <p>This is the degenerate case corresponding to the current HandleID.
-     * {@code FrameKey.literal("vault")} behaves like {@code HandleID.of("vault")}.
+     * <p>This is the simplest case — a single opaque string key.
      */
     public static FrameKey literal(String value) {
         return new FrameKey(List.of(new Literal(value)));
@@ -170,7 +167,7 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
     }
 
     /**
-     * Create a FrameKey from a HandleID string (backward compat).
+     * Create a FrameKey from a handle string.
      *
      * <p>Produces a single-literal key whose value is the handle string.
      */
@@ -203,7 +200,7 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
     }
 
     /**
-     * True if this key is a single literal token (the HandleID degenerate case).
+     * True if this key is a single literal token.
      */
     public boolean isLiteral() {
         return tokens.size() == 1 && tokens.getFirst() instanceof Literal;
@@ -237,29 +234,17 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
     }
 
     // ==================================================================================
-    // HandleID Compatibility
+    // String Representation
     // ==================================================================================
 
     /**
-     * Convert to HandleID for backward compatibility.
+     * A canonical, deterministic string form of this FrameKey.
      *
-     * <p>For single-literal keys, hashes the literal value (same as HandleID.of()).
-     * For semantic/compound keys, hashes the display string.
+     * <p>For literal keys, this is the literal value itself (e.g., "vault").
+     * For semantic keys, a slash-separated string of token representations.
+     * Used for filesystem paths, display, and debugging.
      */
-    public HandleID toHandleID() {
-        if (cachedHandleID == null) {
-            cachedHandleID = HandleID.of(toHandleString());
-        }
-        return cachedHandleID;
-    }
-
-    /**
-     * The string used for HandleID hashing — the canonical handle name.
-     *
-     * <p>For literal keys, this is the literal value itself.
-     * For semantic keys, this is a deterministic string from the token sequence.
-     */
-    public String toHandleString() {
+    public String toCanonicalString() {
         if (isLiteral()) {
             return ((Literal) tokens.getFirst()).value();
         }

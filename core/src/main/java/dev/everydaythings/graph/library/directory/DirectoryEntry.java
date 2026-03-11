@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.directory;
 
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.VersionID;
+import dev.everydaythings.graph.item.id.ContentID;
 import lombok.Value;
 
 import java.nio.file.Path;
@@ -20,10 +20,10 @@ class DirectoryEntry {
     boolean preferWorkingTree;  // for writes / HEAD resolution
     boolean thinWorkingTree;    // allow fallback to main store
 
-    VersionID selectedHead;
+    ContentID selectedHead;
 
     // --- Cached head info (HINTS, not truth) ---
-    Map<String, VersionID> observedHeads;
+    Map<String, ContentID> observedHeads;
 
     // --- Bookkeeping ---
     Instant firstSeen;

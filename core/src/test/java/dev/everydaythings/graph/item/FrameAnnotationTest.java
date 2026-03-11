@@ -76,7 +76,7 @@ class FrameAnnotationTest {
 
             FrameFieldSpec frame = schema.frameFields().getFirst();
             assertThat(frame.endorsed()).isTrue();
-            assertThat(frame.handleKey()).isEqualTo("vault");
+            assertThat(frame.canonicalKeyString()).isEqualTo("vault");
             assertThat(frame.localOnly()).isTrue();
             assertThat(frame.frameKey().isLiteral()).isTrue();
         }
@@ -127,19 +127,20 @@ class FrameAnnotationTest {
             ItemSchema schema = ItemScanner.schemaFor(EndorsedFrameItem.class);
             FrameFieldSpec frame = schema.frameFields().getFirst();
 
-            assertThat(frame.handleKey()).isEqualTo("vault");
+            assertThat(frame.canonicalKeyString()).isEqualTo("vault");
             assertThat(frame.path()).isEqualTo(".vault");
             assertThat(frame.localOnly()).isTrue();
         }
 
         @Test
-        @DisplayName("default handle from field name")
-        void defaultHandle() {
+        @DisplayName("canonical key string for semantic frame uses encoded ItemID")
+        void semanticCanonicalKey() {
             ItemSchema schema = ItemScanner.schemaFor(SemanticFrameItem.class);
             FrameFieldSpec frame = schema.frameFields().getFirst();
 
-            // key specified but not handle — handleKey falls back to key[0]
-            assertThat(frame.handleKey()).isEqualTo("cg:pred/title");
+            // Semantic FrameKey's canonical string is the encoded ItemID
+            assertThat(frame.canonicalKeyString())
+                    .isEqualTo(ItemID.fromString("cg:pred/title").encodeText());
         }
 
         @Test

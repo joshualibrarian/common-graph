@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.RelationID;
-import dev.everydaythings.graph.item.id.VersionID;
+import dev.everydaythings.graph.item.id.ContentID;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -149,7 +149,7 @@ public final class Link {
     /**
      * Add version specification by ID.
      */
-    public Link version(VersionID vid) {
+    public Link version(ContentID vid) {
         return new Link(item, new VersionSpec.Id(vid), component, selector, path);
     }
 
@@ -353,9 +353,9 @@ public final class Link {
     public sealed interface VersionSpec {
         String encodeToken();
 
-        record Id(VersionID id) implements VersionSpec {
+        record Id(ContentID id) implements VersionSpec {
             public Id { Objects.requireNonNull(id, "id"); }
-            @Override public String encodeToken() { return id.encodeText().substring(VersionID.PREFIX.length()); }
+            @Override public String encodeToken() { return id.encodeText().substring(ContentID.PREFIX.length()); }
         }
 
         record Handle(String handle) implements VersionSpec {
@@ -371,7 +371,7 @@ public final class Link {
             Objects.requireNonNull(token, "token");
             if (containsWhitespace(token)) throw new IllegalArgumentException("whitespace in version token");
             try {
-                VersionID id = VersionID.bestGuess(token);
+                ContentID id = ContentID.bestGuess(token);
                 return new Id(id);
             } catch (Exception ignore) {
                 return new Handle(token);

@@ -2,7 +2,6 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 import lombok.NonNull;
@@ -22,14 +21,8 @@ public class FrameFieldSpec {
     /** The annotated field. */
     @NonNull private final Field field;
 
-    /** The frame's semantic key. */
+    /** The frame's semantic key — the primary address. */
     @NonNull private final FrameKey frameKey;
-
-    /** The frame's handle ID (derived from frameKey or literal). */
-    @NonNull private final HandleID handle;
-
-    /** The original handle key string. */
-    @NonNull private final String handleKey;
 
     /** The frame's type ID (from field type or derived). */
     @NonNull private final ItemID type;
@@ -55,8 +48,6 @@ public class FrameFieldSpec {
     public FrameFieldSpec(
             @NonNull Field field,
             @NonNull FrameKey frameKey,
-            @NonNull HandleID handle,
-            @NonNull String handleKey,
             @NonNull ItemID type,
             String path,
             boolean snapshot,
@@ -66,8 +57,6 @@ public class FrameFieldSpec {
             boolean endorsed) {
         this.field = field;
         this.frameKey = frameKey;
-        this.handle = handle;
-        this.handleKey = handleKey;
         this.type = type;
         this.path = path != null ? path : "";
         this.snapshot = snapshot;
@@ -98,6 +87,16 @@ public class FrameFieldSpec {
         }
         // Literal keys don't have a predicate ItemID — derive one
         return ItemID.fromString(((FrameKey.Literal) head).value());
+    }
+
+    /**
+     * The canonical string form of this frame's key.
+     *
+     * <p>For literal keys, this is the literal value (e.g., "vault").
+     * For semantic keys, a deterministic slash-separated representation.
+     */
+    public String canonicalKeyString() {
+        return frameKey.toCanonicalString();
     }
 
     /**

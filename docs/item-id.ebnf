@@ -1,42 +1,77 @@
-Ref        ::= Base [ Selector ]                  (* selector, if any, is LAST *)
+(* ================================================================== *)
+(* Common Graph Reference Syntax (CG-REF)                             *)
+(*                                                                    *)
+(* A Ref addresses anything in the graph: an item, a specific version *)
+(* of an item, a frame within an item, or a fragment within content.  *)
+(* ================================================================== *)
 
-Base       ::= IID [ "@" VID ] [ Component ]      (* Component is optional and unique *)
+(* ── Text Form ───────────────────────────────────────────────────── *)
 
-Component  ::= "#" RID | "\" CID                  (* at most one of these *)
+Ref        ::= Target [ Version ] Frame* [ Selector ]
 
-Selector   ::= "[" SelBody "]"
+Target     ::= MBHash                          (* ItemID — multibase-encoded multihash *)
 
-SelBody    ::= TimeSel | CharSel | ByteSel | RectSel
-TimeSel    ::= Number "-" Number "s"
-CharSel    ::= "c:" Number "-" Number
-ByteSel    ::= "b:" Number "-" Number
+Version    ::= "@" MBHash                      (* manifest CID — pins to a specific version *)
+
+Frame      ::= "\" Key                         (* frame key segment *)
+Key        ::= MBHash                          (* sememe — ItemID of a sememe item *)
+             | '"' LiteralText '"'             (* literal string key *)
+
+Selector   ::= "[" SelBody "]"                 (* type-specific fragment address *)
+
+(* ── Selector Bodies (type-specific, extensible) ─────────────────── *)
+
+SelBody    ::= ByteSel | TimeSel | CharSel | RectSel | PathSel | RawSel
+
+ByteSel    ::= Number ".." Number              (* byte range *)
+TimeSel    ::= Number ".." Number "s"          (* time range in seconds *)
+CharSel    ::= "c:" Number ".." Number         (* character range *)
 RectSel    ::= "rect:" Number "," Number "," Number "," Number
+PathSel    ::= "." Ident ( "." Ident )*        (* structural path *)
+RawSel     ::= 1*PRINTABLE                     (* opaque, type interprets *)
 
-IID        ::= "iid:" IidBody
-VID        ::= VidBody
-RID        ::= RidBody
-CID        ::= Alg ":" Hex
-Alg        ::= "sha256" | "blake3" | <future>
-Hex        ::= 1*HEXDIG
+(* ── Primitives ──────────────────────────────────────────────────── *)
+
+MBHash     ::= BasePrefix 1*BASECHAR
+BasePrefix ::= "b" | "z" | "u" | "m" | "f" | "k"   (* multibase prefix *)
+BASECHAR   ::= ALPHA | DIGIT | "-" | "_" | "~" | "." | "="
+LiteralText ::= 1*( CHAR - '"' )              (* any char except unescaped quote *)
 Number     ::= INT [ "." 1*DIGIT ]
-IidBody    ::= 1*( ALPHA | DIGIT | "/" | "-" | "_" | "." )
-VidBody    ::= 1*( ALPHA | DIGIT | "-" | "_" | "." )
-RidBody    ::= 1*( ALPHA | DIGIT | "-" | "_" )
 INT        ::= 1*DIGIT
+Ident      ::= ( ALPHA | "_" ) *( ALPHA | DIGIT | "_" )
 
-RefText      ::= IIDText [ "@" VIDText ] [ CompText ] [ SelectorText ]
-IIDText      ::= "iid:" MBHash
-VIDText      ::= MBHash
-CompText     ::= "#" MBHash | "\" MBHash
-MBHash       ::= BasePrefix 1*BASECHAR
-BasePrefix   ::= "z" | "u" | "m" | "b" | "f" | "k"  (* multibase prefixes; choose the subset you support *)
-BASECHAR     ::= ALPHA | DIGIT | "-" | "_" | "~" | "." | "="  (* depends on base; validate per base *)
+(* ── Examples ────────────────────────────────────────────────────── *)
+(*                                                                    *)
+(*   bciqe7...                               item (bare IID)          *)
+(*   bciqe7...@bciaa3...                     item at version          *)
+(*   bciqe7...\bcibb4...                     item's AUTHOR frame      *)
+(*   bciqe7...\bcibb4...\bcicc5...           item's English gloss     *)
+(*   bciqe7...\bcibb4...\"tavern"            item's "tavern" chat     *)
+(*   bciqe7...@bciaa3...\bcidd6...[0..1024]  versioned frame fragment *)
+(*                                                                    *)
+(* ================================================================== *)
 
-SelectorText ::= "[" TimeSel | CharSel | ByteSel | RectSel "]"
-TimeSel      ::= Number "-" Number "s"
-CharSel      ::= "c:" Number "-" Number
-ByteSel      ::= "b:" Number "-" Number
-RectSel      ::= "rect:" Number "," Number "," Number "," Number
-
-Number       ::= INT [ "." 1*DIGIT ]
-INT          ::= 1*DIGIT
+(* ── Binary Form (Tag 6 payload) ─────────────────────────────────── *)
+(*                                                                    *)
+(* The binary encoding uses the same structure with single-byte       *)
+(* markers and self-delimiting multihash segments.                    *)
+(*                                                                    *)
+(*   RefBin  ::= Multihash [ 0x40 Multihash ] ( 0x5C KeyBin )* [ 0x5B SelBytes ]   *)
+(*                                                                    *)
+(*   KeyBin  ::= Multihash                   — sememe (raw multihash) *)
+(*             | 0x02 Varint UTF8Bytes       — literal (STX + len + text) *)
+(*                                                                    *)
+(*   Multihash ::= AlgByte LenByte Digest    — self-delimiting       *)
+(*   Varint    ::= <LEB128 unsigned integer>                          *)
+(*   SelBytes  ::= <remaining bytes to end of ref>                    *)
+(*                                                                    *)
+(*  Marker bytes:                                                     *)
+(*    0x40 '@'  — version (manifest CID) follows                      *)
+(*    0x5C '\'  — frame key segment follows                           *)
+(*    0x02 STX  — literal string key follows (text form uses '"')     *)
+(*    0x5B '['  — selector follows                                    *)
+(*                                                                    *)
+(*  Backward compatible: a bare multihash (no markers) is a simple    *)
+(*  item reference — the degenerate case.                             *)
+(*                                                                    *)
+(* ================================================================== *)

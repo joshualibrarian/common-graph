@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item.component;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FrameEntryTest {
 
-    static final HandleID HANDLE = HandleID.of("test");
+    static final FrameKey HANDLE = FrameKey.literal("test");
     static final ItemID TYPE = ItemID.fromString("cg:type/test");
     static final ItemID TARGET = ItemID.fromString("cg:test/target");
 
@@ -31,7 +31,7 @@ class FrameEntryTest {
 
             assertThat(entry.isReference()).isTrue();
             assertThat(entry.payload().referenceTarget()).isEqualTo(TARGET);
-            assertThat(entry.handle()).isEqualTo(HANDLE);
+            assertThat(entry.frameKey()).isEqualTo(HANDLE);
             assertThat(entry.type()).isEqualTo(TYPE);
         }
 
@@ -48,7 +48,7 @@ class FrameEntryTest {
             FrameEntry entry = FrameEntry.reference("myref", TYPE, TARGET);
 
             assertThat(entry.alias()).isEqualTo("myref");
-            assertThat(entry.handle()).isEqualTo(HandleID.of("myref"));
+            assertThat(entry.frameKey()).isEqualTo(FrameKey.literal("myref"));
         }
 
         @Test

@@ -75,7 +75,7 @@ public interface ItemStore extends Service {
      * @param vid The version ID (hash of manifest body)
      * @return The manifest, or empty if not found
      */
-    default Optional<Manifest> manifest(ItemID iid, VersionID vid) {
+    default Optional<Manifest> manifest(ItemID iid, ContentID vid) {
         byte[] bytes = retrieveManifest(iid, vid);
         if (bytes == null) return Optional.empty();
         return Optional.of(Manifest.decode(bytes));
@@ -88,7 +88,7 @@ public interface ItemStore extends Service {
      * @param vid The version ID
      * @return true if a manifest exists in OBJECTS
      */
-    default boolean hasManifest(ItemID iid, VersionID vid) {
+    default boolean hasManifest(ItemID iid, ContentID vid) {
         Objects.requireNonNull(vid, "vid");
         byte[] key = Column.OBJECTS.key(vid);
         return store().exists(Column.OBJECTS, key);
@@ -100,9 +100,9 @@ public interface ItemStore extends Service {
      * @param m The manifest to store
      * @return The version ID (hash of the body)
      */
-    default VersionID manifest(Manifest m) {
+    default ContentID manifest(Manifest m) {
         byte[] record = m.encodeBinary(Canonical.Scope.RECORD);
-        var vid = new VersionID[1];
+        var vid = new ContentID[1];
         runInWriteTransaction(tx -> vid[0] = persistManifest(m.iid(), record, tx));
         return vid[0];
     }
@@ -193,14 +193,14 @@ public interface ItemStore extends Service {
      * @param tx     Write transaction
      * @return The version ID (hash of BODY extracted from record)
      */
-    default VersionID persistManifest(ItemID iid, byte[] record, WriteTransaction tx) {
+    default ContentID persistManifest(ItemID iid, byte[] record, WriteTransaction tx) {
         Objects.requireNonNull(record, "record");
         Objects.requireNonNull(tx, "tx");
 
         // Decode to compute VID (hash of BODY)
         Manifest m = Manifest.decode(record);
         byte[] body = m.encodeBinary(Canonical.Scope.BODY);
-        VersionID vid = new VersionID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
+        ContentID vid = new ContentID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
 
         byte[] key = Column.OBJECTS.key(vid);
         if (!store().exists(Column.OBJECTS, key)) {
@@ -241,7 +241,7 @@ public interface ItemStore extends Service {
      * @param vid The version ID
      * @return The manifest record bytes, or null if not found
      */
-    default byte[] retrieveManifest(ItemID iid, VersionID vid) {
+    default byte[] retrieveManifest(ItemID iid, ContentID vid) {
         Objects.requireNonNull(vid, "vid");
 
         byte[] key = Column.OBJECTS.key(vid);
@@ -431,12 +431,12 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Get locally stored component content by handle.
+     * Get locally stored component content by frame key.
      *
-     * @param handle The component handle
+     * @param key The component frame key
      * @return The component bytes, or empty if not found
      */
-    default Optional<byte[]> getLocalContent(HandleID handle) {
+    default Optional<byte[]> getLocalContent(FrameKey key) {
         return Optional.empty();
     }
 

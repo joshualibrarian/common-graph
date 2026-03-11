@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
 import dev.everydaythings.graph.runtime.protocol.SessionServer;
 import dev.everydaythings.graph.value.ValueType;
@@ -18,7 +18,6 @@ import dev.everydaythings.graph.item.action.ActionContext;
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.VersionID;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.relation.Relation;
@@ -348,7 +347,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // (Field initializers like typesExpr run after super constructor completes)
         if (freshBoot) {
             content().setLive(
-                    HandleID.of("types"),
+                    FrameKey.literal("types"),
                     "types",
                     typesExpr);
         }
@@ -374,7 +373,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Sync pre-initialized field values
         if (freshBoot) {
             content().setLive(
-                    HandleID.of("types"),
+                    FrameKey.literal("types"),
                     "types",
                     typesExpr);
         }
@@ -425,7 +424,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // (ContentField annotation only registers during initializeComponents,
             // but library is created here after that phase completes)
             content().setLive(
-                    HandleID.of("library"),
+                    FrameKey.literal("library"),
                     "library",
                     this.library);
         }
@@ -486,7 +485,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Persist manifest through the working tree store (if file-based)
         if (store instanceof WorkingTreeStore wts) {
             byte[] record = current.encodeBinary(Canonical.Scope.RECORD);
-            var storedVid = new VersionID[1];
+            var storedVid = new ContentID[1];
             wts.runInWriteTransaction(tx -> {
                 storedVid[0] = wts.persistManifest(iid(), record, tx);
                 wts.setCurrentVersion(storedVid[0], tx);
@@ -520,12 +519,12 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             return;
         }
 
-        Optional<VersionID> currentVid = wts.currentVersion();
+        Optional<ContentID> currentVid = wts.currentVersion();
         if (currentVid.isEmpty()) {
             throw new IllegalStateException("Working tree has no version checked out but freshBoot is false");
         }
 
-        VersionID vid = currentVid.get();
+        ContentID vid = currentVid.get();
 
         // Load manifest from working tree (consumer API)
         this.current = wts.manifest(iid(), vid)
@@ -1267,7 +1266,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             return Optional.empty();
         }
 
-        VersionID vid = new VersionID(vidBytes.get());
+        ContentID vid = new ContentID(vidBytes.get());
         logger.trace("loadManifest() - got VID for iid={}, vid={}", iid.encodeText(), vid.encodeText());
 
         // Load manifest using consumer API

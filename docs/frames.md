@@ -1,10 +1,10 @@
 # Frames
 
-Everything in Common Graph is a **frame** — a filled semantic structure based on Fillmore's frame semantics. Frames are the single primitive. Items, components, relations, properties, glosses, content, streams, vaults, annotations, reactions, trust attestations — all frames.
+The fundamental primitive in Common Graph is a **frame** — a filled semantic structure inspired by Fillmore's frame semantics. Everything an item contains is a frame. A title, a gloss, a chat stream, a vault, a like, a spam label, a trust attestation — all frames.  Every frame relates a predicate to a theme, filling semantic roles. The difference between "Tolkien authored The Hobbit" and "the title of The Hobbit is 'The Hobbit'" is only which predicate and which bindings — structurally they are the same thing.
 
 ## The Frame Primitive
 
-A frame has a **body** and a **record**. The body is the semantic assertion — what is being said. The record is the envelope — who said it and when.
+A frame has a **body** and a **record**. The body is the semantic assertion — what is being said. The record is the envelope — who said it and when, and how it should present itself.
 
 ```
 Frame {
@@ -21,19 +21,19 @@ Frame {
 }
 ```
 
-**Predicate** names the frame — it's a sememe that defines the kind of assertion. TITLE, AUTHOR, CONTENT, LIKED_BY, GLOSS, CILI, CHAT — all predicates.
+**Predicate** names the frame — a sememe that defines the kind of assertion. TITLE, AUTHOR, TEXT, GLOSS, SOURCE, LIKED_BY, CILI, CHAT — all predicates. The predicate carries real meaning about *what role the data plays*, not just "there's stuff here."
 
-**Theme** is the item this frame is about and where the frame lives. Every frame has a theme. No theme means no home — it's not a frame, it's a query.
+**Theme** is the item this frame is about and where the frame lives. Every frame has exactly one home — the item identified by its theme. No theme means no home — it's not a frame, it's a query.
 
-**Bindings** fill additional roles beyond the theme. A GLOSS frame binds a language: `GLOSS { theme: sememe, language: ENG, target: "definition" }`. A LIKED_BY frame binds an agent: `LIKED_BY { theme: post, agent: alice }`. Many frames need only predicate + theme + target, with no additional bindings.
+**Bindings** fill additional roles beyond the theme. A GLOSS frame binds a language: `GLOSS { theme: sememe, LANGUAGE: ENG, target: "definition" }`. A LIKED_FanBY frame binds an agent: `LIKED_BY { theme: post, AGENT: alice }`. Many frames need only predicate + theme + target.
 
 **Config** controls how the frame presents and behaves — scene (rendering, interaction) and policy (access, trust, retention). Most frames leave this null and inherit from the item or type. See [Config Cascade](#config-cascade).
 
 **Signer** is who vouches for this record. Endorsed frames (in the item's manifest) inherit the manifest signer. Unendorsed frames carry their own signature.
 
-**Body hash** is the content identity of the assertion. It is computed from the body fields only — predicate, theme, and bindings. The same assertion from different signers produces the same body hash. The record fields (signer, config, timestamp) are excluded.
+**Body hash** is the content identity of the assertion, computed from the body fields only — predicate, theme, and bindings. The same assertion from different signers produces the same body hash. Record fields (signer, config, timestamp) are excluded.
 
-### Body and Record
+## Body and Record
 
 The body/record split is fundamental. The **body** is the pure assertion — a fact about the world. The **record** is a signed envelope that says "I attest to this fact."
 
@@ -61,12 +61,14 @@ For **unendorsed frames**, each record is independent. A like, a spam label, a t
 
 ## FrameKey
 
-Every frame on an item is identified by a **FrameKey** — a sequence of tokens that together form a compound semantic address:
+Every frame on an item is identified by a **FrameKey** — an immutable sequence of tokens that together form a compound semantic address:
 
 ```
 FrameKey = [Token...]
 Token = Sememe(ItemID) | Literal(String)
 ```
+
+The FrameKey is the primary key for frames within an item. It is unique per item — one frame per key.
 
 Keys can be:
 
@@ -76,19 +78,58 @@ Keys can be:
 | `(GLOSS, ENG)` | Compound sememe | English gloss of a sememe |
 | `(GLOSS, SPA)` | Compound sememe | Spanish gloss |
 | `(CILI)` | Single sememe | CILI external ID |
-| `(VIDEO, THUMBNAIL)` | Compound sememe | Thumbnail video variant |
+| `(TEXT, ENGLISH)` | Compound sememe | English text of a document |
+| `(TEXT, ENGLISH, CRITICAL)` | Compound sememe | Critical edition of the English text |
+| `(SOURCE, PYTHON)` | Compound sememe | Python source code |
 | `(CHAT, GENERAL)` | Compound sememe | General chat channel |
 | `(CHAT, "tavern")` | Mixed | Tavern chat (literal qualifier) |
 | `("x")` | Literal | Developer scratch variable |
-| `("player1")` | Literal | Game internal state |
 
-**Semantic keys** (sememe tokens) are discoverable through the vocabulary system, resolve across languages, and merge cleanly across librarians.
+The first token is the **head** — the primary predicate. Additional tokens are **qualifiers** that distinguish multiple instances of the same predicate. `(GLOSS, ENG)` and `(GLOSS, SPA)` are two frames with the same head predicate (GLOSS) differentiated by a language qualifier.
 
-**Literal keys** (string tokens) are opaque — local, fast, not vocabulary-resolvable. They still merge across versions of the same item (same key = same frame), but they don't participate in semantic discovery.
+**Semantic keys** (sememe tokens) are discoverable through the vocabulary system, resolve across languages, and merge cleanly across librarians. A Spanish-speaking user searching for `(TEXTO, INGLÉS)` finds the same frame as `(TEXT, ENGLISH)` — the sememes resolve to the same ItemIDs.
 
-**Compound keys** combine multiple tokens into a path. `(GLOSS, ENG)` is a single key with two segments. The first segment is the primary predicate; additional segments qualify it. This is how the same predicate (GLOSS) can have multiple instances on an item (one per language).
+**Literal keys** (string tokens) are opaque — local, fast, not vocabulary-resolvable. They still merge across versions of the same item (same key = same frame), but they don't participate in semantic discovery. Literal keys are the degenerate case — developer scratch, opaque handles — not a convenient shortcut for domain concepts that should be sememes.
 
-The current `HandleID` is a degenerate case — a single-segment literal key. Mount paths (`/segment/segment/...`) are compound keys. Both are subsumed by FrameKey.
+**Compound keys** combine multiple tokens into a path. This is how the same predicate can have multiple instances on an item (one gloss per language, one text per edition, one chat per channel).
+
+## Predicates and Meaning
+
+The frame predicate should carry real semantic meaning about what role the data plays. Consider a Book item:
+
+| Frame key | What it is |
+|-----------|-----------|
+| `(TEXT, ENGLISH)` | The English text |
+| `(TEXT, FRENCH)` | The French translation |
+| `(AUDIOBOOK, ENGLISH)` | An English narration |
+| `(COVER_ART)` | The cover image |
+| `(TITLE)` | The title |
+| `(AUTHOR)` | Who wrote it |
+
+Every predicate says something about the *role* the data plays in the item's semantic structure. "Text" tells you it's the written content. "Audiobook" tells you it's a narrated rendition. "Cover art" tells you it's the visual identity.
+
+A generic predicate like "content" says almost nothing — it's a placeholder for "I haven't thought about what this actually is yet." Prefer specific, meaningful predicates. The type system provides them: a Book type declares `(TEXT)`, `(COVER_ART)`, etc. An Application type declares `(SOURCE)`, `(EXECUTABLE)`, etc.
+
+## Representations
+
+A single frame can have **multiple representations** — different encodings of the same semantic content. The frame `(TEXT, ENGLISH)` is the concept "the English text." Whether it's stored as PDF, EPUB, or plain text is an encoding detail, not a semantic distinction.
+
+```
+(TEXT, ENGLISH) {
+    representations:
+        epub    CID: abc123...   format: application/epub+zip
+        pdf     CID: def456...   format: application/pdf
+        plain   CID: ghi789...   format: text/plain
+}
+```
+
+Format lives in representation metadata, not in the FrameKey. Changing from PDF to EPUB doesn't change the frame's identity — it's still the same semantic slot. Consumers request `(TEXT, ENGLISH)` and get whichever representation they can handle or prefer. This is content negotiation at the frame level.
+
+**When to use different keys vs. different representations:**
+- Same content, different encoding → one frame, multiple representations. The EPUB and PDF of the same text.
+- Genuinely different content → different keys. `(TEXT, ENGLISH, CRITICAL)` vs `(TEXT, ENGLISH, POPULAR)` — two semantically distinct editions, each potentially with their own representations.
+
+The distinction: if the bytes were decoded and compared as meaning, would they be the same? If yes, they're representations of one frame. If no, they're different frames.
 
 ## Theme: The Home of Every Frame
 
@@ -98,7 +139,7 @@ The theme determines where a frame lives. This is axiomatic:
 - A frame with `theme: alice` lives on the alice item
 - Every frame has exactly one home — the item identified by its theme
 
-When a frame references multiple items (e.g., `WROTE { theme: TheHobbit, agent: Tolkien }`), it lives on the theme (TheHobbit) and is **indexed** on all other referenced items (Tolkien) for discoverability.
+When a frame references multiple items (e.g., `WROTE { theme: TheHobbit, AGENT: Tolkien }`), it lives on the theme (TheHobbit) and is **indexed** on all other referenced items (Tolkien) for discoverability.
 
 Storage is on one item. Discoverability is on all referenced items.
 
@@ -115,45 +156,42 @@ Item {
 
 That's it. An identity and frames.
 
-But an item is more than a bag — it's a **coherent collection**. A Book item expects certain frames (TITLE, AUTHOR, CONTENT) and arranges them into a meaningful whole. A Chat item expects a roster and a message stream. A Game item expects players and a move log.
+But an item is more than a bag — it's a **coherent collection**. A Book item expects certain frames (TITLE, AUTHOR, TEXT) and arranges them into a meaningful whole. A Chat item expects a roster and a message stream. A Game item expects players and a move log.
 
 The item type class (`@Type`) defines the expected frame collection:
 
 ```java
 @Type("cg:type/book")
 public class Book extends Item {
-    @Frame(key = CONTENT)       ContentFrame body;
-    @Frame(key = TITLE)         TextFrame title;
-    @Frame(key = AUTHOR)        RefFrame author;
-    @Frame(key = PUBLISHED)     DateFrame published;
-    @Frame(key = COVER_IMAGE)   ImageFrame cover;
+    @Frame(key = {TITLE})                           String title;
+    @Frame(key = {AUTHOR}, endorsed = false)        ItemID author;
+    @Frame(key = {TEXT, ENGLISH})                    byte[] englishText;
+    @Frame(key = {COVER_ART})                       byte[] cover;
 }
 ```
 
-The class says "a Book expects these frames." Individual instances may have more frames (annotations, likes, comments from others) or fewer (a draft with no cover image yet). The type is the template; the instance is the reality.
-
-### Content as a Frame
-
-An item's "content" — its actual bytes, whatever they are — is just a frame. A document's body is `(CONTENT) → <bytes>`. An image is `(CONTENT) → <image bytes>`. A video is `(VIDEO) → <video bytes>`. There is no special content addressing system separate from the frame table. The content's CID is just the hash of a frame target that happens to be large.
+The class says "a Book expects these frames." Individual instances may have more frames (likes, comments, annotations from others) or fewer (a draft with no cover yet). The type is the template; the instance is the reality.
 
 ## Endorsed and Unendorsed Frames
 
 Every frame on an item is either **endorsed** or **unendorsed**:
 
-**Endorsed frames** are included in the item's manifest. The item owner commits them, signs them, arranges them. "These frames are part of me." The title, the content, the author declaration, the roster — these are endorsed.
+**Endorsed frames** are included in the item's manifest. The item owner commits them, signs them, arranges them. "These frames are part of me." The title, the text, the author declaration, the roster — these are endorsed.
 
-**Unendorsed frames** are attached to the item by others. They are independently signed by their asserter. The item owner did not put them there, does not have to acknowledge them, and can policy them away. Likes, comments, spam labels, trust attestations, third-party annotations — these are unendorsed.
+**Unendorsed frames** are attached to the item by others. They are independently signed by their asserter. The item owner did not put them there, does not have to acknowledge them, and can policy them away. Likes, spam labels, trust attestations, third-party annotations — these are unendorsed.
 
 ```
-post:1234 {
+book:TheHobbit {
     // Endorsed (in the manifest, signed by owner)
-    (CONTENT)       → "Here's my hot take..."
-    (TITLE)         → "Hot Take"
+    (TITLE)              → "The Hobbit"
+    (TEXT, ENGLISH)      → <epub bytes>   <pdf bytes>
+    (AUTHOR)             → Tolkien
 
     // Unendorsed (attached by others, independently signed)
-    (LIKED_BY)      → alice        signed by: alice
-    (LIKED_BY)      → bob          signed by: bob
-    (LABELED, SPAM) → true         signed by: dave
+    (LIKED_BY)           → alice          signed by: alice
+    (LIKED_BY)           → bob            signed by: bob
+    (LABELED, SPAM)      → true           signed by: dave
+    (REVIEWED_BY)        → carol          signed by: carol
 }
 ```
 
@@ -179,20 +217,24 @@ Manifest {
     type:       ItemID
     frameTable: [FrameEntry...]
     signer:     SigningKey
-    version:    VersionID           // hash of manifest body
+    vid:        ContentID           // hash of manifest body
     timestamp:  Instant
 }
 ```
+
+The VID (version identifier) is just a ContentID — the hash of the manifest's body bytes. There is no separate VersionID type. A version is identified by the content hash of its manifest body, like everything else is identified by the content hash of its bytes.
 
 Each FrameEntry carries item-level metadata about an endorsed frame:
 
 ```
 FrameEntry {
-    key:        FrameKey            // the frame's semantic or literal key
+    frameKey:   FrameKey            // the frame's semantic address (unique within item)
+    type:       ItemID              // what kind of thing this is (defines codec)
     hash:       ContentID           // hash of the frame's content
     mode:       snapshot|stream|local   // storage mode
     mount:      MountPath?          // where this frame sits in the presentation tree
-    identity:   boolean             // contributes to item identity?
+    identity:   boolean             // contributes to version identity?
+    alias:      String?             // human-facing shorthand
 }
 ```
 
@@ -203,11 +245,11 @@ FrameEntry {
 
 **Mount** is the item's arrangement decision — where this frame appears in the item's presentation tree. The frame itself doesn't know its layout position; the item arranges its frames via mounts.
 
-**Identity** marks whether this frame contributes to the item's identity hash. Most frames do. Ephemeral or derived frames may not.
+**Identity** marks whether this frame contributes to the version hash. Most frames do. Ephemeral or derived frames may not.
 
 ## Config: Scene + Policy
 
-Config controls how a frame presents and behaves. It has two aspects:
+Config controls how a frame presents and behaves:
 
 ```
 Config {
@@ -231,7 +273,7 @@ Config {
 
 ### Config Cascade
 
-Most frames carry no config — they inherit from the item or type. The cascade:
+Most frames carry no config — they inherit from the item or type:
 
 ```
 Type defaults              "Book frames are generally world-readable"
@@ -241,7 +283,7 @@ Item manifest config       "THIS book requires trust > 0.3"
 Per-frame config           "THIS frame is local-only"
 ```
 
-Type classes define sensible defaults. The manifest can override for the whole item. Individual frames override only when they need to differ. In practice, 99% of frames are bare — predicate, theme, bindings, and nothing else.
+Type classes define sensible defaults. The manifest can override for the whole item. Individual frames override only when they need to differ. In practice, the vast majority of frames are bare — predicate, theme, bindings, and nothing else.
 
 ## Queries: Incomplete Frames
 
@@ -257,7 +299,7 @@ AUTHOR { theme: TheHobbit, target: ? }
 // Query — what did Tolkien author?
 AUTHOR { theme: ?, target: Tolkien }
 
-// Query — all authorship assertions:
+// Query — all authorship frames:
 AUTHOR { theme: ?, target: ? }
 ```
 
@@ -282,13 +324,16 @@ Query execution searches frames across items:
 
 ### Indexing
 
-Three indexes enable efficient queries:
+All indexes are derived from the object store and can be rebuilt:
 
-**FRAME_BY_ITEM**: indexes every item referenced in any frame binding. Key: `itemIID | predicate | bodyHash`. Enables "all frames involving item X" and "all frames involving item X via predicate P."
+| Index | Key | Purpose |
+|-------|-----|---------|
+| **ITEMS** | `IID \| VID → timestamp` | Version history per item |
+| **HEADS** | `Principal \| IID → VID` | Current version per principal |
+| **FRAME_BY_ITEM** | `ItemID \| Predicate \| BodyHash → CID` | All frames involving an item via a predicate |
+| **RECORD_BY_BODY** | `BodyHash \| SignerKey → CID` | Who attests to this assertion? |
 
-**FRAME_BY_PRED**: indexes by predicate alone. Key: `predicate | bodyHash`. Enables "all frames of type P."
-
-**RECORD_BY_BODY**: indexes records by body hash. Key: `bodyHash | signerKey`. Enables "who attests to this assertion?" and "how many independent attestations does this fact have?"
+FRAME_BY_ITEM is the unified frame index — predicates are items too, so the same index structure covers everything. A query for "all frames on TheHobbit" is a prefix scan by ItemID. A query for "all AUTHOR frames on TheHobbit" narrows with the predicate.
 
 Body indexes cover both endorsed and unendorsed frames. Endorsed frames are indexed at commit time. Unendorsed frames are indexed when received. Record indexes are updated whenever a new record arrives for any body.
 
@@ -298,7 +343,9 @@ Everything in Common Graph is a frame:
 
 | Kind | Frame Form |
 |---|---|
-| **Content / body** | Endorsed frame keyed by `(CONTENT)`, large target |
+| **Text content** | Endorsed frame keyed by `(TEXT, LANG)`, with representations |
+| **Media** | Endorsed frame keyed by `(AUDIO, ...)`, `(VIDEO, ...)`, `(IMAGE, ...)` |
+| **Source code** | Endorsed frame keyed by `(SOURCE, PYTHON)`, `(SOURCE, RUST)`, etc. |
 | **Property** | Endorsed frame with semantic key and simple target |
 | **Gloss** | Endorsed frame keyed by `(GLOSS, LANG)` |
 | **External ID (CILI)** | Endorsed frame keyed by `(CILI)` |
@@ -307,7 +354,7 @@ Everything in Common Graph is a frame:
 | **Vault** | Endorsed frame with mode=local-only |
 | **Policy** | Config on item or individual frames |
 | **Like / reaction** | Unendorsed frame signed by reactor |
-| **Comment** | Unendorsed annotation frame signed by commenter |
+| **Annotation** | Unendorsed frame signed by annotator |
 | **Spam label** | Unendorsed frame signed by moderator |
 | **Trust attestation** | Unendorsed frame signed by attester |
 | **Verification** | Frame about a frame (cosigning) |
@@ -320,12 +367,12 @@ Frame creation from the prompt follows naturally:
 ```
 # Focused on book:TheHobbit (implicit theme)
 title = "The Hobbit"           →  endorsed frame: TITLE { theme: TheHobbit, target: "The Hobbit" }
-title is "The Hobbit"          →  same
+title is "The Hobbit"          →  same (copula form)
 author = Tolkien               →  endorsed frame: AUTHOR { theme: TheHobbit, target: Tolkien }
 Tolkien is author              →  same (inverted copula)
 
 # Explicit cross-item assertion
-relate Tolkien wrote TheHobbit →  frame: WROTE { theme: TheHobbit, agent: Tolkien }
+Tolkien wrote TheHobbit        →  frame: WROTE { theme: TheHobbit, AGENT: Tolkien }
 ```
 
 Setting a property on the focused item creates an endorsed frame. The `=` operator and `is` copula both fill frames where the focused item is the implicit theme.
@@ -336,6 +383,9 @@ Setting a property on the focused item creates an endorsed frame. The `=` operat
 - **Body is assertion, record is attestation**: The body is what is said. The record is who said it. Same body, many records — trust accumulates.
 - **Theme is home**: Every frame lives on exactly one item — its theme. No free-floating frames.
 - **Endorsed vs. unendorsed**: The only structural difference is manifest inclusion. Same frame either way.
+- **Predicates carry meaning**: The predicate tells you what role the data plays. Prefer specific semantic predicates over generic ones.
+- **Format is not identity**: Different encodings of the same content are representations of one frame, not different frames. Format lives in metadata.
+- **Qualifiers are semantic**: When distinguishing instances of the same predicate, prefer sememe qualifiers over literal strings. `(TEXT, ENGLISH, CRITICAL)` not `(TEXT, ENGLISH, "critical")`.
 - **Bare by default**: Most frames carry no config. Inherit from item, inherit from type. Override only when needed.
-- **Semantic keys merge, literal keys persist**: Semantic FrameKeys are vocabulary-resolvable and merge cleanly across librarians. Literal keys are opaque but stable.
+- **Semantic keys merge, literal keys persist**: Semantic FrameKeys resolve across languages and merge across librarians. Literal keys are opaque but stable.
 - **Queries are incomplete frames**: A `?` in a role turns a frame into a query. Evaluation fills the holes.

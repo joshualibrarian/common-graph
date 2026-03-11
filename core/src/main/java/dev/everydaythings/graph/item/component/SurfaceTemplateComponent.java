@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item.component;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.DisplayInfo;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.ViewNode;
@@ -33,7 +33,7 @@ import dev.everydaythings.graph.value.Color;
 public class SurfaceTemplateComponent implements Component, Canonical {
 
     public static final String KEY = "cg:type/surface-template";
-    public static final HandleID HANDLE = HandleID.of("surface");
+    public static final FrameKey HANDLE = FrameKey.literal("surface");
 
     // ==================================================================================
     // Surface Template

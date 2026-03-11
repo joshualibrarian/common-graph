@@ -16,9 +16,9 @@ An Item has exactly three parts:
 | **Manifest** | Signed, immutable snapshot of a specific version |
 | **FrameTable** | All content — every frame the item contains |
 
-Everything is in the FrameTable. Content, metadata, streams, policy — all stored as frame entries in one table, serialized as one CBOR array in the manifest, versioned together. Vocabulary is derived at runtime from frame type verb definitions and persistent EntryVocabulary contributions (see [Vocabulary](vocabulary.md)).
+Everything is in the FrameTable. Text, metadata, streams, policy — all stored as frame entries in one table, serialized as one CBOR array in the manifest, versioned together. Vocabulary is derived at runtime from frame type verb definitions and persistent EntryVocabulary contributions (see [Vocabulary](vocabulary.md)).
 
-See [Frames](frames.md) for the frame primitive itself — the single data model unit that unifies content, assertions, properties, streams, and more.
+See [Frames](frames.md) for the frame primitive itself — the single data model unit that unifies all content, assertions, properties, streams, and more.
 
 ## Item Identity (IID)
 
@@ -32,17 +32,19 @@ Deterministic IIDs are how bootstrap vocabulary works. Two independently started
 
 ```
 ItemID.fromString("cg:type/item")     →  always the same 32 bytes
-ItemID.fromString("cg:type/relation") →  always the same 32 bytes
+ItemID.fromString("cg:type/book")     →  always the same 32 bytes
 ItemID.random()                        →  unique every time
 ```
 
-## Versions (VID)
+## Versions
 
-Each committed version of an Item is identified by a **VID** (Version ID) — the hash of the manifest's BODY bytes.
+Each committed version of an Item is identified by the **content hash of the manifest body** — a ContentID computed from the BODY fields.
 
-- **Deterministic** — same content + same metadata = same VID
-- **Immutable** — a VID always refers to exactly one version
+- **Deterministic** — same content + same metadata = same version hash
+- **Immutable** — a version hash always refers to exactly one version
 - **Verifiable** — re-hash the body and compare
+
+There is no separate VersionID type. A version is identified by a ContentID, just as content is. Manifests are stored in the object store like everything else — keyed by the hash of their bytes.
 
 Versions form a history chain (or DAG, if branches exist):
 
@@ -52,34 +54,34 @@ V1 (parent: null)
       └── V3 (parent: V2)
 ```
 
-The VID hashes only BODY fields (content), not the full manifest. Signatures are non-BODY fields — the VID is computed first, then signed. BODY scope = content identity. RECORD scope = everything including signatures.
+The version hash covers only BODY fields (content), not the full manifest. Signatures are non-BODY fields — the hash is computed first, then signed. BODY scope = content identity. RECORD scope = everything including signatures.
 
 ## The FrameTable
 
-The FrameTable is the **single source of truth** for what an Item contains. Every frame — content, streams, properties, policy — stored as entries in one table.
+The FrameTable is the **single source of truth** for what an Item contains. Every frame — text, streams, properties, policy — stored as entries in one table.
 
 ### Structure
 
-The FrameTable holds two parallel maps:
+The FrameTable is keyed by FrameKey — each frame's compound semantic address:
 
 ```
-entries:    HandleID → FrameEntry     (metadata: type, CID, mounts, identity flag)
-live:       HandleID → Object         (decoded instance: the actual Roster, Log, etc.)
-aliasIndex: String   → HandleID       (human names: "vault" → HID, "chat" → HID)
+entries:    FrameKey → FrameEntry    (metadata: type, CID, mounts, identity flag)
+live:       FrameKey → Object        (decoded instance: the actual Roster, Log, etc.)
+aliasIndex: String   → FrameKey      (human names: "vault" → (VAULT), "chat" → (CHAT))
 ```
 
-**Entries** are the serialized truth — they go into the manifest, get content-addressed, and sync over the network. **Live instances** are the in-memory decoded forms — they exist only at runtime. The alias index is transient convenience for resolving human-friendly names to handles.
+**Entries** are the serialized truth — they go into the manifest, get content-addressed, and sync over the network. **Live instances** are the in-memory decoded forms — they exist only at runtime. The alias index is transient convenience for resolving human-friendly names to frame keys.
 
 ### Frame Entries
 
-A `FrameEntry` is the metadata record for one frame. Entries use a **faceted structure**:
+A `FrameEntry` is the metadata record for one frame:
 
 ```
 FrameEntry {
-    handle:          HandleID       — local identifier (unique within the item)
+    frameKey:        FrameKey       — semantic address (unique within the item)
     type:            ItemID         — what kind of thing this is (defines codec)
-    identity:        boolean        — does this contribute to the VID?
-    alias:           String         — human-facing name ("vault", "chat", "roster")
+    identity:        boolean        — does this contribute to the version hash?
+    alias:           String         — human-facing shorthand ("vault", "chat")
 
     payload: {
         snapshotCid:     ContentID       — hash of immutable content bytes (nullable)
@@ -115,7 +117,7 @@ This single structure covers every mode of content:
 
 ### The identity flag
 
-The `identity` flag on each entry controls whether that frame's content contributes to the VID. A vault (local private keys) or a cache doesn't create a new VID when updated — it's registered in the table but its content doesn't affect version identity.
+The `identity` flag on each entry controls whether that frame's content contributes to the version hash. A vault (local private keys) or a cache doesn't create a new version when updated — it's registered in the table but its content doesn't affect version identity.
 
 ### Mounts
 
@@ -129,23 +131,13 @@ Frames can have **mounts** — presentation descriptors that control where a fra
 
 A frame can have multiple mounts (like hard links). Frames with no mounts are internal entries — they exist in the table but don't appear in navigation.
 
-## Frames
+## Endorsed and Unendorsed
 
-A **frame** is the single primitive of Common Graph. Everything an item contains is a frame — content, metadata, streams, assertions. See [Frames](frames.md) for the complete frame model, including:
+**Endorsed frames** are included in the item's manifest — the owner commits and signs them. Title, text, roster — these are endorsed.
 
-- The body/record split (assertion vs attestation)
-- FrameKeys (compound semantic addresses)
-- Endorsed vs unendorsed frames
-- Queries as incomplete frames
-- Config cascade (scene + policy)
+**Unendorsed frames** are attached by others, independently signed. Likes, annotations, spam labels, trust attestations — these are unendorsed.
 
-### Endorsed and Unendorsed
-
-**Endorsed frames** are included in the item's manifest — the owner commits and signs them. Title, content, roster — these are endorsed.
-
-**Unendorsed frames** are attached by others, independently signed. Likes, comments, spam labels, trust attestations — these are unendorsed.
-
-The structural difference is only manifest inclusion. Same frame format, same hash mechanism, same signing mechanism.
+The structural difference is only manifest inclusion. Same frame format, same hash mechanism, same signing mechanism. See [Frames](frames.md) for details on the body/record split, cosigning, and promotion.
 
 ## Item Types
 
@@ -188,22 +180,22 @@ A Manifest is the **signed, immutable declaration** of an Item version:
 Manifest {
     version:    int               — format version (currently 1)
     iid:        ItemID            — which item this is
-    parents:    List<VersionID>   — parent versions (history chain)
+    parents:    List<ContentID>   — parent version hashes (history chain)
     type:       ItemID            — item type
     state:      ItemState         — all content (the FrameTable)
-    ─── non-BODY fields (excluded from VID hash) ───
+    ─── non-BODY fields (excluded from version hash) ───
     authorKey:  SigningPublicKey   — who signed this
     signature:  Signing           — the signature itself
 }
 ```
 
-The BODY/non-BODY split: `authorKey` and `signature` are excluded from the body hash that produces the VID.
+The BODY/non-BODY split: `authorKey` and `signature` are excluded from the body hash.
 
-1. Compute the VID by hashing the BODY fields
-2. Sign the VID with the author's key
+1. Compute the version hash by hashing the BODY fields
+2. Sign the hash with the author's key
 3. Attach the signature as a non-BODY field
 
-The VID is deterministic from content. The signature proves who authored that content. No circular dependency.
+The version hash is deterministic from content. The signature proves who authored that content. No circular dependency.
 
 ## ID Types
 
@@ -212,11 +204,12 @@ All IDs are multihash values — self-describing hashes that include the algorit
 | ID | Derived from | Purpose |
 |----|-------------|---------|
 | **ItemID** | Random or `hash(canonical_string)` | Stable identity across versions |
-| **VersionID** | `hash(manifest.BODY)` | Identifies a specific version |
-| **ContentID** | `hash(content_bytes)` | Content-addresses a block of bytes |
-| **HandleID** | `hash(handle_string)` | Local identifier within an item |
+| **ContentID** | `hash(content_bytes)` | Content-addresses a block of bytes. Also used as the version identifier (hash of manifest body). |
+| **FrameKey** | Sequence of Sememe/Literal tokens | Compound semantic address for a frame within an item |
 
-All inherit from `HashID`, which implements `Canonical` for serialization. `VersionID` and `ContentID` also implement `BlockID` for use as keys in block storage.
+ItemID and ContentID inherit from `HashID`, which implements `Canonical` for serialization. ContentID also implements `BlockID` for use as keys in block storage.
+
+FrameKey is not a hash — it's a structured key composed of semantic tokens. It implements `Canonical` and `Comparable` for deterministic encoding and ordering.
 
 ## Item Lifecycle
 
@@ -245,7 +238,7 @@ Item loaded from Manifest
      Phase 1: For each FrameEntry:
        1. Fetch content by CID from the store
        2. Decode via Components.decode() or Canonical.decodeBinary()
-       3. Store live instance in FrameTable
+       3. Store live instance in FrameTable (keyed by FrameKey)
      Phase 2: Bind @Item.Frame fields from table
      Phase 3: Invoke initComponent() on all Component instances
  → onFullyInitialized()
@@ -256,7 +249,7 @@ Item loaded from Manifest
 ```
 item.edit()                    — enter edit mode
 item.addComponent(...)         — modify the FrameTable
-item.component("chat").add()   — modify a live component
+item.component("chat").add()   — modify a live frame instance
 ```
 
 Edit mode is a flag — it doesn't create a copy. You mutate the item's state directly, and `dirty` tracks that changes exist.
@@ -281,7 +274,7 @@ item.persist()
      1. Encode content
      2. Store bytes in the item's store
      3. Update entry CID
- → Save metadata (no manifest, no VID, no signature)
+ → Save metadata (no manifest, no version hash, no signature)
  → dirty = false
 ```
 
@@ -306,9 +299,9 @@ The `@Type` annotation provides type identity. `Components.encode()/decode()` ha
 
 Every Item always has one built-in frame, added during `initBuiltinComponents()`:
 
-| Frame | Handle | Purpose |
-|-------|--------|---------|
-| **PolicySet** | `"policy"` | Per-item authorization rules |
+| Frame | Key | Purpose |
+|-------|-----|---------|
+| **PolicySet** | `(POLICY)` | Per-item authorization rules |
 
 PolicySet is always `identity=true` — changing who can do what changes the version.
 
@@ -326,23 +319,29 @@ See [Vocabulary](vocabulary.md) for the full vocabulary system.
 Declares a frame field on an Item type:
 
 ```java
-@Item.Frame(handle = "chat", stream = true)
+@Frame(key = {TITLE})
+private String title;
+
+@Frame(key = {"cg.pred:chat"}, stream = true)
 private Log chatLog;
 
-@Item.Frame(key = {"cg.core:name"}, endorsed = false)
-private String name;
+@Frame(key = {"cg.pred:author"}, endorsed = false)
+private ItemID author;
 ```
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `key` | `{}` | Semantic FrameKey tokens (sememe canonical keys) |
-| `handle` | `""` (derived from field name) | Literal handle for HandleID computation |
+| `key` | `{}` (derived from field name) | Semantic FrameKey tokens (sememe canonical keys) |
 | `path` | `""` | Mount path for presentation |
 | `snapshot` | `true` | Store as immutable snapshot? |
 | `stream` | `false` | Store as append-only stream? |
 | `localOnly` | `false` | Path-based, never synced? |
-| `identity` | `true` | Contributes to VID? |
+| `identity` | `true` | Contributes to version hash? |
 | `endorsed` | `true` | Include in manifest? (false = independently signed) |
+
+The `key` array elements are canonical key strings that resolve to ItemIDs, forming the FrameKey. A single-element key like `{TITLE}` produces `FrameKey.of(titleItemID)`. A multi-element key like `{"cg.pred:gloss", "cg.lang:eng"}` produces a compound key `(GLOSS, ENG)`.
+
+When `key` is empty, the field name is used as a literal key: `FrameKey.literal(fieldName)`.
 
 ### @Item.Seed
 
@@ -365,7 +364,7 @@ Items compose behavior from typed frames. There are no special "chat room" or "s
 | Shared folder | Item + mounted content frames |
 | Game | Item + GameComponent (Dag stream) + Roster |
 | User profile | Item + KeyLog (stream) + Vault (local) |
-| Document | Item + content snapshot + assertion frames (author, title) |
+| Document | Item + text frame + assertion frames (author, title) |
 
 The same FrameTable holds all of these. A "chat room" is just an item where one of the frames happens to be a stream-based Log.
 

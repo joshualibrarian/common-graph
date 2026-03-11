@@ -4,7 +4,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.value.Function;
 
@@ -67,8 +67,8 @@ public record FunctionExpression(
         // 1. Check for user-defined function on the owner item
         Item owner = context.owner();
         if (owner != null) {
-            HandleID hid = HandleID.of(function);
-            var exprOpt = owner.content().getLive(hid, ExpressionComponent.class);
+            FrameKey frameKey = FrameKey.literal(function);
+            var exprOpt = owner.content().getLive(frameKey, ExpressionComponent.class);
             if (exprOpt.isPresent()) {
                 ExpressionComponent fn = exprOpt.get();
                 if (fn.isFunction()) {

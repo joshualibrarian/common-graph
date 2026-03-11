@@ -517,12 +517,12 @@ public final class Library implements Component, Canonical, AutoCloseable {
      * @param manifest The manifest to store
      * @return The version ID (hash of the body)
      */
-    public VersionID manifest(Manifest manifest) {
+    public ContentID manifest(Manifest manifest) {
         ItemStore store = writableStore()
                 .orElseThrow(() -> new LibraryException("No writable store available"));
 
         // Store the manifest in OBJECTS (keyed by VID)
-        VersionID vid = store.manifest(manifest);
+        ContentID vid = store.manifest(manifest);
 
         // Index: ITEMS[IID|VID] → timestamp, endorsed frames
         index().ifPresent(idx -> {
@@ -831,7 +831,7 @@ public final class Library implements Component, Canonical, AutoCloseable {
      * @param iid The item ID
      * @return The latest VID, or empty if no versions exist
      */
-    public Optional<VersionID> latestVersion(ItemID iid) {
+    public Optional<ContentID> latestVersion(ItemID iid) {
         return index().flatMap(idx -> idx.latestVersion(iid));
     }
 
@@ -842,7 +842,7 @@ public final class Library implements Component, Canonical, AutoCloseable {
      */
     @Deprecated
     public Optional<byte[]> getItemRecord(ItemID iid) {
-        return latestVersion(iid).map(VersionID::encodeBinary);
+        return latestVersion(iid).map(ContentID::encodeBinary);
     }
 
     // ==================================================================================
@@ -884,12 +884,12 @@ public final class Library implements Component, Canonical, AutoCloseable {
         }
 
         // Get latest VID from ITEMS index
-        Optional<VersionID> vidOpt = latestVersion(iid);
+        Optional<ContentID> vidOpt = latestVersion(iid);
         if (vidOpt.isEmpty()) {
             return Optional.empty();
         }
 
-        VersionID vid = vidOpt.get();
+        ContentID vid = vidOpt.get();
 
         // Find the store that has this item
         ItemStore store = null;

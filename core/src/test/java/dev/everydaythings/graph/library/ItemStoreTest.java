@@ -134,10 +134,10 @@ public abstract class ItemStoreTest {
             byte[] record = manifest.encodeBinary(Canonical.Scope.RECORD);
 
             // Persist
-            VersionID vid = store.manifest(manifest);
+            ContentID vid = store.manifest(manifest);
 
             assertThat(vid)
-                    .as("VersionID from persist")
+                    .as("ContentID from persist")
                     .isNotNull();
 
             // Retrieve
@@ -156,7 +156,7 @@ public abstract class ItemStoreTest {
         @DisplayName("retrieve non-existent manifest returns empty")
         void retrieveNonExistentManifestReturnsEmpty() {
             ItemID iid = testItemID("nonexistent");
-            VersionID vid = new VersionID(new byte[32], dev.everydaythings.graph.Hash.DEFAULT);
+            ContentID vid = new ContentID(new byte[32], dev.everydaythings.graph.Hash.DEFAULT);
 
             var retrieved = store.manifest(iid, vid);
 
@@ -181,8 +181,8 @@ public abstract class ItemStoreTest {
                     .type(TEST_TYPE_2)  // Different type
                     .build();
 
-            VersionID vid1 = store.manifest(m1);
-            VersionID vid2 = store.manifest(m2);
+            ContentID vid1 = store.manifest(m1);
+            ContentID vid2 = store.manifest(m2);
 
             // VIDs should be different (different content)
             assertThat(vid1)
@@ -428,7 +428,7 @@ public abstract class ItemStoreTest {
             Manifest manifest = testManifest(iid);
             byte[] record = manifest.encodeBinary(Canonical.Scope.RECORD);
 
-            VersionID[] vidHolder = new VersionID[1];
+            ContentID[] vidHolder = new ContentID[1];
 
             store.runInWriteTransaction(tx -> {
                 vidHolder[0] = store.persistManifest(iid, record, tx);
@@ -446,7 +446,7 @@ public abstract class ItemStoreTest {
             Manifest manifest = testManifest(iid);
             byte[] record = manifest.encodeBinary(Canonical.Scope.RECORD);
 
-            VersionID[] vidHolder = new VersionID[1];
+            ContentID[] vidHolder = new ContentID[1];
 
             try (WriteTransaction tx = store.beginWriteTransaction()) {
                 vidHolder[0] = store.persistManifest(iid, record, tx);
@@ -467,7 +467,7 @@ public abstract class ItemStoreTest {
             Manifest manifest = testManifest(iid);
             byte[] record = manifest.encodeBinary(Canonical.Scope.RECORD);
 
-            VersionID[] vidHolder = new VersionID[1];
+            ContentID[] vidHolder = new ContentID[1];
 
             try (WriteTransaction tx = store.beginWriteTransaction()) {
                 vidHolder[0] = store.persistManifest(iid, record, tx);

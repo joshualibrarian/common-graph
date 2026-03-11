@@ -78,7 +78,7 @@ public class ItemSpace extends SpatialSchema<Item> {
         double autoX = 0;
         for (FrameEntry entry : value().content()) {
             Object component = value().content()
-                    .getLive(entry.handle()).orElse(null);
+                    .getLive(entry.frameKey()).orElse(null);
             if (component == null) continue;
 
             // Position: use compiled @Body.Placement if present, otherwise auto-arrange

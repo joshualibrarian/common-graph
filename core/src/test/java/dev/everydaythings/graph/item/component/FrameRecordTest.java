@@ -185,7 +185,7 @@ class FrameRecordTest {
             ContentID hash = body.hash();
 
             FrameEntry entry = FrameEntry.builder()
-                    .handle(dev.everydaythings.graph.item.id.HandleID.of("title"))
+                    .frameKey(dev.everydaythings.graph.item.id.FrameKey.literal("title"))
                     .type(ItemID.fromString("cg:type/text"))
                     .identity(true)
                     .bodyHash(hash)
@@ -198,7 +198,7 @@ class FrameRecordTest {
         @DisplayName("body hash null for legacy entries")
         void bodyHashNullForLegacy() {
             FrameEntry entry = FrameEntry.builder()
-                    .handle(dev.everydaythings.graph.item.id.HandleID.of("vault"))
+                    .frameKey(dev.everydaythings.graph.item.id.FrameKey.literal("vault"))
                     .type(ItemID.fromString("cg:type/vault"))
                     .identity(false)
                     .build();

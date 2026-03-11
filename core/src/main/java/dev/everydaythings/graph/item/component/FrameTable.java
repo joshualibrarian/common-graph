@@ -6,7 +6,6 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Property;
 import dev.everydaythings.graph.item.collection.ItemCollection;
 import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.HandleID;
 import dev.everydaythings.graph.item.mount.Mount;
 
 import java.util.Iterator;
@@ -23,14 +22,14 @@ import java.util.function.Consumer;
  * metadata (entries) and live decoded instances.
  *
  * <p>Extends {@link ItemCollection} for unified CRUD action generation.
- * The primary key is {@link HandleID} (migrating to {@link FrameKey}).
+ * The primary key is {@link FrameKey}.
  * Entries are {@link FrameEntry}.
  *
  * <p>The FrameTable is the source of truth for what an item contains.
- * Field bindings ({@code @ContentField}) are optional developer ergonomics
+ * Field bindings ({@code @Item.Frame}) are optional developer ergonomics
  * that bind to entries in this table.
  */
-public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements Canonical, Component, Property {
+public class FrameTable extends ItemCollection<FrameKey, FrameEntry> implements Canonical, Component, Property {
 
     // ==================================================================================
     // Owner Tracking
@@ -86,31 +85,22 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     // ==================================================================================
 
     /**
-     * Resolve an alias or HID text to a HandleID.
+     * Resolve a string token to a FrameKey.
      *
-     * @param token The alias string or raw HID text
-     * @return The HandleID if found, or empty
+     * @param token The string name (e.g., "vault", "policy")
+     * @return The FrameKey if an entry matches, or empty
      */
-    public Optional<HandleID> resolveAlias(String token) {
+    public Optional<FrameKey> resolveAlias(String token) {
         if (token == null || token.isBlank()) return Optional.empty();
-        // 1) Raw HID text
-        if (token.startsWith("hid:")) {
-            try {
-                HandleID hid = HandleID.parse(token);
-                if (entries.containsKey(hid)) return Optional.of(hid);
-            } catch (IllegalArgumentException ignored) {
-                // Fall through to alias/literal matching.
-            }
+
+        // 1) Try literal key match
+        FrameKey literalKey = FrameKey.literal(token);
+        if (entries.containsKey(literalKey)) {
+            return Optional.of(literalKey);
         }
 
-        // 2) Backward-compat hashed handleKey
-        HandleID hashed = HandleID.of(token);
-        if (entries.containsKey(hashed)) {
-            return Optional.of(hashed);
-        }
-
-        // 3) Alias / aliasRef lookup (exact match)
-        for (Map.Entry<HandleID, FrameEntry> e : entries.entrySet()) {
+        // 2) Alias / aliasRef lookup (exact match)
+        for (Map.Entry<FrameKey, FrameEntry> e : entries.entrySet()) {
             FrameEntry entry = e.getValue();
             if (token.equals(entry.alias())) {
                 return Optional.of(e.getKey());
@@ -124,9 +114,9 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
 
     @Override
     public Property property(String name) {
-        HandleID hid = resolveAlias(name).orElse(null);
-        if (hid == null) return null;
-        return getLive(hid)
+        FrameKey key = resolveAlias(name).orElse(null);
+        if (key == null) return null;
+        return getLive(key)
                 .filter(o -> o instanceof Property)
                 .map(o -> (Property) o)
                 .orElse(null);
@@ -134,7 +124,7 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
 
     @Override
     public java.util.stream.Stream<String> properties() {
-        return entries.keySet().stream().map(HandleID::toString);
+        return entries.keySet().stream().map(FrameKey::toCanonicalString);
     }
 
     @Override
@@ -153,11 +143,11 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
 
     @Override
     public void remove(String key) {
-        removeByKey(HandleID.of(key));
+        removeByKey(FrameKey.literal(key));
     }
 
-    /** Metadata entries (handle -> FrameEntry with type, CID, etc.) */
-    private final Map<HandleID, FrameEntry> entries = new LinkedHashMap<>();
+    /** Metadata entries (FrameKey -> FrameEntry with type, CID, etc.) */
+    private final Map<FrameKey, FrameEntry> entries = new LinkedHashMap<>();
 
     // ==================================================================================
     // ItemCollection Implementation
@@ -174,50 +164,28 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     }
 
     @Override
-    public HandleID keyOf(FrameEntry entry) {
-        return entry.handle();
+    public FrameKey keyOf(FrameEntry entry) {
+        return entry.frameKey();
     }
 
     @Override
-    public Optional<FrameEntry> get(HandleID hid) {
-        return Optional.ofNullable(entries.get(hid));
-    }
-
-    /**
-     * Get an entry by FrameKey.
-     *
-     * <p>First tries the FrameKey's derived HandleID for direct map lookup.
-     * If that misses, falls back to scanning entries for matching FrameKeys
-     * (handles aliasRef-derived keys and explicitly set FrameKeys).
-     */
     public Optional<FrameEntry> get(FrameKey key) {
-        // Fast path: try HandleID lookup
-        HandleID hid = key.toHandleID();
-        FrameEntry direct = entries.get(hid);
-        if (direct != null) return Optional.of(direct);
-
-        // Slow path: scan for matching derived FrameKey
-        for (FrameEntry entry : entries.values()) {
-            if (key.equals(entry.frameKey())) {
-                return Optional.of(entry);
-            }
-        }
-        return Optional.empty();
+        return Optional.ofNullable(entries.get(key));
     }
 
     @Override
-    public boolean removeByKey(HandleID hid) {
-        FrameEntry entry = entries.get(hid);
+    public boolean removeByKey(FrameKey key) {
+        FrameEntry entry = entries.get(key);
         boolean had = entry != null;
         if (had) {
-            entries.remove(hid);
+            entries.remove(key);
         }
         return had;
     }
 
     @Override
     protected boolean addEntry(FrameEntry entry) {
-        HandleID key = entry.handle();
+        FrameKey key = entry.frameKey();
         boolean isNew = !entries.containsKey(key);
         entries.put(key, entry);
         // Set owner so entry.link() works
@@ -249,24 +217,24 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     /**
      * Store a live decoded instance for a component.
      *
-     * @param handle   The component handle ID
+     * @param key      The frame key
      * @param instance The decoded instance
      */
-    public void setLive(HandleID handle, Object instance) {
-        setLive(handle, null, instance);
+    public void setLive(FrameKey key, Object instance) {
+        setLive(key, null, instance);
     }
 
     /**
      * Store a live decoded instance for a component.
      *
-     * @param handle   The component handle ID
+     * @param key      The frame key
      * @param alias    The human-facing alias (indexed on the entry, not the instance)
      * @param instance The decoded instance
      */
-    public void setLive(HandleID handle, String alias, Object instance) {
-        FrameEntry entry = entries.get(handle);
+    public void setLive(FrameKey key, String alias, Object instance) {
+        FrameEntry entry = entries.get(key);
         if (entry == null) {
-            throw new IllegalArgumentException("No FrameEntry for handle: " + handle.encodeText());
+            throw new IllegalArgumentException("No FrameEntry for key: " + key);
         }
         entry.setInstance(instance);
         if (alias != null && !alias.isBlank()) {
@@ -275,15 +243,15 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     }
 
     /**
-     * Get a live decoded instance by handle.
+     * Get a live decoded instance by key.
      *
-     * @param handle The component handle
-     * @param type   The expected type
+     * @param key  The frame key
+     * @param type The expected type
      * @return The instance if present and assignable to type
      */
     @SuppressWarnings("unchecked")
-    public <T> Optional<T> getLive(HandleID handle, Class<T> type) {
-        FrameEntry entry = entries.get(handle);
+    public <T> Optional<T> getLive(FrameKey key, Class<T> type) {
+        FrameEntry entry = entries.get(key);
         if (entry == null) return Optional.empty();
         Object instance = entry.instance();
         if (instance != null && (type.isInstance(instance) || primitiveMatches(type, instance))) {
@@ -309,10 +277,10 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     }
 
     /**
-     * Get a live decoded instance by handle (untyped).
+     * Get a live decoded instance by key (untyped).
      */
-    public Optional<Object> getLive(HandleID handle) {
-        return Optional.ofNullable(entries.get(handle)).map(FrameEntry::instance);
+    public Optional<Object> getLive(FrameKey key) {
+        return Optional.ofNullable(entries.get(key)).map(FrameEntry::instance);
     }
 
     /**
@@ -343,10 +311,10 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     }
 
     /**
-     * Check if a live instance exists for the given handle.
+     * Check if a live instance exists for the given key.
      */
-    public boolean hasLive(HandleID handle) {
-        FrameEntry entry = entries.get(handle);
+    public boolean hasLive(FrameKey key) {
+        FrameEntry entry = entries.get(key);
         return entry != null && entry.instance() != null;
     }
 
@@ -387,10 +355,10 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     public void removeRelationEntries() {
         var toRemove = entries.values().stream()
                 .filter(FrameEntry::isRelation)
-                .map(FrameEntry::handle)
+                .map(FrameEntry::frameKey)
                 .toList();
-        for (var hid : toRemove) {
-            removeByKey(hid);
+        for (var key : toRemove) {
+            removeByKey(key);
         }
     }
 
@@ -553,13 +521,13 @@ public class FrameTable extends ItemCollection<HandleID, FrameEntry> implements 
     }
 
     /**
-     * Reverse-lookup: find the primary presentation path for a component handle.
+     * Reverse-lookup: find the primary presentation path for a frame key.
      *
-     * @param handle The component handle
+     * @param key The frame key
      * @return The primary path mount's path, if the entry exists and has a PathMount
      */
-    public Optional<String> pathForHandle(HandleID handle) {
-        return get(handle)
+    public Optional<String> pathForKey(FrameKey key) {
+        return get(key)
                 .map(FrameEntry::primaryPathMount)
                 .map(Mount.PathMount::path);
     }

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.component;
 
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +28,7 @@ class FrameTableMountTest {
 
     private FrameEntry entryWithMount(String handleName, String path) {
         FrameEntry entry = FrameEntry.builder()
-                .handle(HandleID.of(handleName))
+                .frameKey(FrameKey.literal(handleName))
                 .type(docType)
                 .identity(true)
                 .build();
@@ -102,7 +102,7 @@ class FrameTableMountTest {
 
         // Entry without mount
         FrameEntry unmounted = FrameEntry.builder()
-                .handle(HandleID.of("internal"))
+                .frameKey(FrameKey.literal("internal"))
                 .type(docType)
                 .identity(true)
                 .build();
@@ -116,7 +116,7 @@ class FrameTableMountTest {
     @DisplayName("entry with multiple mounts appears in multiple lookups")
     void multiplePathMounts() {
         FrameEntry entry = FrameEntry.builder()
-                .handle(HandleID.of("shared"))
+                .frameKey(FrameKey.literal("shared"))
                 .type(docType)
                 .identity(true)
                 .build();
@@ -130,25 +130,25 @@ class FrameTableMountTest {
     }
 
     @Test
-    @DisplayName("pathForHandle returns primary path mount")
-    void pathForHandleReturnsPrimaryPath() {
+    @DisplayName("pathForKey returns primary path mount")
+    void pathForKeyReturnsPrimaryPath() {
         entryWithMount("docs", "/documents");
 
-        assertThat(table.pathForHandle(HandleID.of("docs"))).hasValue("/documents");
-        assertThat(table.pathForHandle(HandleID.of("nonexistent"))).isEmpty();
+        assertThat(table.pathForKey(FrameKey.literal("docs"))).hasValue("/documents");
+        assertThat(table.pathForKey(FrameKey.literal("nonexistent"))).isEmpty();
     }
 
     @Test
-    @DisplayName("pathForHandle returns empty for unmounted entry")
-    void pathForHandleEmptyWhenNoMount() {
+    @DisplayName("pathForKey returns empty for unmounted entry")
+    void pathForKeyEmptyWhenNoMount() {
         FrameEntry unmounted = FrameEntry.builder()
-                .handle(HandleID.of("internal"))
+                .frameKey(FrameKey.literal("internal"))
                 .type(docType)
                 .identity(true)
                 .build();
         table.add(unmounted);
 
-        assertThat(table.pathForHandle(HandleID.of("internal"))).isEmpty();
+        assertThat(table.pathForKey(FrameKey.literal("internal"))).isEmpty();
     }
 
     // ==================================================================================

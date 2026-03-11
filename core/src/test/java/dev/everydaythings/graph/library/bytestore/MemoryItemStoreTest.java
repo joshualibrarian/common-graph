@@ -2,7 +2,7 @@ package dev.everydaythings.graph.library.bytestore;
 
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.VersionID;
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ class MemoryItemStoreTest {
             Manifest m = Manifest.builder().iid(iid).build();
 
             // Store
-            VersionID vid = store.manifest(m);
+            ContentID vid = store.manifest(m);
             assertThat(vid).isNotNull();
 
             // Retrieve
@@ -30,7 +30,7 @@ class MemoryItemStoreTest {
 
             // hasManifest
             assertThat(store.hasManifest(iid, vid)).isTrue();
-            assertThat(store.hasManifest(iid, new VersionID(new byte[34]))).isFalse();
+            assertThat(store.hasManifest(iid, new ContentID(new byte[34]))).isFalse();
         }
     }
 

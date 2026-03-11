@@ -9,7 +9,7 @@ import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Role;
@@ -147,29 +147,29 @@ public class ItemSchema {
     public void bindFieldsFromTable(Item item, FrameTable table) {
         for (FrameFieldSpec spec : frameFields) {
             if (!spec.endorsed()) continue;
-            HandleID handle = spec.handle();
-            table.getLive(handle, spec.fieldType())
+            FrameKey key = spec.frameKey();
+            table.getLive(key, spec.fieldType())
                     .ifPresent(value -> spec.setValue(item, value));
         }
     }
 
     /**
-     * Get a frame field spec by handle string.
+     * Get a frame field spec by key string.
      */
-    public FrameFieldSpec getFrameField(String handle) {
-        HandleID hid = HandleID.of(handle);
+    public FrameFieldSpec getFrameField(String name) {
+        FrameKey key = FrameKey.literal(name);
         return frameFields.stream()
-                .filter(spec -> spec.handle().equals(hid))
+                .filter(spec -> spec.frameKey().equals(key))
                 .findFirst()
                 .orElse(null);
     }
 
     /**
-     * Get a frame field spec by handle ID.
+     * Get a frame field spec by FrameKey.
      */
-    public FrameFieldSpec getFrameField(HandleID handle) {
+    public FrameFieldSpec getFrameField(FrameKey key) {
         return frameFields.stream()
-                .filter(spec -> spec.handle().equals(handle))
+                .filter(spec -> spec.frameKey().equals(key))
                 .findFirst()
                 .orElse(null);
     }
@@ -218,7 +218,7 @@ public class ItemSchema {
         ContentID cid = ContentID.of(bytes);
         FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
         table.add(entry);
-        table.setLive(entry.handle(), relation);
+        table.setLive(entry.frameKey(), relation);
     }
 
     @SuppressWarnings("deprecation")
@@ -286,14 +286,14 @@ public class ItemSchema {
             if (value == null) continue;
 
             // Snapshot existing entry's config before it gets replaced
-            FrameEntry.EntryConfig existingConfig = contentTable.get(spec.handle())
+            FrameEntry.EntryConfig existingConfig = contentTable.get(spec.frameKey())
                     .map(FrameEntry::config)
                     .orElse(null);
 
             FrameEntry entry = encodeFrameField(spec, value, storePayload, encryptionContext, existingConfig, keyResolver);
             if (entry != null) {
                 contentTable.add(entry);
-                contentTable.setLive(spec.handle(), spec.handleKey(), value);
+                contentTable.setLive(spec.frameKey(), spec.canonicalKeyString(), value);
             }
         }
     }
@@ -302,8 +302,8 @@ public class ItemSchema {
                                         dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
                                         FrameEntry.EntryConfig existingConfig,
                                         java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
-        HandleID handle = spec.handle();
-        String alias = spec.handleKey();
+        FrameKey key = spec.frameKey();
+        String alias = spec.canonicalKeyString();
 
         // Determine effective encryption context: explicit parameter wins,
         // otherwise derive from existing frame's EncryptionPolicy
@@ -317,7 +317,7 @@ public class ItemSchema {
 
             if (isLocalOnly) {
                 return FrameEntry.builder()
-                        .handle(handle).alias(alias)
+                        .frameKey(key).alias(alias)
                         .type(typeId).identity(spec.identity()).build();
             }
 
@@ -327,7 +327,7 @@ public class ItemSchema {
             } else {
                 bytes = Components.encode(value);
             }
-            return storeAndBuildEntry(handle, alias, typeId, spec.identity(),
+            return storeAndBuildEntry(key, alias, typeId, spec.identity(),
                     bytes, storePayload, effectiveContext, existingConfig);
         }
 
@@ -335,7 +335,7 @@ public class ItemSchema {
         if (value instanceof Canonical canonical) {
             byte[] bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return storeAndBuildEntry(handle, alias, typeId, spec.identity(),
+            return storeAndBuildEntry(key, alias, typeId, spec.identity(),
                     bytes, storePayload, effectiveContext, existingConfig);
         }
 
@@ -343,12 +343,12 @@ public class ItemSchema {
         if (isSimpleSerializableType(value)) {
             byte[] bytes = encodeSimpleValue(value);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return storeAndBuildEntry(handle, alias, typeId, spec.identity(),
+            return storeAndBuildEntry(key, alias, typeId, spec.identity(),
                     bytes, storePayload, effectiveContext, existingConfig);
         }
 
-        throw new IllegalStateException("Cannot encode field with handle '" + handle +
-                "': value is not a supported type (@Type component, Canonical, or simple serializable)");
+        throw new IllegalStateException("Cannot encode frame with key " + key +
+                ": value is not a supported type (@Type component, Canonical, or simple serializable)");
     }
 
     /**
@@ -449,7 +449,7 @@ public class ItemSchema {
      * <p>If {@code existingConfig} is non-null, it is carried forward to the new entry
      * so that per-frame config (policy, settings) survives across commits.
      */
-    private FrameEntry storeAndBuildEntry(HandleID handle, String alias, ItemID typeId, boolean identity,
+    private FrameEntry storeAndBuildEntry(FrameKey key, String alias, ItemID typeId, boolean identity,
                                           byte[] plaintextBytes, Consumer<byte[]> storePayload,
                                           dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
                                           FrameEntry.EntryConfig existingConfig) {
@@ -459,10 +459,10 @@ public class ItemSchema {
 
         boolean shouldEncrypt = encryptionContext != null
                 && encryptionContext != dev.everydaythings.graph.crypt.EncryptionContext.NONE
-                && encryptionContext.shouldEncrypt(handle);
+                && encryptionContext.shouldEncrypt(key);
 
         if (shouldEncrypt) {
-            var recipients = encryptionContext.recipients(handle);
+            var recipients = encryptionContext.recipients(key);
             if (!recipients.isEmpty()) {
                 // Encrypt the plaintext into a Tag 10 envelope
                 var envelope = dev.everydaythings.graph.crypt.EnvelopeOps.encryptAnonymous(
@@ -483,7 +483,7 @@ public class ItemSchema {
         }
 
         FrameEntry entry = FrameEntry.builder()
-                .handle(handle).alias(alias)
+                .frameKey(key).alias(alias)
                 .type(typeId).identity(identity)
                 .payload(FrameEntry.EntryPayload.builder()
                         .snapshotCid(snapshotCid)
@@ -545,7 +545,7 @@ public class ItemSchema {
 
         FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
         componentTable.add(entry);
-        componentTable.setLive(entry.handle(), relation);
+        componentTable.setLive(entry.frameKey(), relation);
     }
 
     // ==================================================================================

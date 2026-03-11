@@ -7,7 +7,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.TreeLink;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.language.Sememe;
@@ -200,7 +200,7 @@ class SeedVocabularyTest {
         assertThat(manifest).isNotNull();
 
         FrameEntry surfaceEntry = manifest.components().stream()
-                .filter(e -> e.handle().equals(SurfaceTemplateComponent.HANDLE))
+                .filter(e -> e.frameKey().equals(SurfaceTemplateComponent.HANDLE))
                 .findFirst()
                 .orElse(null);
         assertThat(surfaceEntry).as("Item type should have surface template component").isNotNull();
@@ -211,9 +211,9 @@ class SeedVocabularyTest {
                 .as("Surface template content should be stored").isPresent();
 
         // Should NOT have a separate "display" handle
-        HandleID displayHandle = HandleID.of("display");
+        FrameKey displayKey = FrameKey.literal("display");
         boolean hasDisplay = manifest.components().stream()
-                .anyMatch(e -> e.handle().equals(displayHandle));
+                .anyMatch(e -> e.frameKey().equals(displayKey));
         assertThat(hasDisplay).as("Should not have a separate display component").isFalse();
     }
 
@@ -294,7 +294,7 @@ class SeedVocabularyTest {
 
         // Should include surface template link
         boolean hasSurface = inspectChildren.stream()
-                .anyMatch(link -> link.path().map(p -> p.equals("/" + SurfaceTemplateComponent.HANDLE.encodeText())).orElse(false));
+                .anyMatch(link -> link.path().map(p -> p.equals("/" + SurfaceTemplateComponent.HANDLE.toCanonicalString())).orElse(false));
         assertThat(hasSurface).as("Inspect children should include surface template").isTrue();
     }
 }

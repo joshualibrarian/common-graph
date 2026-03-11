@@ -19,9 +19,8 @@ import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.component.ComponentType;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.VersionID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
@@ -53,7 +52,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
  *
  * <p>State:
  * <ul>
- *   <li>base: current version (VersionID) or null if fresh/uncommitted</li>
+ *   <li>base: current version (ContentID) or null if fresh/uncommitted</li>
  *   <li>componentTable: functional building blocks (content, streams)</li>
  *   <li>actionTable: declared actions</li>
  * </ul>
@@ -75,11 +74,11 @@ public class Item implements Property {
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/item";
 
-    // === WELL-KNOWN HANDLES ===
+    // === WELL-KNOWN FRAME KEYS ===
     // Lazy-initialized via holder class to break circular clinit:
-    // HandleID → HashID.<clinit> → Unit.<clinit> → Dimension.<clinit> → Item(ItemID) → vocabulary()
-    private static class BuiltinHandles {
-        static final HandleID POLICY = HandleID.of("policy");
+    // FrameKey → literal → no static init chain
+    private static class BuiltinKeys {
+        static final FrameKey POLICY = FrameKey.literal("policy");
     }
 
     // Type seed instance is auto-created by SeedStore from @Type annotation
@@ -104,7 +103,7 @@ public class Item implements Property {
 
     /** Current version (base) - null if fresh/uncommitted. */
     @Getter
-    protected VersionID base;
+    protected ContentID base;
 
     /** Currently loaded manifest (if any). */
     @Getter
@@ -120,7 +119,7 @@ public class Item implements Property {
 
     /** Version history (for items with history loaded). */
     @Getter
-    protected List<VersionID> versions = new ArrayList<>();
+    protected List<ContentID> versions = new ArrayList<>();
 
     /**
      * Intrinsic runtime vocabulary derived from item + component verbs.
@@ -177,14 +176,14 @@ public class Item implements Property {
      */
     public java.util.stream.Stream<Relation> endorsedRelations() {
         return content().relationEntries()
-                .map(entry -> content().getLive(entry.handle(), Relation.class))
+                .map(entry -> content().getLive(entry.frameKey(), Relation.class))
                 .flatMap(java.util.Optional::stream);
     }
 
 
     /** Per-item policies — stored in FrameTable under well-known handle. */
     public PolicySet policy() {
-        return content().getLive(BuiltinHandles.POLICY, PolicySet.class).orElse(null);
+        return content().getLive(BuiltinKeys.POLICY, PolicySet.class).orElse(null);
     }
 
     /** Intrinsic vocabulary: semantic actions available on this item. */
@@ -225,20 +224,18 @@ public class Item implements Property {
             return Optional.of(content().displayToken());
         }
 
-        // Resolve HandleID: encoded form (hid:...) or plain text name
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
+        // Resolve FrameKey from path component
+        FrameKey key = FrameKey.literal(handle);
 
         // Prefer stable entry metadata to avoid label mutation when a component
         // gets lazily hydrated after first render.
-        Optional<String> entryLabel = content().get(hid).map(FrameEntry::displayToken);
+        Optional<String> entryLabel = content().get(key).map(FrameEntry::displayToken);
         if (entryLabel.isPresent()) {
             return entryLabel;
         }
 
         // Fall back to live payload display token when no entry metadata exists.
-        Optional<Object> live = content().getLive(hid);
+        Optional<Object> live = content().getLive(key);
         if (live.isPresent()) {
             return Optional.of(resolvePayloadDisplayToken(live.get()));
         }
@@ -264,20 +261,18 @@ public class Item implements Property {
             return Optional.of(content().emoji());
         }
 
-        // Resolve HandleID: encoded form (hid:...) or plain text name
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
+        // Resolve FrameKey from path component
+        FrameKey key = FrameKey.literal(handle);
 
         // Prefer stable entry metadata to avoid icon mutation when a component
         // gets lazily hydrated after first render.
-        Optional<String> entryEmoji = content().get(hid).map(this::resolveEntryEmoji);
+        Optional<String> entryEmoji = content().get(key).map(this::resolveEntryEmoji);
         if (entryEmoji.isPresent()) {
             return entryEmoji;
         }
 
         // Fall back to live payload emoji when no entry metadata exists.
-        Optional<Object> live = content().getLive(hid);
+        Optional<Object> live = content().getLive(key);
         if (live.isPresent()) {
             return Optional.of(resolvePayloadEmoji(live.get()));
         }
@@ -395,11 +390,9 @@ public class Item implements Property {
 
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
+        FrameKey key = FrameKey.literal(handle);
 
-        return content().getLive(hid)
+        return content().getLive(key)
                 .map(o -> {
                     Type typeAnno = o.getClass().getAnnotation(Type.class);
                     if (typeAnno != null && !typeAnno.icon().isEmpty()) {
@@ -417,11 +410,9 @@ public class Item implements Property {
 
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
+        FrameKey key = FrameKey.literal(handle);
 
-        return content().getLive(hid)
+        return content().getLive(key)
                 .map(o -> {
                     Type typeAnno = o.getClass().getAnnotation(Type.class);
                     if (typeAnno != null && typeAnno.color() != 0) {
@@ -502,7 +493,7 @@ public class Item implements Property {
         // Policy now lives under component config metadata and should not appear
         // as a standalone inspect tree component.
         for (FrameEntry entry : content()) {
-            if (BuiltinHandles.POLICY.equals(entry.handle())) {
+            if (BuiltinKeys.POLICY.equals(entry.frameKey())) {
                 continue;
             }
             Link link = entry.link();
@@ -622,7 +613,7 @@ public class Item implements Property {
     protected String findDisplayName() {
         // Try common name fields via content table
         for (String handle : new String[]{"name", "title", "label", "canonicalKey"}) {
-            var opt = content().getLive(HandleID.of(handle), Object.class);
+            var opt = content().getLive(FrameKey.literal(handle), Object.class);
             if (opt.isPresent()) {
                 Object value = opt.get();
                 if (value instanceof String s && !s.isBlank()) {
@@ -770,11 +761,11 @@ public class Item implements Property {
         var content = content();
         if (content != null) {
             for (var entry : content) {
-                var handleId = entry.handle();
-                var opt = content.getLive(handleId);
+                var frameKey = entry.frameKey();
+                var opt = content.getLive(frameKey);
                 if (opt.isPresent()) {
                     Object value = opt.get();
-                    extractTokensFromValue(value, handleId.toString(), addToken);
+                    extractTokensFromValue(value, frameKey.toString(), addToken);
                 }
             }
         }
@@ -871,9 +862,9 @@ public class Item implements Property {
             case "components" -> content();
             case "vocabulary" -> vocabulary();
             default -> {
-                // Try to resolve as a component handle (includes policy)
-                HandleID hid = HandleID.of(name);
-                Object live = content().getLive(hid).orElse(null);
+                // Try to resolve as a component key (includes policy)
+                FrameKey key = FrameKey.literal(name);
+                Object live = content().getLive(key).orElse(null);
                 if (live instanceof Property prop) {
                     yield prop;
                 }
@@ -1210,10 +1201,10 @@ public class Item implements Property {
             if (fieldValue == null) continue;
 
             // Check if FrameTable has a different instance
-            var tableValue = content().getLive(spec.handle(), Object.class);
+            var tableValue = content().getLive(spec.frameKey(), Object.class);
             if (tableValue.isPresent() && tableValue.get() != fieldValue) {
                 // Field has a different value - sync it to the table
-                content().setLive(spec.handle(), spec.handleKey(), fieldValue);
+                content().setLive(spec.frameKey(), spec.canonicalKeyString(), fieldValue);
             }
         }
     }
@@ -1281,45 +1272,43 @@ public class Item implements Property {
      */
     public Object component(String ref) {
         // 1. Try alias index
-        Optional<HandleID> aliased = content().resolveAlias(ref);
+        Optional<FrameKey> aliased = content().resolveAlias(ref);
         if (aliased.isPresent()) return component(aliased.get());
-        // 2. Try "hid:..." raw reference
-        if (ref.startsWith("hid:")) return component(HandleID.parse(ref));
-        // 3. Backward compat: hash as handleKey
-        return component(HandleID.of(ref));
+        // 2. Direct literal key lookup
+        return component(FrameKey.literal(ref));
     }
 
     /**
-     * Get a component instance by handle ID.
+     * Get a component instance by frame key.
      *
-     * @param handle The component handle
+     * @param key The frame key
      * @return The component, or null if not found
      */
-    public Object component(HandleID handle) {
-        Optional<Object> live = content().getLive(handle);
+    public Object component(FrameKey key) {
+        Optional<Object> live = content().getLive(key);
         if (live.isPresent()) return live.get();
 
         // Lazy decode from metadata entry when live cache is cold.
-        Optional<FrameEntry> entryOpt = content().get(handle);
+        Optional<FrameEntry> entryOpt = content().get(key);
         if (entryOpt.isEmpty()) return null;
 
         try {
             Object decoded = decodeComponent(entryOpt.get());
             if (decoded != null) {
-                content().setLive(handle, decoded);
+                content().setLive(key, decoded);
                 return decoded;
             }
         } catch (Exception e) {
-            logger.debug("Lazy component decode failed for {}: {}", handle, e.getMessage());
+            logger.debug("Lazy component decode failed for {}: {}", key, e.getMessage());
         }
 
         // Final fallback: read the bound schema field directly.
         // This keeps simple @Frame values visible even if no live decode path exists.
-        FrameFieldSpec spec = schema().getFrameField(handle);
+        FrameFieldSpec spec = schema().getFrameField(key);
         if (spec != null) {
             Object fieldValue = spec.getValue(this);
             if (fieldValue != null) {
-                content().setLive(handle, fieldValue);
+                content().setLive(key, fieldValue);
                 return fieldValue;
             }
         }
@@ -1376,12 +1365,12 @@ public class Item implements Property {
         Objects.requireNonNull(handle, "handle");
         Objects.requireNonNull(component, "component");
 
-        HandleID hid = HandleID.of(handle);
+        FrameKey key = FrameKey.literal(handle);
         ItemID typeId = Components.typeId(component.getClass());
 
         // 1. Add metadata entry
         FrameEntry entry = FrameEntry.builder()
-                .handle(hid)
+                .frameKey(key)
                 .alias(handle)
                 .type(typeId)
                 .identity(true)
@@ -1389,7 +1378,7 @@ public class Item implements Property {
         content().add(entry);
 
         // 2. Register live instance
-        content().setLive(hid, handle, component);
+        content().setLive(key, handle, component);
 
         // 3. Invalidate expression caches — any formula might reference this handle
         // TODO: Build dependency graph so only expressions referencing this handle are
@@ -1612,7 +1601,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * {@code populateVocabulary()}.
      */
     private void initBuiltinComponents() {
-        if (!content().hasLive(BuiltinHandles.POLICY)) {
+        if (!content().hasLive(BuiltinKeys.POLICY)) {
             addBuiltinComponent("policy", new PolicySet());
         }
     }
@@ -1621,12 +1610,12 @@ This public non- profit land trust’s top founding principle is to promote and 
      * Add a built-in component (Vocabulary or PolicySet) to the FrameTable.
      */
     private void addBuiltinComponent(String handle, Object component) {
-        HandleID hid = HandleID.of(handle);
+        FrameKey key = FrameKey.literal(handle);
         ItemID typeId = Components.typeId(component.getClass());
         FrameEntry entry = FrameEntry.builder()
-                .handle(hid).alias(handle).type(typeId).identity(true).build();
+                .frameKey(key).alias(handle).type(typeId).identity(true).build();
         content().add(entry);
-        content().setLive(hid, handle, component);
+        content().setLive(key, handle, component);
     }
 
     /**
@@ -1660,14 +1649,14 @@ This public non- profit land trust’s top founding principle is to promote and 
             Object instance;
             FrameEntry entry;
 
-            String alias = spec.handleKey();
+            String alias = spec.canonicalKeyString();
 
             if (spec.localOnly() && store != null && store.root() != null) {
                 // Local resource with filesystem: open at mount path
                 Path componentPath = store.root().resolve(spec.path());
                 instance = Components.openPathBased(type, componentPath);
                 entry = FrameEntry.builder()
-                        .handle(spec.handle()).alias(alias)
+                        .frameKey(spec.frameKey()).alias(alias)
                         .type(spec.type()).identity(spec.identity()).build();
             } else if (spec.localOnly()) {
                 // Local resource but in-memory mode: create default in-memory instance
@@ -1675,7 +1664,7 @@ This public non- profit land trust’s top founding principle is to promote and 
                         .orElseThrow(() -> new IllegalStateException(
                                 "Cannot create default in-memory instance of local resource: " + type.getName()));
                 entry = FrameEntry.builder()
-                        .handle(spec.handle()).alias(alias)
+                        .frameKey(spec.frameKey()).alias(alias)
                         .type(spec.type()).identity(spec.identity()).build();
             } else {
                 // Regular component: use pre-initialized field value if present, else create default
@@ -1694,7 +1683,7 @@ This public non- profit land trust’s top founding principle is to promote and 
                 if (spec.stream()) {
                     // Stream component: starts with empty heads, content added via append
                     entry = FrameEntry.builder()
-                            .handle(spec.handle()).alias(alias)
+                            .frameKey(spec.frameKey()).alias(alias)
                             .type(spec.type()).identity(spec.identity())
                             .payload(FrameEntry.EntryPayload.builder().streamBased(true).build())
                             .build();
@@ -1702,7 +1691,7 @@ This public non- profit land trust’s top founding principle is to promote and 
                     // Snapshot component: CID computed during commit, use placeholder for now
                     // Note: The actual CID is computed in scanAndBindFields() during commit
                     entry = FrameEntry.builder()
-                            .handle(spec.handle()).alias(alias)
+                            .frameKey(spec.frameKey()).alias(alias)
                             .type(spec.type()).identity(spec.identity()).build();
                 }
             }
@@ -1715,7 +1704,7 @@ This public non- profit land trust’s top founding principle is to promote and 
 
             // Add to FrameTable: both metadata and live instance
             content().add(entry);
-            content().setLive(spec.handle(), alias, instance);
+            content().setLive(spec.frameKey(), alias, instance);
 
             entries.add(entry);
 
@@ -1751,9 +1740,9 @@ This public non- profit land trust’s top founding principle is to promote and 
      * Commit the current state as a new version.
      *
      * @param signer The signer to sign the manifest (required)
-     * @return The new VersionID
+     * @return The new ContentID
      */
-    public VersionID commit(Signer signer) {
+    public ContentID commit(Signer signer) {
         return commit(signer, null);
     }
 
@@ -1762,9 +1751,9 @@ This public non- profit land trust’s top founding principle is to promote and 
      *
      * @param signer            The signer to sign the manifest
      * @param encryptionContext  Encryption policy (null for no encryption)
-     * @return The new VersionID
+     * @return The new ContentID
      */
-    public VersionID commit(Signer signer, dev.everydaythings.graph.crypt.EncryptionContext encryptionContext) {
+    public ContentID commit(Signer signer, dev.everydaythings.graph.crypt.EncryptionContext encryptionContext) {
         Objects.requireNonNull(signer, "signer required for commit");
         logger.debug("Committing item {} (type={})", iid, getClass().getSimpleName());
 
@@ -1820,7 +1809,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * <p>Unlike {@link #commit(Signer)}, this method:
      * <ul>
      *   <li>Does NOT require a signer</li>
-     *   <li>Does NOT create a new VersionID</li>
+     *   <li>Does NOT create a new ContentID</li>
      *   <li>Does NOT update the manifest</li>
      *   <li>DOES save all component content to the store</li>
      *   <li>DOES update component and mount metadata</li>
@@ -1877,7 +1866,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         }
 
         // Get live instance
-        Optional<?> liveOpt = content().getLive(entry.handle(), Object.class);
+        Optional<?> liveOpt = content().getLive(entry.frameKey(), Object.class);
         if (liveOpt.isEmpty()) {
             return entry; // No live instance, keep existing entry
         }
@@ -1900,7 +1889,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         ContentID cid = targetStore.persistContent(bytes, tx);
 
         // Return updated entry with new CID
-        return FrameEntry.snapshot(entry.handle(), entry.type(), cid, entry.identity());
+        return FrameEntry.snapshot(entry.frameKey(), entry.type(), cid, entry.identity());
     }
 
     /**
@@ -1960,10 +1949,10 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @param handle The component handle to encode
      * @return Encoded bytes, or null if handle not found
      */
-    public byte[] encodeComponentValue(HandleID handle) {
-        // Find the field spec with this handle from cached schema
+    public byte[] encodeComponentValue(FrameKey key) {
+        // Find the field spec with this key from cached schema
         for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
-            if (!spec.handle().equals(handle)) continue;
+            if (!spec.frameKey().equals(key)) continue;
 
             Object value = spec.getValue(this);
             if (value == null) return null;
@@ -2060,17 +2049,17 @@ This public non- profit land trust’s top founding principle is to promote and 
         // Phase 1: Decode components that don't already have live instances
         // (Fresh items may already have live instances from initializeFreshComponents())
         for (FrameEntry entry : content()) {
-            if (content().hasLive(entry.handle())) {
+            if (content().hasLive(entry.frameKey())) {
                 continue;  // Already decoded/created
             }
             try {
                 Object instance = decodeComponent(entry);
                 if (instance != null) {
-                    content().setLive(entry.handle(), instance);
+                    content().setLive(entry.frameKey(), instance);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to decode component {} (type {}): {}",
-                        entry.alias() != null ? entry.alias() : entry.handle(),
+                        entry.alias() != null ? entry.alias() : entry.frameKey(),
                         entry.type(), e.getMessage());
             }
         }
@@ -2193,7 +2182,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         }
 
         // Find mount path for this handle
-        Path mountPath = resolveMountPath(entry.handle());
+        Path mountPath = resolveMountPath(entry.frameKey());
         if (mountPath == null) {
             return null;
         }
@@ -2289,7 +2278,7 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // Fallback for intrinsic schema-backed fields:
         // decode using the declared field type.
-        FrameFieldSpec frameSpec = schema().getFrameField(entry.handle());
+        FrameFieldSpec frameSpec = schema().getFrameField(entry.frameKey());
         if (frameSpec != null) {
             CBORObject node = CBORObject.DecodeFromBytes(bytes);
             return Canonical.decodeIntoType(frameSpec.fieldType(), frameSpec.fieldType(), node, Canonical.Scope.RECORD);
@@ -2329,7 +2318,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * <p>Looks up the path from cached schema or mount table.
      * Priority: schema path > mount table > null
      */
-    private Path resolveMountPath(HandleID handle) {
+    private Path resolveMountPath(FrameKey key) {
         Path root = (store != null) ? store.root() : null;
         if (root == null) {
             return null;
@@ -2337,13 +2326,13 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // Check cached schema for path
         for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
-            if (spec.handle().equals(handle) && spec.hasMountPath()) {
+            if (spec.frameKey().equals(key) && spec.hasMountPath()) {
                 return root.resolve(spec.path());
             }
         }
 
         // Check content table for runtime mounts
-        return content().pathForHandle(handle)
+        return content().pathForKey(key)
                 .map(mountPath -> {
                     // Convert presentation path to filesystem path
                     // e.g., "/documents" -> ".documents" (leading dot for hidden)
@@ -2368,20 +2357,20 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // Handle simple types that weren't decoded - decode and cache
         for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
-            HandleID handle = spec.handle();
+            FrameKey key = spec.frameKey();
 
             // Skip if already has a live instance in the table
-            if (content().hasLive(handle)) continue;
+            if (content().hasLive(key)) continue;
 
             // Try to decode from stored content
-            Optional<FrameEntry> entryOpt = content().get(handle);
+            Optional<FrameEntry> entryOpt = content().get(key);
             if (entryOpt.isPresent() && entryOpt.get().hasSnapshot()) {
                 Optional<byte[]> bytesOpt = fetchContent(entryOpt.get().payload().snapshotCid());
                 if (bytesOpt.isPresent()) {
                     Object value = ItemSchema.decodeSimpleValue(spec.field(), bytesOpt.get());
                     if (value != null) {
                         spec.setValue(this, value);
-                        content().setLive(handle, value);
+                        content().setLive(key, value);
                     }
                 }
             }

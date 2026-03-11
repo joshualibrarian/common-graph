@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.component.Component;
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 
@@ -344,10 +344,8 @@ public class TreeLink {
         Optional<Item> item = resolver.apply(target.item());
         if (item.isEmpty()) return Optional.empty();
         String handle = path.startsWith("/") ? path.substring(1) : path;
-        HandleID hid = handle.startsWith(HandleID.HID_PREFIX)
-                ? HandleID.parse(handle)
-                : HandleID.of(handle);
-        return item.get().content().getLive(hid)
+        FrameKey key = FrameKey.literal(handle);
+        return item.get().content().getLive(key)
                 .filter(o -> o instanceof Component)
                 .map(o -> (Component) o);
     }

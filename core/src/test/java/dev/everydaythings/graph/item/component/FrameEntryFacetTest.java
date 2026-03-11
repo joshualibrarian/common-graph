@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.component;
 
-import dev.everydaythings.graph.item.id.HandleID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.policy.PolicySet;
@@ -19,7 +19,7 @@ class FrameEntryFacetTest {
     @DisplayName("legacy mount wiring populates presentation layout mounts")
     void presentationLayoutContainsMounts() {
         FrameEntry entry = FrameEntry.builder()
-                .handle(HandleID.of("docs"))
+                .frameKey(FrameKey.literal("docs"))
                 .type(TYPE)
                 .identity(true)
                 .build();
@@ -36,7 +36,7 @@ class FrameEntryFacetTest {
     @DisplayName("policy lives in config facet")
     void policyInConfigFacet() {
         FrameEntry entry = FrameEntry.builder()
-                .handle(HandleID.of("policy"))
+                .frameKey(FrameKey.literal("policy"))
                 .type(TYPE)
                 .identity(true)
                 .build();
@@ -52,7 +52,7 @@ class FrameEntryFacetTest {
     @DisplayName("scene override lives in presentation skin")
     void sceneOverrideInPresentationSkin() {
         FrameEntry entry = FrameEntry.builder()
-                .handle(HandleID.of("scene"))
+                .frameKey(FrameKey.literal("scene"))
                 .type(TYPE)
                 .identity(true)
                 .build();
