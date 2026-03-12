@@ -179,7 +179,7 @@ public abstract class HashID implements Canonical {
      * </ul>
      */
     public static final dev.everydaythings.graph.value.DisplayWidth DISPLAY_WIDTH =
-            dev.everydaythings.graph.value.DisplayWidth.of(1, 10, 45, dev.everydaythings.graph.value.Unit.CHARACTER_WIDTH);
+            dev.everydaythings.graph.value.DisplayWidth.of(1, 10, 45, dev.everydaythings.graph.value.Unit.CharacterWidth.SEED);
 
     /**
      * Emoji for compact single-character display.

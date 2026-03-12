@@ -354,7 +354,7 @@ class ExpressionLexerTest {
             // Use an Operator as the test object — it has fluent accessors
             Expression expr = ExpressionParser.parse("op.symbol");
             EvaluationContext ctx = new EvaluationContext(null, null)
-                    .withBinding("op", Operator.ADD);
+                    .withBinding("op", Operator.Add.SEED);
             assertThat(expr.evaluate(ctx)).isEqualTo("+");
         }
 
@@ -362,7 +362,7 @@ class ExpressionLexerTest {
         void chainedFluentGetterAccess() {
             Expression expr = ExpressionParser.parse("op.name");
             EvaluationContext ctx = new EvaluationContext(null, null)
-                    .withBinding("op", Operator.ADD);
+                    .withBinding("op", Operator.Add.SEED);
             assertThat(expr.evaluate(ctx)).isEqualTo("add");
         }
     }

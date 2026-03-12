@@ -4,7 +4,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.action.ActionContext;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.ItemStore;
 
 import java.lang.reflect.ParameterizedType;
@@ -43,7 +43,7 @@ import java.util.stream.Stream;
  *         append(ctx, move);  // inherited from Log
  *     }
  *
- *     @Verb(value = Sememe.GET, doc = "Get current board")
+ *     @Verb(value = VerbSememe.Get.KEY, doc = "Get current board")
  *     public BoardState board(ActionContext ctx) {
  *         return replay(readAll(ctx));
  *     }
@@ -178,7 +178,7 @@ public abstract class Log<E> implements Component {
      * @param entry The entry payload to append
      * @return The CID of the stored entry
      */
-    @Verb(value = Sememe.PUT, doc = "Append an entry to the log")
+    @Verb(value = VerbSememe.Put.KEY, doc = "Append an entry to the log")
     public ContentID append(ActionContext ctx, E entry) {
         // Create the log entry
         LogEntry<E> logEntry;
@@ -223,7 +223,7 @@ public abstract class Log<E> implements Component {
      * @param ctx The action context
      * @return Stream of entries in chronological order
      */
-    @Verb(value = Sememe.LIST, doc = "Read all log entries")
+    @Verb(value = VerbSememe.ListVerb.KEY, doc = "Read all log entries")
     public Stream<LogEntry<E>> read(ActionContext ctx) {
         if (head == null) {
             return Stream.empty();
@@ -261,7 +261,7 @@ public abstract class Log<E> implements Component {
      * @param count Maximum number of entries to return
      * @return List of entries, newest first
      */
-    @Verb(value = Sememe.SHOW, doc = "Show recent entries")
+    @Verb(value = VerbSememe.Show.KEY, doc = "Show recent entries")
     public List<LogEntry<E>> tail(ActionContext ctx, int count) {
         if (head == null || count <= 0) {
             return List.of();
@@ -285,7 +285,7 @@ public abstract class Log<E> implements Component {
      *
      * @return Number of entries (sequence + 1, or 0 if empty)
      */
-    @Verb(value = Sememe.COUNT, doc = "Get entry count")
+    @Verb(value = VerbSememe.Count.KEY, doc = "Get entry count")
     public long count() {
         return sequence + 1;
     }
@@ -296,7 +296,7 @@ public abstract class Log<E> implements Component {
      * @param ctx The action context
      * @return The head entry, or empty if log is empty
      */
-    @Verb(value = Sememe.GET, doc = "Get the most recent entry")
+    @Verb(value = VerbSememe.Get.KEY, doc = "Get the most recent entry")
     public Optional<LogEntry<E>> latest(ActionContext ctx) {
         if (head == null) {
             return Optional.empty();

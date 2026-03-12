@@ -3,7 +3,7 @@ package dev.everydaythings.graph.ui.scene.surface.item;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.VerbEntry;
 import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -107,8 +107,8 @@ public final class ContextOverlay {
             String sememe = verb.sememeId().encodeText();
             String method = verb.methodName();
             boolean looksLikeSettingVerb =
-                    Sememe.PUT.equals(sememe)
-                            || Sememe.EDIT.equals(sememe)
+                    VerbSememe.Put.KEY.equals(sememe)
+                            || VerbSememe.Edit.KEY.equals(sememe)
                             || method.startsWith("actionSet")
                             || method.startsWith("actionToggle")
                             || method.startsWith("actionConfigure");

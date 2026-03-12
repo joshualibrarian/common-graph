@@ -7,7 +7,6 @@ import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.runtime.Host;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
@@ -127,9 +126,9 @@ public class ProtocolContext {
 
         // Create peers-with relation: local --peers-with--> remote
         Relation peersWith = Relation.builder()
-                .predicate(Host.PEERS_WITH.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(localId))
-                .bind(ThematicRole.TARGET.iid(), Relation.iid(remoteId))
+                .predicate(RoutingVocabulary.PeersWith.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(localId))
+                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(remoteId))
                 .build()
                 .sign(librarian);
         librarian.relation(peersWith);
@@ -141,9 +140,9 @@ public class ProtocolContext {
                 remoteAddress.getPort()
         );
         Relation reachableAt = Relation.builder()
-                .predicate(Host.REACHABLE_AT.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(remoteId))
-                .bind(ThematicRole.TARGET.iid(), Literal.of(endpoint))
+                .predicate(RoutingVocabulary.ReachableAt.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(remoteId))
+                .bind(ThematicRole.Target.SEED.iid(), Literal.of(endpoint))
                 .build()
                 .sign(librarian);
         librarian.relation(reachableAt);
@@ -175,9 +174,9 @@ public class ProtocolContext {
         if (fromPeer == null || toPeer == null) return;
 
         Relation relay = Relation.builder()
-                .predicate(Host.ACKNOWLEDGES_RELAY.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(librarian.iid()))
-                .bind(ThematicRole.TARGET.iid(), Relation.iid(fromPeer))
+                .predicate(RoutingVocabulary.AcknowledgesRelay.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(librarian.iid()))
+                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(fromPeer))
                 .build()
                 .sign(librarian);
 
@@ -189,10 +188,10 @@ public class ProtocolContext {
         ItemID localId = librarian.iid();
 
         Relation ack = Relation.builder()
-                .predicate(Host.ACKNOWLEDGES_DELIVERY.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(localId))
-                .bind(ThematicRole.TARGET.iid(), Relation.iid(remoteLibrarianIid))
-                .bind(Host.REQUEST_ID.iid(), Literal.ofInteger(requestId))
+                .predicate(RoutingVocabulary.AcknowledgesDelivery.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(localId))
+                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(remoteLibrarianIid))
+                .bind(RoutingVocabulary.RequestId.SEED.iid(), Literal.ofInteger(requestId))
                 .build()
                 .sign(librarian);
 

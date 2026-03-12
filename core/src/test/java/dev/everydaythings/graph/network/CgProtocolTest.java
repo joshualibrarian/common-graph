@@ -3,7 +3,7 @@ package dev.everydaythings.graph.network;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.network.peer.PeerConnection;
-import dev.everydaythings.graph.runtime.Host;
+import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
@@ -74,7 +74,7 @@ class CgProtocolTest {
         }, 5000)).as("lib1 should identify lib2").isTrue();
 
         // Then: lib1 should have peers-with relation pointing at lib2
-        List<Relation> lib1PeersWith = lib1.library().byPredicate(Host.PEERS_WITH.iid()).toList();
+        List<Relation> lib1PeersWith = lib1.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
         assertThat(lib1PeersWith).isNotEmpty();
         assertThat(lib1PeersWith).anyMatch(r ->
                 r.subject().equals(lib1.iid()) &&
@@ -83,14 +83,14 @@ class CgProtocolTest {
         );
 
         // lib1 should have reachable-at relation for lib2
-        List<Relation> lib1Reachable = lib1.library().byPredicate(Host.REACHABLE_AT.iid())
+        List<Relation> lib1Reachable = lib1.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
                 .filter(r -> r.subject().equals(lib2.iid()))
                 .toList();
         assertThat(lib1Reachable).isNotEmpty();
         assertThat(lib1Reachable).anyMatch(r -> r.object() instanceof Literal);
 
         // Then: lib2 should have peers-with relation pointing at lib1
-        List<Relation> lib2PeersWith = lib2.library().byPredicate(Host.PEERS_WITH.iid()).toList();
+        List<Relation> lib2PeersWith = lib2.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
         assertThat(lib2PeersWith).isNotEmpty();
         assertThat(lib2PeersWith).anyMatch(r ->
                 r.subject().equals(lib2.iid()) &&
@@ -99,7 +99,7 @@ class CgProtocolTest {
         );
 
         // lib2 should have reachable-at relation for lib1
-        List<Relation> lib2Reachable = lib2.library().byPredicate(Host.REACHABLE_AT.iid())
+        List<Relation> lib2Reachable = lib2.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
                 .filter(r -> r.subject().equals(lib1.iid()))
                 .toList();
         assertThat(lib2Reachable).isNotEmpty();

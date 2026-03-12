@@ -33,6 +33,83 @@ public class NounSememe extends Sememe {
 
     public static final String KEY = "cg:type/noun-sememe";
 
+    // ==================================================================================
+    // SEED INSTANCES (core predicates)
+    // ==================================================================================
+
+    public static class Author {
+        public static final String KEY = "cg.core:author";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the creator or originator of a work")
+                .cili("i90183");
+    }
+
+    public static class CreatedAt {
+        public static final String KEY = "cg.core:created-at";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the time at which something was created")
+                .cili("i36666");
+    }
+
+    public static class ModifiedAt {
+        public static final String KEY = "cg.core:modified-at";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the time at which something was last modified")
+                .cili("i22389");
+    }
+
+    public static class Title {
+        public static final String KEY = "cg.core:title";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the name or title of something")
+                .cili("i69816")
+                .indexWeight(1000);
+    }
+
+    public static class Description {
+        public static final String KEY = "cg.core:description";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "a textual description of something")
+                .cili("i71841")
+                .indexWeight(500);
+    }
+
+    public static class Slot {
+        public static final String KEY = "cg.core:slot";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "a position in a frame that expects a particular role")
+                .cili("i69534")
+                .word(LEMMA, ENG, "slot");
+    }
+
+    public static class LexemeSeed {
+        public static final String KEY = "cg.core:lexeme";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "a word-meaning mapping in a language's lexicon")
+                .cili("i69622")
+                .word(LEMMA, ENG, "lexeme");
+    }
+
+    public static class Frequency {
+        public static final String KEY = "cg.core:frequency";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "how often something occurs")
+                .word(LEMMA, ENG, "frequency")
+                .cili("i73785");
+    }
+
+    public static class Provenance {
+        public static final String KEY = "cg.core:provenance";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the origin or source of information")
+                .word(LEMMA, ENG, "provenance")
+                .cili("i77490");
+    }
+
+    // ==================================================================================
+    // CONSTRUCTORS
+    // ==================================================================================
+
     /** Type seed constructor. */
     @SuppressWarnings("unused")
     protected NounSememe(ItemID typeId) {

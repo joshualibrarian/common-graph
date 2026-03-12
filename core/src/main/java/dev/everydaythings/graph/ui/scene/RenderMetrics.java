@@ -50,29 +50,29 @@ public class RenderMetrics {
      */
     public static final RenderMetrics TUI_DEFAULT = builder()
             // Columns (horizontal)
-            .column(Unit.CHARACTER_WIDTH, 1.0)    // 1ch = 1 column
-            .column(Unit.EM, 2.0)                 // 1em = 2 columns
-            .column(Unit.REM, 2.0)                // 1rem = 2 columns
-            .column(Unit.PIXEL, 0.125)            // 1px = 1/8 column
-            .column(Unit.LINE_HEIGHT, 1.0)        // 1ln = 1 column
-            .column(Unit.PERCENT, 1.0)            // 1% = 1 column (identity pass-through)
+            .column(Unit.CharacterWidth.SEED, 1.0)    // 1ch = 1 column
+            .column(Unit.Em.SEED, 2.0)                 // 1em = 2 columns
+            .column(Unit.Rem.SEED, 2.0)                // 1rem = 2 columns
+            .column(Unit.Pixel.SEED, 0.125)            // 1px = 1/8 column
+            .column(Unit.LineHeight.SEED, 1.0)        // 1ln = 1 column
+            .column(Unit.Percent.SEED, 1.0)            // 1% = 1 column (identity pass-through)
             // Rows (vertical)
-            .row(Unit.LINE_HEIGHT, 1.0)           // 1ln = 1 row
-            .row(Unit.EM, 1.0)                    // 1em = 1 row
-            .row(Unit.REM, 1.0)                   // 1rem = 1 row
-            .row(Unit.CHARACTER_WIDTH, 0.5)       // 1ch = 0.5 rows
-            .row(Unit.PIXEL, 0.0625)              // 1px = 1/16 row
-            .row(Unit.PERCENT, 1.0)               // 1% = 1 row (identity pass-through)
+            .row(Unit.LineHeight.SEED, 1.0)           // 1ln = 1 row
+            .row(Unit.Em.SEED, 1.0)                    // 1em = 1 row
+            .row(Unit.Rem.SEED, 1.0)                   // 1rem = 1 row
+            .row(Unit.CharacterWidth.SEED, 0.5)       // 1ch = 0.5 rows
+            .row(Unit.Pixel.SEED, 0.0625)              // 1px = 1/16 row
+            .row(Unit.Percent.SEED, 1.0)               // 1% = 1 row (identity pass-through)
             // Pixels — scaled so character fractions map to block-character fractions.
             // With 1em=10px, the pixelsToWeight thresholds align so that:
             //   0.125em → HEAVY, 0.25em → BLOCK_1_4, 0.5em → BLOCK_1_2, 1em → FULL
             // This uses the full Unicode block character range (▏▎▍▌▋▊▉█).
-            .pixel(Unit.PIXEL, 1.0)               // 1px = 1px (unchanged)
-            .pixel(Unit.EM, 10.0)                 // 1em = 10px (0.5em→BLOCK_1_2)
-            .pixel(Unit.CHARACTER_WIDTH, 10.0)    // 1ch = 10px (0.2ch→BLOCK_1_8)
-            .pixel(Unit.REM, 10.0)                // 1rem = 10px
-            .pixel(Unit.LINE_HEIGHT, 10.0)        // 1ln = 10px
-            .pixel(Unit.PERCENT, 1.0)             // 1% = 1px (identity pass-through)
+            .pixel(Unit.Pixel.SEED, 1.0)               // 1px = 1px (unchanged)
+            .pixel(Unit.Em.SEED, 10.0)                 // 1em = 10px (0.5em→BLOCK_1_2)
+            .pixel(Unit.CharacterWidth.SEED, 10.0)    // 1ch = 10px (0.2ch→BLOCK_1_8)
+            .pixel(Unit.Rem.SEED, 10.0)                // 1rem = 10px
+            .pixel(Unit.LineHeight.SEED, 10.0)        // 1ln = 10px
+            .pixel(Unit.Percent.SEED, 1.0)             // 1% = 1px (identity pass-through)
             .build();
 
     /**
@@ -88,25 +88,25 @@ public class RenderMetrics {
      */
     public static RenderMetrics gui(double emPx, double chPx, double lnPx, double remPx) {
         return builder()
-                .pixel(Unit.PIXEL, 1.0)
-                .pixel(Unit.EM, emPx)
-                .pixel(Unit.CHARACTER_WIDTH, chPx)
-                .pixel(Unit.REM, remPx)
-                .pixel(Unit.LINE_HEIGHT, lnPx)
-                .pixel(Unit.PERCENT, 1.0)
+                .pixel(Unit.Pixel.SEED, 1.0)
+                .pixel(Unit.Em.SEED, emPx)
+                .pixel(Unit.CharacterWidth.SEED, chPx)
+                .pixel(Unit.Rem.SEED, remPx)
+                .pixel(Unit.LineHeight.SEED, lnPx)
+                .pixel(Unit.Percent.SEED, 1.0)
                 // Column/row mappings (unchanged — TUI grid semantics)
-                .column(Unit.CHARACTER_WIDTH, 1.0)
-                .column(Unit.EM, 2.0)
-                .column(Unit.REM, 2.0)
-                .column(Unit.PIXEL, 0.125)
-                .column(Unit.LINE_HEIGHT, 1.0)
-                .column(Unit.PERCENT, 1.0)
-                .row(Unit.LINE_HEIGHT, 1.0)
-                .row(Unit.EM, 1.0)
-                .row(Unit.REM, 1.0)
-                .row(Unit.CHARACTER_WIDTH, 0.5)
-                .row(Unit.PIXEL, 0.0625)
-                .row(Unit.PERCENT, 1.0)
+                .column(Unit.CharacterWidth.SEED, 1.0)
+                .column(Unit.Em.SEED, 2.0)
+                .column(Unit.Rem.SEED, 2.0)
+                .column(Unit.Pixel.SEED, 0.125)
+                .column(Unit.LineHeight.SEED, 1.0)
+                .column(Unit.Percent.SEED, 1.0)
+                .row(Unit.LineHeight.SEED, 1.0)
+                .row(Unit.Em.SEED, 1.0)
+                .row(Unit.Rem.SEED, 1.0)
+                .row(Unit.CharacterWidth.SEED, 0.5)
+                .row(Unit.Pixel.SEED, 0.0625)
+                .row(Unit.Percent.SEED, 1.0)
                 .build();
     }
 

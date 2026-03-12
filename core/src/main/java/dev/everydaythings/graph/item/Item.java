@@ -1527,7 +1527,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * relation is about, and the target is what it points to.
      * <pre>{@code
      * // This animal IS-A mammal
-     * animal.relate(Sememe.HYPERNYM.iid(), mammal.iid());
+     * animal.relate(VerbSememe.Hypernym.SEED.iid(), mammal.iid());
      *
      * // With a literal target
      * item.relate(predicateId, Literal.ofText("some value"));
@@ -1543,8 +1543,8 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         Relation relation = Relation.builder()
                 .predicate(predicate)
-                .bind(ThematicRole.THEME.iid(), Relation.iid(iid))
-                .bind(ThematicRole.TARGET.iid(), target)
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(iid))
+                .bind(ThematicRole.Target.SEED.iid(), target)
                 .build();
 
         // Sign if we have a signer
@@ -1565,7 +1565,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      *
      * <p>Convenience overload for item-to-item relations:
      * <pre>{@code
-     * animal.relate(Sememe.HYPERNYM.iid(), mammal);
+     * animal.relate(VerbSememe.Hypernym.SEED.iid(), mammal);
      * }</pre>
      *
      * @param predicate The predicate (relationship type)
@@ -2400,7 +2400,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @throws IllegalStateException if no librarian is available
      * @throws IllegalArgumentException if the type is abstract or has no suitable constructor
      */
-    @Verb(value = dev.everydaythings.graph.language.Sememe.CREATE, doc = "Create a new instance of this type")
+    @Verb(value = dev.everydaythings.graph.language.VerbSememe.Create.KEY, doc = "Create a new instance of this type")
     public Item actionNew(
             ActionContext ctx,
             @dev.everydaythings.graph.item.component.Param(
@@ -2435,7 +2435,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         // Apply title if a name was provided
         if (name != null && !name.isBlank()) {
             newItem.relate(
-                    dev.everydaythings.graph.language.Sememe.TITLE.iid(),
+                    dev.everydaythings.graph.language.NounSememe.Title.SEED.iid(),
                     Literal.ofText(name));
         }
 
@@ -2448,7 +2448,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * <p>Returns the vocabulary itself — it's a Component with a Surface,
      * so the rendering pipeline handles display.
      */
-    @Verb(value = dev.everydaythings.graph.language.Sememe.HELP, doc = "Show available verbs and their documentation")
+    @Verb(value = dev.everydaythings.graph.language.VerbSememe.Help.KEY, doc = "Show available verbs and their documentation")
     public Object actionHelp(ActionContext ctx) {
         return vocabulary();
     }
@@ -2470,7 +2470,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @param target The path to navigate to
      * @return A Link for the session to navigate to
      */
-    @Verb(value = dev.everydaythings.graph.language.Sememe.CD, doc = "Navigate to path within item")
+    @Verb(value = dev.everydaythings.graph.language.VerbSememe.Cd.KEY, doc = "Navigate to path within item")
     public Link actionCd(
             @Param(value = "target", doc = "Path or '..' to go back") String target) {
         if (target == null || target.isBlank()) {
@@ -2507,7 +2507,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * Start building a relation with this item as THEME.
      */
     public Relation.RelationBuilder relate() {
-        return Relation.builder().bind(ThematicRole.THEME.iid(), Relation.iid(iid));
+        return Relation.builder().bind(ThematicRole.Theme.SEED.iid(), Relation.iid(iid));
     }
 
     /**

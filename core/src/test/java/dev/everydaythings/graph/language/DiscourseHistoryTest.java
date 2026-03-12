@@ -63,14 +63,14 @@ class DiscourseHistoryTest {
     void resolveIt() {
         var history = new DiscourseHistory();
         history.push(ALICE);
-        assertThat(history.resolve(Sememe.IT, null)).contains(ALICE);
+        assertThat(history.resolve(PronounSememe.It.SEED, null)).contains(ALICE);
     }
 
     @Test
     void resolveThis() {
         var history = new DiscourseHistory();
         history.push(ALICE); // shouldn't matter
-        assertThat(history.resolve(Sememe.THIS, BOB)).contains(BOB);
+        assertThat(history.resolve(PronounSememe.This.SEED, BOB)).contains(BOB);
     }
 
     @Test
@@ -78,14 +78,14 @@ class DiscourseHistoryTest {
         var history = new DiscourseHistory();
         history.push(ALICE);
         history.push(BOB);
-        assertThat(history.resolve(Sememe.LAST, null)).contains(ALICE);
+        assertThat(history.resolve(PronounSememe.Last.SEED, null)).contains(ALICE);
     }
 
     @Test
     void resolveUnknownPronounReturnsEmpty() {
         var history = new DiscourseHistory();
         history.push(ALICE);
-        assertThat(history.resolve(Sememe.ANY, null)).isEmpty();
+        assertThat(history.resolve(PronounSememe.Any.SEED, null)).isEmpty();
     }
 
     @Test

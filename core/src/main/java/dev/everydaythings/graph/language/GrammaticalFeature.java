@@ -36,159 +36,159 @@ public class GrammaticalFeature extends NounSememe {
     // BASE FORM
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature LEMMA = new GrammaticalFeature(
-            "cg.feat:lemma",
-            Map.of("en", "the base or dictionary form of a word"),
-            List.of("lemma")
-    );
+    public static class Lemma {
+        public static final String KEY = "cg.feat:lemma";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "the base or dictionary form of a word")
+                .cili("i71975").word(LEMMA, ENG, "lemma");
+    }
 
     // ==================================================================================
     // TENSE
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature PAST = new GrammaticalFeature(
-            "cg.feat:past",
-            Map.of("en", "past tense"),
-            List.of("past")
-    );
+    public static class Past {
+        public static final String KEY = "cg.feat:past";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "past tense")
+                .cili("i69743").word(LEMMA, ENG, "past");
+    }
 
-    @Seed
-    public static final GrammaticalFeature PRESENT = new GrammaticalFeature(
-            "cg.feat:present",
-            Map.of("en", "present tense"),
-            List.of("present")
-    );
+    public static class Present {
+        public static final String KEY = "cg.feat:present";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "present tense")
+                .cili("i69740").word(LEMMA, ENG, "present");
+    }
 
-    @Seed
-    public static final GrammaticalFeature FUTURE = new GrammaticalFeature(
-            "cg.feat:future",
-            Map.of("en", "future tense"),
-            List.of("future")
-    );
+    public static class Future {
+        public static final String KEY = "cg.feat:future";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "future tense")
+                .cili("i69744").word(LEMMA, ENG, "future");
+    }
 
     // ==================================================================================
     // NUMBER
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature SINGULAR = new GrammaticalFeature(
-            "cg.feat:singular",
-            Map.of("en", "singular number"),
-            List.of("singular")
-    );
+    public static class Singular {
+        public static final String KEY = "cg.feat:singular";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "singular number")
+                .cili("i69586").word(LEMMA, ENG, "singular");
+    }
 
-    @Seed
-    public static final GrammaticalFeature PLURAL = new GrammaticalFeature(
-            "cg.feat:plural",
-            Map.of("en", "plural number"),
-            List.of("plural")
-    );
+    public static class Plural {
+        public static final String KEY = "cg.feat:plural";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "plural number")
+                .cili("i69585").word(LEMMA, ENG, "plural");
+    }
 
     // ==================================================================================
     // PERSON
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature FIRST_PERSON = new GrammaticalFeature(
-            "cg.feat:first-person",
-            Map.of("en", "first person"),
-            List.of("first-person")
-    );
+    public static class FirstPerson {
+        public static final String KEY = "cg.feat:first-person";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "first person")
+                .cili("i69730").word(LEMMA, ENG, "first-person");
+    }
 
-    @Seed
-    public static final GrammaticalFeature SECOND_PERSON = new GrammaticalFeature(
-            "cg.feat:second-person",
-            Map.of("en", "second person"),
-            List.of("second-person")
-    );
+    public static class SecondPerson {
+        public static final String KEY = "cg.feat:second-person";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "second person")
+                .cili("i69731").word(LEMMA, ENG, "second-person");
+    }
 
-    @Seed
-    public static final GrammaticalFeature THIRD_PERSON = new GrammaticalFeature(
-            "cg.feat:third-person",
-            Map.of("en", "third person"),
-            List.of("third-person")
-    );
+    public static class ThirdPerson {
+        public static final String KEY = "cg.feat:third-person";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "third person")
+                .cili("i69732").word(LEMMA, ENG, "third-person");
+    }
 
     // ==================================================================================
     // FORM / ASPECT
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature PARTICIPLE = new GrammaticalFeature(
-            "cg.feat:participle",
-            Map.of("en", "participle form"),
-            List.of("participle")
-    );
+    public static class Participle {
+        public static final String KEY = "cg.feat:participle";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "participle form")
+                .cili("i69745").word(LEMMA, ENG, "participle");
+    }
 
-    @Seed
-    public static final GrammaticalFeature PROGRESSIVE = new GrammaticalFeature(
-            "cg.feat:progressive",
-            Map.of("en", "progressive aspect"),
-            List.of("progressive")
-    );
+    public static class Progressive {
+        public static final String KEY = "cg.feat:progressive";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "progressive aspect")
+                .cili("i109457").word(LEMMA, ENG, "progressive");
+    }
 
-    @Seed
-    public static final GrammaticalFeature PERFECT = new GrammaticalFeature(
-            "cg.feat:perfect",
-            Map.of("en", "perfect aspect"),
-            List.of("perfect")
-    );
+    public static class Perfect {
+        public static final String KEY = "cg.feat:perfect";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "perfect aspect")
+                .cili("i109459").word(LEMMA, ENG, "perfect");
+    }
 
     // ==================================================================================
     // MOOD
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature IMPERATIVE = new GrammaticalFeature(
-            "cg.feat:imperative",
-            Map.of("en", "imperative mood"),
-            List.of("imperative")
-    );
+    public static class Imperative {
+        public static final String KEY = "cg.feat:imperative";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "imperative mood")
+                .cili("i109438").word(LEMMA, ENG, "imperative");
+    }
 
-    @Seed
-    public static final GrammaticalFeature SUBJUNCTIVE = new GrammaticalFeature(
-            "cg.feat:subjunctive",
-            Map.of("en", "subjunctive mood"),
-            List.of("subjunctive")
-    );
+    public static class Subjunctive {
+        public static final String KEY = "cg.feat:subjunctive";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "subjunctive mood")
+                .cili("i109436").word(LEMMA, ENG, "subjunctive");
+    }
 
-    @Seed
-    public static final GrammaticalFeature INFINITIVE = new GrammaticalFeature(
-            "cg.feat:infinitive",
-            Map.of("en", "infinitive form"),
-            List.of("infinitive")
-    );
+    public static class Infinitive {
+        public static final String KEY = "cg.feat:infinitive";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "infinitive form")
+                .cili("i69687").word(LEMMA, ENG, "infinitive");
+    }
 
     // ==================================================================================
     // DEGREE (adjectives/adverbs)
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature COMPARATIVE = new GrammaticalFeature(
-            "cg.feat:comparative",
-            Map.of("en", "comparative degree"),
-            List.of("comparative")
-    );
+    public static class Comparative {
+        public static final String KEY = "cg.feat:comparative";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "comparative degree")
+                .cili("i69707").word(LEMMA, ENG, "comparative");
+    }
 
-    @Seed
-    public static final GrammaticalFeature SUPERLATIVE = new GrammaticalFeature(
-            "cg.feat:superlative",
-            Map.of("en", "superlative degree"),
-            List.of("superlative")
-    );
+    public static class Superlative {
+        public static final String KEY = "cg.feat:superlative";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "superlative degree")
+                .cili("i69708").word(LEMMA, ENG, "superlative");
+    }
 
     // ==================================================================================
     // VOICE
     // ==================================================================================
 
-    @Seed
-    public static final GrammaticalFeature PASSIVE = new GrammaticalFeature(
-            "cg.feat:passive",
-            Map.of("en", "passive voice"),
-            List.of("passive")
-    );
+    public static class Passive {
+        public static final String KEY = "cg.feat:passive";
+        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
+                .gloss(ENG, "passive voice")
+                .cili("i109444").word(LEMMA, ENG, "passive");
+    }
 
     // ==================================================================================
     // CONSTRUCTORS
@@ -206,8 +206,29 @@ public class GrammaticalFeature extends NounSememe {
         super(librarian, manifest);
     }
 
+    /** Fluent seed constructor. */
+    public GrammaticalFeature(String canonicalKey) {
+        super(canonicalKey);
+    }
+
     /** Seed constructor. */
     public GrammaticalFeature(String canonicalKey, Map<String, String> glosses, List<String> tokens) {
         super(canonicalKey, glosses, Map.of(), tokens);
     }
+
+    /** Seed constructor (with sources for CILI). */
+    public GrammaticalFeature(String canonicalKey, Map<String, String> glosses,
+                              Map<String, String> sources, List<String> tokens) {
+        super(canonicalKey, glosses, sources, tokens);
+    }
+
+    // ==================================================================================
+    // COVARIANT OVERRIDES (fluent chaining returns GrammaticalFeature)
+    // ==================================================================================
+
+    @Override public GrammaticalFeature gloss(String lang, String text) { super.gloss(lang, text); return this; }
+    @Override public GrammaticalFeature word(Sememe form, String lang, String surface) { super.word(form, lang, surface); return this; }
+    @Override public GrammaticalFeature cili(String id) { super.cili(id); return this; }
+    @Override public GrammaticalFeature symbol(String s) { super.symbol(s); return this; }
+    @Override public GrammaticalFeature indexWeight(int weight) { super.indexWeight(weight); return this; }
 }

@@ -4,6 +4,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -21,12 +22,12 @@ import java.util.stream.Stream;
  * // All HYPERNYM relations involving 'animal'
  * library.find()
  *     .involving(animal)
- *     .via(Sememe.HYPERNYM)
+ *     .via(VerbSememe.Hypernym.SEED)
  *     .relations();
  *
  * // All AGREES_WITH relations
  * library.find()
- *     .via(Sememe.AGREES_WITH)
+ *     .via(VerbSememe.AgreesWithSememe)
  *     .relations();
  * }</pre>
  *
@@ -125,8 +126,8 @@ public final class RelationQuery {
      * <p>Convenience for extracting a particular role's value:
      * <pre>{@code
      * // Get all items in the TARGET role of HYPERNYM relations involving 'animal'
-     * library.find().involving(animal).via(Sememe.HYPERNYM)
-     *     .bindingIds(ThematicRole.TARGET.iid())
+     * library.find().involving(animal).via(VerbSememe.Hypernym.SEED)
+     *     .bindingIds(ThematicRole.Target.SEED.iid())
      * }</pre>
      *
      * @param role The role to extract

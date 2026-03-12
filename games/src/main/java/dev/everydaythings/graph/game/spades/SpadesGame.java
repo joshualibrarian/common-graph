@@ -400,7 +400,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
     // Game Actions (Verbs)
     // ==================================================================================
 
-    @Verb(value = GameVocabulary.DEAL, doc = "Deal cards for a new round")
+    @Verb(value = GameVocabulary.Deal.KEY, doc = "Deal cards for a new round")
     public String deal(ActionContext ctx) {
         if (!PHASE_DEAL.equals(phase)) return "Cannot deal now";
         Signing.Signer s = resolveSigner(ctx);
@@ -409,7 +409,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
         return "Cards dealt";
     }
 
-    @Verb(value = GameVocabulary.BID, doc = "Bid number of tricks")
+    @Verb(value = GameVocabulary.Bid.KEY, doc = "Bid number of tricks")
     public String bid(ActionContext ctx,
                       @Param(value = "tricks", doc = "Number of tricks (0 = nil)") int tricks) {
         int seat = authorizedSeat(ctx);
@@ -424,7 +424,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
         return "Bid " + (tricks == 0 ? "nil" : tricks + " tricks");
     }
 
-    @Verb(value = GameVocabulary.PLAY, doc = "Play a card")
+    @Verb(value = GameVocabulary.Play.KEY, doc = "Play a card")
     public String playCard(ActionContext ctx,
                            @Param(value = "card", doc = "Card ordinal") int cardOrdinal) {
         int seat = authorizedSeat(ctx);

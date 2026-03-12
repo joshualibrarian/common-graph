@@ -7,7 +7,7 @@ import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.trust.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -457,7 +457,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     // Game Actions (Verbs)
     // ==================================================================================
 
-    @Verb(value = GameVocabulary.REVEAL, doc = "Reveal a tile")
+    @Verb(value = GameVocabulary.Reveal.KEY, doc = "Reveal a tile")
     public boolean reveal(@Param(value = "cell", doc = "Cell label (e.g., a1)") String label) {
         int[] pos = GameBoard.parseGridLabel(label);
         return reveal(pos[0], pos[1]);
@@ -478,7 +478,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         return true;
     }
 
-    @Verb(value = GameVocabulary.FLAG, doc = "Toggle flag on a tile")
+    @Verb(value = GameVocabulary.Flag.KEY, doc = "Toggle flag on a tile")
     public boolean flag(@Param(value = "cell", doc = "Cell label (e.g., a1)") String label) {
         int[] pos = GameBoard.parseGridLabel(label);
         return flag(pos[0], pos[1]);
@@ -494,7 +494,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         return true;
     }
 
-    @Verb(value = GameVocabulary.CHORD, doc = "Auto-reveal neighbors when flags match the number")
+    @Verb(value = GameVocabulary.Chord.KEY, doc = "Auto-reveal neighbors when flags match the number")
     public boolean chord(@Param(value = "cell", doc = "Cell label (e.g., a1)") String label) {
         int[] pos = GameBoard.parseGridLabel(label);
         return chord(pos[0], pos[1]);
@@ -572,7 +572,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         return result;
     }
 
-    @Verb(value = Sememe.DESCRIBE, doc = "Describe game status")
+    @Verb(value = VerbSememe.Describe.KEY, doc = "Describe game status")
     public String statusText() {
         if (isWon()) return "You win! All mines cleared.";
         if (isLost()) return "Game over! Hit a mine.";

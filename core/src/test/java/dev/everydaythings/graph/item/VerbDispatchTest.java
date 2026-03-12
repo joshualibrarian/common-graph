@@ -2,6 +2,7 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.runtime.Librarian;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -13,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for the full verb dispatch flow.
  */
+@Tag("slow")
 class VerbDispatchTest {
 
     @Test

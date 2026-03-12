@@ -13,7 +13,7 @@ class VerbSememePersistenceTest {
 
     @Test
     void createVerbHasExpectedSlotRoles() {
-        var roles = Sememe.create.slotRoles();
+        var roles = VerbSememe.Create.SEED.slotRoles();
         assertThat(roles)
                 .as("CREATE should have 5 slot roles")
                 .hasSize(5);
@@ -27,7 +27,7 @@ class VerbSememePersistenceTest {
 
     @Test
     void getVerbHasExpectedSlotRoles() {
-        var roles = Sememe.get.slotRoles();
+        var roles = VerbSememe.Get.SEED.slotRoles();
         assertThat(roles)
                 .as("GET should have 1 slot role")
                 .hasSize(1);
@@ -38,21 +38,21 @@ class VerbSememePersistenceTest {
     @Test
     void relationVerbHasNoSlotRoles() {
         // HYPERNYM is a relation predicate, not a user-facing action — no slots
-        assertThat(Sememe.HYPERNYM.slotRoles())
+        assertThat(VerbSememe.Hypernym.SEED.slotRoles())
                 .as("Relation verbs should have no slot roles")
                 .isEmpty();
     }
 
     @Test
     void editVerbHasPatientSlot() {
-        var roles = Sememe.edit.slotRoles();
+        var roles = VerbSememe.Edit.SEED.slotRoles();
         assertThat(roles).hasSize(1);
         assertThat(roles.get(0)).isEqualTo(ItemID.fromString(ThematicRole.Patient.KEY));
     }
 
     @Test
     void findVerbHasThreeSlots() {
-        var roles = Sememe.find.slotRoles();
+        var roles = VerbSememe.Find.SEED.slotRoles();
         assertThat(roles).hasSize(3);
         assertThat(roles.get(0)).isEqualTo(ItemID.fromString(ThematicRole.Theme.KEY));
         assertThat(roles.get(1)).isEqualTo(ItemID.fromString(ThematicRole.Recipient.KEY));

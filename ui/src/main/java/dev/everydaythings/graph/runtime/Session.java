@@ -11,7 +11,7 @@ import dev.everydaythings.graph.item.component.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.runtime.options.SessionOptions;
 import dev.everydaythings.graph.ui.input.InputAction;
 import dev.everydaythings.graph.ui.input.InputBindings;
@@ -160,8 +160,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     private final Map<ItemID, Item> liveItemCache = new HashMap<>();
 
-    private static final ItemID EXIT_SEMEME_ID = ItemID.fromString(Sememe.EXIT);
-    private static final ItemID BACK_SEMEME_ID = ItemID.fromString(Sememe.BACK);
+    private static final ItemID EXIT_SEMEME_ID = ItemID.fromString(VerbSememe.Exit.KEY);
+    private static final ItemID BACK_SEMEME_ID = ItemID.fromString(VerbSememe.Back.KEY);
 
     /**
      * Shared input handling — pulled up from subclasses.
@@ -412,7 +412,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // Verbs (formerly on SessionItem)
     // ==================================================================================
 
-    @Verb(value = Sememe.EXIT, doc = "Exit the session")
+    @Verb(value = VerbSememe.Exit.KEY, doc = "Exit the session")
     public ActionResult exit() {
         if (onExit != null) {
             onExit.run();
@@ -420,7 +420,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         return ActionResult.success("exit");
     }
 
-    @Verb(value = Sememe.BACK, doc = "Go back to previous item")
+    @Verb(value = VerbSememe.Back.KEY, doc = "Go back to previous item")
     public ActionResult back() {
         if (onBack != null) {
             onBack.run();
@@ -428,14 +428,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         return ActionResult.success("back");
     }
 
-    @Verb(value = Sememe.AUTHENTICATE, doc = "Authenticate as a user")
+    @Verb(value = VerbSememe.Authenticate.KEY, doc = "Authenticate as a user")
     public ActionResult actionAuthenticate(
             @Param(value = "user", doc = "The user to authenticate as") ItemID userId) {
         Signer user = authenticate(userId);
         return ActionResult.success(user.displayToken() + " authenticated");
     }
 
-    @Verb(value = Sememe.SWITCH, doc = "Switch active user")
+    @Verb(value = VerbSememe.Switch.KEY, doc = "Switch active user")
     public ActionResult actionSwitch(
             @Param(value = "user", doc = "The user to switch to") ItemID userId) {
         Signer user = switchActor(userId);

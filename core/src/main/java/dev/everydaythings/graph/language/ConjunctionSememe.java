@@ -17,6 +17,28 @@ public final class ConjunctionSememe extends Sememe {
 
     public static final String KEY = "cg:type/conjunction-sememe";
 
+    // ==================================================================================
+    // SEED INSTANCES
+    // ==================================================================================
+
+    public static class And {
+        public static final String KEY = "cg.conj:and";
+        public static final ConjunctionSememe SEED = new ConjunctionSememe(KEY)
+                .gloss(ENG, "coordinating conjunction; connects elements")
+                .word(LEMMA, ENG, "and");
+    }
+
+    public static class Or {
+        public static final String KEY = "cg.conj:or";
+        public static final ConjunctionSememe SEED = new ConjunctionSememe(KEY)
+                .gloss(ENG, "coordinating disjunction; alternative elements")
+                .word(LEMMA, ENG, "or");
+    }
+
+    // ==================================================================================
+    // CONSTRUCTORS
+    // ==================================================================================
+
     /** Type seed constructor. */
     @SuppressWarnings("unused")
     protected ConjunctionSememe(ItemID typeId) {
@@ -27,6 +49,11 @@ public final class ConjunctionSememe extends Sememe {
     @SuppressWarnings("unused")
     protected ConjunctionSememe(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
+    }
+
+    /** Fluent seed constructor. */
+    public ConjunctionSememe(String canonicalKey) {
+        super(canonicalKey, PartOfSpeech.CONJUNCTION);
     }
 
     /** Seed constructor (no tokens). */
@@ -47,4 +74,14 @@ public final class ConjunctionSememe extends Sememe {
                                 Map<String, String> glosses, Map<String, String> sources) {
         super(librarian, canonicalKey, PartOfSpeech.CONJUNCTION, glosses, sources);
     }
+
+    // ==================================================================================
+    // COVARIANT OVERRIDES (fluent chaining returns ConjunctionSememe)
+    // ==================================================================================
+
+    @Override public ConjunctionSememe gloss(String lang, String text) { super.gloss(lang, text); return this; }
+    @Override public ConjunctionSememe word(Sememe form, String lang, String surface) { super.word(form, lang, surface); return this; }
+    @Override public ConjunctionSememe cili(String id) { super.cili(id); return this; }
+    @Override public ConjunctionSememe symbol(String s) { super.symbol(s); return this; }
+    @Override public ConjunctionSememe indexWeight(int weight) { super.indexWeight(weight); return this; }
 }

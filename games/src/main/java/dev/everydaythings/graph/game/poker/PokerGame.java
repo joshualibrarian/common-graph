@@ -542,7 +542,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
     // Game Actions (Verbs)
     // ==================================================================================
 
-    @Verb(value = GameVocabulary.DEAL, doc = "Deal a new hand")
+    @Verb(value = GameVocabulary.Deal.KEY, doc = "Deal a new hand")
     public String deal(ActionContext ctx) {
         if (handInProgress) return "Hand already in progress";
         Signing.Signer s = resolveSigner(ctx);
@@ -551,7 +551,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         return "Hand dealt";
     }
 
-    @Verb(value = GameVocabulary.BET, doc = "Place a bet")
+    @Verb(value = GameVocabulary.Bet.KEY, doc = "Place a bet")
     public String bet(ActionContext ctx,
                       @Param(value = "amount", doc = "Bet amount") int amount) {
         int seat = authorizedSeat(ctx);
@@ -562,7 +562,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         return "Bet " + amount;
     }
 
-    @Verb(value = GameVocabulary.CALL, doc = "Call the current bet")
+    @Verb(value = GameVocabulary.Call.KEY, doc = "Call the current bet")
     public String call(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
@@ -572,7 +572,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         return "Called";
     }
 
-    @Verb(value = GameVocabulary.RAISE, doc = "Raise the bet")
+    @Verb(value = GameVocabulary.Raise.KEY, doc = "Raise the bet")
     public String raise(ActionContext ctx,
                         @Param(value = "amount", doc = "Total raise amount") int amount) {
         int seat = authorizedSeat(ctx);
@@ -583,7 +583,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         return "Raised to " + amount;
     }
 
-    @Verb(value = GameVocabulary.CHECK, doc = "Check (pass without betting)")
+    @Verb(value = GameVocabulary.Check.KEY, doc = "Check (pass without betting)")
     public String check(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
@@ -593,7 +593,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         return "Checked";
     }
 
-    @Verb(value = GameVocabulary.FOLD, doc = "Fold your hand")
+    @Verb(value = GameVocabulary.Fold.KEY, doc = "Fold your hand")
     public String fold(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;

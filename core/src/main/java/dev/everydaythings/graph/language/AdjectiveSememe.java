@@ -31,6 +31,11 @@ public final class AdjectiveSememe extends Sememe {
         super(librarian, manifest);
     }
 
+    /** Fluent seed constructor. */
+    public AdjectiveSememe(String canonicalKey) {
+        super(canonicalKey, PartOfSpeech.ADJECTIVE);
+    }
+
     /** Seed constructor (no tokens). */
     public AdjectiveSememe(String canonicalKey,
                            Map<String, String> glosses, Map<String, String> sources) {
@@ -49,4 +54,14 @@ public final class AdjectiveSememe extends Sememe {
                               Map<String, String> glosses, Map<String, String> sources) {
         super(librarian, canonicalKey, PartOfSpeech.ADJECTIVE, glosses, sources);
     }
+
+    // ==================================================================================
+    // COVARIANT OVERRIDES (fluent chaining returns AdjectiveSememe)
+    // ==================================================================================
+
+    @Override public AdjectiveSememe gloss(String lang, String text) { super.gloss(lang, text); return this; }
+    @Override public AdjectiveSememe word(Sememe form, String lang, String surface) { super.word(form, lang, surface); return this; }
+    @Override public AdjectiveSememe cili(String id) { super.cili(id); return this; }
+    @Override public AdjectiveSememe symbol(String s) { super.symbol(s); return this; }
+    @Override public AdjectiveSememe indexWeight(int weight) { super.indexWeight(weight); return this; }
 }

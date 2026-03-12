@@ -2,8 +2,9 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.component.Log;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.runtime.Librarian;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for the Vocabulary system - verbs as Sememes.
  */
+@Tag("slow")
 class VocabularyTest {
 
     @Test
@@ -32,7 +34,7 @@ class VocabularyTest {
             Vocabulary vocab = lib.vocabulary();
 
             // Item.actionNew() is annotated with @Verb("cg.verb:create")
-            ItemID createSememe = ItemID.fromString(Sememe.CREATE);
+            ItemID createSememe = ItemID.fromString(VerbSememe.Create.KEY);
             Optional<VerbEntry> createVerb = vocab.lookup(createSememe);
 
             assertThat(createVerb)
@@ -48,11 +50,11 @@ class VocabularyTest {
     @Test
     void verbSememeHasTokens() {
         // The CREATE Sememe should have tokens like "create", "new", "make"
-        assertThat(Sememe.create.tokens())
+        assertThat(VerbSememe.Create.SEED.tokens())
                 .as("CREATE Sememe should have token aliases")
                 .contains("create", "new", "make");
 
-        assertThat(Sememe.get.tokens())
+        assertThat(VerbSememe.Get.SEED.tokens())
                 .as("GET Sememe should have token aliases")
                 .contains("get", "retrieve", "fetch", "lookup");
     }
@@ -70,7 +72,7 @@ class VocabularyTest {
 
             // Find the CREATE verb spec
             Optional<VerbSpec> createSpec = schema.verbSpecs().stream()
-                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.CREATE)))
+                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.Create.KEY)))
                     .findFirst();
 
             assertThat(createSpec)
@@ -84,7 +86,7 @@ class VocabularyTest {
         try (Librarian lib = Librarian.open(testDir)) {
             Vocabulary vocab = lib.vocabulary();
 
-            ItemID createSememe = ItemID.fromString(Sememe.CREATE);
+            ItemID createSememe = ItemID.fromString(VerbSememe.Create.KEY);
             Optional<VerbEntry> createVerb = vocab.lookup(createSememe);
 
             assertThat(createVerb).isPresent();
@@ -107,7 +109,7 @@ class VocabularyTest {
 
         // Check for PUT verb (append method)
         Optional<VerbSpec> putVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.PUT)))
+                .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.Put.KEY)))
                 .findFirst();
 
         assertThat(putVerb)
@@ -124,7 +126,7 @@ class VocabularyTest {
 
         // Check for LIST verb (read method)
         Optional<VerbSpec> listVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.LIST)))
+                .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.ListVerb.KEY)))
                 .findFirst();
 
         assertThat(listVerb)
@@ -137,7 +139,7 @@ class VocabularyTest {
 
         // Check for SHOW verb (tail method)
         Optional<VerbSpec> showVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.SHOW)))
+                .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.Show.KEY)))
                 .findFirst();
 
         assertThat(showVerb)
@@ -150,7 +152,7 @@ class VocabularyTest {
 
         // Check for GET verb (latest method)
         Optional<VerbSpec> getVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.GET)))
+                .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.Get.KEY)))
                 .findFirst();
 
         assertThat(getVerb)
@@ -170,7 +172,7 @@ class VocabularyTest {
 
             // Should have GET verb for get() method
             Optional<VerbSpec> getVerb = schema.verbSpecs().stream()
-                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.GET)))
+                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.Get.KEY)))
                     .findFirst();
 
             assertThat(getVerb)
@@ -183,7 +185,7 @@ class VocabularyTest {
 
             // Should have LIST verb for types() method
             Optional<VerbSpec> listVerb = schema.verbSpecs().stream()
-                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.LIST)))
+                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.ListVerb.KEY)))
                     .findFirst();
 
             assertThat(listVerb)
@@ -196,7 +198,7 @@ class VocabularyTest {
 
             // Should have QUERY verb for query() method
             Optional<VerbSpec> queryVerb = schema.verbSpecs().stream()
-                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(Sememe.QUERY)))
+                    .filter(vs -> vs.sememeId().equals(ItemID.fromString(VerbSememe.Query.KEY)))
                     .findFirst();
 
             assertThat(queryVerb)
@@ -222,7 +224,7 @@ class VocabularyTest {
                     .isNotEmpty();
 
             // The posting should point to CREATE Sememe's IID
-            ItemID createSememeId = ItemID.fromString(Sememe.CREATE);
+            ItemID createSememeId = ItemID.fromString(VerbSememe.Create.KEY);
             boolean foundCreate = createPostings.stream()
                     .anyMatch(p -> p.target().equals(createSememeId));
             assertThat(foundCreate)
@@ -258,7 +260,7 @@ class VocabularyTest {
 
             assertThat(createVerb.get().sememeId())
                     .as("Looked up verb should be the CREATE Sememe")
-                    .isEqualTo(ItemID.fromString(Sememe.CREATE));
+                    .isEqualTo(ItemID.fromString(VerbSememe.Create.KEY));
 
             assertThat(createVerb.get().methodName())
                     .as("CREATE verb should map to actionNew method")

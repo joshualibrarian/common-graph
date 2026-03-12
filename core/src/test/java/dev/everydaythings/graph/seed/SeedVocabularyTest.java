@@ -10,7 +10,8 @@ import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.NounSememe;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.NounSememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.mapdb.MapDBItemStore;
@@ -20,6 +21,7 @@ import dev.everydaythings.graph.value.Dimension;
 import dev.everydaythings.graph.value.Unit;
 import dev.everydaythings.graph.value.ValueType;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for SeedVocabulary and @Item.Seed annotation.
  */
+@Tag("slow")
 class SeedVocabularyTest {
 
     private static ItemStore store;
@@ -50,7 +53,7 @@ class SeedVocabularyTest {
 
     private boolean hasImplementedByRelation(ItemID typeId) {
         return store.relations()
-                .filter(r -> r.predicate().equals(Sememe.IMPLEMENTED_BY.iid()))
+                .filter(r -> r.predicate().equals(VerbSememe.ImplementedBy.SEED.iid()))
                 .anyMatch(r -> typeId.equals(r.bindingId(ItemID.fromString("cg.role:theme"))));
     }
 
@@ -74,9 +77,9 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(Dimension.KEY))).isTrue();
 
         // Dimension seed instances should have manifests
-        assertThat(hasManifest(Dimension.LENGTH.iid())).isTrue();
-        assertThat(hasManifest(Dimension.TIME.iid())).isTrue();
-        assertThat(hasManifest(Dimension.MASS.iid())).isTrue();
+        assertThat(hasManifest(Dimension.Length.SEED.iid())).isTrue();
+        assertThat(hasManifest(Dimension.Time.SEED.iid())).isTrue();
+        assertThat(hasManifest(Dimension.Mass.SEED.iid())).isTrue();
     }
 
     @Test
@@ -86,9 +89,9 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(NounSememe.KEY))).isTrue();
 
         // Core sememes should have manifests
-        assertThat(hasManifest(Sememe.AUTHOR.iid())).isTrue();
-        assertThat(hasManifest(Sememe.TITLE.iid())).isTrue();
-        assertThat(hasManifest(Sememe.DESCRIPTION.iid())).isTrue();
+        assertThat(hasManifest(NounSememe.Author.SEED.iid())).isTrue();
+        assertThat(hasManifest(NounSememe.Title.SEED.iid())).isTrue();
+        assertThat(hasManifest(NounSememe.Description.SEED.iid())).isTrue();
     }
 
     @Test
@@ -110,41 +113,41 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(Unit.KEY))).isTrue();
 
         // Core units should have manifests
-        assertThat(hasManifest(Unit.METER.iid())).isTrue();
-        assertThat(hasManifest(Unit.SECOND.iid())).isTrue();
-        assertThat(hasManifest(Unit.KILOGRAM.iid())).isTrue();
-        assertThat(hasManifest(Unit.INCH.iid())).isTrue();
+        assertThat(hasManifest(Unit.Meter.SEED.iid())).isTrue();
+        assertThat(hasManifest(Unit.Second.SEED.iid())).isTrue();
+        assertThat(hasManifest(Unit.Kilogram.SEED.iid())).isTrue();
+        assertThat(hasManifest(Unit.Inch.SEED.iid())).isTrue();
 
         // Derived units
-        assertThat(hasManifest(Unit.NEWTON.iid())).isTrue();
-        assertThat(hasManifest(Unit.JOULE.iid())).isTrue();
+        assertThat(hasManifest(Unit.Newton.SEED.iid())).isTrue();
+        assertThat(hasManifest(Unit.Joule.SEED.iid())).isTrue();
     }
 
     @Test
     void unitsHaveCorrectDimensions() {
         // Length units should have LENGTH dimension
-        assertThat(Unit.METER.hasDimension(Dimension.LENGTH)).isTrue();
-        assertThat(Unit.METER.hasDimension(Dimension.TIME)).isFalse();
+        assertThat(Unit.Meter.SEED.hasDimension(Dimension.Length.SEED)).isTrue();
+        assertThat(Unit.Meter.SEED.hasDimension(Dimension.Time.SEED)).isFalse();
 
         // Time units should have TIME dimension
-        assertThat(Unit.SECOND.hasDimension(Dimension.TIME)).isTrue();
-        assertThat(Unit.SECOND.hasDimension(Dimension.LENGTH)).isFalse();
+        assertThat(Unit.Second.SEED.hasDimension(Dimension.Time.SEED)).isTrue();
+        assertThat(Unit.Second.SEED.hasDimension(Dimension.Length.SEED)).isFalse();
 
         // Velocity has both LENGTH and TIME
-        assertThat(Unit.METER_PER_SECOND.hasDimension(Dimension.LENGTH)).isTrue();
-        assertThat(Unit.METER_PER_SECOND.hasDimension(Dimension.TIME)).isTrue();
-        assertThat(Unit.METER_PER_SECOND.exponent(Dimension.LENGTH)).isEqualTo(1);
-        assertThat(Unit.METER_PER_SECOND.exponent(Dimension.TIME)).isEqualTo(-1);
+        assertThat(Unit.MeterPerSecond.SEED.hasDimension(Dimension.Length.SEED)).isTrue();
+        assertThat(Unit.MeterPerSecond.SEED.hasDimension(Dimension.Time.SEED)).isTrue();
+        assertThat(Unit.MeterPerSecond.SEED.exponent(Dimension.Length.SEED)).isEqualTo(1);
+        assertThat(Unit.MeterPerSecond.SEED.exponent(Dimension.Time.SEED)).isEqualTo(-1);
     }
 
     @Test
     void unitsCanBeConverted() {
         // 1000 mm = 1 m
-        double meters = Unit.MILLIMETER.convert(1000, Unit.METER);
+        double meters = Unit.Millimeter.SEED.convert(1000, Unit.Meter.SEED);
         assertThat(meters).isEqualTo(1.0);
 
         // 3600 seconds = 1 hour
-        double hours = Unit.SECOND.convert(3600, Unit.HOUR);
+        double hours = Unit.Second.SEED.convert(3600, Unit.Hour.SEED);
         assertThat(hours).isEqualTo(1.0);
     }
 
@@ -160,15 +163,15 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(ValueType.KEY))).isTrue();
 
         // Core value types should have manifests
-        assertThat(hasManifest(ValueType.BOOLEAN.iid())).isTrue();
-        assertThat(hasManifest(ValueType.TEXT.iid())).isTrue();
-        assertThat(hasManifest(ValueType.DECIMAL.iid())).isTrue();
-        assertThat(hasManifest(ValueType.RATIONAL.iid())).isTrue();
-        assertThat(hasManifest(ValueType.COUNT.iid())).isTrue();
-        assertThat(hasManifest(ValueType.INTEGER.iid())).isTrue();
-        assertThat(hasManifest(ValueType.ENDPOINT.iid())).isTrue();
-        assertThat(hasManifest(ValueType.IP.iid())).isTrue();
-        assertThat(hasManifest(ValueType.QUANTITY.iid())).isTrue();
+        assertThat(hasManifest(ValueType.BooleanType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.TextType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.DecimalType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.RationalType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.CountType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.IntegerType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.EndpointType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.IpType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.QuantityType.SEED.iid())).isTrue();
     }
 
     @Test
@@ -180,10 +183,10 @@ class SeedVocabularyTest {
     @Test
     void literalTypeConstantsMatchValueTypeSeeds() {
         // Verify that Literal.TYPE_* constants resolve to actual ValueType seeds
-        assertThat(Literal.TYPE_TEXT).isEqualTo(ValueType.TEXT.iid());
-        assertThat(Literal.TYPE_BOOLEAN).isEqualTo(ValueType.BOOLEAN.iid());
-        assertThat(Literal.TYPE_INTEGER).isEqualTo(ValueType.INTEGER.iid());
-        assertThat(Literal.TYPE_INSTANT).isEqualTo(ValueType.INSTANT.iid());
+        assertThat(Literal.TYPE_TEXT).isEqualTo(ValueType.TextType.SEED.iid());
+        assertThat(Literal.TYPE_BOOLEAN).isEqualTo(ValueType.BooleanType.SEED.iid());
+        assertThat(Literal.TYPE_INTEGER).isEqualTo(ValueType.IntegerType.SEED.iid());
+        assertThat(Literal.TYPE_INSTANT).isEqualTo(ValueType.InstantType.SEED.iid());
 
         // Verify these seeds have manifests in the store
         assertThat(hasManifest(Literal.TYPE_TEXT)).isTrue();

@@ -8,9 +8,9 @@ import dev.everydaythings.graph.value.Unit;
  * <p>Types define their own display widths by declaring a static DISPLAY_WIDTH field:
  * <pre>{@code
  * public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(
- *     1, Unit.CHARACTER_WIDTH,   // min: 1 character (emoji)
- *     8, Unit.CHARACTER_WIDTH,   // pref: 8 characters (short hash)
- *     40, Unit.CHARACTER_WIDTH   // max: 40 characters (full hash)
+ *     1, Unit.CharacterWidth.SEED,   // min: 1 character (emoji)
+ *     8, Unit.CharacterWidth.SEED,   // pref: 8 characters (short hash)
+ *     40, Unit.CharacterWidth.SEED   // max: 40 characters (full hash)
  * );
  * }</pre>
  *
@@ -94,34 +94,34 @@ public record DisplayWidth(
     // ==================================================================================
 
     /** Icon/emoji column - single character, fixed */
-    public static final DisplayWidth ICON = fixed(1, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth ICON = fixed(1, Unit.CharacterWidth.SEED);
 
     /** Boolean/checkbox - small fixed width */
-    public static final DisplayWidth BOOLEAN = fixed(1, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth BOOLEAN = fixed(1, Unit.CharacterWidth.SEED);
 
     /** Short numeric - small but can grow slightly */
-    public static final DisplayWidth SHORT_NUMBER = of(2, 4, 8, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth SHORT_NUMBER = of(2, 4, 8, Unit.CharacterWidth.SEED);
 
     /** Standard number - moderate width */
-    public static final DisplayWidth NUMBER = of(4, 8, 12, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth NUMBER = of(4, 8, 12, Unit.CharacterWidth.SEED);
 
     /** Enum badge - small but shows full text when space allows */
-    public static final DisplayWidth ENUM = of(1, 3, 12, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth ENUM = of(1, 3, 12, Unit.CharacterWidth.SEED);
 
     /** Count/size - just a number */
-    public static final DisplayWidth COUNT = of(2, 4, 6, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth COUNT = of(2, 4, 6, Unit.CharacterWidth.SEED);
 
     /** Short text - name fields, labels */
-    public static final DisplayWidth SHORT_TEXT = of(6, 15, 40, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth SHORT_TEXT = of(6, 15, 40, Unit.CharacterWidth.SEED);
 
     /** Medium text - descriptions */
-    public static final DisplayWidth MEDIUM_TEXT = of(10, 25, 80, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth MEDIUM_TEXT = of(10, 25, 80, Unit.CharacterWidth.SEED);
 
     /** Long text - full content */
-    public static final DisplayWidth LONG_TEXT = of(15, 40, 150, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth LONG_TEXT = of(15, 40, 150, Unit.CharacterWidth.SEED);
 
     /** Hash ID - emoji → short → medium → full */
-    public static final DisplayWidth HASH_ID = of(2, 15, 50, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth HASH_ID = of(2, 15, 50, Unit.CharacterWidth.SEED);
 
     // ==================================================================================
     // Conversion
@@ -143,16 +143,16 @@ public record DisplayWidth(
     }
 
     private static double toPixels(double value, Unit unit, double charWidthPx, double lineHeightPx) {
-        if (unit == Unit.CHARACTER_WIDTH) {
+        if (unit == Unit.CharacterWidth.SEED) {
             return value * charWidthPx;
-        } else if (unit == Unit.LINE_HEIGHT) {
+        } else if (unit == Unit.LineHeight.SEED) {
             return value * lineHeightPx;
-        } else if (unit == Unit.PIXEL) {
+        } else if (unit == Unit.Pixel.SEED) {
             return value;
-        } else if (unit == Unit.PERCENT) {
+        } else if (unit == Unit.Percent.SEED) {
             // Percent needs a reference - return as-is, caller handles
             return value;
-        } else if (unit == Unit.EM || unit == Unit.REM) {
+        } else if (unit == Unit.Em.SEED || unit == Unit.Rem.SEED) {
             // Approximate: 1em ≈ charWidth * 1.6 (assumes average char is 0.6em)
             return value * charWidthPx * 1.6;
         } else {
@@ -175,15 +175,15 @@ public record DisplayWidth(
     }
 
     private static int toCells(double value, Unit unit) {
-        if (unit == Unit.CHARACTER_WIDTH) {
+        if (unit == Unit.CharacterWidth.SEED) {
             return (int) Math.ceil(value);
-        } else if (unit == Unit.LINE_HEIGHT) {
+        } else if (unit == Unit.LineHeight.SEED) {
             // Line height doesn't apply to width - treat as 1
             return 1;
-        } else if (unit == Unit.PIXEL) {
+        } else if (unit == Unit.Pixel.SEED) {
             // Approximate: 8px per cell
             return (int) Math.ceil(value / 8.0);
-        } else if (unit == Unit.EM || unit == Unit.REM) {
+        } else if (unit == Unit.Em.SEED || unit == Unit.Rem.SEED) {
             // 1em ≈ 1.6 cells
             return (int) Math.ceil(value * 1.6);
         } else {
@@ -214,7 +214,7 @@ public record DisplayWidth(
      *
      * <p>Types can define their preferred display width by declaring:
      * <pre>{@code
-     * public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(1, 10, 40, Unit.CHARACTER_WIDTH);
+     * public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(1, 10, 40, Unit.CharacterWidth.SEED);
      * }</pre>
      *
      * @param type The class to look up

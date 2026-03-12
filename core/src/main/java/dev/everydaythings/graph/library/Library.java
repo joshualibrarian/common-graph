@@ -14,6 +14,7 @@ import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.dictionary.TokenExtractor;
 import dev.everydaythings.graph.library.directory.ItemDirectory;
@@ -661,7 +662,7 @@ public final class Library implements Component, Canonical, AutoCloseable {
         //    IMPLEMENTED_BY relations first (needed for type hydration during token indexing)
         List<Relation> allRelations = source.relations().toList();
         logger.info("importFrom: {} relations to import", allRelations.size());
-        ItemID implByPred = Sememe.IMPLEMENTED_BY.iid();
+        ItemID implByPred = VerbSememe.ImplementedBy.SEED.iid();
         List<Relation> deferredRelations = new ArrayList<>();
         for (Relation r : allRelations) {
             if (r.predicate().equals(implByPred)) {
@@ -967,7 +968,7 @@ public final class Library implements Component, Canonical, AutoCloseable {
     public Optional<Class<?>> findImplementation(ItemID typeId) {
         return find()
                 .from(typeId)
-                .via(Sememe.IMPLEMENTED_BY)
+                .via(VerbSememe.ImplementedBy.SEED)
                 .relations()
                 .findFirst()
                 .map(r -> {

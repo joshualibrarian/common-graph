@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.component.ComponentType;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -150,10 +150,10 @@ class ChessEvalIntegrationTest {
         item.addComponent("chess", chess);
 
         // Item should now have chess verbs (MOVE, SHOW, etc.)
-        ItemID moveId = ItemID.fromString(GameVocabulary.MOVE);
+        ItemID moveId = ItemID.fromString(GameVocabulary.Move.KEY);
         assertThat(item.vocabulary().lookup(moveId)).isPresent();
 
-        ItemID showId = ItemID.fromString(Sememe.SHOW);
+        ItemID showId = ItemID.fromString(VerbSememe.Show.KEY);
         assertThat(item.vocabulary().lookup(showId)).isPresent();
     }
 

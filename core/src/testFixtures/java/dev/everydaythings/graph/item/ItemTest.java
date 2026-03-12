@@ -2,7 +2,7 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -215,7 +215,7 @@ public abstract class ItemTest {
         @Test
         @DisplayName("has 'create' verb inherited from Item")
         void hasCreateVerb() {
-            ItemID createSememe = ItemID.fromString(Sememe.CREATE);
+            ItemID createSememe = ItemID.fromString(VerbSememe.Create.KEY);
             assertThat(item.vocabulary().lookup(createSememe))
                     .as("CREATE verb")
                     .isPresent();

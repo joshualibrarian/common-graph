@@ -18,14 +18,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EnglishMorphologyTest {
 
     // Feature IIDs
-    static final ItemID PAST = GrammaticalFeature.PAST.iid();
-    static final ItemID PRESENT = GrammaticalFeature.PRESENT.iid();
-    static final ItemID PLURAL = GrammaticalFeature.PLURAL.iid();
-    static final ItemID THIRD_PERSON = GrammaticalFeature.THIRD_PERSON.iid();
-    static final ItemID SINGULAR = GrammaticalFeature.SINGULAR.iid();
-    static final ItemID PARTICIPLE = GrammaticalFeature.PARTICIPLE.iid();
-    static final ItemID COMPARATIVE = GrammaticalFeature.COMPARATIVE.iid();
-    static final ItemID SUPERLATIVE = GrammaticalFeature.SUPERLATIVE.iid();
+    static final ItemID PAST = GrammaticalFeature.Past.SEED.iid();
+    static final ItemID PRESENT = GrammaticalFeature.Present.SEED.iid();
+    static final ItemID PLURAL = GrammaticalFeature.Plural.SEED.iid();
+    static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.SEED.iid();
+    static final ItemID SINGULAR = GrammaticalFeature.Singular.SEED.iid();
+    static final ItemID PARTICIPLE = GrammaticalFeature.Participle.SEED.iid();
+    static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.SEED.iid();
+    static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.SEED.iid();
 
     // Use English as a seed (no librarian needed for morphology)
     static final English english = new English(ItemID.fromString(English.KEY));
@@ -296,9 +296,9 @@ class EnglishMorphologyTest {
             Lexeme run = new Lexeme("run", Language.ENGLISH,
                     ItemID.fromString("cg.test:run-sememe"), PartOfSpeech.VERB, 1.0f,
                     List.of(
-                            FormEntry.of("ran", GrammaticalFeature.PAST),
-                            FormEntry.of("run", GrammaticalFeature.PAST, GrammaticalFeature.PARTICIPLE),
-                            FormEntry.of("running", GrammaticalFeature.PRESENT, GrammaticalFeature.PARTICIPLE)
+                            FormEntry.of("ran", GrammaticalFeature.Past.SEED),
+                            FormEntry.of("run", GrammaticalFeature.Past.SEED, GrammaticalFeature.Participle.SEED),
+                            FormEntry.of("running", GrammaticalFeature.Present.SEED, GrammaticalFeature.Participle.SEED)
                     ));
 
             // Irregular past: "ran" (not "runned")
@@ -319,7 +319,7 @@ class EnglishMorphologyTest {
         void irregularPluralOverrides() {
             Lexeme child = new Lexeme("child", Language.ENGLISH,
                     ItemID.fromString("cg.test:child-sememe"), PartOfSpeech.NOUN, 1.0f,
-                    List.of(FormEntry.of("children", GrammaticalFeature.PLURAL)));
+                    List.of(FormEntry.of("children", GrammaticalFeature.Plural.SEED)));
 
             // Irregular plural: "children" (not "childs")
             assertThat(english.inflect(child, Set.of(PLURAL))).isEqualTo("children");
@@ -331,8 +331,8 @@ class EnglishMorphologyTest {
             Lexeme good = new Lexeme("good", Language.ENGLISH,
                     ItemID.fromString("cg.test:good-sememe"), PartOfSpeech.ADJECTIVE, 1.0f,
                     List.of(
-                            FormEntry.of("better", GrammaticalFeature.COMPARATIVE),
-                            FormEntry.of("best", GrammaticalFeature.SUPERLATIVE)
+                            FormEntry.of("better", GrammaticalFeature.Comparative.SEED),
+                            FormEntry.of("best", GrammaticalFeature.Superlative.SEED)
                     ));
 
             assertThat(english.inflect(good, Set.of(COMPARATIVE))).isEqualTo("better");
@@ -344,7 +344,7 @@ class EnglishMorphologyTest {
         void emptyFeaturesReturnsLemma() {
             Lexeme run = new Lexeme("run", Language.ENGLISH,
                     ItemID.fromString("cg.test:run-sememe"), PartOfSpeech.VERB, 1.0f,
-                    List.of(FormEntry.of("ran", GrammaticalFeature.PAST)));
+                    List.of(FormEntry.of("ran", GrammaticalFeature.Past.SEED)));
 
             assertThat(english.inflect(run, Set.of())).isEqualTo("run");
             assertThat(english.inflect(run, null)).isEqualTo("run");

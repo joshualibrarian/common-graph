@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.item.VerbEntry;
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.item.user.SignerTest;
 import dev.everydaythings.graph.library.Library;
 import org.junit.jupiter.api.*;
@@ -136,7 +136,7 @@ class LibrarianTest extends SignerTest {
             // Library owns the index internally; we verify via query API
             // Query for implemented-by relations (should return types)
             var results = librarian.library().byPredicate(
-                    dev.everydaythings.graph.language.Sememe.IMPLEMENTED_BY.iid()).toList();
+                    dev.everydaythings.graph.language.VerbSememe.ImplementedBy.SEED.iid()).toList();
             assertThat(results)
                     .as("Library should have indexed implementedBy relations")
                     .isNotEmpty();
@@ -165,7 +165,7 @@ class LibrarianTest extends SignerTest {
         @Test
         @DisplayName("has CREATE verb from base Item")
         void hasCreateVerb() {
-            assertThat(librarian.vocabulary().lookup(ItemID.fromString(Sememe.CREATE)))
+            assertThat(librarian.vocabulary().lookup(ItemID.fromString(VerbSememe.Create.KEY)))
                     .as("CREATE verb from base Item")
                     .isPresent();
         }
@@ -173,7 +173,7 @@ class LibrarianTest extends SignerTest {
         @Test
         @DisplayName("has GET verb")
         void hasGetVerb() {
-            assertThat(librarian.vocabulary().lookup(ItemID.fromString(Sememe.GET)))
+            assertThat(librarian.vocabulary().lookup(ItemID.fromString(VerbSememe.Get.KEY)))
                     .as("GET verb")
                     .isPresent();
         }
@@ -181,7 +181,7 @@ class LibrarianTest extends SignerTest {
         @Test
         @DisplayName("has QUERY verb")
         void hasQueryVerb() {
-            assertThat(librarian.vocabulary().lookup(ItemID.fromString(Sememe.QUERY)))
+            assertThat(librarian.vocabulary().lookup(ItemID.fromString(VerbSememe.Query.KEY)))
                     .as("QUERY verb")
                     .isPresent();
         }

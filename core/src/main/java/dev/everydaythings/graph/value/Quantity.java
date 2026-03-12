@@ -17,7 +17,7 @@ import java.util.Objects;
 public final class Quantity implements Value {
 
     /** Display width: quantities can be shown very compact (emoji + number) or full with unit */
-    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(4, 10, 25, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(4, 10, 25, Unit.CharacterWidth.SEED);
 
     @Canon(order = 1)
     private final Decimal value;

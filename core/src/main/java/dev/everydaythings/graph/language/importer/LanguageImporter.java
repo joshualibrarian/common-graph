@@ -311,8 +311,8 @@ public abstract class LanguageImporter {
 
             Relation relation = Relation.builder()
                     .predicate(predicate)
-                    .bind(ThematicRole.THEME.iid(), Relation.iid(source.iid()))
-                    .bind(ThematicRole.TARGET.iid(), Relation.iid(target.iid()))
+                    .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(source.iid()))
+                    .bind(ThematicRole.Target.SEED.iid(), Relation.iid(target.iid()))
                     .build()
                     .sign(signer);
 
@@ -419,17 +419,17 @@ public abstract class LanguageImporter {
      */
     protected static ItemID mapRelationType(String relType) {
         return switch (relType) {
-            case "hypernym", "instance_hypernym" -> Sememe.HYPERNYM.iid();
-            case "hyponym", "instance_hyponym" -> Sememe.HYPONYM.iid();
-            case "holo_part", "holo_member", "holo_substance" -> Sememe.HOLONYM.iid();
-            case "mero_part", "mero_member", "mero_substance" -> Sememe.MERONYM.iid();
-            case "antonym" -> Sememe.ANTONYM.iid();
-            case "similar" -> Sememe.SIMILAR_TO.iid();
-            case "derivation" -> Sememe.DERIVATION.iid();
-            case "domain_topic", "domain_region", "domain_usage" -> Sememe.DOMAIN.iid();
-            case "entails" -> Sememe.ENTAILS.iid();
-            case "causes" -> Sememe.CAUSES.iid();
-            case "also" -> Sememe.SEE_ALSO.iid();
+            case "hypernym", "instance_hypernym" -> VerbSememe.Hypernym.SEED.iid();
+            case "hyponym", "instance_hyponym" -> VerbSememe.Hyponym.SEED.iid();
+            case "holo_part", "holo_member", "holo_substance" -> VerbSememe.Holonym.SEED.iid();
+            case "mero_part", "mero_member", "mero_substance" -> VerbSememe.Meronym.SEED.iid();
+            case "antonym" -> VerbSememe.Antonym.SEED.iid();
+            case "similar" -> VerbSememe.SimilarTo.SEED.iid();
+            case "derivation" -> VerbSememe.Derivation.SEED.iid();
+            case "domain_topic", "domain_region", "domain_usage" -> VerbSememe.Domain.SEED.iid();
+            case "entails" -> VerbSememe.Entails.SEED.iid();
+            case "causes" -> VerbSememe.Causes.SEED.iid();
+            case "also" -> VerbSememe.SeeAlso.SEED.iid();
             default -> null;
         };
     }

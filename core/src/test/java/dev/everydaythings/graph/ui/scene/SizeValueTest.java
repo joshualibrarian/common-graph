@@ -2,12 +2,14 @@ package dev.everydaythings.graph.ui.scene;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 @DisplayName("SizeValue")
+@Tag("slow")
 class SizeValueTest {
 
     // ==================================================================================

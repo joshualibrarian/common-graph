@@ -30,8 +30,10 @@ import dev.everydaythings.graph.library.dictionary.TokenExtractor;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.SeedVocabulary;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
+import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.network.CgProtocol;
 import dev.everydaythings.graph.network.NetworkManager;
 import dev.everydaythings.graph.network.ProtocolContext;
@@ -171,7 +173,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
     // Expression: ? → implemented-by → * (all types - subjects of implemented-by relations)
     @Frame(handle = "types")
-    ExpressionComponent typesExpr = ExpressionComponent.subjects(Sememe.IMPLEMENTED_BY.iid());
+    ExpressionComponent typesExpr = ExpressionComponent.subjects(VerbSememe.ImplementedBy.SEED.iid());
 
     // --- Services ---
     private final Clock clock = Clock.systemUTC();
@@ -1382,7 +1384,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Store and index a relation via the library.
      */
-    @Verb(value = Sememe.PUT, doc = "Store and index a relation")
+    @Verb(value = VerbSememe.Put.KEY, doc = "Store and index a relation")
     public void relation(Relation relation) {
         // Library handles both storage and indexing
         library().relation(relation);
@@ -1752,9 +1754,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * @return Stream of type ItemIDs
      */
-    @Verb(value = Sememe.LIST, doc = "List all known item types")
+    @Verb(value = VerbSememe.ListVerb.KEY, doc = "List all known item types")
     public Stream<ItemID> types() {
-        return library().byPredicate(Sememe.IMPLEMENTED_BY.iid())
+        return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
                 .map(Relation::subject);
     }
 
@@ -1768,7 +1770,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param userName The name of the user to serve
      * @return The user that is now the principal
      */
-    @Verb(value = Sememe.SERVE, doc = "Set the principal (user) this librarian serves")
+    @Verb(value = VerbSememe.Serve.KEY, doc = "Set the principal (user) this librarian serves")
     public Signer serve(@Param(value = "user", doc = "The user to serve") ItemID userId) {
         // By the time we get here, Eval has already resolved the token to an IID
         Optional<User> found = get(userId, User.class);
@@ -1847,7 +1849,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @return Stream of TypeEntry for each Item type
      */
     public Stream<TypeEntry> itemTypes() {
-        return library().byPredicate(Sememe.IMPLEMENTED_BY.iid())
+        return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
                 .filter(r -> {
                     if (r.object() instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
@@ -1870,7 +1872,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @return Stream of TypeEntry for each component type
      */
     public Stream<TypeEntry> componentTypes() {
-        return library().byPredicate(Sememe.IMPLEMENTED_BY.iid())
+        return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
                 .filter(r -> {
                     if (r.object() instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
@@ -1895,18 +1897,18 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     public Stream<ValueType> valueTypes() {
         // Return known seed value types directly
         return Stream.of(
-                ValueType.BOOLEAN,
-                ValueType.TEXT,
-                ValueType.BYTES,
-                ValueType.IP,
-                ValueType.ENDPOINT,
-                ValueType.INSTANT,
-                ValueType.QUANTITY,
-                ValueType.DECIMAL,
-                ValueType.RATIONAL,
-                ValueType.COUNT,
-                ValueType.FLOAT64,
-                ValueType.INTEGER
+                ValueType.BooleanType.SEED,
+                ValueType.TextType.SEED,
+                ValueType.BytesType.SEED,
+                ValueType.IpType.SEED,
+                ValueType.EndpointType.SEED,
+                ValueType.InstantType.SEED,
+                ValueType.QuantityType.SEED,
+                ValueType.DecimalType.SEED,
+                ValueType.RationalType.SEED,
+                ValueType.CountType.SEED,
+                ValueType.Float64Type.SEED,
+                ValueType.IntegerType.SEED
         );
     }
 
@@ -1973,7 +1975,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param iid The item ID
      * @return The item, or empty if not found
      */
-    @Verb(value = Sememe.GET, doc = "Fetch an item by ID")
+    @Verb(value = VerbSememe.Get.KEY, doc = "Fetch an item by ID")
     public Optional<Item> get(
             @Param(value = "iid", doc = "Item ID") ItemID iid) {
         return get(iid, Item.class);
@@ -1986,7 +1988,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param limit     Maximum results (default 20)
      * @return Matching postings
      */
-    @Verb(value = Sememe.QUERY, doc = "Search for items by name")
+    @Verb(value = VerbSememe.Query.KEY, doc = "Search for items by name")
     public List<Posting> query(
             @Param(value = "query", doc = "Search query") String queryText,
             @Param(value = "limit", doc = "Maximum results", required = false) Integer limit) {
@@ -2015,7 +2017,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * find implemented-by from chess
      * }</pre>
      */
-    @Verb(value = Sememe.FIND, doc = "Find items by relation predicate and optional role constraints")
+    @Verb(value = VerbSememe.Find.KEY, doc = "Find items by relation predicate and optional role constraints")
     public List<ItemID> find(
             @Param(value = "predicate", role = "THEME", doc = "Relation predicate sememe/item ID")
             ItemID predicate,
@@ -2068,7 +2070,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Show librarian status including path, library info, and network status.
      */
-    @Verb(value = Sememe.DESCRIBE, doc = "Show librarian status")
+    @Verb(value = VerbSememe.Describe.KEY, doc = "Show librarian status")
     public String status() {
         StringBuilder sb = new StringBuilder();
         sb.append("Librarian: ").append(rootPath != null ? rootPath : "(in-memory)").append("\n");
@@ -2105,7 +2107,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * @return A message with the invite code
      */
-    @Verb(value = Sememe.INVITE, doc = "Generate an invite code for a new user")
+    @Verb(value = VerbSememe.Invite.KEY, doc = "Generate an invite code for a new user")
     public String invite() {
         if (sessionServer == null) {
             return "No session server running — start with --daemon or combined mode.";
@@ -2118,7 +2120,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Show available verbs on this librarian.
      */
-    @Verb(value = Sememe.HELP, doc = "Show available verbs")
+    @Verb(value = VerbSememe.Help.KEY, doc = "Show available verbs")
     public String help() {
         StringBuilder sb = new StringBuilder();
         sb.append("Librarian Verbs:\n");
@@ -2155,7 +2157,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         Item newItem = Item.create(this);
         if (name != null && !name.isBlank()) {
             newItem.relate(
-                    Sememe.TITLE.iid(),
+                    NounSememe.Title.SEED.iid(),
                     Literal.ofText(name));
         }
         return newItem;

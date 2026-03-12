@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  * <p>Usage:
  * <pre>{@code
  * // Reference a unit
- * Unit meter = Unit.METER;
+ * Unit meter = Unit.Meter.SEED;
  * ItemID meterId = meter.iid();
  *
  * // Get unit dimensions
@@ -60,316 +60,209 @@ public class Unit extends Item {
 
     public static final String KEY = "cg:type/unit";
 
+    /** Helper: deterministic IID from canonical key (avoids triggering class init on Dimension). */
+    private static ItemID dim(String key) { return ItemID.fromString(key); }
 
     // ==================================================================================
     // SEED INSTANCES - Length
     // ==================================================================================
 
-    /** Meter - SI base unit of length */
-    @Seed
-    public static final Unit METER = new Unit(
-            "cg.unit:meter", "m",
-            Map.of("en", "meter", "en-GB", "metre"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1, 1
-    );
-
-    /** Millimeter - 1/1000 of a meter */
-    @Seed
-    public static final Unit MILLIMETER = new Unit(
-            "cg.unit:millimeter", "mm",
-            Map.of("en", "millimeter", "en-GB", "millimetre"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1, 1000
-    );
-
-    /** Centimeter - 1/100 of a meter */
-    @Seed
-    public static final Unit CENTIMETER = new Unit(
-            "cg.unit:centimeter", "cm",
-            Map.of("en", "centimeter", "en-GB", "centimetre"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1, 100
-    );
-
-    /** Kilometer - 1000 meters */
-    @Seed
-    public static final Unit KILOMETER = new Unit(
-            "cg.unit:kilometer", "km",
-            Map.of("en", "kilometer", "en-GB", "kilometre"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1000, 1
-    );
-
-    /** Inch - 0.0254 meters (127/5000) */
-    @Seed
-    public static final Unit INCH = new Unit(
-            "cg.unit:inch", "in",
-            Map.of("en", "inch"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            127, 5000
-    );
-
-    /** Foot - 12 inches = 0.3048 meters */
-    @Seed
-    public static final Unit FOOT = new Unit(
-            "cg.unit:foot", "ft",
-            Map.of("en", "foot"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            381, 1250
-    );
+    public static class Meter {
+        public static final String KEY = "cg.unit:meter";
+        @Seed public static final Unit SEED = new Unit(KEY, "m",
+                Map.of("en", "meter", "en-GB", "metre"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+    }
+    public static class Millimeter {
+        public static final String KEY = "cg.unit:millimeter";
+        @Seed public static final Unit SEED = new Unit(KEY, "mm",
+                Map.of("en", "millimeter", "en-GB", "millimetre"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1, 1000);
+    }
+    public static class Centimeter {
+        public static final String KEY = "cg.unit:centimeter";
+        @Seed public static final Unit SEED = new Unit(KEY, "cm",
+                Map.of("en", "centimeter", "en-GB", "centimetre"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1, 100);
+    }
+    public static class Kilometer {
+        public static final String KEY = "cg.unit:kilometer";
+        @Seed public static final Unit SEED = new Unit(KEY, "km",
+                Map.of("en", "kilometer", "en-GB", "kilometre"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1000, 1);
+    }
+    public static class Inch {
+        public static final String KEY = "cg.unit:inch";
+        @Seed public static final Unit SEED = new Unit(KEY, "in",
+                Map.of("en", "inch"),
+                Map.of(dim(Dimension.Length.KEY), 1), 127, 5000);
+    }
+    public static class Foot {
+        public static final String KEY = "cg.unit:foot";
+        @Seed public static final Unit SEED = new Unit(KEY, "ft",
+                Map.of("en", "foot"),
+                Map.of(dim(Dimension.Length.KEY), 1), 381, 1250);
+    }
 
     // ==================================================================================
     // SEED INSTANCES - Time
     // ==================================================================================
 
-    /** Second - SI base unit of time */
-    @Seed
-    public static final Unit SECOND = new Unit(
-            "cg.unit:second", "s",
-            Map.of("en", "second"),
-            Map.of(Dimension.TIME.iid(), 1),
-            1, 1
-    );
-
-    /** Millisecond - 1/1000 of a second */
-    @Seed
-    public static final Unit MILLISECOND = new Unit(
-            "cg.unit:millisecond", "ms",
-            Map.of("en", "millisecond"),
-            Map.of(Dimension.TIME.iid(), 1),
-            1, 1000
-    );
-
-    /** Minute - 60 seconds */
-    @Seed
-    public static final Unit MINUTE = new Unit(
-            "cg.unit:minute", "min",
-            Map.of("en", "minute"),
-            Map.of(Dimension.TIME.iid(), 1),
-            60, 1
-    );
-
-    /** Hour - 3600 seconds */
-    @Seed
-    public static final Unit HOUR = new Unit(
-            "cg.unit:hour", "h",
-            Map.of("en", "hour"),
-            Map.of(Dimension.TIME.iid(), 1),
-            3600, 1
-    );
+    public static class Second {
+        public static final String KEY = "cg.unit:second";
+        @Seed public static final Unit SEED = new Unit(KEY, "s",
+                Map.of("en", "second"),
+                Map.of(dim(Dimension.Time.KEY), 1), 1, 1);
+    }
+    public static class Millisecond {
+        public static final String KEY = "cg.unit:millisecond";
+        @Seed public static final Unit SEED = new Unit(KEY, "ms",
+                Map.of("en", "millisecond"),
+                Map.of(dim(Dimension.Time.KEY), 1), 1, 1000);
+    }
+    public static class Minute {
+        public static final String KEY = "cg.unit:minute";
+        @Seed public static final Unit SEED = new Unit(KEY, "min",
+                Map.of("en", "minute"),
+                Map.of(dim(Dimension.Time.KEY), 1), 60, 1);
+    }
+    public static class Hour {
+        public static final String KEY = "cg.unit:hour";
+        @Seed public static final Unit SEED = new Unit(KEY, "h",
+                Map.of("en", "hour"),
+                Map.of(dim(Dimension.Time.KEY), 1), 3600, 1);
+    }
 
     // ==================================================================================
     // SEED INSTANCES - Mass
     // ==================================================================================
 
-    /** Kilogram - SI base unit of mass */
-    @Seed
-    public static final Unit KILOGRAM = new Unit(
-            "cg.unit:kilogram", "kg",
-            Map.of("en", "kilogram"),
-            Map.of(Dimension.MASS.iid(), 1),
-            1, 1
-    );
-
-    /** Gram - 1/1000 of a kilogram */
-    @Seed
-    public static final Unit GRAM = new Unit(
-            "cg.unit:gram", "g",
-            Map.of("en", "gram"),
-            Map.of(Dimension.MASS.iid(), 1),
-            1, 1000
-    );
-
-    /** Pound (mass) - 0.45359237 kg */
-    @Seed
-    public static final Unit POUND = new Unit(
-            "cg.unit:pound", "lb",
-            Map.of("en", "pound"),
-            Map.of(Dimension.MASS.iid(), 1),
-            45359237, 100000000
-    );
+    public static class Kilogram {
+        public static final String KEY = "cg.unit:kilogram";
+        @Seed public static final Unit SEED = new Unit(KEY, "kg",
+                Map.of("en", "kilogram"),
+                Map.of(dim(Dimension.Mass.KEY), 1), 1, 1);
+    }
+    public static class Gram {
+        public static final String KEY = "cg.unit:gram";
+        @Seed public static final Unit SEED = new Unit(KEY, "g",
+                Map.of("en", "gram"),
+                Map.of(dim(Dimension.Mass.KEY), 1), 1, 1000);
+    }
+    public static class Pound {
+        public static final String KEY = "cg.unit:pound";
+        @Seed public static final Unit SEED = new Unit(KEY, "lb",
+                Map.of("en", "pound"),
+                Map.of(dim(Dimension.Mass.KEY), 1), 45359237, 100000000);
+    }
 
     // ==================================================================================
     // SEED INSTANCES - Derived/Compound
     // ==================================================================================
 
-    /** Meters per second - velocity */
-    @Seed
-    public static final Unit METER_PER_SECOND = new Unit(
-            "cg.unit:meter-per-second", "m/s",
-            Map.of("en", "meter per second"),
-            Map.of(Dimension.LENGTH.iid(), 1, Dimension.TIME.iid(), -1),
-            1, 1
-    );
-
-    /** Newton - force (kg*m/s²) */
-    @Seed
-    public static final Unit NEWTON = new Unit(
-            "cg.unit:newton", "N",
-            Map.of("en", "newton"),
-            Map.of(Dimension.MASS.iid(), 1, Dimension.LENGTH.iid(), 1, Dimension.TIME.iid(), -2),
-            1, 1
-    );
-
-    /** Joule - energy (kg*m²/s²) */
-    @Seed
-    public static final Unit JOULE = new Unit(
-            "cg.unit:joule", "J",
-            Map.of("en", "joule"),
-            Map.of(Dimension.MASS.iid(), 1, Dimension.LENGTH.iid(), 2, Dimension.TIME.iid(), -2),
-            1, 1
-    );
-
-    /** Watt - power (kg*m²/s³) */
-    @Seed
-    public static final Unit WATT = new Unit(
-            "cg.unit:watt", "W",
-            Map.of("en", "watt"),
-            Map.of(Dimension.MASS.iid(), 1, Dimension.LENGTH.iid(), 2, Dimension.TIME.iid(), -3),
-            1, 1
-    );
+    public static class MeterPerSecond {
+        public static final String KEY = "cg.unit:meter-per-second";
+        @Seed public static final Unit SEED = new Unit(KEY, "m/s",
+                Map.of("en", "meter per second"),
+                Map.of(dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -1), 1, 1);
+    }
+    public static class Newton {
+        public static final String KEY = "cg.unit:newton";
+        @Seed public static final Unit SEED = new Unit(KEY, "N",
+                Map.of("en", "newton"),
+                Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -2), 1, 1);
+    }
+    public static class Joule {
+        public static final String KEY = "cg.unit:joule";
+        @Seed public static final Unit SEED = new Unit(KEY, "J",
+                Map.of("en", "joule"),
+                Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -2), 1, 1);
+    }
+    public static class Watt {
+        public static final String KEY = "cg.unit:watt";
+        @Seed public static final Unit SEED = new Unit(KEY, "W",
+                Map.of("en", "watt"),
+                Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -3), 1, 1);
+    }
 
     // ==================================================================================
     // SEED INSTANCES - UI/Layout Units (contextual lengths and ratios)
     // ==================================================================================
 
-    /**
-     * Character width (ch) - contextual length unit.
-     *
-     * <p>Width of the "0" character in the current font context.
-     * Scale is 1:1 since actual conversion is context-dependent.
-     *
-     * <p>In TUI: 1ch = 1 cell width
-     * <p>In GUI: 1ch ≈ 0.5-0.6em depending on font
-     */
-    @Seed
-    public static final Unit CHARACTER_WIDTH = new Unit(
-            "cg.unit:ch", "ch",
-            Map.of("en", "character width", "en-alt", "ch"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1, 1  // Contextual - actual scale determined at render time
-    );
-
-    /**
-     * Line height (ln) - contextual length unit.
-     *
-     * <p>Height of one line in the current font/layout context.
-     * Scale is 1:1 since actual conversion is context-dependent.
-     *
-     * <p>In TUI: 1ln = 1 cell height
-     * <p>In GUI: 1ln ≈ 1.2-1.5em depending on line-height setting
-     */
-    @Seed
-    public static final Unit LINE_HEIGHT = new Unit(
-            "cg.unit:ln", "ln",
-            Map.of("en", "line height", "en-alt", "line"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1, 1  // Contextual - actual scale determined at render time
-    );
-
-    /**
-     * Pixel (px) - device-dependent length unit.
-     *
-     * <p>One device pixel. Scale varies by display density.
-     * Conventionally, 96px = 1 inch on a standard display.
-     */
-    @Seed
-    public static final Unit PIXEL = new Unit(
-            "cg.unit:px", "px",
-            Map.of("en", "pixel"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            127, 4838400  // 1 inch = 96px, 1 inch = 0.0254m → 1px = 0.0254/96 m
-    );
-
-    /**
-     * Percent (%) - dimensionless ratio.
-     *
-     * <p>A proportion of the container or reference value.
-     * 100% = 1.0 in normalized form.
-     */
-    @Seed
-    public static final Unit PERCENT = new Unit(
-            "cg.unit:percent", "%",
-            Map.of("en", "percent"),
-            Map.of(),  // Dimensionless
-            1, 100  // 1% = 0.01 in normalized form
-    );
-
-    /**
-     * Fraction (fr) - dimensionless flexible unit.
-     *
-     * <p>A fraction of remaining space after fixed-size items.
-     * Similar to CSS Grid's fr unit.
-     * 1fr represents one share of available space.
-     */
-    @Seed
-    public static final Unit FRACTION = new Unit(
-            "cg.unit:fr", "fr",
-            Map.of("en", "fraction", "en-alt", "flex fraction"),
-            Map.of(),  // Dimensionless
-            1, 1  // 1fr = 1 share (interpreted contextually)
-    );
-
-    /**
-     * Em - relative length based on font size.
-     *
-     * <p>1em = current element's font-size.
-     * Useful for scalable typography and spacing.
-     */
-    @Seed
-    public static final Unit EM = new Unit(
-            "cg.unit:em", "em",
-            Map.of("en", "em"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1, 1  // Contextual
-    );
-
-    /**
-     * Rem - relative length based on root font size.
-     *
-     * <p>1rem = root element's font-size.
-     * More predictable than em for consistent sizing.
-     */
-    @Seed
-    public static final Unit REM = new Unit(
-            "cg.unit:rem", "rem",
-            Map.of("en", "root em"),
-            Map.of(Dimension.LENGTH.iid(), 1),
-            1, 1  // Contextual
-    );
+    public static class CharacterWidth {
+        public static final String KEY = "cg.unit:ch";
+        @Seed public static final Unit SEED = new Unit(KEY, "ch",
+                Map.of("en", "character width", "en-alt", "ch"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+    }
+    public static class LineHeight {
+        public static final String KEY = "cg.unit:ln";
+        @Seed public static final Unit SEED = new Unit(KEY, "ln",
+                Map.of("en", "line height", "en-alt", "line"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+    }
+    public static class Pixel {
+        public static final String KEY = "cg.unit:px";
+        @Seed public static final Unit SEED = new Unit(KEY, "px",
+                Map.of("en", "pixel"),
+                Map.of(dim(Dimension.Length.KEY), 1), 127, 4838400);
+    }
+    public static class Percent {
+        public static final String KEY = "cg.unit:percent";
+        @Seed public static final Unit SEED = new Unit(KEY, "%",
+                Map.of("en", "percent"),
+                Map.of(), 1, 100);
+    }
+    public static class Fraction {
+        public static final String KEY = "cg.unit:fr";
+        @Seed public static final Unit SEED = new Unit(KEY, "fr",
+                Map.of("en", "fraction", "en-alt", "flex fraction"),
+                Map.of(), 1, 1);
+    }
+    public static class Em {
+        public static final String KEY = "cg.unit:em";
+        @Seed public static final Unit SEED = new Unit(KEY, "em",
+                Map.of("en", "em"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+    }
+    public static class Rem {
+        public static final String KEY = "cg.unit:rem";
+        @Seed public static final Unit SEED = new Unit(KEY, "rem",
+                Map.of("en", "root em"),
+                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+    }
 
     // ==================================================================================
     // SEED LOOKUP
     // ==================================================================================
 
-    private static final List<Unit> SEED_UNITS = List.of(
-            METER, MILLIMETER, CENTIMETER, KILOMETER, INCH, FOOT,
-            SECOND, MILLISECOND, MINUTE, HOUR,
-            KILOGRAM, GRAM, POUND,
-            METER_PER_SECOND, NEWTON, JOULE, WATT,
-            CHARACTER_WIDTH, LINE_HEIGHT, PIXEL, PERCENT, FRACTION, EM, REM
-    );
-
-    private static final Map<ItemID, Unit> SEED_BY_ID = buildSeedById();
+    // Lazy holder to avoid circular static init (HashID -> Unit.CharacterWidth -> Unit.<clinit>)
+    private static class Seeds {
+        static final List<Unit> ALL = List.of(
+                Meter.SEED, Millimeter.SEED, Centimeter.SEED, Kilometer.SEED, Inch.SEED, Foot.SEED,
+                Second.SEED, Millisecond.SEED, Minute.SEED, Hour.SEED,
+                Kilogram.SEED, Gram.SEED, Pound.SEED,
+                MeterPerSecond.SEED, Newton.SEED, Joule.SEED, Watt.SEED,
+                CharacterWidth.SEED, LineHeight.SEED, Pixel.SEED, Percent.SEED, Fraction.SEED, Em.SEED, Rem.SEED
+        );
+        static final Map<ItemID, Unit> BY_ID = buildById();
+        private static Map<ItemID, Unit> buildById() {
+            Map<ItemID, Unit> out = new LinkedHashMap<>();
+            for (Unit u : ALL) out.put(u.iid(), u);
+            return Map.copyOf(out);
+        }
+    }
 
     /** Look up a seed unit by IID. Returns null if not a known seed unit. */
     public static Unit lookupSeed(ItemID iid) {
-        return iid != null ? SEED_BY_ID.get(iid) : null;
+        return iid != null ? Seeds.BY_ID.get(iid) : null;
     }
 
     /** Get all seed units. */
     public static List<Unit> seeds() {
-        return SEED_UNITS;
+        return Seeds.ALL;
     }
 
-    private static Map<ItemID, Unit> buildSeedById() {
-        Map<ItemID, Unit> out = new LinkedHashMap<>();
-        for (Unit u : SEED_UNITS) {
-            out.put(u.iid(), u);
-        }
-        return Map.copyOf(out);
-    }
 
     // ==================================================================================
     // INSTANCE FIELDS

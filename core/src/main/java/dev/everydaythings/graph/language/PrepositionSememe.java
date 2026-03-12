@@ -26,6 +26,62 @@ public final class PrepositionSememe extends Sememe {
 
     public static final String KEY = "cg:type/preposition-sememe";
 
+    // ==================================================================================
+    // SEED INSTANCES
+    // ==================================================================================
+
+    public static class On {
+        public static final String KEY = "cg.prep:on";
+        @Seed public static final PrepositionSememe SEED = new PrepositionSememe(KEY)
+                .gloss(ENG, "indicating target or destination")
+                .word(LEMMA, ENG, "on").word(LEMMA, ENG, "to").word(LEMMA, ENG, "into")
+                .role(ThematicRole.Target.KEY);
+    }
+
+    public static class With {
+        public static final String KEY = "cg.prep:with";
+        @Seed public static final PrepositionSememe SEED = new PrepositionSememe(KEY)
+                .gloss(ENG, "indicating tool or means")
+                .word(LEMMA, ENG, "with").word(LEMMA, ENG, "using")
+                .role(ThematicRole.Instrument.KEY);
+    }
+
+    public static class From {
+        public static final String KEY = "cg.prep:from";
+        @Seed public static final PrepositionSememe SEED = new PrepositionSememe(KEY)
+                .gloss(ENG, "indicating origin or source")
+                .word(LEMMA, ENG, "from")
+                .role(ThematicRole.Source.KEY);
+    }
+
+    public static class For {
+        public static final String KEY = "cg.prep:for";
+        @Seed public static final PrepositionSememe SEED = new PrepositionSememe(KEY)
+                .gloss(ENG, "indicating beneficiary or recipient")
+                .word(LEMMA, ENG, "for")
+                .role(ThematicRole.Recipient.KEY);
+    }
+
+    public static class Between {
+        public static final String KEY = "cg.prep:between";
+        @Seed public static final PrepositionSememe SEED = new PrepositionSememe(KEY)
+                .gloss(ENG, "indicating companions or participants")
+                .word(LEMMA, ENG, "between")
+                .role(ThematicRole.Comitative.KEY);
+    }
+
+    public static class Named {
+        public static final String KEY = "cg.prep:named";
+        @Seed public static final PrepositionSememe SEED = new PrepositionSememe(KEY)
+                .gloss(ENG, "indicating designation or label")
+                .word(LEMMA, ENG, "named").word(LEMMA, ENG, "called")
+                .role(ThematicRole.Name.KEY);
+    }
+
+    // ==================================================================================
+    // INSTANCE FIELDS
+    // ==================================================================================
+
     /**
      * The role sememe this preposition assigns to its object.
      *
@@ -53,6 +109,11 @@ public final class PrepositionSememe extends Sememe {
         super(librarian, manifest);
     }
 
+    /** Fluent seed constructor. */
+    public PrepositionSememe(String canonicalKey) {
+        super(canonicalKey, PartOfSpeech.PREPOSITION);
+    }
+
     /**
      * Seed constructor with role.
      *
@@ -74,4 +135,20 @@ public final class PrepositionSememe extends Sememe {
                                 Map<String, String> glosses, Map<String, String> sources) {
         super(librarian, canonicalKey, PartOfSpeech.PREPOSITION, glosses, sources);
     }
+
+    // ==================================================================================
+    // COVARIANT OVERRIDES (fluent chaining returns PrepositionSememe)
+    // ==================================================================================
+
+    /** Set the thematic role this preposition assigns, by canonical key. */
+    public PrepositionSememe role(String roleKey) {
+        this.assignedRole = ItemID.fromString(roleKey);
+        return this;
+    }
+
+    @Override public PrepositionSememe gloss(String lang, String text) { super.gloss(lang, text); return this; }
+    @Override public PrepositionSememe word(Sememe form, String lang, String surface) { super.word(form, lang, surface); return this; }
+    @Override public PrepositionSememe cili(String id) { super.cili(id); return this; }
+    @Override public PrepositionSememe symbol(String s) { super.symbol(s); return this; }
+    @Override public PrepositionSememe indexWeight(int weight) { super.indexWeight(weight); return this; }
 }

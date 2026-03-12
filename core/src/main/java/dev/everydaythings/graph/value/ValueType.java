@@ -50,70 +50,69 @@ public class ValueType extends Item {
     // SEED INSTANCES - Basic types
     // ==================================================================================
 
-    /** Boolean value type. */
-    @Seed
-    public static final ValueType BOOLEAN = new ValueType(
-            "cg.value:boolean", "Boolean", null, null, null);
+    public static class BooleanType {
+        public static final String KEY = "cg.value:boolean";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Boolean", null, null, null);
+    }
 
-    /** Unicode text value type. */
-    @Seed
-    public static final ValueType TEXT = new ValueType(
-            "cg.value:text", "Text", null, null, null);
+    public static class TextType {
+        public static final String KEY = "cg.value:text";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Text", null, null, null);
+    }
 
-    /** Bytes (opaque binary) value type. */
-    @Seed
-    public static final ValueType BYTES = new ValueType(
-            "cg.value:bytes", "Bytes", null, null, null);
+    public static class BytesType {
+        public static final String KEY = "cg.value:bytes";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Bytes", null, null, null);
+    }
 
-    /** Binary IP address (4 or 16 bytes). */
-    @Seed
-    public static final ValueType IP = new ValueType(
-            "cg.value:ip", "IP Address", null, null, null);
+    public static class IpType {
+        public static final String KEY = "cg.value:ip";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "IP Address", null, null, null);
+    }
 
-    /** Network endpoint (protocol, host, port). */
-    @Seed
-    public static final ValueType ENDPOINT = new ValueType(
-            "cg.value:endpoint", "Endpoint", null, null, null);
+    public static class EndpointType {
+        public static final String KEY = "cg.value:endpoint";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Endpoint", null, null, null);
+    }
 
-    /** Instant in time (UTC epoch millis). */
-    @Seed
-    public static final ValueType INSTANT = new ValueType(
-            "cg.value:instant", "Instant", null, null, null);
+    public static class InstantType {
+        public static final String KEY = "cg.value:instant";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Instant", null, null, null);
+    }
 
-    /** Quantity (numeric value with unit). */
-    @Seed
-    public static final ValueType QUANTITY = new ValueType(
-            "cg.value:quantity", "Quantity", null, null,
-            new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    public static class QuantityType {
+        public static final String KEY = "cg.value:quantity";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Quantity", null, null,
+                new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    }
 
     // ==================================================================================
     // SEED INSTANCES - Numeric types
     // ==================================================================================
 
-    /** General-purpose fixed-point decimal. */
-    @Seed
-    public static final ValueType DECIMAL = new ValueType(
-            "cg.value:decimal", "Decimal",
-            new CanonRules(CanonRules.Rounding.HALF_EVEN, null, true),
-            null,
-            new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    public static class DecimalType {
+        public static final String KEY = "cg.value:decimal";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Decimal",
+                new CanonRules(CanonRules.Rounding.HALF_EVEN, null, true), null,
+                new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    }
 
-    /** General-purpose rational number (exact fractions). */
-    @Seed
-    public static final ValueType RATIONAL = new ValueType(
-            "cg.value:rational", "Rational", null, null,
-            new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    public static class RationalType {
+        public static final String KEY = "cg.value:rational";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Rational", null, null,
+                new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    }
 
-    /** Integer count (dimensionless by default). */
-    @Seed
-    public static final ValueType COUNT = new ValueType(
-            "cg.value:count", "Count", null, null,
-            new UnitRules(UnitRules.AllowedDimsKind.DIMENSIONLESS, null, false, false));
+    public static class CountType {
+        public static final String KEY = "cg.value:count";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Count", null, null,
+                new UnitRules(UnitRules.AllowedDimsKind.DIMENSIONLESS, null, false, false));
+    }
 
-    /** 64-bit floating point (use sparingly - not identity-safe). */
-    @Seed
-    public static final ValueType FLOAT64 = new ValueType(
-            "cg.value:float64", "Float64", null, null, null);
+    public static class Float64Type {
+        public static final String KEY = "cg.value:float64";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Float64", null, null, null);
+    }
 
     /**
      * General integer type (may have units like "5 items" or "10 pixels").
@@ -124,10 +123,11 @@ public class ValueType extends Item {
      *   <li><b>INTEGER</b> - General integer that may have units.</li>
      * </ul>
      */
-    @Seed
-    public static final ValueType INTEGER = new ValueType(
-            "cg.value:integer", "Integer", null, null,
-            new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    public static class IntegerType {
+        public static final String KEY = "cg.value:integer";
+        @Seed public static final ValueType SEED = new ValueType(KEY, "Integer", null, null,
+                new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
+    }
 
     // Note: No NUMBER type - CG-CBOR forbids IEEE 754 floats. Use DECIMAL or RATIONAL.
 

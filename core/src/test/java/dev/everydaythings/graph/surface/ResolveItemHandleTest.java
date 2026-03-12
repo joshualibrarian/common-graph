@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.SceneMode;
 import dev.everydaythings.graph.ui.scene.View;
@@ -25,7 +25,7 @@ class ResolveItemHandleTest {
         Librarian lib = Librarian.createInMemory();
 
         // Get the TITLE sememe IID
-        ItemID titleIid = Sememe.TITLE.iid();
+        ItemID titleIid = NounSememe.Title.SEED.iid();
         System.out.println("TITLE sememe IID: " + titleIid.encodeText());
 
         // Try to resolve TITLE
@@ -65,8 +65,8 @@ class ResolveItemHandleTest {
         // Compile a relation WITH resolver
         Relation rel = Relation.builder()
                 .predicate(titleIid)
-                .bind(ThematicRole.THEME.iid(), Relation.iid(libIid))
-                .bind(ThematicRole.TARGET.iid(), Literal.ofText("joshua"))
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(libIid))
+                .bind(ThematicRole.Target.SEED.iid(), Literal.ofText("joshua"))
                 .build();
 
         System.out.println("\n=== Compiling Relation with resolver ===");

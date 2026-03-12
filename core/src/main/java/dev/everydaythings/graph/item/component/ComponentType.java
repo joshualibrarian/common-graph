@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.action.ActionContext;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
@@ -179,7 +179,7 @@ public class ComponentType extends Item {
      * @param ctx The action context
      * @return A new component instance
      */
-    @Verb(value = Sememe.CREATE, doc = "Create a new instance of this component type")
+    @Verb(value = VerbSememe.Create.KEY, doc = "Create a new instance of this component type")
     public Object createComponent(
             ActionContext ctx,
             @Param(value = "name", required = false, role = "NAME") String name,

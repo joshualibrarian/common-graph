@@ -2,7 +2,7 @@ package dev.everydaythings.graph.item.component.expression;
 
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.PronounSememe;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,8 +18,8 @@ class FrameQueryTest {
     static final ItemID THE_HOBBIT = ItemID.fromString("cg:book/the-hobbit");
     static final ItemID TOLKIEN = ItemID.fromString("cg:person/tolkien");
     static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
-    static final ItemID ANY = Sememe.ANY.iid();
-    static final ItemID WHAT = Sememe.WHAT.iid();
+    static final ItemID ANY = PronounSememe.Any.SEED.iid();
+    static final ItemID WHAT = PronounSememe.What.SEED.iid();
 
     @Test
     @DisplayName("of(predicate, theme) creates query with known predicate and theme")

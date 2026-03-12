@@ -57,53 +57,54 @@ public class Dimension extends Item {
     // ==================================================================================
 
     /** Length dimension (L) - SI base: meter */
-    @Seed
-    public static final Dimension LENGTH = new Dimension(
-            "cg.dim:length", "L", "length",
-            Map.of("en", "spatial extent in one direction")
-    );
+    public static class Length {
+        public static final String KEY = "cg.dim:length";
+        @Seed public static final Dimension SEED = new Dimension(
+                KEY, "L", "length", Map.of("en", "spatial extent in one direction"));
+    }
 
     /** Time dimension (T) - SI base: second */
-    @Seed
-    public static final Dimension TIME = new Dimension(
-            "cg.dim:time", "T", "time",
-            Map.of("en", "duration of events")
-    );
+    public static class Time {
+        public static final String KEY = "cg.dim:time";
+        @Seed public static final Dimension SEED = new Dimension(
+                KEY, "T", "time", Map.of("en", "duration of events"));
+    }
 
     /** Mass dimension (M) - SI base: kilogram */
-    @Seed
-    public static final Dimension MASS = new Dimension(
-            "cg.dim:mass", "M", "mass",
-            Map.of("en", "quantity of matter")
-    );
+    public static class Mass {
+        public static final String KEY = "cg.dim:mass";
+        @Seed public static final Dimension SEED = new Dimension(
+                KEY, "M", "mass", Map.of("en", "quantity of matter"));
+    }
 
     /** Electric current dimension (I) - SI base: ampere */
-    @Seed
-    public static final Dimension ELECTRIC_CURRENT = new Dimension(
-            "cg.dim:electric-current", "I", "electric current",
-            Map.of("en", "flow of electric charge")
-    );
+    public static class ElectricCurrent {
+        public static final String KEY = "cg.dim:electric-current";
+        @Seed public static final Dimension SEED = new Dimension(
+                KEY, "I", "electric current", Map.of("en", "flow of electric charge"));
+    }
 
     /** Thermodynamic temperature dimension (Θ) - SI base: kelvin */
-    @Seed
-    public static final Dimension TEMPERATURE = new Dimension(
-            "cg.dim:temperature", "Θ", "temperature",
-            Map.of("en", "average kinetic energy of particles")
-    );
+    public static class Temperature {
+        public static final String KEY = "cg.dim:temperature";
+        @Seed public static final Dimension SEED = new Dimension(
+                KEY, "Θ", "temperature", Map.of("en", "average kinetic energy of particles"));
+    }
 
     /** Amount of substance dimension (N) - SI base: mole */
-    @Seed
-    public static final Dimension AMOUNT = new Dimension(
-            "cg.dim:amount", "N", "amount of substance",
-            Map.of("en", "number of elementary entities")
-    );
+    public static class Amount {
+        public static final String KEY = "cg.dim:amount";
+        @Seed public static final Dimension SEED = new Dimension(
+                KEY, "N", "amount of substance", Map.of("en", "number of elementary entities"));
+    }
 
     /** Luminous intensity dimension (J) - SI base: candela */
-    @Seed
-    public static final Dimension LUMINOUS_INTENSITY = new Dimension(
-            "cg.dim:luminous-intensity", "J", "luminous intensity",
-            Map.of("en", "luminous power per solid angle")
-    );
+    public static class LuminousIntensity {
+        public static final String KEY = "cg.dim:luminous-intensity";
+        @Seed public static final Dimension SEED = new Dimension(
+                KEY, "J", "luminous intensity", Map.of("en", "luminous power per solid angle"));
+    }
+
 
     // ==================================================================================
     // INSTANCE FIELDS

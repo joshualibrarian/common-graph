@@ -20,6 +20,7 @@ import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.PronounSememe;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.language.SemanticFrame;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -508,7 +509,7 @@ public class Eval {
 
     private boolean isCreateVerbToken(ResolvedToken token) {
         if (!(token instanceof ResolvedToken.Link link)) return false;
-        return link.iid().equals(ItemID.fromString(Sememe.CREATE));
+        return link.iid().equals(ItemID.fromString(VerbSememe.Create.KEY));
     }
 
     private Posting preferredExactPosting(List<Posting> postings, String token, ResolutionHint hint) {
@@ -528,7 +529,7 @@ public class Eval {
         }
 
         // Next, prefer any target with a non-Item create implementation.
-        ItemID createId = ItemID.fromString(Sememe.CREATE);
+        ItemID createId = ItemID.fromString(VerbSememe.Create.KEY);
         for (Posting p : exact) {
             Optional<Item> candidate = librarianHandle.get(p.target());
             if (candidate.isEmpty()) continue;
@@ -739,7 +740,7 @@ public class Eval {
         // 2. Bound items from the frame (explicit user intent)
         if (target == null) {
             for (var entry : frame.bindings().entrySet()) {
-                if (entry.getKey().equals(ThematicRole.TARGET.iid())) continue;
+                if (entry.getKey().equals(ThematicRole.Target.SEED.iid())) continue;
                 if (!(entry.getValue() instanceof Item item)) continue;
                 if (item.vocabulary().lookup(verbId).isPresent()) {
                     target = item;
@@ -787,7 +788,7 @@ public class Eval {
         EvalResult result = dispatchVerbForResult(target, verbId, frame);
 
         // 3. Wrap with TARGET if present (only for Item targets)
-        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.TARGET.iid());
+        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.Target.SEED.iid());
         if (prepTarget.isPresent() && result instanceof EvalResult.Value(Object value)) {
             return EvalResult.valueWithTarget(value, prepTarget.get());
         }
@@ -1040,7 +1041,7 @@ public class Eval {
         // Build bindings: exclude TARGET role and the dispatch target itself
         Map<ItemID, Object> bindings = new LinkedHashMap<>();
         for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey().equals(ThematicRole.TARGET.iid())) continue;
+            if (entry.getKey().equals(ThematicRole.Target.SEED.iid())) continue;
             Object value = entry.getValue();
             if (value instanceof Item item && item.iid().equals(target.iid())) continue;
             bindings.put(entry.getKey(), value);
@@ -1074,7 +1075,7 @@ public class Eval {
             if (value instanceof Item item) {
                 pushToHistory(item);
                 // CREATE returns a new item — don't navigate the current view
-                if (verbId.equals(ItemID.fromString(Sememe.CREATE))) {
+                if (verbId.equals(ItemID.fromString(VerbSememe.Create.KEY))) {
                     return EvalResult.created(item);
                 }
                 return EvalResult.item(item);

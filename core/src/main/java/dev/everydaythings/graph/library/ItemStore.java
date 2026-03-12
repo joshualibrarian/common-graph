@@ -10,7 +10,7 @@ import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.relation.Relation;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
@@ -360,7 +360,7 @@ public interface ItemStore extends Service {
      */
     default Optional<Class<?>> findImplementation(ItemID typeId) {
         return relations()
-                .filter(rel -> rel.predicate().equals(Sememe.IMPLEMENTED_BY.iid()))
+                .filter(rel -> rel.predicate().equals(VerbSememe.ImplementedBy.SEED.iid()))
                 .filter(rel -> typeId.equals(rel.bindingId(ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .map(rel -> {

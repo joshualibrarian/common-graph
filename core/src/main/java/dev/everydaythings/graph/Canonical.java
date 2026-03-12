@@ -106,28 +106,28 @@ public interface Canonical {
      */
     enum CborType {
         /** CBOR text string → cg.value:text */
-        TEXT(ValueType.TEXT, CBORType.TextString, -1),
+        TEXT(ValueType.TextType.SEED, CBORType.TextString, -1),
 
         /** CBOR integer → cg.value:integer */
-        INTEGER(ValueType.INTEGER, CBORType.Integer, -1),
+        INTEGER(ValueType.IntegerType.SEED, CBORType.Integer, -1),
 
         /** CBOR boolean → cg.value:boolean */
-        BOOLEAN(ValueType.BOOLEAN, CBORType.Boolean, -1),
+        BOOLEAN(ValueType.BooleanType.SEED, CBORType.Boolean, -1),
 
         /** CBOR byte string → cg.value:bytes */
-        BYTES(ValueType.BYTES, CBORType.ByteString, -1),
+        BYTES(ValueType.BytesType.SEED, CBORType.ByteString, -1),
 
         /** CBOR Tag 4 [mantissa, exponent] → cg.value:decimal */
-        DECIMAL(ValueType.DECIMAL, null, 4),
+        DECIMAL(ValueType.DecimalType.SEED, null, 4),
 
         /** CBOR Tag 1 (epoch seconds/millis) → cg.value:instant */
-        INSTANT(ValueType.INSTANT, null, 1),
+        INSTANT(ValueType.InstantType.SEED, null, 1),
 
         /** [numerator, denominator] array → cg.value:rational */
-        RATIONAL(ValueType.RATIONAL, CBORType.Array, -1),
+        RATIONAL(ValueType.RationalType.SEED, CBORType.Array, -1),
 
         /** CG Tag 9 [magnitude, unit-iid] → cg.value:quantity */
-        QUANTITY(ValueType.QUANTITY, null, CgTag.QTY),
+        QUANTITY(ValueType.QuantityType.SEED, null, CgTag.QTY),
         ;
 
         private final ValueType valueType;

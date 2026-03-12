@@ -45,75 +45,140 @@ public class Operator extends NounSememe {
     // ==================================================================================
 
     // --- Logical ---
-    @Seed public static final Operator AND = new Operator(
-            "cg.op:and", "&&", "and", 2, 1, Associativity.LEFT, Fixity.INFIX);
-    @Seed public static final Operator OR = new Operator(
-            "cg.op:or", "||", "or", 2, 0, Associativity.LEFT, Fixity.INFIX);
-    @Seed public static final Operator NOT = new Operator(
-            "cg.op:not", "!", "not", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
+    public static class And {
+        public static final String KEY = "cg.op:and";
+        @Seed public static final Operator SEED = new Operator(KEY, "&&", "and", 2, 1, Associativity.LEFT, Fixity.INFIX);
+    }
+    public static class Or {
+        public static final String KEY = "cg.op:or";
+        @Seed public static final Operator SEED = new Operator(KEY, "||", "or", 2, 0, Associativity.LEFT, Fixity.INFIX);
+    }
+    public static class Not {
+        public static final String KEY = "cg.op:not";
+        @Seed public static final Operator SEED = new Operator(KEY, "!", "not", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
+    }
 
     // --- Arithmetic ---
-    @Seed public static final Operator ADD = new Operator(
-            "cg.op:add", "+", "add", 2, 10, Associativity.LEFT, Fixity.INFIX);
-    @Seed public static final Operator SUBTRACT = new Operator(
-            "cg.op:sub", "-", "subtract", 2, 10, Associativity.LEFT, Fixity.INFIX);
-    @Seed public static final Operator MULTIPLY = new Operator(
-            "cg.op:mul", "*", "multiply", 2, 20, Associativity.LEFT, Fixity.INFIX);
-    @Seed public static final Operator DIVIDE = new Operator(
-            "cg.op:div", "/", "divide", 2, 20, Associativity.LEFT, Fixity.INFIX);
-    @Seed public static final Operator MODULO = new Operator(
-            "cg.op:mod", "%", "modulo", 2, 20, Associativity.LEFT, Fixity.INFIX);
-    @Seed public static final Operator POWER = new Operator(
-            "cg.op:pow", "^", "power", 2, 30, Associativity.RIGHT, Fixity.INFIX);
-    @Seed public static final Operator NEGATE = new Operator(
-            "cg.op:neg", "-", "negate", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
+    public static class Add {
+        public static final String KEY = "cg.op:add";
+        @Seed public static final Operator SEED = new Operator(KEY, "+", "add", 2, 10, Associativity.LEFT, Fixity.INFIX);
+    }
+    public static class Subtract {
+        public static final String KEY = "cg.op:sub";
+        @Seed public static final Operator SEED = new Operator(KEY, "-", "subtract", 2, 10, Associativity.LEFT, Fixity.INFIX);
+    }
+    public static class Multiply {
+        public static final String KEY = "cg.op:mul";
+        @Seed public static final Operator SEED = new Operator(KEY, "*", "multiply", 2, 20, Associativity.LEFT, Fixity.INFIX);
+    }
+    public static class Divide {
+        public static final String KEY = "cg.op:div";
+        @Seed public static final Operator SEED = new Operator(KEY, "/", "divide", 2, 20, Associativity.LEFT, Fixity.INFIX);
+    }
+    public static class Modulo {
+        public static final String KEY = "cg.op:mod";
+        @Seed public static final Operator SEED = new Operator(KEY, "%", "modulo", 2, 20, Associativity.LEFT, Fixity.INFIX);
+    }
+    public static class Power {
+        public static final String KEY = "cg.op:pow";
+        @Seed public static final Operator SEED = new Operator(KEY, "^", "power", 2, 30, Associativity.RIGHT, Fixity.INFIX);
+    }
+    public static class Negate {
+        public static final String KEY = "cg.op:neg";
+        @Seed public static final Operator SEED = new Operator(KEY, "-", "negate", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
+    }
 
     // --- Comparison ---
-    @Seed public static final Operator EQUAL = new Operator(
-            "cg.op:eq", "==", "equal", 2, 5, Associativity.NONE, Fixity.INFIX);
-    @Seed public static final Operator NOT_EQUAL = new Operator(
-            "cg.op:ne", "!=", "not equal", 2, 5, Associativity.NONE, Fixity.INFIX);
-    @Seed public static final Operator LESS_THAN = new Operator(
-            "cg.op:lt", "<", "less than", 2, 5, Associativity.NONE, Fixity.INFIX);
-    @Seed public static final Operator GREATER_THAN = new Operator(
-            "cg.op:gt", ">", "greater than", 2, 5, Associativity.NONE, Fixity.INFIX);
-    @Seed public static final Operator LESS_OR_EQUAL = new Operator(
-            "cg.op:le", "<=", "less or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
-    @Seed public static final Operator GREATER_OR_EQUAL = new Operator(
-            "cg.op:ge", ">=", "greater or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    public static class Equal {
+        public static final String KEY = "cg.op:eq";
+        @Seed public static final Operator SEED = new Operator(KEY, "==", "equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
+    public static class NotEqual {
+        public static final String KEY = "cg.op:ne";
+        @Seed public static final Operator SEED = new Operator(KEY, "!=", "not equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
+    public static class LessThan {
+        public static final String KEY = "cg.op:lt";
+        @Seed public static final Operator SEED = new Operator(KEY, "<", "less than", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
+    public static class GreaterThan {
+        public static final String KEY = "cg.op:gt";
+        @Seed public static final Operator SEED = new Operator(KEY, ">", "greater than", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
+    public static class LessOrEqual {
+        public static final String KEY = "cg.op:le";
+        @Seed public static final Operator SEED = new Operator(KEY, "<=", "less or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
+    public static class GreaterOrEqual {
+        public static final String KEY = "cg.op:ge";
+        @Seed public static final Operator SEED = new Operator(KEY, ">=", "greater or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
 
     // --- String ---
-    @Seed public static final Operator CONCAT = new Operator(
-            "cg.op:concat", "++", "concat", 2, 10, Associativity.LEFT, Fixity.INFIX);
+    public static class Concat {
+        public static final String KEY = "cg.op:concat";
+        @Seed public static final Operator SEED = new Operator(KEY, "++", "concat", 2, 10, Associativity.LEFT, Fixity.INFIX);
+    }
 
     // --- Collection ---
-    @Seed public static final Operator IN = new Operator(
-            "cg.op:in", "in", "in", 2, 5, Associativity.NONE, Fixity.INFIX);
-    @Seed public static final Operator CONTAINS = new Operator(
-            "cg.op:contains", "contains", "contains", 2, 5, Associativity.NONE, Fixity.INFIX);
+    public static class In {
+        public static final String KEY = "cg.op:in";
+        @Seed public static final Operator SEED = new Operator(KEY, "in", "in", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
+    public static class Contains {
+        public static final String KEY = "cg.op:contains";
+        @Seed public static final Operator SEED = new Operator(KEY, "contains", "contains", 2, 5, Associativity.NONE, Fixity.INFIX);
+    }
 
     // --- Structural ---
-    @Seed public static final Operator ASSIGN = new Operator(
-            "cg.op:assign", "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX);
-    @Seed public static final Operator IS = new Operator(
-            "cg.op:is", "is", "is", 2, -5, Associativity.RIGHT, Fixity.INFIX);
-    @Seed public static final Operator PIPE = new Operator(
-            "cg.op:pipe", "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX);
+    public static class Assign {
+        public static final String KEY = "cg.op:assign";
+        @Seed public static final Operator SEED = new Operator(KEY, "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX);
+    }
+    public static class IsOp {
+        public static final String KEY = "cg.op:is";
+        @Seed public static final Operator SEED = new Operator(KEY, "is", "is", 2, -5, Associativity.RIGHT, Fixity.INFIX);
+    }
+    public static class Pipe {
+        public static final String KEY = "cg.op:pipe";
+        @Seed public static final Operator SEED = new Operator(KEY, "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX);
+    }
 
     // ==================================================================================
     // LOOKUP TABLES
     // ==================================================================================
 
-    private static final List<Operator> SEED_OPERATORS = List.of(
-            AND, OR, NOT,
-            ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, POWER, NEGATE,
-            EQUAL, NOT_EQUAL, LESS_THAN, GREATER_THAN, LESS_OR_EQUAL, GREATER_OR_EQUAL,
-            CONCAT, IN, CONTAINS,
-            ASSIGN, IS, PIPE
-    );
-    private static final Map<ItemID, Operator> SEED_BY_ID = buildSeedById();
-    private static final Map<String, Operator> INFIX_BY_SYMBOL = buildInfixBySymbol();
-    private static final Map<String, Operator> PREFIX_BY_SYMBOL = buildPrefixBySymbol();
+    // Lazy holder to avoid circular static init (Sememe -> NounSememe -> Operator.<clinit>)
+    private static class Seeds {
+        static final List<Operator> ALL = List.of(
+                And.SEED, Or.SEED, Not.SEED,
+                Add.SEED, Subtract.SEED, Multiply.SEED, Divide.SEED, Modulo.SEED, Power.SEED, Negate.SEED,
+                Equal.SEED, NotEqual.SEED, LessThan.SEED, GreaterThan.SEED, LessOrEqual.SEED, GreaterOrEqual.SEED,
+                Concat.SEED, In.SEED, Contains.SEED,
+                Assign.SEED, IsOp.SEED, Pipe.SEED
+        );
+        static final Map<ItemID, Operator> BY_ID;
+        static final Map<String, Operator> INFIX_BY_SYMBOL;
+        static final Map<String, Operator> PREFIX_BY_SYMBOL;
+        static {
+            Map<ItemID, Operator> byId = new LinkedHashMap<>();
+            Map<String, Operator> infix = new LinkedHashMap<>();
+            Map<String, Operator> prefix = new LinkedHashMap<>();
+            for (Operator op : ALL) {
+                byId.put(op.iid(), op);
+                if (op.fixity() == Fixity.INFIX && op.symbol() != null && !op.symbol().isBlank())
+                    infix.put(op.symbol(), op);
+                if (op.fixity() == Fixity.PREFIX && op.symbol() != null && !op.symbol().isBlank())
+                    prefix.put(op.symbol(), op);
+            }
+            infix.put("&", And.SEED);
+            infix.put("|", Or.SEED);
+            infix.put("**", Power.SEED);
+            BY_ID = Map.copyOf(byId);
+            INFIX_BY_SYMBOL = Map.copyOf(infix);
+            PREFIX_BY_SYMBOL = Map.copyOf(prefix);
+        }
+    }
 
     // ==================================================================================
     // INSTANCE FIELDS (operator-specific; canonicalKey, glosses, symbols inherited)
@@ -596,7 +661,7 @@ public class Operator extends NounSememe {
      */
     public static Operator lookupKnown(ItemID iid) {
         if (iid == null) return null;
-        return SEED_BY_ID.get(iid);
+        return Seeds.BY_ID.get(iid);
     }
 
     /**
@@ -605,9 +670,9 @@ public class Operator extends NounSememe {
     public static Operator fromSymbol(String text) {
         if (text == null) return null;
         String trimmed = text.trim();
-        Operator op = INFIX_BY_SYMBOL.get(trimmed);
+        Operator op = Seeds.INFIX_BY_SYMBOL.get(trimmed);
         if (op != null) return op;
-        return PREFIX_BY_SYMBOL.get(trimmed);
+        return Seeds.PREFIX_BY_SYMBOL.get(trimmed);
     }
 
     /**
@@ -615,7 +680,7 @@ public class Operator extends NounSememe {
      */
     public static Operator infixFromSymbol(String text) {
         if (text == null) return null;
-        return INFIX_BY_SYMBOL.get(text.trim());
+        return Seeds.INFIX_BY_SYMBOL.get(text.trim());
     }
 
     /**
@@ -623,51 +688,20 @@ public class Operator extends NounSememe {
      */
     public static Operator prefixFromSymbol(String text) {
         if (text == null) return null;
-        return PREFIX_BY_SYMBOL.get(text.trim());
+        return Seeds.PREFIX_BY_SYMBOL.get(text.trim());
     }
 
     /**
      * Get all seed operators.
      */
     public static List<Operator> seeds() {
-        return SEED_OPERATORS;
+        return Seeds.ALL;
     }
 
     // ==================================================================================
     // STATIC BUILDERS
     // ==================================================================================
 
-    private static Map<ItemID, Operator> buildSeedById() {
-        Map<ItemID, Operator> out = new LinkedHashMap<>();
-        for (Operator op : SEED_OPERATORS) {
-            out.put(op.iid(), op);
-        }
-        return Map.copyOf(out);
-    }
-
-    private static Map<String, Operator> buildInfixBySymbol() {
-        Map<String, Operator> out = new LinkedHashMap<>();
-        for (Operator op : SEED_OPERATORS) {
-            if (op.fixity() == Fixity.INFIX && op.symbol() != null && !op.symbol().isBlank()) {
-                out.put(op.symbol(), op);
-            }
-        }
-        // Aliases
-        out.put("&", AND);
-        out.put("|", OR);
-        out.put("**", POWER);
-        return Map.copyOf(out);
-    }
-
-    private static Map<String, Operator> buildPrefixBySymbol() {
-        Map<String, Operator> out = new LinkedHashMap<>();
-        for (Operator op : SEED_OPERATORS) {
-            if (op.fixity() == Fixity.PREFIX && op.symbol() != null && !op.symbol().isBlank()) {
-                out.put(op.symbol(), op);
-            }
-        }
-        return Map.copyOf(out);
-    }
 
     @Override
     public String toString() {

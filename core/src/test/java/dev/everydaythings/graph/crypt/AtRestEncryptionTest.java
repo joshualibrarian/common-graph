@@ -7,6 +7,7 @@ import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.vault.InMemoryVault;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Tests for at-rest encryption: key derivation, encrypt/decrypt, library integration.
  */
+@Tag("slow")
 class AtRestEncryptionTest {
 
     // ==================================================================================

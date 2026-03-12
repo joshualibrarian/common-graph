@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -140,7 +140,7 @@ public class ActivityLog implements Component {
     // Verbs
     // ==================================================================================
 
-    @Verb(value = Sememe.LIST, doc = "Show recent activity")
+    @Verb(value = VerbSememe.ListVerb.KEY, doc = "Show recent activity")
     public ActionResult list() {
         if (entries.isEmpty()) {
             return ActionResult.success("No activity yet.");
@@ -153,12 +153,12 @@ public class ActivityLog implements Component {
         return ActionResult.success(sb.toString().trim());
     }
 
-    @Verb(value = Sememe.COUNT, doc = "Count activity entries")
+    @Verb(value = VerbSememe.Count.KEY, doc = "Count activity entries")
     public ActionResult count() {
         return ActionResult.success(entries.size() + " entries");
     }
 
-    @Verb(value = Sememe.REMOVE, doc = "Clear activity log")
+    @Verb(value = VerbSememe.Remove.KEY, doc = "Clear activity log")
     public ActionResult clear() {
         entries.clear();
         lastByContext.clear();

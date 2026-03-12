@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.trust.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -292,14 +292,14 @@ public class SetGame extends GameComponent<SetGame.Op>
     // Game Actions (Verbs)
     // ==================================================================================
 
-    @Verb(value = Sememe.CREATE, doc = "Start the game")
+    @Verb(value = VerbSememe.Create.KEY, doc = "Start the game")
     public void start() {
         if (started) return;
         requireSigner();
         append(new StartOp(), ++sequence, signer, hasher);
     }
 
-    @Verb(value = GameVocabulary.CALL, doc = "Call a set of three cards")
+    @Verb(value = GameVocabulary.Call.KEY, doc = "Call a set of three cards")
     public boolean callSet(
             @Param(value = "seat", doc = "Player seat") int seat,
             @Param(value = "card1", doc = "First card ordinal") int card1,
@@ -311,7 +311,7 @@ public class SetGame extends GameComponent<SetGame.Op>
         return true;
     }
 
-    @Verb(value = GameVocabulary.DEAL, doc = "Request more cards")
+    @Verb(value = GameVocabulary.Deal.KEY, doc = "Request more cards")
     public boolean dealMore(
             @Param(value = "seat", doc = "Requesting player seat") int seat) {
         if (gameOver || !started) return false;
@@ -401,7 +401,7 @@ public class SetGame extends GameComponent<SetGame.Op>
         return zoneMap.zone("deck").size();
     }
 
-    @Verb(value = Sememe.DESCRIBE, doc = "Describe game status")
+    @Verb(value = VerbSememe.Describe.KEY, doc = "Describe game status")
     public String describeStatus() {
         if (!started) return "Waiting to start. " + seatedCount() + " players.";
         if (gameOver) {
@@ -413,7 +413,7 @@ public class SetGame extends GameComponent<SetGame.Op>
                 + " | Sets in view: " + findAllSets().size();
     }
 
-    @Verb(value = Sememe.SHOW, doc = "Show the tableau")
+    @Verb(value = VerbSememe.Show.KEY, doc = "Show the tableau")
     public String renderTableau() {
         if (!started) return "Game not started.";
 

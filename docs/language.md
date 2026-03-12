@@ -102,8 +102,8 @@ public static class Author {
             .gloss(ENG, "the creator or originator of a work")
             .word(LEMMA, ENG, "author")
             .cili("i90183")
-            .slot(ThematicRole.THEME)
-            .slot(ThematicRole.TARGET)
+            .slot(ThematicRole.Theme.SEED)
+            .slot(ThematicRole.Target.SEED)
             .indexWeight(1000);
 }
 ```

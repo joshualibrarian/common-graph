@@ -420,7 +420,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     /**
      * Start the game (deal tiles, place starting double).
      */
-    @Verb(value = GameVocabulary.DEAL, doc = "Start the game")
+    @Verb(value = GameVocabulary.Deal.KEY, doc = "Start the game")
     public String start(ActionContext ctx) {
         if (started) return "Game already started";
         Signing.Signer s = resolveSigner(ctx);
@@ -432,7 +432,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     /**
      * Play a tile on a train.
      */
-    @Verb(value = GameVocabulary.PLAY, doc = "Play a tile")
+    @Verb(value = GameVocabulary.Play.KEY, doc = "Play a tile")
     public String play(ActionContext ctx,
                        @Param(value = "tile", doc = "Tile ordinal") int tileOrdinal,
                        @Param(value = "train", doc = "Target train name") String train) {
@@ -463,7 +463,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     /**
      * Draw a tile from the boneyard.
      */
-    @Verb(value = GameVocabulary.DRAW, doc = "Draw from boneyard")
+    @Verb(value = GameVocabulary.Draw.KEY, doc = "Draw from boneyard")
     public String draw(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
@@ -480,7 +480,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     /**
      * Pass (marks your train as open).
      */
-    @Verb(value = GameVocabulary.PASS, doc = "Pass your turn")
+    @Verb(value = GameVocabulary.Pass.KEY, doc = "Pass your turn")
     public String pass(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;

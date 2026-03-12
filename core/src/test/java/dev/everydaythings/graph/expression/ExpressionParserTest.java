@@ -87,7 +87,7 @@ class ExpressionParserTest {
     void parseAddition() {
         // 2 + 3 = 5
         Expression expr = ExpressionParser.parse(List.of(
-                lit(2), op(Operator.ADD), lit(3)));
+                lit(2), op(Operator.Add.SEED), lit(3)));
         assertThat(expr).isInstanceOf(BinaryExpression.class);
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(5.0);
     }
@@ -96,7 +96,7 @@ class ExpressionParserTest {
     void parseSubtraction() {
         // 10 - 4 = 6
         Expression expr = ExpressionParser.parse(List.of(
-                lit(10), op(Operator.SUBTRACT), lit(4)));
+                lit(10), op(Operator.Subtract.SEED), lit(4)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(6.0);
     }
 
@@ -104,7 +104,7 @@ class ExpressionParserTest {
     void parseMultiplication() {
         // 3 * 7 = 21
         Expression expr = ExpressionParser.parse(List.of(
-                lit(3), op(Operator.MULTIPLY), lit(7)));
+                lit(3), op(Operator.Multiply.SEED), lit(7)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(21.0);
     }
 
@@ -112,7 +112,7 @@ class ExpressionParserTest {
     void parseDivision() {
         // 15 / 3 = 5
         Expression expr = ExpressionParser.parse(List.of(
-                lit(15), op(Operator.DIVIDE), lit(3)));
+                lit(15), op(Operator.Divide.SEED), lit(3)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(5.0);
     }
 
@@ -120,7 +120,7 @@ class ExpressionParserTest {
     void parsePower() {
         // 2 ^ 10 = 1024
         Expression expr = ExpressionParser.parse(List.of(
-                lit(2), op(Operator.POWER), lit(10)));
+                lit(2), op(Operator.Power.SEED), lit(10)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(1024.0);
     }
 
@@ -132,7 +132,7 @@ class ExpressionParserTest {
     void precedence_multiplyBeforeAdd() {
         // 2 + 3 * 4 = 14 (not 20)
         Expression expr = ExpressionParser.parse(List.of(
-                lit(2), op(Operator.ADD), lit(3), op(Operator.MULTIPLY), lit(4)));
+                lit(2), op(Operator.Add.SEED), lit(3), op(Operator.Multiply.SEED), lit(4)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(14.0);
     }
 
@@ -140,7 +140,7 @@ class ExpressionParserTest {
     void precedence_powerBeforeMultiply() {
         // 2 * 3 ^ 2 = 18 (not 36)
         Expression expr = ExpressionParser.parse(List.of(
-                lit(2), op(Operator.MULTIPLY), lit(3), op(Operator.POWER), lit(2)));
+                lit(2), op(Operator.Multiply.SEED), lit(3), op(Operator.Power.SEED), lit(2)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(18.0);
     }
 
@@ -148,8 +148,8 @@ class ExpressionParserTest {
     void precedence_parenthesesOverride() {
         // (2 + 3) * 4 = 20
         Expression expr = ExpressionParser.parse(List.of(
-                open(), lit(2), op(Operator.ADD), lit(3), close(),
-                op(Operator.MULTIPLY), lit(4)));
+                open(), lit(2), op(Operator.Add.SEED), lit(3), close(),
+                op(Operator.Multiply.SEED), lit(4)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(20.0);
     }
 
@@ -157,7 +157,7 @@ class ExpressionParserTest {
     void associativity_leftForSubtract() {
         // 10 - 3 - 2 = 5 (left-associative: (10-3)-2, not 10-(3-2))
         Expression expr = ExpressionParser.parse(List.of(
-                lit(10), op(Operator.SUBTRACT), lit(3), op(Operator.SUBTRACT), lit(2)));
+                lit(10), op(Operator.Subtract.SEED), lit(3), op(Operator.Subtract.SEED), lit(2)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(5.0);
     }
 
@@ -165,7 +165,7 @@ class ExpressionParserTest {
     void associativity_rightForPower() {
         // 2 ^ 3 ^ 2 = 512 (right-associative: 2^(3^2) = 2^9, not (2^3)^2 = 64)
         Expression expr = ExpressionParser.parse(List.of(
-                lit(2), op(Operator.POWER), lit(3), op(Operator.POWER), lit(2)));
+                lit(2), op(Operator.Power.SEED), lit(3), op(Operator.Power.SEED), lit(2)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(512.0);
     }
 
@@ -177,7 +177,7 @@ class ExpressionParserTest {
     void parseEqual() {
         // 5 == 5 = true
         Expression expr = ExpressionParser.parse(List.of(
-                lit(5), op(Operator.EQUAL), lit(5)));
+                lit(5), op(Operator.Equal.SEED), lit(5)));
         assertThat(expr.evaluate(ctx())).isEqualTo(true);
     }
 
@@ -185,7 +185,7 @@ class ExpressionParserTest {
     void parseLessThan() {
         // 3 < 5 = true
         Expression expr = ExpressionParser.parse(List.of(
-                lit(3), op(Operator.LESS_THAN), lit(5)));
+                lit(3), op(Operator.LessThan.SEED), lit(5)));
         assertThat(expr.evaluate(ctx())).isEqualTo(true);
     }
 
@@ -197,7 +197,7 @@ class ExpressionParserTest {
     void parseAnd() {
         Expression expr = ExpressionParser.parse(List.of(
                 ExpressionToken.LiteralToken.ofBoolean(true),
-                op(Operator.AND),
+                op(Operator.And.SEED),
                 ExpressionToken.LiteralToken.ofBoolean(false)));
         assertThat(expr.evaluate(ctx())).isEqualTo(false);
     }
@@ -206,7 +206,7 @@ class ExpressionParserTest {
     void parseOr() {
         Expression expr = ExpressionParser.parse(List.of(
                 ExpressionToken.LiteralToken.ofBoolean(false),
-                op(Operator.OR),
+                op(Operator.Or.SEED),
                 ExpressionToken.LiteralToken.ofBoolean(true)));
         assertThat(expr.evaluate(ctx())).isEqualTo(true);
     }
@@ -219,7 +219,7 @@ class ExpressionParserTest {
     void parseNegate() {
         // -42 = -42
         Expression expr = ExpressionParser.parse(List.of(
-                op(Operator.NEGATE), lit(42)));
+                op(Operator.Negate.SEED), lit(42)));
         assertThat(expr).isInstanceOf(UnaryExpression.class);
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(-42.0);
     }
@@ -228,7 +228,7 @@ class ExpressionParserTest {
     void parseNot() {
         // !true = false
         Expression expr = ExpressionParser.parse(List.of(
-                op(Operator.NOT), ExpressionToken.LiteralToken.ofBoolean(true)));
+                op(Operator.Not.SEED), ExpressionToken.LiteralToken.ofBoolean(true)));
         assertThat(expr.evaluate(ctx())).isEqualTo(false);
     }
 
@@ -236,7 +236,7 @@ class ExpressionParserTest {
     void negateInExpression() {
         // 5 + -3 = 2
         Expression expr = ExpressionParser.parse(List.of(
-                lit(5), op(Operator.ADD), op(Operator.NEGATE), lit(3)));
+                lit(5), op(Operator.Add.SEED), op(Operator.Negate.SEED), lit(3)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(2.0);
     }
 
@@ -256,7 +256,7 @@ class ExpressionParserTest {
     void parseVariableExpression() {
         // x + y where x=3, y=4
         Expression expr = ExpressionParser.parse(List.of(
-                name("x"), op(Operator.ADD), name("y")));
+                name("x"), op(Operator.Add.SEED), name("y")));
         EvaluationContext evalCtx = ctx("x", 3).withBinding("y", 4);
         assertThat(((Number) expr.evaluate(evalCtx)).doubleValue()).isEqualTo(7.0);
     }
@@ -265,10 +265,10 @@ class ExpressionParserTest {
     void parsePolynomial() {
         // x^2 + 3*x + 1 where x=5 → 25+15+1 = 41
         Expression expr = ExpressionParser.parse(List.of(
-                name("x"), op(Operator.POWER), lit(2),
-                op(Operator.ADD),
-                lit(3), op(Operator.MULTIPLY), name("x"),
-                op(Operator.ADD),
+                name("x"), op(Operator.Power.SEED), lit(2),
+                op(Operator.Add.SEED),
+                lit(3), op(Operator.Multiply.SEED), name("x"),
+                op(Operator.Add.SEED),
                 lit(1)));
         assertThat(((Number) expr.evaluate(ctx("x", 5))).doubleValue()).isEqualTo(41.0);
     }
@@ -294,10 +294,10 @@ class ExpressionParserTest {
     void complexArithmetic() {
         // (2 + 3) * (10 - 4) / 3 = 10
         Expression expr = ExpressionParser.parse(List.of(
-                open(), lit(2), op(Operator.ADD), lit(3), close(),
-                op(Operator.MULTIPLY),
-                open(), lit(10), op(Operator.SUBTRACT), lit(4), close(),
-                op(Operator.DIVIDE),
+                open(), lit(2), op(Operator.Add.SEED), lit(3), close(),
+                op(Operator.Multiply.SEED),
+                open(), lit(10), op(Operator.Subtract.SEED), lit(4), close(),
+                op(Operator.Divide.SEED),
                 lit(3)));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(10.0);
     }
@@ -306,7 +306,7 @@ class ExpressionParserTest {
     void nestedParentheses() {
         // ((2 + 3)) = 5
         Expression expr = ExpressionParser.parse(List.of(
-                open(), open(), lit(2), op(Operator.ADD), lit(3), close(), close()));
+                open(), open(), lit(2), op(Operator.Add.SEED), lit(3), close(), close()));
         assertThat(((Number) expr.evaluate(ctx())).doubleValue()).isEqualTo(5.0);
     }
 
@@ -314,8 +314,8 @@ class ExpressionParserTest {
     void comparisonInExpression() {
         // (3 + 2) == 5 → true
         Expression expr = ExpressionParser.parse(List.of(
-                open(), lit(3), op(Operator.ADD), lit(2), close(),
-                op(Operator.EQUAL), lit(5)));
+                open(), lit(3), op(Operator.Add.SEED), lit(2), close(),
+                op(Operator.Equal.SEED), lit(5)));
         assertThat(expr.evaluate(ctx())).isEqualTo(true);
     }
 
@@ -327,7 +327,7 @@ class ExpressionParserTest {
     void toExpressionString() {
         // 2 + 3 * 4
         Expression expr = ExpressionParser.parse(List.of(
-                lit(2), op(Operator.ADD), lit(3), op(Operator.MULTIPLY), lit(4)));
+                lit(2), op(Operator.Add.SEED), lit(3), op(Operator.Multiply.SEED), lit(4)));
         String str = expr.toExpressionString();
         assertThat(str).contains("+").contains("*");
     }
@@ -339,7 +339,7 @@ class ExpressionParserTest {
     @Test
     void looksLikeExpression_withOperator() {
         assertThat(ExpressionParser.looksLikeExpression(
-                List.of(lit(2), op(Operator.ADD), lit(3)))).isTrue();
+                List.of(lit(2), op(Operator.Add.SEED), lit(3)))).isTrue();
     }
 
     @Test
@@ -368,7 +368,7 @@ class ExpressionParserTest {
     @Test
     void unmatchedParenThrows() {
         assertThatThrownBy(() -> ExpressionParser.parse(List.of(
-                open(), lit(2), op(Operator.ADD), lit(3))))
+                open(), lit(2), op(Operator.Add.SEED), lit(3))))
                 .isInstanceOf(ExpressionParser.ParseException.class);
     }
 

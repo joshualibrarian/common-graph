@@ -20,7 +20,7 @@ import java.util.Objects;
 public final class IpAddress implements Value {
 
     /** Display width: IPv4 is short (15 chars), IPv6 can be long (39 chars) */
-    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(8, 15, 40, Unit.CHARACTER_WIDTH);
+    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(8, 15, 40, Unit.CharacterWidth.SEED);
 
     private final byte[] bytes; // 4 or 16
 

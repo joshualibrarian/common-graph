@@ -241,7 +241,7 @@ public final class Relation implements Signing.Target {
     /**
      * Get the target bound to a specific role.
      *
-     * @param role The role IID (e.g., ThematicRole.THEME.iid())
+     * @param role The role IID (e.g., ThematicRole.Theme.SEED.iid())
      * @return The target, or null if role not filled
      */
     public Target binding(ItemID role) {
@@ -299,11 +299,11 @@ public final class Relation implements Signing.Target {
      * the most common binding (THEME) via the familiar name.
      *
      * @return The THEME binding's ItemID, or null
-     * @deprecated Use {@code bindingId(ThematicRole.THEME.iid())} directly
+     * @deprecated Use {@code bindingId(ThematicRole.Theme.SEED.iid())} directly
      */
     @Deprecated
     public ItemID subject() {
-        // ThematicRole.THEME.iid() — but we don't want to depend on Role here.
+        // ThematicRole.Theme.SEED.iid() — but we don't want to depend on Role here.
         // The canonical key is "cg.role:theme" → deterministic ItemID.
         return bindingId(ItemID.fromString("cg.role:theme"));
     }
@@ -312,7 +312,7 @@ public final class Relation implements Signing.Target {
      * Get the TARGET binding as an object-like accessor.
      *
      * @return The TARGET binding as a Target, or null
-     * @deprecated Use {@code binding(ThematicRole.TARGET.iid())} directly
+     * @deprecated Use {@code binding(ThematicRole.Target.SEED.iid())} directly
      */
     @Deprecated
     public Target object() {

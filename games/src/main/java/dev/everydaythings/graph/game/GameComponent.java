@@ -414,7 +414,7 @@ public abstract class GameComponent<Op> extends Dag<Op> {
      * @param seat optional seat number (null for first available)
      * @return status message
      */
-    @Verb(value = GameVocabulary.JOIN, doc = "Join the game")
+    @Verb(value = GameVocabulary.Join.KEY, doc = "Join the game")
     public String joinVerb(ActionContext ctx,
                            @Param(value = "seat", required = false) Integer seat) {
         ItemID callerId = ctx.caller();
@@ -485,7 +485,7 @@ public abstract class GameComponent<Op> extends Dag<Op> {
      * @param ctx the action context (provides caller identity)
      * @return status message
      */
-    @Verb(value = GameVocabulary.LEAVE, doc = "Leave the game")
+    @Verb(value = GameVocabulary.Leave.KEY, doc = "Leave the game")
     public String leaveVerb(ActionContext ctx) {
         if (isAuthenticated()) {
             ItemID callerId = ctx.caller();

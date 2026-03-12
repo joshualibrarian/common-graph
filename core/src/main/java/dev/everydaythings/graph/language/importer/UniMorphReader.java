@@ -44,31 +44,31 @@ public class UniMorphReader {
     /** UniMorph dimension tag to GrammaticalFeature IID. */
     private static final Map<String, ItemID> TAG_MAP = Map.ofEntries(
             // Tense
-            Map.entry("PST", GrammaticalFeature.PAST.iid()),
-            Map.entry("PRS", GrammaticalFeature.PRESENT.iid()),
-            Map.entry("FUT", GrammaticalFeature.FUTURE.iid()),
+            Map.entry("PST", GrammaticalFeature.Past.SEED.iid()),
+            Map.entry("PRS", GrammaticalFeature.Present.SEED.iid()),
+            Map.entry("FUT", GrammaticalFeature.Future.SEED.iid()),
             // Number
-            Map.entry("SG", GrammaticalFeature.SINGULAR.iid()),
-            Map.entry("PL", GrammaticalFeature.PLURAL.iid()),
+            Map.entry("SG", GrammaticalFeature.Singular.SEED.iid()),
+            Map.entry("PL", GrammaticalFeature.Plural.SEED.iid()),
             // Person
-            Map.entry("1", GrammaticalFeature.FIRST_PERSON.iid()),
-            Map.entry("2", GrammaticalFeature.SECOND_PERSON.iid()),
-            Map.entry("3", GrammaticalFeature.THIRD_PERSON.iid()),
+            Map.entry("1", GrammaticalFeature.FirstPerson.SEED.iid()),
+            Map.entry("2", GrammaticalFeature.SecondPerson.SEED.iid()),
+            Map.entry("3", GrammaticalFeature.ThirdPerson.SEED.iid()),
             // Form
-            Map.entry("V.PTCP", GrammaticalFeature.PARTICIPLE.iid()),
-            Map.entry("V.MSDR", GrammaticalFeature.PARTICIPLE.iid()),  // gerund = participle
-            Map.entry("NFIN", GrammaticalFeature.INFINITIVE.iid()),
+            Map.entry("V.PTCP", GrammaticalFeature.Participle.SEED.iid()),
+            Map.entry("V.MSDR", GrammaticalFeature.Participle.SEED.iid()),  // gerund = participle
+            Map.entry("NFIN", GrammaticalFeature.Infinitive.SEED.iid()),
             // Aspect
-            Map.entry("PROG", GrammaticalFeature.PROGRESSIVE.iid()),
-            Map.entry("PRF", GrammaticalFeature.PERFECT.iid()),
+            Map.entry("PROG", GrammaticalFeature.Progressive.SEED.iid()),
+            Map.entry("PRF", GrammaticalFeature.Perfect.SEED.iid()),
             // Mood
-            Map.entry("IMP", GrammaticalFeature.IMPERATIVE.iid()),
-            Map.entry("SBJV", GrammaticalFeature.SUBJUNCTIVE.iid()),
+            Map.entry("IMP", GrammaticalFeature.Imperative.SEED.iid()),
+            Map.entry("SBJV", GrammaticalFeature.Subjunctive.SEED.iid()),
             // Voice
-            Map.entry("PASS", GrammaticalFeature.PASSIVE.iid()),
+            Map.entry("PASS", GrammaticalFeature.Passive.SEED.iid()),
             // Degree
-            Map.entry("CMPR", GrammaticalFeature.COMPARATIVE.iid()),
-            Map.entry("SPRL", GrammaticalFeature.SUPERLATIVE.iid())
+            Map.entry("CMPR", GrammaticalFeature.Comparative.SEED.iid()),
+            Map.entry("SPRL", GrammaticalFeature.Superlative.SEED.iid())
     );
 
     /** Tags that represent POS (extracted separately, not included in feature set). */

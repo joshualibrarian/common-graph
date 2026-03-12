@@ -10,7 +10,7 @@ import dev.everydaythings.graph.vault.Vault;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.trust.Algorithm;
 import dev.everydaythings.graph.trust.CertLog;
@@ -498,7 +498,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * @param name the new name
      * @return status message describing the rename
      */
-    @Verb(value = Sememe.RENAME, doc = "Rename this signer")
+    @Verb(value = VerbSememe.Rename.KEY, doc = "Rename this signer")
     public String rename(ActionContext ctx,
                          @Param(value = "name", doc = "New name") String name) {
         if (name == null || name.isBlank()) {

@@ -334,7 +334,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
     /**
      * Roll all unheld dice.
      */
-    @Verb(value = GameVocabulary.ROLL, doc = "Roll the dice")
+    @Verb(value = GameVocabulary.Roll.KEY, doc = "Roll the dice")
     public String roll(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (!PHASE_ROLL.equals(phase) && !PHASE_KEEP.equals(phase)) {
@@ -353,7 +353,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
     /**
      * Choose which dice to keep before re-rolling.
      */
-    @Verb(value = GameVocabulary.KEEP, doc = "Choose dice to keep")
+    @Verb(value = GameVocabulary.Keep.KEY, doc = "Choose dice to keep")
     public String keep(ActionContext ctx,
                        @Param(value = "indices", doc = "Dice positions to keep (0-4)") String indicesStr) {
         authorizedSeat(ctx);
@@ -371,7 +371,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
     /**
      * Assign current dice to a scoring category.
      */
-    @Verb(value = GameVocabulary.SCORE, doc = "Score in a category")
+    @Verb(value = GameVocabulary.Score.KEY, doc = "Score in a category")
     public String score(ActionContext ctx,
                         @Param(value = "category", doc = "Scoring category name") String category) {
         int seat = authorizedSeat(ctx);

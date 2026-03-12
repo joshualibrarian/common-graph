@@ -19,7 +19,9 @@ import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -100,7 +102,7 @@ public final class SeedVocabulary {
      * <p>Scans the classpath for {@code @Item.Seed} fields and returns
      * those whose {@link Item#extractTokens()} produces entries. Also scans
      * for {@code @Type} annotated classes. This enables
-     * unit resolution ("ch" &rarr; Unit.CHARACTER_WIDTH) and other seed-based
+     * unit resolution ("ch" &rarr; Unit.CharacterWidth.SEED) and other seed-based
      * lookups through the graph.
      *
      * @return seed Items with extractable tokens
@@ -345,9 +347,9 @@ public final class SeedVocabulary {
 
         // HYPERNYM relation: this type is-a-kind-of ComponentType
         storeRelation(Relation.builder()
-                .predicate(Sememe.HYPERNYM.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(typeId))
-                .bind(ThematicRole.TARGET.iid(), Relation.iid(ItemID.fromString(ComponentType.KEY)))
+                .predicate(VerbSememe.Hypernym.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(typeId))
+                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(ItemID.fromString(ComponentType.KEY)))
                 .build());
     }
 
@@ -359,9 +361,9 @@ public final class SeedVocabulary {
 
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
         storeRelation(Relation.builder()
-                .predicate(Sememe.IMPLEMENTED_BY.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(typeId))
-                .bind(ThematicRole.TARGET.iid(), Literal.ofJavaClass(type))
+                .predicate(VerbSememe.ImplementedBy.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(typeId))
+                .bind(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(type))
                 .build());
     }
 
@@ -525,9 +527,9 @@ public final class SeedVocabulary {
 
     private Relation createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
         Relation relation = Relation.builder()
-                .predicate(Sememe.IMPLEMENTED_BY.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(typeId))
-                .bind(ThematicRole.TARGET.iid(), Literal.ofJavaClass(implementingClass))
+                .predicate(VerbSememe.ImplementedBy.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(typeId))
+                .bind(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(implementingClass))
                 .build();
 
         // Add to item's component table as a relation entry
@@ -544,9 +546,9 @@ public final class SeedVocabulary {
 
     private Relation createTitleRelation(ItemID itemId, String key) {
         return Relation.builder()
-                .predicate(Sememe.TITLE.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(itemId))
-                .bind(ThematicRole.TARGET.iid(), Literal.ofText(key))
+                .predicate(NounSememe.Title.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(itemId))
+                .bind(ThematicRole.Target.SEED.iid(), Literal.ofText(key))
                 .build();
     }
 
@@ -561,9 +563,9 @@ public final class SeedVocabulary {
         if (instanceId.equals(typeId)) return null;
 
         return Relation.builder()
-                .predicate(Sememe.INSTANCE_OF.iid())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(instanceId))
-                .bind(ThematicRole.TARGET.iid(), Relation.iid(typeId))
+                .predicate(VerbSememe.InstanceOf.SEED.iid())
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(instanceId))
+                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(typeId))
                 .build();
     }
 

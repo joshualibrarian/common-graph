@@ -4,7 +4,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.PronounSememe;
 import dev.everydaythings.graph.library.Library;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +20,7 @@ import java.util.stream.Stream;
  * Each position can be:
  * <ul>
  *   <li>{@link Sememe#ANY} - matches anything (wildcard *)</li>
- *   <li>{@link Sememe#WHAT} - the result we're solving for (variable ?)</li>
+ *   <li>{@link PronounSememe.What#SEED} - the result we're solving for (variable ?)</li>
  *   <li>A concrete ItemID - a filter constraint</li>
  * </ul>
  *
@@ -65,8 +65,8 @@ public record PatternExpression(
     private static final Logger log = LogManager.getLogger(PatternExpression.class);
 
     // Convenience references
-    private static final ItemID ANY = Sememe.ANY.iid();
-    private static final ItemID WHAT = Sememe.WHAT.iid();
+    private static final ItemID ANY = PronounSememe.Any.SEED.iid();
+    private static final ItemID WHAT = PronounSememe.What.SEED.iid();
 
     // ==================================================================================
     // Factories

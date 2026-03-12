@@ -25,7 +25,7 @@ import java.util.Optional;
  * </ul>
  *
  * <p>Role keys are {@link ItemID}s referencing {@link ThematicRole} sememes, not enum constants.
- * Use {@code ThematicRole.AGENT.iid()}, {@code ThematicRole.PATIENT.iid()}, etc.
+ * Use {@code ThematicRole.Agent.SEED.iid()}, {@code ThematicRole.Patient.SEED.iid()}, etc.
  *
  * @param verb             The verb sememe driving dispatch (null for non-verb frames)
  * @param bindings         Role sememe IID → bound value (Item or literal)

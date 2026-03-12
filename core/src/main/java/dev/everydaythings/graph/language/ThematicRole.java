@@ -48,150 +48,106 @@ public class ThematicRole extends NounSememe {
     /** The doer or initiator of an action. Usually the signer/caller in dispatch. */
     public static class Agent {
         public static final String KEY = "cg.role:agent";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the doer or initiator of an action"),
-                List.of("agent"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the doer or initiator of an action")
+                .cili("i84938").word(LEMMA, ENG, "agent");
     }
 
     /** The entity affected, produced, or changed by the action. */
     public static class Patient {
         public static final String KEY = "cg.role:patient";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the entity affected or changed by the action"),
-                List.of("patient"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the entity affected or changed by the action")
+                .word(LEMMA, ENG, "patient");
     }
 
     /** The content, topic, or subject matter — what the action is about. */
     public static class Theme {
         public static final String KEY = "cg.role:theme";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the content, topic, or subject matter"),
-                List.of("theme"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the content, topic, or subject matter")
+                .cili("i71142").word(LEMMA, ENG, "theme");
     }
 
     /** Where the result goes — the destination or target location. */
     public static class Target {
         public static final String KEY = "cg.role:target";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the destination or target of the action"),
-                List.of("target"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the destination or target of the action")
+                .cili("i68253").word(LEMMA, ENG, "target");
     }
 
     /** Where something comes from — the origin or source. */
     public static class Source {
         public static final String KEY = "cg.role:source";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the origin or source"),
-                List.of("source"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the origin or source")
+                .cili("i81759").word(LEMMA, ENG, "source");
     }
 
     /** The tool, method, or means used to perform the action. */
     public static class Instrument {
         public static final String KEY = "cg.role:instrument";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the tool or means used"),
-                List.of("instrument"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the tool or means used")
+                .cili("i55129").word(LEMMA, ENG, "instrument");
     }
 
     /** The place where something is or happens. */
     public static class Location {
         public static final String KEY = "cg.role:location";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the place where something is or happens"),
-                List.of("location"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the place where something is or happens")
+                .cili("i35580").word(LEMMA, ENG, "location");
     }
 
     /** The time when something happens. */
     public static class Time {
         public static final String KEY = "cg.role:time";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the time when something happens"),
-                List.of("time"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the time when something happens")
+                .cili("i117493").word(LEMMA, ENG, "time");
     }
 
     /** Who benefits from the action — the recipient or beneficiary. */
     public static class Recipient {
         public static final String KEY = "cg.role:recipient";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the beneficiary or recipient"),
-                List.of("recipient"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the beneficiary or recipient")
+                .cili("i87243").word(LEMMA, ENG, "recipient");
     }
 
     /** The reason or cause of the action. */
     public static class Cause {
         public static final String KEY = "cg.role:cause";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the reason or cause"),
-                List.of("cause"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the reason or cause")
+                .cili("i75195").word(LEMMA, ENG, "cause");
     }
 
     /** A companion or co-participant in the action. */
     public static class Comitative {
         public static final String KEY = "cg.role:comitative";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "a companion or co-participant"),
-                List.of("comitative"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "a companion or co-participant")
+                .word(LEMMA, ENG, "comitative");
     }
 
     /** A name, label, or designation being assigned. */
     public static class Name {
         public static final String KEY = "cg.role:name";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "a name, label, or designation"),
-                List.of("name"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "a name, label, or designation")
+                .cili("i69761").word(LEMMA, ENG, "name");
     }
 
     /** The concept being referred to in a metalinguistic frame. */
     public static class Referent {
         public static final String KEY = "cg.role:referent";
-        @Seed
-        public static final ThematicRole SEED = new ThematicRole(KEY,
-                Map.of("en", "the concept being referred to or expressed"),
-                List.of("referent"));
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the concept being referred to or expressed")
+                .cili("i71160").word(LEMMA, ENG, "referent");
     }
-
-    // ==================================================================================
-    // DEPRECATED ALIASES — backward compatibility
-    // ==================================================================================
-
-    /** @deprecated Use {@link Agent#SEED} */
-    @Deprecated public static final ThematicRole AGENT = Agent.SEED;
-    /** @deprecated Use {@link Patient#SEED} */
-    @Deprecated public static final ThematicRole PATIENT = Patient.SEED;
-    /** @deprecated Use {@link Theme#SEED} */
-    @Deprecated public static final ThematicRole THEME = Theme.SEED;
-    /** @deprecated Use {@link Target#SEED} */
-    @Deprecated public static final ThematicRole TARGET = Target.SEED;
-    /** @deprecated Use {@link Source#SEED} */
-    @Deprecated public static final ThematicRole SOURCE = Source.SEED;
-    /** @deprecated Use {@link Instrument#SEED} */
-    @Deprecated public static final ThematicRole INSTRUMENT = Instrument.SEED;
-    /** @deprecated Use {@link Location#SEED} */
-    @Deprecated public static final ThematicRole LOCATION = Location.SEED;
-    /** @deprecated Use {@link Time#SEED} */
-    @Deprecated public static final ThematicRole TIME = Time.SEED;
-    /** @deprecated Use {@link Recipient#SEED} */
-    @Deprecated public static final ThematicRole RECIPIENT = Recipient.SEED;
-    /** @deprecated Use {@link Cause#SEED} */
-    @Deprecated public static final ThematicRole CAUSE = Cause.SEED;
-    /** @deprecated Use {@link Comitative#SEED} */
-    @Deprecated public static final ThematicRole COMITATIVE = Comitative.SEED;
-    /** @deprecated Use {@link Name#SEED} */
-    @Deprecated public static final ThematicRole NAME = Name.SEED;
-    /** @deprecated Use {@link Referent#SEED} */
-    @Deprecated public static final ThematicRole REFERENT = Referent.SEED;
 
     // ==================================================================================
     // CONSTRUCTORS
@@ -209,9 +165,20 @@ public class ThematicRole extends NounSememe {
         super(librarian, manifest);
     }
 
-    /** Seed constructor. */
+    /** Fluent seed constructor. */
+    public ThematicRole(String canonicalKey) {
+        super(canonicalKey);
+    }
+
+    /** Seed constructor (no sources). */
     public ThematicRole(String canonicalKey, Map<String, String> glosses, List<String> tokens) {
         super(canonicalKey, glosses, Map.of(), tokens);
+    }
+
+    /** Seed constructor (with sources for CILI). */
+    public ThematicRole(String canonicalKey, Map<String, String> glosses,
+                        Map<String, String> sources, List<String> tokens) {
+        super(canonicalKey, glosses, sources, tokens);
     }
 
     /** Runtime constructor (with librarian). */
@@ -219,6 +186,16 @@ public class ThematicRole extends NounSememe {
                    Map<String, String> glosses) {
         super(librarian, canonicalKey, glosses, Map.of());
     }
+
+    // ==================================================================================
+    // COVARIANT OVERRIDES (fluent chaining returns ThematicRole)
+    // ==================================================================================
+
+    @Override public ThematicRole gloss(String lang, String text) { super.gloss(lang, text); return this; }
+    @Override public ThematicRole word(Sememe form, String lang, String surface) { super.word(form, lang, surface); return this; }
+    @Override public ThematicRole cili(String id) { super.cili(id); return this; }
+    @Override public ThematicRole symbol(String s) { super.symbol(s); return this; }
+    @Override public ThematicRole indexWeight(int weight) { super.indexWeight(weight); return this; }
 
     // ==================================================================================
     // LOOKUP

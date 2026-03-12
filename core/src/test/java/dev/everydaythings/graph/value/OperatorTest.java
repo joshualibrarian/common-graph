@@ -4,7 +4,7 @@ import dev.everydaythings.graph.item.component.expression.BinaryExpression;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.component.expression.EvaluationContext;
 import dev.everydaythings.graph.item.component.expression.LiteralExpression;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.mapdb.MapDBItemStore;
 import dev.everydaythings.graph.library.SeedVocabulary;
@@ -21,7 +21,7 @@ class OperatorTest {
 
     private boolean hasImplementedByRelation(ItemStore store, dev.everydaythings.graph.item.id.ItemID typeId) {
         return store.relations()
-                .filter(r -> r.predicate().equals(Sememe.IMPLEMENTED_BY.iid()))
+                .filter(r -> r.predicate().equals(VerbSememe.ImplementedBy.SEED.iid()))
                 .filter(r -> typeId.equals(r.bindingId(dev.everydaythings.graph.item.id.ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .isPresent();
@@ -37,40 +37,40 @@ class OperatorTest {
 
     @Test
     void seedInstancesExist() {
-        assertThat(Operator.AND).isNotNull();
-        assertThat(Operator.OR).isNotNull();
+        assertThat(Operator.And.SEED).isNotNull();
+        assertThat(Operator.Or.SEED).isNotNull();
     }
 
     @Test
     void seedInstancesHaveDeterministicIids() {
         // IIDs derived from canonical key should be stable
-        assertThat(Operator.AND.iid()).isEqualTo(Operator.AND.iid());
-        assertThat(Operator.OR.iid()).isEqualTo(Operator.OR.iid());
+        assertThat(Operator.And.SEED.iid()).isEqualTo(Operator.And.SEED.iid());
+        assertThat(Operator.Or.SEED.iid()).isEqualTo(Operator.Or.SEED.iid());
 
         // Different operators have different IIDs
-        assertThat(Operator.AND.iid()).isNotEqualTo(Operator.OR.iid());
+        assertThat(Operator.And.SEED.iid()).isNotEqualTo(Operator.Or.SEED.iid());
     }
 
     @Test
     void seedInstancesHaveCorrectMetadata() {
         // AND
-        assertThat(Operator.AND.canonicalKey()).isEqualTo("cg.op:and");
-        assertThat(Operator.AND.symbol()).isEqualTo("&&");
-        assertThat(Operator.AND.name()).isEqualTo("and");
-        assertThat(Operator.AND.arity()).isEqualTo(2);
-        assertThat(Operator.AND.precedence()).isEqualTo(1);
+        assertThat(Operator.And.SEED.canonicalKey()).isEqualTo("cg.op:and");
+        assertThat(Operator.And.SEED.symbol()).isEqualTo("&&");
+        assertThat(Operator.And.SEED.name()).isEqualTo("and");
+        assertThat(Operator.And.SEED.arity()).isEqualTo(2);
+        assertThat(Operator.And.SEED.precedence()).isEqualTo(1);
 
         // OR
-        assertThat(Operator.OR.canonicalKey()).isEqualTo("cg.op:or");
-        assertThat(Operator.OR.symbol()).isEqualTo("||");
-        assertThat(Operator.OR.name()).isEqualTo("or");
-        assertThat(Operator.OR.arity()).isEqualTo(2);
-        assertThat(Operator.OR.precedence()).isEqualTo(0);
+        assertThat(Operator.Or.SEED.canonicalKey()).isEqualTo("cg.op:or");
+        assertThat(Operator.Or.SEED.symbol()).isEqualTo("||");
+        assertThat(Operator.Or.SEED.name()).isEqualTo("or");
+        assertThat(Operator.Or.SEED.arity()).isEqualTo(2);
+        assertThat(Operator.Or.SEED.precedence()).isEqualTo(0);
     }
 
     @Test
     void andHasHigherPrecedenceThanOr() {
-        assertThat(Operator.AND.precedence()).isGreaterThan(Operator.OR.precedence());
+        assertThat(Operator.And.SEED.precedence()).isGreaterThan(Operator.Or.SEED.precedence());
     }
 
     // ==================================================================================
@@ -86,8 +86,8 @@ class OperatorTest {
         assertThat(hasImplementedByRelation(store, ItemID.fromString(Operator.KEY))).isTrue();
 
         // Operator seeds should have manifests
-        assertThat(hasManifest(store, Operator.AND.iid())).isTrue();
-        assertThat(hasManifest(store, Operator.OR.iid())).isTrue();
+        assertThat(hasManifest(store, Operator.And.SEED.iid())).isTrue();
+        assertThat(hasManifest(store, Operator.Or.SEED.iid())).isTrue();
     }
 
     @Test
@@ -108,14 +108,14 @@ class OperatorTest {
 
     @Test
     void fromSymbolParsesSymbolicAndVariants() {
-        assertThat(Operator.fromSymbol("&&")).isEqualTo(Operator.AND);
-        assertThat(Operator.fromSymbol("&")).isEqualTo(Operator.AND);
+        assertThat(Operator.fromSymbol("&&")).isEqualTo(Operator.And.SEED);
+        assertThat(Operator.fromSymbol("&")).isEqualTo(Operator.And.SEED);
     }
 
     @Test
     void fromSymbolParsesSymbolicOrVariants() {
-        assertThat(Operator.fromSymbol("||")).isEqualTo(Operator.OR);
-        assertThat(Operator.fromSymbol("|")).isEqualTo(Operator.OR);
+        assertThat(Operator.fromSymbol("||")).isEqualTo(Operator.Or.SEED);
+        assertThat(Operator.fromSymbol("|")).isEqualTo(Operator.Or.SEED);
     }
 
     @Test
@@ -141,8 +141,8 @@ class OperatorTest {
 
     @Test
     void lookupFindsSeeds() {
-        assertThat(Operator.lookup(Operator.AND.iid(), null)).isEqualTo(Operator.AND);
-        assertThat(Operator.lookup(Operator.OR.iid(), null)).isEqualTo(Operator.OR);
+        assertThat(Operator.lookup(Operator.And.SEED.iid(), null)).isEqualTo(Operator.And.SEED);
+        assertThat(Operator.lookup(Operator.Or.SEED.iid(), null)).isEqualTo(Operator.Or.SEED);
     }
 
     // ==================================================================================
@@ -197,7 +197,7 @@ class OperatorTest {
         var right = LiteralExpression.of(true);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.AND.evaluate(left, right, ctx);
+        Object result = Operator.And.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(false);
     }
@@ -208,7 +208,7 @@ class OperatorTest {
         var right = LiteralExpression.of(true);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.AND.evaluate(left, right, ctx);
+        Object result = Operator.And.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(true);
     }
@@ -219,7 +219,7 @@ class OperatorTest {
         var right = LiteralExpression.of(false);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.AND.evaluate(left, right, ctx);
+        Object result = Operator.And.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(false);
     }
@@ -230,7 +230,7 @@ class OperatorTest {
         var right = LiteralExpression.of("hello");  // truthy: non-empty string
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.AND.evaluate(left, right, ctx);
+        Object result = Operator.And.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(true);
     }
@@ -241,7 +241,7 @@ class OperatorTest {
         var right = LiteralExpression.of(true);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.AND.evaluate(left, right, ctx);
+        Object result = Operator.And.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(false);
     }
@@ -256,7 +256,7 @@ class OperatorTest {
         var right = LiteralExpression.of(false);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.OR.evaluate(left, right, ctx);
+        Object result = Operator.Or.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(true);
     }
@@ -267,7 +267,7 @@ class OperatorTest {
         var right = LiteralExpression.of(false);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.OR.evaluate(left, right, ctx);
+        Object result = Operator.Or.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(false);
     }
@@ -278,7 +278,7 @@ class OperatorTest {
         var right = LiteralExpression.of(true);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.OR.evaluate(left, right, ctx);
+        Object result = Operator.Or.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(true);
     }
@@ -289,7 +289,7 @@ class OperatorTest {
         var right = LiteralExpression.of(List.of("a"));  // truthy: non-empty list
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.OR.evaluate(left, right, ctx);
+        Object result = Operator.Or.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(true);
     }
@@ -300,7 +300,7 @@ class OperatorTest {
         var right = LiteralExpression.of(0);  // falsy: zero
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.OR.evaluate(left, right, ctx);
+        Object result = Operator.Or.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(false);
     }
@@ -321,7 +321,7 @@ class OperatorTest {
         var right = LiteralExpression.of(true);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.AND.evaluate(left, right, ctx);
+        Object result = Operator.And.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(false);
     }
@@ -335,7 +335,7 @@ class OperatorTest {
         var right = LiteralExpression.of(false);
         EvaluationContext ctx = new EvaluationContext(null, null);
 
-        Object result = Operator.OR.evaluate(left, right, ctx);
+        Object result = Operator.Or.SEED.evaluate(left, right, ctx);
 
         assertThat(result).isEqualTo(true);
     }
@@ -471,8 +471,8 @@ class OperatorTest {
 
     @Test
     void isShortCircuitReturnsTrueForAndOr() {
-        assertThat(Operator.AND.isShortCircuit()).isTrue();
-        assertThat(Operator.OR.isShortCircuit()).isTrue();
+        assertThat(Operator.And.SEED.isShortCircuit()).isTrue();
+        assertThat(Operator.Or.SEED.isShortCircuit()).isTrue();
     }
 
     // ==================================================================================
@@ -481,8 +481,8 @@ class OperatorTest {
 
     @Test
     void displayTokenReturnsName() {
-        assertThat(Operator.AND.displayToken()).isEqualTo("and");
-        assertThat(Operator.OR.displayToken()).isEqualTo("or");
+        assertThat(Operator.And.SEED.displayToken()).isEqualTo("and");
+        assertThat(Operator.Or.SEED.displayToken()).isEqualTo("or");
     }
 
     // ==================================================================================
@@ -491,8 +491,8 @@ class OperatorTest {
 
     @Test
     void toStringReturnsSymbolAndName() {
-        assertThat(Operator.AND.toString()).isEqualTo("&& (and)");
-        assertThat(Operator.OR.toString()).isEqualTo("|| (or)");
+        assertThat(Operator.And.SEED.toString()).isEqualTo("&& (and)");
+        assertThat(Operator.Or.SEED.toString()).isEqualTo("|| (or)");
     }
 
     // ==================================================================================

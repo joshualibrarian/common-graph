@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.NounSememe;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -102,8 +102,8 @@ public abstract class ItemStoreTest {
     protected Relation testRelation(ItemID subject, ItemID predicate, String literalValue) {
         return Relation.builder()
                 .predicate(predicate)
-                .bind(ThematicRole.THEME.iid(), Relation.iid(subject))
-                .bind(ThematicRole.TARGET.iid(), Literal.ofText(literalValue))
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(subject))
+                .bind(ThematicRole.Target.SEED.iid(), Literal.ofText(literalValue))
                 .build();
     }
 
@@ -113,8 +113,8 @@ public abstract class ItemStoreTest {
     protected Relation testRelation(ItemID subject, ItemID predicate, ItemID object) {
         return Relation.builder()
                 .predicate(predicate)
-                .bind(ThematicRole.THEME.iid(), Relation.iid(subject))
-                .bind(ThematicRole.TARGET.iid(), Relation.iid(object))
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(subject))
+                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(object))
                 .build();
     }
 
@@ -243,7 +243,7 @@ public abstract class ItemStoreTest {
         @DisplayName("persist and retrieve relation")
         void persistAndRetrieveRelation() {
             ItemID subject = testItemID("subject");
-            Relation relation = testRelation(subject, Sememe.TITLE.iid(), "Test Title");
+            Relation relation = testRelation(subject, NounSememe.Title.SEED.iid(), "Test Title");
 
             // Persist
             ContentID cid = store.relation(relation);
@@ -281,8 +281,8 @@ public abstract class ItemStoreTest {
         void persistMultipleRelationsForSubject() {
             ItemID subject = testItemID("multi-relation");
 
-            Relation r1 = testRelation(subject, Sememe.TITLE.iid(), "Title");
-            Relation r2 = testRelation(subject, Sememe.DESCRIPTION.iid(), "Description");
+            Relation r1 = testRelation(subject, NounSememe.Title.SEED.iid(), "Title");
+            Relation r2 = testRelation(subject, NounSememe.Description.SEED.iid(), "Description");
 
             ContentID cid1 = store.relation(r1);
             ContentID cid2 = store.relation(r2);
@@ -302,8 +302,8 @@ public abstract class ItemStoreTest {
         void iterateRelationsForSubject() {
             ItemID subject = testItemID("iterate-rels");
 
-            store.relation(testRelation(subject, Sememe.TITLE.iid(), "Title"));
-            store.relation(testRelation(subject, Sememe.DESCRIPTION.iid(), "Desc"));
+            store.relation(testRelation(subject, NounSememe.Title.SEED.iid(), "Title"));
+            store.relation(testRelation(subject, NounSememe.Description.SEED.iid(), "Desc"));
 
             var relations = store.relations()
                     .filter(r -> subject.equals(r.subject()))
@@ -318,9 +318,9 @@ public abstract class ItemStoreTest {
         @DisplayName("iterate all relations")
         void iterateAllRelations() {
             // Store relations for different subjects
-            store.relation(testRelation(testItemID("s1"), Sememe.TITLE.iid(), "T1"));
-            store.relation(testRelation(testItemID("s2"), Sememe.TITLE.iid(), "T2"));
-            store.relation(testRelation(testItemID("s3"), Sememe.TITLE.iid(), "T3"));
+            store.relation(testRelation(testItemID("s1"), NounSememe.Title.SEED.iid(), "T1"));
+            store.relation(testRelation(testItemID("s2"), NounSememe.Title.SEED.iid(), "T2"));
+            store.relation(testRelation(testItemID("s3"), NounSememe.Title.SEED.iid(), "T3"));
 
             var relations = store.relations().toList();
 
@@ -492,7 +492,7 @@ public abstract class ItemStoreTest {
                 store.persistManifest(iid, m1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Multiple relations
-                Relation r1 = testRelation(iid, Sememe.TITLE.iid(), "Title");
+                Relation r1 = testRelation(iid, NounSememe.Title.SEED.iid(), "Title");
                 store.persistContent(r1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Content

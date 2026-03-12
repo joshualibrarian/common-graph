@@ -91,3 +91,19 @@ dependencies {
     testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
     testFixturesImplementation "org.assertj:assertj-core:${assertjVersion}"
 }
+
+test {
+    useJUnitPlatform {
+        excludeTags 'slow'
+    }
+}
+
+// Run ALL tests including slow ones: ./gradlew :core:testAll
+tasks.register('testAll', Test) {
+    useJUnitPlatform()
+    maxHeapSize = '2g'
+    testLogging {
+        showStandardStreams = true
+    }
+}
+

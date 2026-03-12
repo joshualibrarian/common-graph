@@ -15,7 +15,7 @@ import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.trust.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -519,7 +519,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * @param san Standard Algebraic Notation or UCI (e.g., "e4", "e2e4")
      * @return null on success, error message on failure
      */
-    @Verb(value = GameVocabulary.MOVE, doc = "Make a chess move in SAN notation")
+    @Verb(value = GameVocabulary.Move.KEY, doc = "Make a chess move in SAN notation")
     public String move(ActionContext ctx,
                        @Param(value = "san", doc = "Move in algebraic notation") String san) {
         if (mode == GameMode.ARCHIVE) return "Game is in archive mode — fork to analyze";
@@ -574,7 +574,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * <p>In AUTHENTICATED mode, side is derived from the caller's seat.
      * In ANALYSIS mode, side must be specified (or defaults to side-to-move).
      */
-    @Verb(value = GameVocabulary.RESIGN, doc = "Resign the game")
+    @Verb(value = GameVocabulary.Resign.KEY, doc = "Resign the game")
     public void resign(ActionContext ctx,
                        @Param(value = "side", doc = "Side resigning (WHITE or BLACK)", required = false) Side side) {
         if (mode == GameMode.ARCHIVE) return;
@@ -603,7 +603,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Offer a draw via verb dispatch.
      */
-    @Verb(value = GameVocabulary.OFFER, doc = "Offer a draw")
+    @Verb(value = GameVocabulary.Offer.KEY, doc = "Offer a draw")
     public void offerDraw(ActionContext ctx,
                           @Param(value = "side", doc = "Side offering", required = false) Side side) {
         if (mode == GameMode.ARCHIVE) return;
@@ -632,7 +632,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Accept a draw offer via verb dispatch.
      */
-    @Verb(value = GameVocabulary.ACCEPT, doc = "Accept a draw offer")
+    @Verb(value = GameVocabulary.Accept.KEY, doc = "Accept a draw offer")
     public void acceptDraw(ActionContext ctx,
                            @Param(value = "side", doc = "Side accepting", required = false) Side side) {
         if (mode == GameMode.ARCHIVE) return;
@@ -661,7 +661,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Decline a draw offer via verb dispatch.
      */
-    @Verb(value = GameVocabulary.DECLINE, doc = "Decline a draw offer")
+    @Verb(value = GameVocabulary.Decline.KEY, doc = "Decline a draw offer")
     public void declineDraw(ActionContext ctx,
                             @Param(value = "side", doc = "Side declining", required = false) Side side) {
         if (mode == GameMode.ARCHIVE) return;
@@ -690,7 +690,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Get all legal moves in the current position.
      */
-    @Verb(value = Sememe.LIST, doc = "List legal moves")
+    @Verb(value = VerbSememe.ListVerb.KEY, doc = "List legal moves")
     public List<String> legalMoves() {
         List<Move> moves = chessBoard.legalMoves();
         List<String> result = new ArrayList<>(moves.size());
@@ -718,7 +718,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * @param squareId The square clicked (e.g., "e2")
      * @return status message or null on success
      */
-    @Verb(value = GameVocabulary.SELECT, doc = "Select a piece to move")
+    @Verb(value = GameVocabulary.Select.KEY, doc = "Select a piece to move")
     public String select(@Param(value = "square", doc = "Square to select") String squareId) {
         if (isGameOver()) return "Game is over";
 
@@ -761,7 +761,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * @param squareId The target square
      * @return status message or null on success
      */
-    @Verb(value = GameVocabulary.PLACE, doc = "Place selected piece on target")
+    @Verb(value = GameVocabulary.Place.KEY, doc = "Place selected piece on target")
     public String place(@Param(value = "square", doc = "Target square") String squareId) {
         if (selectedSquare == null) return "No piece selected";
         if (!legalTargets.contains(squareId)) return "Not a legal target";
@@ -924,7 +924,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Describe the current game status as a single string.
      */
-    @Verb(value = Sememe.DESCRIBE, doc = "Describe game status")
+    @Verb(value = VerbSememe.Describe.KEY, doc = "Describe game status")
     public String describeStatus() {
         return sideToMove() + " to move | Move " + fullMoveNumber()
                 + " | " + result() + (isCheck() ? " | CHECK" : "");
@@ -948,7 +948,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * @param spec Time control specification
      * @return status message
      */
-    @Verb(value = Sememe.PUT, doc = "Set time control (e.g., '5+3')")
+    @Verb(value = VerbSememe.Put.KEY, doc = "Set time control (e.g., '5+3')")
     public String setClock(@Param(value = "spec", doc = "Time spec like '5+3' or 'off'") String spec) {
         if ("off".equalsIgnoreCase(spec)) {
             clock = null;
@@ -1277,7 +1277,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Render the board as Unicode text (for CLI and toString).
      */
-    @Verb(value = Sememe.SHOW, doc = "Show the chess board")
+    @Verb(value = VerbSememe.Show.KEY, doc = "Show the chess board")
     public String renderBoard() {
         BoardState<ChessPiece> boardState = state();
         StringBuilder sb = new StringBuilder();

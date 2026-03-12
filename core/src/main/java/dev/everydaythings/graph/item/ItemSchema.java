@@ -247,8 +247,8 @@ public class ItemSchema {
 
         return Relation.builder()
                 .predicate(spec.predicate())
-                .bind(ThematicRole.THEME.iid(), Relation.iid(item.iid()))
-                .bind(ThematicRole.TARGET.iid(), targetValue)
+                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(item.iid()))
+                .bind(ThematicRole.Target.SEED.iid(), targetValue)
                 .build();
     }
 

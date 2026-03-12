@@ -10,7 +10,7 @@ import dev.everydaythings.graph.item.VerbSpec;
 import dev.everydaythings.graph.item.action.ActionContext;
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.View;
@@ -566,16 +566,16 @@ class ChessTest {
                 .collect(Collectors.toSet());
 
         assertThat(ids).contains(
-                ItemID.fromString(GameVocabulary.MOVE),
-                ItemID.fromString(GameVocabulary.RESIGN),
-                ItemID.fromString(GameVocabulary.OFFER),
-                ItemID.fromString(GameVocabulary.ACCEPT),
-                ItemID.fromString(GameVocabulary.DECLINE),
-                ItemID.fromString(Sememe.SHOW),
-                ItemID.fromString(Sememe.LIST),
-                ItemID.fromString(Sememe.DESCRIBE),
-                ItemID.fromString(GameVocabulary.SELECT),
-                ItemID.fromString(GameVocabulary.PLACE)
+                ItemID.fromString(GameVocabulary.Move.KEY),
+                ItemID.fromString(GameVocabulary.Resign.KEY),
+                ItemID.fromString(GameVocabulary.Offer.KEY),
+                ItemID.fromString(GameVocabulary.Accept.KEY),
+                ItemID.fromString(GameVocabulary.Decline.KEY),
+                ItemID.fromString(VerbSememe.Show.KEY),
+                ItemID.fromString(VerbSememe.ListVerb.KEY),
+                ItemID.fromString(VerbSememe.Describe.KEY),
+                ItemID.fromString(GameVocabulary.Select.KEY),
+                ItemID.fromString(GameVocabulary.Place.KEY)
         );
     }
 

@@ -1,14 +1,10 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.language.AdjectiveSememe;
-import dev.everydaythings.graph.language.NounSememe;
-import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.trust.SigningPublicKey;
 
@@ -17,7 +13,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Represents the physical/virtual host machine.
@@ -38,66 +33,6 @@ public class Host extends Signer {
 
     public static final String KEY = "cg:type/host";
 
-    // ==================================================================================
-    // SEMEMES USED BY HOST (defined where they're used)
-    // ==================================================================================
-
-    /** Predicate: network address where something can be reached */
-    @Seed
-    public static final AdjectiveSememe REACHABLE_AT = new AdjectiveSememe(
-            "cg.core:reachable-at",
-            Map.of("en", "be in or establish communication with"),
-            Map.of("cili", "i25412")
-    );
-
-    /** Predicate: location where something is available */
-    @Seed
-    public static final NounSememe AVAILABLE_AT = new NounSememe(
-            "cg.core:available-at",
-            Map.of("en", "be located or situated somewhere; occupy a certain position"),
-            Map.of("cili", "i35108")
-    );
-
-    /** Predicate: bidirectional peer adjacency between librarians */
-    @Seed
-    public static final VerbSememe PEERS_WITH = new VerbSememe(
-            "cg.core:peers-with",
-            Map.of("en", "be connected to as a network peer"),
-            Map.of("cili", "i34787")
-    );
-
-    /** Predicate: hostname or name */
-    @Seed
-    @SuppressWarnings("unchecked")
-    public static final NounSememe NAME = ((NounSememe) new NounSememe(
-            "cg.core:name",
-            Map.of("en", "a word or phrase that identifies something"),
-            Map.of("cili", "i69761")
-    ).indexWeight(1000));
-
-    /** Predicate: acknowledges a successful delivery from a peer */
-    @Seed
-    public static final VerbSememe ACKNOWLEDGES_DELIVERY = new VerbSememe(
-            "cg.trust:acknowledges-delivery",
-            Map.of("en", "acknowledge receipt of a successful delivery"),
-            Map.of("cili", "i26081")
-    );
-
-    /** Predicate: acknowledges successful relay forwarding by a peer */
-    @Seed
-    public static final VerbSememe ACKNOWLEDGES_RELAY = new VerbSememe(
-            "cg.trust:acknowledges-relay",
-            Map.of("en", "pass along; relay a message through an intermediary"),
-            Map.of("cili", "i25411")
-    );
-
-    /** Qualifier: request identifier for an acknowledgement */
-    @Seed
-    public static final NounSememe REQUEST_ID = new NounSememe(
-            "cg.trust:request-id",
-            Map.of("en", "identifier of the request being acknowledged"),
-            Map.of("cili", "i74891")
-    );
 
     // ==================================================================================
     // INSTANCE FIELDS

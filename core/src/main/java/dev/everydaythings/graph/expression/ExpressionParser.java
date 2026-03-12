@@ -212,7 +212,7 @@ public class ExpressionParser {
             // operator, treat as implicit multiply: 5m → 5 * m, 2(x+1) → 2*(x+1)
             if (JUXTAPOSITION_PREC >= minPrec && canStartPrefix(token)) {
                 Expression right = parseExpression(JUXTAPOSITION_PREC + 1);
-                left = new BinaryExpression(left, Operator.MULTIPLY.iid(), right);
+                left = new BinaryExpression(left, Operator.Multiply.SEED.iid(), right);
                 continue;
             }
 
@@ -406,10 +406,10 @@ public class ExpressionParser {
      */
     private Expression createUnaryExpression(Operator op, Expression operand) {
         // Map to the existing UnaryExpression enum for now
-        if (op.iid().equals(Operator.NEGATE.iid())) {
+        if (op.iid().equals(Operator.Negate.SEED.iid())) {
             return UnaryExpression.negate(operand);
         }
-        if (op.iid().equals(Operator.NOT.iid())) {
+        if (op.iid().equals(Operator.Not.SEED.iid())) {
             return UnaryExpression.not(operand);
         }
         // For other prefix operators, wrap as binary with a null/identity left

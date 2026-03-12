@@ -27,11 +27,11 @@ public record BinaryExpression(
     // ==================================================================================
 
     public static BinaryExpression and(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.AND.iid(), right);
+        return new BinaryExpression(left, Operator.And.SEED.iid(), right);
     }
 
     public static BinaryExpression or(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.OR.iid(), right);
+        return new BinaryExpression(left, Operator.Or.SEED.iid(), right);
     }
 
     // ==================================================================================
@@ -39,27 +39,27 @@ public record BinaryExpression(
     // ==================================================================================
 
     public static BinaryExpression add(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.ADD.iid(), right);
+        return new BinaryExpression(left, Operator.Add.SEED.iid(), right);
     }
 
     public static BinaryExpression subtract(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.SUBTRACT.iid(), right);
+        return new BinaryExpression(left, Operator.Subtract.SEED.iid(), right);
     }
 
     public static BinaryExpression multiply(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.MULTIPLY.iid(), right);
+        return new BinaryExpression(left, Operator.Multiply.SEED.iid(), right);
     }
 
     public static BinaryExpression divide(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.DIVIDE.iid(), right);
+        return new BinaryExpression(left, Operator.Divide.SEED.iid(), right);
     }
 
     public static BinaryExpression modulo(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.MODULO.iid(), right);
+        return new BinaryExpression(left, Operator.Modulo.SEED.iid(), right);
     }
 
     public static BinaryExpression power(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.POWER.iid(), right);
+        return new BinaryExpression(left, Operator.Power.SEED.iid(), right);
     }
 
     // ==================================================================================
@@ -67,27 +67,27 @@ public record BinaryExpression(
     // ==================================================================================
 
     public static BinaryExpression equal(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.EQUAL.iid(), right);
+        return new BinaryExpression(left, Operator.Equal.SEED.iid(), right);
     }
 
     public static BinaryExpression notEqual(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.NOT_EQUAL.iid(), right);
+        return new BinaryExpression(left, Operator.NotEqual.SEED.iid(), right);
     }
 
     public static BinaryExpression lessThan(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.LESS_THAN.iid(), right);
+        return new BinaryExpression(left, Operator.LessThan.SEED.iid(), right);
     }
 
     public static BinaryExpression greaterThan(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.GREATER_THAN.iid(), right);
+        return new BinaryExpression(left, Operator.GreaterThan.SEED.iid(), right);
     }
 
     public static BinaryExpression lessOrEqual(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.LESS_OR_EQUAL.iid(), right);
+        return new BinaryExpression(left, Operator.LessOrEqual.SEED.iid(), right);
     }
 
     public static BinaryExpression greaterOrEqual(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.GREATER_OR_EQUAL.iid(), right);
+        return new BinaryExpression(left, Operator.GreaterOrEqual.SEED.iid(), right);
     }
 
     // ==================================================================================
@@ -95,7 +95,7 @@ public record BinaryExpression(
     // ==================================================================================
 
     public static BinaryExpression concat(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.CONCAT.iid(), right);
+        return new BinaryExpression(left, Operator.Concat.SEED.iid(), right);
     }
 
     // ==================================================================================
@@ -103,11 +103,11 @@ public record BinaryExpression(
     // ==================================================================================
 
     public static BinaryExpression assign(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.ASSIGN.iid(), right);
+        return new BinaryExpression(left, Operator.Assign.SEED.iid(), right);
     }
 
     public static BinaryExpression pipe(Expression left, Expression right) {
-        return new BinaryExpression(left, Operator.PIPE.iid(), right);
+        return new BinaryExpression(left, Operator.Pipe.SEED.iid(), right);
     }
 
     // ==================================================================================
@@ -150,11 +150,11 @@ public record BinaryExpression(
     }
 
     public boolean isAnd() {
-        return operatorId.equals(Operator.AND.iid());
+        return operatorId.equals(Operator.And.SEED.iid());
     }
 
     public boolean isOr() {
-        return operatorId.equals(Operator.OR.iid());
+        return operatorId.equals(Operator.Or.SEED.iid());
     }
 
     @Override
