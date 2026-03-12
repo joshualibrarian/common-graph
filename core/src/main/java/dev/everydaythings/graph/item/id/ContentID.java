@@ -2,7 +2,7 @@ package dev.everydaythings.graph.item.id;
 
 import dev.everydaythings.graph.Hash;
 
-public final class ContentID extends HashID implements BlockID {
+public final class ContentID extends HashID {
     public static final String CONTENT_PREFIX = "\\";
     public static final String PREFIX = CONTENT_PREFIX;
 

@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.relation.Relation;
-import dev.everydaythings.graph.language.Role;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.Sememe;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
@@ -102,8 +102,8 @@ public abstract class ItemStoreTest {
     protected Relation testRelation(ItemID subject, ItemID predicate, String literalValue) {
         return Relation.builder()
                 .predicate(predicate)
-                .bind(Role.THEME.iid(), Relation.iid(subject))
-                .bind(Role.TARGET.iid(), Literal.ofText(literalValue))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(subject))
+                .bind(ThematicRole.TARGET.iid(), Literal.ofText(literalValue))
                 .build();
     }
 
@@ -113,8 +113,8 @@ public abstract class ItemStoreTest {
     protected Relation testRelation(ItemID subject, ItemID predicate, ItemID object) {
         return Relation.builder()
                 .predicate(predicate)
-                .bind(Role.THEME.iid(), Relation.iid(subject))
-                .bind(Role.TARGET.iid(), Relation.iid(object))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(subject))
+                .bind(ThematicRole.TARGET.iid(), Relation.iid(object))
                 .build();
     }
 

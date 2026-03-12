@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.language.Role;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
@@ -1543,8 +1543,8 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         Relation relation = Relation.builder()
                 .predicate(predicate)
-                .bind(Role.THEME.iid(), Relation.iid(iid))
-                .bind(Role.TARGET.iid(), target)
+                .bind(ThematicRole.THEME.iid(), Relation.iid(iid))
+                .bind(ThematicRole.TARGET.iid(), target)
                 .build();
 
         // Sign if we have a signer
@@ -2507,7 +2507,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * Start building a relation with this item as THEME.
      */
     public Relation.RelationBuilder relate() {
-        return Relation.builder().bind(Role.THEME.iid(), Relation.iid(iid));
+        return Relation.builder().bind(ThematicRole.THEME.iid(), Relation.iid(iid));
     }
 
     /**

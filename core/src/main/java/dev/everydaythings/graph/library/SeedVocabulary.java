@@ -18,7 +18,7 @@ import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.Role;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import io.github.classgraph.ClassGraph;
@@ -346,8 +346,8 @@ public final class SeedVocabulary {
         // HYPERNYM relation: this type is-a-kind-of ComponentType
         storeRelation(Relation.builder()
                 .predicate(Sememe.HYPERNYM.iid())
-                .bind(Role.THEME.iid(), Relation.iid(typeId))
-                .bind(Role.TARGET.iid(), Relation.iid(ItemID.fromString(ComponentType.KEY)))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(typeId))
+                .bind(ThematicRole.TARGET.iid(), Relation.iid(ItemID.fromString(ComponentType.KEY)))
                 .build());
     }
 
@@ -360,8 +360,8 @@ public final class SeedVocabulary {
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
         storeRelation(Relation.builder()
                 .predicate(Sememe.IMPLEMENTED_BY.iid())
-                .bind(Role.THEME.iid(), Relation.iid(typeId))
-                .bind(Role.TARGET.iid(), Literal.ofJavaClass(type))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(typeId))
+                .bind(ThematicRole.TARGET.iid(), Literal.ofJavaClass(type))
                 .build());
     }
 
@@ -526,8 +526,8 @@ public final class SeedVocabulary {
     private Relation createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
         Relation relation = Relation.builder()
                 .predicate(Sememe.IMPLEMENTED_BY.iid())
-                .bind(Role.THEME.iid(), Relation.iid(typeId))
-                .bind(Role.TARGET.iid(), Literal.ofJavaClass(implementingClass))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(typeId))
+                .bind(ThematicRole.TARGET.iid(), Literal.ofJavaClass(implementingClass))
                 .build();
 
         // Add to item's component table as a relation entry
@@ -545,8 +545,8 @@ public final class SeedVocabulary {
     private Relation createTitleRelation(ItemID itemId, String key) {
         return Relation.builder()
                 .predicate(Sememe.TITLE.iid())
-                .bind(Role.THEME.iid(), Relation.iid(itemId))
-                .bind(Role.TARGET.iid(), Literal.ofText(key))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(itemId))
+                .bind(ThematicRole.TARGET.iid(), Literal.ofText(key))
                 .build();
     }
 
@@ -562,8 +562,8 @@ public final class SeedVocabulary {
 
         return Relation.builder()
                 .predicate(Sememe.INSTANCE_OF.iid())
-                .bind(Role.THEME.iid(), Relation.iid(instanceId))
-                .bind(Role.TARGET.iid(), Relation.iid(typeId))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(instanceId))
+                .bind(ThematicRole.TARGET.iid(), Relation.iid(typeId))
                 .build();
     }
 

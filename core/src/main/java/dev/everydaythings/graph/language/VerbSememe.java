@@ -5,7 +5,6 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
-import lombok.Getter;
 
 import java.util.List;
 import java.util.Map;
@@ -16,9 +15,8 @@ import java.util.Map;
  * <p>Verbs are the primary dispatch targets in the evaluator. They declare
  * what actions are available on items. Examples: create, get, move, resign.
  *
- * <p>Each verb carries an argument structure ({@link #arguments()}) describing
- * what thematic roles it expects. This is the verb's valency frame — the
- * semantic slots that must or may be filled by the user's expression.
+ * <p>Each verb declares its expected roles via {@link #slot(String)} or
+ * {@link #slot(Sememe)}, populating the transient {@link #slots()} list.
  * The assembler matches preposition-tagged and bare-noun arguments against
  * these slots to build a SemanticFrame.
  */
@@ -26,34 +24,6 @@ import java.util.Map;
 public final class VerbSememe extends Sememe {
 
     public static final String KEY = "cg:type/verb-sememe";
-
-    // ==================================================================================
-    // ARGUMENT STRUCTURE
-    // ==================================================================================
-
-    /**
-     * The verb's argument slots (valency frame).
-     *
-     * <p>Describes what thematic roles this verb expects. For example,
-     * CREATE has optional THEME ("what to create") and optional TARGET
-     * ("where to place the result").
-     *
-     * <p>Empty for relation verbs (HYPERNYM, etc.) which are predicates,
-     * not user-facing actions.
-     */
-    @Frame
-    private List<ArgumentSlot> arguments;
-
-    /**
-     * Returns the argument slots, never null.
-     *
-     * <p>The field is left uninitialized to avoid overwriting hydrated values
-     * (Java field initializers run after super constructors). This getter
-     * provides a null-safe view.
-     */
-    public List<ArgumentSlot> arguments() {
-        return arguments != null ? arguments : List.of();
-    }
 
     // ==================================================================================
     // CONSTRUCTORS
@@ -69,6 +39,11 @@ public final class VerbSememe extends Sememe {
     @SuppressWarnings("unused")
     protected VerbSememe(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
+    }
+
+    /** Fluent seed constructor — use with chained .gloss(), .token(), .cili(), etc. */
+    public VerbSememe(String canonicalKey) {
+        super(canonicalKey, PartOfSpeech.VERB);
     }
 
     /** Seed constructor (no tokens). */
@@ -98,17 +73,30 @@ public final class VerbSememe extends Sememe {
     }
 
     // ==================================================================================
-    // FLUENT CONFIGURATION
+    // SLOT ROLES
     // ==================================================================================
 
     /**
-     * Set the argument slots for this verb (fluent builder for seed declarations).
+     * Returns the role IIDs this verb expects as arguments (null-safe).
      *
-     * @param slots The argument slots defining this verb's valency frame
-     * @return this (for chaining)
+     * <p>Derived from the transient {@link #slots()} field populated during
+     * seed construction. Since all verbs with slots are seeds (code-defined),
+     * transient-only is fine — no persistence needed.
      */
-    public VerbSememe withArguments(ArgumentSlot... slots) {
-        this.arguments = List.of(slots);
-        return this;
+    public List<ItemID> slotRoles() {
+        List<ItemID> s = slots();
+        return s != null ? s : List.of();
     }
+
+    // ==================================================================================
+    // COVARIANT OVERRIDES (fluent chaining returns VerbSememe)
+    // ==================================================================================
+
+    @Override public VerbSememe gloss(String lang, String text) { super.gloss(lang, text); return this; }
+    @Override public VerbSememe word(Sememe form, String lang, String surface) { super.word(form, lang, surface); return this; }
+    @Override public VerbSememe cili(String id) { super.cili(id); return this; }
+    @Override public VerbSememe symbol(String s) { super.symbol(s); return this; }
+    @Override public VerbSememe slot(Sememe role) { super.slot(role); return this; }
+    @Override public VerbSememe slot(String roleKey) { super.slot(roleKey); return this; }
+    @Override public VerbSememe indexWeight(int weight) { super.indexWeight(weight); return this; }
 }

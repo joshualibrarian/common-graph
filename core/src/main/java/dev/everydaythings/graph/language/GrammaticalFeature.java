@@ -33,6 +33,17 @@ public class GrammaticalFeature extends NounSememe {
     public static final String KEY = "cg:type/grammatical-feature";
 
     // ==================================================================================
+    // BASE FORM
+    // ==================================================================================
+
+    @Seed
+    public static final GrammaticalFeature LEMMA = new GrammaticalFeature(
+            "cg.feat:lemma",
+            Map.of("en", "the base or dictionary form of a word"),
+            List.of("lemma")
+    );
+
+    // ==================================================================================
     // TENSE
     // ==================================================================================
 

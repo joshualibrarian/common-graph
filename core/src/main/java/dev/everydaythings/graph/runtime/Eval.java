@@ -20,10 +20,9 @@ import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.PronounSememe;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.ArgumentSlot;
 import dev.everydaythings.graph.language.SemanticFrame;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.Role;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.VerbSememe;
 import lombok.extern.log4j.Log4j2;
 import org.jline.reader.*;
@@ -740,7 +739,7 @@ public class Eval {
         // 2. Bound items from the frame (explicit user intent)
         if (target == null) {
             for (var entry : frame.bindings().entrySet()) {
-                if (entry.getKey().equals(Role.TARGET.iid())) continue;
+                if (entry.getKey().equals(ThematicRole.TARGET.iid())) continue;
                 if (!(entry.getValue() instanceof Item item)) continue;
                 if (item.vocabulary().lookup(verbId).isPresent()) {
                     target = item;
@@ -788,7 +787,7 @@ public class Eval {
         EvalResult result = dispatchVerbForResult(target, verbId, frame);
 
         // 3. Wrap with TARGET if present (only for Item targets)
-        Optional<Item> prepTarget = frame.itemBinding(Role.TARGET.iid());
+        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.TARGET.iid());
         if (prepTarget.isPresent() && result instanceof EvalResult.Value(Object value)) {
             return EvalResult.valueWithTarget(value, prepTarget.get());
         }
@@ -1041,7 +1040,7 @@ public class Eval {
         // Build bindings: exclude TARGET role and the dispatch target itself
         Map<ItemID, Object> bindings = new LinkedHashMap<>();
         for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey().equals(Role.TARGET.iid())) continue;
+            if (entry.getKey().equals(ThematicRole.TARGET.iid())) continue;
             Object value = entry.getValue();
             if (value instanceof Item item && item.iid().equals(target.iid())) continue;
             bindings.put(entry.getKey(), value);
@@ -1059,12 +1058,6 @@ public class Eval {
 
         // Second pass: match unmatched literals to verb params by role
         bindLiteralsToParams(verb, bindings, overflow);
-
-        // Validate type constraints from the verb's argument slots
-        String typeError = validateTypeConstraints(frame.verb(), bindings);
-        if (typeError != null) {
-            return EvalResult.error(typeError);
-        }
 
         Item principalItem = librarianHandle.principal().orElse(null);
         Signer principal = principalItem instanceof Signer s ? s : null;
@@ -1094,34 +1087,6 @@ public class Eval {
         }
     }
 
-    /**
-     * Validate type constraints from the verb's argument slots against bound values.
-     *
-     * @return Error message if a constraint is violated, null if all pass
-     */
-    private String validateTypeConstraints(VerbSememe verb, Map<ItemID, Object> bindings) {
-        for (ArgumentSlot slot : verb.arguments()) {
-            if (slot.typeConstraint() == null) continue;
-
-            Object value = bindings.get(slot.role());
-            if (value == null) continue;
-
-            if (value instanceof Item item) {
-                // Check if the item's type matches the constraint
-                ItemID requiredType = slot.typeConstraint();
-                ItemID actualType = Components.typeId(item.getClass());
-                if (actualType != null && !actualType.equals(requiredType)) {
-                    // Look up type names for a helpful message
-                    String requiredName = librarianHandle.get(requiredType)
-                            .map(Item::displayToken).orElse(requiredType.encodeText());
-                    String actualName = item.displayToken();
-                    return "Expected " + requiredName + " for " + slot.role()
-                            + ", got " + actualName;
-                }
-            }
-        }
-        return null;
-    }
 
     /**
      * Match overflow literals to verb parameters by role.
@@ -1142,7 +1107,7 @@ public class Eval {
             if (param.role() == null) continue;
             ItemID roleId;
             try {
-                roleId = ThematicRole.valueOf(param.role()).iid();
+                roleId = ThematicRole.fromName(param.role()).iid();
             } catch (IllegalArgumentException e) {
                 continue;
             }

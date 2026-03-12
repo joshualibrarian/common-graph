@@ -2,7 +2,7 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.importer.EnglishImporter;
+import dev.everydaythings.graph.language.importer.LanguageImporter;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -92,7 +92,7 @@ public class EnglishTest extends LanguageTest {
         void generateWithLimitCreatesSememesAndLexemes() {
             english().generate(librarian, 100);  // Only 100 synsets
 
-            EnglishImporter.ImportStats stats = english().stats();
+            LanguageImporter.ImportStats stats = english().stats();
             assertThat(stats)
                     .as("Import stats")
                     .isNotNull();
@@ -107,7 +107,7 @@ public class EnglishTest extends LanguageTest {
 
             assertThat(stats.source())
                     .as("Import source")
-                    .isEqualTo("oewn2025");
+                    .isEqualTo("oewn");
 
             System.out.println("Generated:");
             System.out.println("  Synsets (Sememes): " + stats.synsetCount());
@@ -135,7 +135,7 @@ public class EnglishTest extends LanguageTest {
         void generateCreatesSemanticRelations() {
             english().generate(librarian, 100);
 
-            EnglishImporter.ImportStats stats = english().stats();
+            LanguageImporter.ImportStats stats = english().stats();
             // Should have some relations (hypernym, hyponym, etc.)
             // Note: with small limit, not all synsets will have targets in our set
             assertThat(stats.relationCount())
@@ -206,7 +206,7 @@ public class EnglishTest extends LanguageTest {
          void fullWordNetGenerationSucceeds() {
              english().generate(librarian);  // Full generation
 
-             EnglishImporter.ImportStats stats = english().stats();
+             LanguageImporter.ImportStats stats = english().stats();
              System.out.println("FULL GENERATION:");
              System.out.println("  Synsets (Sememes): " + stats.synsetCount());
              System.out.println("  Lexemes: " + stats.lexemeCount());

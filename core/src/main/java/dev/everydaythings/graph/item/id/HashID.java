@@ -271,7 +271,6 @@ public abstract class HashID implements Canonical {
     @AllArgsConstructor
     public enum IdType {
         MANIFEST ('@', ContentID.class),
-        RELATION ('#', RelationID.class),
         CONTENT ('\\', ContentID.class),
         CHUNK ('!', HashID.class),
         BUNDLE ('^', HashID.class);

@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.game;
 
 import dev.everydaythings.graph.item.Item.Seed;
-import dev.everydaythings.graph.language.ArgumentSlot;
-import dev.everydaythings.graph.language.Role;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.VerbSememe;
 
 import java.util.List;
@@ -35,10 +34,8 @@ public final class GameVocabulary {
             Map.of("en", "cause to move or shift into a new position or place"),
             Map.of("cili", "i30960"),
             List.of("move", "play", "go")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "what to move"),
-            ArgumentSlot.optional(Role.TARGET.iid(), "where to move it")
-    );
+    ).slot(ThematicRole.Theme.KEY)
+     .slot(ThematicRole.Target.KEY);
 
     public static final String RESIGN = "cg.verb:resign";
 
@@ -88,9 +85,7 @@ public final class GameVocabulary {
             Map.of("en", "choose or pick something from available options"),
             Map.of("cili", "i30780"),
             List.of("select", "pick", "choose")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "what to select")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String PLACE = "cg.verb:place";
 
@@ -100,9 +95,7 @@ public final class GameVocabulary {
             Map.of("en", "put something at a specific position or location"),
             Map.of("cili", "i33107"),
             List.of("place", "drop", "put-down")
-    ).withArguments(
-            ArgumentSlot.required(Role.TARGET.iid(), "where to place it")
-    );
+    ).slot(ThematicRole.Target.KEY);
 
     // ==================================================================================
     // Multiplayer verbs
@@ -116,9 +109,7 @@ public final class GameVocabulary {
             Map.of("en", "become a participant in"),
             Map.of("cili", "i28912"),
             List.of("join", "sit")
-    ).withArguments(
-            ArgumentSlot.optional(Role.TARGET.iid(), "seat number")
-    );
+    ).slot(ThematicRole.Target.KEY);
 
     public static final String LEAVE = "cg.verb:leave";
 
@@ -152,9 +143,7 @@ public final class GameVocabulary {
             Map.of("en", "retain selected items while discarding or re-rolling others"),
             Map.of("cili", "i33367"),
             List.of("keep", "hold", "retain")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "which items to keep")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String SCORE = "cg.verb:score";
 
@@ -164,9 +153,7 @@ public final class GameVocabulary {
             Map.of("en", "assign a result to a scoring category or tally points"),
             Map.of("cili", "i35455"),
             List.of("score")
-    ).withArguments(
-            ArgumentSlot.required(Role.TARGET.iid(), "which category to score in")
-    );
+    ).slot(ThematicRole.Target.KEY);
 
     // ==================================================================================
     // Card/betting game verbs
@@ -180,9 +167,7 @@ public final class GameVocabulary {
             Map.of("en", "stake money or chips on an uncertain outcome"),
             Map.of("cili", "i33273"),
             List.of("bet", "wager")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "amount to bet")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String RAISE = "cg.verb:raise";
 
@@ -192,9 +177,7 @@ public final class GameVocabulary {
             Map.of("en", "increase the current wager in a betting round"),
             Map.of("cili", "i27093"),
             List.of("raise")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "amount to raise to")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String FOLD = "cg.verb:fold";
 
@@ -234,9 +217,7 @@ public final class GameVocabulary {
             Map.of("en", "declare how many tricks or points one expects to win"),
             Map.of("cili", "i33212"),
             List.of("bid")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "bid amount")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String PLAY = "cg.verb:play";
 
@@ -246,9 +227,7 @@ public final class GameVocabulary {
             Map.of("en", "play a card, tile, or piece from one's hand"),
             Map.of("cili", "i29858"),
             List.of("play")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "what to play")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String PASS = "cg.verb:pass";
 
@@ -292,9 +271,7 @@ public final class GameVocabulary {
             Map.of("en", "uncover a hidden cell revealing its state"),
             Map.of("cili", "i32454"),
             List.of("reveal", "uncover")
-    ).withArguments(
-            ArgumentSlot.required(Role.TARGET.iid(), "cell to reveal")
-    );
+    ).slot(ThematicRole.Target.KEY);
 
     public static final String FLAG = "cg.verb:flag";
 
@@ -304,9 +281,7 @@ public final class GameVocabulary {
             Map.of("en", "mark a position or item as suspicious or noteworthy"),
             Map.of("cili", "i32186"),
             List.of("flag", "mark")
-    ).withArguments(
-            ArgumentSlot.required(Role.TARGET.iid(), "what to flag")
-    );
+    ).slot(ThematicRole.Target.KEY);
 
     public static final String CHORD = "cg.verb:chord";
 
@@ -316,7 +291,5 @@ public final class GameVocabulary {
             Map.of("en", "simultaneously reveal all unflagged neighbors of a satisfied cell"),
             Map.of("cili", "i33515"),
             List.of("chord")
-    ).withArguments(
-            ArgumentSlot.required(Role.TARGET.iid(), "cell to chord")
-    );
+    ).slot(ThematicRole.Target.KEY);
 }

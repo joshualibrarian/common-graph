@@ -2,8 +2,6 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.RelationID;
-import dev.everydaythings.graph.item.id.ContentID;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -177,8 +175,8 @@ public final class Link {
     /**
      * Add relation by ID.
      */
-    public Link relation(RelationID rid) {
-        return new Link(item, version, new Component.Relation(new RelationSpec.Id(rid)), null, null);
+    public Link relation(ContentID bodyHash) {
+        return new Link(item, version, new Component.Relation(new RelationSpec.Id(bodyHash)), null, null);
     }
 
     /**
@@ -382,9 +380,9 @@ public final class Link {
     public sealed interface RelationSpec {
         String encodeToken();
 
-        record Id(RelationID id) implements RelationSpec {
+        record Id(ContentID id) implements RelationSpec {
             public Id { Objects.requireNonNull(id, "id"); }
-            @Override public String encodeToken() { return id.encodeText().substring(RelationID.PREFIX.length()); }
+            @Override public String encodeToken() { return id.encodeText().substring(ContentID.CONTENT_PREFIX.length()); }
         }
 
         record Handle(String handle) implements RelationSpec {
@@ -400,7 +398,7 @@ public final class Link {
             Objects.requireNonNull(token, "token");
             if (containsWhitespace(token)) throw new IllegalArgumentException("whitespace in relation token");
             try {
-                RelationID id = RelationID.bestGuess(token);
+                ContentID id = ContentID.bestGuess(token);
                 return new Id(id);
             } catch (Exception ignore) {
                 return new Handle(token);

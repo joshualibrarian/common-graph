@@ -4,7 +4,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
-import dev.everydaythings.graph.language.Role;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.SceneMode;
@@ -65,8 +65,8 @@ class ResolveItemHandleTest {
         // Compile a relation WITH resolver
         Relation rel = Relation.builder()
                 .predicate(titleIid)
-                .bind(Role.THEME.iid(), Relation.iid(libIid))
-                .bind(Role.TARGET.iid(), Literal.ofText("joshua"))
+                .bind(ThematicRole.THEME.iid(), Relation.iid(libIid))
+                .bind(ThematicRole.TARGET.iid(), Literal.ofText("joshua"))
                 .build();
 
         System.out.println("\n=== Compiling Relation with resolver ===");

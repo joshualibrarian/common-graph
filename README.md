@@ -55,7 +55,7 @@ A "like" is a signed frame. A spam label is a signed frame. A fact-check is a si
 
 ### Frames: The Single Primitive
 
-Common Graph replaces files and folders with one structure: the **frame**. A frame is a filled semantic assertion with a predicate, a subject (theme), and named role bindings. Everything is a frame — text content, metadata, authorship declarations, glosses, chat messages, trust attestations, policy settings:
+Common Graph replaces files and folders with two primitives: **frames** and **items**. A frame is a filled semantic assertion with a predicate, a subject (theme), and named role bindings. An item is a signed, versioned collection of frames with stable identity. Content, metadata, authorship declarations, glosses, chat messages, trust attestations, policy settings — all frames, all living on items:
 
 ```
 TITLE        { theme: TheHobbit, target: "The Hobbit" }
@@ -66,17 +66,21 @@ LIKED_BY     { theme: post, EXPERIENCER: alice }
 
 Frames are inspired by [Fillmore's frame semantics](https://en.wikipedia.org/wiki/Frame_semantics_(linguistics)): structured meaning with thematic roles, not flat key-value pairs.
 
-The predicate carries real meaning about *what role the data plays*. A book's English text is `(TEXT, ENGLISH)`, not `(CONTENT)`. Python source code is `(SOURCE, PYTHON)`. An audiobook narration is `(AUDIOBOOK, ENGLISH)`. The predicate tells you what you're looking at.
+The predicate carries real meaning about *what role the data plays*. A book's English text is `(TEXT, ENGLISH)`. An audiobook narration is `(AUDIOBOOK, ENGLISH)`. An algorithm's implementation is `(IMPLEMENTATION)` — the fact that it's written in Python is representation metadata, not semantic identity. The predicate tells you what the data *is for*, not what format it's in.
 
 See [`frames.md`](docs/frames.md) for the full frame model — body/record split, FrameKeys, endorsement, representations, queries.
 
 ### Items: Signed Collections of Frames
 
-An **item** is a signed collection of frames with stable cryptographic identity. Items can represent anything: documents, people, conversations, machines, games, communities, devices, languages, meanings themselves. Every item carries its own identity (IID), immutable version history, and a manifest listing its endorsed frames with content hashes.
+An **item** is a signed collection of frames with stable cryptographic identity. Items can represent anything: documents, people, groups, conversations, machines, games, communities, devices, languages, meanings themselves. Every item carries its own identity (IID), immutable version history, and a manifest listing its endorsed frames with content hashes.
+
+**Types are sememes.** The concept "Book" is a noun sememe — a unit of meaning in the graph with its own IID and version history. It's the same "book" that exists in WordNet. When the English import runs, the WordNet synset for "book" merges idempotently with the type item — same concept, one item. Its glosses are frames: `(GLOSS, ENGLISH) → "a written work"`. Its hypernyms are frames: `(HYPERNYM) → publication`. English itself is an item in the graph, and lexemes (the word "book", its plural "books", its verb form "to book") live as frames on the English item, pointing back to this sememe. The type definition adds structural expectations — what frames a Book expects, what verbs it handles, how it presents — on top of that semantic foundation. Types aren't separate from meanings. They ARE meanings.
+
+In the current Java implementation, a type is declared as an annotated class.  That class is loaded into the graph at runtime as a seed item:
 
 ```java
 @Type("cg:type/book")
-public class Book extends Item {
+public class Book extends NounSememe {
     @Frame(key = {TITLE})                String title;
     @Frame(key = {AUTHOR}, endorsed=false) ItemID author;
     @Frame(key = {TEXT, ENGLISH})         byte[] englishText;
@@ -84,7 +88,7 @@ public class Book extends Item {
 }
 ```
 
-The class IS the schema. The type definition IS the item. No separate handler, descriptor file, or schema registry.
+But the class is just the host-language representation of a type item that lives in the graph. `"cg:type/book"` is a deterministic IID — the same on every node, computed from the canonical string, just like sememe IDs. The annotations declare what frames a Book expects, what verbs it handles, how it presents itself. The type item carries all of that as semantic data.
 
 > *"Item" is a working name. The right word will come.*
 

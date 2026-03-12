@@ -1,88 +1,61 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.nio.file.Path;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration test verifying that VerbSememe argument slots survive
- * the full lifecycle: seed creation → commit → store → hydrate.
+ * Tests verifying that VerbSememe slot roles are correctly populated
+ * from seed declarations.
  */
 class VerbSememePersistenceTest {
 
     @Test
-    void createVerbArgumentsSurviveHydration(@TempDir Path testDir) {
-        try (Librarian lib = Librarian.open(testDir)) {
-            Optional<VerbSememe> createOpt = lib.get(Sememe.create.iid(), VerbSememe.class);
+    void createVerbHasExpectedSlotRoles() {
+        var roles = Sememe.create.slotRoles();
+        assertThat(roles)
+                .as("CREATE should have 5 slot roles")
+                .hasSize(5);
 
-            assertThat(createOpt).as("CREATE verb should be retrievable").isPresent();
-
-            VerbSememe create = createOpt.get();
-            assertThat(create.arguments())
-                    .as("CREATE should have argument slots after hydration")
-                    .isNotEmpty()
-                    .hasSize(5);
-
-            // Verify first slot: THEME (optional, "what to create")
-            ArgumentSlot themeSlot = create.arguments().get(0);
-            assertThat(themeSlot.role()).isEqualTo(Role.THEME.iid());
-            assertThat(themeSlot.required()).isFalse();
-            assertThat(themeSlot.typeConstraint()).isNull();
-            assertThat(themeSlot.descriptions()).containsEntry("en", "what to create");
-
-            // Verify second slot: TARGET (optional, "where to place the result")
-            ArgumentSlot targetSlot = create.arguments().get(1);
-            assertThat(targetSlot.role()).isEqualTo(Role.TARGET.iid());
-            assertThat(targetSlot.required()).isFalse();
-            assertThat(targetSlot.descriptions()).containsEntry("en", "where to place the result");
-
-            // Verify third slot: NAME (optional)
-            assertThat(create.arguments().get(2).role()).isEqualTo(Role.NAME.iid());
-
-            // Verify fourth slot: COMITATIVE (optional)
-            assertThat(create.arguments().get(3).role()).isEqualTo(Role.COMITATIVE.iid());
-
-            // Verify fifth slot: SOURCE (optional)
-            assertThat(create.arguments().get(4).role()).isEqualTo(Role.SOURCE.iid());
-        }
+        assertThat(roles.get(0)).isEqualTo(ItemID.fromString(ThematicRole.Theme.KEY));
+        assertThat(roles.get(1)).isEqualTo(ItemID.fromString(ThematicRole.Target.KEY));
+        assertThat(roles.get(2)).isEqualTo(ItemID.fromString(ThematicRole.Name.KEY));
+        assertThat(roles.get(3)).isEqualTo(ItemID.fromString(ThematicRole.Comitative.KEY));
+        assertThat(roles.get(4)).isEqualTo(ItemID.fromString(ThematicRole.Source.KEY));
     }
 
     @Test
-    void getVerbArgumentsSurviveHydration(@TempDir Path testDir) {
-        try (Librarian lib = Librarian.open(testDir)) {
-            Optional<VerbSememe> getOpt = lib.get(Sememe.get.iid(), VerbSememe.class);
+    void getVerbHasExpectedSlotRoles() {
+        var roles = Sememe.get.slotRoles();
+        assertThat(roles)
+                .as("GET should have 1 slot role")
+                .hasSize(1);
 
-            assertThat(getOpt).as("GET verb should be retrievable").isPresent();
-
-            VerbSememe get = getOpt.get();
-            assertThat(get.arguments())
-                    .as("GET should have argument slots after hydration")
-                    .isNotEmpty()
-                    .hasSize(1);
-
-            // GET has a required THEME slot
-            ArgumentSlot themeSlot = get.arguments().get(0);
-            assertThat(themeSlot.role()).isEqualTo(Role.THEME.iid());
-            assertThat(themeSlot.required()).isTrue();
-            assertThat(themeSlot.descriptions()).containsEntry("en", "what to retrieve");
-        }
+        assertThat(roles.get(0)).isEqualTo(ItemID.fromString(ThematicRole.Theme.KEY));
     }
 
     @Test
-    void relationVerbHasNoArguments(@TempDir Path testDir) {
-        try (Librarian lib = Librarian.open(testDir)) {
-            // HYPERNYM is a relation predicate, not a user-facing action — no arguments
-            Optional<VerbSememe> hyperOpt = lib.get(Sememe.HYPERNYM.iid(), VerbSememe.class);
+    void relationVerbHasNoSlotRoles() {
+        // HYPERNYM is a relation predicate, not a user-facing action — no slots
+        assertThat(Sememe.HYPERNYM.slotRoles())
+                .as("Relation verbs should have no slot roles")
+                .isEmpty();
+    }
 
-            assertThat(hyperOpt).as("HYPERNYM should be retrievable").isPresent();
-            assertThat(hyperOpt.get().arguments())
-                    .as("Relation verbs should have no argument slots")
-                    .isEmpty();
-        }
+    @Test
+    void editVerbHasPatientSlot() {
+        var roles = Sememe.edit.slotRoles();
+        assertThat(roles).hasSize(1);
+        assertThat(roles.get(0)).isEqualTo(ItemID.fromString(ThematicRole.Patient.KEY));
+    }
+
+    @Test
+    void findVerbHasThreeSlots() {
+        var roles = Sememe.find.slotRoles();
+        assertThat(roles).hasSize(3);
+        assertThat(roles.get(0)).isEqualTo(ItemID.fromString(ThematicRole.Theme.KEY));
+        assertThat(roles.get(1)).isEqualTo(ItemID.fromString(ThematicRole.Recipient.KEY));
+        assertThat(roles.get(2)).isEqualTo(ItemID.fromString(ThematicRole.Source.KEY));
     }
 }

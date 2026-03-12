@@ -5,7 +5,6 @@ import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.action.ParamSpec;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.Role;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -147,7 +146,7 @@ public class VerbInvoker {
                 if (param.role() != null) {
                     ItemID roleId = null;
                     try {
-                        roleId = ThematicRole.valueOf(param.role()).iid();
+                        roleId = ThematicRole.fromName(param.role()).iid();
                     } catch (IllegalArgumentException e) {
                         // unknown role string — ignore
                     }

@@ -12,7 +12,7 @@ import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
-import dev.everydaythings.graph.language.Role;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.value.Value;
 import dev.everydaythings.graph.value.address.AddressSpace;
 import lombok.Getter;
@@ -247,8 +247,8 @@ public class ItemSchema {
 
         return Relation.builder()
                 .predicate(spec.predicate())
-                .bind(Role.THEME.iid(), Relation.iid(item.iid()))
-                .bind(Role.TARGET.iid(), targetValue)
+                .bind(ThematicRole.THEME.iid(), Relation.iid(item.iid()))
+                .bind(ThematicRole.TARGET.iid(), targetValue)
                 .build();
     }
 

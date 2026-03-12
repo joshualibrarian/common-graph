@@ -9,6 +9,7 @@ import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -54,210 +55,218 @@ public abstract class Sememe extends Item {
     public static final String KEY = "cg:type/sememe";
 
     // ==================================================================================
-    // SEED INSTANCES (core sememes used throughout the system)
+    // SEED INSTANCES (core predicates)
     // ==================================================================================
 
-    /** Predicate: the creator/author of something */
-    @Seed
-    public static final NounSememe AUTHOR = new NounSememe(
-            "cg.core:author",
-            Map.of("en", "the creator or originator of a work"),
-            Map.of("cili", "i90183")
-    );
+    public static class Author {
+        public static final String KEY = "cg.core:author";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the creator or originator of a work")
+                .cili("i90183");
+    }
 
-    /** Predicate: creation timestamp */
-    @Seed
-    public static final NounSememe CREATED_AT = new NounSememe(
-            "cg.core:created-at",
-            Map.of("en", "the time at which something was created"),
-            Map.of("cili", "i36666")
-    );
+    public static class CreatedAt {
+        public static final String KEY = "cg.core:created-at";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the time at which something was created")
+                .cili("i36666");
+    }
 
-    /** Predicate: modification timestamp */
-    @Seed
-    public static final NounSememe MODIFIED_AT = new NounSememe(
-            "cg.core:modified-at",
-            Map.of("en", "the time at which something was last modified"),
-            Map.of("cili", "i22389")
-    );
+    public static class ModifiedAt {
+        public static final String KEY = "cg.core:modified-at";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the time at which something was last modified")
+                .cili("i22389");
+    }
 
-    /** Predicate: title or name */
-    @Seed
-    @SuppressWarnings("unchecked")
-    public static final NounSememe TITLE = ((NounSememe) new NounSememe(
-            "cg.core:title",
-            Map.of("en", "the name or title of something"),
-            Map.of("cili", "i69816")
-    ).indexWeight(1000));
+    public static class Title {
+        public static final String KEY = "cg.core:title";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the name or title of something")
+                .cili("i69816")
+                .indexWeight(1000);
+    }
 
-    /** Predicate: description */
-    @Seed
-    @SuppressWarnings("unchecked")
-    public static final NounSememe DESCRIPTION = ((NounSememe) new NounSememe(
-            "cg.core:description",
-            Map.of("en", "a textual description of something"),
-            Map.of("cili", "i71841")
-    ).indexWeight(500));
+    public static class Description {
+        public static final String KEY = "cg.core:description";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "a textual description of something")
+                .cili("i71841")
+                .indexWeight(500);
+    }
 
     // ==================================================================================
     // SEED INSTANCES (type system predicates)
     // ==================================================================================
 
-    /**
-     * Predicate: implemented by (type → implementation)
-     *
-     * <p>Used to link type Items to their implementations:
-     * <pre>{@code
-     * (cg:type/dimension) —[implementedBy]→ "java:dev.everydaythings.graph.value.Dimension"
-     * }</pre>
-     *
-     * <p>Based on CILI i33787: "apply in a manner consistent with its purpose or design"
-     */
-    @Seed
-    public static final VerbSememe IMPLEMENTED_BY = new VerbSememe(
-            "cg.type:implemented-by",
-            Map.of("en", "is implemented by; has its design applied by"),
-            Map.of("cili", "i33787")
-    );
+    public static class ImplementedBy {
+        public static final String KEY = "cg.type:implemented-by";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "is implemented by; has its design applied by")
+                .cili("i33787");
+    }
 
     // ==================================================================================
-    // SEED INSTANCES (semantic relations - WordNet pointer types)
+    // SEED INSTANCES (semantic relations — WordNet pointer types)
     // ==================================================================================
 
-    /**
-     * Hypernym relation: X is a kind of Y (cat → mammal).
-     * WordNet pointer: @
-     */
-    @Seed
-    public static final VerbSememe HYPERNYM = new VerbSememe(
-            "cg.rel:hypernym",
-            Map.of("en", "is a kind of; is a type of; is a subclass of"),
-            Map.of("cili", "i69569")
-    );
+    public static class Hypernym {
+        public static final String KEY = "cg.rel:hypernym";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "is a kind of; is a type of; is a subclass of")
+                .cili("i69569");
+    }
 
-    /**
-     * Hyponym relation: Y is a kind of X (mammal → cat).
-     * WordNet pointer: ~
-     * Inverse of hypernym.
-     */
-    @Seed
-    public static final VerbSememe HYPONYM = new VerbSememe(
-            "cg.rel:hyponym",
-            Map.of("en", "has subtype; has kind; is a superclass of"),
-            Map.of("cili", "i69570")
-    );
+    public static class Hyponym {
+        public static final String KEY = "cg.rel:hyponym";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "has subtype; has kind; is a superclass of")
+                .cili("i69570");
+    }
 
-    /**
-     * Instance-of relation: X is an instance of type Y.
-     * Similar to rdf:type. Used for seed instances pointing to their type.
-     * Example: Unit.METER instance-of ItemID.fromString(Unit.KEY)
-     */
-    @Seed
-    public static final VerbSememe INSTANCE_OF = new VerbSememe(
-            "cg.rel:instance-of",
-            Map.of("en", "is an instance of; has type; is a member of class"),
-            Map.of("cili", "i35284")
-    );
+    public static class InstanceOf {
+        public static final String KEY = "cg.rel:instance-of";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "is an instance of; has type; is a member of class")
+                .cili("i35284");
+    }
 
-    /**
-     * Holonym relation: X is a part of Y (wheel → car).
-     * WordNet pointer: #p (part), #m (member), #s (substance)
-     */
-    @Seed
-    public static final VerbSememe HOLONYM = new VerbSememe(
-            "cg.rel:holonym",
-            Map.of("en", "is a part of; is contained in"),
-            Map.of("cili", "i69567")
-    );
+    public static class Holonym {
+        public static final String KEY = "cg.rel:holonym";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "is a part of; is contained in")
+                .cili("i69567");
+    }
 
-    /**
-     * Meronym relation: Y has X as a part (car → wheel).
-     * WordNet pointer: %p (part), %m (member), %s (substance)
-     * Inverse of holonym.
-     */
-    @Seed
-    public static final VerbSememe MERONYM = new VerbSememe(
-            "cg.rel:meronym",
-            Map.of("en", "has as a part; contains"),
-            Map.of("cili", "i69575")
-    );
+    public static class Meronym {
+        public static final String KEY = "cg.rel:meronym";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "has as a part; contains")
+                .cili("i69575");
+    }
 
-    /**
-     * Antonym relation: opposite meaning (hot ↔ cold).
-     * WordNet pointer: !
-     */
-    @Seed
-    public static final VerbSememe ANTONYM = new VerbSememe(
-            "cg.rel:antonym",
-            Map.of("en", "is the opposite of; contrasts with"),
-            Map.of("cili", "i69547")
-    );
+    public static class Antonym {
+        public static final String KEY = "cg.rel:antonym";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "is the opposite of; contrasts with")
+                .cili("i69547");
+    }
 
-    /**
-     * Similar-to relation: similar meaning (beautiful ~ pretty).
-     * WordNet pointer: &
-     */
-    @Seed
-    public static final VerbSememe SIMILAR_TO = new VerbSememe(
-            "cg.rel:similar-to",
-            Map.of("en", "is similar to; resembles in meaning"),
-            Map.of("cili", "i34992")
-    );
+    public static class SimilarTo {
+        public static final String KEY = "cg.rel:similar-to";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "is similar to; resembles in meaning")
+                .cili("i34992");
+    }
 
-    /**
-     * Derivationally related: morphological derivation (create → creation).
-     * WordNet pointer: +
-     */
-    @Seed
-    public static final VerbSememe DERIVATION = new VerbSememe(
-            "cg.rel:derivation",
-            Map.of("en", "is derivationally related to"),
-            Map.of("cili", "i37467")
-    );
+    public static class Derivation {
+        public static final String KEY = "cg.rel:derivation";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "is derivationally related to")
+                .cili("i37467");
+    }
 
-    /**
-     * Domain category: subject domain (mathematics ;c equation).
-     * WordNet pointer: ;c
-     */
-    @Seed
-    public static final VerbSememe DOMAIN = new VerbSememe(
-            "cg.rel:domain",
-            Map.of("en", "belongs to domain; is in the category of"),
-            Map.of("cili", "i68336")
-    );
+    public static class Domain {
+        public static final String KEY = "cg.rel:domain";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "belongs to domain; is in the category of")
+                .cili("i68336");
+    }
 
-    /**
-     * Entailment: verb X entails verb Y (snore → sleep).
-     * WordNet pointer: *
-     */
-    @Seed
-    public static final VerbSememe ENTAILS = new VerbSememe(
-            "cg.rel:entails",
-            Map.of("en", "entails; necessarily implies"),
-            Map.of("cili", "i34848")
-    );
+    public static class Entails {
+        public static final String KEY = "cg.rel:entails";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "entails; necessarily implies")
+                .cili("i34848");
+    }
 
-    /**
-     * Cause: verb X causes verb Y (kill → die).
-     * WordNet pointer: >
-     */
-    @Seed
-    public static final VerbSememe CAUSES = new VerbSememe(
-            "cg.rel:causes",
-            Map.of("en", "causes; brings about"),
-            Map.of("cili", "i29966")
-    );
+    public static class Causes {
+        public static final String KEY = "cg.rel:causes";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "causes; brings about")
+                .cili("i29966");
+    }
 
-    /**
-     * Also-see: related concepts worth exploring.
-     * WordNet pointer: ^
-     */
-    @Seed
-    public static final VerbSememe SEE_ALSO = new VerbSememe(
-            "cg.rel:see-also",
-            Map.of("en", "see also; is related to"),
-            Map.of("cili", "i25271")
-    );
+    public static class SeeAlso {
+        public static final String KEY = "cg.rel:see-also";
+        @Seed public static final VerbSememe SEED = new VerbSememe(KEY)
+                .gloss(ENG, "see also; is related to")
+                .cili("i25271");
+    }
+
+    /** A position in a frame that expects a particular thematic role. */
+    public static class Slot {
+        public static final String KEY = "cg.core:slot";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "a position in a frame that expects a particular role")
+                .word(LEMMA, ENG, "slot");
+    }
+
+    /** A word↔meaning mapping in a language's lexicon. */
+    public static class Lexeme {
+        public static final String KEY = "cg.core:lexeme";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "a word-meaning mapping in a language's lexicon")
+                .word(LEMMA, ENG, "lexeme");
+    }
+
+    /** How often something occurs (e.g., word frequency in a corpus). */
+    public static class Frequency {
+        public static final String KEY = "cg.core:frequency";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "how often something occurs")
+                .word(LEMMA, ENG, "frequency")
+                .cili("i73785");
+    }
+
+    /** The origin or source of information. */
+    public static class Provenance {
+        public static final String KEY = "cg.core:provenance";
+        @Seed public static final NounSememe SEED = new NounSememe(KEY)
+                .gloss(ENG, "the origin or source of information")
+                .word(LEMMA, ENG, "provenance")
+                .cili("i77490");
+    }
+
+    // --- Backward-compatible aliases (deprecated) ---
+
+    /** @deprecated Use {@link Author#SEED} */
+    @Deprecated public static final NounSememe AUTHOR = Author.SEED;
+    /** @deprecated Use {@link CreatedAt#SEED} */
+    @Deprecated public static final NounSememe CREATED_AT = CreatedAt.SEED;
+    /** @deprecated Use {@link ModifiedAt#SEED} */
+    @Deprecated public static final NounSememe MODIFIED_AT = ModifiedAt.SEED;
+    /** @deprecated Use {@link Title#SEED} */
+    @Deprecated public static final NounSememe TITLE = Title.SEED;
+    /** @deprecated Use {@link Description#SEED} */
+    @Deprecated public static final NounSememe DESCRIPTION = Description.SEED;
+    /** @deprecated Use {@link ImplementedBy#SEED} */
+    @Deprecated public static final VerbSememe IMPLEMENTED_BY = ImplementedBy.SEED;
+    /** @deprecated Use {@link Hypernym#SEED} */
+    @Deprecated public static final VerbSememe HYPERNYM = Hypernym.SEED;
+    /** @deprecated Use {@link Hyponym#SEED} */
+    @Deprecated public static final VerbSememe HYPONYM = Hyponym.SEED;
+    /** @deprecated Use {@link InstanceOf#SEED} */
+    @Deprecated public static final VerbSememe INSTANCE_OF = InstanceOf.SEED;
+    /** @deprecated Use {@link Holonym#SEED} */
+    @Deprecated public static final VerbSememe HOLONYM = Holonym.SEED;
+    /** @deprecated Use {@link Meronym#SEED} */
+    @Deprecated public static final VerbSememe MERONYM = Meronym.SEED;
+    /** @deprecated Use {@link Antonym#SEED} */
+    @Deprecated public static final VerbSememe ANTONYM = Antonym.SEED;
+    /** @deprecated Use {@link SimilarTo#SEED} */
+    @Deprecated public static final VerbSememe SIMILAR_TO = SimilarTo.SEED;
+    /** @deprecated Use {@link Derivation#SEED} */
+    @Deprecated public static final VerbSememe DERIVATION = Derivation.SEED;
+    /** @deprecated Use {@link Domain#SEED} */
+    @Deprecated public static final VerbSememe DOMAIN = Domain.SEED;
+    /** @deprecated Use {@link Entails#SEED} */
+    @Deprecated public static final VerbSememe ENTAILS = Entails.SEED;
+    /** @deprecated Use {@link Causes#SEED} */
+    @Deprecated public static final VerbSememe CAUSES = Causes.SEED;
+    /** @deprecated Use {@link SeeAlso#SEED} */
+    @Deprecated public static final VerbSememe SEE_ALSO = SeeAlso.SEED;
+
 
     // ==================================================================================
     // SEED INSTANCES (verb primitives - for action vocabulary)
@@ -271,13 +280,11 @@ public abstract class Sememe extends Item {
             Map.of("en", "make or cause to be or to become"),
             Map.of("cili", "i29849"),
             List.of("create", "new", "make")
-    ).withArguments(
-            ArgumentSlot.optional(Role.THEME.iid(), "what to create"),
-            ArgumentSlot.optional(Role.TARGET.iid(), "where to place the result"),
-            ArgumentSlot.optional(Role.NAME.iid(), "name for the new item"),
-            ArgumentSlot.optional(Role.COMITATIVE.iid(), "participants or companions"),
-            ArgumentSlot.optional(Role.SOURCE.iid(), "source to import from")
-    );
+    ).slot(ThematicRole.Theme.KEY)
+     .slot(ThematicRole.Target.KEY)
+     .slot(ThematicRole.Name.KEY)
+     .slot(ThematicRole.Comitative.KEY)
+     .slot(ThematicRole.Source.KEY);
 
     public static final String GET = "cg.verb:get";
 
@@ -287,9 +294,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "go or come after and bring or take back"),
             Map.of("cili", "i28895"),
             List.of("get", "retrieve", "fetch", "lookup")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "what to retrieve")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String PUT = "cg.verb:put";
 
@@ -299,10 +304,8 @@ public abstract class Sememe extends Item {
             Map.of("en", "find a place for and put away for storage"),
             Map.of("cili", "i33146"),
             List.of("put", "store", "add", "insert")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "what to store"),
-            ArgumentSlot.optional(Role.TARGET.iid(), "where to store it")
-    );
+    ).slot(ThematicRole.Theme.KEY)
+     .slot(ThematicRole.Target.KEY);
 
     public static final String REMOVE = "cg.verb:remove";
 
@@ -312,9 +315,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "remove something concrete, as by lifting, pushing, or taking off"),
             Map.of("cili", "i22577"),
             List.of("remove", "delete", "drop")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "what to remove")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String LIST = "cg.verb:list";
 
@@ -334,9 +335,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "transfer electronic data into a database or document"),
             Map.of("cili", "i32905"),
             List.of("import", "ingest", "load")
-    ).withArguments(
-            ArgumentSlot.required(Role.SOURCE.iid(), "what to import from")
-    );
+    ).slot(ThematicRole.Source.KEY);
 
     public static final String QUERY = "cg.verb:query";
 
@@ -346,9 +345,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "pose a question"),
             Map.of("cili", "i25610"),
             List.of("query", "search")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "what to search for")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String FIND = "cg.verb:find";
 
@@ -358,11 +355,9 @@ public abstract class Sememe extends Item {
             Map.of("en", "find items related by a predicate"),
             Map.of("cili", "i33164"),
             List.of("find", "lookup")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "predicate/relation to search by"),
-            ArgumentSlot.optional(Role.RECIPIENT.iid(), "object constraint (e.g. for chess)"),
-            ArgumentSlot.optional(Role.SOURCE.iid(), "subject constraint (e.g. from chess)")
-    );
+    ).slot(ThematicRole.Theme.KEY)
+     .slot(ThematicRole.Recipient.KEY)
+     .slot(ThematicRole.Source.KEY);
 
     public static final String SHOW = "cg.verb:show";
 
@@ -372,9 +367,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "make visible or apparent"),
             Map.of("cili", "i32454"),
             List.of("show", "display", "view")
-    ).withArguments(
-            ArgumentSlot.optional(Role.THEME.iid(), "what to display")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String HELP = "cg.verb:help";
 
@@ -394,9 +387,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "prepare for publication or presentation by correcting, revising, or adapting"),
             Map.of("cili", "i22726"),
             List.of("edit", "modify", "change")
-    ).withArguments(
-            ArgumentSlot.required(Role.PATIENT.iid(), "what to edit")
-    );
+    ).slot(ThematicRole.Patient.KEY);
 
     public static final String COUNT = "cg.verb:count";
 
@@ -436,9 +427,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "change directory; navigate to"),
             Map.of(),
             List.of("cd", "go", "enter")
-    ).withArguments(
-            ArgumentSlot.optional(Role.TARGET.iid(), "where to navigate")
-    );
+    ).slot(ThematicRole.Target.KEY);
 
     public static final String EXIT = "cg.session:exit";
 
@@ -473,9 +462,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "work for or be a servant to"),
             Map.of("cili", "i96785"),
             List.of("serve", "use")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "who to serve")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String INVITE = "cg.verb:invite";
 
@@ -495,9 +482,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "prove identity by demonstrating possession of private key"),
             Map.of(),
             List.of("authenticate", "auth", "login")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "user to authenticate as")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String SWITCH = "cg.session:switch";
 
@@ -507,9 +492,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "change the active user for the current view"),
             Map.of(),
             List.of("switch", "as")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "user to switch to")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     public static final String RENAME = "cg.verb:rename";
 
@@ -519,9 +502,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "assign a new name to"),
             Map.of("cili", "i25424"),
             List.of("rename", "name")
-    ).withArguments(
-            ArgumentSlot.required(Role.THEME.iid(), "new name")
-    );
+    ).slot(ThematicRole.Theme.KEY);
 
     // ==================================================================================
     // SEED INSTANCES (query pattern primitives)
@@ -611,7 +592,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating target or destination"),
             Map.of(),
             List.of("on", "to", "into"),
-            Role.TARGET.iid()
+            ItemID.fromString(ThematicRole.Target.KEY)
     );
 
     public static final String WITH = "cg.prep:with";
@@ -622,7 +603,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating tool or means"),
             Map.of(),
             List.of("with", "using"),
-            Role.INSTRUMENT.iid()
+            ItemID.fromString(ThematicRole.Instrument.KEY)
     );
 
     public static final String FROM = "cg.prep:from";
@@ -633,7 +614,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating origin or source"),
             Map.of(),
             List.of("from"),
-            Role.SOURCE.iid()
+            ItemID.fromString(ThematicRole.Source.KEY)
     );
 
     public static final String FOR = "cg.prep:for";
@@ -644,7 +625,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating beneficiary or recipient"),
             Map.of(),
             List.of("for"),
-            Role.RECIPIENT.iid()
+            ItemID.fromString(ThematicRole.Recipient.KEY)
     );
 
     public static final String BETWEEN = "cg.prep:between";
@@ -655,7 +636,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating companions or participants"),
             Map.of(),
             List.of("between"),
-            Role.COMITATIVE.iid()
+            ItemID.fromString(ThematicRole.Comitative.KEY)
     );
 
     public static final String NAMED = "cg.prep:named";
@@ -666,7 +647,7 @@ public abstract class Sememe extends Item {
             Map.of("en", "indicating designation or label"),
             Map.of(),
             List.of("named", "called"),
-            Role.NAME.iid()
+            ItemID.fromString(ThematicRole.Name.KEY)
     );
 
     // ==================================================================================
@@ -692,6 +673,16 @@ public abstract class Sememe extends Item {
             Map.of(),
             List.of("or")
     );
+
+    // ==================================================================================
+    // LANGUAGE CONSTANTS (for fluent seed declarations)
+    // ==================================================================================
+
+    /** English language code for gloss/word declarations. */
+    protected static final String ENG = "en";
+
+    /** Convenience alias for lemma form declarations. */
+    protected static final GrammaticalFeature LEMMA = GrammaticalFeature.LEMMA;
 
     // ==================================================================================
     // INSTANCE FIELDS (value object role)
@@ -757,6 +748,27 @@ public abstract class Sememe extends Item {
     @Frame
     private int indexWeight;
 
+    /**
+     * Slot expectations for this predicate (e.g., AUTHOR expects THEME, TARGET).
+     *
+     * <p>Transient — populated by fluent {@link #slot(Sememe)} or
+     * {@link #slot(String)} during seed declaration. Consumed by
+     * {@link VerbSememe#slotRoles()} for frame assembly.
+     */
+    @Getter
+    private transient List<ItemID> slots;
+
+    /**
+     * Lexeme declarations for bootstrap (e.g., LEMMA "author" in English).
+     *
+     * <p>Transient — during bootstrap, these flow into the appropriate
+     * Language's Lexicon as proper Lexemes, not onto the sememe itself.
+     * Populated by fluent {@link #word(Sememe, String, String)} during
+     * seed declaration; consumed by SeedVocabulary during bootstrap.
+     */
+    @Getter
+    private transient List<LexemeDeclaration> lexemeDeclarations;
+
     // ==================================================================================
     // CONSTRUCTORS (protected for subclass access)
     // ==================================================================================
@@ -812,6 +824,23 @@ public abstract class Sememe extends Item {
         this.sources = Map.copyOf(sources);
         this.symbols = List.copyOf(symbols);
         this.tokens = List.copyOf(tokens);
+    }
+
+    /**
+     * Fluent seed constructor — creates a seed with mutable collections
+     * for use with chained {@link #gloss}, {@link #token}, {@link #cili}, etc.
+     *
+     * @param canonicalKey The canonical key (e.g., "cg.core:author")
+     * @param pos          Part of speech
+     */
+    protected Sememe(String canonicalKey, PartOfSpeech pos) {
+        super(ItemID.fromString(canonicalKey));
+        this.canonicalKey = canonicalKey;
+        this.pos = pos;
+        this.glosses = new HashMap<>();
+        this.sources = new HashMap<>();
+        this.symbols = new ArrayList<>();
+        this.tokens = new ArrayList<>();
     }
 
     /**
@@ -885,18 +914,64 @@ public abstract class Sememe extends Item {
     }
 
     // ==================================================================================
-    // FLUENT CONFIGURATION
+    // FLUENT CONFIGURATION (for seed declarations)
     // ==================================================================================
+
+    /** Add a gloss (definition) for a language. */
+    public Sememe gloss(String lang, String text) {
+        this.glosses.put(lang, text);
+        return this;
+    }
+
+    /**
+     * Declare a word form for this sememe in a language.
+     *
+     * <p>During bootstrap, this becomes a proper {@link Lexeme} in the
+     * target Language's Lexicon. The form parameter specifies what kind
+     * of word form this is (e.g., {@link GrammaticalFeature#LEMMA LEMMA},
+     * {@link GrammaticalFeature#PAST PAST}).
+     *
+     * @param form    the grammatical form (LEMMA, PAST, PLURAL, etc.)
+     * @param lang    language code (e.g., ENG)
+     * @param surface the written word
+     */
+    public Sememe word(Sememe form, String lang, String surface) {
+        if (this.lexemeDeclarations == null) this.lexemeDeclarations = new ArrayList<>();
+        this.lexemeDeclarations.add(new LexemeDeclaration(form, lang, surface));
+        return this;
+    }
+
+    /** Set the CILI (Collaborative Interlingual Index) identifier. */
+    public Sememe cili(String id) {
+        this.sources.put("cili", id);
+        return this;
+    }
+
+    /** Add a language-neutral symbol (e.g., "+", "*", "m"). */
+    public Sememe symbol(String s) {
+        this.symbols.add(s);
+        return this;
+    }
+
+    /** Declare that this predicate expects a slot filled by the given role. */
+    public Sememe slot(Sememe role) {
+        if (this.slots == null) this.slots = new ArrayList<>();
+        this.slots.add(role.iid());
+        return this;
+    }
+
+    /** Declare a slot via canonical key string (avoids circular static init). */
+    public Sememe slot(String roleKey) {
+        if (this.slots == null) this.slots = new ArrayList<>();
+        this.slots.add(ItemID.fromString(roleKey));
+        return this;
+    }
 
     /**
      * Set the index weight for this predicate's string targets.
      *
-     * <p>When > 0, relations using this Sememe as predicate will have their
-     * text literal targets indexed in the TokenDictionary at this weight.
-     * Scaled int: 1000 = 1.0f.
-     *
-     * @param weight index weight (1000 = 1.0, 500 = 0.5, 0 = don't index)
-     * @return this (for chaining on seed declarations)
+     * <p>Scaled int: 1000 = 1.0f. When &gt; 0, relations using this Sememe
+     * as predicate will have their text literal targets indexed.
      */
     public Sememe indexWeight(int weight) {
         this.indexWeight = weight;
@@ -1044,6 +1119,19 @@ public abstract class Sememe extends Item {
     // ==================================================================================
     // PREDICATE FACET (for complex predicates)
     // ==================================================================================
+
+    /**
+     * A word form declaration for bootstrap lexeme creation.
+     *
+     * <p>Captures enough data to create a {@link Lexeme} in a Language's
+     * Lexicon during bootstrap. The sememe IID and POS come from the
+     * declaring Sememe.
+     *
+     * @param form    the grammatical form (LEMMA, PAST, PLURAL, etc.)
+     * @param lang    language code (e.g., "en")
+     * @param surface the written word
+     */
+    public record LexemeDeclaration(Sememe form, String lang, String surface) {}
 
     /**
      * Describes facets of a predicate (domain, range, cardinality, etc.)

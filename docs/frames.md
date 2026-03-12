@@ -80,7 +80,7 @@ Keys can be:
 | `(CILI)` | Single sememe | CILI external ID |
 | `(TEXT, ENGLISH)` | Compound sememe | English text of a document |
 | `(TEXT, ENGLISH, CRITICAL)` | Compound sememe | Critical edition of the English text |
-| `(SOURCE, PYTHON)` | Compound sememe | Python source code |
+| `(IMPLEMENTATION)` | Single sememe | Code that implements this item's behavior |
 | `(CHAT, GENERAL)` | Compound sememe | General chat channel |
 | `(CHAT, "tavern")` | Mixed | Tavern chat (literal qualifier) |
 | `("x")` | Literal | Developer scratch variable |
@@ -345,7 +345,7 @@ Everything in Common Graph is a frame:
 |---|---|
 | **Text content** | Endorsed frame keyed by `(TEXT, LANG)`, with representations |
 | **Media** | Endorsed frame keyed by `(AUDIO, ...)`, `(VIDEO, ...)`, `(IMAGE, ...)` |
-| **Source code** | Endorsed frame keyed by `(SOURCE, PYTHON)`, `(SOURCE, RUST)`, etc. |
+| **Code** | Endorsed frame keyed by `(IMPLEMENTATION)`, `(BUILD_SCRIPT)`, `(TEST_SUITE)` — language is representation metadata |
 | **Property** | Endorsed frame with semantic key and simple target |
 | **Gloss** | Endorsed frame keyed by `(GLOSS, LANG)` |
 | **External ID (CILI)** | Endorsed frame keyed by `(CILI)` |

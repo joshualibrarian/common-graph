@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.mount;
 
-import dev.everydaythings.graph.item.id.BlockID;
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.DirectoryID;
 import dev.everydaythings.graph.item.id.FrameKey;
 
@@ -11,7 +11,7 @@ public sealed interface Target permits
         Target.Directory,
         Target.NotFound {
 
-    record ImmutableBlock(BlockID id) implements Target {}
+    record ImmutableBlock(ContentID id) implements Target {}
     record MutableHandle(FrameKey key) implements Target {}
     record Directory(DirectoryID id) implements Target {} // can be synthetic, see below
     record NotFound() implements Target {}

@@ -1050,11 +1050,11 @@ public class EvalInput {
             }
             contextTokenCount = currentCount;
             if (traceEnabled()) {
-                logger.info("[Parse] context tokens={} verb={} filledRoles={} unfilledRequired={} pending='{}'",
+                logger.info("[Parse] context tokens={} verb={} filledRoles={} unfilledRoles={} pending='{}'",
                         tokens.size(),
                         expressionContext.verb() != null ? expressionContext.verb().displayToken() : "none",
                         expressionContext.filledRoles(),
-                        expressionContext.unfilledRequired(),
+                        expressionContext.unfilledRoles(),
                         pendingText);
             }
         }

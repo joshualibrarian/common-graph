@@ -16,7 +16,7 @@ import java.util.function.Function;
  * <ol>
  *   <li>The verb (first {@link VerbSememe} found)</li>
  *   <li>Prepositional phrases ({@link PrepositionSememe} followed by an object)</li>
- *   <li>Bare nouns matched to the verb's {@link ArgumentSlot}s by first-fit</li>
+ *   <li>Bare nouns matched to the verb's slot roles by first-fit</li>
  * </ol>
  *
  * <p>Order doesn't matter: "create chess on librarian", "on librarian create chess",
@@ -45,8 +45,7 @@ public class FrameAssembler {
             Map<ItemID, Object> bindings,
             Map<String, List<Sememe>> modifiers,
             List<ResolvedToken> unmatchedArgs,
-            List<ArgumentSlot> unboundRequired,
-            List<ArgumentSlot> unboundOptional,
+            List<ItemID> unboundRoles,
             boolean lastTokenIsDanglingPreposition,
             List<TermBinding> termBindings
     ) {}
@@ -185,7 +184,7 @@ public class FrameAssembler {
         }
 
         // Step 4: Match remaining resolved Items to argument slots (first-fit)
-        List<ArgumentSlot> arguments = verb.arguments();
+        List<ItemID> slotRoles = verb.slotRoles();
         Set<ItemID> filledRoles = new HashSet<>(bindings.keySet());
 
         for (int i = 0; i < slots.size(); i++) {
@@ -198,18 +197,18 @@ public class FrameAssembler {
             if (item instanceof ConjunctionSememe) continue; // unconsumed conjunctions go unmatched
 
             // Find first unfilled argument slot for this item
-            for (ArgumentSlot slot : arguments) {
-                if (!filledRoles.contains(slot.role())) {
-                    bindings.put(slot.role(), item);
-                    filledRoles.add(slot.role());
+            for (ItemID role : slotRoles) {
+                if (!filledRoles.contains(role)) {
+                    bindings.put(role, item);
+                    filledRoles.add(role);
                     consumed.add(i);
-                    thematicByTokenIndex.put(i, slot.role());
+                    thematicByTokenIndex.put(i, role);
 
                     // Re-key modifiers from iid-based to role-based
                     String iidKey = "iid:" + item.iid().encodeText();
                     List<Sememe> mods = modifiers.remove(iidKey);
                     if (mods != null) {
-                        modifiers.put("role:" + slot.role().encodeText(), mods);
+                        modifiers.put("role:" + role.encodeText(), mods);
                     }
                     break;
                 }
@@ -225,16 +224,11 @@ public class FrameAssembler {
             }
         }
 
-        // Step 6: Compute unbound slots
-        List<ArgumentSlot> unboundRequired = new ArrayList<>();
-        List<ArgumentSlot> unboundOptional = new ArrayList<>();
-        for (ArgumentSlot slot : arguments) {
-            if (!filledRoles.contains(slot.role())) {
-                if (slot.required()) {
-                    unboundRequired.add(slot);
-                } else {
-                    unboundOptional.add(slot);
-                }
+        // Step 6: Compute unbound roles
+        List<ItemID> unboundRoles = new ArrayList<>();
+        for (ItemID role : slotRoles) {
+            if (!filledRoles.contains(role)) {
+                unboundRoles.add(role);
             }
         }
 
@@ -275,15 +269,14 @@ public class FrameAssembler {
                 Collections.unmodifiableMap(bindings),
                 Collections.unmodifiableMap(unmodifiableModifiers),
                 Collections.unmodifiableList(unmatchedArgs),
-                Collections.unmodifiableList(unboundRequired),
-                Collections.unmodifiableList(unboundOptional),
+                Collections.unmodifiableList(unboundRoles),
                 lastTokenIsDanglingPreposition,
                 Collections.unmodifiableList(termBindings)
         );
 
         if (traceEnabled()) {
-            logger.info("[Parse] verb={} bindings={} unboundRequired={} unmatched={} termBindings={}",
-                    verb.displayToken(), bindings, unboundRequired, unmatchedArgs, termBindings);
+            logger.info("[Parse] verb={} bindings={} unboundRoles={} unmatched={} termBindings={}",
+                    verb.displayToken(), bindings, unboundRoles, unmatchedArgs, termBindings);
         }
 
         return Optional.of(analysis);
@@ -307,8 +300,7 @@ public class FrameAssembler {
                 a.bindings(),
                 a.modifiers(),
                 a.unmatchedArgs(),
-                a.unboundRequired(),
-                a.unboundOptional()
+                a.unboundRoles()
         ));
     }
 
@@ -525,7 +517,7 @@ public class FrameAssembler {
             }
         }
         // Verbs with explicit argument frames are typically command heads.
-        score += Math.min(verb.arguments().size(), 4) * 10;
+        score += Math.min(verb.slotRoles().size(), 4) * 10;
         return score;
     }
 }

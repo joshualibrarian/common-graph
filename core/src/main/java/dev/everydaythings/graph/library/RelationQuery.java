@@ -126,7 +126,7 @@ public final class RelationQuery {
      * <pre>{@code
      * // Get all items in the TARGET role of HYPERNYM relations involving 'animal'
      * library.find().involving(animal).via(Sememe.HYPERNYM)
-     *     .bindingIds(Role.TARGET.iid())
+     *     .bindingIds(ThematicRole.TARGET.iid())
      * }</pre>
      *
      * @param role The role to extract

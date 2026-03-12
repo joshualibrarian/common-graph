@@ -24,41 +24,27 @@ import java.util.Optional;
  *   <li><b>Query</b> — partially filled frame → search for completions</li>
  * </ul>
  *
- * <p>Role keys are {@link ItemID}s referencing {@link Role} sememes, not enum constants.
- * Use {@code Role.AGENT.iid()}, {@code Role.PATIENT.iid()}, etc.
+ * <p>Role keys are {@link ItemID}s referencing {@link ThematicRole} sememes, not enum constants.
+ * Use {@code ThematicRole.AGENT.iid()}, {@code ThematicRole.PATIENT.iid()}, etc.
  *
  * @param verb             The verb sememe driving dispatch (null for non-verb frames)
  * @param bindings         Role sememe IID → bound value (Item or literal)
  * @param modifiers        Modifier bindings: target IID or role → list of modifier sememes
  * @param unmatchedArgs    Tokens that didn't match any slot (literals, overflow items)
- * @param unboundRequired  Required argument slots still needing values
- * @param unboundOptional  Optional argument slots still available
+ * @param unboundRoles     Argument slot roles still needing values
  */
 public record SemanticFrame(
         VerbSememe verb,
         Map<ItemID, Object> bindings,
         Map<String, List<Sememe>> modifiers,
         List<ResolvedToken> unmatchedArgs,
-        List<ArgumentSlot> unboundRequired,
-        List<ArgumentSlot> unboundOptional
+        List<ItemID> unboundRoles
 ) {
     /**
-     * Backwards-compatible constructor (no modifiers).
-     */
-    public SemanticFrame(
-            VerbSememe verb,
-            Map<ItemID, Object> bindings,
-            List<ResolvedToken> unmatchedArgs,
-            List<ArgumentSlot> unboundRequired,
-            List<ArgumentSlot> unboundOptional) {
-        this(verb, bindings, Collections.emptyMap(), unmatchedArgs, unboundRequired, unboundOptional);
-    }
-
-    /**
-     * Whether all required argument slots have been filled.
+     * Whether all argument slots have been filled.
      */
     public boolean isComplete() {
-        return unboundRequired.isEmpty();
+        return unboundRoles.isEmpty();
     }
 
     /**
@@ -69,29 +55,11 @@ public record SemanticFrame(
     }
 
     /**
-     * Get the value bound to a specific role (Item or literal).
-     * @deprecated Use {@link #binding(ItemID)} with {@code Role.X.iid()}.
-     */
-    @Deprecated
-    public Optional<Object> binding(ThematicRole role) {
-        return binding(role.iid());
-    }
-
-    /**
      * Get the Item bound to a specific role, if it is an Item.
      */
     public Optional<Item> itemBinding(ItemID role) {
         Object value = bindings.get(role);
         return value instanceof Item item ? Optional.of(item) : Optional.empty();
-    }
-
-    /**
-     * Get the Item bound to a specific role, if it is an Item.
-     * @deprecated Use {@link #itemBinding(ItemID)} with {@code Role.X.iid()}.
-     */
-    @Deprecated
-    public Optional<Item> itemBinding(ThematicRole role) {
-        return itemBinding(role.iid());
     }
 
     /**

@@ -45,6 +45,11 @@ public class NounSememe extends Sememe {
         super(librarian, manifest);
     }
 
+    /** Fluent seed constructor — use with chained .gloss(), .token(), .cili(), etc. */
+    public NounSememe(String canonicalKey) {
+        super(canonicalKey, PartOfSpeech.NOUN);
+    }
+
     /** Seed constructor (no tokens). */
     public NounSememe(String canonicalKey,
                       Map<String, String> glosses, Map<String, String> sources) {
@@ -70,4 +75,15 @@ public class NounSememe extends Sememe {
                          Map<String, String> glosses, Map<String, String> sources) {
         super(librarian, canonicalKey, PartOfSpeech.NOUN, glosses, sources);
     }
+
+    // ==================================================================================
+    // COVARIANT OVERRIDES (fluent chaining returns NounSememe)
+    // ==================================================================================
+
+    @Override public NounSememe gloss(String lang, String text) { super.gloss(lang, text); return this; }
+    @Override public NounSememe word(Sememe form, String lang, String surface) { super.word(form, lang, surface); return this; }
+    @Override public NounSememe cili(String id) { super.cili(id); return this; }
+    @Override public NounSememe symbol(String s) { super.symbol(s); return this; }
+    @Override public NounSememe slot(Sememe role) { super.slot(role); return this; }
+    @Override public NounSememe indexWeight(int weight) { super.indexWeight(weight); return this; }
 }

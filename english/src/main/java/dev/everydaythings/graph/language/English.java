@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.importer.EnglishImporter;
+import dev.everydaythings.graph.language.importer.LanguageImporter;
 import dev.everydaythings.graph.runtime.Librarian;
 
 import java.util.List;
@@ -42,7 +43,7 @@ public class English extends Language {
     // ==================================================================================
 
     // Stats are transient - not persisted as a component
-    private transient EnglishImporter.ImportStats stats;
+    private transient LanguageImporter.ImportStats stats;
 
     // ==================================================================================
     // CONSTRUCTORS
@@ -117,7 +118,7 @@ public class English extends Language {
     /**
      * Get generation statistics (null if not yet generated).
      */
-    public EnglishImporter.ImportStats stats() {
+    public LanguageImporter.ImportStats stats() {
         return stats;
     }
 

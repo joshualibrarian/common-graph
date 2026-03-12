@@ -4,7 +4,6 @@ import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.RelationID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
@@ -47,13 +46,6 @@ public interface LibraryIndex extends Service {
      */
     record RecordRef(ContentID signerKeyId, ContentID storageCid) {}
 
-    /** @deprecated Use {@link FrameRef} */
-    @Deprecated
-    record RelationRef(RelationID rid, ContentID recordCid) {
-        public FrameRef toFrameRef() {
-            return new FrameRef(new ContentID(rid.encodeBinary()), recordCid);
-        }
-    }
 
     // ==================================================================================
     // ByteStore Access
@@ -235,31 +227,6 @@ public interface LibraryIndex extends Service {
         return recordsByBody(bodyHash).count();
     }
 
-    // ==================================================================================
-    // Deprecated Relation Query API
-    // ==================================================================================
-
-    /** @deprecated Use {@link #framesByItem(ItemID)} */
-    @Deprecated
-    default Stream<RelationRef> byItem(ItemID item) {
-        return framesByItem(item).map(LibraryIndex::toRelationRef);
-    }
-
-    /** @deprecated Use {@link #framesByItemPredicate(ItemID, ItemID)} */
-    @Deprecated
-    default Stream<RelationRef> byItemPredicate(ItemID item, ItemID predicate) {
-        return framesByItemPredicate(item, predicate).map(LibraryIndex::toRelationRef);
-    }
-
-    /** @deprecated Use {@link #framesByPredicate(ItemID)} */
-    @Deprecated
-    default Stream<RelationRef> byPredicate(ItemID predicate) {
-        return framesByPredicate(predicate).map(LibraryIndex::toRelationRef);
-    }
-
-    private static RelationRef toRelationRef(FrameRef ref) {
-        return new RelationRef(new RelationID(ref.bodyHash().encodeBinary()), ref.storageCid());
-    }
 
     /**
      * Extract FrameRefs from fan-out index entries.

@@ -2,7 +2,6 @@ package dev.everydaythings.graph.expression;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.ArgumentSlot;
 import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.PrepositionSememe;
@@ -25,15 +24,13 @@ import java.util.function.Function;
  *
  * @param verb                   The verb found in accepted tokens, or null
  * @param filledRoles            Thematic roles already bound by accepted tokens
- * @param unfilledRequired       Required argument slots still needing values
- * @param unfilledOptional       Optional argument slots still available
+ * @param unfilledRoles          Argument slot roles still available
  * @param lastTokenIsPreposition Whether the last token is a preposition awaiting its object
  */
 public record ExpressionContext(
         VerbSememe verb,
         Set<ItemID> filledRoles,
-        List<ArgumentSlot> unfilledRequired,
-        List<ArgumentSlot> unfilledOptional,
+        List<ItemID> unfilledRoles,
         boolean lastTokenIsPreposition
 ) {
 
@@ -41,7 +38,7 @@ public record ExpressionContext(
      * Empty context — no analysis possible (no tokens or no librarian).
      */
     public static final ExpressionContext EMPTY = new ExpressionContext(
-            null, Set.of(), List.of(), List.of(), false);
+            null, Set.of(), List.of(), false);
 
     /**
      * Analyze the current accepted tokens to build an expression context.
@@ -52,7 +49,7 @@ public record ExpressionContext(
      *   <li>Find the first VerbSememe → the verb</li>
      *   <li>Track preposition-object pairs → fill roles</li>
      *   <li>Match bare items to verb argument slots by first-fit</li>
-     *   <li>Compute unfilled required/optional slots</li>
+     *   <li>Compute unfilled roles</li>
      *   <li>Check if the last token is a dangling preposition</li>
      * </ol>
      *
@@ -98,8 +95,7 @@ public record ExpressionContext(
         return new ExpressionContext(
                 a.verb(),
                 Collections.unmodifiableSet(new HashSet<>(a.bindings().keySet())),
-                a.unboundRequired(),
-                a.unboundOptional(),
+                a.unboundRoles(),
                 a.lastTokenIsDanglingPreposition()
         );
     }

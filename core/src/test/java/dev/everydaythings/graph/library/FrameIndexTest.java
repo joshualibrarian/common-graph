@@ -152,10 +152,9 @@ class FrameIndexTest {
             index.runInWriteTransaction(tx ->
                     index.indexRelation(relation, recordCid, tx));
 
-            @SuppressWarnings("deprecation")
-            List<LibraryIndex.RelationRef> refs = index.byItem(THE_HOBBIT).toList();
+            List<LibraryIndex.FrameRef> refs = index.framesByItem(THE_HOBBIT).toList();
             assertThat(refs).hasSize(1);
-            assertThat(refs.getFirst().recordCid()).isEqualTo(recordCid);
+            assertThat(refs.getFirst().storageCid()).isEqualTo(recordCid);
         }
     }
 

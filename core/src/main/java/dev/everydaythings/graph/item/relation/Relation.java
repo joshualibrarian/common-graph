@@ -8,7 +8,7 @@ import dev.everydaythings.graph.item.component.Factory;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.RelationID;
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.trust.Signing;
 import dev.everydaythings.graph.trust.SigningPublicKey;
@@ -86,7 +86,7 @@ public final class Relation implements Signing.Target {
     // ==================================================================================
 
     @Canon(order = 4, isBody = false)
-    private final RelationID rid;
+    private final ContentID rid;
 
     @Canon(order = 5, isBody = false)
     private SigningPublicKey authorKey;
@@ -207,7 +207,7 @@ public final class Relation implements Signing.Target {
         this.inputText = inputText;
 
         body = encodeBinary(Scope.BODY);
-        rid = new RelationID(Hash.DEFAULT.digestToMultihash(body).toBytes());
+        rid = new ContentID(Hash.DEFAULT.digestToMultihash(body).toBytes());
     }
 
     // ==================================================================================
@@ -241,7 +241,7 @@ public final class Relation implements Signing.Target {
     /**
      * Get the target bound to a specific role.
      *
-     * @param role The role IID (e.g., Role.THEME.iid())
+     * @param role The role IID (e.g., ThematicRole.THEME.iid())
      * @return The target, or null if role not filled
      */
     public Target binding(ItemID role) {
@@ -299,11 +299,11 @@ public final class Relation implements Signing.Target {
      * the most common binding (THEME) via the familiar name.
      *
      * @return The THEME binding's ItemID, or null
-     * @deprecated Use {@code bindingId(Role.THEME.iid())} directly
+     * @deprecated Use {@code bindingId(ThematicRole.THEME.iid())} directly
      */
     @Deprecated
     public ItemID subject() {
-        // Role.THEME.iid() — but we don't want to depend on Role here.
+        // ThematicRole.THEME.iid() — but we don't want to depend on Role here.
         // The canonical key is "cg.role:theme" → deterministic ItemID.
         return bindingId(ItemID.fromString("cg.role:theme"));
     }
@@ -312,7 +312,7 @@ public final class Relation implements Signing.Target {
      * Get the TARGET binding as an object-like accessor.
      *
      * @return The TARGET binding as a Target, or null
-     * @deprecated Use {@code binding(Role.TARGET.iid())} directly
+     * @deprecated Use {@code binding(ThematicRole.TARGET.iid())} directly
      */
     @Deprecated
     public Target object() {
