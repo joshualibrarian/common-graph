@@ -54,6 +54,23 @@ public final class FrameRecord implements Signing.Target {
     @Canon(order = 3, isBody = false)
     private Signing signing;
 
+    // ==================================================================================
+    // Content references — the "meat" of the frame's current state.
+    // Any combination is valid. The predicate defines what to expect.
+    // ==================================================================================
+
+    /** Content-addressed snapshot bytes (document draft, cached state, etc.). */
+    @Canon(order = 4, isBody = false)
+    private ContentID snapshotCid;
+
+    /** Head of append-only stream (move log, chat messages, key rotations). */
+    @Canon(order = 5, isBody = false)
+    private ContentID streamHead;
+
+    /** Local-only filesystem resource path (vault keys, database files). */
+    @Canon(order = 6, isBody = false)
+    private String localPath;
+
     /** Cached record CID. */
     private transient ContentID cachedRecordCid;
 
@@ -71,6 +88,26 @@ public final class FrameRecord implements Signing.Target {
         this.bodyHash = Objects.requireNonNull(bodyHash, "bodyHash");
         this.signer = Objects.requireNonNull(signer, "signer");
         this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
+    }
+
+    /**
+     * Construct a FrameRecord with content references.
+     *
+     * @param bodyHash    hash of the FrameBody being attested (required)
+     * @param signer      who attests this (required)
+     * @param timestamp   when this attestation was made (required)
+     * @param snapshotCid content-addressed snapshot bytes (nullable)
+     * @param streamHead  head of append-only stream (nullable)
+     * @param localPath   local-only filesystem resource path (nullable)
+     */
+    public FrameRecord(ContentID bodyHash, SigningPublicKey signer, Instant timestamp,
+                       ContentID snapshotCid, ContentID streamHead, String localPath) {
+        this.bodyHash = Objects.requireNonNull(bodyHash, "bodyHash");
+        this.signer = Objects.requireNonNull(signer, "signer");
+        this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
+        this.snapshotCid = snapshotCid;
+        this.streamHead = streamHead;
+        this.localPath = localPath;
     }
 
     /**

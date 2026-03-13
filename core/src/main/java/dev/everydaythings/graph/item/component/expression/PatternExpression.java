@@ -2,6 +2,7 @@ package dev.everydaythings.graph.item.component.expression;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.PronounSememe;
@@ -206,8 +207,8 @@ public record PatternExpression(
                         results.add(r.predicate());
                     }
                     if (wantObject) {
-                        Relation.Target obj = r.object();
-                        if (obj instanceof Relation.IidTarget iidTarget) {
+                        BindingTarget obj = r.object();
+                        if (obj instanceof BindingTarget.IidTarget iidTarget) {
                             results.add(iidTarget.iid());
                         }
                     }

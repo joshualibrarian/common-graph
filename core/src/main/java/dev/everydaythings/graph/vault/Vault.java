@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.vault;
 
-import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.component.Factory;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Picker;
@@ -45,7 +44,7 @@ import java.util.Set;
  * }</pre>
  */
 @Type(value = Vault.KEY, glyph = "\uD83D\uDD10")
-public abstract class Vault implements Component {
+public abstract class Vault {
 
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/vault";

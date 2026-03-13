@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language.importer;
 
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.item.user.Signer;
@@ -311,8 +312,8 @@ public abstract class LanguageImporter {
 
             Relation relation = Relation.builder()
                     .predicate(predicate)
-                    .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(source.iid()))
-                    .bind(ThematicRole.Target.SEED.iid(), Relation.iid(target.iid()))
+                    .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(source.iid()))
+                    .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(target.iid()))
                     .build()
                     .sign(signer);
 

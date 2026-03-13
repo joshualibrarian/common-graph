@@ -41,7 +41,7 @@ public final class FrameBody implements Canonical {
 
     /** Additional role bindings beyond predicate and theme. */
     @Canon(order = 2)
-    private final Map<ItemID, Relation.Target> bindings;
+    private final Map<ItemID, BindingTarget> bindings;
 
     /** Cached body hash. */
     private transient ContentID cachedHash;
@@ -56,7 +56,7 @@ public final class FrameBody implements Canonical {
      * @param theme     what this frame is about (required)
      * @param bindings  additional role bindings (nullable — treated as empty)
      */
-    public FrameBody(ItemID predicate, ItemID theme, Map<ItemID, Relation.Target> bindings) {
+    public FrameBody(ItemID predicate, ItemID theme, Map<ItemID, BindingTarget> bindings) {
         this.predicate = Objects.requireNonNull(predicate, "predicate");
         this.theme = Objects.requireNonNull(theme, "theme");
         this.bindings = bindings != null ? Map.copyOf(bindings) : Map.of();
@@ -110,7 +110,7 @@ public final class FrameBody implements Canonical {
     /**
      * Create a FrameBody from a predicate, theme, and bindings.
      */
-    public static FrameBody of(ItemID predicate, ItemID theme, Map<ItemID, Relation.Target> bindings) {
+    public static FrameBody of(ItemID predicate, ItemID theme, Map<ItemID, BindingTarget> bindings) {
         return new FrameBody(predicate, theme, bindings);
     }
 

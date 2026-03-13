@@ -32,7 +32,7 @@ import java.lang.annotation.Target;
  * public class Librarian extends Signer { ... }
  *
  * @Type(value = "cg:type/vault", glyph = "🔐", shape = "cube")
- * public class Vault implements Component { ... }
+ * public class Vault implements Canonical { ... }
  * }</pre>
  */
 @Inherited

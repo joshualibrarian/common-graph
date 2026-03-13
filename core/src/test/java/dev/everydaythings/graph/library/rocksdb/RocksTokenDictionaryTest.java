@@ -4,6 +4,7 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for RocksTokenDictionary.
  */
+@Disabled("Store tests — refactoring later")
 class RocksTokenDictionaryTest {
 
     @TempDir

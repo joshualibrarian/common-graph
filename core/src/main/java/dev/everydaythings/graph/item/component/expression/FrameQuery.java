@@ -3,8 +3,8 @@ package dev.everydaythings.graph.item.component.expression;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.PronounSememe;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.library.LibraryIndex;
@@ -47,7 +47,7 @@ import java.util.stream.Stream;
 public record FrameQuery(
         @Canon(order = 0) ItemID predicate,
         @Canon(order = 1) ItemID theme,
-        @Canon(order = 2) Map<ItemID, Relation.Target> bindings
+        @Canon(order = 2) Map<ItemID, BindingTarget> bindings
 ) implements Expression, Canonical {
 
     private static final Logger log = LogManager.getLogger(FrameQuery.class);
@@ -94,9 +94,9 @@ public record FrameQuery(
         ItemID pred = isHole(pattern.predicate()) ? pattern.predicate() : pattern.predicate();
         ItemID theme = isHole(pattern.subject()) ? pattern.subject() : pattern.subject();
 
-        Map<ItemID, Relation.Target> bindings = new LinkedHashMap<>();
+        Map<ItemID, BindingTarget> bindings = new LinkedHashMap<>();
         if (!isHole(pattern.object())) {
-            bindings.put(TARGET_ROLE, Relation.iid(pattern.object()));
+            bindings.put(TARGET_ROLE, BindingTarget.iid(pattern.object()));
         }
 
         return new FrameQuery(pred, theme, bindings);
@@ -182,7 +182,7 @@ public record FrameQuery(
         sb.append("theme: ").append(formatId(theme));
         for (var entry : bindings.entrySet()) {
             sb.append(", ").append(entry.getKey().encodeText()).append(": ");
-            if (entry.getValue() instanceof Relation.IidTarget iid) {
+            if (entry.getValue() instanceof BindingTarget.IidTarget iid) {
                 sb.append(iid.iid().encodeText());
             } else {
                 sb.append(entry.getValue());
@@ -211,7 +211,7 @@ public record FrameQuery(
     public static class Builder {
         private ItemID predicate = WHAT;
         private ItemID theme = WHAT;
-        private final Map<ItemID, Relation.Target> bindings = new LinkedHashMap<>();
+        private final Map<ItemID, BindingTarget> bindings = new LinkedHashMap<>();
 
         public Builder predicate(ItemID predicate) {
             this.predicate = predicate;
@@ -223,13 +223,13 @@ public record FrameQuery(
             return this;
         }
 
-        public Builder binding(ItemID role, Relation.Target target) {
+        public Builder binding(ItemID role, BindingTarget target) {
             this.bindings.put(role, target);
             return this;
         }
 
         public Builder binding(ItemID role, ItemID targetIid) {
-            this.bindings.put(role, Relation.iid(targetIid));
+            this.bindings.put(role, BindingTarget.iid(targetIid));
             return this;
         }
 

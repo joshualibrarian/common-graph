@@ -2,7 +2,8 @@ package dev.everydaythings.graph.game.minesweeper;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.component.FrameAware;
+import dev.everydaythings.graph.item.component.FrameContext;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
@@ -41,7 +42,7 @@ import java.util.*;
 @Type(value = Minesweeper.KEY, glyph = "\uD83D\uDCA3")
 @Scene.Container(direction = Direction.VERTICAL, padding = "0.5em", gap = "0.25em")
 public class Minesweeper extends GameComponent<Minesweeper.Op>
-        implements Spatial<MineTile>, Randomized {
+        implements Spatial<MineTile>, Randomized, FrameAware {
 
     public static final String KEY = "cg:type/minesweeper";
     private static final String CONFIG_SCOPE_ROOT = "/";
@@ -196,11 +197,11 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     }
 
     @Override
-    public void initComponent(Item owningItem) {
-        publishConfigSettings(owningItem);
+    public void onFramePlaced(FrameContext ctx) {
+        publishConfigSettings(ctx.theme());
     }
 
-    private void publishConfigSettings(Item owningItem) {
+    private void publishConfigSettings(dev.everydaythings.graph.item.Item owningItem) {
         owningItem.componentEntry(this).ifPresent(entry -> {
             entry.putSetting(FrameEntry.ScopedSetting.builder()
                     .scopePath(CONFIG_SCOPE_ROOT)

@@ -2,7 +2,6 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.component.Factory;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Picker;
@@ -60,7 +59,7 @@ import java.util.stream.Stream;
  * // In-memory for tests
  * try (Library lib = Library.memory()) {
  *     lib.relation(myRelation);
- *     lib.find().from(subject).via(predicate).relations();
+ *     lib.byItemPredicate(subject, predicate);
  * }
  *
  * // Persistent for production
@@ -71,7 +70,7 @@ import java.util.stream.Stream;
  */
 @Log4j2
 @Type(value = "cg:type/library", glyph = "📚")
-public final class Library implements Component, Canonical, AutoCloseable {
+public final class Library implements Canonical, AutoCloseable {
 
     // ==================================================================================
     // Backend Selection
@@ -717,37 +716,6 @@ public final class Library implements Component, Canonical, AutoCloseable {
     }
 
     // ==================================================================================
-    // Query API
-    // ==================================================================================
-
-    /**
-     * Start building a relation query.
-     */
-    public RelationQuery find() {
-        return new RelationQuery(this);
-    }
-
-    /**
-     * Execute a relation query against the library's index.
-     *
-     * <p>The index is internal to the library - this is the query interface.
-     * With frame-based relations, queries are by item (any role) and/or predicate.
-     */
-    public Stream<Relation> executeQuery(ItemID item, ItemID predicate) {
-        if (item == null && predicate == null) {
-            throw new IllegalArgumentException("At least one constraint (item or predicate) required");
-        }
-
-        if (item != null && predicate != null) {
-            return byItemPredicate(item, predicate);
-        } else if (item != null) {
-            return byItem(item);
-        } else {
-            return byPredicate(predicate);
-        }
-    }
-
-    // ==================================================================================
     // Frame Query API
     // ==================================================================================
 
@@ -966,10 +934,7 @@ public final class Library implements Component, Canonical, AutoCloseable {
      * @return The implementing Java class, or empty if not found
      */
     public Optional<Class<?>> findImplementation(ItemID typeId) {
-        return find()
-                .from(typeId)
-                .via(VerbSememe.ImplementedBy.SEED)
-                .relations()
+        return byItemPredicate(typeId, VerbSememe.ImplementedBy.SEED.iid())
                 .findFirst()
                 .map(r -> {
                     if (r.object() instanceof Literal lit) {
@@ -980,16 +945,13 @@ public final class Library implements Component, Canonical, AutoCloseable {
     }
 
     /**
-     * Find the implementing Component class for a type ID.
+     * Find the implementing class for a component/frame type ID.
      *
-     * @param typeId The component type's ItemID
-     * @return The implementing Component class, or empty if not found
+     * @param typeId The type's ItemID
+     * @return The implementing class, or empty if not found
      */
-    @SuppressWarnings("unchecked")
-    public Optional<Class<? extends Component>> findComponentImplementation(ItemID typeId) {
-        return findImplementation(typeId)
-                .filter(Component.class::isAssignableFrom)
-                .map(c -> (Class<? extends Component>) c);
+    public Optional<Class<?>> findComponentImplementation(ItemID typeId) {
+        return findImplementation(typeId);
     }
 
     /**
@@ -1074,7 +1036,6 @@ public final class Library implements Component, Canonical, AutoCloseable {
     // Display
     // ==================================================================================
 
-    @Override
     public String displaySubtitle() {
         // Show backend and path for useful context
         if (rootPath != null) {

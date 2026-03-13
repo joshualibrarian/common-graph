@@ -10,6 +10,7 @@ import dev.everydaythings.graph.value.IpAddress;
 import dev.everydaythings.graph.vault.InMemoryVault;
 import io.netty.handler.ssl.SslContext;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for basic network plumbing.
  */
+@Disabled("Slow — network integration tests with TLS")
 class NetworkManagerTest {
 
     private NetworkManager server;

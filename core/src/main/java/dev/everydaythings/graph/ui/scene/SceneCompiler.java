@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.ui.scene.surface.ChipsSurface;
 import dev.everydaythings.graph.ui.scene.surface.HandleSurface;
 import dev.everydaythings.graph.ui.scene.surface.ListSurface;
@@ -2034,7 +2034,7 @@ public final class SceneCompiler {
         if (value instanceof HashID id) {
             return TextSurface.of(id.encodeText()).format("code");
         }
-        if (value instanceof Relation.IidTarget iidTarget) {
+        if (value instanceof BindingTarget.IidTarget iidTarget) {
             return resolveItemHandle(iidTarget.iid());
         }
         if (value instanceof Literal literal) {
@@ -2068,7 +2068,7 @@ public final class SceneCompiler {
         if (value instanceof HashID id) {
             return TextSurface.of(id.encodeText()).format("code");
         }
-        if (value instanceof Relation.IidTarget iidTarget) {
+        if (value instanceof BindingTarget.IidTarget iidTarget) {
             return resolveItemHandle(iidTarget.iid());
         }
         if (value instanceof Literal literal) {

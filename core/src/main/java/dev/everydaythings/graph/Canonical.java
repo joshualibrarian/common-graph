@@ -755,7 +755,7 @@ public interface Canonical {
         if (node == null || node.isNull()) return raw.isPrimitive() ? defaultPrimitive(raw) : null;
 
         // Check for custom fromCborTree() first - this allows Canonical types that extend
-        // Collection (like ItemCollection subclasses) to use custom deserialization
+        // Collection (like FrameTable) to use custom deserialization
         if (Canonical.class.isAssignableFrom(raw)) {
             Object result = tryFromCborTree(raw, node);
             if (result != null) return result;

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
@@ -1521,7 +1522,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         library().byItemPredicate(iid(), servesId)
                 .findFirst()
                 .ifPresent(rel -> {
-                    if (rel.object() instanceof Relation.IidTarget target) {
+                    if (rel.object() instanceof BindingTarget.IidTarget target) {
                         get(target.iid(), User.class).ifPresent(this::setPrincipal);
                     }
                 });
@@ -1561,7 +1562,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         library().byItemPredicate(iid(), availableAtId)
                 .findFirst()
                 .ifPresent(rel -> {
-                    if (rel.object() instanceof Relation.IidTarget target) {
+                    if (rel.object() instanceof BindingTarget.IidTarget target) {
                         get(target.iid(), Host.class).ifPresent(h -> this.host = h);
                     }
                 });
@@ -2034,8 +2035,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // Both provided: query by one, filter by the other
             relations = library().byItemPredicate(subject, predicate)
                     .filter(r -> {
-                        Relation.Target tgt = r.object();
-                        return tgt instanceof Relation.IidTarget iidTarget
+                        BindingTarget tgt = r.object();
+                        return tgt instanceof BindingTarget.IidTarget iidTarget
                                 && object.equals(iidTarget.iid());
                     });
         } else if (subject != null) {
@@ -2050,8 +2051,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // from <subject>: return objects
             return relations
                     .flatMap(r -> {
-                        Relation.Target tgt = r.object();
-                        if (tgt instanceof Relation.IidTarget iidTarget) {
+                        BindingTarget tgt = r.object();
+                        if (tgt instanceof BindingTarget.IidTarget iidTarget) {
                             return Stream.of(iidTarget.iid());
                         }
                         return Stream.empty();

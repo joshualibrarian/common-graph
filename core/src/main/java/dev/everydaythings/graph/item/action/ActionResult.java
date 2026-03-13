@@ -6,8 +6,7 @@ package dev.everydaythings.graph.item.action;
  * <p>Wraps success/failure state with an optional return value or error.
  * Used as the universal return type across all dispatch paths:
  * {@link dev.everydaythings.graph.item.VerbInvoker},
- * {@link dev.everydaythings.graph.item.Item#dispatch},
- * {@link dev.everydaythings.graph.item.Property#dispatch}.
+ * {@link dev.everydaythings.graph.item.Item#dispatch}.
  */
 @lombok.Value
 public class ActionResult {

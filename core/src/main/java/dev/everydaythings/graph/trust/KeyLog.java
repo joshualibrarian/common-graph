@@ -2,9 +2,11 @@ package dev.everydaythings.graph.trust;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.Factory;
-import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Dag;
+import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.item.component.InspectEntry;
+import dev.everydaythings.graph.item.component.Inspectable;
+import dev.everydaythings.graph.item.component.Type;
 
 import lombok.AllArgsConstructor;
 
@@ -26,7 +28,7 @@ import java.util.*;
  * and can be shared to prove identity and key history.
  */
 @Type(value = KeyLog.KEY, glyph = "\uD83D\uDD11", icon = "/icons/key.png")
-public class KeyLog extends Dag<KeyLog.Op> {
+public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
 
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/keylog";
@@ -255,7 +257,6 @@ public class KeyLog extends Dag<KeyLog.Op> {
 
     /* ===================== display ===================== */
 
-    @Override
     public String displayToken() {
         int n = keys.size();
         int dead = tombstoned.size();

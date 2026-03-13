@@ -4,6 +4,7 @@ import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.component.Components;
@@ -225,11 +226,11 @@ public class ItemSchema {
     private Relation buildRelation(Item item, FrameFieldSpec spec, Object target) {
         if (target == null) return null;
 
-        Relation.Target targetValue;
+        BindingTarget targetValue;
         if (target instanceof ItemID itemId) {
-            targetValue = Relation.iid(itemId);
+            targetValue = BindingTarget.iid(itemId);
         } else if (target instanceof Item targetItem) {
-            targetValue = Relation.iid(targetItem.iid());
+            targetValue = BindingTarget.iid(targetItem.iid());
         } else if (target instanceof AddressSpace.ParsedAddress addr) {
             targetValue = Literal.ofText(addr.canonical());
         } else if (target instanceof Value value) {
@@ -247,7 +248,7 @@ public class ItemSchema {
 
         return Relation.builder()
                 .predicate(spec.predicate())
-                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(item.iid()))
+                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(item.iid()))
                 .bind(ThematicRole.Target.SEED.iid(), targetValue)
                 .build();
     }

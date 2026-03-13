@@ -28,7 +28,7 @@ import java.util.*;
  * not just stored here.
  */
 @Type(value = Roster.KEY, glyph = "👥")
-public class Roster implements Component {
+public class Roster {
 
     public static final String KEY = "cg:type/roster";
 

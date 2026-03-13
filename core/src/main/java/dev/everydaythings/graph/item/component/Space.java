@@ -33,7 +33,7 @@ import java.util.*;
  * "what you see when inside an item" - Surface in 2D, Space in 3D.
  */
 @Type(value = Space.KEY, glyph = "🌌")
-public final class Space implements Component {
+public final class Space {
 
     public static final String KEY = "cg:type/space";
 

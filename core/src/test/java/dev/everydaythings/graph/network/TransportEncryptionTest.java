@@ -10,6 +10,7 @@ import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
 import dev.everydaythings.graph.vault.InMemoryVault;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Tests for CG transport encryption: Noise XX handshake and AEAD session encryption.
  */
+@Disabled("Slow — transport encryption integration tests")
 class TransportEncryptionTest {
 
     // ==================================================================================

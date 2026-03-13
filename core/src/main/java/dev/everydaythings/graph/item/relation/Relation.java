@@ -1,11 +1,7 @@
 package dev.everydaythings.graph.item.relation;
 
-import com.upokecenter.cbor.CBORObject;
-import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.item.component.Factory;
-import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -76,7 +72,7 @@ public final class Relation implements Signing.Target {
     private final ItemID predicate;
 
     @Canon(order = 2)
-    private final Map<ItemID, Target> bindings;
+    private final Map<ItemID, dev.everydaythings.graph.item.component.BindingTarget> bindings;
 
     @Canon(order = 3)
     private final Instant createdAt;
@@ -106,80 +102,6 @@ public final class Relation implements Signing.Target {
     }
 
     // ==================================================================================
-    // Target interface
-    // ==================================================================================
-
-    /**
-     * Marker interface for relation binding values.
-     *
-     * <p>Implementations:
-     * <ul>
-     *   <li>{@link IidTarget} - reference to another Item (encodes as byte string)</li>
-     *   <li>{@link Literal} - literal value (encodes as array [valueType, payload])</li>
-     * </ul>
-     */
-    public interface Target extends Canonical {
-
-        /**
-         * Decode a Target from CBOR, dispatching to the appropriate implementation.
-         */
-        @Factory
-        static Target fromCborTree(CBORObject node) {
-            if (node == null || node.isNull()) return null;
-
-            // IidTarget encodes as byte string (ItemID bytes)
-            if (node.getType() == CBORType.ByteString) {
-                return IidTarget.fromCborTree(node);
-            }
-
-            // Literal encodes as array [valueType, payload]
-            if (node.getType() == CBORType.Array) {
-                return Canonical.fromCborTree(node, Literal.class, Scope.RECORD);
-            }
-
-            throw new IllegalArgumentException("Cannot decode Target from CBOR type: " + node.getType());
-        }
-    }
-
-    /**
-     * Binding value that references another Item.
-     *
-     * <p>Encodes as a CBOR byte string containing the ItemID multihash.
-     */
-    public static final class IidTarget implements Target {
-
-        private ItemID iid;
-
-        public IidTarget() {}
-
-        public IidTarget(ItemID iid) {
-            this.iid = Objects.requireNonNull(iid, "iid");
-        }
-
-        public IidTarget(byte[] bytes) {
-            this.iid = new ItemID(bytes);
-        }
-
-        public ItemID iid() { return iid; }
-
-        public static IidTarget of(ItemID iid) { return new IidTarget(iid); }
-
-        @Override
-        public CBORObject toCborTree(Scope scope) {
-            return iid != null ? CBORObject.FromByteArray(iid.encodeBinary()) : CBORObject.Null;
-        }
-
-        @Factory
-        public static IidTarget fromCborTree(CBORObject node) {
-            if (node == null || node.isNull()) return null;
-            return new IidTarget(node.GetByteString());
-        }
-    }
-
-    /** Convenience factory for item references in bindings. */
-    public static IidTarget iid(ItemID iid) { return IidTarget.of(iid); }
-
-    // ==================================================================================
     // Constructors
     // ==================================================================================
 
@@ -198,7 +120,7 @@ public final class Relation implements Signing.Target {
 
     @Builder(builderClassName = "RelationBuilder")
     private Relation(@NonNull ItemID predicate,
-                     @Singular("bind") Map<ItemID, Target> bindings,
+                     @Singular("bind") Map<ItemID, dev.everydaythings.graph.item.component.BindingTarget> bindings,
                      Clock clock,
                      String inputText) {
         this.predicate = predicate;
@@ -244,7 +166,7 @@ public final class Relation implements Signing.Target {
      * @param role The role IID (e.g., ThematicRole.Theme.SEED.iid())
      * @return The target, or null if role not filled
      */
-    public Target binding(ItemID role) {
+    public dev.everydaythings.graph.item.component.BindingTarget binding(ItemID role) {
         return bindings != null ? bindings.get(role) : null;
     }
 
@@ -255,8 +177,8 @@ public final class Relation implements Signing.Target {
      * @return The bound item's IID, or null if role not filled or not an IidTarget
      */
     public ItemID bindingId(ItemID role) {
-        Target target = binding(role);
-        return target instanceof IidTarget iidTarget ? iidTarget.iid() : null;
+        dev.everydaythings.graph.item.component.BindingTarget target = binding(role);
+        return target instanceof dev.everydaythings.graph.item.component.BindingTarget.IidTarget iidTarget ? iidTarget.iid() : null;
     }
 
     // ==================================================================================
@@ -315,7 +237,7 @@ public final class Relation implements Signing.Target {
      * @deprecated Use {@code binding(ThematicRole.Target.SEED.iid())} directly
      */
     @Deprecated
-    public Target object() {
+    public dev.everydaythings.graph.item.component.BindingTarget object() {
         return binding(ItemID.fromString("cg.role:target"));
     }
 

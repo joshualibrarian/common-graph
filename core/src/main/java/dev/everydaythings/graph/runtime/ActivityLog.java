@@ -1,7 +1,10 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.Component;
+import dev.everydaythings.graph.item.component.FrameAware;
+import dev.everydaythings.graph.item.component.FrameContext;
+import dev.everydaythings.graph.item.component.InspectEntry;
+import dev.everydaythings.graph.item.component.Inspectable;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
 import dev.everydaythings.graph.item.action.ActionResult;
@@ -29,7 +32,7 @@ import java.util.Optional;
  * this will migrate to a persistent {@code Log<ActivityEntry>} stream.
  */
 @Type(value = ActivityLog.KEY, glyph = "📋", color = 0x6699CC)
-public class ActivityLog implements Component {
+public class ActivityLog implements FrameAware, Inspectable {
 
     public static final String KEY = "cg:type/activity-log";
     public static final String HANDLE = "activity";
@@ -39,25 +42,22 @@ public class ActivityLog implements Component {
     private Item owner;
 
     // ==================================================================================
-    // Component Lifecycle
+    // Lifecycle
     // ==================================================================================
 
     @Override
-    public void initComponent(Item owner) {
-        this.owner = owner;
+    public void onFramePlaced(FrameContext ctx) {
+        this.owner = ctx.theme();
     }
 
-    @Override
     public String emoji() {
         return "📋";
     }
 
-    @Override
     public String displayToken() {
         return entries.isEmpty() ? "activity" : "activity (" + entries.size() + ")";
     }
 
-    @Override
     public boolean isExpandable() {
         return !entries.isEmpty();
     }

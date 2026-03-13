@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.*;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.*;
  * Comprehensive tests for SizeValue — parsing, unit conversions via
  * RenderContext, and weight mapping across all supported units.
  */
+@Disabled("Slow — duplicate of ui/scene/SizeValueTest, triggers full librarian bootstrap")
 @DisplayName("SizeValue")
 class SizeValueTest {
 

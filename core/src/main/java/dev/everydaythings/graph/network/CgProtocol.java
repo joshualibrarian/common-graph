@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
@@ -456,8 +457,8 @@ public class CgProtocol implements Protocol {
         if (filter.item() != null) {
             // Check if any binding in the relation has an IidTarget matching the filter's item
             boolean found = false;
-            for (Relation.Target target : relation.bindings().values()) {
-                if (target instanceof Relation.IidTarget iidTarget
+            for (BindingTarget target : relation.bindings().values()) {
+                if (target instanceof BindingTarget.IidTarget iidTarget
                         && filter.item().equals(iidTarget.iid())) {
                     found = true;
                     break;

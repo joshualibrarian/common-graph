@@ -39,15 +39,15 @@ class FrameBodyTest {
         @Test
         @DisplayName("body with bindings")
         void withBindings() {
-            Map<ItemID, Relation.Target> bindings = Map.of(
-                    TARGET_ROLE, Relation.iid(TOLKIEN)
+            Map<ItemID, BindingTarget> bindings = Map.of(
+                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody body = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
             assertThat(body.predicate()).isEqualTo(AUTHOR);
             assertThat(body.theme()).isEqualTo(THE_HOBBIT);
             assertThat(body.bindings()).hasSize(1);
             assertThat(body.bindings().get(TARGET_ROLE))
-                    .isInstanceOf(Relation.IidTarget.class);
+                    .isInstanceOf(BindingTarget.IidTarget.class);
         }
 
         @Test
@@ -103,8 +103,8 @@ class FrameBodyTest {
         @Test
         @DisplayName("same assertion from different callers = same hash")
         void sameAssertionSameHash() {
-            Map<ItemID, Relation.Target> bindings = Map.of(
-                    TARGET_ROLE, Relation.iid(TOLKIEN)
+            Map<ItemID, BindingTarget> bindings = Map.of(
+                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody alice = FrameBody.of(AUTHOR, THE_HOBBIT, bindings);
             FrameBody bob = FrameBody.of(AUTHOR, THE_HOBBIT, bindings);
@@ -140,8 +140,8 @@ class FrameBodyTest {
         @Test
         @DisplayName("body with bindings round-trips")
         void bindingsRoundTrip() {
-            Map<ItemID, Relation.Target> bindings = Map.of(
-                    TARGET_ROLE, Relation.iid(TOLKIEN)
+            Map<ItemID, BindingTarget> bindings = Map.of(
+                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody original = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
             byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
@@ -154,8 +154,8 @@ class FrameBodyTest {
         @Test
         @DisplayName("round-tripped body produces same hash")
         void roundTripPreservesHash() {
-            Map<ItemID, Relation.Target> bindings = Map.of(
-                    TARGET_ROLE, Relation.iid(TOLKIEN)
+            Map<ItemID, BindingTarget> bindings = Map.of(
+                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody original = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
             byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
@@ -173,8 +173,8 @@ class FrameBodyTest {
         void fromRelation() {
             Relation relation = Relation.builder()
                     .predicate(AUTHOR)
-                    .bind(THEME_ROLE, Relation.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, Relation.iid(TOLKIEN))
+                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
+                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
                     .build();
 
             FrameBody body = FrameBody.fromRelation(relation, THE_HOBBIT);
@@ -188,8 +188,8 @@ class FrameBodyTest {
         void toFrameBodyConvenience() {
             Relation relation = Relation.builder()
                     .predicate(AUTHOR)
-                    .bind(THEME_ROLE, Relation.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, Relation.iid(TOLKIEN))
+                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
+                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
                     .build();
 
             FrameBody body = relation.toFrameBody(THE_HOBBIT);
@@ -202,8 +202,8 @@ class FrameBodyTest {
         void toFrameBodyNoArg() {
             Relation relation = Relation.builder()
                     .predicate(AUTHOR)
-                    .bind(THEME_ROLE, Relation.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, Relation.iid(TOLKIEN))
+                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
+                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
                     .build();
 
             FrameBody body = relation.toFrameBody();
@@ -216,7 +216,7 @@ class FrameBodyTest {
         void toFrameBodyNoTheme() {
             Relation relation = Relation.builder()
                     .predicate(AUTHOR)
-                    .bind(TARGET_ROLE, Relation.iid(TOLKIEN))
+                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
                     .build();
 
             FrameBody body = relation.toFrameBody();
@@ -253,8 +253,8 @@ class FrameBodyTest {
         @Test
         @DisplayName("of() with bindings")
         void ofWithBindings() {
-            Map<ItemID, Relation.Target> bindings = Map.of(
-                    TARGET_ROLE, Relation.iid(TOLKIEN)
+            Map<ItemID, BindingTarget> bindings = Map.of(
+                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT, bindings);
             assertThat(body.predicate()).isEqualTo(AUTHOR);

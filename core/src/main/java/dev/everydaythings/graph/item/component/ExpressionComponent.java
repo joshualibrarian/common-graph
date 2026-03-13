@@ -50,7 +50,7 @@ import java.util.stream.Stream;
  */
 @Log4j2
 @Type(value = "cg:type/expression", glyph = "🧮")
-public class ExpressionComponent implements Component, Canonical {
+public class ExpressionComponent implements Canonical {
 
     // ==================================================================================
     // Canonical Fields
@@ -389,12 +389,10 @@ public class ExpressionComponent implements Component, Canonical {
                 .build();
     }
 
-    @Override
     public String displayToken() {
         return displayInfo().displayName();
     }
 
-    @Override
     public String displaySubtitle() {
         if (expression == null) return "null";
         String formula = expression.toExpressionString();
@@ -404,14 +402,12 @@ public class ExpressionComponent implements Component, Canonical {
         return formula;
     }
 
-    @Override
     public boolean isExpandable() {
         // Expandable if the result is a list (e.g., pattern query results)
         if (!cacheValid) return true;
         return cachedResult instanceof List<?>;
     }
 
-    @Override
     public String colorCategory() {
         return "expression";
     }

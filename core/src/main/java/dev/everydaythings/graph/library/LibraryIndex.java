@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library;
 
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -277,7 +278,7 @@ public interface LibraryIndex extends Service {
      * @param wtx        write transaction
      */
     default void indexFrame(ItemID predicate,
-                            Map<ItemID, Relation.Target> bindings,
+                            Map<ItemID, BindingTarget> bindings,
                             ContentID bodyHash,
                             ContentID storageCid,
                             WriteTransaction wtx) {
@@ -296,7 +297,7 @@ public interface LibraryIndex extends Service {
         // Index each ItemID binding as participant: binding | predicate | bodyHash
         if (bindings != null) {
             for (var entry : bindings.entrySet()) {
-                if (entry.getValue() instanceof Relation.IidTarget iidTarget) {
+                if (entry.getValue() instanceof BindingTarget.IidTarget iidTarget) {
                     store().put(Column.FRAME_BY_ITEM,
                             Column.FRAME_BY_ITEM.key(iidTarget.iid(), predicate, bodyHash),
                             storageCidBytes, wtx);
@@ -362,12 +363,12 @@ public interface LibraryIndex extends Service {
         ItemID predicate = entry.frameKey().headSememe();
         if (predicate == null) return;
 
-        Map<ItemID, Relation.Target> bindings = new HashMap<>();
-        bindings.put(ownerIid, Relation.iid(ownerIid));
+        Map<ItemID, BindingTarget> bindings = new HashMap<>();
+        bindings.put(ownerIid, BindingTarget.iid(ownerIid));
 
         if (entry.isReference() && entry.payload().referenceTarget() != null) {
             bindings.put(entry.payload().referenceTarget(),
-                    Relation.iid(entry.payload().referenceTarget()));
+                    BindingTarget.iid(entry.payload().referenceTarget()));
         }
 
         indexFrame(predicate, bindings, bodyHash, storageCid, wtx);

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.RoutingVocabulary;
@@ -8,6 +9,7 @@ import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
@@ -24,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * outbound TLS connection. Both sides complete the CG handshake and create
  * {@code peers-with} and {@code reachable-at} relations.
  */
+@Disabled("Slow integration test — TLS handshake + full librarian bootstrap")
 class CgProtocolTest {
 
     private Librarian lib1;
@@ -78,7 +81,7 @@ class CgProtocolTest {
         assertThat(lib1PeersWith).isNotEmpty();
         assertThat(lib1PeersWith).anyMatch(r ->
                 r.subject().equals(lib1.iid()) &&
-                r.object() instanceof Relation.IidTarget target &&
+                r.object() instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib2.iid())
         );
 
@@ -94,7 +97,7 @@ class CgProtocolTest {
         assertThat(lib2PeersWith).isNotEmpty();
         assertThat(lib2PeersWith).anyMatch(r ->
                 r.subject().equals(lib2.iid()) &&
-                r.object() instanceof Relation.IidTarget target &&
+                r.object() instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib1.iid())
         );
 

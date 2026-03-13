@@ -5,6 +5,7 @@ import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.*;
@@ -364,7 +365,7 @@ public interface ItemStore extends Service {
                 .filter(rel -> typeId.equals(rel.bindingId(ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .map(rel -> {
-                    Relation.Target target = rel.binding(ItemID.fromString("cg.role:target"));
+                    BindingTarget target = rel.binding(ItemID.fromString("cg.role:target"));
                     if (target instanceof Literal lit) {
                         return lit.asJavaClass();
                     }

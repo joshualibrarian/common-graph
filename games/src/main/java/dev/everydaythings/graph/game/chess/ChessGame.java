@@ -11,6 +11,8 @@ import dev.everydaythings.graph.game.GameMode;
 import dev.everydaythings.graph.game.Piece;
 import dev.everydaythings.graph.game.Spatial;
 import dev.everydaythings.graph.item.action.ActionContext;
+import dev.everydaythings.graph.item.component.InspectEntry;
+import dev.everydaythings.graph.item.component.Inspectable;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
@@ -52,7 +54,7 @@ import java.util.stream.Collectors;
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "chess-root", direction = Direction.VERTICAL, width = "100%", height = "100%",
         padding = "0.6em", gap = "0.5em", style = "fill")
-public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<ChessPiece> {
+public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<ChessPiece>, Inspectable {
 
     public static final String KEY = "cg:type/chess";
     private static final String SIDE_PANEL_WIDTH = "25%";

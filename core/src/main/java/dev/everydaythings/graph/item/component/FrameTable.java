@@ -3,11 +3,10 @@ package dev.everydaythings.graph.item.component;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Property;
-import dev.everydaythings.graph.item.collection.ItemCollection;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.mount.Mount;
 
+import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -21,15 +20,14 @@ import java.util.function.Consumer;
  * compose an Item's identity and behavior. This table holds both frame
  * metadata (entries) and live decoded instances.
  *
- * <p>Extends {@link ItemCollection} for unified CRUD action generation.
- * The primary key is {@link FrameKey}.
+ * <p>Extends {@link AbstractSet} with keyed lookup by {@link FrameKey}.
  * Entries are {@link FrameEntry}.
  *
  * <p>The FrameTable is the source of truth for what an item contains.
  * Field bindings ({@code @Item.Frame}) are optional developer ergonomics
  * that bind to entries in this table.
  */
-public class FrameTable extends ItemCollection<FrameKey, FrameEntry> implements Canonical, Component, Property {
+public class FrameTable extends AbstractSet<FrameEntry> implements Canonical {
 
     // ==================================================================================
     // Owner Tracking
@@ -53,28 +51,23 @@ public class FrameTable extends ItemCollection<FrameKey, FrameEntry> implements 
     // Component Display
     // ==================================================================================
 
-    @Override
     public String displayToken() {
         return "Frames";
     }
 
-    @Override
     public boolean isExpandable() {
         return !isEmpty();
     }
 
-    @Override
     public String colorCategory() {
         return "frames";
     }
 
-    @Override
     public String displaySubtitle() {
         int count = size();
         return count + " frame" + (count == 1 ? "" : "s");
     }
 
-    @Override
     public String emoji() {
         return "📦";  // Box for content/components
     }
@@ -112,68 +105,29 @@ public class FrameTable extends ItemCollection<FrameKey, FrameEntry> implements 
         return Optional.empty();
     }
 
-    @Override
-    public Property property(String name) {
-        FrameKey key = resolveAlias(name).orElse(null);
-        if (key == null) return null;
-        return getLive(key)
-                .filter(o -> o instanceof Property)
-                .map(o -> (Property) o)
-                .orElse(null);
-    }
-
-    @Override
-    public java.util.stream.Stream<String> properties() {
-        return entries.keySet().stream().map(FrameKey::toCanonicalString);
-    }
-
-    @Override
-    public boolean isCollection() {
-        return true;
-    }
-
-    @Override
-    public void add(String key, Object value) {
-        if (value instanceof FrameEntry entry) {
-            add(entry);
-        } else {
-            throw new IllegalArgumentException("FrameTable only accepts FrameEntry values");
-        }
-    }
-
-    @Override
-    public void remove(String key) {
-        removeByKey(FrameKey.literal(key));
-    }
-
     /** Metadata entries (FrameKey -> FrameEntry with type, CID, etc.) */
     private final Map<FrameKey, FrameEntry> entries = new LinkedHashMap<>();
 
     // ==================================================================================
-    // ItemCollection Implementation
+    // Collection Implementation
     // ==================================================================================
 
-    @Override
     public String collectionName() {
         return "frames";
     }
 
-    @Override
     public Class<FrameEntry> entryType() {
         return FrameEntry.class;
     }
 
-    @Override
     public FrameKey keyOf(FrameEntry entry) {
         return entry.frameKey();
     }
 
-    @Override
     public Optional<FrameEntry> get(FrameKey key) {
         return Optional.ofNullable(entries.get(key));
     }
 
-    @Override
     public boolean removeByKey(FrameKey key) {
         FrameEntry entry = entries.get(key);
         boolean had = entry != null;
@@ -184,7 +138,7 @@ public class FrameTable extends ItemCollection<FrameKey, FrameEntry> implements 
     }
 
     @Override
-    protected boolean addEntry(FrameEntry entry) {
+    public boolean add(FrameEntry entry) {
         FrameKey key = entry.frameKey();
         boolean isNew = !entries.containsKey(key);
         entries.put(key, entry);
@@ -208,6 +162,22 @@ public class FrameTable extends ItemCollection<FrameKey, FrameEntry> implements 
     @Override
     public void clear() {
         entries.clear();
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        if (o instanceof FrameEntry entry) {
+            return removeByKey(keyOf(entry));
+        }
+        return false;
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        if (o instanceof FrameEntry entry) {
+            return get(keyOf(entry)).isPresent();
+        }
+        return false;
     }
 
     // ==================================================================================

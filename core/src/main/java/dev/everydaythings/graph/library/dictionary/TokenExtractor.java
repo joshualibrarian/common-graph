@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library.dictionary;
 
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Literal;
@@ -173,7 +174,7 @@ public final class TokenExtractor {
     // ==================================================================================
 
     private static List<Posting> extractTextPosting(Relation relation, ItemID subject, float weight) {
-        Relation.Target target = relation.object();
+        BindingTarget target = relation.object();
         if (target instanceof Literal literal) {
             String text = extractTextFromLiteral(literal);
             if (text != null && !text.isBlank()) {

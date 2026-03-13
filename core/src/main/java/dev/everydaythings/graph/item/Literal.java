@@ -4,8 +4,8 @@ import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.value.IpAddress;
 import dev.everydaythings.graph.value.Quantity;
@@ -28,7 +28,7 @@ import java.util.Objects;
  * <p>This avoids bespoke type codes / special-case unions in the relation layer.
  */
 @Getter
-public final class Literal implements Relation.Target {
+public final class Literal implements BindingTarget {
 
     @Canon(order = 1)
     private final ItemID valueType;

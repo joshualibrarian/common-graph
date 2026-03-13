@@ -30,7 +30,7 @@ import dev.everydaythings.graph.value.Color;
  * @see ViewNode
  */
 @Type(value = SurfaceTemplateComponent.KEY, glyph = "\uD83D\uDDBC")
-public class SurfaceTemplateComponent implements Component, Canonical {
+public class SurfaceTemplateComponent implements Canonical {
 
     public static final String KEY = "cg:type/surface-template";
     public static final FrameKey HANDLE = FrameKey.literal("surface");
@@ -236,12 +236,10 @@ public class SurfaceTemplateComponent implements Component, Canonical {
     // Display Implementation
     // ==================================================================================
 
-    @Override
     public String displayToken() {
         return typeName != null ? typeName : "Surface Template";
     }
 
-    @Override
     public String emoji() {
         return "\uD83D\uDDBC";
     }

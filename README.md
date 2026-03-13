@@ -1,6 +1,6 @@
 # Common Graph
 
-**A unified substrate for content, identity, meaning, and trust.**
+**A unified meaning-space for content, identity, and trust.**
 
 > **Fair warning:** This is an active construction site. The architecture is real, the code runs, but everything is changing constantly. If that bothers you, check back later. If that excites you, read on.
 
@@ -55,28 +55,79 @@ A "like" is a signed frame. A spam label is a signed frame. A fact-check is a si
 
 ### Frames: The Single Primitive
 
-Common Graph replaces files and folders with two primitives: **frames** and **items**. A frame is a filled semantic assertion with a predicate, a subject (theme), and named role bindings. An item is a signed, versioned collection of frames with stable identity. Content, metadata, authorship declarations, glosses, chat messages, trust attestations, policy settings — all frames, all living on items:
+The entire data model is two types:
 
 ```
-TITLE        { theme: TheHobbit, target: "The Hobbit" }
-AUTHORED     { theme: TheHobbit, AGENT: Tolkien }
-GLOSS        { theme: sememe:create, LANGUAGE: ENG, target: "bring into existence" }
-LIKED_BY     { theme: post, EXPERIENCER: alice }
+Frame {
+    predicate   — what kind of assertion (a sememe)
+    theme       — what it's about (a ref: item, frame, or content within a frame)
+    bindings    — role bindings filling the predicate's slots
+}
+
+Binding {
+    key         — compound semantic key: role + qualifiers (e.g., (MKV, UHD))
+    target      — CID, stream ref, inline value, item ref
+    identity    — in body hash? (default from predicate and role)
+    index       — in frame index? (default from predicate and role)
+}
 ```
 
-Frames are inspired by [Fillmore's frame semantics](https://en.wikipedia.org/wiki/Frame_semantics_(linguistics)): structured meaning with thematic roles, not flat key-value pairs.
+Everything is a binding. The title text, the video file, the move log, the signature — each is a binding on a frame with a compound semantic key and two orthogonal flags: `identity` (does this contribute to the body hash?) and `index` (is this discoverable in the frame index?). Content, provenance, format variants, cached transcodes, metadata — all expressed uniformly as bindings. No special-purpose fields. No separate record or envelope type.
 
-The predicate carries real meaning about *what role the data plays*. A book's English text is `(TEXT, ENGLISH)`. An audiobook narration is `(AUDIOBOOK, ENGLISH)`. An algorithm's implementation is `(IMPLEMENTATION)` — the fact that it's written in Python is representation metadata, not semantic identity. The predicate tells you what the data *is for*, not what format it's in.
+Frames are **self-contained within the unified meaning-space**. Every concept a frame touches — its predicate, its theme, every binding role, every target — is a semantic reference into the graph. You don't need a manifest or a separate envelope to interpret a frame. It names every meaning it participates in.
 
-See [`frames.md`](docs/frames.md) for the full frame model — body/record split, FrameKeys, endorsement, representations, queries.
+**Predicates define meaningful roles.** Each predicate declares what bindings its frames expect:
+
+```
+TITLE frame:
+  (NAME) → "The Hobbit"                    [identity]
+
+CHESS frame:
+  (PLAYER, WHITE) → fischer                         [identity]
+  (PLAYER, BLACK) → spassky                         [identity]
+  (MOVES) → stream:cid-abc                 [non-identity]
+
+VIDEO frame:
+  (MKV, UHD) → cid:master-4k               [identity]
+  (MKV, HD)  → cid:hd-transcode            [non-identity]
+  (MKV, SD)  → cid:sd-transcode            [non-identity]
+```
+
+TITLE expects NAME. CHESS expects WHITE, BLACK, MOVES. VIDEO uses compound keys that carry the content type and format. No generic "value" or "content" roles — predicates declare what they need.
+
+**Identity bindings control versioning.** The body hash — the frame's content identity — is computed from predicate + theme + identity bindings only. Non-identity bindings (cached transcodes, streaming logs, signatures) live on the frame but don't affect its hash. Replace an HD transcode tomorrow — body hash unchanged. Edit the resume source — new body hash, new item version.
+
+**Index bindings control discoverability.** The `index` flag determines whether a binding creates a reverse-lookup entry in the frame index. `(AUTHOR) → Tolkien` with `index: true` means querying "frames involving Tolkien" finds this frame. `(NAME) → "The Hobbit"` with `index: false` means you don't get a reverse lookup from the title string. Both flags default from the predicate and role semantics — most bindings never need to override.
+
+**Provenance is bindings.** Signatures are non-identity SIGNATURE bindings. No separate record type:
+
+```
+LIKED_BY frame:
+  (LIKER) → alice                           [identity]
+  (SIGNATURE, alice) → sig-bytes            [non-identity]
+```
+
+Frames are inspired by [Fillmore's frame semantics](https://en.wikipedia.org/wiki/Frame_semantics_(linguistics)) — structured meaning with thematic roles — extended to carry data and provenance. See [`frames.md`](docs/frames.md) for the full model.
 
 ### Items: Signed Collections of Frames
 
-An **item** is a signed collection of frames with stable cryptographic identity. Items can represent anything: documents, people, groups, conversations, machines, games, communities, devices, languages, meanings themselves. Every item carries its own identity (IID), immutable version history, and a manifest listing its endorsed frames with content hashes.
+An **item** is a signed collection of frames with stable cryptographic identity. Items can represent anything: documents, people, groups, conversations, machines, games, communities, devices, languages, meanings themselves. Every item carries its own identity (IID), immutable version history, and a manifest — a signed list of endorsements pointing to frames by body hash.
 
-**Types are sememes.** The concept "Book" is a noun sememe — a unit of meaning in the graph with its own IID and version history. It's the same "book" that exists in WordNet. When the English import runs, the WordNet synset for "book" merges idempotently with the type item — same concept, one item. Its glosses are frames: `(GLOSS, ENGLISH) → "a written work"`. Its hypernyms are frames: `(HYPERNYM) → publication`. English itself is an item in the graph, and lexemes (the word "book", its plural "books", its verb form "to book") live as frames on the English item, pointing back to this sememe. The type definition adds structural expectations — what frames a Book expects, what verbs it handles, how it presents — on top of that semantic foundation. Types aren't separate from meanings. They ARE meanings.
+The manifest endorsement is minimal:
 
-In the current Java implementation, a type is declared as an annotated class.  That class is loaded into the graph at runtime as a seed item:
+```
+Endorsement {
+    key         — which frame (semantic address)
+    body_hash   — which version of that frame
+    mounts      — where this frame appears in the item's presentation
+}
+```
+
+No identity flag on the endorsement — that lives on each binding, where the decision belongs. The manifest just endorses frames and arranges them.
+
+**Types are sememes.** The concept "Book" is a noun sememe — a unit of meaning in the graph with its own IID and version history. It's the same "book" that exists in WordNet. When the English import runs, the WordNet synset for "book" merges idempotently with the type item — same concept, one item. Its glosses are frames: `(GLOSS, ENGLISH) → "a written work"`. Its hypernyms are frames: `(HYPERNYM) → publication`. Types aren't separate from meanings. They ARE meanings.
+
+In the current Java implementation, a type is declared as an annotated class. That class is loaded into the graph at runtime as a seed item:
 
 ```java
 @Type("cg:type/book")
@@ -88,7 +139,7 @@ public class Book extends NounSememe {
 }
 ```
 
-But the class is just the host-language representation of a type item that lives in the graph. `"cg:type/book"` is a deterministic IID — the same on every node, computed from the canonical string, just like sememe IDs. The annotations declare what frames a Book expects, what verbs it handles, how it presents itself. The type item carries all of that as semantic data.
+But the class is just the host-language representation of a type item that lives in the graph. `"cg:type/book"` is a deterministic IID — the same on every node. The annotations declare what frames a Book expects, what verbs it handles, how it presents itself.
 
 > *"Item" is a working name. The right word will come.*
 
@@ -101,7 +152,7 @@ See [`item.md`](docs/item.md) for item structure, identity, lifecycle, and compo
 | Opaque byte stream — the OS can't interpret content | Typed frames — the system knows what everything means |
 | Named by path in a tree — one location per file | Discoverable by meaning — items exist in a semantic graph, not a hierarchy |
 | No built-in authorship, versioning, or integrity | Every item is signed, versioned, and content-addressed |
-| Metadata is a sidecar (xattr, .DS_Store, EXIF) | Metadata IS frames — first-class, queryable, signed, same as content |
+| Metadata is a sidecar (xattr, .DS_Store, EXIF) | Metadata IS bindings — first-class, queryable, signed, same as content |
 | "Relatedness" means same folder or a hyperlink | Semantic frames: typed, signed, indexed, traversable |
 | Copy a file to share it, hope nothing changes | Content-addressed: share by hash, verify on receipt, dedup automatically |
 | Permissions are rwx bits on a path | Trust policies are items — scoped, weighted, revocable, inspectable |
@@ -116,7 +167,7 @@ A folder is one way to group things — by containment in a hierarchy. Common Gr
 
 This is the core difference. The web is a document dump with external indexing bolted on. Common Graph is a **semantic index by construction**.
 
-Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every assertion has role bindings to other sememes or items. This means the graph IS the index. There is no separate crawl-and-index step because the data already describes what it means.
+Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every binding has a role key that is a sememe. This means the graph IS the index. There is no separate crawl-and-index step because the data already describes what it means.
 
 **Sememes are universal meaning units.** Grounded in [WordNet](https://wordnet.princeton.edu/) (~120,000 synsets) and cross-linked via [CILI](https://github.com/globalwordnet/cili) (Collaborative Interlingual Index), sememes carry:
 
@@ -128,7 +179,7 @@ Every item is typed with a sememe. Every frame has a predicate that is a sememe.
 
 There are no reserved words. No escape characters. Disambiguation happens through more language — the same way humans do it.
 
-**Predicates ARE indexes.** When you assert `AUTHORED { theme: TheHobbit, AGENT: Tolkien }`, the frame is indexed on TheHobbit (by AUTHORED predicate) and on Tolkien (by AGENT role). Querying "what did Tolkien author?" is a prefix scan on Tolkien's frame index filtered to AUTHORED — no full-text search, no crawling, no ranking algorithm.
+**Predicates ARE indexes.** When you assert `AUTHORED { theme: TheHobbit, (AGENT) → Tolkien }`, the frame is indexed on TheHobbit (by AUTHORED predicate) and on Tolkien (by AGENT role). Querying "what did Tolkien author?" is a prefix scan on Tolkien's frame index filtered to AUTHORED — no full-text search, no crawling, no ranking algorithm.
 
 **Discovery fans out through the social graph.** Your librarian answers queries from its local store first. If it doesn't have the answer, it asks peers. Peers ask their peers. Trust metrics control propagation depth. The result: global discoverability without a global index. Communities that share interests naturally cluster, and queries resolve faster within clusters.
 
@@ -147,11 +198,11 @@ The web tried to solve this with microdata, RDFa, Schema.org, JSON-LD — boltin
 Every item has a prompt. You type into it, and the vocabulary system resolves your words into actions — through semantic resolution against the TokenDictionary, not through keyword matching or regex parsing.
 
 ```
-chess> move pawn to e4           # verb + noun + preposition + noun
-graph> create document           # verb + type noun
-alice@chat> send "hello" to Bob  # verb + literal + preposition + proper noun
-graph> 5m + 3ft                  # quantity expression with unit conversion
-graph> sqrt(144) * 2             # function + operator expression
+alice@chess> move pawn to e4           # verb + noun + preposition + noun
+alice@home> create document            # verb + type noun
+alice@chat> send "hello" to Bob        # verb + literal + preposition + proper noun
+alice@home> 5m + 3ft                   # quantity expression with unit conversion
+alice@home> sqrt(144) * 2              # function + operator expression
 ```
 
 The pipeline:
@@ -186,11 +237,11 @@ The Librarian itself is an Item — a Signer with its own identity in the graph.
 
 Trust isn't a security feature bolted on top — it's the organizing principle of the entire system.
 
-Every manifest and frame record is signed. Trust isn't binary — it's policy-driven with thresholds, scopes, decay, and revocation. Trust policies live on items as configuration, inspectable and adjustable.
+Every manifest and frame is signed. Trust isn't binary — it's policy-driven with thresholds, scopes, decay, and revocation. Trust policies live on items as configuration, inspectable and adjustable.
 
 Trust determines who you sync with, whose assertions you accept, how far your queries propagate, and whose content appears in your graph at all. There is no separate "moderation" system because trust *is* moderation.
 
-**Reactions replace algorithms.** A "like" is a signed frame. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a frame targeting Alice's frame. Everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. No appeals process, no review board — just overlapping trust graphs producing different views of the same data.
+**Reactions replace algorithms.** A "like" is a signed frame. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a frame targeting Alice's frame — because themes are refs, and a frame can be about another frame. Everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. No appeals process, no review board — just overlapping trust graphs producing different views of the same data.
 
 ---
 
@@ -207,7 +258,7 @@ Your Librarian connects to other Librarians the way you connect to other people 
 
 ## Storage: One Object Store, Four Indexes
 
-All data lives in a single content-addressed object store: `persist(bytes) -> CID`, `fetch(CID) -> bytes`. Manifests, frame bodies, frame records, content blobs — all stored as objects keyed by their cryptographic hash.
+All data lives in a single content-addressed object store: `persist(bytes) -> CID`, `fetch(CID) -> bytes`. Manifests, frame bodies, content blobs — all stored as objects keyed by their cryptographic hash.
 
 Four derived indexes make the objects queryable:
 
@@ -290,7 +341,7 @@ This is an early-stage research project. It functions, but it is not ready for p
 
 **What works today:**
 - Full item lifecycle: create, edit, sign, commit, store, retrieve, verify
-- Unified frame model with FrameKey-based addressing
+- Unified frame model with compound binding keys and identity-controlled hashing
 - Content-addressed storage with unified object store and four derived indexes
 - Sememe-based vocabulary with TokenDictionary, inner-to-outer dispatch, and expression evaluation
 - Quantity expressions with unit conversion (e.g., `5m - 2ft`)
@@ -367,7 +418,7 @@ Detailed specifications live in `docs/`:
 
 | Document | Covers |
 |----------|--------|
-| [`frames.md`](docs/frames.md) | The frame primitive, body/record split, FrameKey, representations, endorsement |
+| [`frames.md`](docs/frames.md) | The frame primitive, bindings, compound keys, identity, endorsement |
 | [`item.md`](docs/item.md) | Item structure, identity, lifecycle, composition |
 | [`vocabulary.md`](docs/vocabulary.md) | Vocabulary system, dispatch, expression input |
 | [`sememes.md`](docs/sememes.md) | Meaning units, parts of speech, WordNet/CILI anchoring |

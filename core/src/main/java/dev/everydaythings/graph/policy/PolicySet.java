@@ -3,10 +3,7 @@ package dev.everydaythings.graph.policy;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
-import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Property;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.*;
 
@@ -14,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * Collection of policies defining access rules for an Item.
@@ -34,34 +30,29 @@ import java.util.stream.Stream;
 @Getter @Setter @Builder
 @NoArgsConstructor @AllArgsConstructor
 @Canonical.Canonization
-public class PolicySet implements Canonical, Component, Property {
+public class PolicySet implements Canonical {
 
     // ==================================================================================
     // Component Display
     // ==================================================================================
 
-    @Override
     public String displayToken() {
         return "Policy";
     }
 
-    @Override
     public boolean isExpandable() {
         return hasAnyPolicy();
     }
 
-    @Override
     public String colorCategory() {
         return "policy";
     }
 
-    @Override
     public String displaySubtitle() {
         int count = countActivePolicies();
         return count + " polic" + (count == 1 ? "y" : "ies");
     }
 
-    @Override
     public String emoji() {
         return "🛡️";  // Shield for policy
     }
@@ -143,39 +134,6 @@ public class PolicySet implements Canonical, Component, Property {
         if (encryption != null && encryption.isEnabled()) count++;
         return count;
     }
-
-    // ==================================================================================
-    // Property Implementation
-    // ==================================================================================
-
-    @Override
-    public Property property(String name) {
-        return switch (name) {
-            case "authority" -> null; // TODO: wrap as Property
-            case "replication" -> null;
-            case "route" -> null;
-            case "access" -> null;
-            case "encryption" -> null;
-            default -> null;
-        };
-    }
-
-    @Override
-    public Stream<String> properties() {
-        List<String> props = new ArrayList<>();
-        if (authority != null) props.add("authority");
-        if (replication != null) props.add("replication");
-        if (route != null) props.add("route");
-        if (access != null && access.hasRules()) props.add("access");
-        if (encryption != null && encryption.isEnabled()) props.add("encryption");
-        return props.stream();
-    }
-
-    @Override
-    public boolean isCollection() {
-        return false;
-    }
-
 
     // ==================================================================================
     // Factory Methods

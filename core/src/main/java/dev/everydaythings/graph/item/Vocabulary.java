@@ -2,7 +2,6 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
-import dev.everydaythings.graph.item.component.Component;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
@@ -42,57 +41,32 @@ import java.util.stream.Stream;
 @Type(value = "cg:type/vocabulary", glyph = "📖", color = 0x64B4C8)
 @Canonical.Canonization
 @Scene(as = VocabularySurface.class)
-public class Vocabulary implements Canonical, Component, Property, Iterable<VerbEntry> {
+public class Vocabulary implements Canonical, Iterable<VerbEntry> {
 
     // ==================================================================================
     // Component Display
     // ==================================================================================
 
-    @Override
     public String emoji() {
         return "📖";
     }
 
-    @Override
     public String displayToken() {
         return "Vocabulary";
     }
 
-    @Override
     public boolean isExpandable() {
         return !isEmpty();
     }
 
-    @Override
     public String colorCategory() {
         return "vocabulary";
     }
 
-    @Override
     public String displaySubtitle() {
         int count = size();
         return count + " verb" + (count == 1 ? "" : "s");
     }
-
-    // ==================================================================================
-    // Property Implementation
-    // ==================================================================================
-
-    @Override
-    public Property property(String name) {
-        // Look up verb by sememe key
-        ItemID sememeId = ItemID.fromString(name);
-        return lookup(sememeId)
-                .filter(v -> v instanceof Property)
-                .map(v -> (Property) v)
-                .orElse(null);
-    }
-
-    @Override
-    public Stream<String> properties() {
-        return bySememeId.keySet().stream().map(ItemID::encodeText);
-    }
-
 
     // ==================================================================================
     // Serialized Custom Layer

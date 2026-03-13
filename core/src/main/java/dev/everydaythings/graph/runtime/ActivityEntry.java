@@ -2,7 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.Component;
+import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -129,7 +129,18 @@ public class ActivityEntry implements Canonical {
     private static String summarize(Object value) {
         if (value == null) return null;
         if (value instanceof Item item) return item.displayToken();
-        if (value instanceof Component comp) return comp.displayToken();
+        // Try @Type annotation for display token (covers all frame types)
+        Type type = value.getClass().getAnnotation(Type.class);
+        if (type != null) {
+            String key = type.value();
+            int slash = key.lastIndexOf('/');
+            if (slash >= 0 && slash < key.length() - 1) {
+                String shortName = key.substring(slash + 1);
+                if (!shortName.isEmpty()) {
+                    return Character.toUpperCase(shortName.charAt(0)) + shortName.substring(1);
+                }
+            }
+        }
         String text = String.valueOf(value);
         // Single-line, max 80 chars
         int newline = text.indexOf('\n');

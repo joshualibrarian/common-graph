@@ -3,6 +3,7 @@ package dev.everydaythings.graph.network;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.relation.Relation;
@@ -127,8 +128,8 @@ public class ProtocolContext {
         // Create peers-with relation: local --peers-with--> remote
         Relation peersWith = Relation.builder()
                 .predicate(RoutingVocabulary.PeersWith.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(localId))
-                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(remoteId))
+                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(localId))
+                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(remoteId))
                 .build()
                 .sign(librarian);
         librarian.relation(peersWith);
@@ -141,7 +142,7 @@ public class ProtocolContext {
         );
         Relation reachableAt = Relation.builder()
                 .predicate(RoutingVocabulary.ReachableAt.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(remoteId))
+                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(remoteId))
                 .bind(ThematicRole.Target.SEED.iid(), Literal.of(endpoint))
                 .build()
                 .sign(librarian);
@@ -175,8 +176,8 @@ public class ProtocolContext {
 
         Relation relay = Relation.builder()
                 .predicate(RoutingVocabulary.AcknowledgesRelay.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(librarian.iid()))
-                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(fromPeer))
+                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(librarian.iid()))
+                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(fromPeer))
                 .build()
                 .sign(librarian);
 
@@ -189,8 +190,8 @@ public class ProtocolContext {
 
         Relation ack = Relation.builder()
                 .predicate(RoutingVocabulary.AcknowledgesDelivery.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(localId))
-                .bind(ThematicRole.Target.SEED.iid(), Relation.iid(remoteLibrarianIid))
+                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(localId))
+                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(remoteLibrarianIid))
                 .bind(RoutingVocabulary.RequestId.SEED.iid(), Literal.ofInteger(requestId))
                 .build()
                 .sign(librarian);

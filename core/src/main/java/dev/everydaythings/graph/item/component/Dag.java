@@ -39,7 +39,7 @@ import java.util.*;
  * @see Log
  */
 @Type(value = Dag.KEY, glyph = "🕸️")
-public abstract class Dag<E> implements Component, Canonical {
+public abstract class Dag<E> implements Canonical {
 
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/dag";
@@ -209,7 +209,6 @@ public abstract class Dag<E> implements Component, Canonical {
         return heads.isEmpty();
     }
 
-    @Override
     public boolean isExpandable() {
         return !isEmpty();
     }

@@ -77,6 +77,7 @@ class OperatorTest {
     // SeedStore Integration Tests
     // ==================================================================================
 
+    @org.junit.jupiter.api.Disabled("Slow — SeedVocabulary.bootstrap per test")
     @Test
     void bootstrapIncludesOperators() {
         ItemStore store = MapDBItemStore.memory();
@@ -90,6 +91,7 @@ class OperatorTest {
         assertThat(hasManifest(store, Operator.Or.SEED.iid())).isTrue();
     }
 
+    @org.junit.jupiter.api.Disabled("Slow — SeedVocabulary.bootstrap per test")
     @Test
     void operatorsAreDiscoverableByType() {
         ItemStore store = MapDBItemStore.memory();

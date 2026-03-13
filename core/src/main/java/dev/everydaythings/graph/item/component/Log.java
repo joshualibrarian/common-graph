@@ -54,7 +54,7 @@ import java.util.stream.Stream;
  * @see Dag
  */
 @Type(value = Log.KEY, glyph = "📜")
-public abstract class Log<E> implements Component {
+public abstract class Log<E> implements Inspectable {
 
     public static final String KEY = "cg:type/log";
 
@@ -128,12 +128,10 @@ public abstract class Log<E> implements Component {
     // Component Tree
     // ==================================================================================
 
-    @Override
     public boolean isExpandable() {
         return !isEmpty();
     }
 
-    @Override
     public String displayToken() {
         long n = count();
         return entryClass.getSimpleName() + " log" + (n > 0 ? " (" + n + ")" : "");

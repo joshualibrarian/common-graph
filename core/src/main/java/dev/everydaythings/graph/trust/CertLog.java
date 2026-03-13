@@ -2,9 +2,11 @@ package dev.everydaythings.graph.trust;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.Factory;
-import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Dag;
+import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.item.component.InspectEntry;
+import dev.everydaythings.graph.item.component.Inspectable;
+import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.io.ByteArrayInputStream;
@@ -31,7 +33,7 @@ import java.util.*;
  * and represents the public record of certificates.
  */
 @Type(value = CertLog.KEY, glyph = "📋")
-public class CertLog extends Dag<CertLog.Op> {
+public class CertLog extends Dag<CertLog.Op> implements Inspectable {
 
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/certlog";
@@ -318,7 +320,6 @@ public class CertLog extends Dag<CertLog.Op> {
     // Display
     // ==================================================================================
 
-    @Override
     public String displayToken() {
         int total = keyCerts.size() + tlsCerts.size();
         int rev = revoked.size();

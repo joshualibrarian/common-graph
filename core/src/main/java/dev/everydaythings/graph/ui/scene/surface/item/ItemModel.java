@@ -8,7 +8,8 @@ import dev.everydaythings.graph.item.Link;
 import dev.everydaythings.graph.item.TreeLink;
 import dev.everydaythings.graph.item.VerbEntry;
 import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.item.component.Component;
+import dev.everydaythings.graph.item.component.InspectEntry;
+import dev.everydaythings.graph.item.component.Inspectable;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
@@ -531,11 +532,11 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
 
         Object comp = item.component(key);
         if (comp == null) return null;
-        if (comp instanceof Component cc) {
+        if (comp instanceof Inspectable cc) {
             Object entryValue = cc.inspectEntries().stream()
                     .filter(e -> e.id().equals(entryId))
                     .findFirst()
-                    .map(Component.InspectEntry::value)
+                    .map(InspectEntry::value)
                     .orElse(null);
             if (entryValue != null) {
                 View view = SceneCompiler.compile(entryValue, SceneMode.FULL, resolver);

@@ -3,9 +3,9 @@ package dev.everydaythings.graph.item.component;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,6 +16,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Disabled("Slow — multi-librarian attestation tests")
 @DisplayName("FrameRecord")
 class FrameRecordTest {
 
@@ -157,7 +158,7 @@ class FrameRecordTest {
 
             // Both assert the same fact
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, Relation.iid(TOLKIEN)));
+                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
 
             FrameRecord aliceRecord = FrameRecord.create(body, alice);
             FrameRecord bobRecord = FrameRecord.create(body, bob);

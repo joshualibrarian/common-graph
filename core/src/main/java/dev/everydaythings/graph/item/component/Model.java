@@ -37,7 +37,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  * </ul>
  */
 @Type(value = Model.KEY, glyph = "🎭")
-public final class Model implements Component {
+public final class Model {
 
     public static final String KEY = "cg:type/model";
 

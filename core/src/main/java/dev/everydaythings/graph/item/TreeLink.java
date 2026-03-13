@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.item.component.Component;
+import dev.everydaythings.graph.item.component.InspectEntry;
+import dev.everydaythings.graph.item.component.Inspectable;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
@@ -119,7 +120,7 @@ public class TreeLink {
                 cachedExpandable = item.map(i -> !i.childrenAtPath(p).isEmpty()).orElse(false);
             } else {
                 // INSPECT mode: check if component has entries
-                cachedExpandable = resolveComponent(p)
+                cachedExpandable = resolveInspectable(p)
                         .map(cc -> !cc.inspectEntries().isEmpty())
                         .orElse(false);
             }
@@ -166,7 +167,7 @@ public class TreeLink {
                 }
             } else {
                 // INSPECT mode: return component entries as children
-                cachedChildren = resolveComponent(p)
+                cachedChildren = resolveInspectable(p)
                         .map(cc -> cc.inspectEntries().stream()
                                 .map(e -> {
                                     Link entryLink = Link.of(target.item(), p + "#" + e.id());
@@ -219,7 +220,7 @@ public class TreeLink {
             // Entry path: resolve from component's inspectEntries()
             if (p.contains("#")) {
                 return truncate(resolveEntry(p)
-                        .map(Component.InspectEntry::label)
+                        .map(InspectEntry::label)
                         .orElse(p.substring(p.indexOf('#') + 1)));
             }
             return truncate(item.get().resolvePathDisplayToken(p)
@@ -255,7 +256,7 @@ public class TreeLink {
             // Entry path: resolve from component's inspectEntries()
             if (p.contains("#")) {
                 return resolveEntry(p)
-                        .map(Component.InspectEntry::emoji)
+                        .map(InspectEntry::emoji)
                         .orElse("📄");
             }
             return item.get().resolvePathEmoji(p)
@@ -338,26 +339,26 @@ public class TreeLink {
     // ==================== Internal Helpers ====================
 
     /**
-     * Resolve a path (without #) to its live Component.
+     * Resolve a path (without #) to its live Inspectable instance.
      */
-    private Optional<Component> resolveComponent(String path) {
+    private Optional<Inspectable> resolveInspectable(String path) {
         Optional<Item> item = resolver.apply(target.item());
         if (item.isEmpty()) return Optional.empty();
         String handle = path.startsWith("/") ? path.substring(1) : path;
         FrameKey key = FrameKey.literal(handle);
         return item.get().content().getLive(key)
-                .filter(o -> o instanceof Component)
-                .map(o -> (Component) o);
+                .filter(o -> o instanceof Inspectable)
+                .map(o -> (Inspectable) o);
     }
 
     /**
      * Resolve a path containing # to the InspectEntry.
      */
-    private Optional<Component.InspectEntry> resolveEntry(String path) {
+    private Optional<InspectEntry> resolveEntry(String path) {
         String[] parts = path.split("#", 2);
         String compPath = parts[0];
         String entryId = parts[1];
-        return resolveComponent(compPath)
+        return resolveInspectable(compPath)
                 .flatMap(cc -> cc.inspectEntries().stream()
                         .filter(e -> e.id().equals(entryId))
                         .findFirst());

@@ -1,9 +1,11 @@
 package dev.everydaythings.graph.item;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.item.component.Component;
+import dev.everydaythings.graph.item.component.BindingTarget;
 import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.ExpressionComponent;
+import dev.everydaythings.graph.item.component.FrameAware;
+import dev.everydaythings.graph.item.component.FrameContext;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.component.Param;
@@ -69,7 +71,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 @Scene.Rule(match = ":hover", opacity = "bright")
 @Type(value = Item.KEY, glyph = "📦")
 @Scene(as = ItemSurface.class)
-public class Item implements Property {
+public class Item {
 
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/item";
@@ -338,9 +340,6 @@ public class Item implements Property {
      */
     private static String resolvePayloadEmoji(Object payload) {
         if (payload == null) return "📦";
-        if (payload instanceof Component component) {
-            return component.emoji();
-        }
         if (payload instanceof dev.everydaythings.graph.value.Value value) {
             return value.emoji();
         }
@@ -359,9 +358,6 @@ public class Item implements Property {
 
     private static String resolvePayloadDisplayToken(Object payload) {
         if (payload == null) return "(unnamed)";
-        if (payload instanceof Component component) {
-            return component.displayToken();
-        }
         if (payload instanceof dev.everydaythings.graph.value.Value value) {
             return value.displayToken();
         }
@@ -856,8 +852,7 @@ public class Item implements Property {
             "components"
     );
 
-    @Override
-    public Property property(String name) {
+    public Object property(String name) {
         return switch (name) {
             case "components" -> content();
             case "vocabulary" -> vocabulary();
@@ -865,27 +860,21 @@ public class Item implements Property {
                 // Try to resolve as a component key (includes policy)
                 FrameKey key = FrameKey.literal(name);
                 Object live = content().getLive(key).orElse(null);
-                if (live instanceof Property prop) {
-                    yield prop;
+                if (live != null) {
+                    yield live;
                 }
                 // Try alias resolution
                 Object comp = component(name);
-                if (comp instanceof Property prop) {
-                    yield prop;
+                if (comp != null) {
+                    yield comp;
                 }
                 yield null;
             }
         };
     }
 
-    @Override
     public Stream<String> properties() {
         return TOP_LEVEL_PROPERTIES.stream();
-    }
-
-    @Override
-    public Object get() {
-        return this; // Item itself is the value
     }
 
     // ==================================================================================
@@ -1386,9 +1375,9 @@ public class Item implements Property {
         //  is fine for now but won't scale to items with many expressions.
         content().forEachLive(ExpressionComponent.class, ExpressionComponent::invalidate);
 
-        // 4. Call lifecycle hook (only if Component)
-        if (component instanceof Component c) {
-            c.initComponent(this);
+        // 4. Call lifecycle hooks
+        if (component instanceof FrameAware fa) {
+            fa.onFramePlaced(new FrameContext(this, key, entry));
         }
 
         // 5. Scan component class for verbs and register them
@@ -1498,7 +1487,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         if (librarian == null) {
             return Stream.empty();
         }
-        return librarian.library().find().involving(this).relations();
+        return librarian.library().byItem(this.iid());
     }
 
     /**
@@ -1517,7 +1506,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         if (librarian == null) {
             return Stream.empty();
         }
-        return librarian.library().find().involving(this).via(predicate).relations();
+        return librarian.library().byItemPredicate(this.iid(), predicate);
     }
 
     /**
@@ -1537,13 +1526,13 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @param target The target (value bound to TARGET role)
      * @return The created relation
      */
-    public Relation relate(ItemID predicate, Relation.Target target) {
+    public Relation relate(ItemID predicate, BindingTarget target) {
         Objects.requireNonNull(predicate, "predicate");
         Objects.requireNonNull(target, "target");
 
         Relation relation = Relation.builder()
                 .predicate(predicate)
-                .bind(ThematicRole.Theme.SEED.iid(), Relation.iid(iid))
+                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(iid))
                 .bind(ThematicRole.Target.SEED.iid(), target)
                 .build();
 
@@ -1573,7 +1562,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @return The created relation
      */
     public Relation relate(ItemID predicate, Item target) {
-        return relate(predicate, Relation.iid(target.iid()));
+        return relate(predicate, BindingTarget.iid(target.iid()));
     }
 
     /**
@@ -1584,7 +1573,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @return The created relation
      */
     public Relation relate(ItemID predicate, ItemID targetId) {
-        return relate(predicate, Relation.iid(targetId));
+        return relate(predicate, BindingTarget.iid(targetId));
     }
 
     // ==================================================================================
@@ -2067,8 +2056,14 @@ This public non- profit land trust’s top founding principle is to promote and 
         // Phase 2: Bind @ComponentField fields from FrameTable
         bindFieldsFromTable();
 
-        // Phase 3: Invoke initComponent() callbacks on Component instances
-        content().forEachLive(Component.class, comp -> comp.initComponent(this));
+        // Phase 3: Frame hydration — notify frame instances of their context
+        for (FrameEntry entry : content()) {
+            Object instance = content().getLive(entry.frameKey()).orElse(null);
+            if (instance == null) continue;
+            if (instance instanceof FrameAware fa) {
+                fa.onFramePlaced(new FrameContext(this, entry.frameKey(), entry));
+            }
+        }
     }
 
     /**
@@ -2507,7 +2502,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * Start building a relation with this item as THEME.
      */
     public Relation.RelationBuilder relate() {
-        return Relation.builder().bind(ThematicRole.Theme.SEED.iid(), Relation.iid(iid));
+        return Relation.builder().bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(iid));
     }
 
     /**
