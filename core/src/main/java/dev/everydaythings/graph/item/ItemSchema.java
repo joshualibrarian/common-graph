@@ -9,10 +9,10 @@ import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.component.Components;
 import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.value.Value;
 import dev.everydaythings.graph.value.address.AddressSpace;
@@ -188,7 +188,6 @@ public class ItemSchema {
      * @param table The frame table to populate
      * @param item  The item to read field values from
      */
-    @SuppressWarnings("deprecation")
     public void populateRelationEntries(FrameTable table, Item item) {
         table.removeRelationEntries();
 
@@ -199,31 +198,29 @@ public class ItemSchema {
 
             if (spec.isIterable()) {
                 for (Object element : (Iterable<?>) value) {
-                    Relation relation = buildRelation(item, spec, element);
-                    if (relation != null) {
-                        addRelationEntry(table, relation);
+                    FrameBody body = buildFrameBody(item, spec, element);
+                    if (body != null) {
+                        addRelationEntry(table, body);
                     }
                 }
             } else {
-                Relation relation = buildRelation(item, spec, value);
-                if (relation != null) {
-                    addRelationEntry(table, relation);
+                FrameBody body = buildFrameBody(item, spec, value);
+                if (body != null) {
+                    addRelationEntry(table, body);
                 }
             }
         }
     }
 
-    @SuppressWarnings("deprecation")
-    private void addRelationEntry(FrameTable table, Relation relation) {
-        byte[] bytes = relation.encodeBinary(Canonical.Scope.RECORD);
+    private void addRelationEntry(FrameTable table, FrameBody body) {
+        byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = ContentID.of(bytes);
-        FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
+        FrameEntry entry = FrameEntry.forRelation(body.predicate(), cid, true);
         table.add(entry);
-        table.setLive(entry.frameKey(), relation);
+        table.setLive(entry.frameKey(), body);
     }
 
-    @SuppressWarnings("deprecation")
-    private Relation buildRelation(Item item, FrameFieldSpec spec, Object target) {
+    private FrameBody buildFrameBody(Item item, FrameFieldSpec spec, Object target) {
         if (target == null) return null;
 
         BindingTarget targetValue;
@@ -246,11 +243,10 @@ public class ItemSchema {
             targetValue = Literal.ofText(target.toString());
         }
 
-        return Relation.builder()
-                .predicate(spec.predicate())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(item.iid()))
-                .bind(ThematicRole.Target.SEED.iid(), targetValue)
-                .build();
+        return FrameBody.of(
+                spec.predicate(),
+                item.iid(),
+                Map.of(ThematicRole.Target.SEED.iid(), targetValue));
     }
 
     // ==================================================================================
@@ -501,17 +497,16 @@ public class ItemSchema {
     }
 
     /**
-     * Bind unendorsed frame fields for commit — create relations, store them, add as entries.
+     * Bind unendorsed frame fields for commit — create frame bodies, store them, add as entries.
      *
      * @param item           The item to read field values from
      * @param componentTable The frame table to add relation entries to
      * @param storePayload   Function to store payload bytes and return CID
-     * @param storeRelation  Function to store relations (indexing)
+     * @param storeFrameBody Function to store frame bodies (indexing)
      */
-    @SuppressWarnings("deprecation")
     public void bindRelationFieldsForCommit(Item item, FrameTable componentTable,
                                             java.util.function.Function<byte[], ContentID> storePayload,
-                                            Consumer<Relation> storeRelation) {
+                                            Consumer<FrameBody> storeFrameBody) {
         componentTable.removeRelationEntries();
 
         for (FrameFieldSpec spec : frameFields) {
@@ -521,32 +516,31 @@ public class ItemSchema {
 
             if (spec.isIterable()) {
                 for (Object element : (Iterable<?>) value) {
-                    bindSingleRelation(item, spec, element, componentTable, storePayload, storeRelation);
+                    bindSingleRelation(item, spec, element, componentTable, storePayload, storeFrameBody);
                 }
             } else {
-                bindSingleRelation(item, spec, value, componentTable, storePayload, storeRelation);
+                bindSingleRelation(item, spec, value, componentTable, storePayload, storeFrameBody);
             }
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void bindSingleRelation(Item item, FrameFieldSpec spec, Object object,
                                     FrameTable componentTable,
                                     java.util.function.Function<byte[], ContentID> storePayload,
-                                    Consumer<Relation> storeRelation) {
-        Relation relation = buildRelation(item, spec, object);
-        if (relation == null) return;
+                                    Consumer<FrameBody> storeFrameBody) {
+        FrameBody body = buildFrameBody(item, spec, object);
+        if (body == null) return;
 
-        if (storeRelation != null) {
-            storeRelation.accept(relation);
+        if (storeFrameBody != null) {
+            storeFrameBody.accept(body);
         }
 
-        byte[] bytes = relation.encodeBinary(Canonical.Scope.RECORD);
+        byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = (storePayload != null) ? storePayload.apply(bytes) : ContentID.of(bytes);
 
-        FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
+        FrameEntry entry = FrameEntry.forRelation(body.predicate(), cid, true);
         componentTable.add(entry);
-        componentTable.setLive(entry.frameKey(), relation);
+        componentTable.setLive(entry.frameKey(), body);
     }
 
     // ==================================================================================

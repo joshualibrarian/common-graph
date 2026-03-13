@@ -11,7 +11,8 @@ import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.component.Param;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.Verb;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.item.component.FrameRecord;
 import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.action.ActionContext;
@@ -170,15 +171,15 @@ public class Item {
     /**
      * Endorsed relations — filtered view from the component table.
      *
-     * <p>Returns relations that have been brought into this item as endorsed content.
-     * These are stored as ComponentEntries with type == Relation.TYPE_ID, and
-     * their live instances are the Relation objects.
+     * <p>Returns frame bodies that have been brought into this item as endorsed content.
+     * These are stored as ComponentEntries with type == FrameBody.TYPE_ID, and
+     * their live instances are the FrameBody objects.
      *
-     * @return stream of endorsed Relation objects
+     * @return stream of endorsed FrameBody objects
      */
-    public java.util.stream.Stream<Relation> endorsedRelations() {
+    public java.util.stream.Stream<FrameBody> endorsedRelations() {
         return content().relationEntries()
-                .map(entry -> content().getLive(entry.frameKey(), Relation.class))
+                .map(entry -> content().getLive(entry.frameKey(), FrameBody.class))
                 .flatMap(java.util.Optional::stream);
     }
 
@@ -732,7 +733,7 @@ public class Item {
      * <p>Token sources:
      * <ul>
      *   <li>Content components - string values from handles like "name", "symbol", "label"</li>
-     *   <li>Relations - can contribute tokens from predicates/objects</li>
+     *   <li>Frame bodies - can contribute tokens from predicates/objects</li>
      *   <li>DisplayInfo - the computed display name and type</li>
      *   <li>Path mounts - mounted component paths (highest weight, always first in lookups)</li>
      * </ul>
@@ -1202,7 +1203,7 @@ public class Item {
      * Populate relation entries in the component table from the cached schema.
      *
      * <p>Uses {@link ItemSchema#populateRelationEntries(FrameTable, Item)} to add
-     * all relations from {@code @Item.RelationField} annotations as ComponentEntries.
+     * all frame bodies from {@code @Item.Frame} annotations as ComponentEntries.
      *
      * <p>Called automatically from {@link #onFullyInitialized()} for path-based items.
      */
@@ -1481,9 +1482,9 @@ public class Item {
      *Our work is fundamentally to support and empower this local community.  We want to see our small town and its people healthy, productive, and abundant.
 
 This public non- profit land trust’s top founding principle is to promote and provide education to the community regarding permaculture, sustainable agricultural practices, alternatives forms of building, and social organization.
-     * @return Stream of relations where this item is the subject
+     * @return Stream of frame bodies where this item is the subject
      */
-    public Stream<Relation> relations() {
+    public Stream<FrameBody> relations() {
         if (librarian == null) {
             return Stream.empty();
         }
@@ -1495,14 +1496,14 @@ This public non- profit land trust’s top founding principle is to promote and 
      *
      * <p>Convenience method for common pattern:
      * <pre>{@code
-     * // Get all "authored by" relations involving this item
+     * // Get all "authored by" frame bodies involving this item
      * item.relations(Sememe.AUTHORED_BY).forEach(r -> ...);
      * }</pre>
      *
      * @param predicate The predicate to filter by
-     * @return Stream of relations involving this item via the predicate
+     * @return Stream of frame bodies involving this item via the predicate
      */
-    public Stream<Relation> relations(ItemID predicate) {
+    public Stream<FrameBody> relations(ItemID predicate) {
         if (librarian == null) {
             return Stream.empty();
         }
@@ -1524,29 +1525,26 @@ This public non- profit land trust’s top founding principle is to promote and 
      *
      * @param predicate The predicate (relationship type)
      * @param target The target (value bound to TARGET role)
-     * @return The created relation
+     * @return The created frame body
      */
-    public Relation relate(ItemID predicate, BindingTarget target) {
+    public FrameBody relate(ItemID predicate, BindingTarget target) {
         Objects.requireNonNull(predicate, "predicate");
         Objects.requireNonNull(target, "target");
 
-        Relation relation = Relation.builder()
-                .predicate(predicate)
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(iid))
-                .bind(ThematicRole.Target.SEED.iid(), target)
-                .build();
+        FrameBody body = FrameBody.of(predicate, iid,
+                Map.of(ThematicRole.Target.SEED.iid(), target));
 
         // Sign if we have a signer
         if (this instanceof dev.everydaythings.graph.item.user.Signer signer) {
-            relation.sign(signer);
+            FrameRecord.create(body, signer);
         }
 
         // Store if we have a librarian
         if (librarian != null) {
-            librarian.relation(relation);
+            librarian.storeFrame(body);
         }
 
-        return relation;
+        return body;
     }
 
     /**
@@ -1559,9 +1557,9 @@ This public non- profit land trust’s top founding principle is to promote and 
      *
      * @param predicate The predicate (relationship type)
      * @param target The target item
-     * @return The created relation
+     * @return The created frame body
      */
-    public Relation relate(ItemID predicate, Item target) {
+    public FrameBody relate(ItemID predicate, Item target) {
         return relate(predicate, BindingTarget.iid(target.iid()));
     }
 
@@ -1570,9 +1568,9 @@ This public non- profit land trust’s top founding principle is to promote and 
      *
      * @param predicate The predicate (relationship type)
      * @param targetId The target item ID
-     * @return The created relation
+     * @return The created frame body
      */
-    public Relation relate(ItemID predicate, ItemID targetId) {
+    public FrameBody relate(ItemID predicate, ItemID targetId) {
         return relate(predicate, BindingTarget.iid(targetId));
     }
 
@@ -1985,8 +1983,8 @@ This public non- profit land trust’s top founding principle is to promote and 
         // Payload storage as Consumer for component fields (legacy signature)
         java.util.function.Consumer<byte[]> storePayloadConsumer = (librarian != null) ? librarian::storePayload : null;
 
-        // Relation storage function - stores canonical relations via librarian (DB RELATION column)
-        java.util.function.Consumer<Relation> storeRelation = (librarian != null) ? librarian::relation : null;
+        // Frame body storage function - stores canonical frame bodies via librarian
+        java.util.function.Consumer<FrameBody> storeRelation = (librarian != null) ? librarian::storeFrame : null;
 
         // Key resolver for per-frame EncryptionPolicy (ItemID → EncryptionPublicKeys)
         java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver =
@@ -2253,14 +2251,14 @@ This public non- profit land trust’s top founding principle is to promote and 
     /**
      * Decode content bytes into an instance based on type.
      *
-     * <p>Priority: Relation, then primitive types, then Canonical types via universal decoder.
+     * <p>Priority: FrameBody, then primitive types, then Canonical types via universal decoder.
      */
     @SuppressWarnings("unchecked")
     private Object decodeContent(FrameEntry entry, byte[] bytes) {
         ItemID typeId = entry.type();
-        // Relation entries → decode directly (Relation is Canonical, not a Component)
-        if (Relation.TYPE_ID.equals(typeId)) {
-            return Relation.decode(bytes);
+        // FrameBody entries → decode directly (FrameBody is Canonical, not a Component)
+        if (FrameBody.TYPE_ID.equals(typeId)) {
+            return Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD);
         }
 
         // Primary path: typeId -> IMPLEMENTED_BY -> Java class
@@ -2499,10 +2497,17 @@ This public non- profit land trust’s top founding principle is to promote and 
     // ==================================================================================
 
     /**
-     * Start building a relation with this item as THEME.
+     * Create a frame body with this item as THEME and the given predicate and bindings.
+     *
+     * <p>For the common case of a single TARGET binding, use
+     * {@link #relate(ItemID, BindingTarget)} instead.
+     *
+     * @param predicate the frame type
+     * @param bindings  additional role bindings beyond theme
+     * @return the created frame body
      */
-    public Relation.RelationBuilder relate() {
-        return Relation.builder().bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(iid));
+    public FrameBody relate(ItemID predicate, Map<ItemID, BindingTarget> bindings) {
+        return FrameBody.of(predicate, iid, bindings);
     }
 
     /**

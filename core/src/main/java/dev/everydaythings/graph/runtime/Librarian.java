@@ -21,7 +21,7 @@ import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.item.user.User;
 import dev.everydaythings.graph.library.directory.ItemDirectory;
@@ -110,8 +110,8 @@ import picocli.CommandLine.Mixin;
  *     // Fetch an item
  *     Optional<MyItem> item = lib.get(someIid, MyItem.class);
  *
- *     // Query relations
- *     lib.relationsFrom(subjectIid).forEach(r -> ...);
+ *     // Query frames
+ *     lib.framesFrom(themeIid).forEach(body -> ...);
  * }
  * }</pre>
  */
@@ -1074,8 +1074,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     // TODO: Store content
                 }
                 case Delivery.Payload.Relations relations -> {
-                    logger.debug("Local delivery: {} relations", relations.relations().size());
-                    // TODO: Store relations
+                    logger.debug("Local delivery: {} frame bodies", relations.bodies().size());
+                    // TODO: Store frame bodies
                 }
                 case Delivery.Payload.NotFound notFound -> {
                     logger.debug("Local: not found {}", notFound.iid());
@@ -1366,7 +1366,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     }
 
     // ==================================================================================
-    // Relation Operations
+    // Frame Operations
     // ==================================================================================
 
     /**
@@ -1383,17 +1383,17 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     }
 
     /**
-     * Store and index a relation via the library.
+     * Store and index a frame body via the library.
      */
-    @Verb(value = VerbSememe.Put.KEY, doc = "Store and index a relation")
-    public void relation(Relation relation) {
+    @Verb(value = VerbSememe.Put.KEY, doc = "Store and index a frame body")
+    public void storeFrame(FrameBody body) {
         // Library handles both storage and indexing
-        library().relation(relation);
+        library().storeFrameBody(body);
 
         // Also index in TokenDictionary (for title/name lookup)
         TokenDictionary tokenDict = tokenIndex();
         if (tokenDict != null) {
-            List<Posting> postings = TokenExtractor.fromRelation(relation, this::predicateIndexWeight);
+            List<Posting> postings = TokenExtractor.fromFrameBody(body, this::predicateIndexWeight);
             if (!postings.isEmpty()) {
                 tokenDict.runInWriteTransaction(tidxTx -> {
                     for (Posting p : postings) {
@@ -1405,25 +1405,25 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     }
 
     /**
-     * Find relations where the given item is the subject.
+     * Find frame bodies where the given item is the theme.
      */
-    public List<Relation> relationsFrom(ItemID subject) {
+    public List<FrameBody> framesFrom(ItemID theme) {
         // TODO: Query index
         return List.of();
     }
 
     /**
-     * Find relations where the given item is the object.
+     * Find frame bodies where the given item appears in a binding.
      */
-    public List<Relation> relationsTo(ItemID object) {
+    public List<FrameBody> framesTo(ItemID target) {
         // TODO: Query index
         return List.of();
     }
 
     /**
-     * Find relations with a specific predicate.
+     * Find frame bodies with a specific predicate.
      */
-    public List<Relation> relationsWithPredicate(ItemID predicate) {
+    public List<FrameBody> framesWithPredicate(ItemID predicate) {
         // TODO: Query index
         return List.of();
     }
@@ -1517,12 +1517,13 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     private void ensurePrincipal() {
         if (principal != null) return;
 
-        // Reload from stored relation (reboot case)
+        // Reload from stored frame (reboot case)
         ItemID servesId = ItemID.fromString("cg.core:serves");
         library().byItemPredicate(iid(), servesId)
                 .findFirst()
-                .ifPresent(rel -> {
-                    if (rel.object() instanceof BindingTarget.IidTarget target) {
+                .ifPresent(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    if (tgt instanceof BindingTarget.IidTarget target) {
                         get(target.iid(), User.class).ifPresent(this::setPrincipal);
                     }
                 });
@@ -1557,12 +1558,13 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     private void ensureHost() {
         if (host != null) return;
 
-        // Reload from stored relation (reboot case)
+        // Reload from stored frame (reboot case)
         ItemID availableAtId = ItemID.fromString("cg.core:available-at");
         library().byItemPredicate(iid(), availableAtId)
                 .findFirst()
-                .ifPresent(rel -> {
-                    if (rel.object() instanceof BindingTarget.IidTarget target) {
+                .ifPresent(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    if (tgt instanceof BindingTarget.IidTarget target) {
                         get(target.iid(), Host.class).ifPresent(h -> this.host = h);
                     }
                 });
@@ -1758,7 +1760,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     @Verb(value = VerbSememe.ListVerb.KEY, doc = "List all known item types")
     public Stream<ItemID> types() {
         return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
-                .map(Relation::subject);
+                .map(FrameBody::theme);
     }
 
     /**
@@ -1851,16 +1853,17 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     public Stream<TypeEntry> itemTypes() {
         return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
-                .filter(r -> {
-                    if (r.object() instanceof Literal lit) {
+                .filter(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    if (tgt instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
                         return c != null && Item.class.isAssignableFrom(c);
                     }
                     return false;
                 })
-                .map(r -> {
-                    Literal lit = (Literal) r.object();
-                    return TypeEntry.of(r.subject(), lit.asJavaClass());
+                .map(body -> {
+                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:target"));
+                    return TypeEntry.of(body.theme(), lit.asJavaClass());
                 });
     }
 
@@ -1874,16 +1877,17 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     public Stream<TypeEntry> componentTypes() {
         return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
-                .filter(r -> {
-                    if (r.object() instanceof Literal lit) {
+                .filter(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    if (tgt instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
                         return c != null && c.isAnnotationPresent(Type.class);
                     }
                     return false;
                 })
-                .map(r -> {
-                    Literal lit = (Literal) r.object();
-                    return TypeEntry.of(r.subject(), lit.asJavaClass());
+                .map(body -> {
+                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:target"));
+                    return TypeEntry.of(body.theme(), lit.asJavaClass());
                 });
     }
 
@@ -2020,7 +2024,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     @Verb(value = VerbSememe.Find.KEY, doc = "Find items by relation predicate and optional role constraints")
     public List<ItemID> find(
-            @Param(value = "predicate", role = "THEME", doc = "Relation predicate sememe/item ID")
+            @Param(value = "predicate", role = "THEME", doc = "Frame predicate sememe/item ID")
             ItemID predicate,
             @Param(value = "object", role = "RECIPIENT", required = false,
                     doc = "Object constraint (e.g. 'for chess')")
@@ -2030,28 +2034,28 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             ItemID subject) {
         if (predicate == null) return List.of();
 
-        Stream<Relation> relations;
+        Stream<FrameBody> frames;
         if (subject != null && object != null) {
             // Both provided: query by one, filter by the other
-            relations = library().byItemPredicate(subject, predicate)
-                    .filter(r -> {
-                        BindingTarget tgt = r.object();
+            frames = library().byItemPredicate(subject, predicate)
+                    .filter(body -> {
+                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
                         return tgt instanceof BindingTarget.IidTarget iidTarget
                                 && object.equals(iidTarget.iid());
                     });
         } else if (subject != null) {
-            relations = library().byItemPredicate(subject, predicate);
+            frames = library().byItemPredicate(subject, predicate);
         } else if (object != null) {
-            relations = library().byItemPredicate(object, predicate);
+            frames = library().byItemPredicate(object, predicate);
         } else {
-            relations = library().byPredicate(predicate);
+            frames = library().byPredicate(predicate);
         }
 
         if (subject != null && object == null) {
-            // from <subject>: return objects
-            return relations
-                    .flatMap(r -> {
-                        BindingTarget tgt = r.object();
+            // from <subject>: return targets
+            return frames
+                    .flatMap(body -> {
+                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
                         if (tgt instanceof BindingTarget.IidTarget iidTarget) {
                             return Stream.of(iidTarget.iid());
                         }
@@ -2061,9 +2065,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     .toList();
         }
 
-        // default + "for <object>": return subjects
-        return relations
-                .map(Relation::subject)
+        // default + "for <object>": return themes
+        return frames
+                .map(FrameBody::theme)
                 .distinct()
                 .toList();
     }

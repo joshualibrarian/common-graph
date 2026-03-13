@@ -9,7 +9,6 @@ import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.policy.PolicySet;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.value.Color;
 import lombok.Builder;
@@ -302,7 +301,7 @@ public final class FrameEntry implements Canonical {
         return FrameEntry.builder()
                 .frameKey(FrameKey.literal("rel:" + cid.encodeText()))
                 .alias(alias)
-                .type(Relation.TYPE_ID)
+                .type(FrameBody.TYPE_ID)
                 .identity(identity)
                 .payload(EntryPayload.builder().snapshotCid(cid).build())
                 .build();
@@ -419,11 +418,11 @@ public final class FrameEntry implements Canonical {
     /**
      * Is this a relation component entry?
      *
-     * <p>Relation entries have type == Relation.TYPE_ID. They store
+     * <p>Relation entries have type == FrameBody.TYPE_ID. They store
      * the relation's content-addressed bytes as a snapshot.
      */
     public boolean isRelation() {
-        return Relation.TYPE_ID.equals(type);
+        return FrameBody.TYPE_ID.equals(type);
     }
 
     /**

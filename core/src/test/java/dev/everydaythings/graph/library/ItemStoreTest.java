@@ -4,8 +4,8 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.*;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.NounSememe;
 import org.junit.jupiter.api.*;
@@ -99,25 +99,19 @@ public abstract class ItemStoreTest {
     }
 
     /**
-     * Create a simple test relation.
+     * Create a simple test frame body.
      */
-    protected Relation testRelation(ItemID subject, ItemID predicate, String literalValue) {
-        return Relation.builder()
-                .predicate(predicate)
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(subject))
-                .bind(ThematicRole.Target.SEED.iid(), Literal.ofText(literalValue))
-                .build();
+    protected FrameBody testFrameBody(ItemID subject, ItemID predicate, String literalValue) {
+        return FrameBody.of(predicate, subject,
+                java.util.Map.of(ThematicRole.Target.SEED.iid(), Literal.ofText(literalValue)));
     }
 
     /**
-     * Create a test relation with an ItemID object.
+     * Create a test frame body with an ItemID target.
      */
-    protected Relation testRelation(ItemID subject, ItemID predicate, ItemID object) {
-        return Relation.builder()
-                .predicate(predicate)
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(subject))
-                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(object))
-                .build();
+    protected FrameBody testFrameBody(ItemID subject, ItemID predicate, ItemID object) {
+        return FrameBody.of(predicate, subject,
+                java.util.Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(object)));
     }
 
     // ==================================================================================
@@ -234,21 +228,21 @@ public abstract class ItemStoreTest {
     }
 
     // ==================================================================================
-    // Relation Tests
+    // Frame Body Tests
     // ==================================================================================
 
     @Nested
-    @DisplayName("Relations")
-    class Relations {
+    @DisplayName("Frame Bodies")
+    class FrameBodies {
 
         @Test
-        @DisplayName("persist and retrieve relation")
-        void persistAndRetrieveRelation() {
+        @DisplayName("persist and retrieve frame body")
+        void persistAndRetrieveFrameBody() {
             ItemID subject = testItemID("subject");
-            Relation relation = testRelation(subject, NounSememe.Title.SEED.iid(), "Test Title");
+            FrameBody body = testFrameBody(subject, NounSememe.Title.SEED.iid(), "Test Title");
 
             // Persist
-            ContentID cid = store.relation(relation);
+            ContentID cid = store.relation(body);
 
             assertThat(cid)
                     .as("ContentID from persist")
@@ -258,40 +252,40 @@ public abstract class ItemStoreTest {
             var retrieved = store.relation(cid);
 
             assertThat(retrieved)
-                    .as("Retrieved relation")
+                    .as("Retrieved frame body")
                     .isPresent();
 
-            assertThat(retrieved.get().subject())
-                    .as("Relation subject")
+            assertThat(retrieved.get().theme())
+                    .as("Frame body theme")
                     .isEqualTo(subject);
         }
 
         @Test
-        @DisplayName("retrieve non-existent relation returns empty")
-        void retrieveNonExistentRelationReturnsEmpty() {
+        @DisplayName("retrieve non-existent frame body returns empty")
+        void retrieveNonExistentFrameBodyReturnsEmpty() {
             ContentID cid = new ContentID(new byte[32], dev.everydaythings.graph.Hash.DEFAULT);
 
             var retrieved = store.relation(cid);
 
             assertThat(retrieved)
-                    .as("Non-existent relation")
+                    .as("Non-existent frame body")
                     .isEmpty();
         }
 
         @Test
-        @DisplayName("persist multiple relations for same subject")
-        void persistMultipleRelationsForSubject() {
+        @DisplayName("persist multiple frame bodies for same theme")
+        void persistMultipleFrameBodiesForTheme() {
             ItemID subject = testItemID("multi-relation");
 
-            Relation r1 = testRelation(subject, NounSememe.Title.SEED.iid(), "Title");
-            Relation r2 = testRelation(subject, NounSememe.Description.SEED.iid(), "Description");
+            FrameBody b1 = testFrameBody(subject, NounSememe.Title.SEED.iid(), "Title");
+            FrameBody b2 = testFrameBody(subject, NounSememe.Description.SEED.iid(), "Description");
 
-            ContentID cid1 = store.relation(r1);
-            ContentID cid2 = store.relation(r2);
+            ContentID cid1 = store.relation(b1);
+            ContentID cid2 = store.relation(b2);
 
             // CIDs should be different
             assertThat(cid1)
-                    .as("First relation")
+                    .as("First frame body")
                     .isNotEqualTo(cid2);
 
             // Both should be retrievable
@@ -300,34 +294,34 @@ public abstract class ItemStoreTest {
         }
 
         @Test
-        @DisplayName("iterate relations for specific subject")
-        void iterateRelationsForSubject() {
+        @DisplayName("iterate frame bodies for specific theme")
+        void iterateFrameBodiesForTheme() {
             ItemID subject = testItemID("iterate-rels");
 
-            store.relation(testRelation(subject, NounSememe.Title.SEED.iid(), "Title"));
-            store.relation(testRelation(subject, NounSememe.Description.SEED.iid(), "Desc"));
+            store.relation(testFrameBody(subject, NounSememe.Title.SEED.iid(), "Title"));
+            store.relation(testFrameBody(subject, NounSememe.Description.SEED.iid(), "Desc"));
 
-            var relations = store.relations()
-                    .filter(r -> subject.equals(r.subject()))
+            var frameBodies = store.relations()
+                    .filter(r -> subject.equals(r.theme()))
                     .toList();
 
-            assertThat(relations)
-                    .as("Relations for subject")
+            assertThat(frameBodies)
+                    .as("Frame bodies for theme")
                     .hasSize(2);
         }
 
         @Test
-        @DisplayName("iterate all relations")
-        void iterateAllRelations() {
-            // Store relations for different subjects
-            store.relation(testRelation(testItemID("s1"), NounSememe.Title.SEED.iid(), "T1"));
-            store.relation(testRelation(testItemID("s2"), NounSememe.Title.SEED.iid(), "T2"));
-            store.relation(testRelation(testItemID("s3"), NounSememe.Title.SEED.iid(), "T3"));
+        @DisplayName("iterate all frame bodies")
+        void iterateAllFrameBodies() {
+            // Store frame bodies for different themes
+            store.relation(testFrameBody(testItemID("s1"), NounSememe.Title.SEED.iid(), "T1"));
+            store.relation(testFrameBody(testItemID("s2"), NounSememe.Title.SEED.iid(), "T2"));
+            store.relation(testFrameBody(testItemID("s3"), NounSememe.Title.SEED.iid(), "T3"));
 
-            var relations = store.relations().toList();
+            var frameBodies = store.relations().toList();
 
-            assertThat(relations)
-                    .as("All relations")
+            assertThat(frameBodies)
+                    .as("All frame bodies")
                     .hasSizeGreaterThanOrEqualTo(3);
         }
     }
@@ -493,9 +487,9 @@ public abstract class ItemStoreTest {
                 Manifest m1 = Manifest.builder().iid(iid).type(TEST_TYPE).build();
                 store.persistManifest(iid, m1.encodeBinary(Canonical.Scope.RECORD), tx);
 
-                // Multiple relations
-                Relation r1 = testRelation(iid, NounSememe.Title.SEED.iid(), "Title");
-                store.persistContent(r1.encodeBinary(Canonical.Scope.RECORD), tx);
+                // Frame body
+                FrameBody b1 = testFrameBody(iid, NounSememe.Title.SEED.iid(), "Title");
+                store.persistContent(b1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Content
                 store.persistContent("Transaction content".getBytes(StandardCharsets.UTF_8), tx);
@@ -507,9 +501,9 @@ public abstract class ItemStoreTest {
                     .isGreaterThanOrEqualTo(1);
 
             assertThat(store.relations()
-                    .filter(r -> iid.equals(r.subject()))
+                    .filter(r -> iid.equals(r.theme()))
                     .count())
-                    .as("Relations in transaction")
+                    .as("Frame bodies in transaction")
                     .isGreaterThanOrEqualTo(1);
         }
     }

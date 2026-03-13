@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.library.dictionary;
 
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.library.Service;
 import dev.everydaythings.graph.library.WriteTransaction;
@@ -168,16 +168,16 @@ public interface TokenDictionary extends Service {
     // ==================================================================================
 
     /**
-     * Extract and index postings from a relation.
+     * Extract and index postings from a frame body.
      *
-     * @param relation the relation to index
+     * @param body the frame body to index
      * @param predicateWeightResolver resolves predicate IID → index weight (0 = don't index)
      * @param tx write transaction
      */
-    default void indexFromRelation(Relation relation,
-                                   java.util.function.Function<ItemID, Float> predicateWeightResolver,
-                                   WriteTransaction tx) {
-        List<Posting> postings = TokenExtractor.fromRelation(relation, predicateWeightResolver);
+    default void indexFromFrameBody(FrameBody body,
+                                    java.util.function.Function<ItemID, Float> predicateWeightResolver,
+                                    WriteTransaction tx) {
+        List<Posting> postings = TokenExtractor.fromFrameBody(body, predicateWeightResolver);
         for (Posting p : postings) {
             index(p, tx);
         }

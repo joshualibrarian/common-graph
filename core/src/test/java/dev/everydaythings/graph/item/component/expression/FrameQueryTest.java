@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.item.component.expression;
 
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.PronounSememe;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

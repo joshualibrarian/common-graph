@@ -10,7 +10,7 @@ import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
@@ -36,7 +36,7 @@ import java.util.stream.StreamSupport;
  *
  * <p>This interface has two conceptual APIs:
  * <ul>
- *   <li><b>Consumer API</b>: High-level methods using domain objects (Manifest, Relation, Item)</li>
+ *   <li><b>Consumer API</b>: High-level methods using domain objects (Manifest, FrameBody, Item)</li>
  *   <li><b>Implementor API</b>: Low-level byte operations (persist/retrieve) for concrete stores</li>
  * </ul>
  *
@@ -108,27 +108,27 @@ public interface ItemStore extends Service {
         return vid[0];
     }
 
-    // --- Relation ---
+    // --- Frame Body ---
 
     /**
-     * Get a relation by its record CID (content-addressed).
+     * Get a frame body by its record CID (content-addressed).
      *
      * @param recordCid The CID of the RECORD bytes
-     * @return The relation, or empty if not found
+     * @return The frame body, or empty if not found
      */
-    default Optional<Relation> relation(ContentID recordCid) {
+    default Optional<FrameBody> relation(ContentID recordCid) {
         byte[] bytes = retrieveRelation(recordCid);
         if (bytes == null) return Optional.empty();
-        return Optional.of(Relation.decode(bytes));
+        return Optional.of(Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD));
     }
 
     /**
-     * Store a relation. Content-addressed by RECORD CID.
+     * Store a frame body. Content-addressed by RECORD CID.
      *
-     * @param r The relation to store
+     * @param r The frame body to store
      * @return The content ID of the stored RECORD bytes
      */
-    default ContentID relation(Relation r) {
+    default ContentID relation(FrameBody r) {
         byte[] record = r.encodeBinary(Canonical.Scope.RECORD);
         var cid = new ContentID[1];
         runInWriteTransaction(tx -> cid[0] = persistContent(record, tx));
@@ -250,10 +250,10 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Retrieve raw relation bytes by record CID from OBJECTS.
+     * Retrieve raw frame body bytes by record CID from OBJECTS.
      *
      * @param recordCid The CID of the RECORD bytes
-     * @return The relation record bytes, or null if not found
+     * @return The frame body record bytes, or null if not found
      */
     default byte[] retrieveRelation(ContentID recordCid) {
         return retrieveContent(recordCid);
@@ -353,8 +353,8 @@ public interface ItemStore extends Service {
     /**
      * Find the implementing Java class for a type ID.
      *
-     * <p>Queries stored relations directly for IMPLEMENTED_BY relations
-     * where the type ID is the subject.
+     * <p>Queries stored frame bodies directly for IMPLEMENTED_BY frames
+     * where the type ID is the theme.
      *
      * @param typeId The type's ItemID
      * @return The implementing Java class, or empty if not found
@@ -470,20 +470,20 @@ public interface ItemStore extends Service {
     }
 
     /**
-     * Stream all relations by trial-decoding objects.
+     * Stream all frame bodies by trial-decoding objects.
      *
-     * <p>Iterates OBJECTS and attempts to decode each as a Relation,
-     * silently skipping non-relation content.
+     * <p>Iterates OBJECTS and attempts to decode each as a FrameBody,
+     * silently skipping non-frame content.
      *
-     * @return Stream of decoded relations
-     * @deprecated Relations are frames. Use frame index queries instead.
+     * @return Stream of decoded frame bodies
+     * @deprecated Use frame index queries instead.
      */
     @Deprecated
-    default Stream<Relation> relations() {
+    default Stream<FrameBody> relations() {
         return StreamSupport.stream(iterateObjects().spliterator(), false)
                 .flatMap(bytes -> {
                     try {
-                        Relation r = Relation.decode(bytes);
+                        FrameBody r = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD);
                         if (r == null || r.predicate() == null) return Stream.empty();
                         return Stream.of(r);
                     } catch (Exception e) {

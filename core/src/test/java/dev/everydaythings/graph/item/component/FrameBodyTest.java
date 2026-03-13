@@ -3,7 +3,6 @@ package dev.everydaythings.graph.item.component;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -161,66 +160,6 @@ class FrameBodyTest {
             byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
             FrameBody decoded = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.BODY);
             assertThat(decoded.hash()).isEqualTo(original.hash());
-        }
-    }
-
-    @Nested
-    @DisplayName("Relation Bridge")
-    class RelationBridge {
-
-        @Test
-        @DisplayName("fromRelation extracts predicate and bindings")
-        void fromRelation() {
-            Relation relation = Relation.builder()
-                    .predicate(AUTHOR)
-                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
-                    .build();
-
-            FrameBody body = FrameBody.fromRelation(relation, THE_HOBBIT);
-            assertThat(body.predicate()).isEqualTo(AUTHOR);
-            assertThat(body.theme()).isEqualTo(THE_HOBBIT);
-            assertThat(body.bindings()).hasSize(2);
-        }
-
-        @Test
-        @DisplayName("Relation.toFrameBody() convenience method")
-        void toFrameBodyConvenience() {
-            Relation relation = Relation.builder()
-                    .predicate(AUTHOR)
-                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
-                    .build();
-
-            FrameBody body = relation.toFrameBody(THE_HOBBIT);
-            assertThat(body).isNotNull();
-            assertThat(body.predicate()).isEqualTo(AUTHOR);
-        }
-
-        @Test
-        @DisplayName("Relation.toFrameBody() no-arg uses THEME binding")
-        void toFrameBodyNoArg() {
-            Relation relation = Relation.builder()
-                    .predicate(AUTHOR)
-                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
-                    .build();
-
-            FrameBody body = relation.toFrameBody();
-            assertThat(body).isNotNull();
-            assertThat(body.theme()).isEqualTo(THE_HOBBIT);
-        }
-
-        @Test
-        @DisplayName("Relation.toFrameBody() returns null when no THEME binding")
-        void toFrameBodyNoTheme() {
-            Relation relation = Relation.builder()
-                    .predicate(AUTHOR)
-                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
-                    .build();
-
-            FrameBody body = relation.toFrameBody();
-            assertThat(body).isNull();
         }
     }
 

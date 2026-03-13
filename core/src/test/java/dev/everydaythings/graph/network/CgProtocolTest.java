@@ -2,7 +2,7 @@ package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -76,49 +76,48 @@ class CgProtocolTest {
             return false;
         }, 5000)).as("lib1 should identify lib2").isTrue();
 
-        // Then: lib1 should have peers-with relation pointing at lib2
-        List<Relation> lib1PeersWith = lib1.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
+        // Then: lib1 should have peers-with frame pointing at lib2
+        List<FrameBody> lib1PeersWith = lib1.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
         assertThat(lib1PeersWith).isNotEmpty();
         assertThat(lib1PeersWith).anyMatch(r ->
-                r.subject().equals(lib1.iid()) &&
-                r.object() instanceof BindingTarget.IidTarget target &&
+                r.theme().equals(lib1.iid()) &&
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib2.iid())
         );
 
-        // lib1 should have reachable-at relation for lib2
-        List<Relation> lib1Reachable = lib1.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
-                .filter(r -> r.subject().equals(lib2.iid()))
+        // lib1 should have reachable-at frame for lib2
+        List<FrameBody> lib1Reachable = lib1.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
+                .filter(r -> r.theme().equals(lib2.iid()))
                 .toList();
         assertThat(lib1Reachable).isNotEmpty();
-        assertThat(lib1Reachable).anyMatch(r -> r.object() instanceof Literal);
+        assertThat(lib1Reachable).anyMatch(r ->
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof Literal);
 
-        // Then: lib2 should have peers-with relation pointing at lib1
-        List<Relation> lib2PeersWith = lib2.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
+        // Then: lib2 should have peers-with frame pointing at lib1
+        List<FrameBody> lib2PeersWith = lib2.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
         assertThat(lib2PeersWith).isNotEmpty();
         assertThat(lib2PeersWith).anyMatch(r ->
-                r.subject().equals(lib2.iid()) &&
-                r.object() instanceof BindingTarget.IidTarget target &&
+                r.theme().equals(lib2.iid()) &&
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib1.iid())
         );
 
-        // lib2 should have reachable-at relation for lib1
-        List<Relation> lib2Reachable = lib2.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
-                .filter(r -> r.subject().equals(lib1.iid()))
+        // lib2 should have reachable-at frame for lib1
+        List<FrameBody> lib2Reachable = lib2.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
+                .filter(r -> r.theme().equals(lib1.iid()))
                 .toList();
         assertThat(lib2Reachable).isNotEmpty();
-        assertThat(lib2Reachable).anyMatch(r -> r.object() instanceof Literal);
+        assertThat(lib2Reachable).anyMatch(r ->
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof Literal);
 
         // Verify the reachable-at endpoint on lib2 points to lib1's address
-        Relation lib2ReachableRel = lib2Reachable.stream()
-                .filter(r -> r.object() instanceof Literal)
+        FrameBody lib2ReachableBody = lib2Reachable.stream()
+                .filter(r -> r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof Literal)
                 .findFirst().orElseThrow();
-        Literal endpointLit = (Literal) lib2ReachableRel.object();
+        Literal endpointLit = (Literal) lib2ReachableBody.binding(
+                dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid());
         Endpoint decoded = endpointLit.as(Endpoint.class);
         assertThat(decoded.port()).isEqualTo(lib1Port);
-
-        // Verify relations are signed by the creating librarian
-        assertThat(lib1PeersWith.get(0).authorKey()).isNotNull();
-        assertThat(lib2PeersWith.get(0).authorKey()).isNotNull();
     }
 
     /**

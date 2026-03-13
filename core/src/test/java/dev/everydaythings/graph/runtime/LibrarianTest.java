@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.VerbEntry;
 import dev.everydaythings.graph.item.action.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -286,14 +286,14 @@ class LibrarianTest extends SignerTest {
             Item book = Item.create(librarian);
             ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
 
-            Relation relation = author.relate(wroteId, book);
+            FrameBody body = author.relate(wroteId, book);
 
-            assertThat(relation)
-                    .as("Created relation")
+            assertThat(body)
+                    .as("Created frame body")
                     .isNotNull();
-            assertThat(relation.subject())
+            assertThat(body.theme())
                     .isEqualTo(author.iid());
-            assertThat(relation.predicate())
+            assertThat(body.predicate())
                     .isEqualTo(wroteId);
         }
 
@@ -306,7 +306,7 @@ class LibrarianTest extends SignerTest {
 
             author.relate(wroteId, book);
 
-            List<Relation> relations = author.relations().toList();
+            List<FrameBody> relations = author.relations().toList();
 
             assertThat(relations)
                     .as("Relations from author")
@@ -322,7 +322,7 @@ class LibrarianTest extends SignerTest {
 
             author.relate(wroteId, book);
 
-            List<Relation> relations = book.relations().toList();
+            List<FrameBody> relations = book.relations().toList();
 
             assertThat(relations)
                     .as("Relations to book")
@@ -340,7 +340,7 @@ class LibrarianTest extends SignerTest {
             author.relate(wroteId, book1);
             author.relate(wroteId, book2);
 
-            List<Relation> relations = author.relations(wroteId).toList();
+            List<FrameBody> relations = author.relations(wroteId).toList();
 
             assertThat(relations)
                     .as("Relations with 'wrote' predicate")

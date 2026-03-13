@@ -306,7 +306,7 @@ public class FrameTable extends AbstractSet<FrameEntry> implements Canonical {
     /**
      * Get all relation entries in this table.
      *
-     * @return Stream of entries where type == Relation.TYPE_ID
+     * @return Stream of entries where type == FrameBody.TYPE_ID
      */
     public java.util.stream.Stream<FrameEntry> relationEntries() {
         return entries.values().stream().filter(FrameEntry::isRelation);

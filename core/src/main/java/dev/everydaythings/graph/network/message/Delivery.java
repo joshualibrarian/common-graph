@@ -3,7 +3,7 @@ package dev.everydaythings.graph.network.message;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 
@@ -72,10 +72,10 @@ public record Delivery(
     }
 
     /**
-     * Deliver relations (response or push update).
+     * Deliver frame bodies (response or push update).
      */
-    public static Delivery relations(long requestId, List<Relation> relations) {
-        return new Delivery(requestId, List.of(new Payload.Relations(relations)));
+    public static Delivery relations(long requestId, List<FrameBody> bodies) {
+        return new Delivery(requestId, List.of(new Payload.Relations(bodies)));
     }
 
     /**
@@ -181,26 +181,26 @@ public record Delivery(
         }
 
         /**
-         * Relations.
+         * Frame bodies.
          */
-        record Relations(List<Relation> relations) implements Payload {
+        record Relations(List<FrameBody> bodies) implements Payload {
             @Override
             public CBORObject toCbor(Canonical.Scope scope) {
                 CBORObject obj = CBORObject.NewMap();
                 obj.set("kind", CBORObject.FromString("relations"));
                 CBORObject arr = CBORObject.NewArray();
-                for (Relation r : relations) {
-                    arr.Add(r.toCborTree(scope));
+                for (FrameBody body : bodies) {
+                    arr.Add(body.toCborTree(scope));
                 }
                 obj.set("relations", arr);
                 return obj;
             }
 
             static Relations fromCbor(CBORObject obj) {
-                List<Relation> relations = obj.get("relations").getValues().stream()
-                        .map(node -> Canonical.fromCborTree(node, Relation.class, Canonical.Scope.RECORD))
+                List<FrameBody> bodies = obj.get("relations").getValues().stream()
+                        .map(node -> Canonical.fromCborTree(node, FrameBody.class, Canonical.Scope.RECORD))
                         .toList();
-                return new Relations(relations);
+                return new Relations(bodies);
             }
         }
 

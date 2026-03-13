@@ -1,10 +1,10 @@
 package dev.everydaythings.graph.library.dictionary;
 
 import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.value.address.AddressSpace;
@@ -17,7 +17,7 @@ import java.util.function.Function;
  *
  * <p>This utility class handles extraction of postings from:
  * <ul>
- *   <li>Relations (TITLE, NAME, DESCRIPTION)</li>
+ *   <li>Frame bodies (TITLE, NAME, DESCRIPTION)</li>
  *   <li>Manifests (component handles)</li>
  *   <li>Path mounts (highest weight — curated component names)</li>
  *   <li>Addresses (email, tilde paths)</li>
@@ -28,24 +28,27 @@ public final class TokenExtractor {
     private TokenExtractor() {}
 
     /**
-     * Extract postings from a relation using data-driven predicate indexing.
+     * Extract postings from a frame body using data-driven predicate indexing.
      *
      * <p>The predicate's own definition (its Sememe) declares whether its string
      * targets should be indexed, via the {@code indexWeight} field. The caller
      * provides a resolver that looks up the weight for a given predicate IID.
      *
-     * @param relation the relation to extract from
+     * <p>The theme is used as the scope for text postings (same role as subject
+     * in the old Relation API).
+     *
+     * @param body the frame body to extract from
      * @param predicateWeightResolver resolves predicate IID → index weight (0 = don't index)
      * @return list of postings (may be empty)
      */
-    public static List<Posting> fromRelation(
-            Relation relation,
+    public static List<Posting> fromFrameBody(
+            FrameBody body,
             Function<ItemID, Float> predicateWeightResolver) {
-        if (relation == null) return List.of();
+        if (body == null) return List.of();
 
-        float weight = predicateWeightResolver.apply(relation.predicate());
+        float weight = predicateWeightResolver.apply(body.predicate());
         if (weight > 0) {
-            return extractTextPosting(relation, relation.subject(), weight);
+            return extractTextPostingFromBody(body, body.theme(), weight);
         }
         return List.of();
     }
@@ -173,14 +176,15 @@ public final class TokenExtractor {
     // HELPERS
     // ==================================================================================
 
-    private static List<Posting> extractTextPosting(Relation relation, ItemID subject, float weight) {
-        BindingTarget target = relation.object();
+    private static List<Posting> extractTextPostingFromBody(FrameBody body, ItemID theme, float weight) {
+        // TARGET binding is the equivalent of Relation.object()
+        BindingTarget target = body.binding(ItemID.fromString("cg.role:target"));
         if (target instanceof Literal literal) {
             String text = extractTextFromLiteral(literal);
             if (text != null && !text.isBlank()) {
-                // Relation text (titles, descriptions) are scoped to the subject item.
+                // Frame text (titles, descriptions) are scoped to the theme item.
                 // They're proper nouns / item-specific facts, not language words.
-                return List.of(Posting.scoped(text, subject, subject, weight));
+                return List.of(Posting.scoped(text, theme, theme, weight));
             }
         }
         return List.of();

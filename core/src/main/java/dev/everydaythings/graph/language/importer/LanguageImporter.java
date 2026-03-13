@@ -1,8 +1,9 @@
 package dev.everydaythings.graph.language.importer;
 
 import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.item.component.FrameRecord;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.language.importer.WordNetImporter.*;
@@ -310,15 +311,14 @@ public abstract class LanguageImporter {
             Sememe target = synsetMap.get(rel.target());
             if (target == null) continue;
 
-            Relation relation = Relation.builder()
-                    .predicate(predicate)
-                    .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(source.iid()))
-                    .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(target.iid()))
-                    .build()
-                    .sign(signer);
+            FrameBody body = FrameBody.of(
+                    predicate,
+                    source.iid(),
+                    Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(target.iid())));
+            FrameRecord record = FrameRecord.create(body, signer);
 
             if (librarian != null) {
-                librarian.relation(relation);
+                librarian.library().storeFrame(body, record);
             }
             count++;
         }

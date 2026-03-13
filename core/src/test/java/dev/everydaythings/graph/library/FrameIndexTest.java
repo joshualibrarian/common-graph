@@ -6,7 +6,6 @@ import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.library.skiplist.SkipListLibraryIndex;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -120,44 +119,39 @@ class FrameIndexTest {
     }
 
     @Nested
-    @DisplayName("indexRelation")
-    class IndexRelation {
+    @DisplayName("indexFrameBody")
+    class IndexFrameBody {
 
         @Test
-        @DisplayName("relation indexed via frame index")
-        void relationIndexed() {
-            Relation relation = Relation.builder()
-                    .predicate(AUTHOR)
-                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
-                    .build();
-            ContentID recordCid = ContentID.of(relation.encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD));
+        @DisplayName("frame body indexed via frame index")
+        void frameBodyIndexed() {
+            FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
+                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+            ContentID bodyHash = body.hash();
+            ContentID storageCid = ContentID.of(body.bodyBytes());
 
             index.runInWriteTransaction(tx ->
-                    index.indexRelation(relation, recordCid, tx));
+                    index.indexFrame(AUTHOR, body.bindings(), bodyHash, storageCid, tx));
 
-            // Findable by both bindings
-            assertThat(index.framesByItem(THE_HOBBIT).toList()).hasSize(1);
+            // Findable by item bindings and predicate
             assertThat(index.framesByItem(TOLKIEN).toList()).hasSize(1);
             assertThat(index.framesByPredicate(AUTHOR).toList()).hasSize(1);
         }
 
         @Test
-        @DisplayName("deprecated byItem delegates to framesByItem")
-        void deprecatedByItem() {
-            Relation relation = Relation.builder()
-                    .predicate(AUTHOR)
-                    .bind(THEME_ROLE, BindingTarget.iid(THE_HOBBIT))
-                    .bind(TARGET_ROLE, BindingTarget.iid(TOLKIEN))
-                    .build();
-            ContentID recordCid = ContentID.of(relation.encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD));
+        @DisplayName("framesByItem finds indexed frame body")
+        void framesByItemFindsBody() {
+            FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
+                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+            ContentID bodyHash = body.hash();
+            ContentID storageCid = ContentID.of(body.bodyBytes());
 
             index.runInWriteTransaction(tx ->
-                    index.indexRelation(relation, recordCid, tx));
+                    index.indexFrame(AUTHOR, body.bindings(), bodyHash, storageCid, tx));
 
-            List<LibraryIndex.FrameRef> refs = index.framesByItem(THE_HOBBIT).toList();
+            List<LibraryIndex.FrameRef> refs = index.framesByItem(TOLKIEN).toList();
             assertThat(refs).hasSize(1);
-            assertThat(refs.getFirst().storageCid()).isEqualTo(recordCid);
+            assertThat(refs.getFirst().storageCid()).isEqualTo(storageCid);
         }
     }
 

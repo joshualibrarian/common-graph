@@ -3,8 +3,8 @@ package dev.everydaythings.graph.surface;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -65,22 +65,19 @@ class ResolveItemHandleTest {
             System.out.println("  info.iconText: " + info.effectiveIconText());
         }
 
-        // Compile a relation WITH resolver
-        Relation rel = Relation.builder()
-                .predicate(titleIid)
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(libIid))
-                .bind(ThematicRole.Target.SEED.iid(), Literal.ofText("joshua"))
-                .build();
+        // Compile a frame body WITH resolver
+        FrameBody body = FrameBody.of(titleIid, libIid,
+                java.util.Map.of(ThematicRole.Target.SEED.iid(), Literal.ofText("joshua")));
 
-        System.out.println("\n=== Compiling Relation with resolver ===");
-        View view = SceneCompiler.compile(rel, SceneMode.FULL,
+        System.out.println("\n=== Compiling FrameBody with resolver ===");
+        View view = SceneCompiler.compile(body, SceneMode.FULL,
                 iid -> lib.get(iid, Item.class));
         assertThat(view).isNotNull();
         assertThat(view.root()).isNotNull();
 
         // Compile WITHOUT resolver for comparison
-        System.out.println("\n=== Compiling Relation WITHOUT resolver ===");
-        View view2 = SceneCompiler.compile(rel, SceneMode.FULL);
+        System.out.println("\n=== Compiling FrameBody WITHOUT resolver ===");
+        View view2 = SceneCompiler.compile(body, SceneMode.FULL);
         assertThat(view2).isNotNull();
 
         lib.close();

@@ -5,7 +5,6 @@ import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
@@ -329,19 +328,21 @@ public interface LibraryIndex extends Service {
     }
 
     /**
-     * Index a relation.
+     * Index a frame body.
      *
-     * @param relation  the relation to index
+     * @param body      the frame body to index
      * @param recordCid content ID of the stored RECORD bytes
      * @param wtx       write transaction
      */
-    default void indexRelation(Relation relation, ContentID recordCid, WriteTransaction wtx) {
-        Objects.requireNonNull(relation, "relation");
+    default void indexFrameBody(FrameBody body, ContentID recordCid, WriteTransaction wtx) {
+        Objects.requireNonNull(body, "body");
         Objects.requireNonNull(recordCid, "recordCid");
         Objects.requireNonNull(wtx, "wtx");
 
-        ContentID bodyHash = new ContentID(relation.rid().encodeBinary());
-        indexFrame(relation.predicate(), relation.bindings(), bodyHash, recordCid, wtx);
+        ContentID bodyHash = body.hash();
+        Map<ItemID, BindingTarget> allBindings = new HashMap<>(body.bindings());
+        allBindings.put(body.theme(), BindingTarget.iid(body.theme()));
+        indexFrame(body.predicate(), allBindings, bodyHash, recordCid, wtx);
     }
 
     /**

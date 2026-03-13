@@ -1,7 +1,8 @@
 package dev.everydaythings.graph.item.user;
 
 import dev.everydaythings.graph.item.ItemTest;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.item.component.FrameRecord;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.trust.SigningPublicKey;
 import org.junit.jupiter.api.*;
@@ -155,34 +156,35 @@ public abstract class SignerTest extends ItemTest {
     }
 
     // ==================================================================================
-    // Relation Signing Tests
+    // Frame Signing Tests
     // ==================================================================================
 
     @Nested
-    @DisplayName("Relation Signing")
-    class RelationSigning {
+    @DisplayName("Frame Signing")
+    class FrameSigning {
 
         @Test
-        @DisplayName("relations created by signer are signed")
-        void relationsCreatedBySignerAreSigned() {
+        @DisplayName("frame bodies created by signer can be signed via FrameRecord")
+        void frameBodiesCreatedBySignerCanBeSigned() {
             if (!signer().canSign()) {
                 return;
             }
 
-            // Create another item to relate to
-            // We need to access the librarian for this - subclasses may need to provide this
-            // For now, create a relation from signer to itself (valid for testing)
+            // Create a frame body from signer to itself (valid for testing)
             ItemID predicateId = ItemID.fromString("cg.predicate:self-reference");
 
-            Relation relation = signer().relate(predicateId, signer().iid());
+            FrameBody body = signer().relate(predicateId, signer().iid());
 
-            assertThat(relation.authorKey())
-                    .as("Relation should have author key")
+            // Sign the body by creating a FrameRecord
+            FrameRecord record = FrameRecord.create(body, signer());
+
+            assertThat(record.signer())
+                    .as("Record should have signer key")
                     .isNotNull();
 
-            assertThat(relation.signing())
-                    .as("Relation should be signed")
-                    .isNotNull();
+            assertThat(record.isSigned())
+                    .as("Record should be signed")
+                    .isTrue();
         }
     }
 }

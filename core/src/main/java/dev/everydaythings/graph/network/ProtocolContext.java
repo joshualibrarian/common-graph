@@ -4,9 +4,10 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.item.component.FrameRecord;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Endpoint;
@@ -18,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -71,12 +73,11 @@ public class ProtocolContext {
     }
 
     /**
-     * Query relations (item, predicate - either can be null for wildcard).
+     * Query frame bodies (item, predicate - either can be null for wildcard).
      * Frame-based: queries by participating item and/or predicate.
      */
-    public List<Relation> queryRelations(ItemID item, ItemID predicate) {
-        // Use library's relation query via predicates
-        // For now, just query by predicate if provided
+    public List<FrameBody> queryFrameBodies(ItemID item, ItemID predicate) {
+        // Library.byPredicate returns Stream<FrameBody> directly
         if (predicate != null) {
             return librarian.library().byPredicate(predicate).toList();
         }
@@ -101,11 +102,11 @@ public class ProtocolContext {
     }
 
     /**
-     * Store received relations.
+     * Store received frame bodies.
      */
-    public void storeRelations(List<Relation> relations) {
-        for (Relation r : relations) {
-            librarian.relation(r);
+    public void storeFrameBodies(List<FrameBody> frames) {
+        for (FrameBody body : frames) {
+            librarian.storeFrame(body);
         }
     }
 
@@ -126,28 +127,26 @@ public class ProtocolContext {
         ItemID remoteId = remoteManifest.iid();
 
         // Create peers-with relation: local --peers-with--> remote
-        Relation peersWith = Relation.builder()
-                .predicate(RoutingVocabulary.PeersWith.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(localId))
-                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(remoteId))
-                .build()
-                .sign(librarian);
-        librarian.relation(peersWith);
-        log.info("Created peers-with relation: {} -> {}", localId.encodeText(), remoteId.encodeText());
+        FrameBody peersWithBody = FrameBody.of(
+                RoutingVocabulary.PeersWith.SEED.iid(),
+                localId,
+                Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(remoteId)));
+        FrameRecord peersWithRecord = FrameRecord.create(peersWithBody, librarian);
+        librarian.library().storeFrame(peersWithBody, peersWithRecord);
+        log.info("Created peers-with frame: {} -> {}", localId.encodeText(), remoteId.encodeText());
 
         // Create reachable-at relation: remote --reachable-at--> Endpoint
         Endpoint endpoint = Endpoint.cg(
                 IpAddress.fromInetAddress(remoteAddress.getAddress()),
                 remoteAddress.getPort()
         );
-        Relation reachableAt = Relation.builder()
-                .predicate(RoutingVocabulary.ReachableAt.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(remoteId))
-                .bind(ThematicRole.Target.SEED.iid(), Literal.of(endpoint))
-                .build()
-                .sign(librarian);
-        librarian.relation(reachableAt);
-        log.info("Created reachable-at relation: {} -> {}", remoteId.encodeText(), endpoint);
+        FrameBody reachableAtBody = FrameBody.of(
+                RoutingVocabulary.ReachableAt.SEED.iid(),
+                remoteId,
+                Map.of(ThematicRole.Target.SEED.iid(), Literal.of(endpoint)));
+        FrameRecord reachableAtRecord = FrameRecord.create(reachableAtBody, librarian);
+        librarian.library().storeFrame(reachableAtBody, reachableAtRecord);
+        log.info("Created reachable-at frame: {} -> {}", remoteId.encodeText(), endpoint);
     }
 
     /**
@@ -174,29 +173,26 @@ public class ProtocolContext {
     public void onRelayForwarded(ItemID fromPeer, ItemID toPeer) {
         if (fromPeer == null || toPeer == null) return;
 
-        Relation relay = Relation.builder()
-                .predicate(RoutingVocabulary.AcknowledgesRelay.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(librarian.iid()))
-                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(fromPeer))
-                .build()
-                .sign(librarian);
-
-        librarian.relation(relay);
+        FrameBody relayBody = FrameBody.of(
+                RoutingVocabulary.AcknowledgesRelay.SEED.iid(),
+                librarian.iid(),
+                Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(fromPeer)));
+        FrameRecord relayRecord = FrameRecord.create(relayBody, librarian);
+        librarian.library().storeFrame(relayBody, relayRecord);
         log.info("Relay forwarded: {} -> {}", fromPeer.encodeText(), toPeer.encodeText());
     }
 
     public void onDeliveryReceived(ItemID remoteLibrarianIid, long requestId) {
         ItemID localId = librarian.iid();
 
-        Relation ack = Relation.builder()
-                .predicate(RoutingVocabulary.AcknowledgesDelivery.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(localId))
-                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(remoteLibrarianIid))
-                .bind(RoutingVocabulary.RequestId.SEED.iid(), Literal.ofInteger(requestId))
-                .build()
-                .sign(librarian);
-
-        librarian.relation(ack);
+        FrameBody ackBody = FrameBody.of(
+                RoutingVocabulary.AcknowledgesDelivery.SEED.iid(),
+                localId,
+                Map.of(
+                        ThematicRole.Target.SEED.iid(), BindingTarget.iid(remoteLibrarianIid),
+                        RoutingVocabulary.RequestId.SEED.iid(), Literal.ofInteger(requestId)));
+        FrameRecord ackRecord = FrameRecord.create(ackBody, librarian);
+        librarian.library().storeFrame(ackBody, ackRecord);
         log.info("Acknowledged delivery from {} (request {})",
                 remoteLibrarianIid.encodeText(), requestId);
     }

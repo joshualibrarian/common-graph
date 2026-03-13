@@ -1,13 +1,16 @@
 package dev.everydaythings.graph.item.component;
 
+import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,6 +33,12 @@ import java.util.Objects;
  */
 @Getter
 public final class FrameBody implements Canonical {
+
+    /** Canonical type key for frame bodies (replaces Relation.TYPE_KEY). */
+    public static final String TYPE_KEY = "cg:type/relation";
+
+    /** Deterministic ItemID for the frame body type. */
+    public static final ItemID TYPE_ID = ItemID.fromString(TYPE_KEY);
 
     /** The frame type — a sememe that names this kind of assertion. */
     @Canon(order = 0)
@@ -104,6 +113,31 @@ public final class FrameBody implements Canonical {
     }
 
     // ==================================================================================
+    // Binding Accessors
+    // ==================================================================================
+
+    /**
+     * Get the target bound to a specific role.
+     *
+     * @param role The role IID (e.g., ThematicRole.Theme.SEED.iid())
+     * @return The target, or null if role not filled
+     */
+    public BindingTarget binding(ItemID role) {
+        return bindings != null ? bindings.get(role) : null;
+    }
+
+    /**
+     * Get the ItemID bound to a specific role (convenience for IidTarget bindings).
+     *
+     * @param role The role IID
+     * @return The bound item's IID, or null if role not filled or not an IidTarget
+     */
+    public ItemID bindingId(ItemID role) {
+        BindingTarget target = binding(role);
+        return target instanceof BindingTarget.IidTarget iidTarget ? iidTarget.iid() : null;
+    }
+
+    // ==================================================================================
     // Factories
     // ==================================================================================
 
@@ -119,23 +153,6 @@ public final class FrameBody implements Canonical {
      */
     public static FrameBody of(ItemID predicate, ItemID theme) {
         return new FrameBody(predicate, theme);
-    }
-
-    /**
-     * Create a FrameBody from a Relation.
-     *
-     * <p>Extracts the predicate and bindings from the relation. The theme
-     * is the THEME role binding (subject in the old model). If the relation
-     * has no THEME binding, the caller must supply the theme explicitly.
-     *
-     * @param relation the relation to convert
-     * @param theme    the theme (item this assertion is about)
-     * @return a FrameBody representing the same assertion
-     */
-    public static FrameBody fromRelation(Relation relation, ItemID theme) {
-        Objects.requireNonNull(relation, "relation");
-        Objects.requireNonNull(theme, "theme");
-        return new FrameBody(relation.predicate(), theme, relation.bindings());
     }
 
     // ==================================================================================

@@ -2,9 +2,9 @@ package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.network.message.Delivery;
 import dev.everydaythings.graph.network.message.Heartbeat;
 import dev.everydaythings.graph.network.message.ProtocolMessage;
@@ -175,14 +175,14 @@ public class CgProtocol implements Protocol {
                 }
 
                 case Request.Target.Relations relTarget -> {
-                    List<Relation> relations = context.queryRelations(
+                    List<FrameBody> bodies = context.queryFrameBodies(
                             relTarget.item(),
                             relTarget.predicate()
                     );
 
-                    if (!relations.isEmpty()) {
-                        payloads.add(new Delivery.Payload.Relations(relations));
-                        log.debug("Fulfilling request for {} relations", relations.size());
+                    if (!bodies.isEmpty()) {
+                        payloads.add(new Delivery.Payload.Relations(bodies));
+                        log.debug("Fulfilling request for {} frame bodies", bodies.size());
                     }
 
                     // Handle subscription (with dedup and limit)
@@ -263,10 +263,10 @@ public class CgProtocol implements Protocol {
 
                 case Delivery.Payload.Relations relPayload -> {
                     hasUsefulPayload = true;
-                    List<Relation> relations = relPayload.relations();
+                    List<FrameBody> bodies = relPayload.bodies();
 
-                    context.storeRelations(relations);
-                    log.debug("Stored {} relations", relations.size());
+                    context.storeFrameBodies(bodies);
+                    log.debug("Stored {} frame bodies", bodies.size());
                 }
 
                 case Delivery.Payload.NotFound notFound -> {
@@ -435,40 +435,43 @@ public class CgProtocol implements Protocol {
     // =========================================================================
 
     /**
-     * Called when a relation is added locally - push to subscribers.
+     * Called when a frame body is added locally - push to subscribers.
      */
-    public void onRelationAdded(Relation relation) {
+    public void onFrameBodyAdded(FrameBody body) {
         for (var entry : subscriptions.entrySet()) {
             PeerConnection connection = entry.getKey();
             Set<Request.Target.Relations> filters = entry.getValue();
 
             for (Request.Target.Relations filter : filters) {
-                if (matchesFilter(relation, filter)) {
-                    Delivery push = Delivery.relations(0, List.of(relation));
+                if (matchesFilter(body, filter)) {
+                    Delivery push = Delivery.relations(0, List.of(body));
                     connection.send(push);
-                    log.debug("Pushed relation to subscriber {}", connection.remoteAddress());
+                    log.debug("Pushed frame body to subscriber {}", connection.remoteAddress());
                     break;  // Only send once per connection
                 }
             }
         }
     }
 
-    private boolean matchesFilter(Relation relation, Request.Target.Relations filter) {
+    private boolean matchesFilter(FrameBody body, Request.Target.Relations filter) {
         if (filter.item() != null) {
-            // Check if any binding in the relation has an IidTarget matching the filter's item
-            boolean found = false;
-            for (BindingTarget target : relation.bindings().values()) {
-                if (target instanceof BindingTarget.IidTarget iidTarget
-                        && filter.item().equals(iidTarget.iid())) {
-                    found = true;
-                    break;
+            // Check theme
+            boolean found = filter.item().equals(body.theme());
+            // Check bindings
+            if (!found && body.bindings() != null) {
+                for (BindingTarget target : body.bindings().values()) {
+                    if (target instanceof BindingTarget.IidTarget iidTarget
+                            && filter.item().equals(iidTarget.iid())) {
+                        found = true;
+                        break;
+                    }
                 }
             }
             if (!found) {
                 return false;
             }
         }
-        if (filter.predicate() != null && !filter.predicate().equals(relation.predicate())) {
+        if (filter.predicate() != null && !filter.predicate().equals(body.predicate())) {
             return false;
         }
         return true;

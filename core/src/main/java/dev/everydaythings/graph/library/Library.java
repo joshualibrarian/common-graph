@@ -9,7 +9,8 @@ import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
@@ -41,7 +42,7 @@ import java.util.stream.Stream;
  * <ol>
  *   <li><b>Primary ItemStore</b>: Block storage (manifests, relations, content)</li>
  *   <li><b>Store Registry</b>: Additional stores in priority order</li>
- *   <li><b>LibraryIndex</b>: Relation fan-outs for queries, head tracking</li>
+ *   <li><b>LibraryIndex</b>: Frame fan-outs for queries, head tracking</li>
  *   <li><b>ItemDirectory</b>: Fast item location (which store has item X?)</li>
  *   <li><b>TokenDictionary</b>: Human text -> item resolution</li>
  * </ol>
@@ -58,7 +59,7 @@ import java.util.stream.Stream;
  * <pre>{@code
  * // In-memory for tests
  * try (Library lib = Library.memory()) {
- *     lib.relation(myRelation);
+ *     lib.storeFrameBody(myFrameBody);
  *     lib.byItemPredicate(subject, predicate);
  * }
  *
@@ -110,7 +111,7 @@ public final class Library implements Canonical, AutoCloseable {
     private final ItemStore store;           // Part 1: Primary store
 
     @Canonical.Canon(order = 3)
-    private final LibraryIndex index;        // Part 3: Relation queries
+    private final LibraryIndex index;        // Part 3: Frame queries
 
     @Canonical.Canon(order = 4)
     private final ItemDirectory directory;   // Part 4: Item locations
@@ -491,20 +492,40 @@ public final class Library implements Canonical, AutoCloseable {
     // ==================================================================================
 
     /**
-     * Store a relation: persist in primary store AND index.
+     * Store a frame body: persist body bytes and index.
      *
-     * <p>This is the ONE path for relation storage. It ensures the relation
-     * is both persisted and queryable.
+     * <p>Use this for unsigned frames (e.g., seed vocabulary imports).
+     * For signed frames, use {@link #storeFrame(FrameBody, dev.everydaythings.graph.item.component.FrameRecord)}.
      *
-     * @param relation The relation to store
-     * @return The record CID (content-addressed storage key)
-     * @deprecated Use {@link #storeFrame} instead. Relations are frames.
+     * @param body The frame body to store
+     * @return The content CID of the stored body bytes
      */
-    @Deprecated
-    public ContentID relation(Relation relation) {
-        ItemStore store = writableStore()
+    public ContentID storeFrameBody(FrameBody body) {
+        ItemStore targetStore = writableStore()
                 .orElseThrow(() -> new LibraryException("No writable store available"));
-        return relation(relation, store);
+        return storeFrameBody(body, targetStore);
+    }
+
+    /**
+     * Store a frame body into a specific store, but still index in the library's index.
+     *
+     * @param body        The frame body to store
+     * @param targetStore The store to persist into
+     * @return The content CID of the stored body bytes
+     */
+    public ContentID storeFrameBody(FrameBody body, ItemStore targetStore) {
+        // Store the body bytes (content-addressed)
+        ContentID bodyCid = ContentID.of(body.bodyBytes());
+        targetStore.runInWriteTransaction(tx -> targetStore.persistContent(body.bodyBytes(), tx));
+
+        // Index in library's index
+        index().ifPresent(idx -> {
+            idx.runInWriteTransaction(tx -> {
+                idx.indexFrame(body.predicate(), body.bindings(), body.hash(), bodyCid, tx);
+            });
+        });
+
+        return bodyCid;
     }
 
     /**
@@ -545,32 +566,6 @@ public final class Library implements Canonical, AutoCloseable {
         });
 
         return vid;
-    }
-
-    /**
-     * Store a relation into a specific store, but still index in the library's index.
-     *
-     * <p>Use this when an item has its own store (e.g., WorkingTreeStore) but
-     * relations should still be queryable via the library.
-     *
-     * @param relation The relation to store
-     * @param targetStore The store to put the block in (item's own store)
-     * @return The record CID
-     * @deprecated Use {@link #storeFrame} instead. Relations are frames.
-     */
-    @Deprecated
-    public ContentID relation(Relation relation, ItemStore targetStore) {
-        // Store the relation block (content-addressed)
-        ContentID recordCid = targetStore.relation(relation);
-
-        // Index in library's index
-        index().ifPresent(idx -> {
-            idx.runInWriteTransaction(tx -> {
-                idx.indexRelation(relation, recordCid, tx);
-            });
-        });
-
-        return recordCid;
     }
 
     // ==================================================================================
@@ -657,25 +652,25 @@ public final class Library implements Canonical, AutoCloseable {
             primaryStore.runInWriteTransaction(tx -> primaryStore.persistContent(bytes, tx));
         }
 
-        // 3. Store all relations AND index tokens
-        //    IMPLEMENTED_BY relations first (needed for type hydration during token indexing)
-        List<Relation> allRelations = source.relations().toList();
-        logger.info("importFrom: {} relations to import", allRelations.size());
+        // 3. Store all frame bodies AND index tokens
+        //    IMPLEMENTED_BY frames first (needed for type hydration during token indexing)
+        List<FrameBody> allBodies = source.relations().toList();
+        logger.info("importFrom: {} frame bodies to import", allBodies.size());
         ItemID implByPred = VerbSememe.ImplementedBy.SEED.iid();
-        List<Relation> deferredRelations = new ArrayList<>();
-        for (Relation r : allRelations) {
-            if (r.predicate().equals(implByPred)) {
-                relation(r);
+        List<FrameBody> deferredBodies = new ArrayList<>();
+        for (FrameBody body : allBodies) {
+            if (body.predicate().equals(implByPred)) {
+                storeFrameBody(body);
             } else {
-                deferredRelations.add(r);
+                deferredBodies.add(body);
             }
         }
-        for (Relation r : deferredRelations) {
-            relation(r);
-            // Index tokens from this relation using data-driven predicate weights
+        for (FrameBody body : deferredBodies) {
+            storeFrameBody(body);
+            // Index tokens from this frame body using data-driven predicate weights
             tokenDictionary().ifPresent(tokenDict -> {
                 tokenDict.runInWriteTransaction(tx ->
-                        tokenDict.indexFromRelation(r, predicateWeightResolver, tx));
+                        tokenDict.indexFromFrameBody(body, predicateWeightResolver, tx));
             });
         }
 
@@ -755,38 +750,38 @@ public final class Library implements Canonical, AutoCloseable {
     }
 
     // ==================================================================================
-    // Relation Query API (delegates to frame queries)
+    // Frame Body Query API (delegates to frame queries)
     // ==================================================================================
 
     /**
-     * Query relations involving a specific item (in any role).
+     * Query frame bodies involving a specific item (in any role).
      */
-    public Stream<Relation> byItem(ItemID item) {
+    public Stream<FrameBody> byItem(ItemID item) {
         return framesByItem(item).map(this::hydrateFrameRef).flatMap(Optional::stream);
     }
 
     /**
-     * Query relations involving a specific item via a specific predicate.
+     * Query frame bodies involving a specific item via a specific predicate.
      */
-    public Stream<Relation> byItemPredicate(ItemID item, ItemID predicate) {
+    public Stream<FrameBody> byItemPredicate(ItemID item, ItemID predicate) {
         return framesByItemPredicate(item, predicate).map(this::hydrateFrameRef).flatMap(Optional::stream);
     }
 
     /**
-     * Query relations by predicate only.
+     * Query frame bodies by predicate only.
      */
-    public Stream<Relation> byPredicate(ItemID predicate) {
+    public Stream<FrameBody> byPredicate(ItemID predicate) {
         return framesByPredicate(predicate).map(this::hydrateFrameRef).flatMap(Optional::stream);
     }
 
     /**
-     * Hydrate a FrameRef into a full Relation by looking up the RELATION column.
+     * Hydrate a FrameRef into a FrameBody by looking up the stored bytes.
      *
-     * <p>The storageCid in the FrameRef is used to look up the relation bytes.
-     * Returns empty if the storageCid doesn't correspond to a stored Relation
+     * <p>The storageCid in the FrameRef is used to look up the body bytes.
+     * Returns empty if the storageCid doesn't correspond to a stored frame body
      * (e.g., it's an endorsed component frame, not a relation).
      */
-    private Optional<Relation> hydrateFrameRef(LibraryIndex.FrameRef ref) {
+    private Optional<FrameBody> hydrateFrameRef(LibraryIndex.FrameRef ref) {
         return store.relation(ref.storageCid());
     }
 
@@ -936,8 +931,9 @@ public final class Library implements Canonical, AutoCloseable {
     public Optional<Class<?>> findImplementation(ItemID typeId) {
         return byItemPredicate(typeId, VerbSememe.ImplementedBy.SEED.iid())
                 .findFirst()
-                .map(r -> {
-                    if (r.object() instanceof Literal lit) {
+                .map(body -> {
+                    BindingTarget target = body.binding(ItemID.fromString("cg.role:target"));
+                    if (target instanceof Literal lit) {
                         return lit.asJavaClass();
                     }
                     return null;

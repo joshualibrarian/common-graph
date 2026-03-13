@@ -9,7 +9,6 @@ import dev.everydaythings.graph.item.component.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.item.component.Type;
 import dev.everydaythings.graph.item.component.FrameTable;
 import dev.everydaythings.graph.item.mount.Mount;

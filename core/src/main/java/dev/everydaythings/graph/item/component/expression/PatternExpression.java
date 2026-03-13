@@ -3,8 +3,8 @@ package dev.everydaythings.graph.item.component.expression;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.relation.Relation;
 import dev.everydaythings.graph.language.PronounSememe;
 import dev.everydaythings.graph.library.Library;
 import org.apache.logging.log4j.LogManager;
@@ -166,48 +166,51 @@ public record PatternExpression(
         log.info(">>> constraints: subject={}, predicate={}, object={}", subjectConstraint, predicateConstraint, objectConstraint);
 
         // Choose the most efficient query strategy based on constraints
-        Stream<Relation> relations = queryRelations(library, subjectConstraint, predicateConstraint, objectConstraint);
+        Stream<FrameBody> bodies = queryFrameBodies(library, subjectConstraint, predicateConstraint, objectConstraint);
 
         // Extract and return the WHAT position(s)
-        return extractResults(relations, wantSubject, wantPredicate, wantObject);
+        return extractResults(bodies, wantSubject, wantPredicate, wantObject);
     }
 
     private boolean isConstraint(ItemID pattern) {
         return pattern != null && !ANY.equals(pattern) && !WHAT.equals(pattern);
     }
 
-    private Stream<Relation> queryRelations(Library library,
-                                            ItemID subj, ItemID pred, ItemID obj) {
-        // Choose query strategy based on what constraints we have
+    private static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
+
+    private Stream<FrameBody> queryFrameBodies(Library library,
+                                               ItemID subj, ItemID pred, ItemID obj) {
+        // Library.byItem/byPredicate/byItemPredicate return Stream<FrameBody>.
+        Stream<FrameBody> result;
         if (subj != null && pred != null) {
-            return library.byItemPredicate(subj, pred);
+            result = library.byItemPredicate(subj, pred);
         } else if (obj != null && pred != null) {
-            return library.byItemPredicate(obj, pred);
+            result = library.byItemPredicate(obj, pred);
         } else if (subj != null) {
-            return library.byItem(subj);
+            result = library.byItem(subj);
         } else if (pred != null) {
-            return library.byPredicate(pred);
+            result = library.byPredicate(pred);
         } else if (obj != null) {
-            return library.byItem(obj);
+            result = library.byItem(obj);
         } else {
-            // No constraints - would need full scan (not ideal)
             return Stream.empty();
         }
+        return result;
     }
 
-    private Stream<ItemID> extractResults(Stream<Relation> relations,
+    private Stream<ItemID> extractResults(Stream<FrameBody> bodies,
                                           boolean wantSubject, boolean wantPredicate, boolean wantObject) {
-        return relations
-                .flatMap(r -> {
+        return bodies
+                .flatMap(body -> {
                     List<ItemID> results = new ArrayList<>(3);
                     if (wantSubject) {
-                        results.add(r.subject());
+                        results.add(body.theme());
                     }
                     if (wantPredicate) {
-                        results.add(r.predicate());
+                        results.add(body.predicate());
                     }
                     if (wantObject) {
-                        BindingTarget obj = r.object();
+                        BindingTarget obj = body.binding(TARGET_ROLE);
                         if (obj instanceof BindingTarget.IidTarget iidTarget) {
                             results.add(iidTarget.iid());
                         }

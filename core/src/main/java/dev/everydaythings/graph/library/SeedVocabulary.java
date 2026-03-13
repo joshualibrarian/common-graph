@@ -17,7 +17,7 @@ import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneSchema;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
-import dev.everydaythings.graph.item.relation.Relation;
+import dev.everydaythings.graph.item.component.FrameBody;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.NounSememe;
@@ -41,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -347,11 +348,10 @@ public final class SeedVocabulary {
         storeRelation(createTitleRelation(typeId, key));
 
         // HYPERNYM relation: this type is-a-kind-of ComponentType
-        storeRelation(Relation.builder()
-                .predicate(VerbSememe.Hypernym.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(typeId))
-                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(ItemID.fromString(ComponentType.KEY)))
-                .build());
+        storeRelation(FrameBody.of(
+                VerbSememe.Hypernym.SEED.iid(),
+                typeId,
+                Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(ItemID.fromString(ComponentType.KEY)))));
     }
 
     private void registerValueType(Class<? extends dev.everydaythings.graph.value.Value> type) {
@@ -361,11 +361,10 @@ public final class SeedVocabulary {
         ItemID typeId = ItemID.fromString(annotation.value());
 
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
-        storeRelation(Relation.builder()
-                .predicate(VerbSememe.ImplementedBy.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(typeId))
-                .bind(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(type))
-                .build());
+        storeRelation(FrameBody.of(
+                VerbSememe.ImplementedBy.SEED.iid(),
+                typeId,
+                Map.of(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(type))));
     }
 
     // ==================================================================================
@@ -526,34 +525,32 @@ public final class SeedVocabulary {
     // Relation Creation
     // ==================================================================================
 
-    private Relation createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
-        Relation relation = Relation.builder()
-                .predicate(VerbSememe.ImplementedBy.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(typeId))
-                .bind(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(implementingClass))
-                .build();
+    private FrameBody createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
+        FrameBody body = FrameBody.of(
+                VerbSememe.ImplementedBy.SEED.iid(),
+                typeId,
+                Map.of(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(implementingClass)));
 
         // Add to item's component table as a relation entry
         if (item != null) {
-            byte[] bytes = relation.encodeBinary(Canonical.Scope.RECORD);
+            byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
-            FrameEntry entry = FrameEntry.forRelation(relation.predicate(), cid, true);
+            FrameEntry entry = FrameEntry.forRelation(body.predicate(), cid, true);
             item.content().add(entry);
-            item.content().setLive(entry.frameKey(), relation);
+            item.content().setLive(entry.frameKey(), body);
         }
 
-        return relation;
+        return body;
     }
 
-    private Relation createTitleRelation(ItemID itemId, String key) {
-        return Relation.builder()
-                .predicate(NounSememe.Title.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(itemId))
-                .bind(ThematicRole.Target.SEED.iid(), Literal.ofText(key))
-                .build();
+    private FrameBody createTitleRelation(ItemID itemId, String key) {
+        return FrameBody.of(
+                NounSememe.Title.SEED.iid(),
+                itemId,
+                Map.of(ThematicRole.Target.SEED.iid(), Literal.ofText(key)));
     }
 
-    private Relation createInstanceOfRelation(Item item) {
+    private FrameBody createInstanceOfRelation(Item item) {
         Type typeAnnotation = item.getClass().getAnnotation(Type.class);
         if (typeAnnotation == null || typeAnnotation.value().isBlank()) return null;
 
@@ -563,11 +560,10 @@ public final class SeedVocabulary {
         // Don't create relation if instance IS the type
         if (instanceId.equals(typeId)) return null;
 
-        return Relation.builder()
-                .predicate(VerbSememe.InstanceOf.SEED.iid())
-                .bind(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(instanceId))
-                .bind(ThematicRole.Target.SEED.iid(), BindingTarget.iid(typeId))
-                .build();
+        return FrameBody.of(
+                VerbSememe.InstanceOf.SEED.iid(),
+                instanceId,
+                Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(typeId)));
     }
 
     // ==================================================================================
@@ -608,10 +604,10 @@ public final class SeedVocabulary {
         }
     }
 
-    private void storeRelation(Relation relation) {
-        if (relation == null) return;
+    private void storeRelation(FrameBody body) {
+        if (body == null) return;
         try {
-            byte[] record = relation.encodeBinary(Canonical.Scope.RECORD);
+            byte[] record = body.encodeBinary(Canonical.Scope.RECORD);
             store.persistContent(record, tx);
         } catch (Exception e) {
             logger.warn("Failed to store relation: {}", e.getMessage());
