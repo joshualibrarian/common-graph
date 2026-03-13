@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.ui.text;
 
-import dev.everydaythings.graph.expression.CompletionEntry;
-import dev.everydaythings.graph.expression.EvalInputSnapshot;
-import dev.everydaythings.graph.expression.ExpressionToken;
+import dev.everydaythings.graph.parse.CompletionEntry;
+import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.ExpressionToken;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.ui.input.InputRenderer;
 import dev.everydaythings.graph.ui.input.InputResult;

@@ -15,7 +15,7 @@ Like IPLD's DAG-CBOR, CG-CBOR is a **profile** of CBOR tailored for Common Graph
 
 ## Tag Allocations
 
-CG-CBOR uses unassigned tags in the 1-byte range (6-15, 20):
+CG-CBOR uses unassigned tags in the 1-byte range (6-22):
 
 | Tag | Name | Description |
 |-----|------|-------------|
@@ -24,8 +24,19 @@ CG-CBOR uses unassigned tags in the 1-byte range (6-15, 20):
 | 8 | `CG-SIG` | Signed envelope |
 | 9 | `CG-QTY` | Quantity (magnitude + unit) |
 | 10 | `CG-ENCRYPTED` | Encrypted envelope — *reserved* |
-| 11-15 | — | Reserved for future CG use |
-| 20 | — | Reserved for future CG use |
+| 11 | `CG-REQUEST` | Peer protocol: request for data |
+| 12 | `CG-DELIVERY` | Peer protocol: delivery of data |
+| 13 | `CG-AUTH` | Session protocol: authentication exchange |
+| 14 | `CG-CONTEXT` | Session protocol: get/set focused item |
+| 15 | `CG-DISPATCH` | Session protocol: verb invocation |
+| 16 | `CG-LOOKUP` | Session protocol: token search/completion |
+| 17 | `CG-SUBSCRIBE` | Session protocol: subscribe/unsubscribe |
+| 18 | `CG-EVENT` | Session protocol: push notification |
+| 19 | `CG-STREAM` | Session protocol: chunked data |
+| 20 | `CG-HEARTBEAT` | Shared: keep-alive signal |
+| 21 | `CG-ACK` | Shared: acknowledgment |
+| 22 | `CG-ERROR` | Shared: error response |
+| 23 | — | Reserved for future CG use |
 
 ---
 
@@ -377,7 +388,7 @@ Common values use [shorthand conventions](#shorthand-conventions) (bare CBOR pri
 
 | Aspect | DAG-CBOR (IPLD) | CG-CBOR |
 |--------|-----------------|---------|
-| Custom tags | Only tag 42 (CID) | Tags 6-9 (ref, value, sig, qty) |
+| Custom tags | Only tag 42 (CID) | Tags 6-22 (data types + protocol messages) |
 | Floats | Forbidden | Forbidden (use Rational/Decimal) |
 | Links | CID only | ItemRef with optional path |
 | Typed values | Implicit | Shorthand + explicit CG-VALUE |

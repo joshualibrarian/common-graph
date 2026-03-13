@@ -1,13 +1,13 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
-import dev.everydaythings.graph.item.Vocabulary;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.dispatch.Vocabulary;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.runtime.protocol.SessionClient;
-import dev.everydaythings.graph.runtime.protocol.SessionMessage;
+import dev.everydaythings.graph.network.session.SessionClient;
+import dev.everydaythings.graph.network.session.SessionMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

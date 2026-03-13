@@ -1,10 +1,10 @@
 package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.trust.Algorithm;
-import dev.everydaythings.graph.trust.EncryptionPublicKey;
-import dev.everydaythings.graph.trust.GraphPublicKey;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.Algorithm;
+import dev.everydaythings.graph.crypt.EncryptionPublicKey;
+import dev.everydaythings.graph.crypt.GraphPublicKey;
+import dev.everydaythings.graph.crypt.Vault;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;

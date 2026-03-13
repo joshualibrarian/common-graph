@@ -1,11 +1,12 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.item.action.ActionContext;
-import dev.everydaythings.graph.item.action.ParamSpec;
-import dev.everydaythings.graph.item.component.Components;
-import dev.everydaythings.graph.item.component.Param;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.Verb;
+import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.dispatch.ParamSpec;
+import dev.everydaythings.graph.dispatch.VerbSpec;
+import dev.everydaythings.graph.item.Components;
+import dev.everydaythings.graph.item.Param;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 

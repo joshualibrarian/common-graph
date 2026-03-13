@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.game;
 
-import dev.everydaythings.graph.item.component.Dag;
+import dev.everydaythings.graph.frame.Dag;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;

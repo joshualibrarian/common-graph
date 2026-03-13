@@ -2,8 +2,8 @@ package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.policy.PolicySet;
-import dev.everydaythings.graph.trust.Algorithm;
-import dev.everydaythings.graph.trust.EncryptionPublicKey;
+import dev.everydaythings.graph.crypt.Algorithm;
+import dev.everydaythings.graph.crypt.EncryptionPublicKey;
 
 import java.util.List;
 

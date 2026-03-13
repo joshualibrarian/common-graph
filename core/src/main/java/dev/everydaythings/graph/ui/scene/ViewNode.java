@@ -11,7 +11,7 @@ import java.util.List;
  *
  * <p>ViewNodes are compiled from {@code @Scene} annotations by {@link SceneCompiler}
  * and can be serialized to CBOR for storage as
- * {@link dev.everydaythings.graph.item.component.SurfaceTemplateComponent}
+ * {@link dev.everydaythings.graph.frame.SurfaceTemplateComponent}
  * on type items.
  *
  * <p>Uses MAP encoding so that only non-default fields are serialized, keeping

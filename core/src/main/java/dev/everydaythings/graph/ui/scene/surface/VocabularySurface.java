@@ -2,11 +2,11 @@ package dev.everydaythings.graph.ui.scene.surface;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.ui.scene.Scene;
-import dev.everydaythings.graph.item.VerbAlias;
-import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.VerbSpec;
-import dev.everydaythings.graph.item.Vocabulary;
-import dev.everydaythings.graph.item.action.ParamSpec;
+import dev.everydaythings.graph.dispatch.VerbAlias;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.dispatch.VerbSpec;
+import dev.everydaythings.graph.dispatch.Vocabulary;
+import dev.everydaythings.graph.dispatch.ParamSpec;
 import dev.everydaythings.graph.ui.scene.surface.primitive.TextSpan;
 
 import java.util.*;

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.dictionary;
 
-import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Literal;

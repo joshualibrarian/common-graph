@@ -3,14 +3,14 @@ package dev.everydaythings.graph.item;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.FrameEntry;
+import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.trust.GraphPublicKey;
-import dev.everydaythings.graph.trust.SigningPublicKey;
+import dev.everydaythings.graph.crypt.GraphPublicKey;
+import dev.everydaythings.graph.crypt.SigningPublicKey;
 import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.trust.Signing;
+import dev.everydaythings.graph.crypt.Signing;
 import lombok.*;
 
 import java.lang.reflect.Method;

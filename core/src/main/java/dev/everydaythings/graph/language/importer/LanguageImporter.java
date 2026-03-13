@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.language.importer;
 
-import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.component.FrameBody;
-import dev.everydaythings.graph.item.component.FrameRecord;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameRecord;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.*;

@@ -1,8 +1,9 @@
 package dev.everydaythings.graph.network.transport;
 
-import dev.everydaythings.graph.network.message.ProtocolMessage;
+import dev.everydaythings.graph.network.ProtocolCodec;
+import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.peer.PeerConnection;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.Vault;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -32,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  *   <li>SSL (optional) — TLS encryption</li>
  *   <li>Frame decoder/encoder — length-prefixed framing</li>
  *   <li>Transport encryption (optional) — Noise XX handshake + AEAD session</li>
- *   <li>CgProtocolCodec — CBOR ↔ ProtocolMessage conversion</li>
+ *   <li>PeerCodec — CBOR ↔ PeerMessage conversion</li>
  *   <li>IdleStateHandler — idle detection</li>
  *   <li>HeartbeatHandler — heartbeat/dead-peer handling</li>
  *   <li>ServerChannelHandler — application message dispatch</li>
@@ -115,7 +116,7 @@ public class PeerServer implements AutoCloseable {
                         }
 
                         // 4. CG Protocol codec (ByteBuf ↔ ProtocolMessage)
-                        p.addLast("codec", new CgProtocolCodec());
+                        p.addLast("codec", new ProtocolCodec());
 
                         // 5. Idle detection: reader=30s, writer=15s
                         p.addLast("idle", new IdleStateHandler(30, 15, 0, TimeUnit.SECONDS));

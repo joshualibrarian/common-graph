@@ -1,29 +1,34 @@
 package dev.everydaythings.graph.item;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.component.Components;
-import dev.everydaythings.graph.item.component.ExpressionComponent;
-import dev.everydaythings.graph.item.component.FrameAware;
-import dev.everydaythings.graph.item.component.FrameContext;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.dispatch.VerbInvoker;
+import dev.everydaythings.graph.dispatch.VerbSpec;
+import dev.everydaythings.graph.dispatch.Vocabulary;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.item.Components;
+import dev.everydaythings.graph.frame.ExpressionComponent;
+import dev.everydaythings.graph.frame.FrameAware;
+import dev.everydaythings.graph.frame.FrameContext;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.item.component.Param;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.Verb;
-import dev.everydaythings.graph.item.component.FrameBody;
-import dev.everydaythings.graph.item.component.FrameRecord;
+import dev.everydaythings.graph.item.Param;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameRecord;
 import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.action.ActionContext;
-import dev.everydaythings.graph.item.action.ActionResult;
-import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.item.component.FrameTable;
-import dev.everydaythings.graph.item.component.ComponentType;
+import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.dispatch.ActionResult;
+import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.FrameTable;
+import dev.everydaythings.graph.item.ComponentType;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
@@ -198,8 +203,8 @@ public class Item {
     // Display & Navigation
     // ==================================================================================
 
-    public Link link() {
-        return Link.of(iid);
+    public Ref ref() {
+        return Ref.of(iid);
     }
 
     public String displayToken() {
@@ -305,8 +310,8 @@ public class Item {
             Optional<Item> typeItem = librarian.get(typeId, Item.class);
             if (typeItem.isPresent()) {
                 var st = typeItem.get().content().getLive(
-                        dev.everydaythings.graph.item.component.SurfaceTemplateComponent.HANDLE,
-                        dev.everydaythings.graph.item.component.SurfaceTemplateComponent.class
+                        dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
+                        dev.everydaythings.graph.frame.SurfaceTemplateComponent.class
                 ).orElse(null);
                 if (st != null && st.glyph() != null && !st.glyph().isBlank()) {
                     return st.glyph();
@@ -318,8 +323,8 @@ public class Item {
         Optional<Class<?>> impl = findImplementation(typeId);
         if (impl.isPresent()) {
             Class<?> cls = impl.get();
-            dev.everydaythings.graph.item.component.Type type =
-                    cls.getAnnotation(dev.everydaythings.graph.item.component.Type.class);
+            Type type =
+                    cls.getAnnotation(Type.class);
             if (type != null && !type.glyph().isEmpty()) {
                 return type.glyph();
             }
@@ -344,8 +349,8 @@ public class Item {
         if (payload instanceof dev.everydaythings.graph.value.Value value) {
             return value.emoji();
         }
-        dev.everydaythings.graph.item.component.Type type =
-                payload.getClass().getAnnotation(dev.everydaythings.graph.item.component.Type.class);
+        Type type =
+                payload.getClass().getAnnotation(Type.class);
         if (type != null && !type.glyph().isEmpty()) {
             return type.glyph();
         }
@@ -362,8 +367,8 @@ public class Item {
         if (payload instanceof dev.everydaythings.graph.value.Value value) {
             return value.displayToken();
         }
-        dev.everydaythings.graph.item.component.Type type =
-                payload.getClass().getAnnotation(dev.everydaythings.graph.item.component.Type.class);
+        Type type =
+                payload.getClass().getAnnotation(Type.class);
         if (type != null) {
             String key = type.value();
             int slash = key.lastIndexOf('/');
@@ -441,15 +446,15 @@ public class Item {
     }
 
     /**
-     * Get children as Links for tree navigation.
+     * Get children as Refs for tree navigation.
      *
-     * <p>In PRESENTATION mode, returns the mount table roots as navigable links.
-     * <p>In INSPECT mode, returns links to content components and tables.
+     * <p>In PRESENTATION mode, returns the mount table roots as navigable refs.
+     * <p>In INSPECT mode, returns refs to content components and tables.
      *
      * @param mode which view of the item's structure
-     * @return list of child Links
+     * @return list of child Refs
      */
-    public List<Link> children(TreeLink.ChildMode mode) {
+    public List<Ref> children(TreeLink.ChildMode mode) {
         return switch (mode) {
             case PRESENTATION -> childrenPresentation();
             case INSPECT -> childrenInspect();
@@ -459,23 +464,27 @@ public class Item {
     /**
      * Presentation mode: mount tree children at root, including virtual directories.
      */
-    private List<Link> childrenPresentation() {
+    private List<Ref> childrenPresentation() {
         return childrenAtPath("/");
     }
 
     /**
      * Get children at a specific path in presentation mode.
      *
-     * <p>Returns Links for both real mounted components and virtual
+     * <p>Returns Refs for both real mounted components and virtual
      * directories implied by deeper mounts.
      *
      * @param path the parent path to list children of
-     * @return list of child Links
+     * @return list of child Refs
      */
-    public List<Link> childrenAtPath(String path) {
-        List<Link> children = new ArrayList<>();
+    public List<Ref> childrenAtPath(String path) {
+        List<Ref> children = new ArrayList<>();
         for (var child : content().childrenAt(path)) {
-            children.add(Link.of(iid(), child.fullPath()));
+            if (child.entry() != null) {
+                children.add(Ref.of(iid(), child.entry().frameKey()));
+            } else {
+                children.add(Ref.of(iid()));
+            }
         }
         return children;
     }
@@ -483,8 +492,8 @@ public class Item {
     /**
      * Inspect mode: raw content + tables.
      */
-    private List<Link> childrenInspect() {
-        List<Link> children = new ArrayList<>();
+    private List<Ref> childrenInspect() {
+        List<Ref> children = new ArrayList<>();
 
         // All non-built-in component entries (content components, relations).
         // Policy now lives under component config metadata and should not appear
@@ -493,9 +502,9 @@ public class Item {
             if (BuiltinKeys.POLICY.equals(entry.frameKey())) {
                 continue;
             }
-            Link link = entry.link();
-            if (link != null) {
-                children.add(link);
+            Ref ref = entry.ref();
+            if (ref != null) {
+                children.add(ref);
             }
         }
 
@@ -548,8 +557,8 @@ public class Item {
     public DisplayInfo displayInfo() {
         // 1. Check for instance-level SurfaceTemplateComponent
         var stcOpt = content().getLive(
-                dev.everydaythings.graph.item.component.SurfaceTemplateComponent.HANDLE,
-                dev.everydaythings.graph.item.component.SurfaceTemplateComponent.class);
+                dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
+                dev.everydaythings.graph.frame.SurfaceTemplateComponent.class);
         if (stcOpt.isPresent()) {
             return stcOpt.get().toDisplayInfo(findDisplayName());
         }
@@ -574,7 +583,7 @@ public class Item {
     /**
      * Get the SurfaceTemplateComponent from this item's type (if available in the library).
      */
-    protected dev.everydaythings.graph.item.component.SurfaceTemplateComponent getTypeSurfaceTemplate() {
+    protected dev.everydaythings.graph.frame.SurfaceTemplateComponent getTypeSurfaceTemplate() {
         if (librarian == null) return null;
 
         // Get this item's type ID
@@ -591,8 +600,8 @@ public class Item {
 
         // Get the type's SurfaceTemplateComponent
         return typeItem.content().getLive(
-                dev.everydaythings.graph.item.component.SurfaceTemplateComponent.HANDLE,
-                dev.everydaythings.graph.item.component.SurfaceTemplateComponent.class
+                dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
+                dev.everydaythings.graph.frame.SurfaceTemplateComponent.class
         ).orElse(null);
     }
 
@@ -1987,7 +1996,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         java.util.function.Consumer<FrameBody> storeRelation = (librarian != null) ? librarian::storeFrame : null;
 
         // Key resolver for per-frame EncryptionPolicy (ItemID → EncryptionPublicKeys)
-        java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver =
+        java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver =
                 (librarian != null) ? librarian::resolveEncryptionKeys : iid -> java.util.List.of();
 
         // Bind component fields (encode and add to content table, with optional encryption)
@@ -2396,7 +2405,7 @@ This public non- profit land trust’s top founding principle is to promote and 
     @Verb(value = dev.everydaythings.graph.language.VerbSememe.Create.KEY, doc = "Create a new instance of this type")
     public Item actionNew(
             ActionContext ctx,
-            @dev.everydaythings.graph.item.component.Param(
+            @Param(
                     value = "name", required = false, role = "NAME") String name) {
         Librarian lib = ctx.librarian();
         if (lib == null) {
@@ -2449,7 +2458,7 @@ This public non- profit land trust’s top founding principle is to promote and 
     /**
      * Navigate to a path within this item's mount tree.
      *
-     * <p>Resolves the target path and returns a {@link Link} that the session
+     * <p>Resolves the target path and returns a {@link Ref} that the session
      * can use for navigation. Supports:
      * <ul>
      *   <li>{@code ".."} — navigate to parent path (or back to root)</li>
@@ -2461,10 +2470,10 @@ This public non- profit land trust’s top founding principle is to promote and 
      * directory implied by deeper mounts. Returns a failure if the path doesn't exist.
      *
      * @param target The path to navigate to
-     * @return A Link for the session to navigate to
+     * @return A Ref for the session to navigate to
      */
     @Verb(value = dev.everydaythings.graph.language.VerbSememe.Cd.KEY, doc = "Navigate to path within item")
-    public Link actionCd(
+    public Ref actionCd(
             @Param(value = "target", doc = "Path or '..' to go back") String target) {
         if (target == null || target.isBlank()) {
             throw new IllegalArgumentException("cd requires a target path");
@@ -2472,7 +2481,7 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // ".." — navigate to parent
         if ("..".equals(target.trim())) {
-            return Link.of(iid());  // Back to item root
+            return Ref.of(iid());  // Back to item root
         }
 
         // Canonicalize path
@@ -2480,16 +2489,15 @@ This public non- profit land trust’s top founding principle is to promote and 
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(path);
 
         // Check if path exists as a real component
-        if (content().atPath(canonical).isPresent()) {
-            return Link.of(iid(), canonical);
-        }
-
-        // Check if path exists as a virtual directory (has children under it)
-        if (content().hasChildren(canonical)) {
-            return Link.of(iid(), canonical);
-        }
-
-        throw new IllegalArgumentException("No such path: " + target);
+        return content().atPath(canonical)
+                .map(entry -> Ref.of(iid(), entry.frameKey()))
+                .orElseGet(() -> {
+                    // Check if path exists as a virtual directory (has children under it)
+                    if (content().hasChildren(canonical)) {
+                        return Ref.of(iid());
+                    }
+                    throw new IllegalArgumentException("No such path: " + target);
+                });
     }
 
     // ==================================================================================

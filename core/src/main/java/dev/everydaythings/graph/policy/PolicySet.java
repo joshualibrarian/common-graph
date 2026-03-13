@@ -3,7 +3,7 @@ package dev.everydaythings.graph.policy;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.*;
 

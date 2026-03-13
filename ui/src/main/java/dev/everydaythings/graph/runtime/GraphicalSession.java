@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.ui.Stage;
 import dev.everydaythings.graph.ui.WindowDragController;
 import dev.everydaythings.graph.ui.WindowResizeController;
@@ -17,7 +17,7 @@ import dev.everydaythings.graph.ui.filament.MsdfFontManager;
 import dev.everydaythings.graph.ui.filament.SkiaPanelPainter;
 import dev.everydaythings.graph.ui.filament.SkiaSurfacePainter;
 import dev.everydaythings.graph.ui.text.FontRegistry;
-import dev.everydaythings.graph.expression.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.EvalInputSnapshot;
 import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
@@ -45,7 +45,7 @@ import dev.everydaythings.graph.ui.style.Stylesheet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import dev.everydaythings.graph.item.component.TickRegistry;
+import dev.everydaythings.graph.frame.TickRegistry;
 
 import java.util.List;
 import java.lang.reflect.Method;
@@ -95,7 +95,7 @@ public class GraphicalSession extends Session {
     private PanelPainter panelPainter;   // for 2D panels in 3D space
     private OpenALAudio openAL;
     private Item sceneContextItem;
-    private Link sceneContextLink;  // tracks which Link the 3D scene was built for
+    private Ref sceneContextRef;  // tracks which Ref the 3D scene was built for
     private boolean sceneDirty;     // forces 3D scene rebuild on next rebuildScene()
     private float sceneFocusExtent = Float.NaN; // optional camera-fit extent (meters), e.g. chess board size
     private boolean flatMode;       // F10: show 2D Surface in detail region instead of 3D Body
@@ -141,7 +141,7 @@ public class GraphicalSession extends Session {
 
     // ==================== Constructor ====================
 
-    public GraphicalSession(LibrarianHandle librarian, Link context, RenderMode initialMode) {
+    public GraphicalSession(LibrarianHandle librarian, Ref context, RenderMode initialMode) {
         super(librarian, context);
         this.activeRenderer = (initialMode == RenderMode.SPATIAL)
                 ? RendererType.FILAMENT : RendererType.SKIA;
@@ -478,7 +478,7 @@ public class GraphicalSession extends Session {
             if (panelPainter != null) panelPainter.clear();
             if (detailPainter != null) detailPainter.clear();
             hideDetailPane();
-            sceneContextLink = null; // force rebuild when returning to 3D
+            sceneContextRef = null; // force rebuild when returning to 3D
         } else {
             sceneDirty = true; // force 3D scene rebuild on next layout
         }
@@ -554,7 +554,7 @@ public class GraphicalSession extends Session {
 
         // Force full rebuild immediately — new engine, panes, and painters need fresh content
         sceneDirty = true;
-        sceneContextLink = null;
+        sceneContextRef = null;
         lastLayoutRoot = null;
         rebuildLayout();
         requestRepaint();
@@ -1253,16 +1253,16 @@ public class GraphicalSession extends Session {
             return;
         }
 
-        Link context = itemModel().context();
+        Ref context = itemModel().context();
         if (context == null) {
             hideDetailPane();
             return;
         }
 
-        // Only rebuild if context link changed or state was mutated
-        if (context.equals(sceneContextLink) && sceneRenderer != null && !sceneDirty) return;
+        // Only rebuild if context ref changed or state was mutated
+        if (context.equals(sceneContextRef) && sceneRenderer != null && !sceneDirty) return;
         sceneDirty = false;
-        sceneContextLink = context;
+        sceneContextRef = context;
         sceneFocusExtent = Float.NaN;
 
         // Tear down previous scene
@@ -1278,21 +1278,19 @@ public class GraphicalSession extends Session {
         }
 
         // Only render 3D for a specific component selection (not root-level)
-        java.util.Optional<String> path = context.path();
-        if (path.isEmpty() || path.get().isEmpty()) {
+        if (!context.hasFrame()) {
             hideDetailPane();
             return;
         }
 
         // Resolve the owning item and find the live component
-        Item item = resolveItem(context.item()).orElse(null);
+        Item item = resolveItem(context.target()).orElse(null);
         if (item == null) {
             hideDetailPane();
             return;
         }
 
-        String handle = path.get().startsWith("/") ? path.get().substring(1) : path.get();
-        FrameKey key = FrameKey.literal(handle);
+        FrameKey key = context.frameKey();
 
         Object component = item.content().getLive(key).orElse(null);
         if (component == null) {

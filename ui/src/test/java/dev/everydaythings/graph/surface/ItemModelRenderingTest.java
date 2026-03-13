@@ -2,9 +2,9 @@ package dev.everydaythings.graph.surface;
 
 import dev.everydaythings.graph.game.chess.ChessGame;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
@@ -29,7 +29,7 @@ class ItemModelRenderingTest {
         LibrarianHandle handle = LibrarianHandle.inMemory();
 
         // The librarian itself is an Item
-        Link root = Link.of(handle.iid());
+        Ref root = Ref.of(handle.iid());
 
         System.err.println("=== Test Setup ===");
         System.err.println("Librarian IID: " + handle.iid());
@@ -113,16 +113,16 @@ class ItemModelRenderingTest {
         System.err.println("resolved getLive(chess): " + (resolvedLive.isPresent() ? resolvedLive.get().getClass().getName() : "EMPTY"));
 
         // Now create the ItemModel and select the chess component
-        Link root = Link.of(hostItem.iid());
+        Ref root = Ref.of(hostItem.iid());
         ItemModel itemModel = new ItemModel(root, resolver);
 
-        // Simulate what addComponentToItem does: select the component path
-        Link componentLink = Link.of(hostItem.iid(), "/" + componentHandle);
-        itemModel.select(componentLink);
+        // Simulate what addComponentToItem does: select the component ref
+        Ref componentRef = Ref.of(hostItem.iid(), FrameKey.literal(componentHandle));
+        itemModel.select(componentRef);
 
         System.err.println("\n=== After select ===");
-        System.err.println("context.item(): " + itemModel.context().item().encodeText());
-        System.err.println("context.path(): " + itemModel.context().path().orElse("<none>"));
+        System.err.println("context.target(): " + itemModel.context().target().encodeText());
+        System.err.println("context.frameKey(): " + (itemModel.context().frameKey() != null ? itemModel.context().frameKey().toCanonicalString() : "<none>"));
 
         // Compile surface — this triggers detail() → resolveComponentSurface()
         System.err.println("\n=== Compiling surface ===");

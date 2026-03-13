@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.VerbSememe;
 import org.junit.jupiter.api.AfterEach;

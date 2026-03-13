@@ -1,13 +1,13 @@
 package dev.everydaythings.graph.network;
 
-import dev.everydaythings.graph.network.message.Delivery;
-import dev.everydaythings.graph.network.message.ProtocolMessage;
-import dev.everydaythings.graph.network.message.Request;
+import dev.everydaythings.graph.network.peer.Delivery;
+import dev.everydaythings.graph.network.ProtocolMessage;
+import dev.everydaythings.graph.network.peer.Request;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
-import dev.everydaythings.graph.vault.InMemoryVault;
+import dev.everydaythings.graph.crypt.InMemoryVault;
 import io.netty.handler.ssl.SslContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;

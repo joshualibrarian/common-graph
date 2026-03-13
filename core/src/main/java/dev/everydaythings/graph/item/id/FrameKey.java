@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item.id;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.item.Factory;
 
 import java.util.Arrays;
 import java.util.List;

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
 import lombok.Value;
 
 import java.util.Collection;
@@ -14,7 +15,7 @@ import java.util.Map;
  * them with a TreeValue to provide addressability.
  *
  * <p>This allows any value to appear in the tree with proper
- * Link addressability.
+ * Ref addressability.
  */
 @Value
 public class TreeValue {
@@ -31,8 +32,8 @@ public class TreeValue {
         return new TreeValue(label, value, owner, path);
     }
 
-    public Link link() {
-        return owner != null ? Link.of(owner.iid(), path) : null;
+    public Ref ref() {
+        return owner != null ? Ref.fromPath(owner, path) : null;
     }
 
     public String displayToken() {

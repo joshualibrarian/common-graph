@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.surface;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
+import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.ViewNode;

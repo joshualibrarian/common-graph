@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;

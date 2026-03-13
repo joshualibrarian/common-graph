@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.ui.scene.spatial;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.FrameEntry;
+import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.Scene;
 

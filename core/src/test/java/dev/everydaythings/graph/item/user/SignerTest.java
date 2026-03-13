@@ -1,10 +1,10 @@
 package dev.everydaythings.graph.item.user;
 
 import dev.everydaythings.graph.item.ItemTest;
-import dev.everydaythings.graph.item.component.FrameBody;
-import dev.everydaythings.graph.item.component.FrameRecord;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameRecord;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.trust.SigningPublicKey;
+import dev.everydaythings.graph.crypt.SigningPublicKey;
 import org.junit.jupiter.api.*;
 
 import static org.assertj.core.api.Assertions.assertThat;

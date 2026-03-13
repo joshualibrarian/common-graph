@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.ui.input;
 
-import dev.everydaythings.graph.expression.ExpressionToken;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.parse.ExpressionToken;
+import dev.everydaythings.graph.dispatch.ActionResult;
 
 import java.util.List;
 

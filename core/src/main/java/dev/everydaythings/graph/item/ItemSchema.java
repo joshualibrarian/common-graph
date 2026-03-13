@@ -4,12 +4,15 @@ import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.item.component.FrameTable;
-import dev.everydaythings.graph.item.component.Components;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.dispatch.VerbSpec;
+import dev.everydaythings.graph.dispatch.Vocabulary;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.FrameTable;
+import dev.everydaythings.graph.item.Components;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -276,7 +279,7 @@ public class ItemSchema {
     public void bindComponentFieldsForCommit(Item item, FrameTable contentTable,
                                              Consumer<byte[]> storePayload,
                                              dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
-                                             java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
+                                             java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
         for (FrameFieldSpec spec : frameFields) {
             if (!spec.endorsed()) continue;
             Object value = spec.getValue(item);
@@ -298,7 +301,7 @@ public class ItemSchema {
     private FrameEntry encodeFrameField(FrameFieldSpec spec, Object value, Consumer<byte[]> storePayload,
                                         dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
                                         FrameEntry.EntryConfig existingConfig,
-                                        java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
+                                        java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
         FrameKey key = spec.frameKey();
         String alias = spec.canonicalKeyString();
 
@@ -362,7 +365,7 @@ public class ItemSchema {
     private dev.everydaythings.graph.crypt.EncryptionContext resolveEncryptionContext(
             dev.everydaythings.graph.crypt.EncryptionContext explicit,
             FrameEntry.EntryConfig existingConfig,
-            java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
+            java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
         // Explicit context always wins
         if (explicit != null && explicit != dev.everydaythings.graph.crypt.EncryptionContext.NONE) {
             return explicit;
@@ -377,7 +380,7 @@ public class ItemSchema {
         }
 
         // Resolve recipients from the EncryptionPolicy
-        java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> resolvedKeys;
+        java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey> resolvedKeys;
 
         if (encryption.encryptToReaders()) {
             // Derive recipients from the access policy's READ rules
@@ -407,14 +410,14 @@ public class ItemSchema {
      * Handles special subjects: "owner" is skipped (would need item context),
      * "any" is skipped (can't encrypt to everyone), others are tried as ItemIDs.
      */
-    private java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> resolveReadersToKeys(
+    private java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey> resolveReadersToKeys(
             dev.everydaythings.graph.policy.PolicySet policy,
-            java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey>> keyResolver) {
+            java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
         if (policy.access() == null || !policy.access().hasRules()) {
             return java.util.List.of();
         }
 
-        java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> keys = new java.util.ArrayList<>();
+        java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey> keys = new java.util.ArrayList<>();
         for (var rule : policy.access().rules()) {
             if (rule.effect() != dev.everydaythings.graph.policy.PolicySet.AccessPolicy.Effect.ALLOW) continue;
             if (rule.action() != dev.everydaythings.graph.policy.PolicySet.AccessPolicy.Action.READ) continue;

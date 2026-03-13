@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.FrameBody;
-import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.item.user.SignerTest;

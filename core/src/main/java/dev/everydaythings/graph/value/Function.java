@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.expression.EvaluationContext;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  *
  * <p>Evaluation lives on the Function itself via {@link #evaluate(List, EvaluationContext)},
  * dispatched by canonical key — same pattern as {@link Operator}.
- * {@link dev.everydaythings.graph.item.component.expression.FunctionExpression}
+ * {@link dev.everydaythings.graph.frame.expression.FunctionExpression}
  * looks up the Function by name and delegates.
  */
 @Type(value = Function.KEY, glyph = "ƒ")

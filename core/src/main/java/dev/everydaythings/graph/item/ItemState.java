@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.item.component.FrameTable;
+import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.FrameTable;
 import lombok.Getter;
 
 import java.util.List;

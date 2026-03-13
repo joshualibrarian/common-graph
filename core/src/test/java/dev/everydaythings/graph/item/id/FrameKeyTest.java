@@ -273,8 +273,8 @@ class FrameKeyTest {
         @DisplayName("entry with explicit semantic frameKey returns it")
         void explicitSemanticFrameKey() {
             FrameKey key = FrameKey.of(TITLE);
-            dev.everydaythings.graph.item.component.FrameEntry entry =
-                    dev.everydaythings.graph.item.component.FrameEntry.builder()
+            dev.everydaythings.graph.frame.FrameEntry entry =
+                    dev.everydaythings.graph.frame.FrameEntry.builder()
                             .frameKey(key)
                             .type(ItemID.fromString("cg:type/text"))
                             .identity(true)
@@ -289,8 +289,8 @@ class FrameKeyTest {
         @DisplayName("entry with explicit literal frameKey returns it")
         void explicitLiteralFrameKey() {
             FrameKey key = FrameKey.literal("vault");
-            dev.everydaythings.graph.item.component.FrameEntry entry =
-                    dev.everydaythings.graph.item.component.FrameEntry.builder()
+            dev.everydaythings.graph.frame.FrameEntry entry =
+                    dev.everydaythings.graph.frame.FrameEntry.builder()
                             .frameKey(key)
                             .type(ItemID.fromString("cg:type/vault"))
                             .identity(true)

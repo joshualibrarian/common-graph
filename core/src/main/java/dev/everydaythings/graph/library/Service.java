@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.item.Link;
+import dev.everydaythings.graph.item.id.Ref;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -171,7 +171,7 @@ public interface Service extends AutoCloseable {
     /**
      * Services are not addressable graph nodes by default.
      */
-    default Link link() {
+    default Ref ref() {
         return null;
     }
 

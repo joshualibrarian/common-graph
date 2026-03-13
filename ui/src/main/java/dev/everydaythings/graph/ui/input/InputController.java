@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.ui.input;
 
-import dev.everydaythings.graph.expression.ExpressionToken;
-import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.Vocabulary;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.parse.ExpressionToken;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.dispatch.Vocabulary;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.runtime.Librarian;
 

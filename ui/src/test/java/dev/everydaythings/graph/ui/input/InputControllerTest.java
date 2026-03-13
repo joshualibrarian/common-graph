@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.ui.input;
 
-import dev.everydaythings.graph.expression.ExpressionToken;
+import dev.everydaythings.graph.parse.ExpressionToken;
 import dev.everydaythings.graph.language.Posting;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

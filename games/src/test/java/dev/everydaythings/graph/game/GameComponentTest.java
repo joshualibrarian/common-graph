@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.game;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.item.action.ActionContext;
-import dev.everydaythings.graph.item.component.Dag;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.frame.Dag;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.Test;
 

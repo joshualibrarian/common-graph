@@ -2,7 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 import lombok.experimental.Accessors;

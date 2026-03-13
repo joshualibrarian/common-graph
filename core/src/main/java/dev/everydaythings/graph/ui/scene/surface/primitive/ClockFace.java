@@ -2,8 +2,8 @@ package dev.everydaythings.graph.ui.scene.surface.primitive;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
-import dev.everydaythings.graph.item.component.Tick;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Tick;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.ui.scene.Transition;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
@@ -133,7 +133,7 @@ public class ClockFace implements Canonical {
     }
 
     /** Update this clock to the current time. */
-    @dev.everydaythings.graph.item.component.Tick(interval = 1000)
+    @dev.everydaythings.graph.item.Tick(interval = 1000)
     public void tick() {
         LocalTime t = LocalTime.now();
         this.hour = t.getHour();

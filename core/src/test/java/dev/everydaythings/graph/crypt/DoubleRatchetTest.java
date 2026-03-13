@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.trust.EncryptionPublicKey;
-import dev.everydaythings.graph.trust.SigningPublicKey;
-import dev.everydaythings.graph.vault.InMemoryVault;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.EncryptionPublicKey;
+import dev.everydaythings.graph.crypt.SigningPublicKey;
+import dev.everydaythings.graph.crypt.InMemoryVault;
+import dev.everydaythings.graph.crypt.Vault;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

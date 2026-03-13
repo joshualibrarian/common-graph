@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.transport;
 
-import dev.everydaythings.graph.network.peer.UnixPeerConnection;
+import dev.everydaythings.graph.network.transport.UnixPeerConnection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

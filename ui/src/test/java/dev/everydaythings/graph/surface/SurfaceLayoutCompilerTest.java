@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.surface;
 
-import dev.everydaythings.graph.item.Link;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
@@ -113,7 +113,7 @@ class SurfaceLayoutCompilerTest {
     void itemModelCompilesWithMockResolver() {
         // Create a mock Item for testing
         ItemID testIid = ItemID.random();
-        Link root = Link.of(testIid);
+        Ref root = Ref.of(testIid);
 
         // Create ItemModel with a resolver that returns empty
         // This tests that even with no resolved items, the structure is built

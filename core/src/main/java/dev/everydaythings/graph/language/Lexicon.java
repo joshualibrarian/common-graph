@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.component.Selectable;
+import dev.everydaythings.graph.frame.Selectable;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 

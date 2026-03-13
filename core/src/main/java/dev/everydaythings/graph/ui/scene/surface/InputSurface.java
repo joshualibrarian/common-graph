@@ -1,10 +1,10 @@
 package dev.everydaythings.graph.ui.scene.surface;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.expression.CompletionEntry;
-import dev.everydaythings.graph.expression.EvalInputSnapshot;
-import dev.everydaythings.graph.expression.ExpressionToken;
-import dev.everydaythings.graph.expression.ExpressionToken.RefToken;
+import dev.everydaythings.graph.parse.CompletionEntry;
+import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.ExpressionToken;
+import dev.everydaythings.graph.parse.ExpressionToken.RefToken;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.ui.scene.BoxBorder;
@@ -24,7 +24,7 @@ import java.util.function.Function;
  * (text, box, editable) so all platform renderers handle it automatically.
  *
  * <p>State comes from {@link EvalInputSnapshot}, the immutable snapshot that
- * {@link dev.everydaythings.graph.expression.EvalInput} produces on every
+ * {@link dev.everydaythings.graph.parse.EvalInput} produces on every
  * state change.
  *
  * <h2>Visual Structure</h2>

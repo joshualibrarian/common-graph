@@ -4,7 +4,7 @@ import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.BindingTarget;
+import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.value.IpAddress;

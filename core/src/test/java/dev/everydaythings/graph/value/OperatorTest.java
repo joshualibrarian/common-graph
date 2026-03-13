@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.item.component.expression.BinaryExpression;
+import dev.everydaythings.graph.frame.expression.BinaryExpression;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.component.expression.EvaluationContext;
-import dev.everydaythings.graph.item.component.expression.LiteralExpression;
+import dev.everydaythings.graph.frame.expression.EvaluationContext;
+import dev.everydaythings.graph.frame.expression.LiteralExpression;
 import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.mapdb.MapDBItemStore;

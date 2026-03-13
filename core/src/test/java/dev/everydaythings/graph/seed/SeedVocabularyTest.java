@@ -1,12 +1,12 @@
 package dev.everydaythings.graph.seed;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.TreeLink;
-import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
+import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.NounSememe;
@@ -291,13 +291,13 @@ class SeedVocabularyTest {
         assertThat(stc.glyph()).as("Display glyph should survive round-trip").isNotNull();
         assertThat(stc.typeName()).as("Type name should survive round-trip").isNotNull();
 
-        // Verify children(INSPECT) returns links for components
-        List<Link> inspectChildren = item.children(TreeLink.ChildMode.INSPECT);
-        assertThat(inspectChildren).as("Inspect mode should show component links").isNotEmpty();
+        // Verify children(INSPECT) returns refs for components
+        List<Ref> inspectChildren = item.children(TreeLink.ChildMode.INSPECT);
+        assertThat(inspectChildren).as("Inspect mode should show component refs").isNotEmpty();
 
-        // Should include surface template link
+        // Should include surface template ref
         boolean hasSurface = inspectChildren.stream()
-                .anyMatch(link -> link.path().map(p -> p.equals("/" + SurfaceTemplateComponent.HANDLE.toCanonicalString())).orElse(false));
+                .anyMatch(ref -> ref.frameKey() != null && ref.frameKey().equals(SurfaceTemplateComponent.HANDLE));
         assertThat(hasSurface).as("Inspect children should include surface template").isTrue();
     }
 }

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.Link;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Literal;
 
 import java.lang.annotation.ElementType;
@@ -45,10 +45,10 @@ public interface Value extends Canonical {
     // ==================================================================================
 
     /**
-     * Values don't inherently have a stable link.
+     * Values don't inherently have a stable ref.
      * The tree wraps them with context when displayed.
      */
-    default Link link() {
+    default Ref ref() {
         return null;
     }
 

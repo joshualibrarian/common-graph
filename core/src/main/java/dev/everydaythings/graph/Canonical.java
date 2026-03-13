@@ -90,7 +90,33 @@ public interface Canonical {
         /** Tag 10: Encrypted envelope. Reserved. */
         int ENCRYPTED = 10;
 
-        // Tags 11-15 and 20 available for future CG use
+        // Protocol tags (11-22): message type discrimination for CG and Session protocols.
+        // Wire format: [4-byte length][Tag(N, CBOR map)]
+
+        /** Tag 11: Peer request — "I want data". */
+        int REQUEST = 11;
+        /** Tag 12: Peer delivery — "here's data". */
+        int DELIVERY = 12;
+        /** Tag 13: Session auth exchange. */
+        int AUTH = 13;
+        /** Tag 14: Session context set/get. */
+        int CONTEXT = 14;
+        /** Tag 15: Session action invocation. */
+        int DISPATCH = 15;
+        /** Tag 16: Session token search. */
+        int LOOKUP = 16;
+        /** Tag 17: Session subscribe/unsubscribe. */
+        int SUBSCRIBE = 17;
+        /** Tag 18: Session push notification. */
+        int EVENT = 18;
+        /** Tag 19: Session chunked data. */
+        int STREAM = 19;
+        /** Tag 20: Shared keepalive. */
+        int HEARTBEAT = 20;
+        /** Tag 21: Shared acknowledgment. */
+        int ACK = 21;
+        /** Tag 22: Shared error response. */
+        int ERROR = 22;
     }
 
     /**
@@ -994,7 +1020,7 @@ public interface Canonical {
     // =========================================================================
 
     /**
-     * @deprecated Use {@link dev.everydaythings.graph.item.component.Factory} instead.
+     * @deprecated Use {@link dev.everydaythings.graph.item.Factory} instead.
      */
     @Deprecated
     @Retention(RetentionPolicy.RUNTIME)
@@ -1044,7 +1070,7 @@ public interface Canonical {
      */
     private static Method findFactoryDecoder(Class<?> clazz, Class<?> paramType) {
         for (Method m : clazz.getDeclaredMethods()) {
-            if (!m.isAnnotationPresent(dev.everydaythings.graph.item.component.Factory.class)) continue;
+            if (!m.isAnnotationPresent(dev.everydaythings.graph.item.Factory.class)) continue;
             if (!Modifier.isStatic(m.getModifiers())) continue;
             Class<?>[] params = m.getParameterTypes();
             if (params.length == 1 && params[0] == paramType) {

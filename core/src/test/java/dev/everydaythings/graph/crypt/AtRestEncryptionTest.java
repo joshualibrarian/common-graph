@@ -5,7 +5,7 @@ import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.vault.InMemoryVault;
+import dev.everydaythings.graph.crypt.InMemoryVault;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

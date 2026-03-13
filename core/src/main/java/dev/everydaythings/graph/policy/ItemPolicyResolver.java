@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.policy;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.Roster;
+import dev.everydaythings.graph.frame.Roster;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**

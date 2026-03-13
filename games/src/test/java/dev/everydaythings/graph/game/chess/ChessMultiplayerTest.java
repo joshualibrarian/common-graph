@@ -2,7 +2,7 @@ package dev.everydaythings.graph.game.chess;
 
 import dev.everydaythings.graph.game.GameMode;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.User;
 import dev.everydaythings.graph.runtime.Librarian;

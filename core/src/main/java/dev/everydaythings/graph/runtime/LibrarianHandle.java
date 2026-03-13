@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
-import dev.everydaythings.graph.item.Vocabulary;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.dispatch.Vocabulary;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 
@@ -228,10 +228,10 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      *
      * <p>Prefers the principal (user) as context; falls back to the librarian itself.
      */
-    default Link defaultContext() {
+    default Ref defaultContext() {
         return principal()
-                .map(p -> Link.of(p.iid()))
-                .orElse(Link.of(iid()));
+                .map(p -> Ref.of(p.iid()))
+                .orElse(Ref.of(iid()));
     }
 
     // ==================================================================================

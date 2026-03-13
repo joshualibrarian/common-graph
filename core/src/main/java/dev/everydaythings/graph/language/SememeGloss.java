@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 

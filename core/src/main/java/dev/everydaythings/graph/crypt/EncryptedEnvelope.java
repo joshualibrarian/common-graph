@@ -5,7 +5,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.HashID;
-import dev.everydaythings.graph.trust.Algorithm;
+import dev.everydaythings.graph.crypt.Algorithm;
 
 import java.util.ArrayList;
 import java.util.Collections;

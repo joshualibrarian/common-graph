@@ -3,7 +3,7 @@ package dev.everydaythings.graph.language;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.Link;
+import dev.everydaythings.graph.item.id.Ref;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -108,7 +108,7 @@ public final class Posting implements Canonical {
     // Display Methods
     // ==================================================================================
 
-    public Link link() {
+    public Ref ref() {
         return null;  // Postings are index entries, not graph nodes
     }
 

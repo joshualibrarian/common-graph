@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.trust.EncryptionPublicKey;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.EncryptionPublicKey;
+import dev.everydaythings.graph.crypt.Vault;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 

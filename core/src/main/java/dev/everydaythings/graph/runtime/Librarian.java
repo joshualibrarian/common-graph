@@ -1,27 +1,27 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.component.ExpressionComponent;
-import dev.everydaythings.graph.item.component.Param;
-import dev.everydaythings.graph.item.component.SurfaceTemplateComponent;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.Verb;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.ExpressionComponent;
+import dev.everydaythings.graph.item.Param;
+import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
-import dev.everydaythings.graph.runtime.protocol.SessionServer;
+import dev.everydaythings.graph.network.session.SessionServer;
 import dev.everydaythings.graph.value.ValueType;
 import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.action.ActionContext;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.item.user.User;
 import dev.everydaythings.graph.library.directory.ItemDirectory;
@@ -35,17 +35,18 @@ import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.VerbSememe;
-import dev.everydaythings.graph.network.CgProtocol;
+import dev.everydaythings.graph.network.peer.PeerProtocol;
 import dev.everydaythings.graph.network.NetworkManager;
-import dev.everydaythings.graph.network.ProtocolContext;
+import dev.everydaythings.graph.network.peer.PeerContext;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.peer.RemotePeer;
-import dev.everydaythings.graph.network.peer.UnixPeerConnection;
+import dev.everydaythings.graph.network.transport.UnixPeerConnection;
 import dev.everydaythings.graph.network.transport.UnixSocketServer;
-import dev.everydaythings.graph.network.message.Delivery;
-import dev.everydaythings.graph.network.message.Heartbeat;
-import dev.everydaythings.graph.network.message.ProtocolMessage;
-import dev.everydaythings.graph.network.message.Request;
+import dev.everydaythings.graph.network.Heartbeat;
+import dev.everydaythings.graph.network.ProtocolMessage;
+import dev.everydaythings.graph.network.peer.Delivery;
+import dev.everydaythings.graph.network.peer.PeerMessage;
+import dev.everydaythings.graph.network.peer.Request;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
 import java.lang.reflect.InvocationTargetException;
@@ -90,7 +91,7 @@ import picocli.CommandLine.Mixin;
  *
  * <p>In-memory mode uses:
  * <ul>
- *   <li>{@link dev.everydaythings.graph.vault.InMemoryVault} - Ephemeral keys</li>
+ *   <li>{@link dev.everydaythings.graph.crypt.InMemoryVault} - Ephemeral keys</li>
  *   <li>{@link Library#memory()} - SkipList-backed storage</li>
  *   <li>No Unix socket (uses TCP localhost for session server)</li>
  * </ul>
@@ -181,7 +182,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
     // --- Network ---
     private NetworkManager network;
-    private CgProtocol cgProtocol;
+    private PeerProtocol peerProtocol;
     private UnixSocketServer unixSocket;
 
     // --- Session Protocol Server ---
@@ -720,7 +721,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         logger.info("Starting network on port {} (TLS: {})", port, serverSsl != null);
 
         // Create protocol handler
-        cgProtocol = new CgProtocol(new ProtocolContext(this));
+        peerProtocol = new PeerProtocol(new PeerContext(this));
 
         network = new NetworkManager(port, new NetworkManager.MessageDispatcher() {
             @Override
@@ -729,20 +730,20 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                         connection.remoteAddress(),
                         peerCert != null ? peerCert.getSubjectX500Principal().getName() : "none");
 
-                // Delegate to CgProtocol
-                cgProtocol.onPeerConnected(connection, false);  // inbound connection
+                // Delegate to PeerProtocol
+                peerProtocol.onPeerConnected(connection, false);  // inbound connection
             }
 
             @Override
             public void onMessage(PeerConnection connection, ProtocolMessage message) {
-                // Delegate to CgProtocol
-                cgProtocol.handleMessage(connection, message);
+                // Delegate to PeerProtocol
+                peerProtocol.handleMessage(connection, message);
             }
 
             @Override
             public void onPeerDisconnected(PeerConnection connection) {
                 logger.info("Peer disconnected: {}", connection.remoteAddress());
-                cgProtocol.onPeerDisconnected(connection);
+                peerProtocol.onPeerDisconnected(connection);
             }
         }, serverSsl, clientSsl);
 
@@ -759,7 +760,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             network.close();
             network = null;
         }
-        cgProtocol = null;
+        peerProtocol = null;
     }
 
     // ==================================================================================
@@ -1049,6 +1050,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 case Delivery delivery -> handleLocalDelivery(connection, delivery);
                 case Request request -> handleLocalRequest(connection, request);
                 case Heartbeat ignored -> {} // ignore
+                default -> logger.debug("Ignoring {} from local client", message.getClass().getSimpleName());
             }
         } catch (Exception e) {
             logger.warn("Failed to decode message from local client: {}", e.getMessage());
@@ -1134,9 +1136,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     new IllegalStateException("Network not started"));
         }
         return network.connect(endpoint).thenApply(connection -> {
-            // Notify CgProtocol about outbound connection
-            if (cgProtocol != null) {
-                cgProtocol.onPeerConnected(connection, false);  // outbound connection
+            // Notify PeerProtocol about outbound connection
+            if (peerProtocol != null) {
+                peerProtocol.onPeerConnected(connection, false);  // outbound connection
             }
             return connection;
         });
@@ -1145,16 +1147,16 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Get the CG protocol handler.
      */
-    public Optional<CgProtocol> cgProtocol() {
-        return Optional.ofNullable(cgProtocol);
+    public Optional<PeerProtocol> peerProtocol() {
+        return Optional.ofNullable(peerProtocol);
     }
 
     /**
      * Get the IID of a connected peer, if known.
      */
     public Optional<ItemID> peerIdentity(PeerConnection connection) {
-        if (cgProtocol == null) return Optional.empty();
-        return cgProtocol.peer(connection)
+        if (peerProtocol == null) return Optional.empty();
+        return peerProtocol.peer(connection)
                 .filter(RemotePeer::isIdentified)
                 .map(RemotePeer::librarianId);
     }
@@ -1163,8 +1165,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * Get all connected peers.
      */
     public Iterable<RemotePeer> connectedPeers() {
-        if (cgProtocol == null) return List.of();
-        return cgProtocol.peers();
+        if (peerProtocol == null) return List.of();
+        return peerProtocol.peers();
     }
 
     // ==================================================================================
@@ -1242,7 +1244,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * <p>Used by the commit flow to resolve {@code EncryptionPolicy.recipients}
      * (ItemIDs) into actual {@code EncryptionPublicKey} objects for envelope creation.
      */
-    public java.util.List<dev.everydaythings.graph.trust.EncryptionPublicKey> resolveEncryptionKeys(ItemID principalId) {
+    public java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey> resolveEncryptionKeys(ItemID principalId) {
         if (principalId == null) return java.util.List.of();
 
         // Check if it's us (common case — encrypting to self)
@@ -1253,7 +1255,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         return get(principalId, dev.everydaythings.graph.item.user.Signer.class)
                 .map(signer -> {
                     var key = signer.encryptionPublicKey();
-                    return key != null ? java.util.List.of(key) : java.util.List.<dev.everydaythings.graph.trust.EncryptionPublicKey>of();
+                    return key != null ? java.util.List.of(key) : java.util.List.<dev.everydaythings.graph.crypt.EncryptionPublicKey>of();
                 })
                 .orElse(java.util.List.of());
     }

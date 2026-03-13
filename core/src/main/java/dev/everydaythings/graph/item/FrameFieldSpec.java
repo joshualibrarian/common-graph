@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;

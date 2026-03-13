@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.expression.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.EvalInputSnapshot;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.runtime.options.SessionOptions;
 import dev.everydaythings.graph.ui.input.*;
 import dev.everydaythings.graph.ui.scene.RenderContext;
@@ -17,7 +17,7 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-import dev.everydaythings.graph.item.component.TickRegistry;
+import dev.everydaythings.graph.frame.TickRegistry;
 
 import java.io.IOException;
 import java.util.*;
@@ -69,7 +69,7 @@ public class TextSession extends Session {
     /**
      * Create a text-based session.
      */
-    public TextSession(LibrarianHandle librarian, Link context, UIMode mode, SessionOptions opts) {
+    public TextSession(LibrarianHandle librarian, Ref context, UIMode mode, SessionOptions opts) {
         super(librarian, context);
         this.mode = mode;
         this.opts = opts;

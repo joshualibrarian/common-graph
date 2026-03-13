@@ -2,14 +2,14 @@ package dev.everydaythings.graph.item.user;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.action.ActionContext;
-import dev.everydaythings.graph.item.component.Param;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.Verb;
+import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.item.Param;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.vault.InMemoryVault;
+import dev.everydaythings.graph.crypt.InMemoryVault;
 
 import java.nio.file.Path;
 

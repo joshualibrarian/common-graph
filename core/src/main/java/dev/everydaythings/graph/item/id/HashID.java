@@ -4,7 +4,7 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Encoding;
 import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.item.Factory;
 import io.ipfs.multibase.Multibase;
 import io.ipfs.multihash.Multihash;
 import lombok.AllArgsConstructor;
@@ -151,7 +151,7 @@ public abstract class HashID implements Canonical {
      * IDs are self-referential values, not graph nodes with paths.
      * They don't have a parent Item that contains them.
      */
-    public dev.everydaythings.graph.item.Link link() {
+    public Ref ref() {
         return null;
     }
 

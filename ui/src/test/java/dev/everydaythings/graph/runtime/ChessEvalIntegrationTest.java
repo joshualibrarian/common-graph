@@ -3,7 +3,7 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.game.chess.ChessGame;
 import dev.everydaythings.graph.game.minesweeper.Minesweeper;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.ComponentType;
+import dev.everydaythings.graph.item.ComponentType;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.VerbSememe;

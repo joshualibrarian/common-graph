@@ -21,7 +21,7 @@ import java.util.function.Consumer;
  *   <li>{@code commandHistory} - Previous commands for UP/DOWN recall</li>
  * </ul>
  *
- * <p>Follows the same observer pattern as {@link dev.everydaythings.graph.expression.ExpressionInputState}.
+ * <p>Follows the same observer pattern as {@link dev.everydaythings.graph.parse.ExpressionInputState}.
  */
 @Log4j2
 public class NavigationContext {

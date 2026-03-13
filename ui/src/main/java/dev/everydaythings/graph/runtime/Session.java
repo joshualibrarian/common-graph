@@ -1,14 +1,15 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.expression.EvalInput;
-import dev.everydaythings.graph.expression.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.EvalInput;
+import dev.everydaythings.graph.parse.EvalInputSnapshot;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
-import dev.everydaythings.graph.item.action.ActionResult;
-import dev.everydaythings.graph.item.component.Param;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.Verb;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.dispatch.ActionResult;
+import dev.everydaythings.graph.item.Param;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.VerbSememe;
@@ -184,9 +185,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Subclass constructor - receives resolved state.
      *
      * @param librarian The librarian connection
-     * @param context   The initial context as a Link
+     * @param context   The initial context as a Ref
      */
-    protected Session(LibrarianHandle librarian, Link context) {
+    protected Session(LibrarianHandle librarian, Ref context) {
         super(ItemID.fromString("cg:type/session")); // Seed constructor — deterministic IID
         this.activityLog = new ActivityLog();
         this.librarian = librarian;
@@ -525,10 +526,10 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * <p>If no explicit context is provided, defaults to the session item
      * itself — you are always somewhere.
      */
-    protected void initializeItemModel(Link context) {
+    protected void initializeItemModel(Ref context) {
         if (context == null) {
             // Default context is the session itself (you are always somewhere)
-            context = Link.of(iid());
+            context = Ref.of(iid());
             liveItemCache.put(iid(), this);
         }
 
@@ -567,24 +568,24 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Create a session with resolved librarian and options.
      */
     public static Session create(LibrarianHandle librarian, SessionOptions opts) {
-        return create(librarian, (Link) null, opts);
+        return create(librarian, (Ref) null, opts);
     }
 
     /**
      * Create a session with resolved librarian, context Item, and options.
      */
     public static Session create(LibrarianHandle librarian, Item context, SessionOptions opts) {
-        Link contextLink = context != null ? Link.of(context.iid()) : null;
-        return create(librarian, contextLink, opts);
+        Ref contextRef = context != null ? Ref.of(context.iid()) : null;
+        return create(librarian, contextRef, opts);
     }
 
     /**
-     * Create a session with resolved librarian, context Link, and options.
+     * Create a session with resolved librarian, context Ref, and options.
      *
      * <p>If context is null, the session defaults to the session item itself
      * (you are always somewhere — no bare "graph>" prompt).
      */
-    public static Session create(LibrarianHandle librarian, Link context, SessionOptions opts) {
+    public static Session create(LibrarianHandle librarian, Ref context, SessionOptions opts) {
         // Determine UI mode
         UIMode mode = determineMode(opts);
 
@@ -734,27 +735,27 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // ==================================================================================
 
     /**
-     * Get the current context Link.
+     * Get the current context Ref.
      */
-    public Link context() {
+    public Ref context() {
         return itemModel != null ? itemModel.context() : null;
     }
 
     /**
-     * Get the current root Link.
+     * Get the current root Ref.
      */
-    public Link root() {
+    public Ref root() {
         return itemModel != null ? itemModel.root() : null;
     }
 
     /**
-     * Get the context Item (resolves the Link's IID).
+     * Get the context Item (resolves the Ref's target IID).
      */
     public Optional<Item> contextItem() {
         if (itemModel == null) return Optional.empty();
-        Link ctx = itemModel.context();
-        if (ctx == null || ctx.item() == null) return Optional.empty();
-        return resolveItem(ctx.item());
+        Ref ctx = itemModel.context();
+        if (ctx == null || ctx.target() == null) return Optional.empty();
+        return resolveItem(ctx.target());
     }
 
     /**
@@ -786,7 +787,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      *
      * @param snapshot the current input state
      */
-    public void updateInputState(dev.everydaythings.graph.expression.EvalInputSnapshot snapshot) {
+    public void updateInputState(dev.everydaythings.graph.parse.EvalInputSnapshot snapshot) {
         if (itemModel != null) {
             itemModel.updateInput(snapshot);
             // Clear feedback when user starts typing new input
@@ -803,7 +804,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Navigate into an item (makes it the new root).
      */
-    public void navigateInto(Link target) {
+    public void navigateInto(Ref target) {
         if (itemModel != null) {
             itemModel.navigateInto(target);
             contextItem().ifPresent(this::onContextComponentsChanged);
@@ -816,14 +817,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     public void navigateInto(Item item) {
         if (item != null) {
             liveItemCache.put(item.iid(), item);
-            navigateInto(Link.of(item.iid()));
+            navigateInto(Ref.of(item.iid()));
         }
     }
 
     /**
      * Select an item (changes context within current root).
      */
-    public void select(Link target) {
+    public void select(Ref target) {
         if (itemModel != null) {
             itemModel.select(target);
         }
@@ -980,10 +981,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // Refresh tree to pick up the new component, then select it
         if (itemModel != null) {
             itemModel.refresh();
-            // Build link with handle name path to match FrameEntry.link() format
-            Link componentLink = Link.of(actual.iid(),
-                    "/" + handleName);
-            itemModel.select(componentLink);
+            // Build ref with FrameKey to match the component's frame
+            Ref componentRef = Ref.of(actual.iid(), FrameKey.literal(handleName));
+            itemModel.select(componentRef);
         }
 
         // Notify subclasses (e.g., GraphicalSession rebuilds tick registry)
@@ -1141,7 +1141,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             return actorPrefix + "session> ";
         }
 
-        Link ctx = itemModel.context();
+        Ref ctx = itemModel.context();
         if (ctx == null) {
             return actorPrefix + "session> ";
         }
@@ -1151,9 +1151,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             String icon = item.get().emoji();
             String label = item.get().displayToken();
 
-            Optional<String> path = ctx.path();
-            if (path.isPresent() && !path.get().isEmpty()) {
-                label = label + path.get();
+            FrameKey frameKey = ctx.frameKey();
+            if (frameKey != null) {
+                label = label + "/" + frameKey.toCanonicalString();
             }
 
             String fullLabel = actorPrefix + label;
@@ -1252,28 +1252,28 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     /**
-     * Resolve a context specification to a Link.
+     * Resolve a context specification to a Ref.
      */
-    protected Link resolveContextLink(String spec) {
+    protected Ref resolveContextLink(String spec) {
         logger.debug("Resolving context: {}", spec);
 
         if (spec.startsWith("@")) {
             String handleStr = spec.substring(1);
             Item item = lookupItem(handleStr);
-            return item != null ? Link.of(item.iid()) : null;
+            return item != null ? Ref.of(item.iid()) : null;
         }
 
         if (spec.startsWith("iid:")) {
             try {
-                return Link.parse(spec);
+                return Ref.of(ItemID.parse(spec));
             } catch (IllegalArgumentException e) {
-                logger.debug("Failed to parse link: {}", spec, e);
+                logger.debug("Failed to parse ref: {}", spec, e);
                 return null;
             }
         }
 
         Item item = lookupItem(spec);
-        return item != null ? Link.of(item.iid()) : null;
+        return item != null ? Ref.of(item.iid()) : null;
     }
 
     // ==================================================================================
@@ -1315,7 +1315,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 this.librarian = resolvedHandle;
 
                 // 2. Resolve context if specified
-                Link ctx = null;
+                Ref ctx = null;
                 if (opts.positionalArgs != null && !opts.positionalArgs.isEmpty()) {
                     String contextSpec = opts.positionalArgs.get(0);
                     if (looksLikeLink(contextSpec)) {

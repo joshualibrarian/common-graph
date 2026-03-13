@@ -3,7 +3,7 @@ package dev.everydaythings.graph;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.Canonical.ClassCollectionType;
 import dev.everydaythings.graph.Canonical.Canonization;
-import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.item.Factory;
 import lombok.Value;
 
 import java.lang.reflect.Field;

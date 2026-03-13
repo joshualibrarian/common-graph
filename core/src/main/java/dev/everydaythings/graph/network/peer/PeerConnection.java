@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.peer;
 
-import dev.everydaythings.graph.network.message.ProtocolMessage;
+import dev.everydaythings.graph.network.ProtocolMessage;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -41,7 +41,7 @@ public class PeerConnection implements AutoCloseable {
     /**
      * Send a typed protocol message to the peer.
      *
-     * <p>The message will be encoded by the CgProtocolCodec and
+     * <p>The message will be encoded by the ProtocolCodec and
      * length-prefixed automatically by the pipeline.
      *
      * @param message The protocol message to send

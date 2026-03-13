@@ -1,12 +1,12 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.library.ItemStore;
-import dev.everydaythings.graph.trust.SigningPublicKey;
+import dev.everydaythings.graph.crypt.SigningPublicKey;
 
 
 import java.net.InetAddress;

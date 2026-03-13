@@ -1,13 +1,13 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.component.FrameAware;
-import dev.everydaythings.graph.item.component.FrameContext;
-import dev.everydaythings.graph.item.component.InspectEntry;
-import dev.everydaythings.graph.item.component.Inspectable;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.Verb;
-import dev.everydaythings.graph.item.action.ActionResult;
+import dev.everydaythings.graph.frame.FrameAware;
+import dev.everydaythings.graph.frame.FrameContext;
+import dev.everydaythings.graph.frame.InspectEntry;
+import dev.everydaythings.graph.frame.Inspectable;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.VerbSememe;
 

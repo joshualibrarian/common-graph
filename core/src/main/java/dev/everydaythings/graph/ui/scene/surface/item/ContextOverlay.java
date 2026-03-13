@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.ui.scene.surface.item;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.component.FrameEntry;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.language.VerbSememe;
 
 import java.util.ArrayList;

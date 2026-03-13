@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.transport;
 
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.Vault;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
  * Netty handler that performs a Noise XX handshake on channel activation
  * and then encrypts/decrypts all subsequent messages with session keys.
  *
- * <p>Pipeline position: between length-field framing and CgProtocolCodec.
+ * <p>Pipeline position: between length-field framing and PeerCodec.
  * During handshake, this handler intercepts raw frames. After handshake,
  * it transparently encrypts outbound and decrypts inbound ByteBufs.
  *
@@ -30,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
  *   ├───────────────────┤
  *   │  TransportEncrypt  │  ← THIS HANDLER (handshake + AEAD)
  *   ├───────────────────┤
- *   │  CgProtocolCodec   │  ← CBOR ↔ ProtocolMessage
+ *   │  PeerCodec   │  ← CBOR ↔ PeerMessage
  *   │  IdleState          │
  *   │  Heartbeat          │
  *   │  Application        │

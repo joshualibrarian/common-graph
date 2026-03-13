@@ -2,11 +2,11 @@ package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.trust.Algorithm;
-import dev.everydaythings.graph.trust.EncryptionPublicKey;
-import dev.everydaythings.graph.trust.KeyLog;
-import dev.everydaythings.graph.trust.SigningPublicKey;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.Algorithm;
+import dev.everydaythings.graph.crypt.EncryptionPublicKey;
+import dev.everydaythings.graph.crypt.KeyLog;
+import dev.everydaythings.graph.crypt.SigningPublicKey;
+import dev.everydaythings.graph.crypt.Vault;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -21,9 +21,9 @@ import java.util.Objects;
  * Snapshot of pre-key material for X3DH key agreement.
  *
  * <p>This is a protocol-level data class, not a component. Pre-keys are
- * managed by the Signer's {@link dev.everydaythings.graph.trust.KeyLog}
+ * managed by the Signer's {@link dev.everydaythings.graph.crypt.KeyLog}
  * (lifecycle: add, set-current, tombstone) and
- * {@link dev.everydaythings.graph.trust.CertLog} (SPK certification).
+ * {@link dev.everydaythings.graph.crypt.CertLog} (SPK certification).
  * PreKeyBundle is the transport format used during X3DH exchanges.
  *
  * <p>Contains the signed pre-key (SPK) and one-time pre-keys (OPKs) that

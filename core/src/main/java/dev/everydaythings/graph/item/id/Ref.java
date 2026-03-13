@@ -4,7 +4,8 @@ import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Encoding;
-import dev.everydaythings.graph.item.component.Factory;
+import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Factory;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -134,6 +135,26 @@ public final class Ref implements Canonical {
     /** Full ref with all fields. */
     public static Ref of(ItemID target, ContentID version, FrameKey frameKey, Selector selector) {
         return new Ref(target, version, frameKey, selector, null);
+    }
+
+    /**
+     * Resolve a mount path on an item to a proper Ref.
+     *
+     * <p>Looks up the path in the item's FrameTable to find the mounted
+     * entry, then returns a Ref with the entry's FrameKey. If the path
+     * doesn't resolve to a real frame (e.g., virtual directory), returns
+     * a simple item-level Ref.
+     *
+     * @param item the item whose mount table to search
+     * @param path the mount path (e.g., "/vault", "/documents/readme")
+     * @return Ref with resolved FrameKey, or item-level Ref for virtual paths
+     */
+    public static Ref fromPath(Item item, String path) {
+        Objects.requireNonNull(item, "item");
+        if (path == null || path.isBlank()) return of(item.iid());
+        var entry = item.content().atPath(path);
+        return entry.map(e -> of(item.iid(), e.frameKey()))
+                .orElse(of(item.iid()));
     }
 
     /**

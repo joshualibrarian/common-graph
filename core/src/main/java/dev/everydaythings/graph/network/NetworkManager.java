@@ -1,11 +1,10 @@
 package dev.everydaythings.graph.network;
 
-import dev.everydaythings.graph.network.message.ProtocolMessage;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.transport.PeerClient;
 import dev.everydaythings.graph.network.transport.PeerServer;
 import dev.everydaythings.graph.value.Endpoint;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.Vault;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

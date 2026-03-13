@@ -4,19 +4,19 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.CanonicalSchema;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Link;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.TreeLink;
-import dev.everydaythings.graph.item.VerbEntry;
-import dev.everydaythings.graph.item.component.FrameEntry;
-import dev.everydaythings.graph.item.component.InspectEntry;
-import dev.everydaythings.graph.item.component.Inspectable;
+import dev.everydaythings.graph.dispatch.VerbEntry;
+import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.InspectEntry;
+import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.policy.PolicySet;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
-import dev.everydaythings.graph.expression.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.EvalInputSnapshot;
 import dev.everydaythings.graph.ui.scene.surface.ButtonSurface;
 import dev.everydaythings.graph.ui.scene.surface.HandleSurface;
 import dev.everydaythings.graph.ui.scene.surface.InputSurface;
@@ -83,7 +83,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     /**
      * The root item being viewed (the "stage").
      */
-    private Link root;
+    private Ref root;
 
     /**
      * Tree model for the left pane.
@@ -120,12 +120,12 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     /**
      * The currently selected item (context).
      */
-    private Link context;
+    private Ref context;
 
     /**
      * Navigation history (previous roots).
      */
-    private final List<Link> history = new ArrayList<>();
+    private final List<Ref> history = new ArrayList<>();
 
     /**
      * Resolver for looking up Items by IID.
@@ -305,7 +305,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     @Scene.Constraint(top = "0", left = "0", right = "100%", height = "fit")
     @Scene.Border(all = "0.3ch solid #4A90D9", radius = "0.3em")
     public SurfaceSchema header() {
-        return resolver.apply(context.item())
+        return resolver.apply(context.target())
                 .map(item -> {
                     String typeName = item.displayInfo().typeName();
                     if (structureMode == TreeLink.ChildMode.INSPECT) {
@@ -366,7 +366,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     )
     @Scene.Border(all = "0.2rem solid #D9834A", radius = "0.25em")
     public SurfaceSchema detail() {
-        Optional<Item> resolved = resolver.apply(context.item());
+        Optional<Item> resolved = resolver.apply(context.target());
         if (resolved.isEmpty()) return null;
         Item item = resolved.get();
 
@@ -389,13 +389,13 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             if (assembled != null) return assembled;
 
             // Fallback: directory listing of path-mount children
-            List<Link> children = item.childrenAtPath("/");
+            List<Ref> children = item.childrenAtPath("/");
             if (!children.isEmpty()) {
                 return (SurfaceSchema) buildDirectoryListing(item, "/", children);
             }
         } else {
             // Inspect: show all components as a listing
-            List<Link> children = item.children(TreeLink.ChildMode.INSPECT);
+            List<Ref> children = item.children(TreeLink.ChildMode.INSPECT);
             if (!children.isEmpty()) {
                 return (SurfaceSchema) buildDirectoryListing(item, "/", children);
             }
@@ -407,24 +407,25 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * Detail content when a specific tree node is selected (not root).
      */
     private SurfaceSchema detailForSelected(Item item) {
-        Optional<String> path = context.path();
-        if (path.isPresent() && !path.get().isEmpty()) {
+        var frameKey = context.frameKey();
+        if (frameKey != null) {
+            String path = "/" + frameKey.toCanonicalString();
             // 1. Try component panel (has @Surface annotation)
-            SurfaceSchema<?> componentSurface = resolveComponentSurface(item, path.get());
+            SurfaceSchema<?> componentSurface = resolveComponentSurface(item, path);
             if (componentSurface != null) {
                 return componentSurface;
             }
 
             // 2. Try virtual directory listing
-            List<Link> children = item.childrenAtPath(path.get());
+            List<Ref> children = item.childrenAtPath(path);
             if (!children.isEmpty()) {
-                return (SurfaceSchema) buildDirectoryListing(item, path.get(), children);
+                return (SurfaceSchema) buildDirectoryListing(item, path, children);
             }
         }
 
         // Selected item is a different IID (not a path within root)
-        if (!context.item().equals(root.item())) {
-            Optional<Item> contextItem = resolver.apply(context.item());
+        if (!context.target().equals(root.target())) {
+            Optional<Item> contextItem = resolver.apply(context.target());
             if (contextItem.isPresent()) {
                 Item ci = contextItem.get();
                 SurfaceSchema s = resolveLiveSurface(ci);
@@ -441,7 +442,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                     }
                 }
 
-                List<Link> children = ci.childrenAtPath("/");
+                List<Ref> children = ci.childrenAtPath("/");
                 if (!children.isEmpty()) {
                     return (SurfaceSchema) buildDirectoryListing(ci, "/", children);
                 }
@@ -634,7 +635,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * @param children the child links at this path
      * @return a surface showing the directory contents
      */
-    private SurfaceSchema<?> buildDirectoryListing(Item item, String path, List<Link> children) {
+    private SurfaceSchema<?> buildDirectoryListing(Item item, String path, List<Ref> children) {
         ContainerSurface listing = ContainerSurface.vertical();
         listing.id("directory-listing");
         listing.gap("0.25em");
@@ -645,11 +646,10 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 : path;
         listing.add(TextSurface.of(segment).style("heading"));
 
-        for (Link child : children) {
-            String childPath = child.path().orElse("");
-            String childName = childPath.contains("/")
-                    ? childPath.substring(childPath.lastIndexOf('/') + 1)
-                    : childPath;
+        for (Ref child : children) {
+            var fk = child.frameKey();
+            String childName = fk != null ? fk.toCanonicalString() : child.target().displayAtWidth(12);
+            String childPath = fk != null ? "/" + fk.toCanonicalString() : "";
 
             // Resolve emoji: real component → its emoji, virtual dir → 📁
             String emoji = item.resolvePathEmoji(childPath).orElse("📁");
@@ -685,7 +685,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             inputSurface = null;
         } else {
             // No input snapshot — show static prompt (non-interactive mode)
-            String promptText = resolver.apply(context.item())
+            String promptText = resolver.apply(context.target())
                     .map(item -> {
                         String icon = item.emoji();
                         String label = item.displayToken();
@@ -713,7 +713,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
 
     // ==================== Construction ====================
 
-    public ItemModel(Link root, Function<ItemID, Optional<Item>> resolver) {
+    public ItemModel(Ref root, Function<ItemID, Optional<Item>> resolver) {
         this.root = root;
         this.context = root;  // Start with root selected
         this.resolver = resolver;
@@ -724,7 +724,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * Create an ItemModel for an Item.
      */
     public static ItemModel of(Item item, Function<ItemID, Optional<Item>> resolver) {
-        return new ItemModel(Link.of(item.iid()), resolver);
+        return new ItemModel(Ref.of(item.iid()), resolver);
     }
 
     /**
@@ -773,7 +773,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             return;
         }
 
-        Optional<Item> focused = resolver.apply(context.item());
+        Optional<Item> focused = resolver.apply(context.target());
         if (focused.isEmpty()) {
             treeModel = null;
             configPanel = null;
@@ -812,7 +812,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      *
      * @param target The item to navigate into
      */
-    public void navigateInto(Link target) {
+    public void navigateInto(Ref target) {
         if (target == null) return;
         history.add(root);
         root = target;
@@ -826,7 +826,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      */
     public void navigateInto(Item item) {
         if (item == null) return;
-        navigateInto(Link.of(item.iid()));
+        navigateInto(Ref.of(item.iid()));
     }
 
     /**
@@ -859,15 +859,15 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      *
      * @param target The item to select
      */
-    public void select(Link target) {
+    public void select(Ref target) {
         if (target == null) return;
         context = target;
 
         // Sync tree selection to match the new context
-        if (treeModel != null && target.item() != null) {
-            String treeId = "iid:" + target.item().encodeText();
-            if (target.path().isPresent() && !target.path().get().isEmpty()) {
-                treeId += target.path().get();
+        if (treeModel != null && target.target() != null) {
+            String treeId = "iid:" + target.target().encodeText();
+            if (target.frameKey() != null) {
+                treeId += "/" + target.frameKey().toCanonicalString();
             }
             treeModel.select(treeId);
         }
@@ -880,7 +880,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      */
     public void select(Item item) {
         if (item == null) return;
-        select(Link.of(item.iid()));
+        select(Ref.of(item.iid()));
     }
 
     // ==================== Key Handling ====================
@@ -965,7 +965,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             }
             default -> {
                 // Route to the focused item's verb dispatch
-                Optional<Item> focused = resolver.apply(context.item());
+                Optional<Item> focused = resolver.apply(context.target());
                 if (focused.isEmpty()) yield false;
                 var result = focused.get().dispatch(action, target != null ? List.of(target) : List.of());
                 yield result != null && result.success();
@@ -1029,7 +1029,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         String handleKey = fieldKey.substring(0, sep);
         String fieldName = fieldKey.substring(sep + 1);
 
-        Optional<Item> focused = resolver.apply(context.item());
+        Optional<Item> focused = resolver.apply(context.target());
         if (focused.isEmpty()) return null;
 
         for (FrameEntry entry : focused.get().content()) {

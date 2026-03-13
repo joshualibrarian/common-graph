@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network.transport;
 
 import dev.everydaythings.graph.crypt.EnvelopeOps;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.Vault;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;

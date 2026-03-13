@@ -2,13 +2,13 @@ package dev.everydaythings.graph.game.set;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
-import dev.everydaythings.graph.item.component.Param;
-import dev.everydaythings.graph.item.component.Type;
-import dev.everydaythings.graph.item.component.Verb;
+import dev.everydaythings.graph.item.Param;
+import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.VerbSememe;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.trust.Signing;
+import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;

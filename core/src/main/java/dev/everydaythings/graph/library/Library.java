@@ -2,15 +2,15 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.component.Factory;
-import dev.everydaythings.graph.item.component.Param;
-import dev.everydaythings.graph.item.component.Picker;
-import dev.everydaythings.graph.item.component.Type;
+import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Param;
+import dev.everydaythings.graph.item.Picker;
+import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.component.FrameBody;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
@@ -23,7 +23,7 @@ import dev.everydaythings.graph.library.mapdb.*;
 import dev.everydaythings.graph.library.rocksdb.*;
 import dev.everydaythings.graph.library.skiplist.*;
 import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.vault.Vault;
+import dev.everydaythings.graph.crypt.Vault;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
@@ -495,7 +495,7 @@ public final class Library implements Canonical, AutoCloseable {
      * Store a frame body: persist body bytes and index.
      *
      * <p>Use this for unsigned frames (e.g., seed vocabulary imports).
-     * For signed frames, use {@link #storeFrame(FrameBody, dev.everydaythings.graph.item.component.FrameRecord)}.
+     * For signed frames, use {@link #storeFrame(FrameBody, dev.everydaythings.graph.frame.FrameRecord)}.
      *
      * @param body The frame body to store
      * @return The content CID of the stored body bytes
@@ -583,8 +583,8 @@ public final class Library implements Canonical, AutoCloseable {
      * @return the record CID
      */
     public ContentID storeFrame(
-            dev.everydaythings.graph.item.component.FrameBody body,
-            dev.everydaythings.graph.item.component.FrameRecord record) {
+            dev.everydaythings.graph.frame.FrameBody body,
+            dev.everydaythings.graph.frame.FrameRecord record) {
         ItemStore targetStore = writableStore()
                 .orElseThrow(() -> new LibraryException("No writable store available"));
 

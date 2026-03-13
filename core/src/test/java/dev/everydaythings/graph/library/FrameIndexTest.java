@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.item.component.BindingTarget;
-import dev.everydaythings.graph.item.component.FrameBody;
-import dev.everydaythings.graph.item.component.FrameEntry;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;

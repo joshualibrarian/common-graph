@@ -1,14 +1,16 @@
 # Protocol
 
-Common Graph defines two protocols: the **CG Protocol** for peer-to-peer communication between Librarians, and the **Session Protocol** for client-to-Librarian interaction. Both use CG-CBOR over length-prefixed frames.
+Common Graph defines two protocols: the **CG Protocol** for peer-to-peer communication between Librarians, and the **Session Protocol** for client-to-Librarian interaction. Both share a unified wire format: CBOR tag-based message discrimination over length-prefixed frames.
 
 This document covers wire-level protocol details — message types, framing, connection lifecycle. For the high-level network architecture (discovery, routing, replication, scaling), see [Network Architecture](network.md).
 
 ## Design Philosophy
 
-The CG Protocol is intentionally minimal. There are exactly two message types — **Request** and **Delivery** — plus a keep-alive heartbeat. Everything else is convention built on top.
+The CG Protocol is intentionally minimal. There are exactly two message types — **Request** and **Delivery** — plus shared keep-alive, acknowledgment, and error types. Everything else is convention built on top.
 
 This simplicity is deliberate. Traditional protocols tend to accumulate message types as features are added. Common Graph avoids this by keeping the protocol as a thin transport for graph operations. If you can request things and deliver things, you can build any interaction pattern — including query propagation across the social graph, subscription-driven replication, and relay forwarding through trusted intermediaries.
+
+Both protocols share a single wire format — CBOR tags in the 1-byte range (11-22) discriminate message types natively within the CBOR encoding, eliminating the need for external type codes or JSON-style envelope wrapping. Three message types (Heartbeat, Ack, Error) are shared across both protocols. A single Netty-based codec (`ProtocolCodec`) handles encoding and decoding for all message types.
 
 Related work: the CG Protocol shares philosophical DNA with systems like [Freenet](https://freenetproject.org/) (content-addressed P2P storage), [IPFS](https://ipfs.tech/) (content-addressed block exchange), and [Secure Scuttlebutt](https://scuttlebutt.nz/) (append-only log replication). Unlike those systems, Common Graph unifies content addressing with semantic relations and cryptographic identity in a single protocol. The protocol is local-first by design (see [references/Kleppmann 2019](references/Kleppmann%202019%20-%20Local-First%20Software.pdf)) — all data lives locally, networking is explicit, and sync is merge-based. Fielding's REST dissertation (see [references/Fielding 2000](references/Fielding%202000%20-%20Architectural%20Styles%20and%20Network-Based%20Software%20REST.pdf)) defines the dominant network architecture of the web; the CG Protocol departs from REST's stateless client-server model toward signed, content-addressed peer-to-peer exchange.
 
@@ -20,13 +22,15 @@ The CG Protocol connects Librarians — the runtime nodes of the Common Graph ne
 
 ### Transport
 
-- **Framing**: Length-prefixed CBOR messages over TCP or Unix domain sockets
+- **Framing**: `[4-byte length][CBOR Tag(N, map)]` — tag-based message discrimination (see [Wire Format](#wire-format))
+- **Transport**: Netty pipeline over TCP or Unix domain sockets
 - **TLS**: Optional; when enabled, both sides present certificates
-- **Keep-alive**: Heartbeat messages on idle connections
+- **Transport encryption**: Optional Noise XX handshake + AEAD session cipher (via Vault)
+- **Keep-alive**: Shared Heartbeat messages (Tag 20) on idle connections
 
 ### Message Types
 
-#### Request
+#### Request (Tag 11)
 
 "I want something." A Request contains one or more targets:
 
@@ -45,9 +49,14 @@ Request {
 | **Content** | `cid` | Request content bytes by hash |
 | **Relations** | `item?`, `predicate?`, `subscribe?` | Query relations involving an item and/or predicate; optionally subscribe to updates |
 
+Target subtypes are discriminated by field presence in the CBOR map — no "kind" strings:
+- **Item**: has `iid` field (optionally `vid`)
+- **Content**: has `cid` field (no `iid`)
+- **Relations**: has `subscribe` field
+
 A single Request can ask for multiple things at once.
 
-#### Delivery
+#### Delivery (Tag 12)
 
 "Here's something." A Delivery contains one or more payloads, correlated to a Request by ID:
 
@@ -65,12 +74,15 @@ Delivery {
 | **Item** | `manifest` | A signed manifest |
 | **Content** | `cid`, `data` | Content bytes with their hash |
 | **Relations** | `relations` | A list of signed relations |
-| **NotFound** | `iid` | "I don't have this item" |
-| **Envelope** | `nextHop`, `origin`, `inner` | Wrapped message for relay forwarding |
+| **NotFound** | `notfound` | "I don't have this item" (value is the IID) |
+| **Envelope** | `next`, `origin`, `inner` | Wrapped message for relay forwarding |
 
-#### Heartbeat
-
-A keep-alive signal with no payload. Sent on idle connections to prevent timeout.
+Payload subtypes are discriminated by field presence — no "kind" strings:
+- **Item**: has `manifest`
+- **Content**: has `cid` + `data`
+- **Relations**: has `relations` (array)
+- **NotFound**: has `notfound`
+- **Envelope**: has `next` + `origin` + `inner`
 
 ### Connection Lifecycle
 
@@ -167,7 +179,7 @@ Origin                   Relay                    Destination
   |                        |                           |
 ```
 
-The relay checks if `nextHop` matches its own identity. If yes, it unwraps and processes the inner message. If no, it forwards to the next hop. Each relay records an `ACKNOWLEDGES_RELAY` relation — again, graph-native auditing.
+The relay checks if `next` matches its own identity. If yes, it unwraps and processes the inner message. If no, it forwards to the next hop. Each relay records an `ACKNOWLEDGES_RELAY` relation — again, graph-native auditing.
 
 ### Pending Request Management
 
@@ -181,22 +193,31 @@ The Session Protocol connects a UI client (text terminal, 2D graphical, 3D spati
 
 ### Transport
 
-- **Framing**: Length-prefixed messages: `[4-byte length][1-byte type][CBOR payload]`
+- **Framing**: `[4-byte length][CBOR Tag(N, map)]` — same unified wire format as CG Protocol
+- **Transport**: Netty pipeline (shared `ProtocolCodec`)
 - **Connection types**: Local (Unix socket or loopback TCP), remote (TCP with TLS)
 
 ### Message Types
 
-| Type | Code | Direction | Description |
-|------|------|-----------|-------------|
-| **AUTH** | 0x01 | Both | Authentication handshake |
-| **CONTEXT** | 0x02 | Both | Get/set the currently focused item |
-| **DISPATCH** | 0x03 | Client → Librarian | Execute a verb on an item |
-| **LOOKUP** | 0x04 | Client → Librarian | Token completion and search |
-| **SUBSCRIBE** | 0x05 | Client → Librarian | Watch for changes to items or relations |
-| **EVENT** | 0x06 | Librarian → Client | Push notification of changes |
-| **STREAM** | 0x07 | Librarian → Client | Chunked long-running output |
-| **ERROR** | 0x08 | Librarian → Client | Error response |
-| **OK** | 0x09 | Librarian → Client | Acknowledgment |
+| Type | Tag | Direction | Description |
+|------|-----|-----------|-------------|
+| **AUTH** | 13 | Both | Authentication handshake |
+| **CONTEXT** | 14 | Both | Get/set the currently focused item |
+| **DISPATCH** | 15 | Client → Librarian | Execute a verb on an item |
+| **LOOKUP** | 16 | Client → Librarian | Token completion and search |
+| **SUBSCRIBE** | 17 | Client → Librarian | Watch for changes to items or relations |
+| **EVENT** | 18 | Librarian → Client | Push notification of changes |
+| **STREAM** | 19 | Librarian → Client | Chunked long-running output |
+
+Shared types used by both protocols:
+
+| Type | Tag | Direction | Description |
+|------|-----|-----------|-------------|
+| **HEARTBEAT** | 20 | Both | Keep-alive signal |
+| **ACK** | 21 | Librarian → Client | Acknowledgment (replaces old OK) |
+| **ERROR** | 22 | Librarian → Client | Error response |
+
+Session message subtypes within each tag are discriminated by field presence in the CBOR map. For example, AUTH (Tag 13) covers AuthChallenge (has `methods`), AuthToken (has `token`), AuthPrincipal (has `signature`), AuthEngage (has `inviteCode`), and AuthResponse (has `success`).
 
 ### Authentication
 
@@ -218,16 +239,16 @@ A typical session interaction:
 Client                              Librarian
   |                                      |
   |--- AUTH(token) --------------------->|
-  |<-- OK -------------------------------|
+  |<-- ACK -----------------------------|
   |                                      |
   |--- CONTEXT(get) -------------------->|
   |<-- CONTEXT(item: current focus) -----|
   |                                      |
   |--- DISPATCH("create", params) ------>|
-  |<-- OK(result: new item) -------------|
+  |<-- ACK(result: new item) ------------|
   |                                      |
   |--- SUBSCRIBE(item: X) -------------->|
-  |<-- OK -------------------------------|
+  |<-- ACK -----------------------------|
   |                                      |
   ...item X changes...
   |                                      |
@@ -247,7 +268,7 @@ DISPATCH {
 }
 ```
 
-The Librarian resolves the token to a sememe via the TokenDictionary, checks the target item's vocabulary for a matching VerbEntry (inner-to-outer: frame, then item, then session), invokes the method, and returns the result as OK or ERROR.
+The Librarian resolves the token to a sememe via the TokenDictionary, checks the target item's vocabulary for a matching VerbEntry (inner-to-outer: frame, then item, then session), invokes the method, and returns the result as ACK or ERROR.
 
 ### LOOKUP
 
@@ -277,27 +298,55 @@ The client subscribes to changes on specific items. When those items are modifie
 | **Purpose** | Data exchange between Librarians | Human interaction with a Librarian |
 | **Participants** | Librarian ↔ Librarian | Session UI ↔ Librarian |
 | **Identity** | Both sides are Items (Signers) | Client authenticates to Librarian |
-| **Message types** | 2 (Request + Delivery) | 9 (AUTH, CONTEXT, DISPATCH, etc.) |
+| **Message types** | 2 (Request + Delivery) + 3 shared | 7 (AUTH–STREAM) + 3 shared |
 | **Statefulness** | Minimal (subscriptions only) | Stateful (focused item, auth state) |
 | **Data flow** | Symmetric (either side requests) | Asymmetric (client dispatches, Librarian responds) |
+| **Shared types** | Heartbeat, Ack, Error | Heartbeat, Ack, Error |
 
 ---
 
 ## Wire Format
 
-Both protocols use CG-CBOR for message encoding. The CG Protocol wraps messages as:
+Both protocols share the same wire format — CBOR tag-based message discrimination over length-prefixed frames:
 
 ```
-[4-byte big-endian length][CBOR message body]
+[4-byte big-endian length][CBOR Tag(N, map)]
 ```
 
-The Session Protocol adds a type byte:
+The CBOR tag (Tags 11-22, all in the 1-byte encoding range) identifies the message type. The tag wraps a CBOR map containing the message fields. No external type codes, no JSON-style envelope — the message type is part of the CBOR structure itself.
+
+**Example**: A Request message on the wire:
+```
+[00 00 00 1A]  [Tag(11, {"rid": 42, "targets": [...]})]
+  4-byte len      CBOR-encoded tagged map
+```
+
+A single `ProtocolMessage.decode(bytes)` method dispatches on the outermost tag to the correct message class. All message classes implement a shared `ProtocolMessage` interface with `tag()`, `toCbor()`, and a default `encode()` method.
+
+### Netty Pipeline
+
+Both protocols use the same Netty pipeline:
 
 ```
-[4-byte big-endian length][1-byte type code][CBOR message body]
+LengthFieldBasedFrameDecoder  →  length-prefix framing (4 bytes, big-endian)
+LengthFieldPrepender           →  prepend length on write
+ProtocolCodec                  →  CBOR Tag ↔ ProtocolMessage
+IdleStateHandler               →  detect idle connections
+HeartbeatHandler               →  auto-send Heartbeat on idle
+Application Handler            →  protocol-specific dispatch
 ```
 
 All CBOR within protocol messages follows the canonical encoding rules defined in [CG-CBOR](cg-cbor.md): deterministic field order, no floats, no indefinite-length encoding.
+
+### Shared Message Types
+
+Three message types are shared by both protocols:
+
+| Type | Tag | Description |
+|------|-----|-------------|
+| **Heartbeat** | 20 | Empty CBOR map; keep-alive signal. Singleton instance. |
+| **Ack** | 21 | `{rid: <requestId>}` — acknowledgment of a request. |
+| **Error** | 22 | `{rid: <requestId>, code: <string>, message: <string>}` — error response. |
 
 ## Endpoint Addressing
 
