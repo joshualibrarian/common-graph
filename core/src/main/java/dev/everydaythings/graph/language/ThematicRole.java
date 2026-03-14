@@ -34,119 +34,238 @@ import java.util.Map;
  * inlines {@code static final String} literals at the call site (JLS §12.4.1).
  *
  * @see SemanticFrame
- * @see PrepositionSememe
+ * @see PrepositionVocabulary
  */
 @Type(value = ThematicRole.KEY, glyph = "\uD83C\uDFAD", color = 0xB08DE0)
-public class ThematicRole extends NounSememe {
+public class ThematicRole extends Sememe {
 
     public static final String KEY = "cg:type/role";
 
     // ==================================================================================
-    // SEED INSTANCES — core thematic roles (inner class pattern)
+    // SEED INSTANCES — core participant roles
+    //
+    // Aligned with VerbNet 3.x and ISO 24617-4 (LIRICS/SemAF-SR).
+    // No CILIs — thematic roles are frame-theoretic concepts, not WordNet synsets.
     // ==================================================================================
 
-    /** The doer or initiator of an action. Usually the signer/caller in dispatch. */
+    /** The intentional initiator of an action. [VN: Agent, LIRICS: Agent] */
     public static class Agent {
         public static final String KEY = "cg.role:agent";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the doer or initiator of an action")
-                .cili("i84938").word(LEMMA, ENG, "agent");
+                .gloss(ENG, "a participant who initiates and carries out an event intentionally")
+                .word(LEMMA, ENG, "agent");
     }
 
-    /** The entity affected, produced, or changed by the action. */
+    /** The entity undergoing a change of state, location, or condition. [VN: Patient, LIRICS: Patient] */
     public static class Patient {
         public static final String KEY = "cg.role:patient";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the entity affected or changed by the action")
+                .gloss(ENG, "a participant that is affected, changed, or consumed by the event")
                 .word(LEMMA, ENG, "patient");
     }
 
-    /** The content, topic, or subject matter — what the action is about. */
+    /** A participant being located, moved, or existing in a state; not structurally changed. [VN: Theme, LIRICS: Theme] */
     public static class Theme {
         public static final String KEY = "cg.role:theme";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the content, topic, or subject matter")
-                .cili("i71142").word(LEMMA, ENG, "theme");
+                .gloss(ENG, "a participant that is located, moved, or exists in a state without being changed")
+                .word(LEMMA, ENG, "theme");
     }
 
-    /** Where the result goes — the destination or target location. */
-    public static class Target {
-        public static final String KEY = "cg.role:target";
+    /** A participant who perceives, feels, or undergoes a cognitive or emotional state. [VN: Experiencer] */
+    public static class Experiencer {
+        public static final String KEY = "cg.role:experiencer";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the destination or target of the action")
-                .cili("i68253").word(LEMMA, ENG, "target");
+                .gloss(ENG, "a participant who perceives, feels, or undergoes a mental or emotional state")
+                .word(LEMMA, ENG, "experiencer");
     }
 
-    /** Where something comes from — the origin or source. */
-    public static class Source {
-        public static final String KEY = "cg.role:source";
+    /** A participant that triggers a perception or emotional response in an experiencer. [VN: Stimulus] */
+    public static class Stimulus {
+        public static final String KEY = "cg.role:stimulus";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the origin or source")
-                .cili("i81759").word(LEMMA, ENG, "source");
+                .gloss(ENG, "a participant that unintentionally arouses a mental or emotional response")
+                .word(LEMMA, ENG, "stimulus");
     }
 
-    /** The tool, method, or means used to perform the action. */
-    public static class Instrument {
-        public static final String KEY = "cg.role:instrument";
+    /** The central participant in a state; in a fixed position or condition throughout. [VN: Pivot, LIRICS: Pivot] */
+    public static class Pivot {
+        public static final String KEY = "cg.role:pivot";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the tool or means used")
-                .cili("i55129").word(LEMMA, ENG, "instrument");
+                .gloss(ENG, "the central participant in a state, in a fixed position or condition throughout")
+                .word(LEMMA, ENG, "pivot");
     }
 
-    /** The place where something is or happens. */
-    public static class Location {
-        public static final String KEY = "cg.role:location";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the place where something is or happens")
-                .cili("i35580").word(LEMMA, ENG, "location");
-    }
-
-    /** The time when something happens. */
-    public static class Time {
-        public static final String KEY = "cg.role:time";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the time when something happens")
-                .cili("i117493").word(LEMMA, ENG, "time");
-    }
-
-    /** Who benefits from the action — the recipient or beneficiary. */
-    public static class Recipient {
-        public static final String KEY = "cg.role:recipient";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the beneficiary or recipient")
-                .cili("i87243").word(LEMMA, ENG, "recipient");
-    }
-
-    /** The reason or cause of the action. */
+    /** A non-intentional initiator of an event. [VN: Cause, LIRICS: Cause] */
     public static class Cause {
         public static final String KEY = "cg.role:cause";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the reason or cause")
-                .cili("i75195").word(LEMMA, ENG, "cause");
+                .gloss(ENG, "a participant that initiates an event without intentionality or consciousness")
+                .word(LEMMA, ENG, "cause");
     }
 
-    /** A companion or co-participant in the action. */
-    public static class Comitative {
-        public static final String KEY = "cg.role:comitative";
+    // ==================================================================================
+    // SEED INSTANCES — endpoint and directional roles
+    // ==================================================================================
+
+    /** The non-locative, non-temporal end-point of an action. [VN: Goal, LIRICS: Goal] */
+    public static class Goal {
+        public static final String KEY = "cg.role:goal";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a companion or co-participant")
-                .word(LEMMA, ENG, "comitative");
+                .gloss(ENG, "the abstract end-point or target of an action")
+                .word(LEMMA, ENG, "goal");
     }
 
-    /** A name, label, or designation being assigned. */
+    /** The physical end-point of a motion event. [VN: Destination, LIRICS: Final Location] */
+    public static class Destination {
+        public static final String KEY = "cg.role:destination";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the physical place where a motion event ends")
+                .word(LEMMA, ENG, "destination");
+    }
+
+    /** The origin or starting point. [VN: Source, LIRICS: Source] */
+    public static class Source {
+        public static final String KEY = "cg.role:source";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the origin or starting point of an action or motion")
+                .word(LEMMA, ENG, "source");
+    }
+
+    /** An intermediate place or trajectory between source and goal. [VN: Trajectory, LIRICS: Path] */
+    public static class Path {
+        public static final String KEY = "cg.role:path";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the route or trajectory between origin and endpoint")
+                .word(LEMMA, ENG, "path");
+    }
+
+    /** A participant that comes into existence through the event. [VN: Result/Product, LIRICS: Result] */
+    public static class Result {
+        public static final String KEY = "cg.role:result";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "a participant that comes into existence through the event")
+                .word(LEMMA, ENG, "result");
+    }
+
+    // ==================================================================================
+    // SEED INSTANCES — transfer and benefaction roles
+    // ==================================================================================
+
+    /** The animate entity that receives something transferred. [VN: Recipient, LIRICS: Goal (animate)] */
+    public static class Recipient {
+        public static final String KEY = "cg.role:recipient";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the animate entity that receives something transferred")
+                .word(LEMMA, ENG, "recipient");
+    }
+
+    /** A participant who benefits from or is advantaged by the event. [VN: Beneficiary, LIRICS: Beneficiary] */
+    public static class Beneficiary {
+        public static final String KEY = "cg.role:beneficiary";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "a participant who benefits from or is advantaged by the event")
+                .word(LEMMA, ENG, "beneficiary");
+    }
+
+    /** A secondary agent, intentionally co-participating in the event. [VN: Co-Agent, LIRICS: Partner] */
+    public static class Partner {
+        public static final String KEY = "cg.role:partner";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "a participant intentionally co-involved in the event but not the principal agent")
+                .word(LEMMA, ENG, "partner");
+    }
+
+    // ==================================================================================
+    // SEED INSTANCES — instrumental, manner, and circumstantial roles
+    // ==================================================================================
+
+    /** The tool or means manipulated by an agent. [VN: Instrument, LIRICS: Instrument] */
+    public static class Instrument {
+        public static final String KEY = "cg.role:instrument";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "a tool or means manipulated by an agent to perform an action")
+                .word(LEMMA, ENG, "instrument");
+    }
+
+    /** The way or style in which an action is performed. [LIRICS: Manner] */
+    public static class Manner {
+        public static final String KEY = "cg.role:manner";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the way or style in which an action is performed")
+                .word(LEMMA, ENG, "manner");
+    }
+
+    /** The degree, amount, or measure of change. [VN: Extent, LIRICS: Amount] */
+    public static class Extent {
+        public static final String KEY = "cg.role:extent";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the degree, amount, or measure of change in an event")
+                .word(LEMMA, ENG, "extent");
+    }
+
+    /** A property that an event or state associates with a participant. [VN: Attribute, LIRICS: Attribute] */
+    public static class Attribute {
+        public static final String KEY = "cg.role:attribute";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "a property that an event or state associates with a participant")
+                .word(LEMMA, ENG, "attribute");
+    }
+
+    /** The intended outcome that motivates an intentional action. [LIRICS: Purpose] */
+    public static class Purpose {
+        public static final String KEY = "cg.role:purpose";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the intended outcome that motivates an intentional action")
+                .word(LEMMA, ENG, "purpose");
+    }
+
+    // ==================================================================================
+    // SEED INSTANCES — setting roles (adjuncts)
+    // ==================================================================================
+
+    /** The place where an event occurs or a state holds. [VN: Location, LIRICS: Location] */
+    public static class Location {
+        public static final String KEY = "cg.role:location";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the place where an event occurs or a state holds")
+                .word(LEMMA, ENG, "location");
+    }
+
+    /** The time when an event occurs or a state holds. [VN: Time, LIRICS: Time] */
+    public static class Time {
+        public static final String KEY = "cg.role:time";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the instant or interval during which an event occurs or state holds")
+                .word(LEMMA, ENG, "time");
+    }
+
+    // ==================================================================================
+    // SEED INSTANCES — information and naming roles
+    // ==================================================================================
+
+    /** The subject of communication or information transfer. [VN: Topic] */
+    public static class Topic {
+        public static final String KEY = "cg.role:topic";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "the subject of communication, information transfer, or recorded content")
+                .word(LEMMA, ENG, "topic");
+    }
+
+    /** A name, label, or designation being assigned. [CG extension] */
     public static class Name {
         public static final String KEY = "cg.role:name";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a name, label, or designation")
-                .cili("i69761").word(LEMMA, ENG, "name");
+                .gloss(ENG, "a name, label, or designation being assigned")
+                .word(LEMMA, ENG, "name");
     }
 
-    /** The concept being referred to in a metalinguistic frame. */
+    /** The concept being referred to in a metalinguistic frame. [CG extension] */
     public static class Referent {
         public static final String KEY = "cg.role:referent";
         @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
                 .gloss(ENG, "the concept being referred to or expressed")
-                .cili("i71160").word(LEMMA, ENG, "referent");
+                .word(LEMMA, ENG, "referent");
     }
 
     // ==================================================================================
@@ -167,24 +286,24 @@ public class ThematicRole extends NounSememe {
 
     /** Fluent seed constructor. */
     public ThematicRole(String canonicalKey) {
-        super(canonicalKey);
+        super(canonicalKey, PartOfSpeech.NOUN);
     }
 
     /** Seed constructor (no sources). */
     public ThematicRole(String canonicalKey, Map<String, String> glosses, List<String> tokens) {
-        super(canonicalKey, glosses, Map.of(), tokens);
+        super(canonicalKey, PartOfSpeech.NOUN, glosses, Map.of(), tokens);
     }
 
     /** Seed constructor (with sources for CILI). */
     public ThematicRole(String canonicalKey, Map<String, String> glosses,
                         Map<String, String> sources, List<String> tokens) {
-        super(canonicalKey, glosses, sources, tokens);
+        super(canonicalKey, PartOfSpeech.NOUN, glosses, sources, tokens);
     }
 
     /** Runtime constructor (with librarian). */
     protected ThematicRole(Librarian librarian, String canonicalKey,
                    Map<String, String> glosses) {
-        super(librarian, canonicalKey, glosses, Map.of());
+        super(librarian, canonicalKey, PartOfSpeech.NOUN, glosses, Map.of());
     }
 
     // ==================================================================================
@@ -215,14 +334,26 @@ public class ThematicRole extends NounSememe {
             case "AGENT" -> Agent.SEED;
             case "PATIENT" -> Patient.SEED;
             case "THEME" -> Theme.SEED;
-            case "TARGET" -> Target.SEED;
+            case "EXPERIENCER" -> Experiencer.SEED;
+            case "STIMULUS" -> Stimulus.SEED;
+            case "PIVOT" -> Pivot.SEED;
+            case "CAUSE" -> Cause.SEED;
+            case "GOAL" -> Goal.SEED;
+            case "DESTINATION" -> Destination.SEED;
             case "SOURCE" -> Source.SEED;
+            case "PATH" -> Path.SEED;
+            case "RESULT" -> Result.SEED;
+            case "RECIPIENT" -> Recipient.SEED;
+            case "BENEFICIARY" -> Beneficiary.SEED;
+            case "PARTNER" -> Partner.SEED;
             case "INSTRUMENT" -> Instrument.SEED;
+            case "MANNER" -> Manner.SEED;
+            case "EXTENT" -> Extent.SEED;
+            case "ATTRIBUTE" -> Attribute.SEED;
+            case "PURPOSE" -> Purpose.SEED;
             case "LOCATION" -> Location.SEED;
             case "TIME" -> Time.SEED;
-            case "RECIPIENT" -> Recipient.SEED;
-            case "CAUSE" -> Cause.SEED;
-            case "COMITATIVE" -> Comitative.SEED;
+            case "TOPIC" -> Topic.SEED;
             case "NAME" -> Name.SEED;
             case "REFERENT" -> Referent.SEED;
             default -> null;

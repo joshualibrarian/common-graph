@@ -2,7 +2,7 @@ package dev.everydaythings.graph.ui.scene.surface;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.parse.CompletionEntry;
-import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.parse.ExpressionToken;
 import dev.everydaythings.graph.parse.ExpressionToken.RefToken;
 import dev.everydaythings.graph.item.Item;
@@ -23,8 +23,8 @@ import java.util.function.Function;
  * at the bottom of the ItemModel layout. It renders using existing primitives
  * (text, box, editable) so all platform renderers handle it automatically.
  *
- * <p>State comes from {@link EvalInputSnapshot}, the immutable snapshot that
- * {@link dev.everydaythings.graph.parse.EvalInput} produces on every
+ * <p>State comes from {@link InputSnapshot}, the immutable snapshot that
+ * {@link dev.everydaythings.graph.parse.InputController} produces on every
  * state change.
  *
  * <h2>Visual Structure</h2>
@@ -122,19 +122,19 @@ public class InputSurface extends SurfaceSchema<Void> {
     }
 
     /**
-     * Populate from an EvalInputSnapshot (no emoji resolution).
+     * Populate from an InputSnapshot (no emoji resolution).
      */
-    public static InputSurface fromSnapshot(EvalInputSnapshot snapshot) {
+    public static InputSurface fromSnapshot(InputSnapshot snapshot) {
         return fromSnapshot(snapshot, null);
     }
 
     /**
-     * Populate from an EvalInputSnapshot with item resolution for emoji.
+     * Populate from an InputSnapshot with item resolution for emoji.
      *
      * @param snapshot the input state snapshot
      * @param resolver optional item resolver to look up emoji for RefTokens
      */
-    public static InputSurface fromSnapshot(EvalInputSnapshot snapshot,
+    public static InputSurface fromSnapshot(InputSnapshot snapshot,
                                             Function<ItemID, Optional<Item>> resolver) {
         InputSurface s = new InputSurface();
         s.prompt = snapshot.prompt();

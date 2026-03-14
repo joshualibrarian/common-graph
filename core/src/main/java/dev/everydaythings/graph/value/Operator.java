@@ -10,7 +10,8 @@ import dev.everydaythings.graph.frame.expression.FunctionExpression;
 import dev.everydaythings.graph.frame.expression.ReferenceExpression;
 import dev.everydaythings.graph.frame.expression.SememeExpression;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.NounSememe;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
@@ -25,7 +26,7 @@ import java.util.Map;
  * noun in the vocabulary, discoverable and relatable. Operators know their
  * symbol, precedence, associativity, fixity, and how to evaluate themselves.
  *
- * <p>By extending {@link NounSememe}, operators inherit glosses, tokens,
+ * <p>By extending {@link Sememe}, operators inherit glosses, tokens,
  * symbols, and dictionary registration — making them discoverable through
  * the same vocabulary pipeline as any other sememe.
  *
@@ -33,7 +34,7 @@ import java.util.Map;
  * queries, and reactive rules all compose using the same operator vocabulary.
  */
 @Type(value = Operator.KEY, glyph = "➕")
-public class Operator extends NounSememe {
+public class Operator extends Sememe {
 
     public static final String KEY = "cg:type/operator";
 
@@ -148,7 +149,7 @@ public class Operator extends NounSememe {
     // LOOKUP TABLES
     // ==================================================================================
 
-    // Lazy holder to avoid circular static init (Sememe -> NounSememe -> Operator.<clinit>)
+    // Lazy holder to avoid circular static init (Sememe -> CoreVocabulary -> Operator.<clinit>)
     private static class Seeds {
         static final List<Operator> ALL = List.of(
                 And.SEED, Or.SEED, Not.SEED,
@@ -204,7 +205,7 @@ public class Operator extends NounSememe {
     public Operator(String canonicalKey, String symbol, String name,
                     int arity, int precedence,
                     Associativity associativity, Fixity fixity) {
-        super(canonicalKey,
+        super(canonicalKey, PartOfSpeech.NOUN,
                 Map.of("en", name),     // name serves as English gloss
                 Map.of(),               // no CILI sources for operators
                 List.of(symbol),        // symbol as universal symbol

@@ -8,6 +8,10 @@ This document describes the language system — how human languages, words, and 
 
 The language system solves a fundamental problem: human knowledge is expressed in words, but words are ambiguous, language-specific, and ephemeral. Common Graph separates **meaning** (sememes) from **expression** (lexemes) and connects them through **languages** — items that serve as living dictionaries.
 
+**Crucially, semantic resolution happens at write time.** When data enters the system — whether typed, clicked, or created by code — every concept is resolved to a globally-anchored sememe *before storage*. The person or code creating the data does the disambiguation, because they know what they mean. This is where Common Graph diverges from NLP and information retrieval: those fields try to extract meaning from existing text after the fact. Common Graph never needs to, because meaning was captured at the point of creation.
+
+The language system draws its vocabulary from established computational semantics research — [WordNet](https://wordnet.princeton.edu/) for concepts, [VerbNet](https://verbs.colorado.edu/verbnet/) for thematic role declarations, [CILI](https://github.com/globalwordnet/cili) for cross-lingual anchoring, [ISO 24617-4](https://www.iso.org/standard/56866.html) for role standards — but uses this vocabulary for **structured semantic keys**, not for annotating natural language text. Each frame is a small structured key: a predicate and a handful of role bindings. The semantic challenge is vocabulary (having the right predicates and roles), not parsing (guessing what a sentence means).
+
 ```
 Sememe (AUTHOR)            Language Item (English)
 (language-agnostic         (language-specific
@@ -82,7 +86,7 @@ A **sememe** is an Item that represents a specific, language-agnostic meaning. S
 
 | Extension | What It Adds |
 |-----------|-------------|
-| `ThematicRole` | Semantic role identity (AGENT, THEME, TARGET, ...) |
+| `ThematicRole` | Semantic role identity (AGENT, THEME, GOAL, ...) |
 | `GrammaticalFeature` | Inflectional property identity (PAST, PLURAL, LEMMA, ...) |
 | `Operator` | Symbol, precedence, associativity, evaluation |
 | `Function` | Arity, category, evaluation |
@@ -217,68 +221,91 @@ These are stored in the frame RECORD, keyed by sememes — not by arbitrary stri
 
 ## Thematic Roles
 
-**Thematic roles** (theta roles) describe what part a participant plays in an event or relation. They descend from Fillmore's Case Grammar and frame semantics, computationally realized in FrameNet.
+**Thematic roles** (theta roles) describe what part a participant plays in an event or relation. The intellectual lineage runs from Fillmore's Case Grammar (1968) through Dowty's Proto-Roles (1991) to VerbNet (Palmer, 2005+) and the ISO 24617-4 standard (2014). Common Graph's 25 seed roles are aligned with both [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html), following the hierarchical unification proposed by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf).
 
-In Common Graph, roles are **sememes** — NounSememe subclass instances with deterministic IIDs. The class is `ThematicRole` (in `core/src/main/java/dev/everydaythings/graph/language/ThematicRole.java`).
+In Common Graph, roles are **sememes** — `ThematicRole` subclass instances with deterministic IIDs. The class is `ThematicRole` (in `core/src/main/java/dev/everydaythings/graph/language/ThematicRole.java`).
+
+**Important:** Thematic roles have no CILIs. They are frame-theoretic concepts, not WordNet synsets. The role AGENT is not the WordNet synset for "agent" (a person acting on behalf of another) — it's the participant who intentionally initiates an event. These are fundamentally different concepts that happen to share a word.
 
 ### Seed Roles
 
-| Role | Canonical Key | Meaning | Example |
-|------|--------------|---------|---------|
-| **AGENT** | `cg.role:agent` | The doer or initiator | Shakespeare (wrote Hamlet) |
-| **PATIENT** | `cg.role:patient` | The entity affected or changed | Hamlet (was written) |
-| **THEME** | `cg.role:theme` | The content, topic, or subject matter | "The Hobbit" (in TITLE frame) |
-| **TARGET** | `cg.role:target` | The destination or goal | e4 (in "move to e4") |
-| **SOURCE** | `cg.role:source` | The origin | archive (in "copy from archive") |
-| **INSTRUMENT** | `cg.role:instrument` | The tool or means used | key (in "encrypt with key") |
-| **LOCATION** | `cg.role:location` | Where something is or happens | London |
-| **TIME** | `cg.role:time` | When something happens | Tuesday |
-| **RECIPIENT** | `cg.role:recipient` | Who benefits or receives | Alice (in "share with Alice") |
-| **CAUSE** | `cg.role:cause` | The reason or cause | outage (in "because of outage") |
-| **COMITATIVE** | `cg.role:comitative` | A companion or co-participant | Bob (in "play with Bob") |
-| **NAME** | `cg.role:name` | A designation being assigned | "Project Alpha" (in "name it") |
-| **REFERENT** | `cg.role:referent` | The concept being referred to | AUTHOR sememe (in LEXEME frame) |
+**Core participant roles** (who is involved):
 
-Additional roles planned for batch 2 (from FrameNet's full inventory):
+| Role | Key | Gloss | VN/LIRICS | Example |
+|------|-----|-------|-----------|---------|
+| **AGENT** | `cg.role:agent` | Intentional initiator | Agent | Shakespeare (wrote Hamlet) |
+| **PATIENT** | `cg.role:patient` | Affected, changed, or consumed | Patient | Hamlet (was edited) |
+| **THEME** | `cg.role:theme` | Located, moved, or existing without change | Theme | "The Hobbit" (in TITLE frame) |
+| **EXPERIENCER** | `cg.role:experiencer` | Perceives or undergoes mental state | Experiencer | Alice (sees the error) |
+| **STIMULUS** | `cg.role:stimulus` | Triggers perception or emotion | Stimulus | the error (that Alice sees) |
+| **PIVOT** | `cg.role:pivot` | Central participant in a fixed state | Pivot | the value (in "x equals 5") |
+| **CAUSE** | `cg.role:cause` | Non-intentional initiator | Cause | the storm (caused outage) |
 
-| Role | Meaning |
-|------|---------|
-| EXPERIENCER | Who perceives or feels |
-| STIMULUS | What triggers a perception |
-| MANNER | How something is done |
-| PURPOSE | Why something is done |
-| EXTENT | Degree or amount of change |
-| MEDIUM | Channel of communication |
-| RESULT | What is produced |
-| CONTENT | What is communicated |
-| DURATION | How long something takes |
-| POSSESSOR | Who owns something |
-| MATERIAL | What something is made of |
-| ATTRIBUTE | A property being described |
-| VALUE | The value of an attribute |
+**Endpoint and directional roles** (where things go):
+
+| Role | Key | Gloss | VN/LIRICS | Example |
+|------|-----|-------|-----------|---------|
+| **GOAL** | `cg.role:goal` | Abstract end-point or target | Goal | e4 (in "move to e4") |
+| **DESTINATION** | `cg.role:destination` | Physical place where motion ends | Destination | London (flew to London) |
+| **SOURCE** | `cg.role:source` | Origin or starting point | Source | archive (copy from archive) |
+| **PATH** | `cg.role:path` | Route between origin and endpoint | Trajectory / Path | the highway |
+| **RESULT** | `cg.role:result` | Comes into existence through event | Result / Product | the report (that was generated) |
+
+**Transfer and benefaction roles** (who gains):
+
+| Role | Key | Gloss | VN/LIRICS | Example |
+|------|-----|-------|-----------|---------|
+| **RECIPIENT** | `cg.role:recipient` | Receives something transferred | Recipient | Alice (shared with Alice) |
+| **BENEFICIARY** | `cg.role:beneficiary` | Benefits from the event | Beneficiary | the team (built for the team) |
+| **PARTNER** | `cg.role:partner` | Secondary agent, co-participating | Co-Agent | Bob (play with Bob) |
+
+**Instrumental and manner roles** (how things happen):
+
+| Role | Key | Gloss | VN/LIRICS | Example |
+|------|-----|-------|-----------|---------|
+| **INSTRUMENT** | `cg.role:instrument` | Tool or means used | Instrument | key (encrypt with key) |
+| **MANNER** | `cg.role:manner` | How an action is performed | Manner | carefully |
+| **EXTENT** | `cg.role:extent` | Degree or amount of change | Extent / Amount | by 50% |
+| **ATTRIBUTE** | `cg.role:attribute` | Property associated with participant | Attribute | color (painted it red) |
+| **PURPOSE** | `cg.role:purpose` | Intended outcome | Purpose | to organize (sorted for) |
+
+**Setting roles** (where and when):
+
+| Role | Key | Gloss | VN/LIRICS | Example |
+|------|-----|-------|-----------|---------|
+| **LOCATION** | `cg.role:location` | Where something happens | Location | London |
+| **TIME** | `cg.role:time` | When something happens | Time | Tuesday |
+
+**Information and naming roles** (CG extensions):
+
+| Role | Key | Gloss | VN/LIRICS | Example |
+|------|-----|-------|-----------|---------|
+| **TOPIC** | `cg.role:topic` | Subject of communication | Topic | the bug (discuss the bug) |
+| **NAME** | `cg.role:name` | Designation being assigned | CG extension | "Project Alpha" |
+| **REFERENT** | `cg.role:referent` | Concept being referred to | CG extension | AUTHOR sememe (in lexeme) |
 
 ### Roles in Verb Arguments
 
-Verbs declare their **argument structure** as a list of `ArgumentSlot`s, each specifying a role, whether it's required, and a type constraint:
+Verbs declare their **slot roles** — the thematic roles their arguments can fill:
 
 ```java
-@Seed
-public static final VerbSememe create = new VerbSememe(CREATE, ...)
-    .withArguments(
-        ArgumentSlot.optional(ROLE_THEME, "what to create"),
-        ArgumentSlot.optional(ROLE_TARGET, "where to place the result"),
-        ArgumentSlot.optional(ROLE_NAME, "name for the new item")
-    );
+@Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.VERB)
+    .gloss("en", "bring into existence")
+    .slot(ThematicRole.Theme.KEY)
+    .slot(ThematicRole.Goal.KEY)
+    .slot(ThematicRole.Name.KEY);
 ```
+
+This mirrors VerbNet's `<THEMROLES>` declarations. When Common Graph imports VerbNet data, each verb class's thematic role expectations will populate these slot declarations automatically.
 
 ### Roles in Frames
 
 Thematic roles are the keys in frame bindings. A frame is essentially a sentence:
 
 ```
-AUTHOR { theme: TheHobbit, TARGET: Tolkien }
+AUTHOR { THEME: TheHobbit, GOAL: Tolkien }
   → "The Hobbit was authored by Tolkien"
-  → THEME fills "what was authored", TARGET fills "who authored it"
+  → THEME fills "what was authored", GOAL fills "who authored it"
 ```
 
 This is Frame Semantics — the structure of meaning. Roles give each participant a defined semantic function, independent of word order or language.
@@ -288,11 +315,22 @@ This is Frame Semantics — the structure of meaning. Roles give each participan
 REFERENT is a metalinguistic role — "the concept being referred to." It's needed for frames that talk *about* sememes rather than using them:
 
 ```
-LEXEME { theme: English, REFERENT: AUTHOR, FORM: LEMMA, word: "author" }
+LEXEME { THEME: English, REFERENT: AUTHOR, FORM: LEMMA, word: "author" }
   → "In English, the lemma for the AUTHOR concept is 'author'"
 ```
 
 Here THEME is English (the home item), so REFERENT carries the sememe. Without REFERENT, we'd need THEME for the sememe, but THEME is already the Language item.
+
+### Alignment with Established Standards
+
+Common Graph's role inventory draws from a rich tradition:
+
+- **VerbNet** (Martha Palmer, CU Boulder) provides ~30 thematic roles organized by verb class, with selectional restrictions and syntactic frame mappings. VerbNet's XML data includes WordNet sense keys, giving Common Graph a direct bridge from synset to role expectations.
+- **ISO 24617-4 / LIRICS** (Harry Bunt, Tilburg) standardized ~23 semantic roles defined by entailment properties. The [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf) unification showed that VerbNet and LIRICS roles form a compatible hierarchy.
+- **FrameNet** (Fillmore, ICSI Berkeley) uses frame-specific elements rather than universal roles. Common Graph's universal roles handle the common case; FrameNet-style specialization can be layered on top as additional seed data.
+- **PropBank** uses numbered arguments (ARG0-ARG5) with SemLink providing the cross-walk to VerbNet roles.
+
+The intent is to import VerbNet class data to auto-populate slot declarations: for each verb sememe anchored to a WordNet synset, the VerbNet class tells us exactly which roles it expects. This removes the need to hand-code role expectations for thousands of predicates.
 
 ## Grammatical Features
 
@@ -443,6 +481,37 @@ UniMorph provides morphological paradigms for 100+ languages. The importer uses 
 2. Store overrides as `FormEntry` objects on lexemes
 3. Avoid generating incorrect regular inflections
 
+### 5. VerbNet (Planned Import)
+
+**Source**: [VerbNet 3.4 XML](https://github.com/cu-clear/verbnet)
+**Format**: XML — one file per verb class (~300 classes)
+**Java API**: `io.github.semlink:verbnet` on Maven Central
+**Purpose**: Thematic role declarations per verb class
+
+VerbNet organizes verbs into ~300 classes based on shared syntactic and semantic behavior (Levin 1993 verb classes). Each class specifies:
+- **Thematic roles** with selectional restrictions (what roles the verb expects)
+- **Syntactic frames** (argument realization patterns)
+- **Semantic predicates** (event structure decomposition)
+- **WordNet sense keys** (mapping each verb member to WordNet synsets)
+
+This is the single highest-value import target for Common Graph's slot declarations. Instead of hand-coding which roles each predicate expects, the VerbNet import will populate `.slot()` declarations automatically: **WordNet synset → VerbNet class → thematic role expectations**.
+
+### 6. SemLink (Planned Import)
+
+**Source**: [SemLink 2.0](https://github.com/cu-clear/semlink)
+**Format**: JSON mapping files
+**Purpose**: Cross-resource mappings between VerbNet, FrameNet, PropBank, and WordNet
+
+SemLink provides the cross-walk: given a WordNet synset, find its VerbNet class(es), PropBank roleset(s), and FrameNet frame(s). Common Graph can store these as cross-reference frames on predicate sememes, enabling queries like "show me the FrameNet frame for this verb."
+
+### 7. VerbAtlas (Future Import)
+
+**Source**: [VerbAtlas 1.0](https://verbatlas.org/)
+**Format**: REST API + downloadable data
+**Purpose**: Cleaner alternative to VerbNet with 466 frames and 26 universal roles
+
+VerbAtlas provides a principled reduction of VerbNet's ~35 roles to 26 cross-frame roles, covering all ~13,000 WordNet verb synsets. Linked to BabelNet for 280+ language coverage. A potential complement or alternative to direct VerbNet import.
+
 ## The Import Pipeline
 
 The import pipeline is a **3-pass process** implemented in `LanguageImporter`, with language-specific subclasses providing paths and configuration.
@@ -483,7 +552,7 @@ LmfImporter.synsets()  →  stream of Synset records
     └── Create semantic relations
         - hypernym, hyponym, holonym, meronym, antonym, similar_to, etc.
         - Each maps to a CG predicate sememe (Sememe.Hypernym, Sememe.Hyponym, ...)
-        - Stored as signed relations: THEME → subject sememe, TARGET → object sememe
+        - Stored as signed relations: THEME → subject sememe, GOAL → object sememe
 ```
 
 **Relation type mapping** (universal across all wordnets):
@@ -633,7 +702,7 @@ The translation matrix is not a feature that was built. It's a structural conseq
 - [Vocabulary](vocabulary.md) — Dispatch, expression input, token resolution, customization
 - [Frames](frames.md) — The frame primitive, body/record split, frame keys
 
-**External resources:**
+**External resources — lexical:**
 - [WordNet](https://wordnet.princeton.edu/) — Lexical database of English
 - [Open English WordNet](https://en-word.net/) — Community-maintained English WordNet
 - [CILI](https://github.com/globalwordnet/cili) — Collaborative Interlingual Index
@@ -642,10 +711,25 @@ The translation matrix is not a feature that was built. It's a structural conseq
 - [UniMorph](https://unimorph.github.io/) — Universal Morphology for 100+ languages
 - [ISO 639-3](https://iso639-3.sil.org/) — Language code standard (~7,000 languages)
 
+**External resources — semantic roles and frames:**
+- [VerbNet](https://verbs.colorado.edu/verbnet/) — Verb classes with thematic role declarations ([GitHub](https://github.com/cu-clear/verbnet), [Java API](https://github.com/semlink/verbnet-java-api))
+- [FrameNet](https://framenet.icsi.berkeley.edu/) — 1,200+ semantic frames with frame-specific elements
+- [SemLink](https://verbs.colorado.edu/semlink/) — Cross-resource mappings: VerbNet ↔ FrameNet ↔ PropBank ↔ WordNet ([GitHub](https://github.com/cu-clear/semlink))
+- [VerbAtlas](https://verbatlas.org/) — 466 frames, 26 universal roles, linked to BabelNet (280+ languages)
+- [PropBank](https://propbank.github.io/) — Predicate-argument structures with numbered roles ([frames](https://github.com/propbank/propbank-frames))
+- [ISO 24617-4 (SemAF-SR)](https://www.iso.org/standard/56866.html) — International standard for semantic role annotation
+- [LIRICS semantic roles](https://let.uvt.nl/general/people/bunt/docs/LIRICS_semrole.htm) — The role data categories that became ISO 24617-4
+- [Unified Verb Index](https://uvi.colorado.edu/) — Online browser across VerbNet, PropBank, FrameNet
+- [Framester](https://github.com/framester/Framester) — Linked Data hub (~30M RDF triples) integrating FrameNet, VerbNet, PropBank, WordNet, BabelNet
+- [PreMOn](https://premon.fbk.eu/) — OWL ontologies and RDF datasets for PropBank, VerbNet, FrameNet, SemLink
+
 **Academic foundations:**
+- [Fillmore 1968 — "The Case for Case"](references/) — The intellectual origin of thematic roles and case grammar
+- [Fillmore 1982 — Frame Semantics](references/Fillmore%201982%20-%20Frame%20Semantics.pdf) — Frame semantics theory
+- [Dowty 1991 — Thematic Proto-Roles and Argument Selection](references/) — Proto-Agent/Proto-Patient as cluster-concepts
+- [Bonial et al 2011 — Hierarchical Unification of LIRICS and VerbNet](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf) — The unification that became ISO 24617-4
+- [Ruppenhofer et al 2006 — FrameNet II](references/Ruppenhofer%20et%20al%202006%20-%20FrameNet%20II%20Extended%20Theory%20and%20Practice.pdf) — Comprehensive FrameNet theory
 - [Miller et al 1993 — Introduction to WordNet](references/Miller%20et%20al%201993%20-%20Introduction%20to%20WordNet.pdf) — The lexical database
 - [Bond et al 2016 — CILI](references/Bond%2C%20Vossen%20et%20al%202016%20-%20CILI%20the%20Collaborative%20Interlingual%20Index.pdf) — Cross-lingual concept identifiers
-- [Fillmore 1982 — Frame Semantics](references/Fillmore%201982%20-%20Frame%20Semantics.pdf) — Thematic roles and frame semantics
-- [Ruppenhofer et al 2006 — FrameNet II](references/Ruppenhofer%20et%20al%202006%20-%20FrameNet%20II%20Extended%20Theory%20and%20Practice.pdf) — Comprehensive FrameNet theory
 - [Pustejovsky 1991 — The Generative Lexicon](references/Pustejovsky%201991%20-%20The%20Generative%20Lexicon.pdf) — Compositional word meaning
 - [Youn et al 2016 — Universal Structure of Human Lexical Semantics](references/Youn%20et%20al%202016%20-%20Universal%20Structure%20of%20Human%20Lexical%20Semantics.pdf) — Empirical evidence for universal semantic structure

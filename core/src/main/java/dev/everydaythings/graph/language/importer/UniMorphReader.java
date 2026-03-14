@@ -35,7 +35,7 @@ public class UniMorphReader {
      * @param features Raw mapped feature IIDs (before language-specific simplification)
      * @param pos      Part of speech
      */
-    public record Entry(String form, Set<ItemID> features, PartOfSpeech pos) {}
+    public record Entry(String form, Set<ItemID> features, ItemID pos) {}
 
     // ==================================================================================
     // TAG MAPPING (universal across all UniMorph languages)
@@ -137,7 +137,7 @@ public class UniMorphReader {
     private static Entry parseEntry(String form, String tagString) {
         String[] tags = tagString.split(";");
         Set<ItemID> features = new HashSet<>();
-        PartOfSpeech pos = null;
+        ItemID pos = null;
 
         for (String tag : tags) {
             tag = tag.trim();
@@ -145,12 +145,9 @@ public class UniMorphReader {
 
             // Extract POS
             if (POS_TAGS.contains(tag)) {
-                pos = switch (tag) {
-                    case "V" -> PartOfSpeech.VERB;
-                    case "N" -> PartOfSpeech.NOUN;
-                    case "ADJ" -> PartOfSpeech.ADJECTIVE;
-                    default -> null;
-                };
+                if ("V".equals(tag)) pos = PartOfSpeech.VERB;
+                else if ("N".equals(tag)) pos = PartOfSpeech.NOUN;
+                else if ("ADJ".equals(tag)) pos = PartOfSpeech.ADJECTIVE;
                 continue;
             }
 

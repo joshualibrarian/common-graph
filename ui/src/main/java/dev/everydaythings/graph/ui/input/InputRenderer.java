@@ -1,15 +1,18 @@
 package dev.everydaythings.graph.ui.input;
 
+import dev.everydaythings.graph.parse.InputSnapshot;
+import dev.everydaythings.graph.runtime.Eval;
+
 /**
  * Interface for input renderers.
  *
  * <p>Renderers are "dumb" - they don't implement input logic, they just:
  * <ol>
- *   <li>Render the current {@link InputState}</li>
+ *   <li>Render the current {@link InputSnapshot}</li>
  *   <li>Convert physical key events to {@link InputAction}</li>
  * </ol>
  *
- * <p>All the smart logic lives in {@link InputController}.
+ * <p>All the smart logic lives in {@link dev.everydaythings.graph.parse.InputController}.
  *
  * <p>Implementations:
  * <ul>
@@ -26,9 +29,9 @@ public interface InputRenderer {
      *
      * <p>Called by InputController whenever state changes.
      *
-     * @param state The current input state to render
+     * @param snapshot The current input state to render
      */
-    void render(InputState state);
+    void render(InputSnapshot snapshot);
 
     /**
      * Focus the input (make it ready to receive input).
@@ -61,7 +64,7 @@ public interface InputRenderer {
      *
      * @param result The result of the completed input
      */
-    default void onComplete(InputResult result) {}
+    default void onComplete(Eval.EvalResult result) {}
 
     /**
      * Called when the renderer should be destroyed.

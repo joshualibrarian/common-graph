@@ -10,7 +10,7 @@ import dev.everydaythings.graph.dispatch.VerbSpec;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.View;
@@ -571,9 +571,9 @@ class ChessTest {
                 ItemID.fromString(GameVocabulary.Offer.KEY),
                 ItemID.fromString(GameVocabulary.Accept.KEY),
                 ItemID.fromString(GameVocabulary.Decline.KEY),
-                ItemID.fromString(VerbSememe.Show.KEY),
-                ItemID.fromString(VerbSememe.ListVerb.KEY),
-                ItemID.fromString(VerbSememe.Describe.KEY),
+                ItemID.fromString(CoreVocabulary.Show.KEY),
+                ItemID.fromString(CoreVocabulary.ListVerb.KEY),
+                ItemID.fromString(CoreVocabulary.Describe.KEY),
                 ItemID.fromString(GameVocabulary.Select.KEY),
                 ItemID.fromString(GameVocabulary.Place.KEY)
         );

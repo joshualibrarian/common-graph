@@ -82,7 +82,7 @@ class PeerProtocolTest {
         assertThat(lib1PeersWith).isNotEmpty();
         assertThat(lib1PeersWith).anyMatch(r ->
                 r.theme().equals(lib1.iid()) &&
-                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof BindingTarget.IidTarget target &&
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid()) instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib2.iid())
         );
 
@@ -92,14 +92,14 @@ class PeerProtocolTest {
                 .toList();
         assertThat(lib1Reachable).isNotEmpty();
         assertThat(lib1Reachable).anyMatch(r ->
-                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof Literal);
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid()) instanceof Literal);
 
         // Then: lib2 should have peers-with frame pointing at lib1
         List<FrameBody> lib2PeersWith = lib2.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
         assertThat(lib2PeersWith).isNotEmpty();
         assertThat(lib2PeersWith).anyMatch(r ->
                 r.theme().equals(lib2.iid()) &&
-                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof BindingTarget.IidTarget target &&
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid()) instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib1.iid())
         );
 
@@ -109,14 +109,14 @@ class PeerProtocolTest {
                 .toList();
         assertThat(lib2Reachable).isNotEmpty();
         assertThat(lib2Reachable).anyMatch(r ->
-                r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof Literal);
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid()) instanceof Literal);
 
         // Verify the reachable-at endpoint on lib2 points to lib1's address
         FrameBody lib2ReachableBody = lib2Reachable.stream()
-                .filter(r -> r.binding(dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid()) instanceof Literal)
+                .filter(r -> r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid()) instanceof Literal)
                 .findFirst().orElseThrow();
         Literal endpointLit = (Literal) lib2ReachableBody.binding(
-                dev.everydaythings.graph.language.ThematicRole.Target.SEED.iid());
+                dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid());
         Endpoint decoded = endpointLit.as(Endpoint.class);
         assertThat(decoded.port()).isEqualTo(lib1Port);
     }

@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.ui.input;
 
+import dev.everydaythings.graph.parse.InputAction;
+
 import java.util.Optional;
 
 /**

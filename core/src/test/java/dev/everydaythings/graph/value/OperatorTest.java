@@ -4,7 +4,7 @@ import dev.everydaythings.graph.frame.expression.BinaryExpression;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.frame.expression.LiteralExpression;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.mapdb.MapDBItemStore;
 import dev.everydaythings.graph.library.SeedVocabulary;
@@ -21,7 +21,7 @@ class OperatorTest {
 
     private boolean hasImplementedByRelation(ItemStore store, dev.everydaythings.graph.item.id.ItemID typeId) {
         return store.relations()
-                .filter(r -> r.predicate().equals(VerbSememe.ImplementedBy.SEED.iid()))
+                .filter(r -> r.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
                 .filter(r -> typeId.equals(r.bindingId(dev.everydaythings.graph.item.id.ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .isPresent();

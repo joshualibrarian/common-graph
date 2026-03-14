@@ -8,7 +8,7 @@ import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -573,7 +573,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         return result;
     }
 
-    @Verb(value = VerbSememe.Describe.KEY, doc = "Describe game status")
+    @Verb(value = CoreVocabulary.Describe.KEY, doc = "Describe game status")
     public String statusText() {
         if (isWon()) return "You win! All mines cleared.";
         if (isLost()) return "Game over! Hit a mine.";

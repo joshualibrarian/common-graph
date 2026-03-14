@@ -12,12 +12,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class DiscourseHistoryTest {
 
-    private static final Item ALICE = new NounSememe(
-            "cg:test/alice", Map.of("en", "alice"), Map.of());
-    private static final Item BOB = new NounSememe(
-            "cg:test/bob", Map.of("en", "bob"), Map.of());
-    private static final Item CAROL = new NounSememe(
-            "cg:test/carol", Map.of("en", "carol"), Map.of());
+    private static final Item ALICE = new Sememe(
+            "cg:test/alice", PartOfSpeech.NOUN, Map.of("en", "alice"), Map.of());
+    private static final Item BOB = new Sememe(
+            "cg:test/bob", PartOfSpeech.NOUN, Map.of("en", "bob"), Map.of());
+    private static final Item CAROL = new Sememe(
+            "cg:test/carol", PartOfSpeech.NOUN, Map.of("en", "carol"), Map.of());
 
     @Test
     void emptyHistoryReturnsEmpty() {
@@ -63,14 +63,14 @@ class DiscourseHistoryTest {
     void resolveIt() {
         var history = new DiscourseHistory();
         history.push(ALICE);
-        assertThat(history.resolve(PronounSememe.It.SEED, null)).contains(ALICE);
+        assertThat(history.resolve(Sememe.It.SEED, null)).contains(ALICE);
     }
 
     @Test
     void resolveThis() {
         var history = new DiscourseHistory();
         history.push(ALICE); // shouldn't matter
-        assertThat(history.resolve(PronounSememe.This.SEED, BOB)).contains(BOB);
+        assertThat(history.resolve(Sememe.This.SEED, BOB)).contains(BOB);
     }
 
     @Test
@@ -78,14 +78,14 @@ class DiscourseHistoryTest {
         var history = new DiscourseHistory();
         history.push(ALICE);
         history.push(BOB);
-        assertThat(history.resolve(PronounSememe.Last.SEED, null)).contains(ALICE);
+        assertThat(history.resolve(Sememe.Last.SEED, null)).contains(ALICE);
     }
 
     @Test
     void resolveUnknownPronounReturnsEmpty() {
         var history = new DiscourseHistory();
         history.push(ALICE);
-        assertThat(history.resolve(PronounSememe.Any.SEED, null)).isEmpty();
+        assertThat(history.resolve(Sememe.Any.SEED, null)).isEmpty();
     }
 
     @Test

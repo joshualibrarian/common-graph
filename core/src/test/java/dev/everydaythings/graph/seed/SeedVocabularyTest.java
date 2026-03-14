@@ -9,10 +9,8 @@ import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.NounSememe;
-import dev.everydaythings.graph.language.NounSememe;
-import dev.everydaythings.graph.language.VerbSememe;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.mapdb.MapDBItemStore;
 import dev.everydaythings.graph.library.SeedVocabulary;
@@ -53,7 +51,7 @@ class SeedVocabularyTest {
 
     private boolean hasImplementedByRelation(ItemID typeId) {
         return store.relations()
-                .filter(r -> r.predicate().equals(VerbSememe.ImplementedBy.SEED.iid()))
+                .filter(r -> r.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
                 .anyMatch(r -> typeId.equals(r.bindingId(ItemID.fromString("cg.role:theme"))));
     }
 
@@ -84,14 +82,13 @@ class SeedVocabularyTest {
 
     @Test
     void bootstrapIncludesSememes() {
-        // Sememe is now abstract sealed — concrete subclass types get IMPLEMENTED_BY
-        assertThat(hasImplementedByRelation(ItemID.fromString(VerbSememe.KEY))).isTrue();
-        assertThat(hasImplementedByRelation(ItemID.fromString(NounSememe.KEY))).isTrue();
+        // Sememe type gets IMPLEMENTED_BY
+        assertThat(hasImplementedByRelation(ItemID.fromString(Sememe.KEY))).isTrue();
 
-        // Core sememes should have manifests
-        assertThat(hasManifest(NounSememe.Author.SEED.iid())).isTrue();
-        assertThat(hasManifest(NounSememe.Title.SEED.iid())).isTrue();
-        assertThat(hasManifest(NounSememe.Description.SEED.iid())).isTrue();
+        // Core vocabulary seeds should have manifests
+        assertThat(hasManifest(CoreVocabulary.Author.SEED.iid())).isTrue();
+        assertThat(hasManifest(CoreVocabulary.Title.SEED.iid())).isTrue();
+        assertThat(hasManifest(CoreVocabulary.Description.SEED.iid())).isTrue();
     }
 
     @Test
@@ -100,11 +97,9 @@ class SeedVocabularyTest {
         var dimensions = allManifestsOfType(ItemID.fromString(Dimension.KEY));
         assertThat(dimensions).hasSizeGreaterThanOrEqualTo(7); // 7 SI base dimensions
 
-        // Sememe seeds are now distributed across subclass types
-        var verbSememes = allManifestsOfType(ItemID.fromString(VerbSememe.KEY));
-        var nounSememes = allManifestsOfType(ItemID.fromString(NounSememe.KEY));
-        int totalSememes = verbSememes.size() + nounSememes.size();
-        assertThat(totalSememes).isGreaterThanOrEqualTo(8); // verbs + nouns from Sememe + Host
+        // Sememe seeds (all vocabulary classes share the Sememe type)
+        var sememes = allManifestsOfType(ItemID.fromString(Sememe.KEY));
+        assertThat(sememes).hasSizeGreaterThanOrEqualTo(8);
     }
 
     @Test

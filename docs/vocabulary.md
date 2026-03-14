@@ -318,17 +318,18 @@ ParamSpec {
 
 ### Thematic Roles
 
-Parameters declare roles from linguistic case grammar. These are the same thematic roles defined by the sememe system — they're sememes themselves:
+Parameters declare roles from Fillmore's Case Grammar (1968), aligned with [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html). These are the same thematic roles defined by the sememe system — they're sememes themselves (see [Language — Thematic Roles](language.md#thematic-roles) for the full 25-role inventory):
 
 | Role | Meaning | Example |
 |------|---------|---------|
-| **THEME** | The thing being acted upon | "delete **this item**" |
-| **TARGET** | The destination or goal | "move to **that folder**" |
-| **SOURCE** | The origin | "copy from **here**" |
-| **INSTRUMENT** | The tool or means | "encrypt with **this key**" |
-| **BENEFICIARY** | Who benefits | "share with **Alice**" |
+| **THEME** | Located, moved, or existing without change | "delete **this item**" |
+| **GOAL** | Abstract end-point or target | "move to **e4**" |
+| **SOURCE** | Origin or starting point | "copy from **archive**" |
+| **INSTRUMENT** | Tool or means | "encrypt with **this key**" |
+| **RECIPIENT** | Entity receiving transfer | "share with **Alice**" |
+| **PARTNER** | Co-participating agent | "play with **Bob**" |
 
-Roles enable order-independent expression parsing. A verb's parameters can be filled positionally or by role — "move pawn to e4" and "move to e4 pawn" produce the same semantic frame.
+Roles enable order-independent expression parsing. A verb's parameters can be filled positionally or by role — "move pawn to e4" and "move to e4 pawn" produce the same semantic frame. Prepositions map to roles (English "to" → GOAL, "from" → SOURCE, "with" → INSTRUMENT), enabling natural language-like input without a natural language parser.
 
 ## VerbEntry and Dispatch
 
@@ -446,7 +447,7 @@ alice@chess> move                      # Tab --> resolves to [move] verb
 alice@chess> [move] p                  # Completions: pawn, piece... (no verbs)
 alice@chess> [move] [pawn] to          # Tab --> resolves [to] preposition
 alice@chess> [move] [pawn] [to] e      # Completions: e4, e5... (positions)
-alice@chess> [move] [pawn] [to] [e4]   # Enter --> dispatches move(THEME=pawn, TARGET=e4)
+alice@chess> [move] [pawn] [to] [e4]   # Enter --> dispatches move(THEME=pawn, GOAL=e4)
 ```
 
 **Example**: Mathematical expression:
@@ -463,7 +464,7 @@ When Enter is pressed on a command expression, the token list is assembled into 
 
 ```
 Tokens:  [move] [pawn] [to] [e4]
-Frame:   verb=move, THEME=pawn, TARGET=e4
+Frame:   verb=move, THEME=pawn, GOAL=e4
 ```
 
 The assembly process:
@@ -482,7 +483,7 @@ move to e4 pawn
 pawn move to e4
 ```
 
-All produce the same frame. The preposition "to" binds "e4" to TARGET regardless of position. "pawn" fills THEME as a bare argument. This is closer to natural language than positional command syntax.
+All produce the same frame. The preposition "to" binds "e4" to GOAL regardless of position. "pawn" fills THEME as a bare argument. This is closer to natural language than positional command syntax.
 
 ### Quantities in Expressions
 
@@ -754,6 +755,8 @@ Traditional interfaces force rigid syntax: `git commit -m "message"`, `docker ru
 8. **Mathematical** — arithmetic, functions, and dimensional analysis work everywhere
 
 This isn't trying to understand arbitrary natural language. It's a **structured-but-flexible** input system where the graph's semantic structure guides the user toward valid expressions. The approach is closest to what the NLP literature calls *executable semantic parsing* — mapping language directly to actions on a knowledge graph (see [references/Liang 2016](references/Liang%202016%20-%20Learning%20Executable%20Semantic%20Parsers.pdf), [references/Berant et al 2013](references/Berant%20et%20al%202013%20-%20Semantic%20Parsing%20on%20Freebase.pdf)). The key difference: those systems learn statistical mappings from data, while Common Graph uses deterministic vocabulary resolution through a curated sememe backbone.
+
+**The deeper point: semantics are resolved at write time, not read time.** When you type "move pawn to e4," each token resolves to a sememe as you type — "move" → `cg.verb:move`, "pawn" → the chess piece item, "to" → GOAL role, "e4" → board position. What gets stored is `MOVE { THEME: pawn, GOAL: e4 }` — a structure of semantic references, not text. The disambiguation happens at creation, performed by the person who knows what they mean. This is why Common Graph doesn't need a search engine or NLP pipeline to find things later — the data was pre-indexed by meaning at the moment it was created. The vocabulary system draws on established computational semantics (VerbNet's ~300 verb classes, ISO 24617-4's thematic roles, WordNet's 120K concepts) for the right set of predicates and roles, but it doesn't need the parsing machinery those projects were built for.
 
 ## Core Vocabulary
 

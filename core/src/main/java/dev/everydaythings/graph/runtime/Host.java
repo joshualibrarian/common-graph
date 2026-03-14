@@ -6,6 +6,8 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.library.ItemStore;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.crypt.SigningPublicKey;
 
 
@@ -38,10 +40,10 @@ public class Host extends Signer {
     // INSTANCE FIELDS
     // ==================================================================================
 
-    @Frame(key = {"cg.core:reachable-at"}, endorsed = false)
+    @Frame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
     private List<InetAddress> ipAddresses;
 
-    @Frame(handle = "monitor", path = ".monitor")
+    @Frame(key = {CoreVocabulary.Monitor.KEY}, path = ".monitor")
     private SystemMonitor systemMonitor;
 
     // ==================================================================================

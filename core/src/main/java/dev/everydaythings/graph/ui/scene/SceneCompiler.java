@@ -2127,7 +2127,7 @@ public final class SceneCompiler {
      * <ol>
      *   <li>Instance name from displayInfo (content fields: name, title, label)</li>
      *   <li>displayToken &mdash; Sememes return their canonical key part (e.g., "title")</li>
-     *   <li>Type name from SurfaceTemplateComponent (e.g., "NounSememe")</li>
+     *   <li>Type name from SurfaceTemplateComponent (e.g., "Sememe")</li>
      * </ol>
      */
     private static SurfaceSchema<?> resolveItemHandle(ItemID iid) {

@@ -6,7 +6,6 @@ import dev.everydaythings.graph.dispatch.VerbInvoker;
 import dev.everydaythings.graph.dispatch.VerbSpec;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.item.Components;
 import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
@@ -23,7 +22,6 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.frame.FrameTable;
-import dev.everydaythings.graph.item.ComponentType;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
@@ -33,6 +31,8 @@ import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
 import dev.everydaythings.graph.policy.PolicySet;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.ValueType;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -610,16 +610,30 @@ public class Item {
      *
      * <p>Resolution order:
      * <ol>
-     *   <li>Check for a "name" field/component</li>
-     *   <li>Check for a "title" field/component</li>
-     *   <li>Check for a "label" field/component</li>
+     *   <li>Check for a name frame (RoutingVocabulary.Name)</li>
+     *   <li>Check for a title frame (CoreVocabulary.Title)</li>
+     *   <li>Check for a hash-key frame (CoreVocabulary.HashKey)</li>
+     *   <li>Check for literal field-name keys ("name", "title", "label")</li>
      *   <li>Use the class simple name</li>
      * </ol>
      */
     protected String findDisplayName() {
-        // Try common name fields via content table
-        for (String handle : new String[]{"name", "title", "label", "canonicalKey"}) {
-            var opt = content().getLive(FrameKey.literal(handle), Object.class);
+        // Try semantic keys first
+        for (FrameKey key : new FrameKey[]{
+                FrameKey.of(ItemID.fromString(RoutingVocabulary.Name.KEY)),
+                FrameKey.of(ItemID.fromString(CoreVocabulary.Title.KEY)),
+                FrameKey.of(ItemID.fromString(CoreVocabulary.HashKey.KEY))}) {
+            var opt = content().getLive(key, Object.class);
+            if (opt.isPresent()) {
+                Object value = opt.get();
+                if (value instanceof String s && !s.isBlank()) {
+                    return s;
+                }
+            }
+        }
+        // Try literal field-name keys (for items with bare @Frame fields)
+        for (String fieldName : new String[]{"name", "title", "label"}) {
+            var opt = content().getLive(FrameKey.literal(fieldName), Object.class);
             if (opt.isPresent()) {
                 Object value = opt.get();
                 if (value instanceof String s && !s.isBlank()) {
@@ -1365,7 +1379,7 @@ public class Item {
         Objects.requireNonNull(component, "component");
 
         FrameKey key = FrameKey.literal(handle);
-        ItemID typeId = Components.typeId(component.getClass());
+        ItemID typeId = Item.idOf(component.getClass());
 
         // 1. Add metadata entry
         FrameEntry entry = FrameEntry.builder()
@@ -1526,7 +1540,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * relation is about, and the target is what it points to.
      * <pre>{@code
      * // This animal IS-A mammal
-     * animal.relate(VerbSememe.Hypernym.SEED.iid(), mammal.iid());
+     * animal.relate(LexicalVocabulary.Hypernym.SEED.iid(), mammal.iid());
      *
      * // With a literal target
      * item.relate(predicateId, Literal.ofText("some value"));
@@ -1541,7 +1555,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         Objects.requireNonNull(target, "target");
 
         FrameBody body = FrameBody.of(predicate, iid,
-                Map.of(ThematicRole.Target.SEED.iid(), target));
+                Map.of(ThematicRole.Goal.SEED.iid(), target));
 
         // Sign if we have a signer
         if (this instanceof dev.everydaythings.graph.item.user.Signer signer) {
@@ -1561,7 +1575,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      *
      * <p>Convenience overload for item-to-item relations:
      * <pre>{@code
-     * animal.relate(VerbSememe.Hypernym.SEED.iid(), mammal);
+     * animal.relate(LexicalVocabulary.Hypernym.SEED.iid(), mammal);
      * }</pre>
      *
      * @param predicate The predicate (relationship type)
@@ -1607,7 +1621,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      */
     private void addBuiltinComponent(String handle, Object component) {
         FrameKey key = FrameKey.literal(handle);
-        ItemID typeId = Components.typeId(component.getClass());
+        ItemID typeId = Item.idOf(component.getClass());
         FrameEntry entry = FrameEntry.builder()
                 .frameKey(key).alias(handle).type(typeId).identity(true).build();
         content().add(entry);
@@ -1650,13 +1664,13 @@ This public non- profit land trust’s top founding principle is to promote and 
             if (spec.localOnly() && store != null && store.root() != null) {
                 // Local resource with filesystem: open at mount path
                 Path componentPath = store.root().resolve(spec.path());
-                instance = Components.openPathBased(type, componentPath);
+                instance = CreationScanner.openPathBased(type, componentPath);
                 entry = FrameEntry.builder()
                         .frameKey(spec.frameKey()).alias(alias)
                         .type(spec.type()).identity(spec.identity()).build();
             } else if (spec.localOnly()) {
                 // Local resource but in-memory mode: create default in-memory instance
-                instance = Components.createDefault(type)
+                instance = CreationScanner.createDefault(type)
                         .orElseThrow(() -> new IllegalStateException(
                                 "Cannot create default in-memory instance of local resource: " + type.getName()));
                 entry = FrameEntry.builder()
@@ -1670,10 +1684,10 @@ This public non- profit land trust’s top founding principle is to promote and 
                     instance = existingValue;
                 } else {
                     // Try createDefault first, fall back to instantiateComponent
-                    Optional<?> defaultOpt = Components.createDefault(type);
+                    Optional<?> defaultOpt = CreationScanner.createDefault(type);
                     instance = defaultOpt.isPresent()
                             ? defaultOpt.get()
-                            : ComponentType.instantiateComponent(type);
+                            : CreationScanner.instantiate(type);
                 }
                 // Create appropriate entry type based on component kind
                 if (spec.stream()) {
@@ -1870,10 +1884,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         Object live = liveOpt.get();
         byte[] bytes;
 
-        // Encode based on type
-        if (live.getClass().isAnnotationPresent(Type.class)) {
-            bytes = Components.encode(live);
-        } else if (live instanceof Canonical canonical) {
+        if (live instanceof Canonical canonical) {
             bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
         } else if (ItemSchema.isSimpleSerializableType(live)) {
             bytes = ItemSchema.encodeSimpleValue(live);
@@ -1953,10 +1964,7 @@ This public non- profit land trust’s top founding principle is to promote and 
             Object value = spec.getValue(this);
             if (value == null) return null;
 
-            // Encode based on type
-            if (value.getClass().isAnnotationPresent(Type.class)) {
-                return Components.encode(value);
-            } else if (value instanceof Canonical canonical) {
+            if (value instanceof Canonical canonical) {
                 return canonical.encodeBinary(Canonical.Scope.RECORD);
             } else if (ItemSchema.isSimpleSerializableType(value)) {
                 return ItemSchema.encodeSimpleValue(value);
@@ -2137,12 +2145,12 @@ This public non- profit land trust’s top founding principle is to promote and 
             return null;
         }
         Class<?> cls = impl.get();
-        Optional<?> instance = Components.createDefault(cls);
+        Optional<?> instance = CreationScanner.createDefault(cls);
         if (instance.isPresent()) {
             return instance.get();
         }
         // Fall back to instantiate via factory/constructor
-        return ComponentType.instantiateComponent(cls);
+        return CreationScanner.instantiate(cls);
     }
 
     /**
@@ -2195,7 +2203,7 @@ This public non- profit land trust’s top founding principle is to promote and 
             return null;
         }
 
-        return Components.openPathBased(implOpt.get(), mountPath);
+        return CreationScanner.openPathBased(implOpt.get(), mountPath);
     }
 
     /**
@@ -2402,7 +2410,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @throws IllegalStateException if no librarian is available
      * @throws IllegalArgumentException if the type is abstract or has no suitable constructor
      */
-    @Verb(value = dev.everydaythings.graph.language.VerbSememe.Create.KEY, doc = "Create a new instance of this type")
+    @Verb(value = dev.everydaythings.graph.language.CoreVocabulary.Create.KEY, doc = "Create a new instance of this type")
     public Item actionNew(
             ActionContext ctx,
             @Param(
@@ -2437,7 +2445,7 @@ This public non- profit land trust’s top founding principle is to promote and 
         // Apply title if a name was provided
         if (name != null && !name.isBlank()) {
             newItem.relate(
-                    dev.everydaythings.graph.language.NounSememe.Title.SEED.iid(),
+                    dev.everydaythings.graph.language.CoreVocabulary.Title.SEED.iid(),
                     Literal.ofText(name));
         }
 
@@ -2450,7 +2458,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * <p>Returns the vocabulary itself — it's a Component with a Surface,
      * so the rendering pipeline handles display.
      */
-    @Verb(value = dev.everydaythings.graph.language.VerbSememe.Help.KEY, doc = "Show available verbs and their documentation")
+    @Verb(value = dev.everydaythings.graph.language.CoreVocabulary.Help.KEY, doc = "Show available verbs and their documentation")
     public Object actionHelp(ActionContext ctx) {
         return vocabulary();
     }
@@ -2472,7 +2480,7 @@ This public non- profit land trust’s top founding principle is to promote and 
      * @param target The path to navigate to
      * @return A Ref for the session to navigate to
      */
-    @Verb(value = dev.everydaythings.graph.language.VerbSememe.Cd.KEY, doc = "Navigate to path within item")
+    @Verb(value = dev.everydaythings.graph.language.CoreVocabulary.Cd.KEY, doc = "Navigate to path within item")
     public Ref actionCd(
             @Param(value = "target", doc = "Path or '..' to go back") String target) {
         if (target == null || target.isBlank()) {
@@ -2550,17 +2558,22 @@ This public non- profit land trust’s top founding principle is to promote and 
     // ==================================================================================
 
     /**
-     * Get the type key from an Item class.
+     * Get the type key from any @Type-annotated class (Item or component).
      */
-    public static String keyOf(Class<? extends Item> type) {
-        return Components.typeKey(type);
+    public static String keyOf(Class<?> type) {
+        Type annotation = type.getAnnotation(Type.class);
+        if (annotation == null) {
+            throw new IllegalArgumentException(
+                    "Class " + type.getName() + " is missing @Type annotation");
+        }
+        return annotation.value();
     }
 
     /**
-     * Get the type ID from an Item class.
+     * Get the type ID from any @Type-annotated class (Item or component).
      */
-    public static ItemID idOf(Class<? extends Item> type) {
-        return Components.typeId(type);
+    public static ItemID idOf(Class<?> type) {
+        return ItemID.fromString(keyOf(type));
     }
 
     /**
@@ -2612,11 +2625,8 @@ This public non- profit land trust’s top founding principle is to promote and 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface Frame {
-        /** Semantic FrameKey tokens (ItemID canonical strings). Takes precedence over handle. */
+        /** Semantic FrameKey tokens (ItemID canonical strings). Empty = use field name as literal key. */
         String[] key() default {};
-
-        /** Literal handle key. Empty = use field name (deterministic for hydration binding). */
-        String handle() default "";
 
         /** Mount path relative to item root. Required for localOnly. */
         String path() default EMPTY;

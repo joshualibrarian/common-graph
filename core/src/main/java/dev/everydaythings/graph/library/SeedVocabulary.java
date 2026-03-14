@@ -4,9 +4,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.item.ComponentType;
 import dev.everydaythings.graph.frame.FrameEntry;
-import dev.everydaythings.graph.item.Components;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.Type;
@@ -18,11 +16,13 @@ import dev.everydaythings.graph.ui.scene.SceneSchema;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.NounSememe;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.SememeGloss;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -147,9 +147,11 @@ public final class SeedVocabulary {
                         // Abstract classes: derive tokens statically from @Type annotation
                         String key = ann.value();
                         String name = extractReadableName(key);
-                        ComponentType ct = new ComponentType(key, name, clazz);
-                        if (ct.extractTokens().findAny().isPresent()) {
-                            result.add(ct);
+                        Sememe ns = new Sememe(key, PartOfSpeech.NOUN)
+                                .gloss("en", name)
+                                .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                        if (ns.extractTokens().findAny().isPresent()) {
+                            result.add(ns);
                         }
                     } else {
                         // Concrete classes: instantiate via seed constructor
@@ -167,7 +169,7 @@ public final class SeedVocabulary {
                 }
             }
 
-            // 4. @Type classes (non-Item) → ComponentType seed items
+            // 4. @Type classes (non-Item) → sememe seed items
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (Item.class.isAssignableFrom(clazz)) continue;
@@ -178,9 +180,11 @@ public final class SeedVocabulary {
 
                 String key = ann.value();
                 String name = extractReadableName(key);
-                ComponentType ct = new ComponentType(key, name, clazz);
-                if (ct.extractTokens().findAny().isPresent()) {
-                    result.add(ct);
+                Sememe ns = new Sememe(key, PartOfSpeech.NOUN)
+                        .gloss("en", name)
+                        .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                if (ns.extractTokens().findAny().isPresent()) {
+                    result.add(ns);
                 }
             }
         }
@@ -209,7 +213,7 @@ public final class SeedVocabulary {
                     registerItemType(itemClass);
                     scanForSeedItems(clazz);
                 } else {
-                    registerComponentType(clazz);
+                    registerNonItemType(clazz);
                 }
             }
 
@@ -292,10 +296,11 @@ public final class SeedVocabulary {
 
         Item typeSeed;
         if (Modifier.isAbstract(type.getModifiers())) {
-            // Abstract classes: create a ComponentType seed with static metadata
+            // Abstract classes: create a Sememe seed with display name
             String name = extractReadableName(key);
-            ComponentType.registerTypeName(typeId, name);
-            typeSeed = new ComponentType(key, name, type);
+            typeSeed = new Sememe(key, PartOfSpeech.NOUN)
+                    .gloss("en", name)
+                    .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
         } else {
             // Concrete classes: instantiate via seed constructor
             typeSeed = createTypeSeed(type, typeId);
@@ -319,7 +324,7 @@ public final class SeedVocabulary {
         storeRelation(createImplementedByRelation(typeId, type, typeSeed));
     }
 
-    private void registerComponentType(Class<?> type) {
+    private void registerNonItemType(Class<?> type) {
         Type annotation = type.getAnnotation(Type.class);
         if (annotation == null || annotation.value().isBlank()) return;
 
@@ -329,29 +334,24 @@ public final class SeedVocabulary {
         // Skip abstract classes
         if (Modifier.isAbstract(type.getModifiers())) return;
 
-        // Create ComponentType seed Item
+        // Create Sememe seed Item for this non-Item type
         String name = extractReadableName(key);
-        ComponentType.registerTypeName(typeId, name);
-        ComponentType componentType = new ComponentType(key, name, type);
+        Sememe typeSememe = new Sememe(key, PartOfSpeech.NOUN)
+                .gloss("en", name)
+                .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
 
         // Attach unified presentation component (display metadata + surface template)
-        attachTypePresentation(componentType, type, annotation);
+        attachTypePresentation(typeSememe, type, annotation);
 
         // Store manifest and content
-        boolean stored = storeItem(componentType);
+        boolean stored = storeItem(typeSememe);
         if (stored) {
-            seedItems.add(componentType);
+            seedItems.add(typeSememe);
         }
 
         // Create relations
-        storeRelation(createImplementedByRelation(typeId, type, componentType));
+        storeRelation(createImplementedByRelation(typeId, type, typeSememe));
         storeRelation(createTitleRelation(typeId, key));
-
-        // HYPERNYM relation: this type is-a-kind-of ComponentType
-        storeRelation(FrameBody.of(
-                VerbSememe.Hypernym.SEED.iid(),
-                typeId,
-                Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(ItemID.fromString(ComponentType.KEY)))));
     }
 
     private void registerValueType(Class<? extends dev.everydaythings.graph.value.Value> type) {
@@ -362,9 +362,9 @@ public final class SeedVocabulary {
 
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
         storeRelation(FrameBody.of(
-                VerbSememe.ImplementedBy.SEED.iid(),
+                CoreVocabulary.ImplementedBy.SEED.iid(),
                 typeId,
-                Map.of(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(type))));
+                Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofJavaClass(type))));
     }
 
     // ==================================================================================
@@ -527,9 +527,9 @@ public final class SeedVocabulary {
 
     private FrameBody createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
         FrameBody body = FrameBody.of(
-                VerbSememe.ImplementedBy.SEED.iid(),
+                CoreVocabulary.ImplementedBy.SEED.iid(),
                 typeId,
-                Map.of(ThematicRole.Target.SEED.iid(), Literal.ofJavaClass(implementingClass)));
+                Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofJavaClass(implementingClass)));
 
         // Add to item's component table as a relation entry
         if (item != null) {
@@ -545,9 +545,9 @@ public final class SeedVocabulary {
 
     private FrameBody createTitleRelation(ItemID itemId, String key) {
         return FrameBody.of(
-                NounSememe.Title.SEED.iid(),
+                CoreVocabulary.Title.SEED.iid(),
                 itemId,
-                Map.of(ThematicRole.Target.SEED.iid(), Literal.ofText(key)));
+                Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofText(key)));
     }
 
     private FrameBody createInstanceOfRelation(Item item) {
@@ -561,9 +561,9 @@ public final class SeedVocabulary {
         if (instanceId.equals(typeId)) return null;
 
         return FrameBody.of(
-                VerbSememe.InstanceOf.SEED.iid(),
+                LexicalVocabulary.InstanceOf.SEED.iid(),
                 instanceId,
-                Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(typeId)));
+                Map.of(ThematicRole.Goal.SEED.iid(), BindingTarget.iid(typeId)));
     }
 
     // ==================================================================================
@@ -587,8 +587,6 @@ public final class SeedVocabulary {
                         Object live = item.content().getLive(entry.frameKey()).orElse(null);
                         if (live instanceof Canonical c) {
                             content = c.encodeBinary(Canonical.Scope.RECORD);
-                        } else if (live != null) {
-                            content = Components.encode(live);
                         }
                     }
 

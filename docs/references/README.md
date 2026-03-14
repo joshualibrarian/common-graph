@@ -276,7 +276,7 @@ Common Graph is local-first by design — user data lives on user devices, netwo
 
 Common Graph's protocol design exists in dialogue with the dominant network architecture of the web.
 
-- **Fielding 2000 - Architectural Styles and Network-Based Software REST.pdf** — Fielding, R. T. (2000). *Architectural Styles and the Design of Network-based Software Architectures*. Ph.D. dissertation, University of California, Irvine. *Defines REST — the architectural style of the web. Common Graph's CG Protocol departs from REST's stateless client-server model toward signed, content-addressed peer-to-peer exchange.*
+- **Fielding 2000 - Architectural Styles and Network-Based Software REST.pdf** — Fielding, R. T. (2000). *Architectural Styles and the Design of Network-based Software Architectures*. Ph.D. dissertation, University of California, Irvine. *Defines REST — the architectural style of the web. Common Graph's Peer Protocol departs from REST's stateless client-server model toward signed, content-addressed peer-to-peer exchange.*
 
 ---
 

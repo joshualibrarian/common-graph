@@ -1,52 +1,56 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
+import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
  * A Sememe is a unit of meaning, like "meters" are a unit of measure.
  *
- * <p>Abstract base for all meaning-carrying types. Each part of speech
- * has its own subclass carrying POS-specific data:
+ * <p>Concrete base for all meaning-carrying types. Part of speech is a
+ * property ({@link #pos()}), not a class identity — any sememe can serve
+ * as a predicate, type definition, or vocabulary entry regardless of POS.
+ *
+ * <p>Seed constants are organized by domain into vocabulary classes:
  * <ul>
- *   <li>{@link VerbSememe} — actions (create, get, move)</li>
- *   <li>{@link NounSememe} — entities, predicates, and domain-specific nouns
- *       (author, title, operators, functions, units, dimensions)</li>
- *   <li>{@link PrepositionSememe} — thematic role carriers (on, from, with)</li>
- *   <li>{@link PronounSememe} — references, variables (any, what)</li>
- *   <li>{@link AdjectiveSememe} — properties (reachable-at)</li>
- *   <li>{@link AdverbSememe} — modifiers</li>
- *   <li>{@link ConjunctionSememe} — connectors</li>
- *   <li>{@link InterjectionSememe} — exclamations</li>
+ *   <li>{@link CoreVocabulary} — actions, metadata predicates, infrastructure</li>
+ *   <li>{@link LexicalVocabulary} — semantic/lexical relations (hypernym, antonym, etc.)</li>
+ *   <li>{@link PrepositionVocabulary} — thematic role carriers</li>
  * </ul>
  *
- * <p>{@link NounSememe} is the primary extension point for domain-specific
- * types that carry meaning: operators (+, -, *), functions (sqrt, abs),
- * units (meter, kilogram), dimensions (length, mass), etc. These are all
- * nouns with extra metadata — they inherit glosses, tokens, symbols, and
- * dictionary registration from this class.
+ * <p>Domain-specific subclasses extend Sememe directly for POS-specific data:
+ * {@link dev.everydaythings.graph.value.Operator},
+ * {@link dev.everydaythings.graph.value.Function},
+ * {@link ThematicRole}, {@link GrammaticalFeature}.
  *
- * <p>Shared fields (canonicalKey, pos, glosses, sources, tokens, indexWeight)
- * live here. POS-specific fields live in the subclass (e.g.,
- * {@link PrepositionSememe#assignedRole()}).
+ * <p>Sememes with an IMPLEMENTED_BY frame are createable — the CREATE verb
+ * resolves the implementing class and instantiates via {@link CreationScanner}.
  *
  * <p>Sememes are anchored globally and used as predicates in relations.
  * Their IIDs are deterministically derived from their canonical key,
  * enabling compile-time references.
  */
+@Log4j2
 @Type(value = Sememe.KEY, glyph = "\uD83D\uDCA1", color = 0xF0C040)
-public abstract class Sememe extends Item {
+public class Sememe extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
@@ -71,13 +75,13 @@ public abstract class Sememe extends Item {
 
     /** The canonical key (e.g., "cg.core:author") */
     @Getter
-    @Frame(handle = "key")
+    @Frame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
 
-    /** Part of speech */
+    /** Part of speech — an ItemID referencing a POS value seed (e.g., PartOfSpeech.VERB). */
     @Getter
-    @Frame
-    private PartOfSpeech pos;
+    @Frame(key = {PartOfSpeech.Predicate.KEY})
+    private ItemID pos;
 
     /**
      * Glosses by language for bootstrap (e.g., {"en": "the creator..."}).
@@ -90,18 +94,24 @@ public abstract class Sememe extends Item {
     @Getter
     private transient Map<String, String> glosses;
 
-    /** External source references (e.g., {"cili": "i25412"}) */
+    /**
+     * External source references for bootstrap (e.g., {"cili": "i25412"}).
+     *
+     * <p>Transient builder state — populated by fluent methods like {@link #cili(String)}
+     * during seed declaration. During bootstrap, each entry is written as a properly-keyed
+     * frame (e.g., CILI ID → {@link CoreVocabulary.CiliId} frame). The Sememe class
+     * doesn't have compile-time fields for external IDs — they're just data on the item.
+     */
     @Getter
-    @Frame
-    private Map<String, String> sources;
+    private transient Map<String, String> sources;
 
     /** Predicate facets (for complex predicates) */
-    @Frame
+    @Frame(key = {CoreVocabulary.Facet.KEY})
     private List<PredicateFacet> facets;
 
     /** Language-neutral symbols for universal lookup (e.g., "*", "?", "+", "m", "kg"). */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.Symbol.KEY})
     private List<String> symbols;
 
     /**
@@ -126,15 +136,26 @@ public abstract class Sememe extends Item {
      * <p>Examples: TITLE = 1000 (1.0), DESCRIPTION = 500 (0.5), NAME = 1000 (1.0).
      */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.IndexWeight.KEY})
     private int indexWeight;
+
+    /**
+     * The thematic role this sememe assigns to its object (prepositions only).
+     *
+     * <p>For example, "on" has assignedRole = TARGET — in "create chess on myItem",
+     * the preposition "on" tells the evaluator that "myItem" fills the TARGET role.
+     * Null for non-preposition sememes.
+     */
+    @Getter
+    @Frame(key = {CoreVocabulary.AssignedRole.KEY})
+    private ItemID assignedRole;
 
     /**
      * Slot expectations for this predicate (e.g., AUTHOR expects THEME, TARGET).
      *
      * <p>Transient — populated by fluent {@link #slot(Sememe)} or
      * {@link #slot(String)} during seed declaration. Consumed by
-     * {@link VerbSememe#slotRoles()} for frame assembly.
+     * {@link #slotRoles()} for frame assembly.
      */
     @Getter
     private transient List<ItemID> slots;
@@ -165,7 +186,7 @@ public abstract class Sememe extends Item {
      * @param glosses      Glosses by language
      * @param sources      External source references
      */
-    protected Sememe(String canonicalKey, PartOfSpeech pos,
+    protected Sememe(String canonicalKey, ItemID pos,
                      Map<String, String> glosses, Map<String, String> sources) {
         this(canonicalKey, pos, glosses, sources, List.of(), List.of());
     }
@@ -179,7 +200,7 @@ public abstract class Sememe extends Item {
      * @param sources      External source references
      * @param tokens       English word aliases (e.g., "create", "new", "make")
      */
-    protected Sememe(String canonicalKey, PartOfSpeech pos,
+    protected Sememe(String canonicalKey, ItemID pos,
                      Map<String, String> glosses, Map<String, String> sources,
                      List<String> tokens) {
         this(canonicalKey, pos, glosses, sources, List.of(), tokens);
@@ -195,7 +216,7 @@ public abstract class Sememe extends Item {
      * @param symbols      Language-neutral symbols (universal scope)
      * @param tokens       English word aliases (language-scoped)
      */
-    protected Sememe(String canonicalKey, PartOfSpeech pos,
+    protected Sememe(String canonicalKey, ItemID pos,
                      Map<String, String> glosses, Map<String, String> sources,
                      List<String> symbols, List<String> tokens) {
         super(ItemID.fromString(canonicalKey));
@@ -214,7 +235,7 @@ public abstract class Sememe extends Item {
      * @param canonicalKey The canonical key (e.g., "cg.core:author")
      * @param pos          Part of speech
      */
-    protected Sememe(String canonicalKey, PartOfSpeech pos) {
+    public Sememe(String canonicalKey, ItemID pos) {
         super(ItemID.fromString(canonicalKey));
         this.canonicalKey = canonicalKey;
         this.pos = pos;
@@ -233,8 +254,8 @@ public abstract class Sememe extends Item {
      * @param glosses      Glosses by language
      * @param sources      External source references
      */
-    protected Sememe(Librarian librarian, String canonicalKey, PartOfSpeech pos,
-                     Map<String, String> glosses, Map<String, String> sources) {
+    public Sememe(Librarian librarian, String canonicalKey, ItemID pos,
+                  Map<String, String> glosses, Map<String, String> sources) {
         super(librarian, ItemID.fromString(canonicalKey));
         this.canonicalKey = canonicalKey;
         this.pos = pos;
@@ -278,18 +299,9 @@ public abstract class Sememe extends Item {
      * @return The created and committed sememe
      */
     public static Sememe create(Librarian librarian, Signer signer,
-                                String canonicalKey, PartOfSpeech pos,
+                                String canonicalKey, ItemID pos,
                                 Map<String, String> glosses, Map<String, String> sources) {
-        Sememe sememe = switch (pos) {
-            case VERB -> new VerbSememe(librarian, canonicalKey, glosses, sources);
-            case NOUN -> new NounSememe(librarian, canonicalKey, glosses, sources);
-            case PREPOSITION -> new PrepositionSememe(librarian, canonicalKey, glosses, sources);
-            case PRONOUN -> new PronounSememe(librarian, canonicalKey, glosses, sources);
-            case ADJECTIVE -> new AdjectiveSememe(librarian, canonicalKey, glosses, sources);
-            case ADVERB -> new AdverbSememe(librarian, canonicalKey, glosses, sources);
-            case CONJUNCTION -> new ConjunctionSememe(librarian, canonicalKey, glosses, sources);
-            case INTERJECTION -> new InterjectionSememe(librarian, canonicalKey, glosses, sources);
-        };
+        Sememe sememe = new Sememe(librarian, canonicalKey, pos, glosses, sources);
         sememe.commit(signer);
         return sememe;
     }
@@ -361,6 +373,12 @@ public abstract class Sememe extends Item {
         return this;
     }
 
+    /** Set the thematic role this preposition assigns, by canonical key. */
+    public Sememe role(String roleKey) {
+        this.assignedRole = ItemID.fromString(roleKey);
+        return this;
+    }
+
     // ==================================================================================
     // CONVENIENCE METHODS
     // ==================================================================================
@@ -372,14 +390,14 @@ public abstract class Sememe extends Item {
      *
      * @return List of verb Sememes
      */
-    public static List<VerbSememe> verbSememes() {
+    public static List<Sememe> verbSememes() {
         return List.of(
-                VerbSememe.Create.SEED, VerbSememe.Get.SEED, VerbSememe.Put.SEED,
-                VerbSememe.Remove.SEED, VerbSememe.ListVerb.SEED, VerbSememe.Import.SEED,
-                VerbSememe.Query.SEED, VerbSememe.Find.SEED,
-                VerbSememe.Show.SEED, VerbSememe.Help.SEED, VerbSememe.Edit.SEED,
-                VerbSememe.Count.SEED, VerbSememe.Describe.SEED, VerbSememe.Inspect.SEED,
-                VerbSememe.Rename.SEED, VerbSememe.Invite.SEED, VerbSememe.Serve.SEED);
+                CoreVocabulary.Create.SEED, CoreVocabulary.Get.SEED, CoreVocabulary.Put.SEED,
+                CoreVocabulary.Remove.SEED, CoreVocabulary.ListVerb.SEED, CoreVocabulary.Import.SEED,
+                CoreVocabulary.Query.SEED, CoreVocabulary.Find.SEED,
+                CoreVocabulary.Show.SEED, CoreVocabulary.Help.SEED, CoreVocabulary.Edit.SEED,
+                CoreVocabulary.Count.SEED, CoreVocabulary.Describe.SEED, CoreVocabulary.Inspect.SEED,
+                CoreVocabulary.Rename.SEED, CoreVocabulary.Invite.SEED, CoreVocabulary.Serve.SEED);
     }
 
     /**
@@ -393,20 +411,20 @@ public abstract class Sememe extends Item {
     public static List<Sememe> sememesWithTokens() {
         return List.of(
                 // Verbs
-                VerbSememe.Create.SEED, VerbSememe.Get.SEED, VerbSememe.Put.SEED,
-                VerbSememe.Remove.SEED, VerbSememe.ListVerb.SEED, VerbSememe.Import.SEED,
-                VerbSememe.Query.SEED, VerbSememe.Find.SEED,
-                VerbSememe.Show.SEED, VerbSememe.Help.SEED, VerbSememe.Edit.SEED,
-                VerbSememe.Count.SEED, VerbSememe.Describe.SEED, VerbSememe.Inspect.SEED,
-                VerbSememe.Rename.SEED, VerbSememe.Invite.SEED, VerbSememe.Serve.SEED,
+                CoreVocabulary.Create.SEED, CoreVocabulary.Get.SEED, CoreVocabulary.Put.SEED,
+                CoreVocabulary.Remove.SEED, CoreVocabulary.ListVerb.SEED, CoreVocabulary.Import.SEED,
+                CoreVocabulary.Query.SEED, CoreVocabulary.Find.SEED,
+                CoreVocabulary.Show.SEED, CoreVocabulary.Help.SEED, CoreVocabulary.Edit.SEED,
+                CoreVocabulary.Count.SEED, CoreVocabulary.Describe.SEED, CoreVocabulary.Inspect.SEED,
+                CoreVocabulary.Rename.SEED, CoreVocabulary.Invite.SEED, CoreVocabulary.Serve.SEED,
                 // Prepositions
-                PrepositionSememe.On.SEED, PrepositionSememe.With.SEED,
-                PrepositionSememe.From.SEED, PrepositionSememe.For.SEED,
-                PrepositionSememe.Between.SEED, PrepositionSememe.Named.SEED,
+                PrepositionVocabulary.On.SEED, PrepositionVocabulary.With.SEED,
+                PrepositionVocabulary.From.SEED, PrepositionVocabulary.For.SEED,
+                PrepositionVocabulary.Between.SEED, PrepositionVocabulary.Named.SEED,
                 // Conjunctions
-                ConjunctionSememe.And.SEED, ConjunctionSememe.Or.SEED,
+                Sememe.And.SEED, Sememe.Or.SEED,
                 // Query patterns
-                PronounSememe.Any.SEED, PronounSememe.What.SEED
+                Sememe.Any.SEED, Sememe.What.SEED
         );
     }
 
@@ -445,7 +463,7 @@ public abstract class Sememe extends Item {
      * Get external source code (e.g., CILI ID).
      */
     public String source(String scheme) {
-        return sources.get(scheme);
+        return sources != null ? sources.get(scheme) : null;
     }
 
     // ==================================================================================
@@ -506,6 +524,140 @@ public abstract class Sememe extends Item {
         }
 
         return allTokens.stream();
+    }
+
+    // ==================================================================================
+    // SLOT ROLES
+    // ==================================================================================
+
+    /**
+     * Returns the role IIDs this sememe expects as arguments (null-safe).
+     *
+     * <p>Derived from the transient {@link #slots()} field populated during
+     * seed construction. Since all sememes with slots are seeds (code-defined),
+     * transient-only is fine — no persistence needed.
+     */
+    public List<ItemID> slotRoles() {
+        List<ItemID> s = slots();
+        return s != null ? s : List.of();
+    }
+
+    // ==================================================================================
+    // SEED INSTANCES — Pronouns (query patterns and discourse references)
+    // ==================================================================================
+
+    public static class Any {
+        public static final String KEY = "cg.query:any";
+        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+                .gloss(ENG, "matches anything; wildcard; any value")
+                .cili("i61150")
+                .symbol("*")
+                .word(LEMMA, ENG, "wildcard").word(LEMMA, ENG, "anything");
+    }
+
+    public static class What {
+        public static final String KEY = "cg.query:what";
+        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+                .gloss(ENG, "the result being queried for; variable; unknown")
+                .cili("i74896")
+                .symbol("?")
+                .word(LEMMA, ENG, "variable").word(LEMMA, ENG, "result");
+    }
+
+    public static class It {
+        public static final String KEY = "cg.pronoun:it";
+        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+                .gloss(ENG, "the most recently mentioned or created item")
+                .word(LEMMA, ENG, "it").word(LEMMA, ENG, "that");
+    }
+
+    public static class This {
+        public static final String KEY = "cg.pronoun:this";
+        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+                .gloss(ENG, "the currently focused item")
+                .word(LEMMA, ENG, "this");
+    }
+
+    public static class Last {
+        public static final String KEY = "cg.pronoun:last";
+        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+                .gloss(ENG, "the previously mentioned item")
+                .word(LEMMA, ENG, "last").word(LEMMA, ENG, "previous");
+    }
+
+    // ==================================================================================
+    // SEED INSTANCES — Conjunctions
+    // ==================================================================================
+
+    public static class And {
+        public static final String KEY = "cg.conj:and";
+        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.CONJUNCTION)
+                .gloss(ENG, "coordinating conjunction; connects elements")
+                .word(LEMMA, ENG, "and");
+    }
+
+    public static class Or {
+        public static final String KEY = "cg.conj:or";
+        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.CONJUNCTION)
+                .gloss(ENG, "coordinating disjunction; alternative elements")
+                .word(LEMMA, ENG, "or");
+    }
+
+    // ==================================================================================
+    // CREATE Verb — any sememe with an IMPLEMENTED_BY frame is createable
+    // ==================================================================================
+
+    /**
+     * Create a new instance of the type this sememe represents.
+     *
+     * <p>When the user types "create chess", this verb fires on the chess
+     * sememe. It looks up the IMPLEMENTED_BY frame to find the Java
+     * class, then instantiates it via {@link CreationScanner}.
+     */
+    @Verb(value = CoreVocabulary.Create.KEY, doc = "Create a new instance of this type")
+    public Object actionCreate(ActionContext ctx) {
+        Class<?> implClass = resolveImplementingClass()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No implementing class for type: " + displayToken()));
+
+        return CreationScanner.instantiate(implClass);
+    }
+
+    /**
+     * Resolve the implementing Java class from the IMPLEMENTED_BY frame.
+     */
+    public Optional<Class<?>> resolveImplementingClass() {
+        if (content() != null) {
+            ItemID implPredicate = CoreVocabulary.ImplementedBy.SEED.iid();
+            var it = content().relationEntries().iterator();
+            while (it.hasNext()) {
+                var entry = it.next();
+                Optional<Object> live = content().getLive(entry.frameKey());
+                if (live.isPresent() && live.get() instanceof FrameBody body) {
+                    if (implPredicate.equals(body.predicate())) {
+                        BindingTarget target = body.bindings().get(ThematicRole.Goal.SEED.iid());
+                        if (target instanceof Literal lit) {
+                            String className = lit.asText();
+                            if (className != null) {
+                                try {
+                                    return Optional.of(Class.forName(className));
+                                } catch (ClassNotFoundException e) {
+                                    logger.debug("Could not resolve class '{}': {}", className, e.getMessage());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Whether this sememe has an implementing class (is createable).
+     */
+    public boolean hasImplementation() {
+        return resolveImplementingClass().isPresent();
     }
 
     // ==================================================================================

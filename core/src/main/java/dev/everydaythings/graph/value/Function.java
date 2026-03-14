@@ -4,7 +4,8 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.NounSememe;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
  * A Function — a noun sememe with arity, category, and evaluation semantics.
  *
  * <p>Every built-in function (sqrt, abs, format, etc.) is a noun in the
- * vocabulary, discoverable and relatable. By extending {@link NounSememe},
+ * vocabulary, discoverable and relatable. By extending {@link Sememe},
  * functions inherit glosses, tokens, symbols, and dictionary registration —
  * making them show up in completions alongside verbs, operators, and units.
  *
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
  * looks up the Function by name and delegates.
  */
 @Type(value = Function.KEY, glyph = "ƒ")
-public class Function extends NounSememe {
+public class Function extends Sememe {
 
     public static final String KEY = "cg:type/function";
 
@@ -281,7 +282,7 @@ public class Function extends NounSememe {
     public Function(String canonicalKey, String name, String gloss,
                     int minArity, int maxArity, String category,
                     List<String> aliases) {
-        super(canonicalKey,
+        super(canonicalKey, PartOfSpeech.NOUN,
                 Map.of("en", gloss),
                 Map.of(),
                 List.of(name),       // primary name as universal symbol

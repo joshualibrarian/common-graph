@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.ui.input;
+package dev.everydaythings.graph.parse;
 
 /**
  * Logical input actions for the unified input controller.
@@ -6,8 +6,6 @@ package dev.everydaythings.graph.ui.input;
  * <p>These are UI-agnostic actions that the InputController understands.
  * Physical key events (GLFW key events, Lanterna KeyStroke, ANSI escapes)
  * are translated to InputActions before being processed.
- *
- * <p>This is the input equivalent of {@link NavAction} for navigation.
  */
 public sealed interface InputAction {
 
@@ -112,6 +110,21 @@ public sealed interface InputAction {
     record HistoryNext() implements InputAction {}
 
     // ==================================================================================
+    // Candidate Selection
+    // ==================================================================================
+
+    /**
+     * Select a specific candidate for an ambiguous token.
+     *
+     * <p>Used when the user arrows back to a CandidateToken and picks
+     * a candidate from the dropdown (GUI) or completion list (TUI).
+     *
+     * @param tokenIndex     index of the CandidateToken in the token list
+     * @param candidateIndex index of the candidate to select
+     */
+    record SelectCandidate(int tokenIndex, int candidateIndex) implements InputAction {}
+
+    // ==================================================================================
     // Factory methods for convenience
     // ==================================================================================
 
@@ -177,5 +190,9 @@ public sealed interface InputAction {
 
     static InputAction historyNext() {
         return new HistoryNext();
+    }
+
+    static InputAction selectCandidate(int tokenIndex, int candidateIndex) {
+        return new SelectCandidate(tokenIndex, candidateIndex);
     }
 }

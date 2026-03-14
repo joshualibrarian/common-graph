@@ -183,11 +183,11 @@ public class Lexicon implements Selectable {
      * @param pos  The part of speech
      * @return Stream of matching lexemes
      */
-    public Stream<Lexeme> lookup(String word, PartOfSpeech pos) {
+    public Stream<Lexeme> lookup(String word, ItemID pos) {
         String normalized = Posting.normalize(word);
         return lexemes.stream()
                 .filter(l -> Posting.normalize(l.word()).equals(normalized))
-                .filter(l -> l.partOfSpeech() == pos);
+                .filter(l -> pos.equals(l.partOfSpeech()));
     }
 
     /**

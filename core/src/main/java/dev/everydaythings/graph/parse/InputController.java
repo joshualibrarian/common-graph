@@ -14,27 +14,29 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Unified expression input — the primary interaction mechanism for all items.
+ * THE unified input controller — the one input system for all items.
  *
- * <p>EvalInput is a runtime object (not a component) that manages the
- * complete input state machine across all UI tiers. It replaces both
- * {@code InputController} (ui) and {@code ExpressionInput} (core).
+ * <p>InputController is a runtime object (not a component) that manages the
+ * complete input state machine across all UI tiers: CLI one-shot, interactive
+ * TUI, and GUI with full progressive disambiguation.
  *
  * <p>The input is a sequence of <b>resolved tokens</b> — references to Items,
  * literal values, operators. As the user types, the system resolves names via
  * the lookup function (backed by TokenDictionary). When the user accepts, the
  * tokens are dispatched through {@link Eval}.
  *
- * <h2>Architecture</h2>
- * <ul>
- *   <li><b>Item</b> defines WHAT: vocabulary (verbs), token dictionary (completions)</li>
- *   <li><b>EvalInput</b> manages HOW: typing, cursor, completions, history, dispatch</li>
- *   <li><b>Renderers</b> show WHERE: CLI tab-complete, TUI dropdown, GUI chips, 3D bodies</li>
- * </ul>
+ * <h2>Architecture — The Clean Boundary</h2>
+ * <p><b>InputController owns RESOLUTION.</b> By the time tokens leave InputController,
+ * each one is resolved (RefToken) or mostly resolved (CandidateToken with narrowed
+ * candidates). InputController does ALL dictionary lookups, ALL disambiguation, ALL
+ * candidate narrowing.
+ *
+ * <p><b>Eval owns SEMANTICS.</b> Eval receives already-resolved tokens and does frame
+ * assembly + dispatch. It does NOT re-resolve tokens.
  *
  * <h2>Usage</h2>
  * <pre>{@code
- * EvalInput input = EvalInput.builder()
+ * InputController input = InputController.builder()
  *     .lookup(text -> dict.prefix(text, 10).toList())
  *     .librarian(librarianHandle)
  *     .context(focusedItem)
@@ -42,14 +44,19 @@ import java.util.function.Function;
  *     .onChange(snapshot -> renderer.render(snapshot))
  *     .build();
  *
- * // Wire platform events to methods:
+ * // Via InputAction (preferred — replaces giant switch in Session):
+ * input.handle(InputAction.char_('a'));
+ * input.handle(InputAction.tab());
+ * input.handle(InputAction.accept());
+ *
+ * // Or direct methods (still available):
  * input.type('a');
- * input.tab();       // accept completion
- * input.accept();    // dispatch expression
+ * input.tab();
+ * input.accept();
  * }</pre>
  */
 @Log4j2
-public class EvalInput {
+public class InputController {
 
     // ==================================================================================
     // State
@@ -89,12 +96,12 @@ public class EvalInput {
     private Item session;
     private int minLookupLength = 1;
 
-    private Consumer<EvalInputSnapshot> onChange;
+    private Consumer<InputSnapshot> onChange;
     private Consumer<Item> onNavigate;
     private Consumer<Eval.EvalResult> onResult;
     private Consumer<String> onError;
 
-    private EvalInput() {}
+    private InputController() {}
 
     // ==================================================================================
     // Builder
@@ -105,7 +112,7 @@ public class EvalInput {
     }
 
     public static class Builder {
-        private final EvalInput input = new EvalInput();
+        private final InputController input = new InputController();
 
         public Builder lookup(Function<String, List<Posting>> lookup) {
             input.lookup = lookup;
@@ -142,7 +149,7 @@ public class EvalInput {
             return this;
         }
 
-        public Builder onChange(Consumer<EvalInputSnapshot> callback) {
+        public Builder onChange(Consumer<InputSnapshot> callback) {
             input.onChange = callback;
             return this;
         }
@@ -162,9 +169,88 @@ public class EvalInput {
             return this;
         }
 
-        public EvalInput build() {
+        public InputController build() {
             return input;
         }
+    }
+
+    // ==================================================================================
+    // InputAction dispatch — THE unified entry point
+    // ==================================================================================
+
+    /**
+     * Handle a logical input action.
+     *
+     * <p>This is the primary entry point — replaces Session's giant switch statement.
+     * Platform key events are translated to {@link InputAction} by {@code InputBindings},
+     * then fed here.
+     *
+     * @param action the logical action to perform
+     * @return eval result if the action triggered dispatch (Accept), empty otherwise
+     */
+    public Optional<Eval.EvalResult> handle(InputAction action) {
+        return switch (action) {
+            case InputAction.Char c -> { type(c.c()); yield Optional.empty(); }
+            case InputAction.Backspace b -> { backspace(); yield Optional.empty(); }
+            case InputAction.Delete d -> { delete(); yield Optional.empty(); }
+            case InputAction.DeleteWord d -> { deleteWord(); yield Optional.empty(); }
+            case InputAction.CursorLeft l -> { cursorLeft(); yield Optional.empty(); }
+            case InputAction.CursorRight r -> { cursorRight(); yield Optional.empty(); }
+            case InputAction.CursorHome h -> { cursorHome(); yield Optional.empty(); }
+            case InputAction.CursorEnd e -> { cursorEnd(); yield Optional.empty(); }
+            case InputAction.CompletionUp u -> { completionUp(); yield Optional.empty(); }
+            case InputAction.CompletionDown d -> { completionDown(); yield Optional.empty(); }
+            case InputAction.Tab t -> { tab(); yield Optional.empty(); }
+            case InputAction.Accept a -> accept();
+            case InputAction.Cancel c -> { cancel(); yield Optional.empty(); }
+            case InputAction.TokenBoundary b -> { tokenBoundary(); yield Optional.empty(); }
+            case InputAction.HistoryPrev p -> { historyPrev(); yield Optional.empty(); }
+            case InputAction.HistoryNext n -> { historyNext(); yield Optional.empty(); }
+            case InputAction.SelectCandidate s -> {
+                selectCandidate(s.tokenIndex(), s.candidateIndex());
+                yield Optional.empty();
+            }
+        };
+    }
+
+    /**
+     * Select a specific candidate for an ambiguous CandidateToken.
+     *
+     * <p>Used when the user navigates back to an unresolved token and picks
+     * from the candidate dropdown (GUI) or completion list (TUI).
+     *
+     * @param tokenIndex     index of the CandidateToken in the token list
+     * @param candidateIndex index of the candidate to select
+     */
+    public void selectCandidate(int tokenIndex, int candidateIndex) {
+        if (tokenIndex < 0 || tokenIndex >= tokens.size()) return;
+        ExpressionToken token = tokens.get(tokenIndex);
+        if (!(token instanceof CandidateToken candidate)) return;
+        if (candidateIndex < 0 || candidateIndex >= candidate.candidates().size()) return;
+
+        Posting selected = candidate.candidates().get(candidateIndex);
+        tokens.set(tokenIndex, enrichedRefToken(selected));
+        invalidateContext();
+        pruneCandidates();
+        notifyChange();
+    }
+
+    /**
+     * Evaluate a one-shot expression string (for CLI mode).
+     *
+     * <p>Tokenizes the entire string, runs disambiguation, and dispatches.
+     * No interactive feedback — just resolution and result.
+     *
+     * @param expression the expression string to evaluate
+     * @return the eval result
+     */
+    public Optional<Eval.EvalResult> evaluateOneShot(String expression) {
+        // Resolve each word in the expression
+        for (String word : splitRawTokens(expression.trim())) {
+            resolveOrCommit(word);
+        }
+        // Run disambiguation and dispatch
+        return accept();
     }
 
     // ==================================================================================
@@ -172,8 +258,8 @@ public class EvalInput {
     // ==================================================================================
 
     /** Get an immutable snapshot of the current state (for rendering). */
-    public EvalInputSnapshot snapshot() {
-        return new EvalInputSnapshot(
+    public InputSnapshot snapshot() {
+        return new InputSnapshot(
                 List.copyOf(tokens),
                 pendingText.toString(),
                 cursor,
@@ -183,7 +269,8 @@ public class EvalInput {
                 showCompletions,
                 prompt,
                 hint,
-                error
+                error,
+                -1
         );
     }
 
@@ -751,7 +838,7 @@ public class EvalInput {
      *
      * <p>TODO: Unify with {@link ExpressionLexer} — these are two tokenization paths
      * producing the same {@link ExpressionToken} types but with different resolution
-     * semantics. EvalInput resolves interactively (with dictionary/vocabulary lookup),
+     * semantics. InputController resolves interactively (with dictionary/vocabulary lookup),
      * ExpressionLexer resolves from raw strings (no dictionary). They should share a
      * common tokenization core, with dictionary resolution as an optional layer.
      */
@@ -798,48 +885,61 @@ public class EvalInput {
     }
 
     /**
-     * Prune CandidateTokens using the current expression context.
+     * Prune CandidateTokens using progressive disambiguation.
      *
-     * <p>After each new token is added, re-examine all CandidateTokens. For each:
+     * <p>Iterates until stable (max 5 rounds) — resolving one CandidateToken
+     * may provide enough context to resolve another. Each round applies
+     * position-aware filtering via {@link ExpressionContext#pruneForPosition}.
+     *
+     * <p>For each CandidateToken:
      * <ul>
-     *   <li>If the expression has a verb and the candidate is also a verb,
-     *       eliminate the verb candidates (you already have one)</li>
-     *   <li>If only one candidate survives pruning, promote to RefToken</li>
-     *   <li>If zero candidates survive, revert to NameToken</li>
+     *   <li>If exactly one candidate survives → promote to RefToken (locked)</li>
+     *   <li>If zero candidates survive → revert to NameToken</li>
+     *   <li>If narrowed but still ambiguous → update CandidateToken with fewer candidates</li>
      * </ul>
      */
     private void pruneCandidates() {
         if (librarianHandle == null) return;
 
-        boolean changed = false;
-        ExpressionContext ctx = getOrUpdateContext();
+        boolean changed = true;
+        int iterations = 0;
 
-        for (int i = 0; i < tokens.size(); i++) {
-            if (!(tokens.get(i) instanceof ExpressionToken.CandidateToken candidate)) {
-                continue;
+        while (changed && iterations < 5) {
+            changed = false;
+            iterations++;
+            ExpressionContext ctx = getOrUpdateContext();
+
+            for (int i = 0; i < tokens.size(); i++) {
+                if (!(tokens.get(i) instanceof ExpressionToken.CandidateToken candidate)) {
+                    continue;
+                }
+
+                // Position-aware filtering using all disambiguation rules
+                List<Posting> surviving = ctx.pruneForPosition(
+                        i, candidate.candidates(), tokens,
+                        iid -> librarianHandle.get(iid));
+
+                if (surviving.size() == 1) {
+                    // Auto-resolve — exactly one candidate survives
+                    tokens.set(i, enrichedRefToken(surviving.get(0)));
+                    changed = true;
+                } else if (surviving.isEmpty()) {
+                    // All pruned — revert to unresolved name
+                    tokens.set(i, new ExpressionToken.NameToken(candidate.text()));
+                    changed = true;
+                } else if (surviving.size() < candidate.candidates().size()) {
+                    // Narrowed but still ambiguous — update candidates
+                    tokens.set(i, candidate.narrow(surviving));
+                    changed = true;
+                }
             }
 
-            // Filter candidates using expression context (same logic as completion filtering)
-            List<Posting> surviving = ctx.filter(candidate.candidates(),
-                    iid -> librarianHandle.get(iid));
-
-            if (surviving.size() == 1) {
-                // Auto-resolve — exactly one candidate survives
-                tokens.set(i, enrichedRefToken(surviving.get(0)));
-                changed = true;
-            } else if (surviving.isEmpty()) {
-                // All pruned — revert to unresolved name
-                tokens.set(i, new ExpressionToken.NameToken(candidate.text()));
-                changed = true;
-            } else if (surviving.size() < candidate.candidates().size()) {
-                // Narrowed but still ambiguous — update candidates
-                tokens.set(i, candidate.narrow(surviving));
-                changed = true;
+            if (changed) {
+                invalidateContext();
             }
         }
 
-        if (changed) {
-            invalidateContext();
+        if (iterations > 1) {
             notifyChange();
         }
     }
@@ -1253,6 +1353,17 @@ public class EvalInput {
             // Handle errors
             if (result instanceof Eval.EvalResult.Error(String message)) {
                 error = message;
+                notifyChange();
+            }
+
+            // Handle ambiguity — Eval reports CandidateTokens that survived to dispatch
+            if (result instanceof Eval.EvalResult.Ambiguous ambiguous) {
+                var sb = new StringBuilder("Ambiguous: ");
+                for (var t : ambiguous.tokens()) {
+                    sb.append('"').append(t.text()).append("\" (")
+                      .append(t.candidates().size()).append(" meanings) ");
+                }
+                error = sb.toString().trim();
                 notifyChange();
             }
 

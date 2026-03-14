@@ -6,6 +6,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
@@ -270,7 +271,7 @@ public class Unit extends Item {
 
     /** The canonical key (e.g., "cg.unit:meter") */
     @Getter
-    @Frame(handle = "key")
+    @Frame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
 
     /** Short symbol (e.g., "m", "mm", "in") */

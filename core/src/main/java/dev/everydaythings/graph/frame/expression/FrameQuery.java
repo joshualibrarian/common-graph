@@ -5,7 +5,7 @@ import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.PronounSememe;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.library.LibraryIndex;
 import lombok.Getter;
@@ -22,7 +22,7 @@ import java.util.stream.Stream;
  * A frame query — an incomplete frame with holes.
  *
  * <p>Queries are frames where some positions contain the sentinel
- * {@link PronounSememe.What#SEED} (a variable to solve for). The query evaluates
+ * {@link Sememe.What#SEED} (a variable to solve for). The query evaluates
  * against the frame index to find matching frames.
  *
  * <p>Frame model positions:
@@ -52,9 +52,9 @@ public record FrameQuery(
 
     private static final Logger log = LogManager.getLogger(FrameQuery.class);
 
-    private static final ItemID ANY = PronounSememe.Any.SEED.iid();
-    private static final ItemID WHAT = PronounSememe.What.SEED.iid();
-    private static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
+    private static final ItemID ANY = Sememe.Any.SEED.iid();
+    private static final ItemID WHAT = Sememe.What.SEED.iid();
+    private static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
 
     // ==================================================================================
     // Factories
@@ -96,7 +96,7 @@ public record FrameQuery(
 
         Map<ItemID, BindingTarget> bindings = new LinkedHashMap<>();
         if (!isHole(pattern.object())) {
-            bindings.put(TARGET_ROLE, BindingTarget.iid(pattern.object()));
+            bindings.put(GOAL_ROLE, BindingTarget.iid(pattern.object()));
         }
 
         return new FrameQuery(pred, theme, bindings);

@@ -118,7 +118,7 @@ public class PeerClient implements AutoCloseable {
                                     TransportCrypto.Role.INITIATOR, transportVault));
                         }
 
-                        // 4. CG Protocol codec (ByteBuf ↔ ProtocolMessage)
+                        // 4. Protocol codec (ByteBuf ↔ ProtocolMessage)
                         p.addLast("codec", new ProtocolCodec());
 
                         // 5. Idle detection: reader=30s, writer=15s

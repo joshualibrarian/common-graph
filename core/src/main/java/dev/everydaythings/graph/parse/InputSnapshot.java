@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Immutable snapshot of the expression input state.
+ * Immutable snapshot of the input state.
  *
- * <p>This is what renderers consume. Every mutation of {@link EvalInput}
+ * <p>This is what renderers consume. Every mutation of the input controller
  * produces a new snapshot — renderers never see mutable state.
  *
  * <p>Contains everything a renderer needs to display the input field:
@@ -25,8 +25,10 @@ import java.util.Optional;
  * @param prompt             prompt text (from focused item)
  * @param hint               hint text (shown when input is empty)
  * @param error              error message (null = no error)
+ * @param selectedTokenIndex index of the token being edited (-1 = editing pending text;
+ *                           &ge;0 = editing/selecting a candidate token)
  */
-public record EvalInputSnapshot(
+public record InputSnapshot(
         List<ExpressionToken> tokens,
         String pendingText,
         int cursor,
@@ -36,13 +38,14 @@ public record EvalInputSnapshot(
         boolean showCompletions,
         String prompt,
         String hint,
-        String error
+        String error,
+        int selectedTokenIndex
 ) {
 
     /**
      * Compact constructor — defensively copy lists.
      */
-    public EvalInputSnapshot {
+    public InputSnapshot {
         tokens = List.copyOf(tokens);
         completions = List.copyOf(completions);
         completionEntries = List.copyOf(completionEntries);
@@ -103,10 +106,10 @@ public record EvalInputSnapshot(
     /**
      * Create an empty snapshot with the given prompt.
      */
-    public static EvalInputSnapshot empty(String prompt, String hint) {
-        return new EvalInputSnapshot(
+    public static InputSnapshot empty(String prompt, String hint) {
+        return new InputSnapshot(
                 List.of(), "", 0, List.of(), List.of(), -1, false,
-                prompt, hint, null
+                prompt, hint, null, -1
         );
     }
 }

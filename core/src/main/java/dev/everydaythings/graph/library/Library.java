@@ -14,7 +14,7 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.dictionary.TokenExtractor;
 import dev.everydaythings.graph.library.directory.ItemDirectory;
@@ -656,7 +656,7 @@ public final class Library implements Canonical, AutoCloseable {
         //    IMPLEMENTED_BY frames first (needed for type hydration during token indexing)
         List<FrameBody> allBodies = source.relations().toList();
         logger.info("importFrom: {} frame bodies to import", allBodies.size());
-        ItemID implByPred = VerbSememe.ImplementedBy.SEED.iid();
+        ItemID implByPred = CoreVocabulary.ImplementedBy.SEED.iid();
         List<FrameBody> deferredBodies = new ArrayList<>();
         for (FrameBody body : allBodies) {
             if (body.predicate().equals(implByPred)) {
@@ -929,10 +929,10 @@ public final class Library implements Canonical, AutoCloseable {
      * @return The implementing Java class, or empty if not found
      */
     public Optional<Class<?>> findImplementation(ItemID typeId) {
-        return byItemPredicate(typeId, VerbSememe.ImplementedBy.SEED.iid())
+        return byItemPredicate(typeId, CoreVocabulary.ImplementedBy.SEED.iid())
                 .findFirst()
                 .map(body -> {
-                    BindingTarget target = body.binding(ItemID.fromString("cg.role:target"));
+                    BindingTarget target = body.binding(ItemID.fromString("cg.role:goal"));
                     if (target instanceof Literal lit) {
                         return lit.asJavaClass();
                     }

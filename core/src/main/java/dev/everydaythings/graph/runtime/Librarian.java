@@ -31,10 +31,10 @@ import dev.everydaythings.graph.library.dictionary.TokenExtractor;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.SeedVocabulary;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
-import dev.everydaythings.graph.language.NounSememe;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.network.peer.PeerProtocol;
 import dev.everydaythings.graph.network.NetworkManager;
 import dev.everydaythings.graph.network.peer.PeerContext;
@@ -170,12 +170,16 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     // - LibraryIndex (relation queries, head tracking)
     // - ItemDirectory (which store has item X?)
     // - TokenDictionary (human text → item lookup)
-    @Frame(handle = "library", path = "library", localOnly = true)
+    @Frame(key = {CoreVocabulary.Library.KEY}, path = "library", localOnly = true)
     private Library library;
 
     // Expression: ? → implemented-by → * (all types - subjects of implemented-by relations)
-    @Frame(handle = "types")
-    ExpressionComponent typesExpr = ExpressionComponent.subjects(VerbSememe.ImplementedBy.SEED.iid());
+    @Frame(key = {CoreVocabulary.ImplementedBy.KEY})
+    ExpressionComponent typesExpr = ExpressionComponent.subjects(CoreVocabulary.ImplementedBy.SEED.iid());
+
+    // Infrastructure activity log — persistent stream, doesn't churn VID
+    @Frame(key = {CoreVocabulary.Activity.KEY}, stream = true, identity = false)
+    private ActivityLog activityLog = new ActivityLog();
 
     // --- Services ---
     private final Clock clock = Clock.systemUTC();
@@ -194,10 +198,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * <p>Principal is a role, not a type - any Signer can be a principal.
      */
-    @Frame(key = {"cg.core:serves"}, endorsed = false)
+    @Frame(key = {RoutingVocabulary.Serves.KEY}, endorsed = false)
     private Signer principal;
 
-    @Frame(key = {"cg.core:available-at"}, endorsed = false)
+    @Frame(key = {RoutingVocabulary.AvailableAt.KEY}, endorsed = false)
     private Host host;
 
     /**
@@ -220,7 +224,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     private ItemID fullscreenWorkspace;
 
     // --- Librarian's own relations ---
-    @Frame(key = {"cg.core:reachable-at"}, endorsed = false)
+    @Frame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
     private List<Endpoint> endpoints;
 
     // ==================================================================================
@@ -351,7 +355,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // (Field initializers like typesExpr run after super constructor completes)
         if (freshBoot) {
             content().setLive(
-                    FrameKey.literal("types"),
+                    FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
                     "types",
                     typesExpr);
         }
@@ -377,7 +381,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Sync pre-initialized field values
         if (freshBoot) {
             content().setLive(
-                    FrameKey.literal("types"),
+                    FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
                     "types",
                     typesExpr);
         }
@@ -428,7 +432,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // (ContentField annotation only registers during initializeComponents,
             // but library is created here after that phase completes)
             content().setLive(
-                    FrameKey.literal("library"),
+                    FrameKey.of(ItemID.fromString(CoreVocabulary.Library.KEY)),
                     "library",
                     this.library);
         }
@@ -476,6 +480,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     private void onFirstBoot() {
         logger.debug("First boot - importing seeds and committing initial version");
+        logActivity("First boot", "Seed vocabulary imported");
 
         // Placeholder name — will be updated after ensureHost()/ensurePrincipal()
         setName("librarian");
@@ -729,6 +734,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 logger.info("Peer connected: {} (cert: {})",
                         connection.remoteAddress(),
                         peerCert != null ? peerCert.getSubjectX500Principal().getName() : "none");
+                logActivity("Peer connected", String.valueOf(connection.remoteAddress()));
 
                 // Delegate to PeerProtocol
                 peerProtocol.onPeerConnected(connection, false);  // inbound connection
@@ -743,6 +749,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             @Override
             public void onPeerDisconnected(PeerConnection connection) {
                 logger.info("Peer disconnected: {}", connection.remoteAddress());
+                logActivity("Peer disconnected", String.valueOf(connection.remoteAddress()));
                 peerProtocol.onPeerDisconnected(connection);
             }
         }, serverSsl, clientSsl);
@@ -1387,7 +1394,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Store and index a frame body via the library.
      */
-    @Verb(value = VerbSememe.Put.KEY, doc = "Store and index a frame body")
+    @Verb(value = CoreVocabulary.Put.KEY, doc = "Store and index a frame body")
     public void storeFrame(FrameBody body) {
         // Library handles both storage and indexing
         library().storeFrameBody(body);
@@ -1520,11 +1527,11 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         if (principal != null) return;
 
         // Reload from stored frame (reboot case)
-        ItemID servesId = ItemID.fromString("cg.core:serves");
+        ItemID servesId = ItemID.fromString(RoutingVocabulary.Serves.KEY);
         library().byItemPredicate(iid(), servesId)
                 .findFirst()
                 .ifPresent(body -> {
-                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof BindingTarget.IidTarget target) {
                         get(target.iid(), User.class).ifPresent(this::setPrincipal);
                     }
@@ -1561,11 +1568,11 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         if (host != null) return;
 
         // Reload from stored frame (reboot case)
-        ItemID availableAtId = ItemID.fromString("cg.core:available-at");
+        ItemID availableAtId = ItemID.fromString(RoutingVocabulary.AvailableAt.KEY);
         library().byItemPredicate(iid(), availableAtId)
                 .findFirst()
                 .ifPresent(body -> {
-                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof BindingTarget.IidTarget target) {
                         get(target.iid(), Host.class).ifPresent(h -> this.host = h);
                     }
@@ -1759,9 +1766,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * @return Stream of type ItemIDs
      */
-    @Verb(value = VerbSememe.ListVerb.KEY, doc = "List all known item types")
+    @Verb(value = CoreVocabulary.ListVerb.KEY, doc = "List all known item types")
     public Stream<ItemID> types() {
-        return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
+        return library().byPredicate(CoreVocabulary.ImplementedBy.SEED.iid())
                 .map(FrameBody::theme);
     }
 
@@ -1775,7 +1782,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param userName The name of the user to serve
      * @return The user that is now the principal
      */
-    @Verb(value = VerbSememe.Serve.KEY, doc = "Set the principal (user) this librarian serves")
+    @Verb(value = CoreVocabulary.Serve.KEY, doc = "Set the principal (user) this librarian serves")
     public Signer serve(@Param(value = "user", doc = "The user to serve") ItemID userId) {
         // By the time we get here, Eval has already resolved the token to an IID
         Optional<User> found = get(userId, User.class);
@@ -1854,9 +1861,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @return Stream of TypeEntry for each Item type
      */
     public Stream<TypeEntry> itemTypes() {
-        return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
+        return library().byPredicate(CoreVocabulary.ImplementedBy.SEED.iid())
                 .filter(body -> {
-                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
                         return c != null && Item.class.isAssignableFrom(c);
@@ -1864,7 +1871,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     return false;
                 })
                 .map(body -> {
-                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:target"));
+                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:goal"));
                     return TypeEntry.of(body.theme(), lit.asJavaClass());
                 });
     }
@@ -1878,9 +1885,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @return Stream of TypeEntry for each component type
      */
     public Stream<TypeEntry> componentTypes() {
-        return library().byPredicate(VerbSememe.ImplementedBy.SEED.iid())
+        return library().byPredicate(CoreVocabulary.ImplementedBy.SEED.iid())
                 .filter(body -> {
-                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
                         return c != null && c.isAnnotationPresent(Type.class);
@@ -1888,7 +1895,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     return false;
                 })
                 .map(body -> {
-                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:target"));
+                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:goal"));
                     return TypeEntry.of(body.theme(), lit.asJavaClass());
                 });
     }
@@ -1982,7 +1989,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param iid The item ID
      * @return The item, or empty if not found
      */
-    @Verb(value = VerbSememe.Get.KEY, doc = "Fetch an item by ID")
+    @Verb(value = CoreVocabulary.Get.KEY, doc = "Fetch an item by ID")
     public Optional<Item> get(
             @Param(value = "iid", doc = "Item ID") ItemID iid) {
         return get(iid, Item.class);
@@ -1995,7 +2002,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param limit     Maximum results (default 20)
      * @return Matching postings
      */
-    @Verb(value = VerbSememe.Query.KEY, doc = "Search for items by name")
+    @Verb(value = CoreVocabulary.Query.KEY, doc = "Search for items by name")
     public List<Posting> query(
             @Param(value = "query", doc = "Search query") String queryText,
             @Param(value = "limit", doc = "Maximum results", required = false) Integer limit) {
@@ -2024,7 +2031,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * find implemented-by from chess
      * }</pre>
      */
-    @Verb(value = VerbSememe.Find.KEY, doc = "Find items by relation predicate and optional role constraints")
+    @Verb(value = CoreVocabulary.Find.KEY, doc = "Find items by relation predicate and optional role constraints")
     public List<ItemID> find(
             @Param(value = "predicate", role = "THEME", doc = "Frame predicate sememe/item ID")
             ItemID predicate,
@@ -2041,7 +2048,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // Both provided: query by one, filter by the other
             frames = library().byItemPredicate(subject, predicate)
                     .filter(body -> {
-                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                         return tgt instanceof BindingTarget.IidTarget iidTarget
                                 && object.equals(iidTarget.iid());
                     });
@@ -2057,7 +2064,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // from <subject>: return targets
             return frames
                     .flatMap(body -> {
-                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:target"));
+                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                         if (tgt instanceof BindingTarget.IidTarget iidTarget) {
                             return Stream.of(iidTarget.iid());
                         }
@@ -2077,7 +2084,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Show librarian status including path, library info, and network status.
      */
-    @Verb(value = VerbSememe.Describe.KEY, doc = "Show librarian status")
+    @Verb(value = CoreVocabulary.Describe.KEY, doc = "Show librarian status")
     public String status() {
         StringBuilder sb = new StringBuilder();
         sb.append("Librarian: ").append(rootPath != null ? rootPath : "(in-memory)").append("\n");
@@ -2114,7 +2121,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * @return A message with the invite code
      */
-    @Verb(value = VerbSememe.Invite.KEY, doc = "Generate an invite code for a new user")
+    @Verb(value = CoreVocabulary.Invite.KEY, doc = "Generate an invite code for a new user")
     public String invite() {
         if (sessionServer == null) {
             return "No session server running — start with --daemon or combined mode.";
@@ -2127,7 +2134,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Show available verbs on this librarian.
      */
-    @Verb(value = VerbSememe.Help.KEY, doc = "Show available verbs")
+    @Verb(value = CoreVocabulary.Help.KEY, doc = "Show available verbs")
     public String help() {
         StringBuilder sb = new StringBuilder();
         sb.append("Librarian Verbs:\n");
@@ -2164,7 +2171,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         Item newItem = Item.create(this);
         if (name != null && !name.isBlank()) {
             newItem.relate(
-                    NounSememe.Title.SEED.iid(),
+                    CoreVocabulary.Title.SEED.iid(),
                     Literal.ofText(name));
         }
         return newItem;
@@ -2286,6 +2293,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     public void registerSession(SessionInfo session) {
         connectedSessions.add(session);
         logger.info("Session connected: {}", session);
+        logActivity("Session connected", String.valueOf(session));
     }
 
     /**
@@ -2296,6 +2304,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     public void unregisterSession(SessionInfo session) {
         connectedSessions.remove(session);
         logger.info("Session disconnected: {}", session);
+        logActivity("Session disconnected", String.valueOf(session));
     }
 
     /**
@@ -2305,6 +2314,22 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     public Set<SessionInfo> connectedSessions() {
         return Set.copyOf(connectedSessions);
+    }
+
+    /**
+     * Get the librarian's infrastructure activity log.
+     */
+    public ActivityLog activityLog() {
+        return activityLog;
+    }
+
+    /**
+     * Log an infrastructure event to the librarian's activity log.
+     */
+    private void logActivity(String event, String detail) {
+        if (activityLog != null) {
+            activityLog.append(ActivityEntry.infrastructure(event, detail));
+        }
     }
 
     /**

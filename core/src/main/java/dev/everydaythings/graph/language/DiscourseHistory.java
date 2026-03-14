@@ -64,7 +64,7 @@ public class DiscourseHistory {
      * @param focusedItem The currently focused item ("this"), or null
      * @return The resolved item, or empty if unresolvable
      */
-    public Optional<Item> resolve(PronounSememe pronoun, Item focusedItem) {
+    public Optional<Item> resolve(Sememe pronoun, Item focusedItem) {
         String key = pronoun.canonicalKey();
         if (key == null) return Optional.empty();
 

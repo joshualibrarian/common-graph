@@ -29,7 +29,7 @@ A Library can have multiple stores in priority order. When looking up an item, s
 Store Registry
 ├── [Priority 1] Working tree store (filesystem-backed items being edited)
 ├── [Priority 2] Primary store (RocksDB or in-memory)
-└── [Priority 3] Peer store (network peers via CG Protocol)
+└── [Priority 3] Peer store (network peers via Peer Protocol)
 ```
 
 This layering lets a Librarian have local working copies overlaid on a persistent store, with peer fallback for items it doesn't have locally. When a `get()` call misses in the local stores, the Librarian can query peers through the [discovery mechanism](network.md#discovery) — concentric ripple search through the social graph.

@@ -6,6 +6,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
@@ -137,7 +138,7 @@ public class ValueType extends Item {
 
     /** The canonical key (e.g., "cg.value:decimal") */
     @Getter
-    @Frame(handle = "key")
+    @Frame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
 
     /** Human-readable name */
@@ -147,7 +148,7 @@ public class ValueType extends Item {
 
     /** Canonicalization rules (optional) */
     @Getter
-    @Frame(handle = "canon")
+    @Frame(key = {CoreVocabulary.Canonicalization.KEY})
     private CanonRules canonRules;
 
     /** Value bounds (optional) */

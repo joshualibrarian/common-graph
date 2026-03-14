@@ -29,7 +29,7 @@ class FrameIndexTest {
     static final ItemID TOLKIEN = ItemID.fromString("cg:person/tolkien");
     static final ItemID ALICE = ItemID.fromString("cg:user/alice");
     static final ItemID BOB = ItemID.fromString("cg:user/bob");
-    static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
+    static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
     static final ItemID THEME_ROLE = ItemID.fromString("cg.role:theme");
 
     SkipListLibraryIndex index;
@@ -47,7 +47,7 @@ class FrameIndexTest {
         @DisplayName("index by predicate")
         void indexByPredicate() {
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
             ContentID bodyHash = body.hash();
             ContentID storageCid = ContentID.of(new byte[]{1, 2, 3});
 
@@ -64,7 +64,7 @@ class FrameIndexTest {
         @DisplayName("index by participating item")
         void indexByItem() {
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
             ContentID bodyHash = body.hash();
             ContentID storageCid = ContentID.of(new byte[]{1, 2, 3});
 
@@ -81,7 +81,7 @@ class FrameIndexTest {
         @DisplayName("index by item and predicate")
         void indexByItemPredicate() {
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
             ContentID bodyHash = body.hash();
             ContentID storageCid = ContentID.of(new byte[]{1, 2, 3});
 
@@ -100,9 +100,9 @@ class FrameIndexTest {
         @DisplayName("multiple frames indexed")
         void multipleFrames() {
             FrameBody body1 = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
             FrameBody body2 = FrameBody.of(LIKES, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(ALICE)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(ALICE)));
             ContentID cid1 = ContentID.of(new byte[]{1});
             ContentID cid2 = ContentID.of(new byte[]{2});
 
@@ -126,7 +126,7 @@ class FrameIndexTest {
         @DisplayName("frame body indexed via frame index")
         void frameBodyIndexed() {
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
             ContentID bodyHash = body.hash();
             ContentID storageCid = ContentID.of(body.bodyBytes());
 
@@ -142,7 +142,7 @@ class FrameIndexTest {
         @DisplayName("framesByItem finds indexed frame body")
         void framesByItemFindsBody() {
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
             ContentID bodyHash = body.hash();
             ContentID storageCid = ContentID.of(body.bodyBytes());
 
@@ -163,7 +163,7 @@ class FrameIndexTest {
         @DisplayName("index and query records by body hash")
         void indexAndQuery() {
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
             ContentID bodyHash = body.hash();
 
             ContentID aliceKeyId = ContentID.of(new byte[]{1, 1, 1});
@@ -184,7 +184,7 @@ class FrameIndexTest {
         @DisplayName("attestation count")
         void attestationCount() {
             FrameBody body = FrameBody.of(LIKES, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(ALICE)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(ALICE)));
             ContentID bodyHash = body.hash();
 
             ContentID key1 = ContentID.of(new byte[]{1, 1});
@@ -204,9 +204,9 @@ class FrameIndexTest {
         @DisplayName("different bodies have independent records")
         void independentBodies() {
             FrameBody body1 = FrameBody.of(LIKES, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(ALICE)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(ALICE)));
             FrameBody body2 = FrameBody.of(LIKES, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(BOB)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(BOB)));
 
             ContentID signerKey = ContentID.of(new byte[]{1, 1, 1});
 

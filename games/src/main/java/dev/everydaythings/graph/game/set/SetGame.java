@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -292,7 +292,7 @@ public class SetGame extends GameComponent<SetGame.Op>
     // Game Actions (Verbs)
     // ==================================================================================
 
-    @Verb(value = VerbSememe.Create.KEY, doc = "Start the game")
+    @Verb(value = CoreVocabulary.Create.KEY, doc = "Start the game")
     public void start() {
         if (started) return;
         requireSigner();
@@ -401,7 +401,7 @@ public class SetGame extends GameComponent<SetGame.Op>
         return zoneMap.zone("deck").size();
     }
 
-    @Verb(value = VerbSememe.Describe.KEY, doc = "Describe game status")
+    @Verb(value = CoreVocabulary.Describe.KEY, doc = "Describe game status")
     public String describeStatus() {
         if (!started) return "Waiting to start. " + seatedCount() + " players.";
         if (gameOver) {
@@ -413,7 +413,7 @@ public class SetGame extends GameComponent<SetGame.Op>
                 + " | Sets in view: " + findAllSets().size();
     }
 
-    @Verb(value = VerbSememe.Show.KEY, doc = "Show the tableau")
+    @Verb(value = CoreVocabulary.Show.KEY, doc = "Show the tableau")
     public String renderTableau() {
         if (!started) return "Game not started.";
 

@@ -10,7 +10,6 @@ import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.frame.FrameTable;
-import dev.everydaythings.graph.item.Components;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -249,7 +248,7 @@ public class ItemSchema {
         return FrameBody.of(
                 spec.predicate(),
                 item.iid(),
-                Map.of(ThematicRole.Target.SEED.iid(), targetValue));
+                Map.of(ThematicRole.Goal.SEED.iid(), targetValue));
     }
 
     // ==================================================================================
@@ -312,7 +311,7 @@ public class ItemSchema {
 
         // For types with @Type annotation
         if (value.getClass().isAnnotationPresent(Type.class)) {
-            ItemID typeId = Components.typeId(value.getClass());
+            ItemID typeId = Item.idOf(value.getClass());
             boolean isLocalOnly = spec.localOnly();
 
             if (isLocalOnly) {
@@ -325,7 +324,9 @@ public class ItemSchema {
             if (value instanceof Canonical canonical) {
                 bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
             } else {
-                bytes = Components.encode(value);
+                throw new IllegalStateException(
+                        "Non-Canonical @Type class " + value.getClass().getName()
+                        + " cannot be encoded — implement Canonical");
             }
             return storeAndBuildEntry(key, alias, typeId, spec.identity(),
                     bytes, storePayload, effectiveContext, existingConfig);

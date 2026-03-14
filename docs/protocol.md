@@ -1,24 +1,24 @@
 # Protocol
 
-Common Graph defines two protocols: the **CG Protocol** for peer-to-peer communication between Librarians, and the **Session Protocol** for client-to-Librarian interaction. Both share a unified wire format: CBOR tag-based message discrimination over length-prefixed frames.
+Common Graph defines two protocols: the **Peer Protocol** for peer-to-peer communication between Librarians, and the **Session Protocol** for client-to-Librarian interaction. Both share a unified wire format: CBOR tag-based message discrimination over length-prefixed frames.
 
 This document covers wire-level protocol details — message types, framing, connection lifecycle. For the high-level network architecture (discovery, routing, replication, scaling), see [Network Architecture](network.md).
 
 ## Design Philosophy
 
-The CG Protocol is intentionally minimal. There are exactly two message types — **Request** and **Delivery** — plus shared keep-alive, acknowledgment, and error types. Everything else is convention built on top.
+The Peer Protocol is intentionally minimal. There are exactly two message types — **Request** and **Delivery** — plus shared keep-alive, acknowledgment, and error types. Everything else is convention built on top.
 
 This simplicity is deliberate. Traditional protocols tend to accumulate message types as features are added. Common Graph avoids this by keeping the protocol as a thin transport for graph operations. If you can request things and deliver things, you can build any interaction pattern — including query propagation across the social graph, subscription-driven replication, and relay forwarding through trusted intermediaries.
 
 Both protocols share a single wire format — CBOR tags in the 1-byte range (11-22) discriminate message types natively within the CBOR encoding, eliminating the need for external type codes or JSON-style envelope wrapping. Three message types (Heartbeat, Ack, Error) are shared across both protocols. A single Netty-based codec (`ProtocolCodec`) handles encoding and decoding for all message types.
 
-Related work: the CG Protocol shares philosophical DNA with systems like [Freenet](https://freenetproject.org/) (content-addressed P2P storage), [IPFS](https://ipfs.tech/) (content-addressed block exchange), and [Secure Scuttlebutt](https://scuttlebutt.nz/) (append-only log replication). Unlike those systems, Common Graph unifies content addressing with semantic relations and cryptographic identity in a single protocol. The protocol is local-first by design (see [references/Kleppmann 2019](references/Kleppmann%202019%20-%20Local-First%20Software.pdf)) — all data lives locally, networking is explicit, and sync is merge-based. Fielding's REST dissertation (see [references/Fielding 2000](references/Fielding%202000%20-%20Architectural%20Styles%20and%20Network-Based%20Software%20REST.pdf)) defines the dominant network architecture of the web; the CG Protocol departs from REST's stateless client-server model toward signed, content-addressed peer-to-peer exchange.
+Related work: the Peer Protocol shares philosophical DNA with systems like [Freenet](https://freenetproject.org/) (content-addressed P2P storage), [IPFS](https://ipfs.tech/) (content-addressed block exchange), and [Secure Scuttlebutt](https://scuttlebutt.nz/) (append-only log replication). Unlike those systems, Common Graph unifies content addressing with semantic frames and cryptographic identity in a single protocol. The protocol is local-first by design (see [references/Kleppmann 2019](references/Kleppmann%202019%20-%20Local-First%20Software.pdf)) — all data lives locally, networking is explicit, and sync is merge-based. Fielding's REST dissertation (see [references/Fielding 2000](references/Fielding%202000%20-%20Architectural%20Styles%20and%20Network-Based%20Software%20REST.pdf)) defines the dominant network architecture of the web; the Peer Protocol departs from REST's stateless client-server model toward signed, content-addressed peer-to-peer exchange.
 
 ---
 
-## CG Protocol (Peer-to-Peer)
+## Peer Protocol
 
-The CG Protocol connects Librarians — the runtime nodes of the Common Graph network. Each Librarian is itself an Item (a Signer with its own Ed25519 key), so protocol participation is identity-native.
+The Peer Protocol connects Librarians — the runtime nodes of the Common Graph network. Each Librarian is itself an Item (a Signer with its own Ed25519 key), so protocol participation is identity-native.
 
 ### Transport
 
@@ -47,12 +47,12 @@ Request {
 |--------|--------|-------------|
 | **Item** | `iid`, `vid?` | Request an item's manifest, optionally at a specific version |
 | **Content** | `cid` | Request content bytes by hash |
-| **Relations** | `item?`, `predicate?`, `subscribe?` | Query relations involving an item and/or predicate; optionally subscribe to updates |
+| **Frames** | `item?`, `predicate?`, `subscribe?` | Query frames involving an item and/or predicate; optionally subscribe to updates |
 
 Target subtypes are discriminated by field presence in the CBOR map — no "kind" strings:
 - **Item**: has `iid` field (optionally `vid`)
 - **Content**: has `cid` field (no `iid`)
-- **Relations**: has `subscribe` field
+- **Frames**: has `subscribe` field
 
 A single Request can ask for multiple things at once.
 
@@ -73,14 +73,14 @@ Delivery {
 |---------|--------|-------------|
 | **Item** | `manifest` | A signed manifest |
 | **Content** | `cid`, `data` | Content bytes with their hash |
-| **Relations** | `relations` | A list of signed relations |
+| **Frames** | `frames` | A list of signed frames |
 | **NotFound** | `notfound` | "I don't have this item" (value is the IID) |
 | **Envelope** | `next`, `origin`, `inner` | Wrapped message for relay forwarding |
 
 Payload subtypes are discriminated by field presence — no "kind" strings:
 - **Item**: has `manifest`
 - **Content**: has `cid` + `data`
-- **Relations**: has `relations` (array)
+- **Frames**: has `frames` (array)
 - **NotFound**: has `notfound`
 - **Envelope**: has `next` + `origin` + `inner`
 
@@ -103,16 +103,16 @@ Librarian A                         Librarian B
 
 After the handshake, both sides know each other's ItemID, public key, and display name. The peer is now **identified**.
 
-#### Graph-Native Network Relations
+#### Graph-Native Network Frames
 
-When a peer identifies, the protocol handler automatically creates signed relations recording the event:
+When a peer identifies, the protocol handler automatically creates signed frames recording the event:
 
 ```
 local  → PEERS_WITH → remote
 remote → REACHABLE_AT → Endpoint(protocol, host, port)
 ```
 
-These aren't side-channel metadata — they're first-class Items in the graph, queryable and auditable like any other relation. Your network topology is part of your graph.
+These aren't side-channel metadata — they're first-class frames in the graph, queryable and auditable like any other frame. Your network topology is part of your graph.
 
 ### Request/Response Flow
 
@@ -137,20 +137,20 @@ If the item isn't found:
 
 ### Subscriptions
 
-A Request with `subscribe: true` on a Relations target establishes a persistent subscription. The responder sends an initial Delivery with current matching relations, then pushes unsolicited Deliveries (requestId = 0) whenever new matching relations appear:
+A Request with `subscribe: true` on a Frames target establishes a persistent subscription. The responder sends an initial Delivery with current matching frames, then pushes unsolicited Deliveries (requestId = 0) whenever new matching frames appear:
 
 ```
 Subscriber                          Publisher
      |                                    |
      |--- Request(id=43,                  |
-     |    Relations(p=AUTHOR,             |
+     |    Frames(p=AUTHOR,               |
      |    subscribe=true)) -------------->|
      |                                    |
-     |<-- Delivery(id=43, [relations]) ---|
+     |<-- Delivery(id=43, [frames]) -----|
      |                                    |
-     ...time passes, new relation added...
+     ...time passes, new frame added...
      |                                    |
-     |<-- Delivery(id=0, [new relation]) -|
+     |<-- Delivery(id=0, [new frame]) ---|
      |                                    |
 ```
 
@@ -179,7 +179,7 @@ Origin                   Relay                    Destination
   |                        |                           |
 ```
 
-The relay checks if `next` matches its own identity. If yes, it unwraps and processes the inner message. If no, it forwards to the next hop. Each relay records an `ACKNOWLEDGES_RELAY` relation — again, graph-native auditing.
+The relay checks if `next` matches its own identity. If yes, it unwraps and processes the inner message. If no, it forwards to the next hop. Each relay records an `ACKNOWLEDGES_RELAY` frame — again, graph-native auditing.
 
 ### Pending Request Management
 
@@ -189,11 +189,11 @@ Requests are tracked by a monotonic counter per connection. Each pending request
 
 ## Session Protocol (Client-to-Librarian)
 
-The Session Protocol connects a UI client (text terminal, 2D graphical, 3D spatial) to a Librarian. Where the CG Protocol is about peer-to-peer data exchange, the Session Protocol is about human interaction — dispatching verbs, navigating items, receiving live updates.
+The Session Protocol connects a UI client (text terminal, 2D graphical, 3D spatial) to a Librarian. Where the Peer Protocol is about peer-to-peer data exchange, the Session Protocol is about human interaction — dispatching verbs, navigating items, receiving live updates.
 
 ### Transport
 
-- **Framing**: `[4-byte length][CBOR Tag(N, map)]` — same unified wire format as CG Protocol
+- **Framing**: `[4-byte length][CBOR Tag(N, map)]` — same unified wire format as Peer Protocol
 - **Transport**: Netty pipeline (shared `ProtocolCodec`)
 - **Connection types**: Local (Unix socket or loopback TCP), remote (TCP with TLS)
 
@@ -205,7 +205,7 @@ The Session Protocol connects a UI client (text terminal, 2D graphical, 3D spati
 | **CONTEXT** | 14 | Both | Get/set the currently focused item |
 | **DISPATCH** | 15 | Client → Librarian | Execute a verb on an item |
 | **LOOKUP** | 16 | Client → Librarian | Token completion and search |
-| **SUBSCRIBE** | 17 | Client → Librarian | Watch for changes to items or relations |
+| **SUBSCRIBE** | 17 | Client → Librarian | Watch for changes to items or frames |
 | **EVENT** | 18 | Librarian → Client | Push notification of changes |
 | **STREAM** | 19 | Librarian → Client | Chunked long-running output |
 
@@ -293,7 +293,7 @@ The client subscribes to changes on specific items. When those items are modifie
 
 ## Protocol Comparison
 
-| Aspect | CG Protocol (P2P) | Session Protocol (Client) |
+| Aspect | Peer Protocol | Session Protocol |
 |--------|-------------------|---------------------------|
 | **Purpose** | Data exchange between Librarians | Human interaction with a Librarian |
 | **Participants** | Librarian ↔ Librarian | Session UI ↔ Librarian |
@@ -362,7 +362,7 @@ Endpoint {
 
 Text representation: `cg://192.168.1.1:7432` or `cg://[::1]:7432` for IPv6.
 
-Endpoints are stored as relation objects (e.g., `librarian → REACHABLE_AT → Endpoint`), making network topology discoverable through normal graph queries. See [Network Architecture](network.md) for how these relations form the routing layer.
+Endpoints are stored as frames (e.g., `librarian → REACHABLE_AT → Endpoint`), making network topology discoverable through normal graph queries. See [Network Architecture](network.md) for how these relations form the routing layer.
 
 ## References
 

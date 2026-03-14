@@ -9,8 +9,6 @@ import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.VerbInvoker;
 import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.item.Components;
-import dev.everydaythings.graph.item.ComponentType;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.dispatch.ParamSpec;
@@ -18,13 +16,11 @@ import dev.everydaythings.graph.language.DiscourseHistory;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.language.PronounSememe;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.SemanticFrame;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.VerbSememe;
 import lombok.extern.log4j.Log4j2;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
@@ -479,7 +475,8 @@ public class Eval {
         for (ResolvedToken token : tokens) {
             if (token instanceof ResolvedToken.Link link) {
                 Optional<Item> item = librarianHandle.get(link.iid());
-                if (item.isPresent() && item.get() instanceof PronounSememe pronoun) {
+                if (item.isPresent() && item.get() instanceof Sememe pronoun
+                        && pronoun.pos().equals(PartOfSpeech.PRONOUN)) {
                     Optional<Item> referent = discourseHistory.resolve(pronoun, context);
                     if (referent.isPresent()) {
                         result.add(new ResolvedToken.Link(
@@ -509,7 +506,7 @@ public class Eval {
 
     private boolean isCreateVerbToken(ResolvedToken token) {
         if (!(token instanceof ResolvedToken.Link link)) return false;
-        return link.iid().equals(ItemID.fromString(VerbSememe.Create.KEY));
+        return link.iid().equals(ItemID.fromString(CoreVocabulary.Create.KEY));
     }
 
     private Posting preferredExactPosting(List<Posting> postings, String token, ResolutionHint hint) {
@@ -520,16 +517,8 @@ public class Eval {
                 .toList();
         if (exact.size() <= 1) return null;
 
-        // For "create <noun>", prefer component types when ambiguous.
-        for (Posting p : exact) {
-            Optional<Item> candidate = librarianHandle.get(p.target());
-            if (candidate.isPresent() && candidate.get() instanceof ComponentType) {
-                return p;
-            }
-        }
-
-        // Next, prefer any target with a non-Item create implementation.
-        ItemID createId = ItemID.fromString(VerbSememe.Create.KEY);
+        // For "create <noun>", prefer nouns that have a non-base CREATE verb (createable types).
+        ItemID createId = ItemID.fromString(CoreVocabulary.Create.KEY);
         for (Posting p : exact) {
             Optional<Item> candidate = librarianHandle.get(p.target());
             if (candidate.isEmpty()) continue;
@@ -643,7 +632,7 @@ public class Eval {
      * <p>Higher score means "more likely to be executable now."
      * Scores mirror the inner-to-outer dispatch order.
      */
-    private int headVerbScore(VerbSememe verb) {
+    private int headVerbScore(Sememe verb) {
         int score = 0;
         ItemID verbId = verb.iid();
 
@@ -740,7 +729,7 @@ public class Eval {
         // 2. Bound items from the frame (explicit user intent)
         if (target == null) {
             for (var entry : frame.bindings().entrySet()) {
-                if (entry.getKey().equals(ThematicRole.Target.SEED.iid())) continue;
+                if (entry.getKey().equals(ThematicRole.Goal.SEED.iid())) continue;
                 if (!(entry.getValue() instanceof Item item)) continue;
                 if (item.vocabulary().lookup(verbId).isPresent()) {
                     target = item;
@@ -788,7 +777,7 @@ public class Eval {
         EvalResult result = dispatchVerbForResult(target, verbId, frame);
 
         // 3. Wrap with TARGET if present (only for Item targets)
-        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.Target.SEED.iid());
+        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.Goal.SEED.iid());
         if (prepTarget.isPresent() && result instanceof EvalResult.Value(Object value)) {
             return EvalResult.valueWithTarget(value, prepTarget.get());
         }
@@ -827,6 +816,13 @@ public class Eval {
             }
             case EvalResult.Error(String message) -> {
                 System.err.println("Error: " + message);
+                yield 1;
+            }
+            case EvalResult.Ambiguous ambiguous -> {
+                System.err.println("Ambiguous input — multiple meanings for:");
+                for (var t : ambiguous.tokens()) {
+                    System.err.println("  \"" + t.text() + "\" (" + t.candidates().size() + " candidates)");
+                }
                 yield 1;
             }
         };
@@ -905,11 +901,11 @@ public class Eval {
     /**
      * Execute an expression from UI-generated tokens.
      *
-     * <p>This bridges the UI layer (EvalInput/ExpressionToken) with
+     * <p>This bridges the UI layer (InputController/ExpressionToken) with
      * the execution layer (ResolvedToken/dispatch). All UI modes (GUI, TUI, CLI)
      * can use this to execute expressions uniformly.
      *
-     * @param tokens The tokens from EvalInput.accept()
+     * @param tokens The tokens from InputController.accept()
      * @return The result of execution
      */
     public EvalResult executeTokens(List<ExpressionToken> tokens) {
@@ -956,6 +952,20 @@ public class Eval {
             }
         }
 
+        // Check for surviving CandidateTokens — InputController should have resolved
+        // these, but if any survive, report ambiguity instead of guessing.
+        List<EvalResult.Ambiguous.UnresolvedToken> ambiguous = null;
+        for (int i = 0; i < tokens.size(); i++) {
+            if (tokens.get(i) instanceof ExpressionToken.CandidateToken candidate) {
+                if (ambiguous == null) ambiguous = new ArrayList<>();
+                ambiguous.add(new EvalResult.Ambiguous.UnresolvedToken(
+                        i, candidate.text(), candidate.candidates()));
+            }
+        }
+        if (ambiguous != null) {
+            return EvalResult.ambiguous(ambiguous);
+        }
+
         // Convert ExpressionTokens to ResolvedTokens
         List<ResolvedToken> resolved = new ArrayList<>();
         for (ExpressionToken token : tokens) {
@@ -992,26 +1002,27 @@ public class Eval {
 
     /**
      * Convert a UI ExpressionToken to an execution ResolvedToken.
+     *
+     * <p>This is a TRIVIAL passthrough — InputController already did all resolution.
+     * No dictionary lookups, no disambiguation. Just type mapping.
      */
     private ResolvedToken convertToken(ExpressionToken token) {
-        if (token instanceof ExpressionToken.RefToken ref) {
-            return new ResolvedToken.Link(ref.target(), ref.displayText());
-        } else if (token instanceof ExpressionToken.LiteralToken lit) {
-            return new ResolvedToken.Literal(lit.value(), lit.displayText());
-        } else if (token instanceof ExpressionToken.OpToken op) {
-            // Operators reference Items - treat as Link
-            return new ResolvedToken.Link(op.operatorId(), op.displayText());
-        } else if (token instanceof ExpressionToken.CandidateToken candidate) {
-            // Ambiguous — use highest-weight candidate as best guess
-            Posting best = candidate.candidates().get(0);
-            return new ResolvedToken.Link(best.target(), candidate.displayText());
-        } else if (token instanceof ExpressionToken.NameToken name) {
-            // Unresolved name - treat as unresolved token
-            return new ResolvedToken.Unresolved(name.name());
-        } else {
-            // Parens etc - treat as literals
-            return new ResolvedToken.Literal(token.displayText(), token.displayText());
-        }
+        return switch (token) {
+            case ExpressionToken.RefToken ref ->
+                    new ResolvedToken.Link(ref.target(), ref.displayText());
+            case ExpressionToken.LiteralToken lit ->
+                    new ResolvedToken.Literal(lit.value(), lit.displayText());
+            case ExpressionToken.OpToken op ->
+                    new ResolvedToken.Link(op.operatorId(), op.displayText());
+            case ExpressionToken.CandidateToken candidate ->
+                    // Still ambiguous — will be caught after conversion and reported as Ambiguous
+                    new ResolvedToken.Unresolved(candidate.text());
+            case ExpressionToken.NameToken name ->
+                    new ResolvedToken.Unresolved(name.name());
+            default ->
+                    // Parens, commas — structural tokens treated as literals
+                    new ResolvedToken.Literal(token.displayText(), token.displayText());
+        };
     }
 
     /**
@@ -1041,7 +1052,7 @@ public class Eval {
         // Build bindings: exclude TARGET role and the dispatch target itself
         Map<ItemID, Object> bindings = new LinkedHashMap<>();
         for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey().equals(ThematicRole.Target.SEED.iid())) continue;
+            if (entry.getKey().equals(ThematicRole.Goal.SEED.iid())) continue;
             Object value = entry.getValue();
             if (value instanceof Item item && item.iid().equals(target.iid())) continue;
             bindings.put(entry.getKey(), value);
@@ -1075,7 +1086,7 @@ public class Eval {
             if (value instanceof Item item) {
                 pushToHistory(item);
                 // CREATE returns a new item — don't navigate the current view
-                if (verbId.equals(ItemID.fromString(VerbSememe.Create.KEY))) {
+                if (verbId.equals(ItemID.fromString(CoreVocabulary.Create.KEY))) {
                     return EvalResult.created(item);
                 }
                 return EvalResult.item(item);
@@ -1130,6 +1141,15 @@ public class Eval {
         record Created(Item item) implements EvalResult {}
         record ValueWithTarget(Object value, Item targetItem) implements EvalResult {}
         record Error(String message) implements EvalResult {}
+        /**
+         * CandidateTokens survived all the way to dispatch — user must disambiguate.
+         *
+         * @param tokens per-token disambiguation info (index, text, remaining candidates)
+         */
+        record Ambiguous(List<UnresolvedToken> tokens) implements EvalResult {
+            public record UnresolvedToken(int index, String text,
+                                          List<dev.everydaythings.graph.language.Posting> candidates) {}
+        }
 
         static EvalResult empty() { return new Empty(); }
         static EvalResult value(Object v) { return new Value(v); }
@@ -1137,9 +1157,10 @@ public class Eval {
         static EvalResult created(Item i) { return new Created(i); }
         static EvalResult valueWithTarget(Object v, Item t) { return new ValueWithTarget(v, t); }
         static EvalResult error(String msg) { return new Error(msg); }
+        static EvalResult ambiguous(List<Ambiguous.UnresolvedToken> tokens) { return new Ambiguous(tokens); }
 
         default boolean isSuccess() {
-            return !(this instanceof Error);
+            return !(this instanceof Error) && !(this instanceof Ambiguous);
         }
     }
 

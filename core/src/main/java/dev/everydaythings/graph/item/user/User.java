@@ -7,7 +7,7 @@ import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.crypt.InMemoryVault;
 
@@ -133,7 +133,7 @@ public class User extends Signer {
      * @param name The user's name
      * @return The newly created User
      */
-    @Verb(value = VerbSememe.Create.KEY, doc = "Create a new user")
+    @Verb(value = CoreVocabulary.Create.KEY, doc = "Create a new user")
     public User actionNew(ActionContext ctx, @Param(value = "name", role = "NAME") String name) {
         Librarian lib = ctx.librarian();
         if (lib == null) {

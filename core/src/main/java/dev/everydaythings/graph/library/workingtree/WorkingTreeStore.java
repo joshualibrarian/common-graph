@@ -669,7 +669,7 @@ public final class WorkingTreeStore implements ItemStore {
      * Get an item by ID.
      *
      * <p>WorkingTreeStore delegates to the fallback store for item lookup.
-     * This is needed for type resolution (finding ComponentType items).
+     * This is needed for type resolution (finding type items).
      *
      * @param iid The item ID to look up
      * @return The item, or empty if not found

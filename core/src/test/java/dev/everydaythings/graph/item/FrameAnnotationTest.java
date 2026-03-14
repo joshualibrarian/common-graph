@@ -2,6 +2,7 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ class FrameAnnotationTest {
 
     @Type("cg:test/frame-endorsed")
     static class EndorsedFrameItem extends Item {
-        @Frame(handle = "vault", path = ".vault", localOnly = true)
+        @Frame(key = {CoreVocabulary.Vault.KEY}, path = ".vault", localOnly = true)
         private String vault;
 
         EndorsedFrameItem() {
@@ -27,7 +28,7 @@ class FrameAnnotationTest {
 
     @Type("cg:test/frame-semantic")
     static class SemanticFrameItem extends Item {
-        @Frame(key = {"cg:pred/title"})
+        @Frame(key = {CoreVocabulary.Title.KEY})
         private String title;
 
         SemanticFrameItem() {
@@ -37,7 +38,7 @@ class FrameAnnotationTest {
 
     @Type("cg:test/frame-unendorsed")
     static class UnendorsedFrameItem extends Item {
-        @Frame(key = {"cg:pred/author"}, endorsed = false)
+        @Frame(key = {CoreVocabulary.Author.KEY}, endorsed = false)
         private ItemID author;
 
         UnendorsedFrameItem() {
@@ -47,10 +48,10 @@ class FrameAnnotationTest {
 
     @Type("cg:test/frame-mixed")
     static class MixedFrameItem extends Item {
-        @Frame(handle = "data")
+        @Frame(key = {CoreVocabulary.Description.KEY})
         private String data;
 
-        @Frame(key = {"cg:pred/likes"}, endorsed = false)
+        @Frame(key = {CoreVocabulary.Activity.KEY}, endorsed = false)
         private ItemID likes;
 
         MixedFrameItem() {
@@ -76,9 +77,9 @@ class FrameAnnotationTest {
 
             FrameFieldSpec frame = schema.frameFields().getFirst();
             assertThat(frame.endorsed()).isTrue();
-            assertThat(frame.canonicalKeyString()).isEqualTo("vault");
+            assertThat(frame.isSemantic()).isTrue();
+            assertThat(frame.predicate()).isEqualTo(ItemID.fromString(CoreVocabulary.Vault.KEY));
             assertThat(frame.localOnly()).isTrue();
-            assertThat(frame.frameKey().isLiteral()).isTrue();
         }
 
         @Test
@@ -90,7 +91,7 @@ class FrameAnnotationTest {
             FrameFieldSpec frame = schema.frameFields().getFirst();
             assertThat(frame.isSemantic()).isTrue();
             assertThat(frame.frameKey().isSemantic()).isTrue();
-            assertThat(frame.predicate()).isEqualTo(ItemID.fromString("cg:pred/title"));
+            assertThat(frame.predicate()).isEqualTo(ItemID.fromString(CoreVocabulary.Title.KEY));
         }
 
         @Test
@@ -103,7 +104,7 @@ class FrameAnnotationTest {
 
             FrameFieldSpec frame = schema.frameFields().getFirst();
             assertThat(frame.endorsed()).isFalse();
-            assertThat(frame.predicate()).isEqualTo(ItemID.fromString("cg:pred/author"));
+            assertThat(frame.predicate()).isEqualTo(ItemID.fromString(CoreVocabulary.Author.KEY));
         }
 
         @Test
@@ -122,12 +123,12 @@ class FrameAnnotationTest {
     class Spec {
 
         @Test
-        @DisplayName("endorsed frame preserves handle and path")
+        @DisplayName("endorsed frame preserves key and path")
         void endorsedPreservesMetadata() {
             ItemSchema schema = ItemScanner.schemaFor(EndorsedFrameItem.class);
             FrameFieldSpec frame = schema.frameFields().getFirst();
 
-            assertThat(frame.canonicalKeyString()).isEqualTo("vault");
+            assertThat(frame.predicate()).isEqualTo(ItemID.fromString(CoreVocabulary.Vault.KEY));
             assertThat(frame.path()).isEqualTo(".vault");
             assertThat(frame.localOnly()).isTrue();
         }
@@ -140,7 +141,7 @@ class FrameAnnotationTest {
 
             // Semantic FrameKey's canonical string is the encoded ItemID
             assertThat(frame.canonicalKeyString())
-                    .isEqualTo(ItemID.fromString("cg:pred/title").encodeText());
+                    .isEqualTo(ItemID.fromString(CoreVocabulary.Title.KEY).encodeText());
         }
 
         @Test

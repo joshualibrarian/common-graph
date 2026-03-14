@@ -5,7 +5,7 @@ import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.PronounSememe;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.library.Library;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,8 +20,8 @@ import java.util.stream.Stream;
  * <p>Evaluates against the graph's relation index to find matching items.
  * Each position can be:
  * <ul>
- *   <li>{@link Sememe#ANY} - matches anything (wildcard *)</li>
- *   <li>{@link PronounSememe.What#SEED} - the result we're solving for (variable ?)</li>
+ *   <li>{@link Sememe.Any#SEED} - matches anything (wildcard *)</li>
+ *   <li>{@link Sememe.What#SEED} - the result we're solving for (variable ?)</li>
  *   <li>A concrete ItemID - a filter constraint</li>
  * </ul>
  *
@@ -66,8 +66,8 @@ public record PatternExpression(
     private static final Logger log = LogManager.getLogger(PatternExpression.class);
 
     // Convenience references
-    private static final ItemID ANY = PronounSememe.Any.SEED.iid();
-    private static final ItemID WHAT = PronounSememe.What.SEED.iid();
+    private static final ItemID ANY = Sememe.Any.SEED.iid();
+    private static final ItemID WHAT = Sememe.What.SEED.iid();
 
     // ==================================================================================
     // Factories
@@ -176,7 +176,7 @@ public record PatternExpression(
         return pattern != null && !ANY.equals(pattern) && !WHAT.equals(pattern);
     }
 
-    private static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
+    private static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
 
     private Stream<FrameBody> queryFrameBodies(Library library,
                                                ItemID subj, ItemID pred, ItemID obj) {
@@ -210,7 +210,7 @@ public record PatternExpression(
                         results.add(body.predicate());
                     }
                     if (wantObject) {
-                        BindingTarget obj = body.binding(TARGET_ROLE);
+                        BindingTarget obj = body.binding(GOAL_ROLE);
                         if (obj instanceof BindingTarget.IidTarget iidTarget) {
                             results.add(iidTarget.iid());
                         }

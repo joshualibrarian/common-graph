@@ -16,7 +16,7 @@ import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.policy.PolicySet;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
-import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.ui.scene.surface.ButtonSurface;
 import dev.everydaythings.graph.ui.scene.surface.HandleSurface;
 import dev.everydaythings.graph.ui.scene.surface.InputSurface;
@@ -133,12 +133,12 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     private final Function<ItemID, Optional<Item>> resolver;
 
     /**
-     * Current input state snapshot (from EvalInput).
+     * Current input state snapshot (from InputController).
      *
-     * <p>Fed by the session whenever EvalInput state changes.
+     * <p>Fed by the session whenever InputController state changes.
      * Used by {@link #prompt()} to render the input field.
      */
-    private EvalInputSnapshot inputSnapshot;
+    private InputSnapshot inputSnapshot;
 
     /**
      * Whether the prompt should be rendered in the surface tree.
@@ -197,9 +197,9 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     private boolean feedbackIsError;
 
     /**
-     * Update the input state from an EvalInput snapshot.
+     * Update the input state from an InputController snapshot.
      *
-     * <p>Called by the session when EvalInput fires onChange.
+     * <p>Called by the session when InputController fires onChange.
      * Does NOT trigger a full re-render — the platform-specific input
      * renderer (e.g., JLineInputRenderer) handles immediate visual updates.
      * The snapshot is stored so the next structural re-render (navigation,
@@ -207,7 +207,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      *
      * @param snapshot the current input state
      */
-    public void updateInput(EvalInputSnapshot snapshot) {
+    public void updateInput(InputSnapshot snapshot) {
         this.inputSnapshot = snapshot;
     }
 
@@ -669,7 +669,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * activity log, not stored data on this item. It appears above the
      * input field and disappears when the user starts typing.
      *
-     * <p>The input field renders the full EvalInput state: prompt label,
+     * <p>The input field renders the full InputController state: prompt label,
      * token chips, pending text with cursor, and completions.
      */
     @Scene(id = "prompt", classes = {"input"})

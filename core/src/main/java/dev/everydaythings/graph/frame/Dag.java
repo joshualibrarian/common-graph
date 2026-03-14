@@ -215,13 +215,6 @@ public abstract class Dag<E> implements Canonical {
         return !isEmpty();
     }
 
-    /**
-     * Encode this DAG to bytes for storage.
-     */
-    public byte[] encode() {
-        return encodeBinary(Scope.RECORD);
-    }
-
     /** Optional per-event not-before. */
     protected Long notBeforeFor(E op) { return null; }
 

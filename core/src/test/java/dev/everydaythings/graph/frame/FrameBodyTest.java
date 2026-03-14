@@ -20,7 +20,7 @@ class FrameBodyTest {
     static final ItemID THE_HOBBIT = ItemID.fromString("cg:book/the-hobbit");
     static final ItemID TOLKIEN = ItemID.fromString("cg:person/tolkien");
     static final ItemID THEME_ROLE = ItemID.fromString("cg.role:theme");
-    static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
+    static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
 
     @Nested
     @DisplayName("Construction")
@@ -39,13 +39,13 @@ class FrameBodyTest {
         @DisplayName("body with bindings")
         void withBindings() {
             Map<ItemID, BindingTarget> bindings = Map.of(
-                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
+                    GOAL_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody body = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
             assertThat(body.predicate()).isEqualTo(AUTHOR);
             assertThat(body.theme()).isEqualTo(THE_HOBBIT);
             assertThat(body.bindings()).hasSize(1);
-            assertThat(body.bindings().get(TARGET_ROLE))
+            assertThat(body.bindings().get(GOAL_ROLE))
                     .isInstanceOf(BindingTarget.IidTarget.class);
         }
 
@@ -103,7 +103,7 @@ class FrameBodyTest {
         @DisplayName("same assertion from different callers = same hash")
         void sameAssertionSameHash() {
             Map<ItemID, BindingTarget> bindings = Map.of(
-                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
+                    GOAL_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody alice = FrameBody.of(AUTHOR, THE_HOBBIT, bindings);
             FrameBody bob = FrameBody.of(AUTHOR, THE_HOBBIT, bindings);
@@ -140,7 +140,7 @@ class FrameBodyTest {
         @DisplayName("body with bindings round-trips")
         void bindingsRoundTrip() {
             Map<ItemID, BindingTarget> bindings = Map.of(
-                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
+                    GOAL_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody original = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
             byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
@@ -154,7 +154,7 @@ class FrameBodyTest {
         @DisplayName("round-tripped body produces same hash")
         void roundTripPreservesHash() {
             Map<ItemID, BindingTarget> bindings = Map.of(
-                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
+                    GOAL_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody original = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
             byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
@@ -193,7 +193,7 @@ class FrameBodyTest {
         @DisplayName("of() with bindings")
         void ofWithBindings() {
             Map<ItemID, BindingTarget> bindings = Map.of(
-                    TARGET_ROLE, BindingTarget.iid(TOLKIEN)
+                    GOAL_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT, bindings);
             assertThat(body.predicate()).isEqualTo(AUTHOR);

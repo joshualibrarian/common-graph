@@ -19,22 +19,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FrameAssemblerTest {
 
     // Use real seed sememes as verb/preposition items
-    private static final VerbSememe CREATE = VerbSememe.Create.SEED;
-    private static final VerbSememe SHOW = VerbSememe.Show.SEED;
-    private static final VerbSememe EDIT = VerbSememe.Edit.SEED;
-    private static final PrepositionSememe ON = PrepositionSememe.On.SEED;
-    private static final PrepositionSememe BETWEEN = PrepositionSememe.Between.SEED;
-    private static final PrepositionSememe NAMED = PrepositionSememe.Named.SEED;
-    private static final PrepositionSememe FROM = PrepositionSememe.From.SEED;
-    private static final ConjunctionSememe AND = ConjunctionSememe.And.SEED;
+    private static final Sememe CREATE = CoreVocabulary.Create.SEED;
+    private static final Sememe SHOW = CoreVocabulary.Show.SEED;
+    private static final Sememe EDIT = CoreVocabulary.Edit.SEED;
+    private static final Sememe ON = PrepositionVocabulary.On.SEED;
+    private static final Sememe BETWEEN = PrepositionVocabulary.Between.SEED;
+    private static final Sememe NAMED = PrepositionVocabulary.Named.SEED;
+    private static final Sememe FROM = PrepositionVocabulary.From.SEED;
+    private static final Sememe AND = Sememe.And.SEED;
 
     // Test modifier sememes
-    private static final AdjectiveSememe PUBLIC_ADJ = new AdjectiveSememe(
-            "cg:test/public",
+    private static final Sememe PUBLIC_ADJ = new Sememe(
+            "cg:test/public", PartOfSpeech.ADJECTIVE,
             Map.of("en", "accessible to everyone"), Map.of(),
             List.of("public"));
-    private static final AdverbSememe QUIETLY = new AdverbSememe(
-            "cg:test/quietly",
+    private static final Sememe QUIETLY = new Sememe(
+            "cg:test/quietly", PartOfSpeech.ADVERB,
             Map.of("en", "without notification"), Map.of(),
             List.of("quietly"));
 
@@ -45,17 +45,17 @@ class FrameAssemblerTest {
     private static final ItemID JANE_IID = ItemID.fromString("cg:test/jane");
 
     // Simple stub items for nouns (we just need iid() and displayToken())
-    private static final Item CHESS_ITEM = new NounSememe(
-            "cg:test/chess",
+    private static final Item CHESS_ITEM = new Sememe(
+            "cg:test/chess", PartOfSpeech.NOUN,
             Map.of("en", "chess"), Map.of());
-    private static final Item LIBRARIAN_ITEM = new NounSememe(
-            "cg:test/librarian",
+    private static final Item LIBRARIAN_ITEM = new Sememe(
+            "cg:test/librarian", PartOfSpeech.NOUN,
             Map.of("en", "librarian"), Map.of());
-    private static final Item BOB_ITEM = new NounSememe(
-            "cg:test/bob",
+    private static final Item BOB_ITEM = new Sememe(
+            "cg:test/bob", PartOfSpeech.NOUN,
             Map.of("en", "bob"), Map.of());
-    private static final Item JANE_ITEM = new NounSememe(
-            "cg:test/jane",
+    private static final Item JANE_ITEM = new Sememe(
+            "cg:test/jane", PartOfSpeech.NOUN,
             Map.of("en", "jane"), Map.of());
 
     /**
@@ -127,7 +127,7 @@ class FrameAssemblerTest {
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
                 .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Target.SEED.iid(), LIBRARIAN_ITEM);
+                .containsEntry(ThematicRole.Goal.SEED.iid(), LIBRARIAN_ITEM);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
         // CREATE has 5 slots; THEME+TARGET filled → 3 unbound
         assertThat(frame.get().unboundRoles()).hasSize(3);
@@ -150,7 +150,7 @@ class FrameAssemblerTest {
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
                 .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Target.SEED.iid(), LIBRARIAN_ITEM);
+                .containsEntry(ThematicRole.Goal.SEED.iid(), LIBRARIAN_ITEM);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -171,7 +171,7 @@ class FrameAssemblerTest {
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
                 .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Target.SEED.iid(), LIBRARIAN_ITEM);
+                .containsEntry(ThematicRole.Goal.SEED.iid(), LIBRARIAN_ITEM);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -283,7 +283,7 @@ class FrameAssemblerTest {
     @Test
     void requiredSlotsTracked() {
         // GET has a required THEME slot
-        var getVerb = VerbSememe.Get.SEED;
+        var getVerb = CoreVocabulary.Get.SEED;
         Function<ItemID, Optional<Item>> r = iid -> {
             if (iid.equals(getVerb.iid())) return Optional.of(getVerb);
             return Optional.empty();
@@ -319,7 +319,7 @@ class FrameAssemblerTest {
         assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
 
         // COMITATIVE should be a List of [bob, jane]
-        Object comitative = frame.get().bindings().get(ThematicRole.Comitative.SEED.iid());
+        Object comitative = frame.get().bindings().get(ThematicRole.Partner.SEED.iid());
         assertThat(comitative).isInstanceOf(List.class);
         List<Object> players = (List<Object>) comitative;
         assertThat(players).hasSize(2);
@@ -392,7 +392,7 @@ class FrameAssemblerTest {
         assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
         assertThat(frame.get().bindings()).containsEntry(ThematicRole.Name.SEED.iid(), "its-on!");
 
-        List<Object> players = (List<Object>) frame.get().bindings().get(ThematicRole.Comitative.SEED.iid());
+        List<Object> players = (List<Object>) frame.get().bindings().get(ThematicRole.Partner.SEED.iid());
         assertThat(players).containsExactly(BOB_ITEM, JANE_ITEM);
 
         assertThat(frame.get().unmatchedArgs()).isEmpty();
@@ -412,7 +412,7 @@ class FrameAssemblerTest {
         var frame = FrameAssembler.assemble(tokens, resolver);
 
         assertThat(frame).isPresent();
-        assertThat(frame.get().bindings().get(ThematicRole.Comitative.SEED.iid())).isSameAs(BOB_ITEM);
+        assertThat(frame.get().bindings().get(ThematicRole.Partner.SEED.iid())).isSameAs(BOB_ITEM);
     }
 
     // ==================================================================================

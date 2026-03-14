@@ -16,7 +16,9 @@ This is so normal that it's invisible. But think about what it means: the entire
 
 The deeper problem is that files, web pages, emails, messages, and documents are all **semantically inert**. They don't know what they mean. They can't describe their relationships to other things. They can't assert their authorship or verify their integrity. They can't express that this JPEG is a photo of a specific person, that this PDF is version 3 of a contract between two specific parties, or that this code file implements a specific algorithm. All of that meaning lives in human heads, in proprietary databases, in app-specific metadata formats that don't talk to each other.
 
-Common Graph makes meaning structural. Everything in the system — every item, every assertion, every relationship — is grounded in **sememes**: universal units of meaning with globally anchored identities. When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment of type shirt with color attribute red." Star Trek Red Shirt memes are a different sememe entirely. They simply don't match.
+Common Graph makes meaning structural. **Semantics are resolved at write time, not read time.** When you create or relate anything, the system resolves your intent to globally-anchored meaning *before the data is stored*. Every item, every assertion, every relationship is grounded in **sememes**: universal units of meaning with stable identities derived from decades of computational linguistics (WordNet, VerbNet, CILI). The meaning isn't guessed later by a search engine — it's declared at the moment of creation, by the person who knows what they mean.
+
+When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment of type shirt with color attribute red." Star Trek Red Shirt memes are a different sememe entirely. They simply don't match.
 
 ---
 
@@ -169,6 +171,22 @@ This is the core difference. The web is a document dump with external indexing b
 
 Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every binding has a role key that is a sememe. This means the graph IS the index. There is no separate crawl-and-index step because the data already describes what it means.
 
+### Write-Time Resolution
+
+This is the fundamental departure from how every other system handles meaning.
+
+The web stores opaque bytes and hopes a search engine can guess what they mean later. NLP systems annotate existing text with semantic roles after the fact — a hard, error-prone, probabilistic process. Schema.org and RDFa try to bolt structured metadata onto unstructured documents, but it's opt-in, unenforced, and disconnected from the content.
+
+Common Graph inverts this. **Meaning is resolved at the moment of creation.** When you create a frame — whether by typing "move pawn to e4," clicking a button, or calling an API — the system resolves every concept to a globally-anchored sememe *before storage*. "Move" resolves to `cg.verb:move`. "Pawn" resolves to the chess piece item. "To" maps to the GOAL thematic role. "E4" resolves to a board position. What gets stored is not text — it's a structure of semantic references: `MOVE { THEME: pawn, GOAL: e4 }`.
+
+The person (or code) creating the data does the disambiguation, because they know what they mean. This is trivial at write time — you know you meant chess, not a political metaphor. It's nearly impossible at read time — a search engine has to guess from context, word frequency, and your browsing history.
+
+This is why Common Graph doesn't need a search engine, a crawler, or a ranking algorithm. The data is pre-indexed by meaning at creation. Queries are frame lookups, not statistical guesses.
+
+Common Graph draws on decades of computational semantics research — [VerbNet](https://verbs.colorado.edu/verbnet/), [FrameNet](https://framenet.icsi.berkeley.edu/), [ISO 24617-4](https://www.iso.org/standard/56866.html) — for the *vocabulary* of predicates and thematic roles. But it doesn't need the NLP *parsing machinery*. Those projects solve "what does this sentence mean?" Common Graph never asks that question, because meaning was resolved before the data existed.
+
+### Sememes
+
 **Sememes are universal meaning units.** Grounded in [WordNet](https://wordnet.princeton.edu/) (~120,000 synsets) and cross-linked via [CILI](https://github.com/globalwordnet/cili) (Collaborative Interlingual Index), sememes carry:
 
 - A part of speech (verb, noun, preposition, etc.)
@@ -189,7 +207,7 @@ This means:
 - **A music library doesn't need Shazam.** Audio fingerprints are frames. Genre, artist, album, track — all semantic, all signed, all queryable.
 - **A recipe collection doesn't need a recipe website.** Ingredients are items. Recipes assert frames about ingredients, quantities, and techniques. "Recipes using chicken and lemon that take under 30 minutes" is a frame query with constraints.
 
-The web tried to solve this with microdata, RDFa, Schema.org, JSON-LD — bolting structured data onto unstructured documents. It didn't work because it's opt-in, unenforced, and disconnected from the content it describes. In Common Graph, the structure IS the content. You can't create a thing without it being semantically typed, because the thing IS a typed, signed frame.
+You can't create a thing without it being semantically typed, because the thing IS a typed, signed frame. There is no "unstructured mode" — the structure is the content.
 
 ---
 
@@ -304,13 +322,16 @@ All data uses **CG-CBOR** — a profile of [CBOR (RFC 8949)](https://www.rfc-edi
 
 ## Linguistic Foundation
 
-Common Graph doesn't invent its linguistic backbone from scratch:
+Common Graph doesn't invent its linguistic backbone from scratch — it builds on decades of computational semantics research:
 
 1. **[WordNet](https://wordnet.princeton.edu/)** — ~120,000 synsets (synonym sets) with definitions, hierarchical relationships. Each synset becomes a sememe.
 2. **[CILI (Collaborative Interlingual Index)](https://github.com/globalwordnet/cili)** — Cross-lingual concept mapping. English "dog," Spanish "perro," Japanese "犬" map to the same concept.
-3. **[UniMorph](https://unimorph.github.io/)** — Morphological database for 100+ languages. "run/ran/running" all resolve to the same sememe.
-4. **[FrameNet](https://framenet.icsi.berkeley.edu/)** — ~1,200 semantic frames with frame elements and roles. The empirical basis for Common Graph's frame model.
-5. **English morphology engine** — Rule-based inflection for regular forms, UniMorph for irregular.
+3. **[VerbNet](https://verbs.colorado.edu/verbnet/)** — ~300 verb classes with thematic role declarations and selectional restrictions. VerbNet's role inventory, unified with LIRICS by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf), provides the empirical basis for Common Graph's 25 thematic roles.
+4. **[ISO 24617-4 (SemAF-SR)](https://www.iso.org/standard/56866.html)** — The international standard for semantic role annotation. Common Graph's role inventory aligns with both VerbNet and this ISO standard.
+5. **[FrameNet](https://framenet.icsi.berkeley.edu/)** — ~1,200 semantic frames with frame elements and roles. The empirical basis for Common Graph's frame model, originating from Fillmore's Case Grammar (1968).
+6. **[SemLink](https://verbs.colorado.edu/semlink/)** — Cross-resource mappings between VerbNet, FrameNet, PropBank, and WordNet — enabling Common Graph to bridge between all four.
+7. **[UniMorph](https://unimorph.github.io/)** — Morphological database for 100+ languages. "run/ran/running" all resolve to the same sememe.
+8. **English morphology engine** — Rule-based inflection for regular forms, UniMorph for irregular.
 
 ---
 
@@ -319,8 +340,9 @@ Common Graph doesn't invent its linguistic backbone from scratch:
 Common Graph integrates decades of prior work:
 
 - **Content addressing** (Merkle 1979, Git, IPFS) — all content identified by cryptographic hash
-- **Frame semantics** (Fillmore 1982, FrameNet) — assertions as filled predicate structures with thematic roles
-- **Computational linguistics** (WordNet, CILI, UniMorph, BabelNet) — meaning as computable, multilingual structure
+- **Frame semantics** (Fillmore 1968/1982, FrameNet) — assertions as filled predicate structures with thematic roles
+- **Thematic role theory** (VerbNet, LIRICS/ISO 24617-4, Dowty 1991) — semantic participant roles grounded in established standards
+- **Computational linguistics** (WordNet, CILI, UniMorph, BabelNet, SemLink) — meaning as computable, multilingual structure
 - **Speech act theory** (Austin 1962, Searle 1969) — utterances are actions, not just descriptions
 - **Actor model** (Hewitt 1973) and **message passing** (Kay/Smalltalk) — independent entities communicating through messages
 - **Capability-based security** (Dennis & Van Horn 1966, Miller 2006) — access as unforgeable tokens
@@ -385,7 +407,7 @@ core/               # Domain model
   item/             #   Item, IDs, Manifest, Frames, FrameTable
   library/          #   Object store, indexes, TokenDictionary, seed vocabulary
   runtime/          #   Graph entry point, Librarian, Session, Scheduler
-  network/          #   CG Protocol (P2P), Session Protocol, transports
+  network/          #   Peer Protocol, Session Protocol, transports
   trust/            #   Signing, verification, key management
   policy/           #   PolicySet, PolicyEngine, AuthorityPolicy
   value/            #   Typed values, units, quantities, operators, functions
@@ -422,12 +444,13 @@ Detailed specifications live in `docs/`:
 | [`item.md`](docs/item.md) | Item structure, identity, lifecycle, composition |
 | [`vocabulary.md`](docs/vocabulary.md) | Vocabulary system, dispatch, expression input |
 | [`sememes.md`](docs/sememes.md) | Meaning units, parts of speech, WordNet/CILI anchoring |
+| [`language.md`](docs/language.md) | Languages, lexemes, thematic roles, morphology, import pipeline |
 | [`storage.md`](docs/storage.md) | Unified object store, indexes, content lifecycle |
 | [`library.md`](docs/library.md) | Library architecture, backends, bootstrap |
 | [`presentation.md`](docs/presentation.md) | Rendering pipeline, scene system, style |
 | [`trust.md`](docs/trust.md) | Trust matrix, moderation, reactions, policy-driven views |
 | [`authentication.md`](docs/authentication.md) | Keys, signatures, signers, device-centric identity |
-| [`protocol.md`](docs/protocol.md) | CG Protocol (P2P) and Session Protocol |
+| [`protocol.md`](docs/protocol.md) | Peer Protocol and Session Protocol |
 | [`network.md`](docs/network.md) | Network architecture, discovery, routing, replication |
 | [`cg-cbor.md`](docs/cg-cbor.md) | CG-CBOR encoding specification |
 | [`content.md`](docs/content.md) | Content addressing, storage, deduplication |

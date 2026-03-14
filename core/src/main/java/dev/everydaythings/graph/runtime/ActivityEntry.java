@@ -48,6 +48,10 @@ public class ActivityEntry implements Canonical {
     @Canon(order = 5)
     private Instant timestamp;
 
+    /** Where this entry originated. */
+    @Canon(order = 6)
+    private Source source;
+
     /**
      * The kind of result produced by an evaluation.
      */
@@ -59,6 +63,16 @@ public class ActivityEntry implements Canonical {
         ERROR
     }
 
+    /**
+     * Where this entry originated.
+     */
+    public enum Source {
+        /** User interaction in a session. */
+        SESSION,
+        /** Infrastructure event from the librarian. */
+        LIBRARIAN
+    }
+
     // ==================================================================================
     // Constructors
     // ==================================================================================
@@ -67,13 +81,14 @@ public class ActivityEntry implements Canonical {
     private ActivityEntry() {} // Canonical decoding
 
     private ActivityEntry(String input, ItemID contextIid, Kind kind,
-                          String resultText, ItemID resultIid) {
+                          String resultText, ItemID resultIid, Source source) {
         this.input = input;
         this.contextIid = contextIid;
         this.kind = kind;
         this.resultText = resultText;
         this.resultIid = resultIid;
         this.timestamp = Instant.now();
+        this.source = source;
     }
 
     // ==================================================================================
@@ -92,27 +107,42 @@ public class ActivityEntry implements Canonical {
                                      Eval.EvalResult result) {
         return switch (result) {
             case Eval.EvalResult.Empty() ->
-                    new ActivityEntry(input, contextIid, Kind.EMPTY, null, null);
+                    new ActivityEntry(input, contextIid, Kind.EMPTY, null, null, Source.SESSION);
 
             case Eval.EvalResult.Value(Object value) ->
                     new ActivityEntry(input, contextIid, Kind.VALUE,
-                            summarize(value), null);
+                            summarize(value), null, Source.SESSION);
 
             case Eval.EvalResult.ItemResult(Item item) ->
                     new ActivityEntry(input, contextIid, Kind.ITEM,
-                            item.displayToken(), item.iid());
+                            item.displayToken(), item.iid(), Source.SESSION);
 
             case Eval.EvalResult.Created(Item item) ->
                     new ActivityEntry(input, contextIid, Kind.CREATED,
-                            item.displayToken(), item.iid());
+                            item.displayToken(), item.iid(), Source.SESSION);
 
             case Eval.EvalResult.ValueWithTarget(Object value, Item target) ->
                     new ActivityEntry(input, contextIid, Kind.VALUE,
-                            summarize(value), target.iid());
+                            summarize(value), target.iid(), Source.SESSION);
 
             case Eval.EvalResult.Error(String message) ->
-                    new ActivityEntry(input, contextIid, Kind.ERROR, message, null);
+                    new ActivityEntry(input, contextIid, Kind.ERROR, message, null, Source.SESSION);
+
+            case Eval.EvalResult.Ambiguous ambiguous ->
+                    new ActivityEntry(input, contextIid, Kind.ERROR,
+                            "Ambiguous: " + ambiguous.tokens().size() + " unresolved tokens", null, Source.SESSION);
         };
+    }
+
+    /**
+     * Create an infrastructure activity entry for the librarian log.
+     *
+     * @param event   Short description of what happened
+     * @param detail  Optional detail text
+     * @return A new activity entry with Source.LIBRARIAN
+     */
+    public static ActivityEntry infrastructure(String event, String detail) {
+        return new ActivityEntry(event, null, Kind.VALUE, detail, null, Source.LIBRARIAN);
     }
 
     // ==================================================================================

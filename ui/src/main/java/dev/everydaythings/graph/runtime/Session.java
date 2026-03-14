@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.parse.EvalInput;
-import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.InputController;
+import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -12,9 +12,9 @@ import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.options.SessionOptions;
-import dev.everydaythings.graph.ui.input.InputAction;
+import dev.everydaythings.graph.parse.InputAction;
 import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
@@ -161,13 +161,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     private final Map<ItemID, Item> liveItemCache = new HashMap<>();
 
-    private static final ItemID EXIT_SEMEME_ID = ItemID.fromString(VerbSememe.Exit.KEY);
-    private static final ItemID BACK_SEMEME_ID = ItemID.fromString(VerbSememe.Back.KEY);
+    private static final ItemID EXIT_SEMEME_ID = ItemID.fromString(CoreVocabulary.Exit.KEY);
+    private static final ItemID BACK_SEMEME_ID = ItemID.fromString(CoreVocabulary.Back.KEY);
 
     /**
      * Shared input handling — pulled up from subclasses.
      */
-    protected EvalInput evalInput;
+    protected InputController inputController;
     protected InputBindings inputBindings;
 
     /**
@@ -413,7 +413,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // Verbs (formerly on SessionItem)
     // ==================================================================================
 
-    @Verb(value = VerbSememe.Exit.KEY, doc = "Exit the session")
+    @Verb(value = CoreVocabulary.Exit.KEY, doc = "Exit the session")
     public ActionResult exit() {
         if (onExit != null) {
             onExit.run();
@@ -421,7 +421,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         return ActionResult.success("exit");
     }
 
-    @Verb(value = VerbSememe.Back.KEY, doc = "Go back to previous item")
+    @Verb(value = CoreVocabulary.Back.KEY, doc = "Go back to previous item")
     public ActionResult back() {
         if (onBack != null) {
             onBack.run();
@@ -429,14 +429,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         return ActionResult.success("back");
     }
 
-    @Verb(value = VerbSememe.Authenticate.KEY, doc = "Authenticate as a user")
+    @Verb(value = CoreVocabulary.Authenticate.KEY, doc = "Authenticate as a user")
     public ActionResult actionAuthenticate(
             @Param(value = "user", doc = "The user to authenticate as") ItemID userId) {
         Signer user = authenticate(userId);
         return ActionResult.success(user.displayToken() + " authenticated");
     }
 
-    @Verb(value = VerbSememe.Switch.KEY, doc = "Switch active user")
+    @Verb(value = CoreVocabulary.Switch.KEY, doc = "Switch active user")
     public ActionResult actionSwitch(
             @Param(value = "user", doc = "The user to switch to") ItemID userId) {
         Signer user = switchActor(userId);
@@ -458,25 +458,25 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     // ==================================================================================
-    // EvalInput Initialization
+    // InputController Initialization
     // ==================================================================================
 
     /**
-     * Initialize EvalInput with shared dispatch wiring.
+     * Initialize InputController with shared dispatch wiring.
      *
-     * <p>Builds the EvalInput with lookup, dispatch, and navigation wiring
+     * <p>Builds the InputController with lookup, dispatch, and navigation wiring
      * shared across all session types. Subclasses override
      * {@link #onInputChanged} and {@link #onInputDispatched} for
      * UI-specific refresh.
      */
-    protected void initializeEvalInput() {
+    protected void initializeInputController() {
         if (librarian == null) return;
 
         if (inputBindings == null) {
             inputBindings = InputBindings.defaults();
         }
 
-        evalInput = EvalInput.builder()
+        inputController = InputController.builder()
                 .lookup(text -> librarian.prefix(text, maxCompletions()).toList())
                 .librarian(librarian)
                 .context(contextItem().orElse(null))
@@ -493,7 +493,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                     onInputDispatched(result);
                 })
                 .build();
-        updateInputState(evalInput.snapshot());
+        updateInputState(inputController.snapshot());
     }
 
     /**
@@ -508,7 +508,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Called after input state changes (typing, cursor movement, completions).
      * Subclasses override for UI-specific refresh (repaint, re-render).
      */
-    protected void onInputChanged(EvalInputSnapshot snapshot) {
+    protected void onInputChanged(InputSnapshot snapshot) {
         // Default: no-op (updateInputState already called)
     }
 
@@ -780,14 +780,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     /**
-     * Update the input state in the ItemModel from an EvalInput snapshot.
+     * Update the input state in the ItemModel from an InputController snapshot.
      *
-     * <p>Call this when EvalInput fires onChange so that the input field
+     * <p>Call this when InputController fires onChange so that the input field
      * renders as part of the surface tree across all renderers.
      *
      * @param snapshot the current input state
      */
-    public void updateInputState(dev.everydaythings.graph.parse.EvalInputSnapshot snapshot) {
+    public void updateInputState(InputSnapshot snapshot) {
         if (itemModel != null) {
             itemModel.updateInput(snapshot);
             // Clear feedback when user starts typing new input
@@ -904,9 +904,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 }
             }
             case Eval.EvalResult.Error(String message) -> {
-                // Errors are shown in the input field via EvalInput's error state.
+                // Errors are shown in the input field via InputController's error state.
                 // Log for debugging only.
                 logger.debug("Dispatch error: {}", message);
+            }
+            case Eval.EvalResult.Ambiguous ambiguous -> {
+                // Ambiguity is shown in the input field via InputController's error state.
+                logger.debug("Ambiguous input: {} unresolved tokens", ambiguous.tokens().size());
             }
         }
     }
@@ -916,7 +920,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      *
      * <p>Handles the result (navigation, component creation), logs the
      * activity, and updates prompt/context. Errors are shown directly in
-     * the input field via EvalInput's error state.
+     * the input field via InputController's error state.
      */
     protected void handleInputResult(Eval.EvalResult result) {
         handleEvalResult(result);
@@ -928,7 +932,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         // Log to the session activity log and update feedback display
         if (!(result instanceof Eval.EvalResult.Empty)) {
-            String inputText = evalInput != null ? evalInput.lastSubmittedText() : null;
+            String inputText = inputController != null ? inputController.lastSubmittedText() : null;
             ItemID contextIid = contextItem().map(Item::iid).orElse(null);
             ActivityEntry entry = ActivityEntry.from(inputText, contextIid, result);
             logActivity(entry);
@@ -939,9 +943,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             }
         }
 
-        if (evalInput != null) {
-            evalInput.setPrompt(buildPrompt());
-            evalInput.setContext(contextItem().orElse(null));
+        if (inputController != null) {
+            inputController.setPrompt(buildPrompt());
+            inputController.setContext(contextItem().orElse(null));
         }
     }
 
@@ -1056,37 +1060,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // ==================================================================================
 
     /**
-     * Dispatch a key chord to EvalInput via InputBindings.
-     *
-     * <p>Maps the key chord to the appropriate EvalInput method call.
-     * Pulled up from subclasses (identical in TextSession and GraphicalSession).
+     * Dispatch a key chord to InputController via InputBindings.
      */
-    protected void dispatchToEvalInput(KeyChord chord) {
-        if (evalInput == null) return;
-
-        boolean hasCompletions = evalInput.snapshot().hasVisibleCompletions();
-        Optional<InputAction> action = inputBindings.resolve(chord, hasCompletions);
-
-        if (action.isEmpty()) return;
-
-        switch (action.get()) {
-            case InputAction.Char c -> evalInput.type(c.c());
-            case InputAction.Backspace b -> evalInput.backspace();
-            case InputAction.Delete d -> evalInput.delete();
-            case InputAction.DeleteWord d -> evalInput.deleteWord();
-            case InputAction.CursorLeft l -> evalInput.cursorLeft();
-            case InputAction.CursorRight r -> evalInput.cursorRight();
-            case InputAction.CursorHome h -> evalInput.cursorHome();
-            case InputAction.CursorEnd e -> evalInput.cursorEnd();
-            case InputAction.CompletionUp u -> evalInput.completionUp();
-            case InputAction.CompletionDown d -> evalInput.completionDown();
-            case InputAction.Tab t -> evalInput.tab();
-            case InputAction.Accept a -> evalInput.accept();
-            case InputAction.Cancel c -> evalInput.cancel();
-            case InputAction.TokenBoundary b -> evalInput.tokenBoundary();
-            case InputAction.HistoryPrev p -> evalInput.historyPrev();
-            case InputAction.HistoryNext n -> evalInput.historyNext();
-        }
+    protected void dispatchToInput(KeyChord chord) {
+        if (inputController == null) return;
+        Optional<InputAction> action = inputBindings.resolve(
+                chord, inputController.snapshot().hasVisibleCompletions());
+        action.ifPresent(inputController::handle);
     }
 
     // ==================================================================================

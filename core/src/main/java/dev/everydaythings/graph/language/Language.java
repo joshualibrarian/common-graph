@@ -42,7 +42,7 @@ public class Language extends Item {
 
     /** ISO 639 language code (2 or 3 letter). */
     @Getter
-    @Frame(handle = "code")
+    @Frame(key = {CoreVocabulary.LanguageCode.KEY})
     protected String languageCode;
 
     /** The lexicon for this language. */
@@ -152,7 +152,7 @@ public class Language extends Item {
      * @param features Set of grammatical feature IIDs
      * @return The inflected surface form
      */
-    public String inflect(String lemma, PartOfSpeech pos, Set<ItemID> features) {
+    public String inflect(String lemma, ItemID pos, Set<ItemID> features) {
         if (features == null || features.isEmpty()) return lemma;
         return regularInflection(lemma, pos, features);
     }
@@ -168,7 +168,7 @@ public class Language extends Item {
      * @param features Grammatical features driving inflection
      * @return The regular inflected form
      */
-    protected String regularInflection(String lemma, PartOfSpeech pos, Set<ItemID> features) {
+    protected String regularInflection(String lemma, ItemID pos, Set<ItemID> features) {
         return lemma;
     }
 
@@ -188,7 +188,7 @@ public class Language extends Item {
      * @param pos Part of speech
      * @return The feature sets this language distinguishes for the given POS
      */
-    public List<Set<ItemID>> inflectionFeatures(PartOfSpeech pos) {
+    public List<Set<ItemID>> inflectionFeatures(ItemID pos) {
         return List.of();
     }
 
@@ -209,7 +209,7 @@ public class Language extends Item {
      * @param pos         Part of speech
      * @return The simplified feature set, or empty if no match
      */
-    public Set<ItemID> simplifyFeatures(Set<ItemID> rawFeatures, PartOfSpeech pos) {
+    public Set<ItemID> simplifyFeatures(Set<ItemID> rawFeatures, ItemID pos) {
         List<Set<ItemID>> known = inflectionFeatures(pos);
         Set<ItemID> best = Set.of();
         for (Set<ItemID> candidate : known) {

@@ -63,7 +63,7 @@ public final class Lexeme implements Canonical {
      * The grammatical category of this word usage.
      */
     @Canon(order = 3)
-    private final PartOfSpeech partOfSpeech;
+    private final ItemID partOfSpeech;
 
     /**
      * Optional: frequency weight (0.0-1.0) for ranking common usages.
@@ -83,12 +83,12 @@ public final class Lexeme implements Canonical {
     private final List<FormEntry> forms;
 
     public Lexeme(String word, ItemID language, ItemID sememe,
-                  PartOfSpeech partOfSpeech, float frequency) {
+                  ItemID partOfSpeech, float frequency) {
         this(word, language, sememe, partOfSpeech, frequency, List.of());
     }
 
     public Lexeme(String word, ItemID language, ItemID sememe,
-                  PartOfSpeech partOfSpeech, float frequency, List<FormEntry> forms) {
+                  ItemID partOfSpeech, float frequency, List<FormEntry> forms) {
         this.word = Objects.requireNonNull(word, "word");
         this.language = Objects.requireNonNull(language, "language");
         this.sememe = Objects.requireNonNull(sememe, "sememe");
@@ -100,7 +100,7 @@ public final class Lexeme implements Canonical {
     /**
      * Create a Lexeme with default frequency (1.0) and no irregular forms.
      */
-    public static Lexeme of(String word, ItemID language, ItemID sememe, PartOfSpeech pos) {
+    public static Lexeme of(String word, ItemID language, ItemID sememe, ItemID pos) {
         return new Lexeme(word, language, sememe, pos, 1.0f);
     }
 

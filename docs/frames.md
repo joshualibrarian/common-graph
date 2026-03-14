@@ -1,6 +1,8 @@
 # Frames
 
-The fundamental primitive in Common Graph is a **frame** — a filled semantic structure inspired by Fillmore's frame semantics, extended to carry data. Everything an item contains is a frame. A title, a gloss, a chess game, a vault, a video, a like, a trust attestation — all frames. Every frame relates a predicate to a theme, filling semantic roles with bindings. The difference between "Tolkien authored The Hobbit" and "the title of The Hobbit is 'The Hobbit'" is only which predicate and which bindings — structurally they are the same thing.
+The fundamental primitive in Common Graph is a **frame** — a filled semantic structure inspired by Fillmore's frame semantics (1968/1982), extended to carry data. Everything an item contains is a frame. A title, a gloss, a chess game, a vault, a video, a like, a trust attestation — all frames. Every frame relates a predicate to a theme, filling semantic roles with bindings. The difference between "Tolkien authored The Hobbit" and "the title of The Hobbit is 'The Hobbit'" is only which predicate and which bindings — structurally they are the same thing.
+
+**Frames are semantic keys, not annotations.** Every concept a frame touches — its predicate, its theme, every binding role, every target — is a globally-anchored semantic reference resolved at write time. The person or code creating the frame performs the disambiguation at creation, when intent is unambiguous. What gets stored is a structure of semantic references, not text to be interpreted later. This is why the graph is queryable by meaning without a search engine — the data is pre-indexed by meaning at the moment of creation, and the UI makes this both easy and inevitable.
 
 ## The Frame Primitive
 

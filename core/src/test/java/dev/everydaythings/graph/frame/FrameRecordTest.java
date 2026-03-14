@@ -24,7 +24,7 @@ class FrameRecordTest {
     static final ItemID AUTHOR = ItemID.fromString("cg:pred/author");
     static final ItemID THE_HOBBIT = ItemID.fromString("cg:book/the-hobbit");
     static final ItemID TOLKIEN = ItemID.fromString("cg:person/tolkien");
-    static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
+    static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
 
     static Librarian signer;
 
@@ -158,7 +158,7 @@ class FrameRecordTest {
 
             // Both assert the same fact
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
-                    Map.of(TARGET_ROLE, BindingTarget.iid(TOLKIEN)));
+                    Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
 
             FrameRecord aliceRecord = FrameRecord.create(body, alice);
             FrameRecord bobRecord = FrameRecord.create(body, bob);

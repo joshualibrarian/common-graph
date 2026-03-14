@@ -4,6 +4,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
@@ -112,7 +113,7 @@ public class Dimension extends Item {
 
     /** The canonical key (e.g., "cg.dim:length") */
     @Getter
-    @Frame(handle = "key")
+    @Frame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
 
     /** Symbol used in dimensional formulas (e.g., "L", "T", "M") */

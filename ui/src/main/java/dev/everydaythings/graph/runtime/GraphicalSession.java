@@ -17,7 +17,7 @@ import dev.everydaythings.graph.ui.filament.MsdfFontManager;
 import dev.everydaythings.graph.ui.filament.SkiaPanelPainter;
 import dev.everydaythings.graph.ui.filament.SkiaSurfacePainter;
 import dev.everydaythings.graph.ui.text.FontRegistry;
-import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
@@ -190,7 +190,7 @@ public class GraphicalSession extends Session {
             stage.show();
 
             // Initialize input
-            initializeEvalInput();
+            initializeInputController();
 
             // Initial layout
             rebuildLayout();
@@ -697,16 +697,16 @@ public class GraphicalSession extends Session {
         }
 
         // When completion popup is visible, plain input navigation keys should
-        // be handled by EvalInput before tree/session navigation.
-        if (evalInput != null
-                && evalInput.snapshot().hasVisibleCompletions()
+        // be handled by InputController before tree/session navigation.
+        if (inputController != null
+                && inputController.snapshot().hasVisibleCompletions()
                 && !chord.alt() && !chord.ctrl() && !chord.shift()
                 && (chord.isKey(SpecialKey.UP)
                     || chord.isKey(SpecialKey.DOWN)
                     || chord.isKey(SpecialKey.TAB)
                     || chord.isKey(SpecialKey.ENTER)
                     || chord.isKey(SpecialKey.ESCAPE))) {
-            dispatchToEvalInput(chord);
+            dispatchToInput(chord);
             rebuildLayout();
             requestRepaint();
             return;
@@ -729,7 +729,7 @@ public class GraphicalSession extends Session {
             requestRepaint();
             return;
         }
-        dispatchToEvalInput(chord);
+        dispatchToInput(chord);
     }
 
     // ==================== Zoom ====================
@@ -818,7 +818,7 @@ public class GraphicalSession extends Session {
     }
 
     @Override
-    protected void onInputChanged(EvalInputSnapshot snapshot) {
+    protected void onInputChanged(InputSnapshot snapshot) {
         rebuildLayout();
         requestRepaint();
     }

@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 /**
  * The Common Graph peer-to-peer protocol handler.
  *
- * <p>CG Protocol is beautifully simple - just two message types:
+ * <p>The Peer Protocol is beautifully simple - just two message types:
  * <ul>
  *   <li>{@link Request} - "I want something" (items, content, relations)</li>
  *   <li>{@link Delivery} - "Here's something" (manifests, bytes, relations, not-found)</li>

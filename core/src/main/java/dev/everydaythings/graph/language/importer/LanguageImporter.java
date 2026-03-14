@@ -258,7 +258,7 @@ public abstract class LanguageImporter {
                 ? "ili:" + synset.ili()
                 : sourcePrefix() + ":" + synset.id();
 
-        PartOfSpeech pos = mapPOS(synset.pos());
+        ItemID pos = mapPOS(synset.pos());
 
         Map<String, String> sources = new HashMap<>();
         sources.put(sourcePrefix(), synset.id());
@@ -314,7 +314,7 @@ public abstract class LanguageImporter {
             FrameBody body = FrameBody.of(
                     predicate,
                     source.iid(),
-                    Map.of(ThematicRole.Target.SEED.iid(), BindingTarget.iid(target.iid())));
+                    Map.of(ThematicRole.Goal.SEED.iid(), BindingTarget.iid(target.iid())));
             FrameRecord record = FrameRecord.create(body, signer);
 
             if (librarian != null) {
@@ -340,7 +340,7 @@ public abstract class LanguageImporter {
     protected Lexeme createLexeme(LexicalEntryRecord entry, SenseRecord sense, Sememe sememe,
                                   Language language, Map<String, List<UniMorphReader.Entry>> uniMorphData) {
         String lemma = entry.lemma();
-        PartOfSpeech pos = mapPOS(entry.pos());
+        ItemID pos = mapPOS(entry.pos());
 
         int senseIndex = entry.senses().indexOf(sense);
         float frequency = 1.0f / (senseIndex + 1);
@@ -365,7 +365,7 @@ public abstract class LanguageImporter {
      * with what the regular algorithm would produce. If they differ, the form
      * is irregular and needs a FormEntry override on the Lexeme.
      */
-    protected List<FormEntry> findIrregularOverrides(String lemma, PartOfSpeech pos,
+    protected List<FormEntry> findIrregularOverrides(String lemma, ItemID pos,
                                                      Language language,
                                                      Map<String, List<UniMorphReader.Entry>> uniMorphData) {
         List<UniMorphReader.Entry> entries = uniMorphData.get(lemma.toLowerCase());
@@ -375,7 +375,7 @@ public abstract class LanguageImporter {
         Set<Set<ItemID>> seen = new HashSet<>();
 
         for (UniMorphReader.Entry entry : entries) {
-            if (entry.pos() != pos) continue;
+            if (!pos.equals(entry.pos())) continue;
 
             Set<ItemID> simplified = language.simplifyFeatures(entry.features(), pos);
             if (simplified.isEmpty()) continue;
@@ -396,12 +396,12 @@ public abstract class LanguageImporter {
     // ==================================================================================
 
     /**
-     * Map an LMF part-of-speech code to a CG {@link PartOfSpeech}.
+     * Map an LMF part-of-speech code to a CG {@link PartOfSpeech} ItemID.
      *
      * <p>The codes (n, v, a, s, r) are standardized in the GWN-LMF schema and
      * are the same across all wordnets.
      */
-    protected static PartOfSpeech mapPOS(String pos) {
+    protected static ItemID mapPOS(String pos) {
         if (pos == null) return PartOfSpeech.NOUN;
         return switch (pos) {
             case "n" -> PartOfSpeech.NOUN;
@@ -420,17 +420,17 @@ public abstract class LanguageImporter {
      */
     protected static ItemID mapRelationType(String relType) {
         return switch (relType) {
-            case "hypernym", "instance_hypernym" -> VerbSememe.Hypernym.SEED.iid();
-            case "hyponym", "instance_hyponym" -> VerbSememe.Hyponym.SEED.iid();
-            case "holo_part", "holo_member", "holo_substance" -> VerbSememe.Holonym.SEED.iid();
-            case "mero_part", "mero_member", "mero_substance" -> VerbSememe.Meronym.SEED.iid();
-            case "antonym" -> VerbSememe.Antonym.SEED.iid();
-            case "similar" -> VerbSememe.SimilarTo.SEED.iid();
-            case "derivation" -> VerbSememe.Derivation.SEED.iid();
-            case "domain_topic", "domain_region", "domain_usage" -> VerbSememe.Domain.SEED.iid();
-            case "entails" -> VerbSememe.Entails.SEED.iid();
-            case "causes" -> VerbSememe.Causes.SEED.iid();
-            case "also" -> VerbSememe.SeeAlso.SEED.iid();
+            case "hypernym", "instance_hypernym" -> LexicalVocabulary.Hypernym.SEED.iid();
+            case "hyponym", "instance_hyponym" -> LexicalVocabulary.Hyponym.SEED.iid();
+            case "holo_part", "holo_member", "holo_substance" -> LexicalVocabulary.Holonym.SEED.iid();
+            case "mero_part", "mero_member", "mero_substance" -> LexicalVocabulary.Meronym.SEED.iid();
+            case "antonym" -> LexicalVocabulary.Antonym.SEED.iid();
+            case "similar" -> LexicalVocabulary.SimilarTo.SEED.iid();
+            case "derivation" -> LexicalVocabulary.Derivation.SEED.iid();
+            case "domain_topic", "domain_region", "domain_usage" -> LexicalVocabulary.Domain.SEED.iid();
+            case "entails" -> LexicalVocabulary.Entails.SEED.iid();
+            case "causes" -> LexicalVocabulary.Causes.SEED.iid();
+            case "also" -> LexicalVocabulary.SeeAlso.SEED.iid();
             default -> null;
         };
     }

@@ -15,13 +15,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link EvalInput} — the unified expression input state machine.
+ * Unit tests for {@link InputController} — the unified expression input state machine.
  *
  * <p>These tests verify the pure state machine behavior without requiring
  * a Librarian or Library. The dispatch path (accept → Eval) is tested
  * separately in integration tests.
  */
-class EvalInputTest {
+class InputControllerTest {
 
     /** Test item IDs for postings. */
     private static final ItemID ALICE_IID = ItemID.random();
@@ -34,15 +34,15 @@ class EvalInputTest {
     private static final Posting CREATE_POSTING = Posting.universal("create", CREATE_IID);
 
     /** Captured snapshots from onChange. */
-    private final List<EvalInputSnapshot> snapshots = new ArrayList<>();
+    private final List<InputSnapshot> snapshots = new ArrayList<>();
 
     /** The input under test. */
-    private EvalInput input;
+    private InputController input;
 
     @BeforeEach
     void setUp() {
         snapshots.clear();
-        input = EvalInput.builder()
+        input = InputController.builder()
                 .lookup(this::mockLookup)
                 .prompt("> ")
                 .hint("Type something...")
@@ -63,7 +63,7 @@ class EvalInputTest {
         return results;
     }
 
-    private EvalInputSnapshot lastSnapshot() {
+    private InputSnapshot lastSnapshot() {
         assertThat(snapshots).isNotEmpty();
         return snapshots.get(snapshots.size() - 1);
     }
@@ -266,7 +266,7 @@ class EvalInputTest {
         @Test
         void typingTriggersLookup() {
             input.type('a');
-            EvalInputSnapshot snap = lastSnapshot();
+            InputSnapshot snap = lastSnapshot();
             assertThat(snap.completions()).isNotEmpty();
             assertThat(snap.showCompletions()).isTrue();
         }
@@ -275,7 +275,7 @@ class EvalInputTest {
         void typingNarrowsCompletions() {
             // 'a' matches alice
             input.type("ali");
-            EvalInputSnapshot snap = lastSnapshot();
+            InputSnapshot snap = lastSnapshot();
             assertThat(snap.completions()).hasSize(1);
             assertThat(snap.completions().get(0).token()).isEqualTo("alice");
         }
@@ -289,7 +289,7 @@ class EvalInputTest {
         @Test
         void noMatchClearsCompletions() {
             input.type("xyz");
-            EvalInputSnapshot snap = lastSnapshot();
+            InputSnapshot snap = lastSnapshot();
             assertThat(snap.completions()).isEmpty();
             assertThat(snap.showCompletions()).isFalse();
             assertThat(snap.selectedCompletion()).isEqualTo(-1);
@@ -644,7 +644,7 @@ class EvalInputTest {
 
             input.type("hello");
 
-            EvalInputSnapshot snap = lastSnapshot();
+            InputSnapshot snap = lastSnapshot();
             assertThat(snap.displayText()).isEqualTo("alice hello");
         }
 
@@ -745,7 +745,7 @@ class EvalInputTest {
 
         @Test
         void noCallbackWhenNotConfigured() {
-            EvalInput bare = EvalInput.builder().build();
+            InputController bare = InputController.builder().build();
             // Should not throw
             bare.type('x');
             bare.backspace();
@@ -808,7 +808,7 @@ class EvalInputTest {
             input.type("create ali");
 
             // The last snapshot's completions should be for "ali" → matches "alice"
-            EvalInputSnapshot snap = lastSnapshot();
+            InputSnapshot snap = lastSnapshot();
             assertThat(snap.completions()).hasSize(1);
             assertThat(snap.completions().get(0).token()).isEqualTo("alice");
         }
@@ -834,7 +834,7 @@ class EvalInputTest {
     }
 
     // ==================================================================================
-    // EvalInputSnapshot record
+    // InputSnapshot record
     // ==================================================================================
 
     @Nested
@@ -842,7 +842,7 @@ class EvalInputTest {
 
         @Test
         void emptySnapshotFactory() {
-            EvalInputSnapshot empty = EvalInputSnapshot.empty("> ", "hint");
+            InputSnapshot empty = InputSnapshot.empty("> ", "hint");
             assertThat(empty.tokens()).isEmpty();
             assertThat(empty.pendingText()).isEmpty();
             assertThat(empty.cursor()).isEqualTo(0);
@@ -852,38 +852,39 @@ class EvalInputTest {
             assertThat(empty.prompt()).isEqualTo("> ");
             assertThat(empty.hint()).isEqualTo("hint");
             assertThat(empty.error()).isNull();
+            assertThat(empty.selectedTokenIndex()).isEqualTo(-1);
         }
 
         @Test
         void hasVisibleCompletionsLogic() {
-            EvalInputSnapshot shown = new EvalInputSnapshot(
+            InputSnapshot shown = new InputSnapshot(
                     List.of(), "", 0,
                     List.of(ALICE_POSTING), List.of(), 0, true,
-                    "> ", "", null
+                    "> ", "", null, -1
             );
             assertThat(shown.hasVisibleCompletions()).isTrue();
 
-            EvalInputSnapshot hidden = new EvalInputSnapshot(
+            InputSnapshot hidden = new InputSnapshot(
                     List.of(), "", 0,
                     List.of(ALICE_POSTING), List.of(), 0, false,
-                    "> ", "", null
+                    "> ", "", null, -1
             );
             assertThat(hidden.hasVisibleCompletions()).isFalse();
 
-            EvalInputSnapshot empty = new EvalInputSnapshot(
+            InputSnapshot empty = new InputSnapshot(
                     List.of(), "", 0,
                     List.of(), List.of(), -1, true,
-                    "> ", "", null
+                    "> ", "", null, -1
             );
             assertThat(empty.hasVisibleCompletions()).isFalse();
         }
 
         @Test
         void currentCompletionReturnsSelected() {
-            EvalInputSnapshot snap = new EvalInputSnapshot(
+            InputSnapshot snap = new InputSnapshot(
                     List.of(), "", 0,
                     List.of(ALICE_POSTING, BOB_POSTING), List.of(), 1, true,
-                    "> ", "", null
+                    "> ", "", null, -1
             );
             assertThat(snap.currentCompletion()).isPresent();
             assertThat(snap.currentCompletion().get()).isEqualTo(BOB_POSTING);
@@ -891,10 +892,10 @@ class EvalInputTest {
 
         @Test
         void currentCompletionEmptyWhenNoneSelected() {
-            EvalInputSnapshot snap = new EvalInputSnapshot(
+            InputSnapshot snap = new InputSnapshot(
                     List.of(), "", 0,
                     List.of(ALICE_POSTING), List.of(), -1, true,
-                    "> ", "", null
+                    "> ", "", null, -1
             );
             assertThat(snap.currentCompletion()).isEmpty();
         }
@@ -907,10 +908,10 @@ class EvalInputTest {
             var mutableCompletions = new ArrayList<Posting>();
             mutableCompletions.add(ALICE_POSTING);
 
-            EvalInputSnapshot snap = new EvalInputSnapshot(
+            InputSnapshot snap = new InputSnapshot(
                     mutableTokens, "", 0,
                     mutableCompletions, List.of(), 0, true,
-                    "> ", "", null
+                    "> ", "", null, -1
             );
 
             // Mutating the originals should not affect the snapshot
@@ -931,59 +932,59 @@ class EvalInputTest {
 
         @Test
         void numbersAndOperators() {
-            assertThat(EvalInput.splitRawTokens("5+2")).containsExactly("5", "+", "2");
+            assertThat(InputController.splitRawTokens("5+2")).containsExactly("5", "+", "2");
         }
 
         @Test
         void spaceSeparatedExpression() {
-            assertThat(EvalInput.splitRawTokens("5 + 2")).containsExactly("5", "+", "2");
+            assertThat(InputController.splitRawTokens("5 + 2")).containsExactly("5", "+", "2");
         }
 
         @Test
         void numberAndWord() {
-            assertThat(EvalInput.splitRawTokens("5meter")).containsExactly("5", "meter");
+            assertThat(InputController.splitRawTokens("5meter")).containsExactly("5", "meter");
         }
 
         @Test
         void decimalNumber() {
-            assertThat(EvalInput.splitRawTokens("3.14*r")).containsExactly("3.14", "*", "r");
+            assertThat(InputController.splitRawTokens("3.14*r")).containsExactly("3.14", "*", "r");
         }
 
         @Test
         void functionCallSyntax() {
-            assertThat(EvalInput.splitRawTokens("sqrt(144)")).containsExactly("sqrt", "(", "144", ")");
+            assertThat(InputController.splitRawTokens("sqrt(144)")).containsExactly("sqrt", "(", "144", ")");
         }
 
         @Test
         void multiCharOperator() {
-            assertThat(EvalInput.splitRawTokens("x>=5")).containsExactly("x", ">=", "5");
+            assertThat(InputController.splitRawTokens("x>=5")).containsExactly("x", ">=", "5");
         }
 
         @Test
         void wordWithDigits() {
-            assertThat(EvalInput.splitRawTokens("x2")).containsExactly("x2");
+            assertThat(InputController.splitRawTokens("x2")).containsExactly("x2");
         }
 
         @Test
         void emptyInput() {
-            assertThat(EvalInput.splitRawTokens("")).isEmpty();
-            assertThat(EvalInput.splitRawTokens(null)).isEmpty();
+            assertThat(InputController.splitRawTokens("")).isEmpty();
+            assertThat(InputController.splitRawTokens(null)).isEmpty();
         }
 
         @Test
         void pureWhitespace() {
-            assertThat(EvalInput.splitRawTokens("   ")).isEmpty();
+            assertThat(InputController.splitRawTokens("   ")).isEmpty();
         }
 
         @Test
         void complexExpression() {
-            assertThat(EvalInput.splitRawTokens("2*(3+4)")).containsExactly("2", "*", "(", "3", "+", "4", ")");
+            assertThat(InputController.splitRawTokens("2*(3+4)")).containsExactly("2", "*", "(", "3", "+", "4", ")");
         }
 
         @Test
         void negativeNumber() {
             // "-5" splits into operator + number; unary minus handled by parser
-            assertThat(EvalInput.splitRawTokens("-5")).containsExactly("-", "5");
+            assertThat(InputController.splitRawTokens("-5")).containsExactly("-", "5");
         }
     }
 
@@ -1002,11 +1003,11 @@ class EvalInputTest {
         private static final Posting PYTHON_ANIMAL_POSTING =
                 Posting.universal("python", PYTHON_ANIMAL_IID);
 
-        private EvalInput ambiguousInput;
+        private InputController ambiguousInput;
 
         @BeforeEach
         void setUp() {
-            ambiguousInput = EvalInput.builder()
+            ambiguousInput = InputController.builder()
                     .lookup(text -> {
                         String lower = text.toLowerCase();
                         List<Posting> results = new ArrayList<>();
@@ -1063,7 +1064,7 @@ class EvalInputTest {
             ambiguousInput.type("python");
             ambiguousInput.tokenBoundary();
 
-            EvalInputSnapshot snap = ambiguousInput.snapshot();
+            InputSnapshot snap = ambiguousInput.snapshot();
             assertThat(snap.hasUnresolvedCandidates()).isTrue();
         }
 
@@ -1098,7 +1099,7 @@ class EvalInputTest {
             var scopedPosting = Posting.scoped("python",
                     ItemID.random(), PYTHON_LANG_IID);
 
-            EvalInput dedup = EvalInput.builder()
+            InputController dedup = InputController.builder()
                     .lookup(text -> {
                         if ("python".startsWith(text.toLowerCase())) {
                             return List.of(PYTHON_LANG_POSTING, scopedPosting);

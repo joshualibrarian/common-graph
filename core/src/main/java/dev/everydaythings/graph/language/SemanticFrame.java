@@ -34,7 +34,7 @@ import java.util.Optional;
  * @param unboundRoles     Argument slot roles still needing values
  */
 public record SemanticFrame(
-        VerbSememe verb,
+        Sememe verb,
         Map<ItemID, Object> bindings,
         Map<String, List<Sememe>> modifiers,
         List<ResolvedToken> unmatchedArgs,

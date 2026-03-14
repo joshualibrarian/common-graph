@@ -28,7 +28,7 @@ import java.util.Map;
  * @see Language#inflect(Lexeme, java.util.Set)
  */
 @Type(value = GrammaticalFeature.KEY, glyph = "\uD83D\uDD24", color = 0x70B0D0)
-public class GrammaticalFeature extends NounSememe {
+public class GrammaticalFeature extends Sememe {
 
     public static final String KEY = "cg:type/grammatical-feature";
 
@@ -208,18 +208,18 @@ public class GrammaticalFeature extends NounSememe {
 
     /** Fluent seed constructor. */
     public GrammaticalFeature(String canonicalKey) {
-        super(canonicalKey);
+        super(canonicalKey, PartOfSpeech.NOUN);
     }
 
     /** Seed constructor. */
     public GrammaticalFeature(String canonicalKey, Map<String, String> glosses, List<String> tokens) {
-        super(canonicalKey, glosses, Map.of(), tokens);
+        super(canonicalKey, PartOfSpeech.NOUN, glosses, Map.of(), tokens);
     }
 
     /** Seed constructor (with sources for CILI). */
     public GrammaticalFeature(String canonicalKey, Map<String, String> glosses,
                               Map<String, String> sources, List<String> tokens) {
-        super(canonicalKey, glosses, sources, tokens);
+        super(canonicalKey, PartOfSpeech.NOUN, glosses, sources, tokens);
     }
 
     // ==================================================================================

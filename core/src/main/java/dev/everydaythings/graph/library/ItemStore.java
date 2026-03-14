@@ -11,7 +11,7 @@ import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
@@ -361,11 +361,11 @@ public interface ItemStore extends Service {
      */
     default Optional<Class<?>> findImplementation(ItemID typeId) {
         return relations()
-                .filter(rel -> rel.predicate().equals(VerbSememe.ImplementedBy.SEED.iid()))
+                .filter(rel -> rel.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
                 .filter(rel -> typeId.equals(rel.bindingId(ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .map(rel -> {
-                    BindingTarget target = rel.binding(ItemID.fromString("cg.role:target"));
+                    BindingTarget target = rel.binding(ItemID.fromString("cg.role:goal"));
                     if (target instanceof Literal lit) {
                         return lit.asJavaClass();
                     }

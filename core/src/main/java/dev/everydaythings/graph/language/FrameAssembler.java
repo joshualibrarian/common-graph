@@ -14,8 +14,8 @@ import java.util.function.Function;
  *
  * <p>The assembler is stateless. It scans resolved tokens to find:
  * <ol>
- *   <li>The verb (first {@link VerbSememe} found)</li>
- *   <li>Prepositional phrases ({@link PrepositionSememe} followed by an object)</li>
+ *   <li>The verb (first {@link CoreVocabulary} found)</li>
+ *   <li>Prepositional phrases ({@link PrepositionVocabulary} followed by an object)</li>
  *   <li>Bare nouns matched to the verb's slot roles by first-fit</li>
  * </ol>
  *
@@ -41,7 +41,7 @@ public class FrameAssembler {
      * </ul>
      */
     public record Analysis(
-            VerbSememe verb,
+            Sememe verb,
             Map<ItemID, Object> bindings,
             Map<String, List<Sememe>> modifiers,
             List<ResolvedToken> unmatchedArgs,
@@ -74,7 +74,7 @@ public class FrameAssembler {
     public static Optional<Analysis> analyze(
             List<ResolvedToken> tokens,
             Function<ItemID, Optional<Item>> resolver,
-            ToIntFunction<VerbSememe> headVerbScorer) {
+            ToIntFunction<Sememe> headVerbScorer) {
 
         if (traceEnabled()) {
             logger.info("[Parse] analyze tokens={}", summarizeTokens(tokens));
@@ -97,7 +97,7 @@ public class FrameAssembler {
 
         // Step 2: Pick head verb via score instead of first-hit.
         int verbIndex = selectHeadVerbIndex(slots, headVerbScorer != null ? headVerbScorer : v -> 0);
-        VerbSememe verb = verbIndex >= 0 ? (VerbSememe) slots.get(verbIndex).item() : null;
+        Sememe verb = verbIndex >= 0 ? (Sememe) slots.get(verbIndex).item() : null;
 
         if (verb == null) {
             if (traceEnabled()) {
@@ -118,7 +118,7 @@ public class FrameAssembler {
             if (consumed.contains(i)) continue;
 
             Item item = slots.get(i).item();
-            if (item instanceof PrepositionSememe prep && prep.assignedRole() != null) {
+            if (item instanceof Sememe prep && prep.pos().equals(PartOfSpeech.PREPOSITION) && prep.assignedRole() != null) {
                 // Look for the next unconsumed token as the object
                 int objectIndex = nextUnconsumed(slots, consumed, i + 1);
 
@@ -151,22 +151,22 @@ public class FrameAssembler {
             if (consumed.contains(i)) continue;
 
             Item item = slots.get(i).item();
-            if (item instanceof AdverbSememe adverb) {
+            if (item instanceof Sememe s && s.pos().equals(PartOfSpeech.ADVERB)) {
                 // Adverbs modify the verb
-                modifiers.computeIfAbsent("verb", k -> new ArrayList<>()).add(adverb);
+                modifiers.computeIfAbsent("verb", k -> new ArrayList<>()).add(s);
                 consumed.add(i);
-            } else if (item instanceof AdjectiveSememe adj) {
+            } else if (item instanceof Sememe adj && adj.pos().equals(PartOfSpeech.ADJECTIVE)) {
                 // Adjectives modify the next unconsumed noun/item
                 int nextNoun = -1;
                 for (int j = i + 1; j < slots.size(); j++) {
                     if (consumed.contains(j)) continue;
                     Item candidate = slots.get(j).item();
                     if (candidate != null
-                            && !(candidate instanceof VerbSememe)
-                            && !(candidate instanceof PrepositionSememe)
-                            && !(candidate instanceof ConjunctionSememe)
-                            && !(candidate instanceof AdjectiveSememe)
-                            && !(candidate instanceof AdverbSememe)) {
+                            && !(candidate instanceof Sememe cv && cv.pos().equals(PartOfSpeech.VERB))
+                            && !(candidate instanceof Sememe cp && cp.pos().equals(PartOfSpeech.PREPOSITION))
+                            && !(candidate instanceof Sememe cs && (cs.pos().equals(PartOfSpeech.CONJUNCTION)
+                                    || cs.pos().equals(PartOfSpeech.ADJECTIVE)
+                                    || cs.pos().equals(PartOfSpeech.ADVERB)))) {
                         nextNoun = j;
                         break;
                     }
@@ -192,9 +192,9 @@ public class FrameAssembler {
 
             Item item = slots.get(i).item();
             if (item == null) continue; // literals and unresolved handled in step 5
-            if (item instanceof VerbSememe) continue; // extra verbs go unmatched, not to argument slots
-            if (item instanceof PrepositionSememe) continue; // unconsumed prepositions go unmatched
-            if (item instanceof ConjunctionSememe) continue; // unconsumed conjunctions go unmatched
+            if (item instanceof Sememe sv && sv.pos().equals(PartOfSpeech.VERB)) continue; // extra verbs go unmatched
+            if (item instanceof Sememe sp && sp.pos().equals(PartOfSpeech.PREPOSITION)) continue; // unconsumed prepositions go unmatched
+            if (item instanceof Sememe cs && cs.pos().equals(PartOfSpeech.CONJUNCTION)) continue; // unconsumed conjunctions go unmatched
 
             // Find first unfilled argument slot for this item
             for (ItemID role : slotRoles) {
@@ -238,7 +238,8 @@ public class FrameAssembler {
             int lastIndex = slots.size() - 1;
             Item lastItem = slots.get(lastIndex).item();
             lastTokenIsDanglingPreposition =
-                    (lastItem instanceof PrepositionSememe) && !consumed.contains(lastIndex);
+                    (lastItem instanceof Sememe sp && sp.pos().equals(PartOfSpeech.PREPOSITION))
+                            && !consumed.contains(lastIndex);
         }
 
         // Step 8: Emit term-level bindings (ACTION / REFERENCE / QUALIFIER).
@@ -287,7 +288,7 @@ public class FrameAssembler {
      *
      * @param tokens   The resolved tokens from evaluation
      * @param resolver Resolves an ItemID to its Item (typically librarianHandle::get)
-     * @return The assembled frame, or empty if no VerbSememe found in tokens
+     * @return The assembled frame, or empty if no verb found in tokens
      */
     public static Optional<SemanticFrame> assemble(
             List<ResolvedToken> tokens,
@@ -327,7 +328,7 @@ public class FrameAssembler {
     public static List<SemanticFrame> assembleAll(
             List<ResolvedToken> tokens,
             Function<ItemID, Optional<Item>> resolver,
-            ToIntFunction<VerbSememe> headVerbScorer) {
+            ToIntFunction<Sememe> headVerbScorer) {
 
         if (tokens.isEmpty()) return List.of();
 
@@ -339,8 +340,8 @@ public class FrameAssembler {
             if (tokens.get(i) instanceof ResolvedToken.Link link) {
                 Optional<Item> item = resolver.apply(link.iid());
                 if (item.isPresent()) {
-                    if (item.get() instanceof VerbSememe) verbIndices.add(i);
-                    else if (item.get() instanceof ConjunctionSememe) conjIndices.add(i);
+                    if (item.get() instanceof Sememe sv && sv.pos().equals(PartOfSpeech.VERB)) verbIndices.add(i);
+                    else if (item.get() instanceof Sememe cs && cs.pos().equals(PartOfSpeech.CONJUNCTION)) conjIndices.add(i);
                 }
             }
         }
@@ -450,7 +451,7 @@ public class FrameAssembler {
 
             // Check if this slot is a ConjunctionSememe
             Item conjItem = slots.get(conjIndex).item();
-            if (!(conjItem instanceof ConjunctionSememe)) break;
+            if (!(conjItem instanceof Sememe cs && cs.pos().equals(PartOfSpeech.CONJUNCTION))) break;
 
             // Look for the object after the conjunction
             int nextObjIndex = nextUnconsumed(slots, consumed, conjIndex + 1);
@@ -477,13 +478,13 @@ public class FrameAssembler {
     /**
      * Choose the head verb index by combining static priors and runtime dispatchability.
      */
-    private static int selectHeadVerbIndex(List<Slot> slots, ToIntFunction<VerbSememe> headVerbScorer) {
+    private static int selectHeadVerbIndex(List<Slot> slots, ToIntFunction<Sememe> headVerbScorer) {
         int bestIndex = -1;
         int bestScore = Integer.MIN_VALUE;
 
         for (int i = 0; i < slots.size(); i++) {
             Item item = slots.get(i).item();
-            if (!(item instanceof VerbSememe verb)) continue;
+            if (!(item instanceof Sememe verb) || !verb.pos().equals(PartOfSpeech.VERB)) continue;
 
             int score = baseHeadScore(verb) + headVerbScorer.applyAsInt(verb);
             // Stable tie-breaker: earlier token wins.
@@ -505,7 +506,7 @@ public class FrameAssembler {
      * <p>Relational/type-link predicates should usually bind as arguments (THEME)
      * to an action verb (e.g. "find implemented-by"), not become the head action.
      */
-    private static int baseHeadScore(VerbSememe verb) {
+    private static int baseHeadScore(Sememe verb) {
         int score = 0;
         String key = verb.canonicalKey();
         if (key != null) {

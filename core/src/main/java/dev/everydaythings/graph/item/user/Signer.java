@@ -10,7 +10,8 @@ import dev.everydaythings.graph.crypt.Vault;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.crypt.Algorithm;
 import dev.everydaythings.graph.crypt.CertLog;
@@ -75,7 +76,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Local-only component - never synced. Contains private keys.
      * For referenced Signers (others' identities), this is null.
      */
-    @Frame(handle = "vault", path = ".vault", localOnly = true)
+    @Frame(key = {CoreVocabulary.Vault.KEY}, path = ".vault", localOnly = true)
     private transient Vault vault;
 
     /**
@@ -84,7 +85,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Syncable stream component. Tracks all public keys this signer has used,
      * which keys are current for which purposes, and tombstoned keys.
      */
-    @Frame(handle = "keys", path = ".keys", stream = true)
+    @Frame(key = {CoreVocabulary.KeyHistory.KEY}, path = ".keys", stream = true)
     private KeyLog keyLog;
 
     /**
@@ -93,7 +94,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Syncable stream component. Tracks certificates issued by this signer
      * to attest to other identities, grant trust, etc.
      */
-    @Frame(handle = "certs", path = ".certs", stream = true)
+    @Frame(key = {CoreVocabulary.CertHistory.KEY}, path = ".certs", stream = true)
     private CertLog certLog;
 
     /**
@@ -103,7 +104,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * For Hosts this defaults to the hostname; for Librarians it can be
      * set by the user (e.g. "dax", "riker-lib").
      */
-    @Frame(key = {"cg.core:name"}, endorsed = false)
+    @Frame(key = {RoutingVocabulary.Name.KEY}, endorsed = false)
     private String name;
 
     /**
@@ -498,7 +499,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * @param name the new name
      * @return status message describing the rename
      */
-    @Verb(value = VerbSememe.Rename.KEY, doc = "Rename this signer")
+    @Verb(value = CoreVocabulary.Rename.KEY, doc = "Rename this signer")
     public String rename(ActionContext ctx,
                          @Param(value = "name", doc = "New name") String name) {
         if (name == null || name.isBlank()) {

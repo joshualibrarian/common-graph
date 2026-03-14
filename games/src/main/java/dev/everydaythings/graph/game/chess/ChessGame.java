@@ -17,7 +17,7 @@ import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -692,7 +692,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Get all legal moves in the current position.
      */
-    @Verb(value = VerbSememe.ListVerb.KEY, doc = "List legal moves")
+    @Verb(value = CoreVocabulary.ListVerb.KEY, doc = "List legal moves")
     public List<String> legalMoves() {
         List<Move> moves = chessBoard.legalMoves();
         List<String> result = new ArrayList<>(moves.size());
@@ -926,7 +926,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Describe the current game status as a single string.
      */
-    @Verb(value = VerbSememe.Describe.KEY, doc = "Describe game status")
+    @Verb(value = CoreVocabulary.Describe.KEY, doc = "Describe game status")
     public String describeStatus() {
         return sideToMove() + " to move | Move " + fullMoveNumber()
                 + " | " + result() + (isCheck() ? " | CHECK" : "");
@@ -950,7 +950,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      * @param spec Time control specification
      * @return status message
      */
-    @Verb(value = VerbSememe.Put.KEY, doc = "Set time control (e.g., '5+3')")
+    @Verb(value = CoreVocabulary.Put.KEY, doc = "Set time control (e.g., '5+3')")
     public String setClock(@Param(value = "spec", doc = "Time spec like '5+3' or 'off'") String spec) {
         if ("off".equalsIgnoreCase(spec)) {
             clock = null;
@@ -1279,7 +1279,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     /**
      * Render the board as Unicode text (for CLI and toString).
      */
-    @Verb(value = VerbSememe.Show.KEY, doc = "Show the chess board")
+    @Verb(value = CoreVocabulary.Show.KEY, doc = "Show the chess board")
     public String renderBoard() {
         BoardState<ChessPiece> boardState = state();
         StringBuilder sb = new StringBuilder();

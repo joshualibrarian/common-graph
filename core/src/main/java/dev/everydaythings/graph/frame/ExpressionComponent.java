@@ -421,13 +421,6 @@ public class ExpressionComponent implements Canonical {
     // ==================================================================================
 
     /**
-     * Encode this expression component to bytes.
-     */
-    public byte[] encode() {
-        return encodeBinary(Canonical.Scope.RECORD);
-    }
-
-    /**
      * Decode an expression component from bytes.
      */
     public static ExpressionComponent decode(byte[] bytes) {

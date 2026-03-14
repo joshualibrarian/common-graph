@@ -4,6 +4,8 @@
 
 In the frame model, assertions are frames like any other. Endorsed assertions are included in the item's manifest (the owner asserts them). Unendorsed assertions are attached by others and independently signed. See [Frames](frames.md) for the unified frame primitive.
 
+**Semantics are resolved at write time.** When an assertion is created, every concept — the predicate, every role, every target — is resolved to a globally-anchored sememe before storage. The creator performs the disambiguation (they know what they mean), so the stored frame is a structure of semantic references, not text to be interpreted later. This is what makes the graph queryable by meaning without a search engine or NLP pipeline.
+
 Early versions of Common Graph used RDF-style triples (Subject → Predicate → Object), following the Semantic Web data model. That structure works for simple binary relationships but becomes awkward when a relation involves more than two participants, or when you need to distinguish *who did something* from *what it was done to*. Frames generalize triples: a two-role frame is isomorphic to a triple, but a frame can also express "Alice sent the book to Bob using FedEx on Tuesday" as a single, signed assertion with five roles filled.
 
 ## Assertion Structure
@@ -13,7 +15,7 @@ An assertion is a **filled frame** — a predicate with role bindings:
 ```
 Predicate (Sememe)
     THEME  → Item or Literal
-    TARGET → Item or Literal
+    GOAL   → Item or Literal
     AGENT  → Item (optional)
     ...additional roles as needed
 ```
@@ -30,24 +32,66 @@ Predicate (Sememe)
 
 ## Roles
 
-Roles are **sememes** — language-agnostic concepts referenced by ItemID. Each role defines the semantic function of a participant in the frame. The `Role` type extends `NounSememe` and provides these seed instances:
+Roles are **sememes** — language-agnostic concepts referenced by ItemID. Each role defines the semantic function of a participant in the frame. The `ThematicRole` class extends `Sememe` and provides 25 seed instances, aligned with [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html).
 
-| Role | Key | Description |
-|------|-----|-------------|
-| `AGENT` | `cg.role:agent` | The doer or initiator of an action |
-| `PATIENT` | `cg.role:patient` | The entity affected or changed |
-| `THEME` | `cg.role:theme` | The content, topic, or subject matter |
-| `TARGET` | `cg.role:target` | The destination or target |
-| `SOURCE` | `cg.role:source` | The origin or source |
-| `INSTRUMENT` | `cg.role:instrument` | The tool or means used |
-| `LOCATION` | `cg.role:location` | The place where something is or happens |
-| `TIME` | `cg.role:time` | The time when something happens |
-| `RECIPIENT` | `cg.role:recipient` | The beneficiary or recipient |
-| `CAUSE` | `cg.role:cause` | The reason or cause |
-| `COMITATIVE` | `cg.role:comitative` | A companion or co-participant |
-| `NAME` | `cg.role:name` | A name, label, or designation being assigned |
+No CILIs — thematic roles are frame-theoretic concepts, not WordNet synsets. The role "AGENT" is not the WordNet synset for "agent" (a person who acts on behalf of another) — it's the participant who intentionally initiates an event.
 
-Most assertions use just two roles: **THEME** (what the assertion is about) and **TARGET** (what it points to). This is the frame equivalent of a triple's subject and object. Additional roles are filled when the semantics require them.
+**Core participant roles:**
+
+| Role | Key | Description | VN/LIRICS |
+|------|-----|-------------|-----------|
+| `AGENT` | `cg.role:agent` | Intentional initiator of an action | Agent |
+| `PATIENT` | `cg.role:patient` | Entity affected, changed, or consumed | Patient |
+| `THEME` | `cg.role:theme` | Entity located, moved, or existing in a state without change | Theme |
+| `EXPERIENCER` | `cg.role:experiencer` | Participant who perceives, feels, or undergoes mental state | Experiencer |
+| `STIMULUS` | `cg.role:stimulus` | What triggers a perception or emotional response | Stimulus |
+| `PIVOT` | `cg.role:pivot` | Central participant in a state, in fixed position throughout | Pivot |
+| `CAUSE` | `cg.role:cause` | Non-intentional initiator of an event | Cause |
+
+**Endpoint and directional roles:**
+
+| Role | Key | Description | VN/LIRICS |
+|------|-----|-------------|-----------|
+| `GOAL` | `cg.role:goal` | Abstract end-point or target of an action | Goal |
+| `DESTINATION` | `cg.role:destination` | Physical place where motion ends | Destination / Final Location |
+| `SOURCE` | `cg.role:source` | Origin or starting point | Source |
+| `PATH` | `cg.role:path` | Route or trajectory between origin and endpoint | Trajectory / Path |
+| `RESULT` | `cg.role:result` | Entity that comes into existence through the event | Result / Product |
+
+**Transfer and benefaction roles:**
+
+| Role | Key | Description | VN/LIRICS |
+|------|-----|-------------|-----------|
+| `RECIPIENT` | `cg.role:recipient` | Animate entity that receives something transferred | Recipient |
+| `BENEFICIARY` | `cg.role:beneficiary` | Participant who benefits from the event | Beneficiary |
+| `PARTNER` | `cg.role:partner` | Secondary agent, intentionally co-participating | Co-Agent / Partner |
+
+**Instrumental, manner, and circumstantial roles:**
+
+| Role | Key | Description | VN/LIRICS |
+|------|-----|-------------|-----------|
+| `INSTRUMENT` | `cg.role:instrument` | Tool or means manipulated by an agent | Instrument |
+| `MANNER` | `cg.role:manner` | How an action is performed | Manner |
+| `EXTENT` | `cg.role:extent` | Degree, amount, or measure of change | Extent / Amount |
+| `ATTRIBUTE` | `cg.role:attribute` | Property that an event associates with a participant | Attribute |
+| `PURPOSE` | `cg.role:purpose` | Intended outcome motivating an action | Purpose |
+
+**Setting roles (adjuncts):**
+
+| Role | Key | Description | VN/LIRICS |
+|------|-----|-------------|-----------|
+| `LOCATION` | `cg.role:location` | Place where an event occurs or state holds | Location |
+| `TIME` | `cg.role:time` | When an event occurs or state holds | Time |
+
+**Information and naming roles:**
+
+| Role | Key | Description | VN/LIRICS |
+|------|-----|-------------|-----------|
+| `TOPIC` | `cg.role:topic` | Subject of communication or information transfer | Topic |
+| `NAME` | `cg.role:name` | A name, label, or designation being assigned | CG extension |
+| `REFERENT` | `cg.role:referent` | The concept being referred to in a metalinguistic frame | CG extension |
+
+Most assertions use just two roles: **THEME** (what the assertion is about) and **GOAL** (what it points to). This is the frame equivalent of a triple's subject and object. Additional roles are filled when the semantics require them.
 
 Roles are not a closed set. New roles can be added as seed vocabulary without changing any code — for example, an evidentiality role for languages that grammaticalize how knowledge was acquired.
 
@@ -60,8 +104,8 @@ Each role binding maps to a **Target** — either an item reference or a literal
 Points to another Item by IID. Encodes as a CBOR byte string:
 
 ```
-HYPERNYM { THEME: animal, TARGET: mammal }
-FOLLOWS  { AGENT: user:Alice, TARGET: user:Bob }
+HYPERNYM { THEME: animal, GOAL: mammal }
+FOLLOWS  { AGENT: user:Alice, GOAL: user:Bob }
 ```
 
 ### Literal Value
@@ -70,7 +114,7 @@ A typed scalar value (see [Literal Types](#literal-types) below):
 
 ```
 TITLE    { THEME: book:Hobbit, NAME: "The Hobbit" }
-READING  { THEME: sensor:temp01, TARGET: 72.5°F }
+READING  { THEME: sensor:temp01, GOAL: 72.5°F }
 ```
 
 ## Body Hash (Semantic Identity)
@@ -95,7 +139,7 @@ Assertions are signed independently of the Items they describe:
 Relation relation = Relation.builder()
     .predicate(Sememe.HYPERNYM.iid())
     .bind(Role.THEME.iid(), Relation.iid(animalIid))
-    .bind(Role.TARGET.iid(), Relation.iid(mammalIid))
+    .bind(Role.GOAL.iid(), Relation.iid(mammalIid))
     .build()
     .sign(signer);
 ```
@@ -109,16 +153,16 @@ This means:
 
 ## Convenience API
 
-The `Item.relate()` method creates the most common pattern — this item as THEME, another as TARGET:
+The `Item.relate()` method creates the most common pattern — this item as THEME, another as GOAL:
 
 ```java
 // "animal IS-A mammal"
 animal.relate(Sememe.HYPERNYM.iid(), mammal);
-// Creates: predicate=HYPERNYM, { THEME: animal, TARGET: mammal }
+// Creates: predicate=HYPERNYM, { THEME: animal, GOAL: mammal }
 
 // With a literal target
 book.relate(Sememe.TITLE.iid(), Literal.ofText("The Hobbit"));
-// Creates: predicate=TITLE, { THEME: book, TARGET: "The Hobbit" }
+// Creates: predicate=TITLE, { THEME: book, GOAL: "The Hobbit" }
 ```
 
 If the item is a `Signer`, the assertion is automatically signed. If the item has a `Librarian`, the assertion is automatically stored.
@@ -234,34 +278,34 @@ Indexes are derived and rebuildable — canonical truth lives in the signed fram
 
 **Taxonomy:**
 ```
-HYPERNYM { THEME: animal, TARGET: mammal }
-HYPERNYM { THEME: mammal, TARGET: vertebrate }
+HYPERNYM { THEME: animal, GOAL: mammal }
+HYPERNYM { THEME: mammal, GOAL: vertebrate }
 ```
 
 **Metadata:**
 ```
 TITLE     { THEME: book:Hobbit, NAME: "The Hobbit" }
-AUTHOR    { THEME: book:Hobbit, TARGET: person:Tolkien }
+AUTHOR    { THEME: book:Hobbit, GOAL: person:Tolkien }
 PUBLISHED { THEME: book:Hobbit, TIME: 1937-09-21 }
 ```
 
 **Trust:**
 ```
-TRUSTS_FOR { AGENT: user:Alice, TARGET: user:Bob, THEME: "code-review" }
-DISAVOWS   { AGENT: user:Alice, TARGET: key:compromised123 }
+TRUSTS_FOR { AGENT: user:Alice, GOAL: user:Bob, THEME: "code-review" }
+DISAVOWS   { AGENT: user:Alice, GOAL: key:compromised123 }
 ```
 
 **Social:**
 ```
-RESPONDS_TO { THEME: post:123, TARGET: post:122 }
-FOLLOWS     { AGENT: user:Alice, TARGET: user:Bob }
-LIKES       { AGENT: user:Alice, TARGET: post:456 }
+RESPONDS_TO { THEME: post:123, GOAL: post:122 }
+FOLLOWS     { AGENT: user:Alice, GOAL: user:Bob }
+LIKES       { AGENT: user:Alice, GOAL: post:456 }
 ```
 
-**Network (created automatically by the CG Protocol — see [Network Architecture](network.md)):**
+**Network (created automatically by the Peer Protocol — see [Network Architecture](network.md)):**
 ```
-PEERS_WITH   { THEME: librarian:A, TARGET: librarian:B }
-REACHABLE_AT { THEME: librarian:B, TARGET: Endpoint("cg", 192.168.1.1, 7432) }
+PEERS_WITH   { THEME: librarian:A, GOAL: librarian:B }
+REACHABLE_AT { THEME: librarian:B, GOAL: Endpoint("cg", 192.168.1.1, 7432) }
 ```
 
 Network assertions double as the routing layer — predicates like PEERS_WITH and REACHABLE_AT are indexed, so querying them gives you the peer list and topology. See [Network: Predicates ARE Indexes](network.md#predicates-are-indexes).
@@ -274,8 +318,8 @@ SENT { AGENT: user:Alice, PATIENT: book:Hobbit, RECIPIENT: user:Bob,
 
 **Comments go THROUGH sememes** — you don't just "comment", you specify how your comment relates:
 ```
-ABOUT { THEME: comment:456, TARGET: doc:789, CAUSE: "question" }
-ABOUT { THEME: comment:457, TARGET: doc:789, CAUSE: "clarification" }
+ABOUT { THEME: comment:456, GOAL: doc:789, CAUSE: "question" }
+ABOUT { THEME: comment:457, GOAL: doc:789, CAUSE: "clarification" }
 ```
 
 ## References

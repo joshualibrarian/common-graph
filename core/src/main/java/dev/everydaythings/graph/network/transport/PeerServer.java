@@ -115,7 +115,7 @@ public class PeerServer implements AutoCloseable {
                                     TransportCrypto.Role.RESPONDER, transportVault));
                         }
 
-                        // 4. CG Protocol codec (ByteBuf ↔ ProtocolMessage)
+                        // 4. Protocol codec (ByteBuf ↔ ProtocolMessage)
                         p.addLast("codec", new ProtocolCodec());
 
                         // 5. Idle detection: reader=30s, writer=15s

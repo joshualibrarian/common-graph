@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.frame.expression;
 
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.PronounSememe;
+import dev.everydaythings.graph.language.Sememe;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -16,9 +16,9 @@ class FrameQueryTest {
     static final ItemID TITLE = ItemID.fromString("cg:pred/title");
     static final ItemID THE_HOBBIT = ItemID.fromString("cg:book/the-hobbit");
     static final ItemID TOLKIEN = ItemID.fromString("cg:person/tolkien");
-    static final ItemID TARGET_ROLE = ItemID.fromString("cg.role:target");
-    static final ItemID ANY = PronounSememe.Any.SEED.iid();
-    static final ItemID WHAT = PronounSememe.What.SEED.iid();
+    static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
+    static final ItemID ANY = Sememe.Any.SEED.iid();
+    static final ItemID WHAT = Sememe.What.SEED.iid();
 
     @Test
     @DisplayName("of(predicate, theme) creates query with known predicate and theme")
@@ -51,12 +51,12 @@ class FrameQueryTest {
         FrameQuery q = FrameQuery.builder()
                 .predicate(AUTHOR)
                 .theme(WHAT)
-                .binding(TARGET_ROLE, TOLKIEN)
+                .binding(GOAL_ROLE, TOLKIEN)
                 .build();
 
         assertThat(q.predicate()).isEqualTo(AUTHOR);
         assertThat(q.theme()).isEqualTo(WHAT);
-        assertThat(q.bindings()).containsKey(TARGET_ROLE);
+        assertThat(q.bindings()).containsKey(GOAL_ROLE);
     }
 
     @SuppressWarnings("deprecation")

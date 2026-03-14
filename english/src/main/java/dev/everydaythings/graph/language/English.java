@@ -149,13 +149,11 @@ public class English extends Language {
     );
 
     @Override
-    public List<Set<ItemID>> inflectionFeatures(PartOfSpeech pos) {
-        return switch (pos) {
-            case VERB -> VERB_FEATURES;
-            case NOUN -> NOUN_FEATURES;
-            case ADJECTIVE, ADVERB -> ADJ_FEATURES;
-            default -> List.of();
-        };
+    public List<Set<ItemID>> inflectionFeatures(ItemID pos) {
+        if (pos.equals(PartOfSpeech.VERB)) return VERB_FEATURES;
+        if (pos.equals(PartOfSpeech.NOUN)) return NOUN_FEATURES;
+        if (pos.equals(PartOfSpeech.ADJECTIVE) || pos.equals(PartOfSpeech.ADVERB)) return ADJ_FEATURES;
+        return List.of();
     }
 
     /**
@@ -166,8 +164,8 @@ public class English extends Language {
      * PAST is always the present participle.
      */
     @Override
-    public Set<ItemID> simplifyFeatures(Set<ItemID> rawFeatures, PartOfSpeech pos) {
-        if (pos == PartOfSpeech.VERB && rawFeatures.contains(PARTICIPLE)
+    public Set<ItemID> simplifyFeatures(Set<ItemID> rawFeatures, ItemID pos) {
+        if (pos.equals(PartOfSpeech.VERB) && rawFeatures.contains(PARTICIPLE)
                 && !rawFeatures.contains(PAST) && !rawFeatures.contains(PRESENT)) {
             // Gerund / standalone participle → present participle
             return Set.of(PARTICIPLE, PRESENT);
@@ -176,15 +174,13 @@ public class English extends Language {
     }
 
     @Override
-    protected String regularInflection(String lemma, PartOfSpeech pos, Set<ItemID> features) {
+    protected String regularInflection(String lemma, ItemID pos, Set<ItemID> features) {
         if (lemma == null || lemma.isEmpty()) return lemma;
 
-        return switch (pos) {
-            case VERB -> inflectVerb(lemma, features);
-            case NOUN -> inflectNoun(lemma, features);
-            case ADJECTIVE, ADVERB -> inflectAdjective(lemma, features);
-            default -> lemma;
-        };
+        if (pos.equals(PartOfSpeech.VERB)) return inflectVerb(lemma, features);
+        if (pos.equals(PartOfSpeech.NOUN)) return inflectNoun(lemma, features);
+        if (pos.equals(PartOfSpeech.ADJECTIVE) || pos.equals(PartOfSpeech.ADVERB)) return inflectAdjective(lemma, features);
+        return lemma;
     }
 
     // ----- Verb inflection -----

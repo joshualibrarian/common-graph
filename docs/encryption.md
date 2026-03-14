@@ -811,8 +811,8 @@ This is intentional. Moderation of encrypted content works through social mechan
 
 1. Noise handshake implementation (XX pattern) using existing X25519 keys
 2. Session key derivation and AEAD transport wrapping
-3. Integration with `PeerConnection` — encrypt/decrypt all CG Protocol messages
-4. Handshake during `CgProtocol` connection establishment
+3. Integration with `PeerConnection` — encrypt/decrypt all Peer Protocol messages
+4. Handshake during `PeerProtocol` connection establishment
 5. Optional encryption policy (per-connection, configurable)
 6. Session Protocol (client-to-Librarian) transport encryption
 7. Tests: handshake, session key derivation, encrypted message round-trip, relay forwarding of double-encrypted content

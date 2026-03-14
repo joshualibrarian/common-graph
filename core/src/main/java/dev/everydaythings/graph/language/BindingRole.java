@@ -22,11 +22,11 @@ public enum BindingRole {
      */
     public static BindingRole classify(Item item, Eval.ResolvedToken token) {
         if (item instanceof Sememe sememe) {
-            return switch (sememe.pos()) {
-                case VERB -> ACTION;
-                case ADJECTIVE, ADVERB, PREPOSITION, CONJUNCTION, INTERJECTION -> QUALIFIER;
-                case NOUN, PRONOUN -> REFERENCE;
-            };
+            var pos = sememe.pos();
+            if (pos.equals(PartOfSpeech.VERB)) return ACTION;
+            if (pos.equals(PartOfSpeech.NOUN) || pos.equals(PartOfSpeech.PRONOUN)) return REFERENCE;
+            // ADJECTIVE, ADVERB, PREPOSITION, CONJUNCTION, INTERJECTION
+            return QUALIFIER;
         }
         // Non-sememe items and literals behave as references in frame bindings.
         return REFERENCE;

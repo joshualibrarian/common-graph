@@ -14,7 +14,7 @@ place chess in main
 (user drags chess handle to "main" region → same resolved frame)
 ```
 
-Both produce the same `SemanticFrame(PLACE, {THEME: chess, TARGET: main})`.
+Both produce the same `SemanticFrame(PLACE, {THEME: chess, GOAL: main})`.
 
 ## Views Are Mounts
 
@@ -299,7 +299,7 @@ create chess between alice and bob and view
 │                                 │   │
 │  clause 1: CREATE               │   clause 2: VIEW
 │  THEME: chess type               │   THEME: (result of clause 1)
-│  COMITATIVE: [alice, bob]        │
+│  PARTNER: [alice, bob]           │
 └──────────────────────────────────┘
 ```
 

@@ -146,7 +146,7 @@ Content replicates along interest paths. When you interact with an item — view
 
 ### Subscription-Driven Sync
 
-The CG Protocol's subscription mechanism (see [Protocol](protocol.md)) provides real-time replication for content you care about:
+The Peer Protocol's subscription mechanism (see [Protocol](protocol.md)) provides real-time replication for content you care about:
 
 ```
 Subscribe to: Relations(item=chessClub, predicate=*, subscribe=true)

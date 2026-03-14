@@ -3,10 +3,11 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.game.chess.ChessGame;
 import dev.everydaythings.graph.game.minesweeper.Minesweeper;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.ComponentType;
+import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,25 +33,25 @@ class ChessEvalIntegrationTest {
     }
 
     @Test
-    void componentType_createVerb_instantiatesChess() {
-        // Find the Chess ComponentType via its type ID
+    void nounSememe_createVerb_instantiatesChess() {
+        // Find the chess sememe via its type ID
         ItemID chessTypeId = ItemID.fromString("cg:type/chess");
         Optional<Item> chessType = librarian.get(chessTypeId);
 
         assertThat(chessType).isPresent();
-        assertThat(chessType.get()).isInstanceOf(ComponentType.class);
+        assertThat(chessType.get()).isInstanceOf(Sememe.class);
 
-        ComponentType ct = (ComponentType) chessType.get();
+        Sememe ns = (Sememe) chessType.get();
 
-        // The ComponentType should be able to resolve to Chess class
-        Optional<Class<?>> resolved = ct.resolveClass();
+        // The sememe should resolve its implementing class via IMPLEMENTED_BY frame
+        Optional<Class<?>> resolved = ns.resolveImplementingClass();
         assertThat(resolved).isPresent();
         assertThat(resolved.get()).isEqualTo(ChessGame.class);
     }
 
     @Test
     void componentType_instantiateComponent_createsChess() {
-        Object chess = ComponentType.instantiateComponent(ChessGame.class);
+        Object chess = CreationScanner.instantiate(ChessGame.class);
 
         assertThat(chess).isInstanceOf(ChessGame.class);
         ChessGame game = (ChessGame) chess;
@@ -60,7 +61,7 @@ class ChessEvalIntegrationTest {
 
     @Test
     void eval_createChess_returnsChessComponent() {
-        // "create chess" should dispatch CREATE on Chess ComponentType
+        // "create chess" should dispatch CREATE on chess sememe
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
@@ -76,7 +77,7 @@ class ChessEvalIntegrationTest {
     }
 
     @Test
-    void eval_createMinesweeper_prefersComponentType_whenTokenCollides() {
+    void eval_createMinesweeper_prefersCreateable_whenTokenCollides() {
         // Inject a higher-weight ambiguous posting for "minesweeper" that points to the librarian.
         librarian.tokenIndex().runInWriteTransaction(tx ->
                 librarian.tokenIndex().index(Posting.universal("minesweeper", librarian.iid(), 2.0f), tx));
@@ -128,7 +129,7 @@ class ChessEvalIntegrationTest {
 
     @Test
     void eval_nounAlone_navigatesToNoun() {
-        // "chess" alone should navigate to the Chess ComponentType
+        // "chess" alone should navigate to the chess sememe
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
@@ -139,7 +140,7 @@ class ChessEvalIntegrationTest {
 
         assertThat(result).isInstanceOf(Eval.EvalResult.ItemResult.class);
         Item item = ((Eval.EvalResult.ItemResult) result).item();
-        assertThat(item).isInstanceOf(ComponentType.class);
+        assertThat(item).isInstanceOf(Sememe.class);
     }
 
     @Test
@@ -153,7 +154,7 @@ class ChessEvalIntegrationTest {
         ItemID moveId = ItemID.fromString(GameVocabulary.Move.KEY);
         assertThat(item.vocabulary().lookup(moveId)).isPresent();
 
-        ItemID showId = ItemID.fromString(VerbSememe.Show.KEY);
+        ItemID showId = ItemID.fromString(CoreVocabulary.Show.KEY);
         assertThat(item.vocabulary().lookup(showId)).isPresent();
     }
 

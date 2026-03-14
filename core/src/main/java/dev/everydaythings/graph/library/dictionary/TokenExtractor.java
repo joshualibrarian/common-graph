@@ -177,8 +177,8 @@ public final class TokenExtractor {
     // ==================================================================================
 
     private static List<Posting> extractTextPostingFromBody(FrameBody body, ItemID theme, float weight) {
-        // TARGET binding is the equivalent of Relation.object()
-        BindingTarget target = body.binding(ItemID.fromString("cg.role:target"));
+        // GOAL binding is the equivalent of Relation.object()
+        BindingTarget target = body.binding(ItemID.fromString("cg.role:goal"));
         if (target instanceof Literal literal) {
             String text = extractTextFromLiteral(literal);
             if (text != null && !text.isBlank()) {

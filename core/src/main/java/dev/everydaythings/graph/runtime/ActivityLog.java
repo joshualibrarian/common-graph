@@ -1,15 +1,11 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.frame.FrameAware;
-import dev.everydaythings.graph.frame.FrameContext;
-import dev.everydaythings.graph.frame.InspectEntry;
-import dev.everydaythings.graph.frame.Inspectable;
+import dev.everydaythings.graph.frame.Log;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.VerbSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,83 +15,65 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Session activity log — records user interactions as structured entries.
+ * Activity log — a persistent stream of activity entries.
  *
- * <p>This is a component on the Session item, visible in the component tree.
- * It's the single source of truth for "what happened" in this session.
+ * <p>Extends {@link Log} to get append-only stream semantics with
+ * content-addressed storage. Each entry is a {@link ActivityEntry}
+ * encoded via Canonical.
  *
- * <p>The feedback panel near each item's prompt is an ephemeral expression
- * query into this log — {@code last(session.activity where view == self)} —
- * not a component on each individual item.
+ * <p>Used on both Session (user interactions) and Librarian (infrastructure
+ * events). The {@code identity = false} frame binding means appending
+ * entries doesn't churn the owner's VID.
  *
- * <p>In-memory for now. When Session has proper librarian-backed storage,
- * this will migrate to a persistent {@code Log<ActivityEntry>} stream.
+ * <p>Adds an in-memory context index for fast "last entry for this view"
+ * queries (the feedback panel).
+ *
+ * @see ActivityEntry
  */
 @Type(value = ActivityLog.KEY, glyph = "📋", color = 0x6699CC)
-public class ActivityLog implements FrameAware, Inspectable {
+public class ActivityLog extends Log<ActivityEntry> {
 
     public static final String KEY = "cg:type/activity-log";
     public static final String HANDLE = "activity";
 
-    private final List<ActivityEntry> entries = new ArrayList<>();
-    private final Map<ItemID, ActivityEntry> lastByContext = new LinkedHashMap<>();
-    private Item owner;
+    /** In-memory index: context IID → most recent entry for that context. */
+    private final transient Map<ItemID, ActivityEntry> lastByContext = new LinkedHashMap<>();
+
+    /** In-memory cache of recent entries for fast queries without ActionContext. */
+    private final transient List<ActivityEntry> recentEntries = new ArrayList<>();
+    private static final int MAX_RECENT = 100;
 
     // ==================================================================================
-    // Lifecycle
-    // ==================================================================================
-
-    @Override
-    public void onFramePlaced(FrameContext ctx) {
-        this.owner = ctx.theme();
-    }
-
-    public String emoji() {
-        return "📋";
-    }
-
-    public String displayToken() {
-        return entries.isEmpty() ? "activity" : "activity (" + entries.size() + ")";
-    }
-
-    public boolean isExpandable() {
-        return !entries.isEmpty();
-    }
-
-    @Override
-    public List<InspectEntry> inspectEntries() {
-        List<InspectEntry> result = new ArrayList<>();
-        // Most recent first
-        for (int i = entries.size() - 1; i >= 0; i--) {
-            ActivityEntry entry = entries.get(i);
-            String emoji = entry.isSuccess() ? "✓" : "✗";
-            result.add(new InspectEntry(
-                    String.valueOf(i),
-                    entry.toString(),
-                    emoji,
-                    entry));
-        }
-        return result;
-    }
-
-    // ==================================================================================
-    // Log Operations
+    // Simple Append (no ActionContext needed)
     // ==================================================================================
 
     /**
-     * Append an entry to the activity log.
+     * Append an entry to the activity log without an ActionContext.
+     *
+     * <p>This stores the entry in-memory only (no content-addressed storage).
+     * Use the inherited {@link Log#append} with an ActionContext for
+     * persistent storage.
+     *
+     * @param entry The entry to append
      */
     public void append(ActivityEntry entry) {
-        entries.add(entry);
+        recentEntries.add(entry);
+        if (recentEntries.size() > MAX_RECENT) {
+            recentEntries.removeFirst();
+        }
         if (entry.contextIid() != null) {
             lastByContext.put(entry.contextIid(), entry);
         }
     }
 
+    // ==================================================================================
+    // Query Helpers
+    // ==================================================================================
+
     /**
      * Get the most recent entry for a specific context.
      *
-     * <p>This is the ephemeral query that the feedback panel evaluates:
+     * <p>This is the query the feedback panel evaluates:
      * "last activity where context matches this view."
      */
     public Optional<ActivityEntry> lastForContext(ItemID contextIid) {
@@ -107,60 +85,55 @@ public class ActivityLog implements FrameAware, Inspectable {
      * Get the most recent entry (any context).
      */
     public Optional<ActivityEntry> last() {
-        if (entries.isEmpty()) return Optional.empty();
-        return Optional.of(entries.getLast());
+        if (recentEntries.isEmpty()) return Optional.empty();
+        return Optional.of(recentEntries.getLast());
     }
 
     /**
      * Get the N most recent entries (newest first).
      */
     public List<ActivityEntry> recent(int count) {
-        int size = entries.size();
+        int size = recentEntries.size();
         int start = Math.max(0, size - count);
-        List<ActivityEntry> result = new ArrayList<>(entries.subList(start, size));
+        List<ActivityEntry> result = new ArrayList<>(recentEntries.subList(start, size));
         Collections.reverse(result);
         return result;
     }
 
     /**
-     * Total number of entries.
+     * Total number of cached entries.
      */
     public int size() {
-        return entries.size();
+        return recentEntries.size();
     }
 
-    /**
-     * Whether the log is empty.
-     */
-    public boolean isEmpty() {
-        return entries.isEmpty();
+    // ==================================================================================
+    // Display Overrides
+    // ==================================================================================
+
+    @Override
+    public String displayToken() {
+        long n = recentEntries.size();
+        return "activity" + (n > 0 ? " (" + n + ")" : "");
+    }
+
+    @Override
+    protected String entryLabel(long seq, ActivityEntry payload) {
+        return payload.toString();
+    }
+
+    @Override
+    protected String entryEmoji(long seq, ActivityEntry payload) {
+        return payload.isSuccess() ? "✓" : "✗";
     }
 
     // ==================================================================================
     // Verbs
     // ==================================================================================
 
-    @Verb(value = VerbSememe.ListVerb.KEY, doc = "Show recent activity")
-    public ActionResult list() {
-        if (entries.isEmpty()) {
-            return ActionResult.success("No activity yet.");
-        }
-        StringBuilder sb = new StringBuilder();
-        List<ActivityEntry> recent = recent(10);
-        for (ActivityEntry entry : recent) {
-            sb.append(entry.toString()).append("\n");
-        }
-        return ActionResult.success(sb.toString().trim());
-    }
-
-    @Verb(value = VerbSememe.Count.KEY, doc = "Count activity entries")
-    public ActionResult count() {
-        return ActionResult.success(entries.size() + " entries");
-    }
-
-    @Verb(value = VerbSememe.Remove.KEY, doc = "Clear activity log")
+    @Verb(value = CoreVocabulary.Remove.KEY, doc = "Clear activity log")
     public ActionResult clear() {
-        entries.clear();
+        recentEntries.clear();
         lastByContext.clear();
         return ActionResult.success("Activity log cleared.");
     }
@@ -171,15 +144,16 @@ public class ActivityLog implements FrameAware, Inspectable {
 
     @Override
     public String toString() {
-        if (entries.isEmpty()) return "No activity yet.";
+        if (recentEntries.isEmpty()) return "No activity yet.";
         StringBuilder sb = new StringBuilder();
-        sb.append(entries.size()).append(entries.size() == 1 ? " entry" : " entries").append("\n\n");
+        int size = recentEntries.size();
+        sb.append(size).append(size == 1 ? " entry" : " entries").append("\n\n");
         List<ActivityEntry> recent = recent(10);
         for (ActivityEntry entry : recent) {
             sb.append(entry.isSuccess() ? "  ✓ " : "  ✗ ").append(entry).append("\n");
         }
-        if (entries.size() > 10) {
-            sb.append("  … and ").append(entries.size() - 10).append(" more\n");
+        if (size > 10) {
+            sb.append("  … and ").append(size - 10).append(" more\n");
         }
         return sb.toString().stripTrailing();
     }

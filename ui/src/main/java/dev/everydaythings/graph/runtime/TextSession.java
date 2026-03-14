@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Type;
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Text-based session for CLI and TUI modes.
  *
- * <p>Both CLI and TUI modes use the same raw-mode + {@link EvalInput} pipeline
+ * <p>Both CLI and TUI modes use the same raw-mode + {@link InputController} pipeline
  * for input handling (tab completion, token resolution, expression building).
  * The only difference is surface rendering:
  * <ul>
@@ -219,14 +219,14 @@ public class TextSession extends Session {
             inputRenderer = new JLineInputRenderer(terminal);
             bindingReader = new BindingReader(terminal.reader());
 
-            // Set up EvalInput for the prompt
+            // Set up InputController for the prompt
             if (itemModel != null) {
                 itemModel.setRenderInputInSurface(false);
             }
-            initializeEvalInput();
-            if (evalInput != null) {
+            initializeInputController();
+            if (inputController != null) {
                 inputRenderer.focus();
-                inputRenderer.render(evalInput.snapshot());
+                inputRenderer.render(inputController.snapshot());
             }
 
             // Enter raw mode
@@ -273,9 +273,9 @@ public class TextSession extends Session {
                     continue;
                 }
 
-                // Feed to EvalInput via bindings
-                if (evalInput != null) {
-                    dispatchToEvalInput(chord);
+                // Feed to InputController via bindings
+                if (inputController != null) {
+                    dispatchToInput(chord);
                 }
             }
 
@@ -343,10 +343,10 @@ public class TextSession extends Session {
         terminal.writer().println();
         terminal.writer().flush();
 
-        // Re-render the input line (prompt is suppressed in surface when EvalInput active)
-        if (inputRenderer != null && evalInput != null) {
+        // Re-render the input line (prompt is suppressed in surface when InputController active)
+        if (inputRenderer != null && inputController != null) {
             inputRenderer.focus();
-            inputRenderer.render(evalInput.snapshot());
+            inputRenderer.render(inputController.snapshot());
         }
     }
 
@@ -380,9 +380,9 @@ public class TextSession extends Session {
         }
 
         // Re-render the input line
-        if (inputRenderer != null && evalInput != null) {
+        if (inputRenderer != null && inputController != null) {
             inputRenderer.focus();
-            inputRenderer.render(evalInput.snapshot());
+            inputRenderer.render(inputController.snapshot());
         }
     }
 
@@ -484,7 +484,7 @@ public class TextSession extends Session {
     }
 
     @Override
-    protected void onInputChanged(EvalInputSnapshot snapshot) {
+    protected void onInputChanged(InputSnapshot snapshot) {
         if (inputRenderer != null) {
             inputRenderer.render(snapshot);
         }
@@ -600,13 +600,13 @@ public class TextSession extends Session {
     }
 
     // ==================================================================================
-    // CLI Mode - Raw mode with EvalInput (same input path as TUI)
+    // CLI Mode - Raw mode with InputController (same input path as TUI)
     // ==================================================================================
 
     /**
      * Run interactive CLI mode.
      *
-     * <p>Uses the same raw mode + EvalInput pipeline as TUI mode.
+     * <p>Uses the same raw mode + InputController pipeline as TUI mode.
      * The only difference is surface rendering: CLI uses scrolling
      * {@link CliSurfaceRenderer} output instead of full-screen
      * {@link TuiSurfaceRenderer}.
@@ -636,14 +636,14 @@ public class TextSession extends Session {
             inputRenderer = new JLineInputRenderer(terminal);
             bindingReader = new BindingReader(terminal.reader());
 
-            // Set up EvalInput (shared with TUI)
+            // Set up InputController (shared with TUI)
             if (itemModel != null) {
                 itemModel.setRenderInputInSurface(false);
             }
-            initializeEvalInput();
-            if (evalInput != null) {
+            initializeInputController();
+            if (inputController != null) {
                 inputRenderer.focus();
-                inputRenderer.render(evalInput.snapshot());
+                inputRenderer.render(inputController.snapshot());
             }
 
             // Enter raw mode for character-by-character input
@@ -678,9 +678,9 @@ public class TextSession extends Session {
                     continue;
                 }
 
-                // Feed to EvalInput via bindings
-                if (evalInput != null) {
-                    dispatchToEvalInput(chord);
+                // Feed to InputController via bindings
+                if (inputController != null) {
+                    dispatchToInput(chord);
                 }
             }
 

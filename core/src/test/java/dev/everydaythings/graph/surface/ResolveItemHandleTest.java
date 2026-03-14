@@ -6,7 +6,7 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.NounSememe;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.SceneMode;
 import dev.everydaythings.graph.ui.scene.View;
@@ -28,7 +28,7 @@ class ResolveItemHandleTest {
         Librarian lib = Librarian.createInMemory();
 
         // Get the TITLE sememe IID
-        ItemID titleIid = NounSememe.Title.SEED.iid();
+        ItemID titleIid = CoreVocabulary.Title.SEED.iid();
         System.out.println("TITLE sememe IID: " + titleIid.encodeText());
 
         // Try to resolve TITLE
@@ -67,7 +67,7 @@ class ResolveItemHandleTest {
 
         // Compile a frame body WITH resolver
         FrameBody body = FrameBody.of(titleIid, libIid,
-                java.util.Map.of(ThematicRole.Target.SEED.iid(), Literal.ofText("joshua")));
+                java.util.Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofText("joshua")));
 
         System.out.println("\n=== Compiling FrameBody with resolver ===");
         View view = SceneCompiler.compile(body, SceneMode.FULL,

@@ -1,12 +1,11 @@
 package dev.everydaythings.graph.ui.text;
 
 import dev.everydaythings.graph.parse.CompletionEntry;
-import dev.everydaythings.graph.parse.EvalInputSnapshot;
+import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.parse.ExpressionToken;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.ui.input.InputRenderer;
-import dev.everydaythings.graph.ui.input.InputResult;
-import dev.everydaythings.graph.ui.input.InputState;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -34,9 +33,7 @@ import java.util.List;
  *     completion3
  * </pre>
  *
- * <p>Supports both {@link EvalInputSnapshot} (preferred, from core) and
- * legacy {@link InputState} (from ui). The legacy path delegates to the
- * snapshot renderer.
+ * <p>Renders {@link InputSnapshot} from core.
  */
 public class JLineInputRenderer implements InputRenderer {
 
@@ -65,6 +62,9 @@ public class JLineInputRenderer implements InputRenderer {
             .italic();
     private static final AttributedStyle ERROR_STYLE = AttributedStyle.DEFAULT
             .foreground(AttributedStyle.RED);
+    private static final AttributedStyle CANDIDATE_STYLE = AttributedStyle.DEFAULT
+            .foreground(AttributedStyle.MAGENTA)
+            .italic();
 
     public JLineInputRenderer(Terminal terminal) {
         this.terminal = terminal;
@@ -72,9 +72,9 @@ public class JLineInputRenderer implements InputRenderer {
     }
 
     /**
-     * Render an {@link EvalInputSnapshot} — the primary rendering path.
+     * Render an {@link InputSnapshot} — the primary rendering path.
      */
-    public void render(EvalInputSnapshot snapshot) {
+    public void render(InputSnapshot snapshot) {
         if (!focused) return;
 
         clearPreviousRender();
@@ -86,11 +86,19 @@ public class JLineInputRenderer implements InputRenderer {
             line.styled(PROMPT_STYLE, snapshot.prompt());
         }
 
-        // Resolved tokens as chips
+        // Resolved tokens as chips — CandidateTokens render distinctly
         for (ExpressionToken token : snapshot.tokens()) {
-            line.styled(TOKEN_STYLE, "[");
-            line.styled(TOKEN_STYLE, token.displayText());
-            line.styled(TOKEN_STYLE, "] ");
+            if (token instanceof ExpressionToken.CandidateToken candidate) {
+                // Magenta italic with candidate count suffix
+                line.styled(CANDIDATE_STYLE, "[");
+                line.styled(CANDIDATE_STYLE, candidate.displayText());
+                line.styled(CANDIDATE_STYLE, "?" + candidate.candidates().size());
+                line.styled(CANDIDATE_STYLE, "] ");
+            } else {
+                line.styled(TOKEN_STYLE, "[");
+                line.styled(TOKEN_STYLE, token.displayText());
+                line.styled(TOKEN_STYLE, "] ");
+            }
         }
 
         // Pending text with cursor
@@ -165,26 +173,6 @@ public class JLineInputRenderer implements InputRenderer {
         writer.flush();
     }
 
-    /**
-     * Legacy render path — delegates to snapshot renderer.
-     */
-    @Override
-    public void render(InputState state) {
-        render(new EvalInputSnapshot(
-                state.tokens(),
-                state.pendingText(),
-                state.cursorPosition(),
-                state.completions(),
-                state.completions().stream()
-                        .map(p -> CompletionEntry.plain(p.token(), p.target()))
-                        .toList(),
-                state.selectedCompletion(),
-                state.showCompletions(),
-                state.prompt(),
-                state.hint(),
-                state.error()
-        ));
-    }
 
     /**
      * Clear the lines from previous render.
@@ -225,20 +213,21 @@ public class JLineInputRenderer implements InputRenderer {
     }
 
     @Override
-    public void onComplete(InputResult result) {
+    public void onComplete(Eval.EvalResult result) {
         // Clear the completion display
         clearPreviousRender();
         lastLineCount = 0;
 
         // Show result briefly if there's output
-        if (result.success() && result.value() != null) {
-            Object value = result.value();
-            if (value instanceof String s && !s.isEmpty()) {
-                writer.println("  → " + s);
+        if (result.isSuccess()) {
+            if (result instanceof Eval.EvalResult.Value(Object value)) {
+                if (value instanceof String s && !s.isEmpty()) {
+                    writer.println("  → " + s);
+                }
             }
-        } else if (!result.success() && result.errorMessage() != null) {
+        } else if (result instanceof Eval.EvalResult.Error(String message)) {
             AttributedStringBuilder errorLine = new AttributedStringBuilder();
-            errorLine.styled(ERROR_STYLE, "  ✗ " + result.errorMessage());
+            errorLine.styled(ERROR_STYLE, "  ✗ " + message);
             errorLine.toAnsi(terminal).chars().forEach(c -> writer.print((char) c));
             writer.println();
         }

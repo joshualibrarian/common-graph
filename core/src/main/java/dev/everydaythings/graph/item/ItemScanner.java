@@ -3,7 +3,6 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.ParamSpec;
 import dev.everydaythings.graph.dispatch.VerbSpec;
-import dev.everydaythings.graph.item.Components;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
@@ -95,7 +94,7 @@ public final class ItemScanner {
 
         Set<FrameKey> frameKeys = new HashSet<>(); // Track for uniqueness
         Set<String> paths = new HashSet<>();   // Track for uniqueness
-        Set<ItemID> seenVerbSememes = new HashSet<>(); // Track verb sememe IDs for child-wins precedence
+        Set<ItemID> seenVerbIds = new HashSet<>(); // Track verb sememe IDs for child-wins precedence
 
         // Walk class hierarchy (child first → parent)
         for (Class<?> c = itemClass; c != null && c != Object.class; c = c.getSuperclass()) {
@@ -128,7 +127,7 @@ public final class ItemScanner {
                 Verb va = method.getAnnotation(Verb.class);
                 if (va != null) {
                     ItemID sememeId = ItemID.fromString(va.value());
-                    if (seenVerbSememes.add(sememeId)) {
+                    if (seenVerbIds.add(sememeId)) {
                         verbSpecs.add(extractMethodVerb(method, va));
                     }
                 }
@@ -161,11 +160,8 @@ public final class ItemScanner {
                 tokens[i] = ItemID.fromString(ann.key()[i]);
             }
             frameKey = FrameKey.of(tokens);
-        } else if (!ann.handle().isEmpty()) {
-            // Literal key
-            frameKey = FrameKey.literal(ann.handle());
         } else {
-            // Default to field name
+            // Default to field name as literal key
             frameKey = FrameKey.literal(field.getName());
         }
 
@@ -173,7 +169,7 @@ public final class ItemScanner {
         Class<?> fieldType = field.getType();
         ItemID type;
         if (fieldType.isAnnotationPresent(Type.class)) {
-            type = Components.typeId(fieldType);
+            type = Item.idOf(fieldType);
         } else {
             type = ItemID.fromString("cg:type/" + fieldType.getSimpleName().toLowerCase());
         }
