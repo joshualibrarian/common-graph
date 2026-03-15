@@ -8,48 +8,23 @@
 
 ## The Problem
 
-Search engines exist because the web has no idea what anything means.
+Every layer of the computing stack is semantically inert.
 
-An HTML page is text with layout hints. A JPEG is opaque bytes with a filename. A product listing, a research paper, a restaurant menu, a medical record — to the infrastructure, they're all the same: blobs at URLs. The web has no mechanism for semantic indexing. Every query you make goes to a company that crawled billions of pages, guessed what they're about from word frequency and link structure, and built a proprietary index that you rent access to.
+A filesystem sees bytes at paths. An operating system sees processes and file descriptors. HTTP sees bytes at URLs. A database sees rows or documents. None of them know what anything *means*. The entire world's information infrastructure has zero native ability to answer the most basic question about any piece of data: *what is this about?*
 
-This is so normal that it's invisible. But think about what it means: the entire world's information infrastructure has *zero native ability* to answer "what is this about?" Every search result is a probabilistic guess by a third party. "Red shirt" gives you Star Trek memes and fashion and political commentary and soccer jerseys, and the engine does its best to guess which you meant from your click history and location and what ads it can sell against the ambiguity.
+The consequence is everywhere, and so pervasive it's invisible. Search engines exist because the web can't describe itself — so third parties crawl billions of pages, guess at meaning from word frequency and link structure, and sell access to their guesses. Every API integration is a bespoke translation between systems that can't describe their own contents to each other. Every application reinvents its own vocabulary — one system's `author` is another's `creator`, another's `created_by`, another's `writtenBy` — and no layer of infrastructure connects them.
 
-The deeper problem is that files, web pages, emails, messages, and documents are all **semantically inert**. They don't know what they mean. They can't describe their relationships to other things. They can't assert their authorship or verify their integrity. They can't express that this JPEG is a photo of a specific person, that this PDF is version 3 of a contract between two specific parties, or that this code file implements a specific algorithm. All of that meaning lives in human heads, in proprietary databases, in app-specific metadata formats that don't talk to each other.
+The key-value pair is computing's most ubiquitous pattern. But because keys are application-defined strings, they fracture the moment they leave the application that defined them. What's missing isn't a better search engine or a smarter metadata standard. What's missing is a *layer* — a base layer where meaning is structural, not decorative. Where creating data *is* creating semantic structure. Where the vocabulary is shared, grounded, and universal.
 
-Common Graph makes meaning structural. **Semantics are resolved at write time, not read time.** When you create or relate anything, the system resolves your intent to globally-anchored meaning *before the data is stored*. Every item, every assertion, every relationship is grounded in **sememes**: universal units of meaning with stable identities derived from decades of computational linguistics (WordNet, FrameNet, VerbNet, CILI). The meaning isn't guessed later by a search engine — it's declared at the moment of creation, by the person who knows what they mean.
-
-When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment of won on the torso with color attribute red." Star Trek Red Shirt memes are a different sememe entirely. They simply don't match.
+For the full argument — why retrofitting semantics onto existing layers can't work, what a semantic base layer requires, and why now — see [**The Case for a Semantic Base Layer**](docs/the-case.md).
 
 ---
 
-## What You Can Do
+## The Approach
 
-**Find things by meaning, not keywords.**
+Common Graph makes meaning structural. **Semantics are resolved at write time, not read time.** When you create or relate anything, the system resolves your intent to globally-anchored meaning *before the data is stored*. Every assertion, every relationship is grounded in **sememes**: universal units of meaning with stable identities derived from decades of computational linguistics ([WordNet](https://wordnet.princeton.edu/), [FrameNet](https://framenet.icsi.berkeley.edu/), [VerbNet](https://verbs.colorado.edu/verbnet/), [CILI](https://github.com/globalwordnet/cili)). The meaning isn't guessed later by a search engine — it's declared at the moment of creation, by the person who knows what they mean.
 
-Every item in Common Graph is semantically typed, and every assertion is a frame with a grounded predicate. This means queries resolve against meaning, not text:
-
-- *"All red shirts for sale within 50km"* — resolves SHIRT (garment sememe) + RED (color sememe) + FOR_SALE (commercial predicate) + spatial constraint. Star Trek references, political metaphors, and soccer team merchandise have different sememes. They don't appear.
-- *"Papers that cite this paper"* — CITES is a predicate. Every citation is a signed frame. The graph IS the citation index.
-- *"All games Alice and I both play"* — traverse the graph: items where both Alice and I have PLAYER frames. No platform needed to track this — it's in the data.
-- *"Everything Tolkien authored"* — AUTHORED is a predicate, Tolkien is an item. Prefix scan on the frame index. Every librarian that has Tolkien-related data can answer this locally.
-
-**No crawling. No proprietary index. No intermediary.** The data describes itself. Queries resolve locally or propagate through the social graph to peers who have relevant data.
-
-**Publish without a platform.**
-
-Your content is a signed item on your device. It's discoverable through the graph — through predicates, through your social connections, through anyone who has asserted something about it. You don't need a website, a hosting provider, or a platform's permission. Your identity is a cryptographic key, not an account. Your content is signed by you, stored where you choose, and verifiable by anyone without contacting a server.
-
-**Trust without a moderator.**
-
-A "like" is a signed frame. A spam label is a signed frame. A fact-check is a signed frame. Everyone's trust policies produce different views of the same data — no appeals board, no opaque algorithm, no single point of content control. A research community may require three independent endorsements for factual claims. A family trusts everything from family devices. These are policy frames in the graph, not features of a platform.
-
-**Converse across languages.**
-
-"Create" in English, "crear" in Spanish, "erstellen" in German — same sememe, same verb, same action. The vocabulary system resolves words to meanings, not to command strings. An English speaker and a Spanish speaker can interact with the same item in their own languages, because the interface is semantic, not syntactic.
-
-**Compute with real quantities.**
-
-`5m + 3ft` → `5.9144 m`. Units are sememes with dimensional metadata. The system understands that meters and feet are both lengths, knows the conversion factor, and produces a dimensionally correct result. `$50 + 30 EUR` works the same way (with an exchange rate frame). Quantities are first-class — not strings, not floats, not library calls.
+When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment worn on the torso with color attribute red." Star Trek memes are a different sememe entirely. They simply don't match.
 
 ---
 
@@ -57,79 +32,59 @@ A "like" is a signed frame. A spam label is a signed frame. A fact-check is a si
 
 ### Frames: The Single Primitive
 
-The entire data model is two types:
+The entire data model is built from one structure:
 
 ```
 Frame {
-    predicate   — what kind of assertion (a sememe)
-    theme       — what it's about (a ref: item, frame, or content within a frame)
-    bindings    — role bindings filling the predicate's slots
+    predicate   — what kind of assertion (a grounded meaning)
+    bindings    — role-value pairs filling the predicate's slots
 }
+```
 
+A predicate declares the roles it expects — the semantic slots that must be filled to make the assertion complete. Each binding fills a role with a value, using a compound semantic key:
+
+```
 Binding {
-    key         — compound semantic key: role + qualifiers (e.g., (MKV, UHD))
-    target      — CID, stream ref, inline value, item ref
+    key         — compound semantic key: role + qualifiers (e.g., (VIDEO, MKV, UHD))
+    target      — content, reference, inline value, stream
     identity    — in body hash? (default from predicate and role)
     index       — in frame index? (default from predicate and role)
 }
 ```
 
-Everything is a binding. The title text, the video file, the move log, the signature — each is a binding on a frame with a compound semantic key and two orthogonal flags: `identity` (does this contribute to the body hash?) and `index` (is this discoverable in the frame index?). Content, provenance, format variants, cached transcodes, metadata — all expressed uniformly as bindings. No special-purpose fields. No separate record or envelope type.
+Everything is a binding. The title text, the video file, the move log, the signature — each is a binding on a frame with a compound semantic key. Content, provenance, format variants, cached transcodes, metadata — all expressed uniformly as bindings. No special-purpose fields.
 
-Frames are **self-contained within the unified meaning-space**. Every concept a frame touches — its predicate, its theme, every binding role, every target — is a semantic reference into the graph. You don't need a manifest or a separate envelope to interpret a frame. It names every meaning it participates in.
-
-**Predicates define meaningful roles.** Each predicate declares what bindings its frames expect:
+**Predicates define meaningful roles.** Each predicate declares what bindings its frames expect. The roles are grounded meanings, not arbitrary strings — drawn from the same vocabulary as the predicates themselves, with roots in Fillmore's frame semantics (1968/1982), [VerbNet](https://verbs.colorado.edu/verbnet/), [FrameNet](https://framenet.icsi.berkeley.edu/), and [ISO 24617-4](https://www.iso.org/standard/56866.html):
 
 ```
 TITLE frame:
-  (NAME) → "The Hobbit"                    [identity]
+  (NAME) → "The Hobbit"                              [identity]
 
 CHESS frame:
-  (PLAYER, WHITE) → fischer                         [identity]
-  (PLAYER, BLACK) → spassky                         [identity]
-  (MOVES) → stream:cid-abc                 [non-identity]
+  (PLAYER, WHITE) → fischer                           [identity]
+  (PLAYER, BLACK) → spassky                           [identity]
+  (MOVES) → stream:cid-abc                            [non-identity]
 
 VIDEO frame:
-  (MKV, UHD) → cid:master-4k               [identity]
-  (MKV, HD)  → cid:hd-transcode            [non-identity]
-  (MKV, SD)  → cid:sd-transcode            [non-identity]
+  (VIDEO, MKV, UHD) → cid:master-4k                  [identity]
+  (VIDEO, MKV, HD)  → cid:hd-transcode               [non-identity]
 ```
 
-TITLE expects NAME. CHESS expects WHITE, BLACK, MOVES. VIDEO uses compound keys that carry the content type and format.  Predicates declare what they need via the shape of the thematic roles they expect.
+Every meaning in a compound key is an opportunity for indexing. Query "all videos" — index lookup on the VIDEO sememe. Query "all UHD videos" — narrow with both VIDEO and UHD. The key *is* the index.
 
-**Identity bindings control versioning.** The body hash — the frame's content identity — is computed from predicate + theme + identity bindings only. Non-identity bindings (cached transcodes, streaming logs, signatures) live on the frame but don't affect its hash. Replace an HD transcode tomorrow — body hash unchanged. Edit the resume source — new body hash, new item version.
+**Identity bindings control versioning.** The body hash is computed from predicate + identity bindings only. Non-identity bindings (cached transcodes, streaming logs, signatures) live on the frame but don't affect its hash. Replace an HD transcode tomorrow — body hash unchanged.
 
-**Index bindings control discoverability.** The `index` flag determines whether a binding creates a reverse-lookup entry in the frame index. `(AUTHOR) → Tolkien` with `index: true` means querying "frames involving Tolkien" finds this frame. `(NAME) → "The Hobbit"` with `index: false` means you don't get a reverse lookup from the title string. Both flags default from the predicate and role semantics — most bindings never need to override.
+**Provenance is bindings.** Signatures are non-identity SIGNATURE bindings. No separate record type.
 
-**Provenance is bindings.** Signatures are non-identity SIGNATURE bindings. No separate record type:
+See [`frames.md`](docs/frames.md) for the full model, and [**The Case**](docs/the-case.md) for the theoretical foundations.
 
-```
-LIKED_BY frame:
-  (LIKER) → alice                           [identity]
-  (SIGNATURE, alice) → sig-bytes            [non-identity]
-```
+### Items: What Frames Cohere Around
 
-Frames are inspired by [Fillmore's frame semantics](https://en.wikipedia.org/wiki/Frame_semantics_(linguistics)) — structured meaning with thematic roles — extended to carry data and provenance. See [`frames.md`](docs/frames.md) for the full model.
+A single frame is rarely the whole story. A book is a TITLE frame, an AUTHORED frame, TEXT frames, a COVER_ART frame — all about the same thing. The thing they cohere around is an **item**: a signed, versioned collection of frames with stable cryptographic identity.
 
-### Items: Signed Collections of Frames
+Items can represent anything: documents, people, groups, conversations, games, devices, languages, meanings themselves. Every item carries its own identity (IID), version history, and a manifest — a signed list of endorsements pointing to frames by body hash.
 
-An **item** is a signed collection of frames with stable cryptographic identity. Items can represent anything: documents, people, groups, conversations, machines, games, communities, devices, languages, meanings themselves. Every item carries its own identity (IID), immutable version history, and a manifest — a signed list of endorsements pointing to frames by body hash.
-
-The manifest endorsement is minimal:
-
-```
-Endorsement {
-    key         — which frame (semantic address)
-    body_hash   — which version of that frame
-    mounts      — where this frame appears in the item's presentation
-}
-```
-
-No identity flag on the endorsement — that lives on each binding, where the decision belongs. The manifest just endorses frames and arranges them.
-
-**Types are sememes.** The concept "Book" is a noun sememe — a unit of meaning in the graph with its own IID and version history. It's the same "book" that exists in WordNet. When the English import runs, the WordNet synset for "book" merges idempotently with the type item — same concept, one item. Its glosses are frames: `(GLOSS, ENGLISH) → "a written work"`. Its hypernyms are frames: `(HYPERNYM) → publication`. Types aren't separate from meanings. They ARE meanings.
-
-In the current Java implementation, a type is declared as an annotated class. That class is loaded into the graph at runtime as a seed item:
+**Types are sememes.** The concept "Book" is a meaning in the graph — a sememe with its own IID. It's the same "book" that exists in WordNet. Types aren't separate from meanings. They ARE meanings.
 
 ```java
 @Type("cg:type/book")
@@ -141,7 +96,7 @@ public class Book extends Item {
 }
 ```
 
-But the class is just the host-language representation of a type item that lives in the graph. `"cg:type/book"` is a deterministic IID — the same on every node. The annotations declare what frames a Book expects, what verbs it handles, how it presents itself.
+The class is just the host-language representation of a type item that lives in the graph. `"cg:type/book"` is a deterministic IID — the same on every node.
 
 > *"Item" is a working name. The right word will come.*
 
@@ -156,8 +111,6 @@ See [`item.md`](docs/item.md) for item structure, identity, lifecycle, and compo
 | No built-in authorship, versioning, or integrity | Every item is signed, versioned, and content-addressed |
 | Metadata is a sidecar (xattr, .DS_Store, EXIF) | Metadata IS bindings — first-class, queryable, signed, same as content |
 | "Relatedness" means same folder or a hyperlink | Semantic frames: typed, signed, indexed, traversable |
-| Copy a file to share it, hope nothing changes | Content-addressed: share by hash, verify on receipt, dedup automatically |
-| Permissions are rwx bits on a path | Trust policies are items — scoped, weighted, revocable, inspectable |
 | Application decides how to open it | Item carries its own vocabulary and presentation |
 | Search by filename or full-text keyword | Query by meaning across the graph |
 
@@ -167,23 +120,15 @@ A folder is one way to group things — by containment in a hierarchy. Common Gr
 
 ## Semantic Discoverability
 
-This is the core difference. The web is a document dump with external indexing bolted on. Common Graph is a **semantic index by construction**.
+The web is a document dump with external indexing bolted on. Common Graph is a **semantic index by construction**.
 
-Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every binding has a role key that is a sememe. This means the graph IS the index. There is no separate crawl-and-index step because the data already describes what it means.
+Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every binding has a role key that is a sememe. The graph IS the index.
 
 ### Write-Time Resolution
 
-This is the fundamental departure from how every other system handles meaning.
+**Meaning is resolved at the moment of creation.** When you create a frame — whether by typing "move pawn to e4," clicking a button, or calling an API — the system resolves every concept to a globally-anchored sememe *before storage*. "Move" resolves to `cg.verb:move`. "Pawn" resolves to the chess piece item. "To" maps to the GOAL thematic role. "E4" resolves to a board position. What gets stored is not text — it's a structure of semantic references: `MOVE { (THEME) = pawn, (GOAL) = e4 }`.
 
-The web stores opaque bytes and hopes a search engine can guess what they mean later. NLP systems annotate existing text with semantic roles after the fact — a hard, error-prone, probabilistic process. Schema.org and RDFa try to bolt structured metadata onto unstructured documents, but it's opt-in, unenforced, and disconnected from the content.
-
-Common Graph inverts this. **Meaning is resolved at the moment of creation.** When you create a frame — whether by typing "move pawn to e4," clicking a button, or calling an API — the system resolves every concept to a globally-anchored sememe *before storage*. "Move" resolves to `cg.verb:move`. "Pawn" resolves to the chess piece item. "To" maps to the GOAL thematic role. "E4" resolves to a board position. What gets stored is not text — it's a structure of semantic references: `MOVE { THEME: pawn, GOAL: e4 }`.
-
-The person (or code) creating the data does the disambiguation, because they know what they mean. This is trivial at write time — you know you meant chess, not a political metaphor. It's nearly impossible at read time — a search engine has to guess from context, word frequency, and your browsing history.
-
-This is why Common Graph doesn't need a search engine, a crawler, or a ranking algorithm. The data is pre-indexed by meaning at creation. Queries are frame lookups, not statistical guesses.
-
-Common Graph draws on decades of computational semantics research — [VerbNet](https://verbs.colorado.edu/verbnet/), [FrameNet](https://framenet.icsi.berkeley.edu/), [ISO 24617-4](https://www.iso.org/standard/56866.html) — for the *vocabulary* of predicates and thematic roles. But it doesn't need the NLP *parsing machinery*. Those projects solve "what does this sentence mean?" Common Graph never asks that question, because meaning was resolved before the data existed.
+The person creating the data does the disambiguation, because they know what they mean. This is trivial at write time — you know you meant chess, not a political metaphor. It's nearly impossible at read time. This is why Common Graph doesn't need a search engine, a crawler, or a ranking algorithm.
 
 ### Sememes
 
@@ -197,17 +142,27 @@ Common Graph draws on decades of computational semantics research — [VerbNet](
 
 There are no reserved words. No escape characters. Disambiguation happens through more language — the same way humans do it.
 
-**Predicates ARE indexes.** When you assert `AUTHORED { theme: TheHobbit, (AGENT) → Tolkien }`, the frame is indexed on TheHobbit (by AUTHORED predicate) and on Tolkien (by AGENT role). Querying "what did Tolkien author?" is a prefix scan on Tolkien's frame index filtered to AUTHORED — no full-text search, no crawling, no ranking algorithm.
+**Predicates ARE indexes.** When you assert `AUTHORED { (THEME) = TheHobbit, (AGENT) = Tolkien }`, the frame is indexed on TheHobbit (by AUTHORED predicate) and on Tolkien (by AGENT role). Querying "what did Tolkien author?" is a prefix scan — no full-text search, no crawling, no ranking algorithm.
 
-**Discovery fans out through the social graph.** Your librarian answers queries from its local store first. If it doesn't have the answer, it asks peers. Peers ask their peers. Trust metrics control propagation depth. The result: global discoverability without a global index. Communities that share interests naturally cluster, and queries resolve faster within clusters.
+**Discovery fans out through the social graph.** Your librarian answers queries from its local store first. If it doesn't have the answer, it asks peers. Peers ask their peers. Trust metrics control propagation depth. Global discoverability without a global index.
 
-This means:
-- **A marketplace doesn't need a search engine.** Products are items with semantic frames (PRICED_AT, CATEGORIZED_AS, LOCATED_AT). Queries resolve against meaning.
-- **An academic community doesn't need Google Scholar.** Citations are signed frames. Publication metadata is semantic. Impact is countable attestations.
-- **A music library doesn't need Shazam.** Audio fingerprints are frames. Genre, artist, album, track — all semantic, all signed, all queryable.
-- **A recipe collection doesn't need a recipe website.** Ingredients are items. Recipes assert frames about ingredients, quantities, and techniques. "Recipes using chicken and lemon that take under 30 minutes" is a frame query with constraints.
+---
 
-You can't create a thing without it being semantically typed, because the thing IS a typed, signed frame. There is no "unstructured mode" — the structure is the content.
+## What You Can Do
+
+**Find things by meaning, not keywords.**
+
+- *"All red shirts for sale within 50km"* — resolves SHIRT (garment sememe) + RED (color sememe) + FOR_SALE (commercial predicate) + spatial constraint. Star Trek references have a different sememe. They don't appear.
+- *"Papers that cite this paper"* — CITES is a predicate. Every citation is a signed frame. The graph IS the citation index.
+- *"Everything Tolkien authored"* — AUTHORED is a predicate, Tolkien is an item. Prefix scan on the frame index.
+
+**Publish without a platform.** Your content is a signed item on your device. Your identity is a cryptographic key, not an account.
+
+**Trust without a moderator.** A "like" is a signed frame. A spam label is a signed frame. Everyone's trust policies produce different views of the same data — no appeals board, no opaque algorithm.
+
+**Converse across languages.** "Create" in English, "crear" in Spanish, "erstellen" in German — same sememe, same verb, same action. The interface is semantic, not syntactic.
+
+**Compute with real quantities.** `5m + 3ft` → `5.9144 m`. Units are sememes with dimensional metadata. Quantities are first-class values, not strings.
 
 ---
 
@@ -235,7 +190,7 @@ Token (any language)
 
 Word order is flexible because resolution is semantic, not positional. "Move pawn to e4" and "move to e4 pawn" produce the same result — prepositions bind arguments by thematic role, not by position.
 
-**But you don't have to type.** The text interface is primary in the sense that it's the most expressive. But items declare their own visual presentation, and most users will interact by clicking, dragging, and selecting most of the time. A chess game renders a board you can click on. A document renders editable text. A chat room shows messages with a compose area. The vocabulary system drives both: clicking "reply" dispatches the same sememe as typing "reply."
+**But you don't have to type.** Items declare their own visual presentation. A chess game renders a board you can click on. A document renders editable text. A chat room shows messages with a compose area. The vocabulary system drives both: clicking "reply" dispatches the same sememe as typing "reply."
 
 ---
 
@@ -247,8 +202,6 @@ When a Librarian (the local runtime node) boots for the first time, it generates
 
 **Devices and people are separate identities.** Your laptop has a key. Your phone has a key. *You* are a Principal — a higher-level identity that authorizes devices by adding their public keys to your KeyLog, an append-only stream in the graph. Lose a device? Revoke its key. Your identity survives because it's not tied to any one machine.
 
-The Librarian itself is an Item — a Signer with its own identity in the graph.
-
 ---
 
 ## Trust: The Social Fabric
@@ -259,7 +212,7 @@ Every manifest and frame is signed. Trust isn't binary — it's policy-driven wi
 
 Trust determines who you sync with, whose assertions you accept, how far your queries propagate, and whose content appears in your graph at all. There is no separate "moderation" system because trust *is* moderation.
 
-**Reactions replace algorithms.** A "like" is a signed frame. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a frame targeting Alice's frame — because themes are refs, and a frame can be about another frame. Everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. No appeals process, no review board — just overlapping trust graphs producing different views of the same data.
+**Reactions replace algorithms.** A "like" is a signed frame. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a frame targeting Alice's frame — because a frame can be about another frame. Everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. No appeals process, no review board — just overlapping trust graphs producing different views of the same data.
 
 ---
 
@@ -309,29 +262,17 @@ All data uses **CG-CBOR** — a profile of [CBOR (RFC 8949)](https://www.rfc-edi
 
 ---
 
-## Types All the Way Down
-
-**Types are items.** The type that describes a "document" is itself an item — with an IID, a version history, and frames. The type that describes what a "type" is? Also an item. The predicate "author"? An item (a sememe). The unit "meter"? An item.
-
-- **Types are versioned** — their history is preserved in the same content-addressed chain as any other item.
-- **Types are discoverable** — query the graph for "all types with a text frame" or "all predicates used by this community."
-- **Types are extensible** — anyone can create new types, predicates, units. No central registry.
-- **Types carry vocabulary** — a type's verb annotations and frame definitions contribute to every item of that type.
-
----
-
 ## Linguistic Foundation
 
 Common Graph doesn't invent its linguistic backbone from scratch — it builds on decades of computational semantics research:
 
 1. **[WordNet](https://wordnet.princeton.edu/)** — ~120,000 synsets (synonym sets) with definitions, hierarchical relationships. Each synset becomes a sememe.
 2. **[CILI (Collaborative Interlingual Index)](https://github.com/globalwordnet/cili)** — Cross-lingual concept mapping. English "dog," Spanish "perro," Japanese "犬" map to the same concept.
-3. **[VerbNet](https://verbs.colorado.edu/verbnet/)** — ~300 verb classes with thematic role declarations and selectional restrictions. VerbNet's role inventory, unified with LIRICS by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf), provides the empirical basis for Common Graph's 25 thematic roles.
-4. **[ISO 24617-4 (SemAF-SR)](https://www.iso.org/standard/56866.html)** — The international standard for semantic role annotation. Common Graph's role inventory aligns with both VerbNet and this ISO standard.
-5. **[FrameNet](https://framenet.icsi.berkeley.edu/)** — ~1,200 semantic frames with frame elements and roles. The empirical basis for Common Graph's frame model, originating from Fillmore's Case Grammar (1968).
-6. **[SemLink](https://verbs.colorado.edu/semlink/)** — Cross-resource mappings between VerbNet, FrameNet, PropBank, and WordNet — enabling Common Graph to bridge between all four.
+3. **[FrameNet](https://framenet.icsi.berkeley.edu/)** — ~1,200 semantic frames with frame elements and roles. The direct computational realization of Fillmore's frame semantics (1968/1982) — the theoretical foundation for Common Graph's frame model.
+4. **[VerbNet](https://verbs.colorado.edu/verbnet/)** — ~300 verb classes with thematic role declarations. VerbNet's role inventory, unified with LIRICS by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf), provides the empirical basis for Common Graph's ~25 thematic roles.
+5. **[ISO 24617-4 (SemAF-SR)](https://www.iso.org/standard/56866.html)** — The international standard for semantic role annotation.
+6. **[SemLink](https://verbs.colorado.edu/semlink/)** — Cross-resource mappings between VerbNet, FrameNet, PropBank, and WordNet.
 7. **[UniMorph](https://unimorph.github.io/)** — Morphological database for 100+ languages. "run/ran/running" all resolve to the same sememe.
-8. **English morphology engine** — Rule-based inflection for regular forms, UniMorph for irregular.
 
 ---
 
@@ -353,7 +294,7 @@ Common Graph integrates decades of prior work:
 
 Each solved a piece of the puzzle. Common Graph's contribution — if it works — is the integration: a single model where content addressing, frame semantics, cryptographic identity, multilingual vocabulary, and local-first storage reinforce each other rather than existing as separate systems.
 
-See [`docs/references/`](docs/references/) for the full academic bibliography with 65+ papers across 20 topic areas.
+See [`docs/references/`](docs/references/) for the full academic bibliography with 65+ papers across 20 topic areas. See [**The Case for a Semantic Base Layer**](docs/the-case.md) for the theoretical argument.
 
 ---
 
@@ -441,6 +382,7 @@ Detailed specifications live in `docs/`:
 
 | Document | Covers |
 |----------|--------|
+| [**`the-case.md`**](docs/the-case.md) | **The theoretical argument for a semantic base layer** |
 | [`frames.md`](docs/frames.md) | The frame primitive, bindings, compound keys, identity, endorsement |
 | [`item.md`](docs/item.md) | Item structure, identity, lifecycle, composition |
 | [`vocabulary.md`](docs/vocabulary.md) | Vocabulary system, dispatch, expression input |
