@@ -626,7 +626,7 @@ public class Sememe extends Item {
     public Optional<Class<?>> resolveImplementingClass() {
         if (content() != null) {
             ItemID implPredicate = CoreVocabulary.ImplementedBy.SEED.iid();
-            var it = content().relationFrames().iterator();
+            var it = content().bareFrames().iterator();
             while (it.hasNext()) {
                 var frame = it.next();
                 Optional<Object> live = content().getLive(frame.frameKey());

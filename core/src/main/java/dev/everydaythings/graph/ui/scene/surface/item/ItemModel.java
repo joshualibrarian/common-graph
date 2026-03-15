@@ -794,7 +794,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     /**
      * Refresh the tree model to reflect external state changes.
      *
-     * <p>Call this after modifying an item's components or relations
+     * <p>Call this after modifying an item's frames
      * outside the tree's own interaction (e.g., adding a component via
      * command dispatch). Rebuilds the tree from scratch, clearing all
      * cached TreeLink state.

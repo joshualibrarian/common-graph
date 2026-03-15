@@ -3,7 +3,7 @@ package dev.everydaythings.graph.game;
 import java.util.*;
 import java.util.stream.Stream;
 
-/** work. My chan
+/**
  * Tracks which pieces are on which spaces of a {@link GameBoard}.
  *
  * <p>BoardState is mutable — game logic modifies it as moves are made.

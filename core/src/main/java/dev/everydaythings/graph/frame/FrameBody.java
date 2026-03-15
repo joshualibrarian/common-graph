@@ -342,6 +342,34 @@ public final class FrameBody implements Canonical {
         return null;
     }
 
+    /**
+     * Presentation config payload bytes for this frame: (CONFIG, PRESENTATION) compound binding.
+     *
+     * @return raw CBOR bytes from the presentation binding's Literal payload, or null
+     */
+    public byte[] configPresentationPayload() {
+        Binding b = getCompoundBinding(ThematicRole.Config.SEED.iid(),
+                ThematicRole.Presentation.SEED.iid());
+        if (b != null && b.target() instanceof Literal lit) {
+            return lit.payload();
+        }
+        return null;
+    }
+
+    /**
+     * Vocabulary config payload bytes for this frame: (CONFIG, VOCABULARY) compound binding.
+     *
+     * @return raw CBOR bytes from the vocabulary binding's Literal payload, or null
+     */
+    public byte[] configVocabularyPayload() {
+        Binding b = getCompoundBinding(ThematicRole.Config.SEED.iid(),
+                ThematicRole.Vocabulary.SEED.iid());
+        if (b != null && b.target() instanceof Literal lit) {
+            return lit.payload();
+        }
+        return null;
+    }
+
     // ==================================================================================
     // Compound-Key Content Mode Accessors
     // ==================================================================================

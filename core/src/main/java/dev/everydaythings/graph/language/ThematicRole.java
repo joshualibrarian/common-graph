@@ -280,6 +280,22 @@ public class ThematicRole extends Sememe {
                 .word(LEMMA, ENG, "config");
     }
 
+    /** Rendering overrides — scene, skin, style. Narrows CONFIG. [CG extension] */
+    public static class Presentation {
+        public static final String KEY = "cg.role:presentation";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "rendering configuration — scene, skin, style overrides")
+                .word(LEMMA, ENG, "presentation");
+    }
+
+    /** Token declarations — aliases, proper nouns, verb contributions. Narrows CONFIG. [CG extension] */
+    public static class Vocabulary {
+        public static final String KEY = "cg.role:vocabulary";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "vocabulary configuration — token declarations, aliases, proper nouns")
+                .word(LEMMA, ENG, "vocabulary");
+    }
+
     // ==================================================================================
     // CONSTRUCTORS
     // ==================================================================================
@@ -369,6 +385,8 @@ public class ThematicRole extends Sememe {
             case "NAME" -> Name.SEED;
             case "REFERENT" -> Referent.SEED;
             case "CONFIG" -> Config.SEED;
+            case "PRESENTATION" -> Presentation.SEED;
+            case "VOCABULARY" -> Vocabulary.SEED;
             default -> null;
         };
     }

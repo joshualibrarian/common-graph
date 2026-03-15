@@ -10,7 +10,7 @@ package dev.everydaythings.graph.game;
  *
  * <p>This is a marker interface — it carries no methods. The actual
  * randomness is generated inside {@code fold()} via
- * {@link GameRandom#fromEvent(dev.everydaythings.graph.item.component.Dag.Event)}.
+ * {@link GameRandom#fromEvent(dev.everydaythings.graph.frame.Dag.Event)}.
  *
  * @see GameRandom
  */

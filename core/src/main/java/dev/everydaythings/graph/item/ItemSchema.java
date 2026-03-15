@@ -184,16 +184,16 @@ public class ItemSchema {
     // ==================================================================================
 
     /**
-     * Populate the EndorsementsTable with relation frames from unendorsed frame fields.
+     * Populate the EndorsementsTable with bare frames from unendorsed frame fields.
      *
-     * <p>This is the display-time path (not commit-time). Relations are built and
-     * stored as live instances in the EndorsementsTable with computed CIDs.
+     * <p>This is the display-time path (not commit-time). Unendorsed frames are
+     * built and stored as live instances in the EndorsementsTable with computed CIDs.
      *
-     * @param table The frame table to populate
+     * @param table The endorsements table to populate
      * @param item  The item to read field values from
      */
-    public void populateRelationEntries(EndorsementsTable table, Item item) {
-        table.removeRelationFrames();
+    public void populateUnendorsedFrames(EndorsementsTable table, Item item) {
+        table.removeBareFrames();
 
         for (FrameFieldSpec spec : frameFields) {
             if (spec.endorsed()) continue;
@@ -204,22 +204,22 @@ public class ItemSchema {
                 for (Object element : (Iterable<?>) value) {
                     FrameBody body = buildFrameBody(item, spec, element);
                     if (body != null) {
-                        addRelationFrame(table, body, spec.predicateDisplayName());
+                        addBareFrame(table, body, spec.predicateDisplayName());
                     }
                 }
             } else {
                 FrameBody body = buildFrameBody(item, spec, value);
                 if (body != null) {
-                    addRelationFrame(table, body, spec.predicateDisplayName());
+                    addBareFrame(table, body, spec.predicateDisplayName());
                 }
             }
         }
     }
 
-    private void addRelationFrame(EndorsementsTable table, FrameBody body, String displayName) {
+    private void addBareFrame(EndorsementsTable table, FrameBody body, String displayName) {
         byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = ContentID.of(bytes);
-        Frame frame = Frame.forRelation(body.predicate(), cid, true, displayName);
+        Frame frame = Frame.forFrameBody(body.predicate(), cid, true, displayName);
         frame.setBody(body);
         table.add(frame);
         table.setLive(frame.frameKey(), body);
@@ -581,17 +581,17 @@ public class ItemSchema {
     }
 
     /**
-     * Bind unendorsed frame fields for commit — create frame bodies, store them, add as entries.
+     * Bind unendorsed frame fields for commit — create frame bodies, store them, add as frames.
      *
      * @param item           The item to read field values from
-     * @param componentTable The frame table to add relation entries to
+     * @param table          The endorsements table to add frames to
      * @param storePayload   Function to store payload bytes and return CID
      * @param storeFrameBody Function to store frame bodies (indexing)
      */
-    public void bindRelationFieldsForCommit(Item item, EndorsementsTable componentTable,
-                                            java.util.function.Function<byte[], ContentID> storePayload,
-                                            Consumer<FrameBody> storeFrameBody) {
-        componentTable.removeRelationFrames();
+    public void bindUnendorsedFramesForCommit(Item item, EndorsementsTable table,
+                                              java.util.function.Function<byte[], ContentID> storePayload,
+                                              Consumer<FrameBody> storeFrameBody) {
+        table.removeBareFrames();
 
         for (FrameFieldSpec spec : frameFields) {
             if (spec.endorsed()) continue;
@@ -600,18 +600,18 @@ public class ItemSchema {
 
             if (spec.isIterable()) {
                 for (Object element : (Iterable<?>) value) {
-                    bindSingleRelation(item, spec, element, componentTable, storePayload, storeFrameBody);
+                    bindSingleUnendorsedFrame(item, spec, element, table, storePayload, storeFrameBody);
                 }
             } else {
-                bindSingleRelation(item, spec, value, componentTable, storePayload, storeFrameBody);
+                bindSingleUnendorsedFrame(item, spec, value, table, storePayload, storeFrameBody);
             }
         }
     }
 
-    private void bindSingleRelation(Item item, FrameFieldSpec spec, Object object,
-                                    EndorsementsTable componentTable,
-                                    java.util.function.Function<byte[], ContentID> storePayload,
-                                    Consumer<FrameBody> storeFrameBody) {
+    private void bindSingleUnendorsedFrame(Item item, FrameFieldSpec spec, Object object,
+                                           EndorsementsTable table,
+                                           java.util.function.Function<byte[], ContentID> storePayload,
+                                           Consumer<FrameBody> storeFrameBody) {
         FrameBody body = buildFrameBody(item, spec, object);
         if (body == null) return;
 
@@ -622,9 +622,9 @@ public class ItemSchema {
         byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = (storePayload != null) ? storePayload.apply(bytes) : ContentID.of(bytes);
 
-        Frame frame = Frame.forRelation(body.predicate(), cid, true, spec.predicateDisplayName());
-        componentTable.add(frame);
-        componentTable.setLive(frame.frameKey(), body);
+        Frame frame = Frame.forFrameBody(body.predicate(), cid, true, spec.predicateDisplayName());
+        table.add(frame);
+        table.setLive(frame.frameKey(), body);
     }
 
     // ==================================================================================

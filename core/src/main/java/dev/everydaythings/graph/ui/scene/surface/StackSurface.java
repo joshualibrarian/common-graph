@@ -12,14 +12,13 @@ import java.util.List;
 /**
  * Surface that layers content, showing one layer at a time.
  *
- * <p>StackSurface can be used for tabbed interfaces, card stacks,
- * or any content that shows one of several options.
+ * <p>StackSurface is for card stacks or any content that shows one of several
+ * layers. Navigation between layers is handled by the accordion model
+ * (expand/collapse) rather than tabs.
  *
- * <h2>Declarative Structure</h2>
+ * <h2>Structure</h2>
  * <pre>
  * ┌─────────────────────────────────┐
- * │ [tab1] [tab2] [tab3]           │  ← tabs (if showTabs)
- * ├─────────────────────────────────┤
  * │                                 │
  * │        active content           │  ← activeLayer().content
  * │                                 │
@@ -28,25 +27,6 @@ import java.util.List;
  */
 @Scene.Container(direction = Scene.Direction.VERTICAL, style = {"stack"})
 public class StackSurface extends SceneSchema {
-
-    // ==================== Declarative Structure ====================
-    // TODO: Enable once @Scene.Repeat is implemented
-
-    @Scene.Container(direction = Scene.Direction.HORIZONTAL, style = {"tabs"})
-    @Scene.If("showTabs")
-    static class Tabs {
-        // @Scene.Repeat(bind = "layers")
-        @Scene.Container(direction = Scene.Direction.HORIZONTAL, style = {"tab"})
-        @Scene.On(event = "click", action = "selectTab")
-        static class Tab {
-            @Scene.Image(bind = "icon")
-            @Scene.If("icon != null")
-            static class Icon {}
-
-            @Scene.Text(bind = "label", style = {"tab-label"})
-            static class Label {}
-        }
-    }
 
     @Scene.Container(direction = Scene.Direction.VERTICAL, style = {"stack-content"})
     static class Content {
@@ -58,9 +38,6 @@ public class StackSurface extends SceneSchema {
 
     @Canon(order = 11)
     private int activeIndex = 0;
-
-    @Canon(order = 12)
-    private boolean showTabs = true;
 
     public StackSurface() {}
 
@@ -85,21 +62,12 @@ public class StackSurface extends SceneSchema {
         return this;
     }
 
-    public StackSurface showTabs(boolean show) {
-        this.showTabs = show;
-        return this;
-    }
-
     public List<Layer> layers() {
         return layers;
     }
 
     public int activeIndex() {
         return activeIndex;
-    }
-
-    public boolean showTabs() {
-        return showTabs;
     }
 
     public Layer activeLayer() {
@@ -135,7 +103,6 @@ public class StackSurface extends SceneSchema {
         public Layer content(SurfaceSchema content) { this.content = content; return this; }
     }
 
-    // TODO: Remove procedural render() after @Scene.Repeat is implemented
     @Override
     public void render(SurfaceRenderer out) {
         emitCommonProperties(out);
@@ -144,32 +111,6 @@ public class StackSurface extends SceneSchema {
         stackStyles.add("stack");
 
         out.beginBox(Scene.Direction.VERTICAL, stackStyles);
-
-        // Tab bar (if showing tabs)
-        if (showTabs) {
-            out.beginBox(Scene.Direction.HORIZONTAL, List.of("tabs"));
-            for (int i = 0; i < layers.size(); i++) {
-                Layer layer = layers.get(i);
-                boolean isActive = (i == activeIndex);
-
-                List<String> tabStyles = new ArrayList<>();
-                tabStyles.add("tab");
-                if (isActive) tabStyles.add("active");
-
-                // Click to select this tab
-                out.event("click", "selectTab", String.valueOf(i));
-
-                out.beginBox(Scene.Direction.HORIZONTAL, tabStyles);
-                if (layer.icon() != null) {
-                    layer.icon().render(out);
-                }
-                if (layer.label() != null) {
-                    out.text(layer.label(), List.of("tab-label"));
-                }
-                out.endBox();
-            }
-            out.endBox();
-        }
 
         // Active content
         out.beginBox(Scene.Direction.VERTICAL, List.of("stack-content"));

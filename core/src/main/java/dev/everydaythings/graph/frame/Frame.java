@@ -79,6 +79,9 @@ public final class Frame implements Canonical {
     /** Per-frame policy override (transient — encoded into FrameBody Config binding on commit). */
     private transient PolicySet policy;
 
+    /** Attestation records (transient — populated from RECORD_BY_BODY index for unendorsed frames). */
+    private transient List<FrameRecord> records;
+
     // ==================================================================================
     // Constructors
     // ==================================================================================
@@ -107,6 +110,7 @@ public final class Frame implements Canonical {
     public Object instance() { return instance; }
     public Item owner() { return owner; }
     public String alias() { return alias; }
+    public List<FrameRecord> records() { return records != null ? records : List.of(); }
 
     /**
      * Per-frame policy override.
@@ -138,6 +142,7 @@ public final class Frame implements Canonical {
     public void setInstance(Object instance) { this.instance = instance; }
     public void setOwner(Item owner) { this.owner = owner; }
     public void setAlias(String alias) { this.alias = alias; }
+    public void setRecords(List<FrameRecord> records) { this.records = records; }
 
     /**
      * Set the per-frame policy override.
@@ -170,8 +175,8 @@ public final class Frame implements Canonical {
     // Convenience
     // ==================================================================================
 
-    /** Is this a relation frame? (type == FrameBody.TYPE_ID) */
-    public boolean isRelation() {
+    /** Is this a bare frame body (no component wrapper — type == FrameBody.TYPE_ID)? */
+    public boolean isBareFrame() {
         return FrameBody.TYPE_ID.equals(type);
     }
 
@@ -208,7 +213,7 @@ public final class Frame implements Canonical {
 
     /** Emoji glyph for this frame. */
     public String emoji() {
-        if (isRelation()) return "🔗";
+        if (isBareFrame()) return "🔗";
         if (body != null && body.isStream()) return "📜";
         if (body != null && body.isExternal()) return "📁";
         if (body != null && body.isReference()) return "↗";
@@ -290,10 +295,10 @@ public final class Frame implements Canonical {
         return new Frame(key, type, body, null, identity);
     }
 
-    /** Create a relation frame. */
-    public static Frame forRelation(ItemID predicate, ContentID cid, boolean identity, String displayName) {
+    /** Create a bare frame (type = FrameBody.TYPE_ID, for unendorsed semantic assertions). */
+    public static Frame forFrameBody(ItemID predicate, ContentID cid, boolean identity, String displayName) {
         String alias = displayName != null ? displayName : formatPredicate(predicate);
-        FrameKey key = FrameKey.literal("rel:" + cid.encodeText());
+        FrameKey key = FrameKey.literal("frame:" + cid.encodeText());
         List<Binding> bindings = new ArrayList<>();
         if (cid != null) {
             bindings.add(new Binding(ThematicRole.Topic.SEED.iid(),
@@ -305,9 +310,9 @@ public final class Frame implements Canonical {
         return frame;
     }
 
-    /** Create a relation frame (no display name). */
-    public static Frame forRelation(ItemID predicate, ContentID cid, boolean identity) {
-        return forRelation(predicate, cid, identity, null);
+    /** Create a bare frame (no display name). */
+    public static Frame forFrameBody(ItemID predicate, ContentID cid, boolean identity) {
+        return forFrameBody(predicate, cid, identity, null);
     }
 
     /**
@@ -323,6 +328,20 @@ public final class Frame implements Canonical {
                 endorsement.bodyHash(),
                 hasIdentityBindings(body));
         return frame;
+    }
+
+    /**
+     * Reconstruct a Frame from a {@link FrameBody} alone (unendorsed frames).
+     *
+     * <p>Used for frames loaded from the index that are NOT in the item's
+     * endorsement table — likes, annotations, trust attestations. The key
+     * is derived from predicate + body hash.
+     */
+    public static Frame fromBody(FrameBody body) {
+        Objects.requireNonNull(body, "body");
+        ContentID hash = body.hash();
+        FrameKey key = FrameKey.literal(body.predicate().encodeText() + ":" + hash.displayAtWidth(12));
+        return new Frame(key, body.predicate(), body, hash, false);
     }
 
     // ==================================================================================

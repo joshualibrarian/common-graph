@@ -5,6 +5,7 @@ import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.VerbInvoker;
 import dev.everydaythings.graph.dispatch.VerbSpec;
 import dev.everydaythings.graph.dispatch.Vocabulary;
+import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.frame.FrameAware;
@@ -53,16 +54,16 @@ import java.util.stream.Stream;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 /**
- * The fundamental unit of Common Graph - versioned containers with identity,
- * content components, relations, and actions. Think of them as "little git repos."
+ * The fundamental unit of Common Graph — versioned containers with identity,
+ * frames, and vocabulary. Think of them as "little git repos."
  *
  * <p>This is a self-describing type. The class IS the definition.
  *
  * <p>State:
  * <ul>
  *   <li>base: current version (ContentID) or null if fresh/uncommitted</li>
- *   <li>componentTable: functional building blocks (content, streams)</li>
- *   <li>actionTable: declared actions</li>
+ *   <li>endorsedFrames: all frames (endorsed content, semantic assertions)</li>
+ *   <li>vocabulary: declared verbs and dispatching</li>
  * </ul>
  *
  * <p>Dirty tracking: items can be created/modified without committing.
@@ -118,7 +119,7 @@ public class Item {
     protected Manifest current;
 
     /**
-     * Unified state: components, actions, mounts, relations, and policy.
+     * Unified state: endorsed frames, mounts, and policy.
      *
      * <p>ItemState holds all the versioned state of an Item, providing a
      * unified abstraction that can be shared with Manifest for serialization.
@@ -150,8 +151,8 @@ public class Item {
     /**
      * Get the cached schema for this item's class.
      *
-     * <p>The schema contains all annotation-derived metadata (component fields,
-     * relation fields, verbs) and is computed once per class.
+     * <p>The schema contains all annotation-derived metadata (frame fields,
+     * verbs) and is computed once per class.
      */
     @SuppressWarnings("unchecked")
     protected ItemSchema schema() {
@@ -174,17 +175,14 @@ public class Item {
     }
 
     /**
-     * Endorsed relations — filtered view from the component table.
+     * Bare frames — frames whose type is FrameBody.TYPE_ID (semantic assertions
+     * without a component wrapper).
      *
-     * <p>Returns frame bodies that have been brought into this item as endorsed content.
-     * These are stored as ComponentEntries with type == FrameBody.TYPE_ID, and
-     * their live instances are the FrameBody objects.
-     *
-     * @return stream of endorsed FrameBody objects
+     * @return stream of FrameBody objects from bare frames
      */
-    public java.util.stream.Stream<FrameBody> endorsedRelations() {
-        return content().relationFrames()
-                .map(frame -> content().getLive(frame.frameKey(), FrameBody.class))
+    public java.util.stream.Stream<FrameBody> bareFrameBodies() {
+        return frames().bareFrames()
+                .map(frame -> frames().getLive(frame.frameKey(), FrameBody.class))
                 .flatMap(java.util.Optional::stream);
     }
 
@@ -1191,7 +1189,7 @@ public class Item {
     protected void onFullyInitialized() {
         initBuiltinComponents();
         populateVocabulary();
-        populateRelationTable();
+        populateUnendorsedFrames();
         // Sync pre-initialized field values to EndorsementsTable (handles subclass field initializers)
         syncFieldValuesToTable();
     }
@@ -1223,12 +1221,12 @@ public class Item {
     }
 
     /**
-     * Populate relation entries in the component table from the cached schema.
+     * Populate unendorsed frames in the endorsements table from the cached schema.
      *
-     * <p>Called automatically from {@link #onFullyInitialized()} for path-based items.
+     * <p>Called automatically from {@link #onFullyInitialized()}.
      */
-    protected void populateRelationTable() {
-        schema().populateRelationEntries(content(), this);
+    protected void populateUnendorsedFrames() {
+        schema().populateUnendorsedFrames(frames(), this);
     }
 
     /**
@@ -1477,10 +1475,8 @@ public class Item {
      * }</pre>
      *
      * <p>For more complex queries, use {@code librarian.library().find().from(this)}.
-     *Our work is fundamentally to support and empower this local community.  We want to see our small town and its people healthy, productive, and abundant.
-
-This public non- profit land trust’s top founding principle is to promote and provide education to the community regarding permaculture, sustainable agricultural practices, alternatives forms of building, and social organization.
-     * @return Stream of frame bodies where this item is the subject
+     *
+     * @return Stream of frame bodies where this item is a participant
      */
     public Stream<FrameBody> relations() {
         if (librarian == null) {
@@ -1570,6 +1566,216 @@ This public non- profit land trust’s top founding principle is to promote and 
      */
     public FrameBody relate(ItemID predicate, ItemID targetId) {
         return relate(predicate, BindingTarget.iid(targetId));
+    }
+
+    // ==================================================================================
+    // Frame Cache — endorsed + unendorsed frames
+    // ==================================================================================
+
+    /**
+     * Get ALL frames on this item — endorsed (from manifest) plus unendorsed
+     * (from index: likes, annotations, trust attestations).
+     *
+     * <p>Endorsed frames come from the EndorsementsTable. Unendorsed frames
+     * are loaded from the FRAME_BY_ITEM index, filtered to those where this
+     * item is the theme. Each unendorsed frame carries its attestation
+     * records (from RECORD_BY_BODY).
+     *
+     * @return list of all frames (endorsed first, then unendorsed)
+     */
+    public List<dev.everydaythings.graph.frame.Frame> allFrames() {
+        List<dev.everydaythings.graph.frame.Frame> result = new ArrayList<>(frames().values());
+        result.addAll(unendorsedFrames());
+        return Collections.unmodifiableList(result);
+    }
+
+    /**
+     * Get unendorsed frames on this item — frames stored independently
+     * (not in the manifest) where this item is the theme.
+     *
+     * <p>These are frames like likes, annotations, trust attestations,
+     * and moderation signals. Each is loaded from the FRAME_BY_ITEM index
+     * with its attestation records from RECORD_BY_BODY.
+     *
+     * @return list of unendorsed frames with records populated
+     */
+    public List<dev.everydaythings.graph.frame.Frame> unendorsedFrames() {
+        if (librarian == null) return List.of();
+
+        // Collect endorsed body hashes to exclude
+        Set<ContentID> endorsedHashes = new HashSet<>();
+        for (dev.everydaythings.graph.frame.Frame f : frames()) {
+            if (f.bodyHash() != null) endorsedHashes.add(f.bodyHash());
+        }
+
+        var library = librarian.library();
+        List<dev.everydaythings.graph.frame.Frame> result = new ArrayList<>();
+
+        library.framesByItem(iid).forEach(ref -> {
+            // Skip frames already endorsed in the manifest
+            if (endorsedHashes.contains(ref.bodyHash())) return;
+
+            // Load the body
+            library.loadFrameBody(ref.bodyHash()).ifPresent(body -> {
+                // Only include frames where this item is the theme
+                if (!iid.equals(body.theme())) return;
+
+                dev.everydaythings.graph.frame.Frame frame =
+                        dev.everydaythings.graph.frame.Frame.fromBody(body);
+                frame.setOwner(this);
+
+                // Load attestation records
+                List<FrameRecord> records = library.loadRecords(body.hash());
+                if (!records.isEmpty()) {
+                    frame.setRecords(records);
+                }
+
+                result.add(frame);
+            });
+        });
+
+        return Collections.unmodifiableList(result);
+    }
+
+    /**
+     * Get unendorsed frames on this item with a specific predicate.
+     *
+     * @param predicate the predicate to filter by
+     * @return list of unendorsed frames matching the predicate
+     */
+    public List<dev.everydaythings.graph.frame.Frame> unendorsedFrames(ItemID predicate) {
+        if (librarian == null) return List.of();
+
+        Set<ContentID> endorsedHashes = new HashSet<>();
+        for (dev.everydaythings.graph.frame.Frame f : frames()) {
+            if (f.bodyHash() != null) endorsedHashes.add(f.bodyHash());
+        }
+
+        var library = librarian.library();
+        List<dev.everydaythings.graph.frame.Frame> result = new ArrayList<>();
+
+        library.framesByItemPredicate(iid, predicate).forEach(ref -> {
+            if (endorsedHashes.contains(ref.bodyHash())) return;
+
+            library.loadFrameBody(ref.bodyHash()).ifPresent(body -> {
+                if (!iid.equals(body.theme())) return;
+
+                dev.everydaythings.graph.frame.Frame frame =
+                        dev.everydaythings.graph.frame.Frame.fromBody(body);
+                frame.setOwner(this);
+
+                List<FrameRecord> records = library.loadRecords(body.hash());
+                if (!records.isEmpty()) {
+                    frame.setRecords(records);
+                }
+
+                result.add(frame);
+            });
+        });
+
+        return Collections.unmodifiableList(result);
+    }
+
+    // ==================================================================================
+    // Config Cascade — frame → item → predicate resolution
+    // ==================================================================================
+
+    /**
+     * Resolve a config binding for a frame by walking the cascade:
+     * <ol>
+     *   <li><b>Frame binding</b> — compound binding {@code (CONFIG, qualifier)} on the frame body</li>
+     *   <li><b>Item frame</b> — frame with key {@code (qualifier)} on this item</li>
+     *   <li><b>Predicate frame</b> — frame with key {@code (qualifier)} on the predicate sememe item</li>
+     * </ol>
+     *
+     * <p>Most frames carry NO config bindings — they inherit from the predicate type.
+     * Overrides are only needed when a specific frame or item wants to customize.
+     *
+     * @param frame     the frame to resolve config for
+     * @param qualifier the config qualifier (e.g., Presentation or Vocabulary role IID)
+     * @return the raw payload bytes from the first matching binding/frame, or null
+     */
+    public byte[] resolveConfig(dev.everydaythings.graph.frame.Frame frame, ItemID qualifier) {
+        // Step 1: check for (CONFIG, qualifier) compound binding on this frame's body
+        if (frame != null && frame.body() != null) {
+            Binding binding = frame.body().getCompoundBinding(
+                    ThematicRole.Config.SEED.iid(), qualifier);
+            if (binding != null && binding.target() instanceof Literal lit) {
+                return lit.payload();
+            }
+        }
+
+        // Step 2: check for (qualifier) frame on this item
+        FrameKey itemKey = FrameKey.of(qualifier);
+        Optional<dev.everydaythings.graph.frame.Frame> itemFrame = frames().getFrame(itemKey);
+        if (itemFrame.isPresent()) {
+            dev.everydaythings.graph.frame.Frame f = itemFrame.get();
+            if (f.body() != null) {
+                // The frame's content IS the config
+                BindingTarget topic = f.body().binding(ThematicRole.Topic.SEED.iid());
+                if (topic instanceof Literal lit) return lit.payload();
+                // Or the whole body may encode the config
+                return f.body().encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
+            }
+        }
+
+        // Step 3: check for (qualifier) frame on the predicate's sememe item
+        if (frame != null && frame.type() != null && librarian != null) {
+            Optional<Item> predicateItem = librarian.get(frame.type(), Item.class);
+            if (predicateItem.isPresent()) {
+                Optional<dev.everydaythings.graph.frame.Frame> predFrame =
+                        predicateItem.get().frames().getFrame(itemKey);
+                if (predFrame.isPresent() && predFrame.get().body() != null) {
+                    BindingTarget topic = predFrame.get().body()
+                            .binding(ThematicRole.Topic.SEED.iid());
+                    if (topic instanceof Literal lit) return lit.payload();
+                    return predFrame.get().body()
+                            .encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve presentation config for a frame via cascade: frame → item → predicate.
+     *
+     * @param frame the frame to resolve presentation for
+     * @return raw presentation payload bytes, or null if none found at any level
+     */
+    public byte[] resolvePresentation(dev.everydaythings.graph.frame.Frame frame) {
+        return resolveConfig(frame, ThematicRole.Presentation.SEED.iid());
+    }
+
+    /**
+     * Resolve vocabulary config for a frame via cascade: frame → item → predicate.
+     *
+     * @param frame the frame to resolve vocabulary for
+     * @return raw vocabulary payload bytes, or null if none found at any level
+     */
+    public byte[] resolveVocabulary(dev.everydaythings.graph.frame.Frame frame) {
+        return resolveConfig(frame, ThematicRole.Vocabulary.SEED.iid());
+    }
+
+    /**
+     * Resolve general config for a frame via cascade: frame → item → predicate.
+     *
+     * <p>For general config, step 1 looks for a simple {@code (CONFIG)} binding
+     * (not a compound key), then walks to item and predicate.
+     *
+     * @param frame the frame to resolve config for
+     * @return raw config payload bytes, or null if none found at any level
+     */
+    public byte[] resolveGeneralConfig(dev.everydaythings.graph.frame.Frame frame) {
+        // Step 1: (CONFIG) simple binding on this frame's body
+        if (frame != null && frame.body() != null) {
+            byte[] payload = frame.body().configPayload();
+            if (payload != null) return payload;
+        }
+
+        // Steps 2-3: (CONFIG) frame on this item, then on predicate
+        return resolveConfig(frame, ThematicRole.Config.SEED.iid());
     }
 
     // ==================================================================================
@@ -1972,8 +2178,8 @@ This public non- profit land trust’s top founding principle is to promote and 
         // Bind component fields (encode and add to content table, with optional encryption + frame body)
         schema().bindComponentFieldsForCommit(this, content(), storePayloadConsumer, encryptionContext, storeFrame, keyResolver);
 
-        // Bind relation fields (create relations, store in DB, add as ComponentEntries)
-        schema().bindRelationFieldsForCommit(this, content(), storePayload, storeFrame);
+        // Bind unendorsed frame fields (create frame bodies, store and index)
+        schema().bindUnendorsedFramesForCommit(this, frames(), storePayload, storeFrame);
 
     }
 

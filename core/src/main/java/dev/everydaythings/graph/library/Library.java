@@ -11,6 +11,7 @@ import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameRecord;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
@@ -40,7 +41,7 @@ import java.util.stream.Stream;
  *
  * <p>Library owns FIVE parts:
  * <ol>
- *   <li><b>Primary ItemStore</b>: Block storage (manifests, relations, content)</li>
+ *   <li><b>Primary ItemStore</b>: Unified object store (manifests, frame bodies, records, content)</li>
  *   <li><b>Store Registry</b>: Additional stores in priority order</li>
  *   <li><b>LibraryIndex</b>: Frame fan-outs for queries, head tracking</li>
  *   <li><b>ItemDirectory</b>: Fast item location (which store has item X?)</li>
@@ -522,10 +523,10 @@ public final class Library implements Canonical, AutoCloseable {
         byte[] recordBytes = body.encodeBinary(Canonical.Scope.RECORD);
         targetStore.runInWriteTransaction(tx -> targetStore.persistContent(recordBytes, tx));
 
-        // Index in library's index
+        // Index in library's index (includes theme as participant)
         index().ifPresent(idx -> {
             idx.runInWriteTransaction(tx -> {
-                idx.indexFrame(body.predicate(), body.bindings(), body.hash(), bodyCid, tx);
+                idx.indexFrameBody(body, bodyCid, tx);
             });
         });
 
@@ -600,11 +601,10 @@ public final class Library implements Canonical, AutoCloseable {
             recordCid[0] = targetStore.persistContent(recordBytes, tx);
         });
 
-        // Index the frame and the record
+        // Index the frame (includes theme as participant) and the record
         index().ifPresent(idx -> {
             idx.runInWriteTransaction(tx -> {
-                idx.indexFrame(body.predicate(), body.bindings(),
-                        body.hash(), recordCid[0], tx);
+                idx.indexFrameBody(body, recordCid[0], tx);
                 if (record.signer() != null && record.signer().keyId() != null) {
                     ContentID signerKeyId = ContentID.of(record.signer().keyId());
                     idx.indexRecord(body.hash(), signerKeyId, recordCid[0], tx);
@@ -618,10 +618,10 @@ public final class Library implements Canonical, AutoCloseable {
     /**
      * Import all data from another store into this library.
      *
-     * <p>Imports all blocks (relations, manifests, payloads) from the source store,
-     * storing them in the primary store and indexing appropriately.
+     * <p>Imports all objects (manifests, frame bodies, records, content) from the source
+     * store, storing them in the primary store and indexing appropriately.
      *
-     * <p>Manifests are imported before relations so that predicate Sememes
+     * <p>Manifests are imported before frame bodies so that predicate Sememes
      * are available for data-driven token indexing.
      *
      * @param source The store to import from
@@ -781,12 +781,63 @@ public final class Library implements Canonical, AutoCloseable {
     /**
      * Hydrate a FrameRef into a FrameBody by looking up the stored bytes.
      *
-     * <p>The storageCid in the FrameRef is used to look up the body bytes.
-     * Returns empty if the storageCid doesn't correspond to a stored frame body
-     * (e.g., it's an endorsed component frame, not a relation).
+     * <p>Tries the body hash first (body bytes are always stored at this CID),
+     * then falls back to storageCid for backward compatibility. The bodyHash
+     * path handles both {@link #storeFrameBody} and {@link #storeFrame} storage
+     * paths, since both store the body's BODY-scope bytes at the bodyHash CID.
      */
     private Optional<FrameBody> hydrateFrameRef(LibraryIndex.FrameRef ref) {
-        return store.relation(ref.storageCid());
+        return loadFrameBody(ref.bodyHash())
+                .or(() -> store.relation(ref.storageCid()));
+    }
+
+    /**
+     * Load a frame body from the object store by its body hash.
+     *
+     * <p>Body bytes (BODY-scope encoding) are always stored at the body hash CID.
+     * This works for frames stored via both {@link #storeFrameBody} and
+     * {@link #storeFrame}.
+     *
+     * @param bodyHash the body hash (CID of BODY-scope encoded bytes)
+     * @return the decoded frame body, or empty if not found
+     */
+    public Optional<FrameBody> loadFrameBody(ContentID bodyHash) {
+        return store.content(bodyHash).map(bytes -> {
+            try {
+                return Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.BODY);
+            } catch (Exception e) {
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Load a FrameRecord from the object store by its storage CID.
+     *
+     * @param storageCid the CID of the record's RECORD-scope bytes
+     * @return the decoded frame record, or empty if not found or not a record
+     */
+    public Optional<FrameRecord> loadFrameRecord(ContentID storageCid) {
+        return store.content(storageCid).map(bytes -> {
+            try {
+                return Canonical.decodeBinary(bytes, FrameRecord.class, Canonical.Scope.RECORD);
+            } catch (Exception e) {
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Load all attestation records for a frame body.
+     *
+     * @param bodyHash the body hash to find records for
+     * @return list of FrameRecords attesting this body
+     */
+    public List<FrameRecord> loadRecords(ContentID bodyHash) {
+        List<FrameRecord> result = new ArrayList<>();
+        recordsByBody(bodyHash).forEach(ref ->
+                loadFrameRecord(ref.storageCid()).ifPresent(result::add));
+        return result;
     }
 
     // ==================================================================================

@@ -7,7 +7,7 @@ import lombok.experimental.Accessors;
 import java.nio.file.Path;
 
 /**
- * RocksDB-backed LibraryIndex for relation queries.
+ * RocksDB-backed LibraryIndex for frame and version queries.
  *
  * <p>All operations are provided by {@link LibraryIndex} default methods.
  * Service lifecycle (isOpen, start, stop, close) is provided by RocksStore.

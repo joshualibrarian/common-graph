@@ -523,13 +523,13 @@ public final class SeedVocabulary {
                 typeId,
                 Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofJavaClass(implementingClass)));
 
-        // Add to item's component table as a relation entry
+        // Add to item's endorsements table as a bare frame
         if (item != null) {
             byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
-            Frame frame = Frame.forRelation(body.predicate(), cid, true, "implementedBy");
-            item.content().add(frame);
-            item.content().setLive(frame.frameKey(), body);
+            Frame frame = Frame.forFrameBody(body.predicate(), cid, true, "implementedBy");
+            item.frames().add(frame);
+            item.frames().setLive(frame.frameKey(), body);
         }
 
         return body;

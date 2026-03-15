@@ -21,8 +21,8 @@ import java.util.function.Consumer;
  *
  * <p>The Peer Protocol is beautifully simple - just two message types:
  * <ul>
- *   <li>{@link Request} - "I want something" (items, content, relations)</li>
- *   <li>{@link Delivery} - "Here's something" (manifests, bytes, relations, not-found)</li>
+ *   <li>{@link Request} - "I want something" (items, content, frames)</li>
+ *   <li>{@link Delivery} - "Here's something" (manifests, bytes, frames, not-found)</li>
  * </ul>
  *
  * <p>Protocol flow:

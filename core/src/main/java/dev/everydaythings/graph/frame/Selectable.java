@@ -90,7 +90,7 @@ public interface Selectable {
         }
     }
 
-    /** Per-field knobs from @Item.ContentField (dialect, basePath, etc.). */
+    /** Per-field knobs (dialect, basePath, etc.). */
     final class Options {
         public static final Options DEFAULT = new Options("", "");
 

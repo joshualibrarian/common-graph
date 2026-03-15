@@ -261,23 +261,29 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     // ==================================================================================
-    // Relation Frames
+    // Frame Filtering
     // ==================================================================================
 
-    /** Get all relation frames. */
-    public Stream<Frame> relationFrames() {
-        return frames.values().stream().filter(Frame::isRelation);
+    /** Get all bare frames (type == FrameBody.TYPE_ID — semantic assertions without component wrapper). */
+    public Stream<Frame> bareFrames() {
+        return frames.values().stream().filter(Frame::isBareFrame);
     }
 
-    /** Remove all relation frames. */
-    public void removeRelationFrames() {
+    /** Remove all bare frames. */
+    public void removeBareFrames() {
         var toRemove = frames.values().stream()
-                .filter(Frame::isRelation)
+                .filter(Frame::isBareFrame)
                 .map(Frame::frameKey)
                 .toList();
         for (var key : toRemove) {
             removeByKey(key);
         }
+    }
+
+    /** Get frames matching a predicate filter. */
+    public Stream<Frame> framesWithPredicate(ItemID predicate) {
+        return frames.values().stream()
+                .filter(f -> predicate.equals(f.type()));
     }
 
     // ==================================================================================

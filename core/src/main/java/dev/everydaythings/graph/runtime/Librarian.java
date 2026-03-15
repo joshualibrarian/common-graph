@@ -465,8 +465,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             library.cache(this);
         }
 
-        // Re-populate relation table now that endpoints are gathered
-        populateRelationTable();
+        // Re-populate unendorsed frames now that endpoints are gathered
+        populateUnendorsedFrames();
 
         // Ensure a host item exists for this machine
         ensureHost();

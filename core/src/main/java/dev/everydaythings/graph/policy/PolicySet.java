@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  *   <li><b>Access</b> - Fine-grained access control rules</li>
  * </ul>
  *
- * <p>Implements {@link Component} for unified Item component model.
+ * <p>Stored as an endorsed frame on the Item.
  */
 @Type(value = "cg:type/policy", glyph = "🛡️", color = 0xC8A064)
 @Getter @Setter @Builder

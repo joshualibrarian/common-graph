@@ -101,7 +101,7 @@ public final class Manifest implements Signing.Target {
     // ==================================================================================
 
     /**
-     * Get the component entries (frame table snapshot).
+     * Get the endorsed frames (endorsements table snapshot).
      */
     public List<Frame> components() {
         if (state == null) return List.of();
