@@ -60,10 +60,15 @@ Everything is a binding. The title text, the video file, the move log, the signa
 TITLE frame:
   (NAME) → "The Hobbit"                              [identity]
 
-CHESS frame:
-  (PLAYER, WHITE) → fischer                           [identity]
-  (PLAYER, BLACK) → spassky                           [identity]
-  (MOVES) → stream:cid-abc                            [non-identity]
+PLAYER frame (on a chess game item):
+  (AGENT) → fischer                                   [identity]
+  (ROLE)  → WHITE                                     [identity]
+
+MOVE frame (on the same game item):
+  (AGENT)  → fischer                                  [identity]
+  (THEME)  → king-pawn                                [identity]
+  (SOURCE) → e2                                       [identity]
+  (GOAL)   → e4                                       [identity]
 
 VIDEO frame:
   (VIDEO, MKV, UHD) → cid:master-4k                  [identity]
