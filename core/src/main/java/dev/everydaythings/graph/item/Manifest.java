@@ -112,8 +112,8 @@ public final class Manifest implements Signing.Target {
     /**
      * Get the frame endorsements from this manifest's state.
      *
-     * <p>Returns endorsements if available (new format), or an empty list
-     * for old-format manifests where entries are in the FrameTable directly.
+     * <p>Returns endorsements if available, or an empty list
+     * for manifests with no endorsed frames.
      */
     public List<FrameEndorsement> endorsements() {
         return state != null ? state.endorsements() : List.of();

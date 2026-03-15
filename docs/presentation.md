@@ -696,17 +696,16 @@ Construction helpers:
 
 ### Mount Resolution
 
-Mounts live on `FrameEntry` — the metadata record for each frame in an Item's frame table:
+Mounts live on the `EndorsementsTable` — stored separately from frames in a parallel `Map<FrameKey, List<Mount>>`:
 
-| Field | Type | Canon | Description |
+| Frame Field | Type | Canon | Description |
 |-------|------|-------|-------------|
-| `handle` | HandleID | 0 | Local handle (unique within item) |
+| `key` | FrameKey | 0 | Compound semantic address (unique within item) |
 | `type` | ItemID | 1 | Frame type reference |
 | `identity` | boolean | 2 | Contributes to version identity? |
-| `snapshotCid` | ContentID | 3 | Content hash for snapshot |
-| `streamHeads` | ContentID list | 4 | Stream head hashes |
-| `streamBased` | boolean | 5 | Is stream-based? |
-| `handleText` | string | 6 | Display name |
+| `bodyHash` | ContentID | 3 | Hash of the FrameBody |
+| `mounts` | List\<Mount\> | 4 | Serialized with frame, stored on table at runtime |
+| `alias` | String | 5 | Display name (deprecated) |
 | `referenceTarget` | ItemID | 7 | Target for reference frames |
 | `mounts` | Mount list | 8 | Presentation positions |
 

@@ -201,7 +201,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     }
 
     private void publishConfigSettings(dev.everydaythings.graph.item.Item owningItem) {
-        // TODO: Config settings migration — FrameEntry.putSetting moved to CONFIG binding on FrameBody
+        // TODO: Config settings migration — settings should be in CONFIG binding on FrameBody
     }
 
     // ==================================================================================

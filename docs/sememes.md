@@ -28,17 +28,17 @@ A **sememe** is an Item that represents a specific meaning. Crucially, sememes a
 Sememes are resolved at **write time**, not read time. When data is created or related, the system resolves every concept to a globally-anchored sememe before storage. The person or code creating the data performs the disambiguation — they know whether "bank" means a financial institution or a river edge. This is trivial at creation time and nearly impossible after the fact. What gets stored is not text but a structure of semantic references, pre-indexed by meaning.
 
 ```
-Sememe {
+Sememe extends Item {
     iid:            ItemID          # Stable identity
-    partOfSpeech:   PartOfSpeech    # VERB, NOUN, ADJECTIVE, etc.
-    thematicRoles:  [Role]          # For verbs: argument structure
-    domain:         [ItemID]        # For predicates: valid subject types
-    range:          [ItemID]        # For predicates: valid target types
+    partOfSpeech:   PartOfSpeech    # VERB, NOUN, ADJECTIVE, etc. (itself a sememe)
+    slots:          [ThematicRole]  # For verbs/predicates: expected argument roles
     symbols:        [string]        # Language-neutral symbols ("m", "kg", "+")
-    dimension:      Dimension?      # For units: physical dimension
-    conversions:    [Conversion]    # For units: conversion factors
+    tokens:         [string]        # Transient bootstrap tokens (English words)
+    glosses:        Map             # Transient bootstrap glosses (per language)
 }
 ```
+
+Domain-specific subclasses add specialized metadata: `ThematicRole` adds role identity, `GrammaticalFeature` adds inflectional identity, `Operator` adds precedence/associativity, `Function` adds arity/category.
 
 The IID stays stable forever. Words in any language can be added, changed, or extended without touching the sememe itself.
 
@@ -448,7 +448,7 @@ This is one of Common Graph's most fundamental design decisions: meaning is a fi
 
 **Internal:**
 - [Vocabulary](vocabulary.md) — Dispatch, expression input, customization
-- [Frame Types](components.md) — EntryVocabulary and frame vocabulary contributions
+- [Frames](frames.md) — Frame primitive, bindings, vocabulary contributions
 
 **External resources — lexical:**
 - [WordNet](https://wordnet.princeton.edu/) — Lexical database of English

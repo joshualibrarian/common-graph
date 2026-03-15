@@ -33,25 +33,42 @@ import java.util.Objects;
  * @see FrameEndorsement
  * @see EndorsementsTable
  */
-public final class Frame {
+public final class Frame implements Canonical {
+
+    // ==================================================================================
+    // Serialized fields (@Canon)
+    // ==================================================================================
 
     /** The semantic address within the item. */
-    private final FrameKey key;
+    @Canon(order = 0)
+    private FrameKey key;
 
-    /** The type ID (predicate of the body — defines codec/behavior). */ // TODO: so... this is the predicate FROM the body, just referenfed out here?
-    private final ItemID type;
-
-    /** The semantic assertion (predicate, theme, bindings). */
-    private FrameBody body;
-
-    /** Hash of the body (for endorsement). */
-    private ContentID bodyHash;
+    /** The type ID (predicate of the body — defines codec/behavior). */
+    @Canon(order = 1)
+    private ItemID type;
 
     /** Whether this frame contributes to version identity. */
-    private final boolean identity;
+    @Canon(order = 2)
+    private boolean identity;
 
-    /** Human-facing display alias (transient, deprecated — use TokenDictionary). */
-    private transient String alias;
+    /** Hash of the body (for endorsement). */
+    @Canon(order = 3)
+    private ContentID bodyHash;
+
+    /** Mounts — owned by EndorsementsTable at runtime, serialized here for CBOR. */
+    @Canon(order = 4)
+    private List<Mount> mounts = List.of();
+
+    /** Human-facing display alias (deprecated — use TokenDictionary). */
+    @Canon(order = 5)
+    private String alias;
+
+    // ==================================================================================
+    // Transient runtime fields
+    // ==================================================================================
+
+    /** The semantic assertion (predicate, theme, bindings). */
+    private transient FrameBody body;
 
     /** Live decoded instance (e.g., the Vault, Log, or String). */
     private transient Object instance;
@@ -63,7 +80,7 @@ public final class Frame {
     private transient PolicySet policy;
 
     // ==================================================================================
-    // Constructor
+    // Constructors
     // ==================================================================================
 
     public Frame(FrameKey key, ItemID type, FrameBody body, ContentID bodyHash, boolean identity) {
@@ -73,6 +90,10 @@ public final class Frame {
         this.bodyHash = bodyHash;
         this.identity = identity;
     }
+
+    /** No-arg constructor for Canonical decode. */
+    @SuppressWarnings("unused")
+    private Frame() {}
 
     // ==================================================================================
     // Accessors
@@ -324,111 +345,50 @@ public final class Frame {
     }
 
     // ==================================================================================
-    // Legacy CBOR Encode/Decode (FrameEntry-compatible wire format)
+    // CBOR Encode/Decode
     // ==================================================================================
 
     /**
-     * Encode this Frame to CBOR bytes in the legacy FrameEntry wire format.
-     *
-     * <p>Used by WorkingTreeStore and EndorsementsTable for backward-compatible
-     * serialization. Delegates to the package-private FrameEntry class.
-     *
-     * @param mounts mounts from EndorsementsTable (may be empty)
-     * @return CBOR bytes
+     * Encode this Frame to CBOR bytes, including mounts from EndorsementsTable.
      */
-    public byte[] encodeLegacyCbor(List<Mount> mounts) {
-        return encodeLegacyCborTree(mounts).EncodeToBytes(
-                com.upokecenter.cbor.CBOREncodeOptions.DefaultCtap2Canonical);
+    public byte[] encodeCbor(List<Mount> frameMounts) {
+        this.mounts = frameMounts != null ? frameMounts : List.of();
+        return encodeBinary(Scope.RECORD);
     }
 
     /**
-     * Encode this Frame to a CBOR tree in the legacy FrameEntry wire format.
+     * Encode this Frame to a CBOR tree, including mounts from EndorsementsTable.
      */
-    CBORObject encodeLegacyCborTree(List<Mount> mounts) {
-        FrameEntry entry = FrameEntry.builder()
-                .frameKey(key)
-                .type(type)
-                .identity(identity)
-                .mounts(mounts != null ? mounts : List.of())
-                .bodyHash(bodyHash)
-                .build();
-        if (body != null) entry.setBody(body);
-        if (alias != null) entry.setAlias(alias);
-        return entry.toCborTree(Canonical.Scope.RECORD);
+    CBORObject toCborTree(List<Mount> frameMounts) {
+        this.mounts = frameMounts != null ? frameMounts : List.of();
+        return toCborTree(Scope.RECORD);
     }
 
     /**
-     * Decode a Frame from CBOR bytes in the legacy FrameEntry wire format.
-     *
-     * @param bytes CBOR bytes
-     * @return decoded Frame
+     * Decode a Frame from CBOR bytes.
      */
-    public static Frame decodeLegacyCbor(byte[] bytes) {
-        FrameEntry entry = Canonical.decodeBinary(bytes, FrameEntry.class, Canonical.Scope.RECORD);
-        return fromLegacyEntry(entry);
+    public static Frame decodeCbor(byte[] bytes) {
+        return Canonical.decodeBinary(bytes, Frame.class, Scope.RECORD);
     }
 
     /**
-     * Decode a Frame from a CBOR tree node in the legacy FrameEntry wire format.
-     */
-    static Frame decodeLegacyCborTree(CBORObject node) {
-        FrameEntry entry = Canonical.fromCborTree(node, FrameEntry.class, Canonical.Scope.RECORD);
-        return entry != null ? fromLegacyEntry(entry) : null;
-    }
-
-    /**
-     * Decode a list of Frames from a CBOR array of legacy FrameEntry nodes.
-     */
-    static List<Frame> decodeLegacyCborArray(CBORObject arrayNode) {
-        List<Frame> result = new ArrayList<>();
-        if (arrayNode != null && arrayNode.getType() == com.upokecenter.cbor.CBORType.Array) {
-            for (CBORObject entryNode : arrayNode.getValues()) {
-                Frame frame = decodeLegacyCborTree(entryNode);
-                if (frame != null) {
-                    result.add(frame);
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Convert a decoded FrameEntry to a Frame, extracting mounts.
-     *
-     * @return a Frame (mounts are returned separately via the MountResult overload)
-     */
-    private static Frame fromLegacyEntry(FrameEntry entry) {
-        Frame frame = new Frame(
-                entry.frameKey(), entry.type(), entry.body(),
-                entry.bodyHash(), entry.identity());
-        frame.setAlias(entry.alias());
-        return frame;
-    }
-
-    /**
-     * Result of decoding a legacy FrameEntry — carries both the Frame and its mounts.
+     * Result of decoding a Frame — carries both the Frame and its mounts.
      */
     public record FrameWithMounts(Frame frame, List<Mount> mounts) {}
 
     /**
-     * Decode a Frame and its mounts from CBOR bytes in the legacy FrameEntry wire format.
+     * Decode a Frame and its mounts from CBOR bytes.
      */
-    public static FrameWithMounts decodeLegacyCborWithMounts(byte[] bytes) {
-        FrameEntry entry = Canonical.decodeBinary(bytes, FrameEntry.class, Canonical.Scope.RECORD);
-        Frame frame = fromLegacyEntry(entry);
-        List<Mount> mounts = entry.mounts() != null ? entry.mounts() : List.of();
-        return new FrameWithMounts(frame, mounts);
+    public static FrameWithMounts decodeCborWithMounts(byte[] bytes) {
+        Frame frame = decodeCbor(bytes);
+        return new FrameWithMounts(frame, frame.decodedMounts());
     }
 
     /**
-     * Decode a Frame and its mounts from a CBOR tree node.
+     * Mounts decoded from CBOR (extracted by EndorsementsTable after decode).
      */
-    static FrameWithMounts decodeLegacyCborTreeWithMounts(CBORObject node) {
-        FrameEntry entry = Canonical.fromCborTree(node, FrameEntry.class, Canonical.Scope.RECORD);
-        if (entry == null) return null;
-        Frame frame = fromLegacyEntry(entry);
-        List<Mount> mounts = entry.mounts() != null ? entry.mounts() : List.of();
-        return new FrameWithMounts(frame, mounts);
+    List<Mount> decodedMounts() {
+        return mounts != null ? mounts : List.of();
     }
 
     // ==================================================================================

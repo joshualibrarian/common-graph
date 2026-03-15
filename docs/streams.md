@@ -20,16 +20,17 @@ Each entry is content-addressed: its CID is the hash of its bytes. Each entry re
 
 ## In the Manifest
 
-Stream frames record their current state in the manifest's FrameEntry:
+Stream frames record their current state in the manifest's Frame:
 
 ```
-FrameEntry {
-    handle: "chat"
+Frame {
+    key: (CHAT)
     type: ChatLog type IID
-    streamBased: true
-    streamHeads: [head_cid]     # Current tip(s)
+    bodyHash: <hash of FrameBody with stream binding>
 }
 ```
+
+The stream heads are stored as bindings on the FrameBody (with a compound key like `(TOPIC, STREAM)`), not as top-level fields.
 
 ## Core Stream Types
 

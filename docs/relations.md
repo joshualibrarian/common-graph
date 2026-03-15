@@ -133,18 +133,7 @@ Because all BODY fields contribute to the hash, two structurally identical asser
 
 ## Signing Assertions
 
-Assertions are signed independently of the Items they describe:
-
-```java
-Relation relation = Relation.builder()
-    .predicate(Sememe.HYPERNYM.iid())
-    .bind(Role.THEME.iid(), Relation.iid(animalIid))
-    .bind(Role.GOAL.iid(), Relation.iid(mammalIid))
-    .build()
-    .sign(signer);
-```
-
-For endorsed assertions, the manifest signature covers all endorsed frame body hashes — no separate envelope needed. For unendorsed assertions, each carries its own signature binding the body hash to a signer key and timestamp.
+Assertions are signed as frames. For endorsed assertions, the manifest signature covers all endorsed frame body hashes — no separate envelope needed. For unendorsed assertions, each carries its own signature binding the body hash to a signer key and timestamp.
 
 This means:
 - Anyone can assert a relation about any item
@@ -167,17 +156,15 @@ book.relate(Sememe.TITLE.iid(), Literal.ofText("The Hobbit"));
 
 If the item is a `Signer`, the assertion is automatically signed. If the item has a `Librarian`, the assertion is automatically stored.
 
-For assertions that need more roles, use the builder directly:
+For assertions that need more roles, build a `FrameBody` directly:
 
 ```java
-Relation.builder()
-    .predicate(Sememe.SENT.iid())
-    .bind(Role.AGENT.iid(), Relation.iid(alice.iid()))
-    .bind(Role.PATIENT.iid(), Relation.iid(book.iid()))
-    .bind(Role.RECIPIENT.iid(), Relation.iid(bob.iid()))
-    .bind(Role.INSTRUMENT.iid(), Literal.ofText("FedEx"))
-    .build()
-    .sign(alice);
+FrameBody body = new FrameBody(Sememe.SENT.iid(), alice.iid(), List.of(
+    Binding.of(ThematicRole.Agent.SEED.iid(), BindingTarget.iid(alice.iid())),
+    Binding.of(ThematicRole.Patient.SEED.iid(), BindingTarget.iid(book.iid())),
+    Binding.of(ThematicRole.Recipient.SEED.iid(), BindingTarget.iid(bob.iid())),
+    Binding.of(ThematicRole.Instrument.SEED.iid(), Literal.ofText("FedEx"))
+));
 ```
 
 ## Predicates Are Sememes
@@ -236,7 +223,7 @@ See [CG-CBOR](cg-cbor.md) for encoding details.
 
 Assertion frames are stored in the unified object store alongside all other content. See [Storage Architecture](storage.md) for the full storage design.
 
-**Endorsed assertions** are referenced by the manifest's frame table (body hash in the FrameEntry). The manifest signature is the record — no separate envelope stored.
+**Endorsed assertions** are referenced by the manifest's EndorsementsTable (body hash on the Frame). The manifest signature is the record — no separate envelope stored.
 
 **Unendorsed assertions** are stored as independent records in the object store, linked to items via the FRAME_BY_ITEM index. Each record is self-contained: body hash + signer + signature.
 

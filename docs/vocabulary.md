@@ -2,7 +2,7 @@
 
 **Vocabulary** is the linguistic surface of Common Graph. Every interaction — creating, navigating, querying, computing, customizing — flows through a unified language system where tokens resolve to sememes, and sememes drive action. This system is holistic: it handles all parts of speech, works in any human language, and uses the same resolution mechanism for verbs, nouns, proper names, units, operators, functions, and prepositions.
 
-> This document covers the vocabulary system, token resolution, dispatch, the expression input, and how items expose their linguistic surface. For the semantic backbone (what sememes are, how they're anchored), see [Sememes](sememes.md). For how components declare vocabulary contributions, see [Components](components.md).
+> This document covers the vocabulary system, token resolution, dispatch, the expression input, and how items expose their linguistic surface. For the semantic backbone (what sememes are, how they're anchored), see [Sememes](sememes.md). For how frames declare vocabulary contributions, see [Frames](frames.md).
 
 ## Core Principle: Everything Is Language
 
@@ -159,7 +159,7 @@ Postings come from:
 - **Sememe symbols**: Language-neutral shorthand declared on sememes — indexed with null scope
 - **Seed vocabulary**: Bootstrap English tokens indexed under `cg:language/eng`
 - **Lexicon imports**: WordNet, CILI — each language's lexemes scoped to its Language Item, merged idempotently
-- **Frame vocabulary**: EntryVocabulary contributions scoped to their item
+- **Frame vocabulary**: Vocabulary contributions scoped to their item
 - **Assertions**: Named assertion frames (title, alias) scoped to their item
 - **User customization**: Custom aliases and scripted expressions scoped to the user or item
 
@@ -215,7 +215,7 @@ Code Layer (transient, declared in type definitions)
     +-- @Verb methods on the Item type --> base verbs all items of this type share
     +-- @Verb methods on frame types --> frame-specific verbs
     |
-User Layer (persistent, from EntryVocabulary)
+User Layer (persistent, from vocabulary contributions)
     |
     +-- Custom aliases ("deploy" --> cg.verb:commit)
     +-- Scripted expressions ("deploy" --> "commit then push to production")
@@ -230,7 +230,7 @@ Runtime Merge (on item open/hydrate)
 
 ### Vocabulary Is Derived
 
-An item's runtime vocabulary is rebuilt each time the item is opened — merged from its type's code-defined verbs and its frames' persistent EntryVocabulary contributions.
+An item's runtime vocabulary is rebuilt each time the item is opened — merged from its type's code-defined verbs and its frames' persistent vocabulary contributions.
 
 All persistent vocabulary customization happens through **frames**. Adding frames is how you customize items. Writing a new type is how you define new behavior.
 
@@ -242,7 +242,7 @@ When an Item is opened (hydrated from storage):
 1. Collect verb definitions from the item type --> base verb entries
 2. For each frame:
    a. Collect verb definitions from the frame type --> frame verb entries
-   b. Load frame's EntryVocabulary contributions --> persistent customizations
+   b. Load frame's vocabulary contributions --> persistent customizations
    c. Merge into runtime dispatch surface
 3. User-layer entries overlay code-layer entries (user wins on conflict)
 4. Scoped tokens indexed in TokenDictionary for discoverability
@@ -683,11 +683,11 @@ Vocabulary is persistent and customizable. Users can:
 - Create scripted expressions that chain actions
 - Define functions (stored as expressions)
 - Name frames with proper nouns
-- All stored in EntryVocabulary contributions on frame entries
+- All stored as vocabulary contributions on frames
 
 ### Custom Aliases
 
-A user adds an alias to a frame's EntryVocabulary:
+A user adds an alias to a frame's vocabulary:
 
 ```
 VocabularyContribution {
@@ -832,7 +832,7 @@ This isn't trying to understand arbitrary natural language. It's a **structured-
 
 **Internal:**
 - [Sememes](sememes.md) — The semantic backbone (what sememes are, hierarchies, anchoring)
-- [Frame Types](components.md) — EntryVocabulary contributions, frame proper nouns
+- [Frames](frames.md) — Frame primitive, vocabulary contributions, frame proper nouns
 - [Library](library.md) — TokenDictionary storage architecture
 - [Protocol](protocol.md) — DISPATCH and LOOKUP messages
 - [Workspace](workspace.md) — Session, views, navigation, prompt format

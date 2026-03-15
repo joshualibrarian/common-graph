@@ -103,7 +103,7 @@ This happens automatically on fetch. Corrupted or tampered content fails verific
 
 ```
 Content bytes → CID (verified by hash)
-    → FrameEntry → Manifest → VID (verified by hash)
+    → Frame bodyHash → Manifest → VID (verified by hash)
         → Signature (verified by public key)
 ```
 

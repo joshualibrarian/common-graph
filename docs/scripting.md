@@ -20,7 +20,7 @@ The scripting system exists on a continuum with what already works:
 
 Level 0 exists today. Level 1 exists (ExpressionComponent, scripted expression aliases). Levels 2-5 are what this document specifies. Level 6 is the endgame — code itself is content in the graph.
 
-The boundary between levels is porous. A Level 1 expression alias and a Level 2 Groovy script both contribute verbs through the same EntryVocabulary mechanism. A Level 4 distributed WASM module and a Level 0 Java verb both dispatch through the same sememe-based vocabulary pipeline. The user sees verbs. The system doesn't care where the implementation came from.
+The boundary between levels is porous. A Level 1 expression alias and a Level 2 Groovy script both contribute verbs through the same vocabulary mechanism. A Level 4 distributed WASM module and a Level 0 Java verb both dispatch through the same sememe-based vocabulary pipeline. The user sees verbs. The system doesn't care where the implementation came from.
 
 ---
 
@@ -61,7 +61,7 @@ Scripts attach to items the same way any frame does — via `@Item.Frame` or dyn
 private ScriptComponent greetingScript;
 ```
 
-Or dynamically at runtime: add a ScriptComponent to any item's frame table, commit, and the new verbs are live.
+Or dynamically at runtime: add a ScriptComponent to any item's EndorsementsTable, commit, and the new verbs are live.
 
 ### Relationship to ExpressionComponent
 
@@ -74,7 +74,7 @@ ExpressionComponent handles the CG expression language — vocabulary aliases, m
 | **Typical use** | Aliases, formulas, queries | Complex logic, game rules, bots, integrations |
 | **Trust level** | Low (constrained grammar) | Higher (general-purpose code requires sandboxing) |
 
-Both contribute verbs through the same EntryVocabulary. Both dispatch through the same sememe pipeline. The distinction is implementation complexity, not architectural separation.
+Both contribute verbs through the same vocabulary. Both dispatch through the same sememe pipeline. The distinction is implementation complexity, not architectural separation.
 
 ---
 
@@ -128,7 +128,7 @@ Engines are initialized lazily on first use. The Librarian does not start a Pyth
 
 ## Vocabulary Integration
 
-Scripts provide verbs through the same mechanism as everything else: **EntryVocabulary contributions** on their FrameEntry.
+Scripts provide verbs through the same mechanism as everything else: **vocabulary contributions** on their Frame.
 
 ### Declaring Verbs
 
@@ -355,13 +355,13 @@ There is no restart, no reload command, no server bounce. The item commits, the 
 
 ### Settings as Configuration
 
-ScriptComponents use the same `ScopedSetting` mechanism as any component entry for runtime configuration:
+ScriptComponents use the same `ScopedSetting` mechanism as any frame for runtime configuration:
 
 ```
 alice@myitem/greeting-script> set greeting-prefix to "Hey"
 ```
 
-This writes a scoped setting on the FrameEntry. The script reads it through the SETTING binding source. Settings are editable from both prompt and surface, versionable, and scoped (per-user, per-device, per-context). No config files. No environment variables. Settings on a component entry.
+This writes a scoped setting on the Frame. The script reads it through the SETTING binding source. Settings are editable from both prompt and surface, versionable, and scoped (per-user, per-device, per-context). No config files. No environment variables. Settings on a frame.
 
 ---
 
@@ -522,7 +522,7 @@ Full sandboxing and JavaScript support.
 - `SandboxConfig` from `PolicySet` → GraalVM `Context.Builder` options
 - Host access control (NONE/READONLY/RESTRICTED/FULL)
 - CPU and memory limits via GraalVM resource limits
-- `ScriptPolicy` on FrameEntry and PolicySet
+- `ScriptPolicy` on Frame and PolicySet
 
 ### Phase 3: Inline Editing + Surface
 
@@ -819,7 +819,7 @@ Dave didn't install a package. He didn't download an app. Carol's Kanban Board t
 
 **Internal:**
 - [Vocabulary](vocabulary.md) — Token resolution, dispatch, expression input
-- [Components](components.md) — Component system, EntryVocabulary, lifecycle
+- [Frames](frames.md) — Frame primitive, vocabulary contributions, lifecycle
 - [Trust](trust.md) — Trust matrix, policy, signer verification
 - [Network Architecture](network.md) — Discovery, routing, content distribution
 - [Library](library.md) — Storage, content addressing

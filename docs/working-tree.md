@@ -32,8 +32,8 @@ my-item/
 ### 1. Root Directory (Mounted Content)
 
 The visible "files" are mount projections of frames:
-- `README.md` → frame with handle "readme"
-- `src/main.java` → frame with handle "src/main"
+- `README.md` → frame with path mount "/README.md"
+- `src/main.java` → frame with path mount "/src/main.java"
 
 Edit these files with any tool, then commit.
 
@@ -59,13 +59,13 @@ This determines what's "checked out" in the working tree.
 
 ## Frame Descriptors
 
-`.item/head/frames/<hid>.json`:
+`.item/head/frames/<key>.json`:
 ```json
 {
-  "handle": "readme",
+  "key": "(cg:type/plainText)",
   "type": "cg:type/plainText",
   "identity": true,
-  "snapshotCid": "abc123..."
+  "bodyHash": "abc123..."
 }
 ```
 
@@ -110,7 +110,7 @@ Think of it like Git:
 - `base` = HEAD
 
 But unlike Git:
-- Frames have types and behaviors (see [Frame Types](components.md))
+- Frames have types and behaviors (see [Frames](frames.md))
 - Semantic assertions are first-class (see [Semantic Assertions](relations.md))
 - Content is globally content-addressed and deduplicated (see [Content](content.md))
 - Everything is cryptographically signed (see [Trust](trust.md))

@@ -11,9 +11,6 @@ import java.util.List;
 /**
  * Per-frame configuration — settings and policy.
  *
- * <p>Extracted from {@code FrameEntry.EntryConfig} for use with {@link Frame}.
- * CBOR layout is identical for backward compatibility.
- *
  * <p>Long-term, config will be absorbed into the CONFIG binding on
  * {@link FrameBody} and this class will be removed.
  */

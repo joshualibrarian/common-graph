@@ -195,26 +195,28 @@ Every encrypted envelope carries the **plaintext CID** inside the authenticated 
 3. Store the plaintext locally under its true CID
 4. Maintain a local `ciphertextCID -> plaintextCID` mapping index
 
-This means the manifest's `FrameEntry.payload.snapshotCid` can reference EITHER:
+This means the Frame's `bodyHash` can be verified against EITHER:
 - The plaintext CID (when the content is stored cleartext)
 - The ciphertext CID (when the content is stored encrypted)
 
-Which one is used depends on the frame's encryption state, tracked in a new field on the entry.
+Which one is used depends on the frame's encryption state, tracked in an encryption binding on the FrameBody.
 
-### FrameEntry Encryption Metadata
+### Frame Encryption Metadata
+
+Encryption state is stored as a binding on the FrameBody:
 
 ```
-FrameEntry (additions to EntryPayload):
-    encryptedCid: ContentID?         // CID of the encrypted envelope (null = cleartext)
+Frame body encryption binding:
+    (ENCRYPTION) → encryptedCid    // CID of the encrypted envelope (absent = cleartext)
 ```
 
-When `encryptedCid` is set:
-- `snapshotCid` still holds the **plaintext** CID (for identity/VID purposes -- the item's version identity is based on semantic content, not encryption artifacts)
-- `encryptedCid` holds the **ciphertext** CID (what's actually in the object store on disk)
-- The object store contains the Tag 10 envelope at `encryptedCid`
-- Decryption recovers the plaintext and verifies it matches `snapshotCid`
+When the encryption binding is present:
+- The body's content binding still targets the **plaintext** CID (for identity/VID purposes — the item's version identity is based on semantic content, not encryption artifacts)
+- The encryption binding holds the **ciphertext** CID (what's actually in the object store on disk)
+- The object store contains the Tag 10 envelope at the ciphertext CID
+- Decryption recovers the plaintext and verifies it matches the content CID
 
-This design preserves a critical property: **the VID does not change when you re-encrypt content for different recipients.** The manifest body hashes over `snapshotCid` (plaintext identity), not `encryptedCid` (encryption artifact). Two Librarians with the same item content but different encryption envelopes produce the same VID.
+This design preserves a critical property: **the VID does not change when you re-encrypt content for different recipients.** The manifest body hashes over the plaintext content identity, not the encryption artifact. Two Librarians with the same item content but different encryption envelopes produce the same VID.
 
 ### Encrypted Streams
 
@@ -267,12 +269,12 @@ Each frame independently controls who can read it. The manifest is signed cleart
 
 An existing cleartext frame can be encrypted by:
 
-1. Fetch plaintext bytes from store by `snapshotCid`
+1. Fetch plaintext bytes from store by content CID
 2. Build Tag 10 envelope for desired recipients
-3. Store envelope, get `encryptedCid`
-4. Update `FrameEntry` to record `encryptedCid`
+3. Store envelope, get ciphertext CID
+4. Add encryption binding to Frame's body
 5. Optionally delete the cleartext block from local store
-6. Commit new manifest version (VID unchanged since `snapshotCid` stays the same)
+6. Commit new manifest version (VID unchanged since content identity stays the same)
 
 This is a local operation -- the Librarian encrypts its own stored content. When syncing to peers, it sends the encrypted envelope instead of the plaintext block.
 
@@ -293,7 +295,7 @@ This is intentional: it allows the social graph and discovery mechanisms to work
 
 ### Two Separate but Related Concerns
 
-Access control and encryption are **separate policy dimensions**, both living on the frame's `EntryConfig.policy`:
+Access control and encryption are **separate policy dimensions**, both living on the frame's policy (stored as a Config binding on the FrameBody):
 
 - **Access policy** (`PolicySet.AccessPolicy`) controls **distribution** — the Librarian decides who receives the bytes. A private frame (no READ rules) simply isn't replicated. This is trust-based: you trust the Librarian to enforce it.
 
@@ -310,7 +312,7 @@ Four combinations exist:
 
 ### EncryptionPolicy on PolicySet
 
-Each frame carries an `EncryptionPolicy` in its config facet (`EntryConfig.policy.encryption`):
+Each frame carries an `EncryptionPolicy` in its policy (via FrameConfig on the Config binding):
 
 ```
 EncryptionPolicy {
@@ -341,8 +343,8 @@ The `encryptToReaders` shorthand covers the common case where encryption recipie
 During commit, encryption decisions are resolved through `EncryptionContext`, which bridges per-frame policies to the actual encryption operation:
 
 1. **Explicit `EncryptionContext`** passed to `commit()` overrides per-frame policies (item-level encryption)
-2. **Per-frame `EncryptionPolicy`** on `EntryConfig.policy` drives encryption when no explicit context is given
-3. **Config carry-forward**: Frame configs (including encryption policy) survive across commit cycles
+2. **Per-frame `EncryptionPolicy`** on the Frame's policy (via FrameConfig) drives encryption when no explicit context is given
+3. **Config carry-forward**: Frame policies (including encryption policy) survive across commit cycles
 
 The `EncryptionContext.fromEncryptionPolicy()` factory creates a context from a per-frame policy with pre-resolved `EncryptionPublicKey` objects.
 
@@ -788,7 +790,7 @@ This is intentional. Moderation of encrypted content works through social mechan
 
 ### Phase 3: Frame-Level Encryption
 
-1. `FrameEntry.EntryPayload.encryptedCid` field
+1. Frame encryption binding on FrameBody
 2. Commit flow: encrypt frames per policy before storing
 3. Hydration flow: detect encrypted frames, attempt decryption via Vault
 4. Local index: `ciphertextCID -> plaintextCID` mapping

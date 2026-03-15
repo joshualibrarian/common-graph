@@ -429,14 +429,14 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     // ==================================================================================
-    // Canonical Implementation (legacy FrameEntry-compatible wire format)
+    // Canonical Implementation
     // ==================================================================================
 
     @Override
     public CBORObject toCborTree(Scope scope) {
         CBORObject array = CBORObject.NewArray();
         for (Frame frame : frames.values()) {
-            array.Add(frame.encodeLegacyCborTree(mountsFor(frame.frameKey())));
+            array.Add(frame.toCborTree(mountsFor(frame.frameKey())));
         }
         return array;
     }
@@ -446,9 +446,9 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
         EndorsementsTable table = new EndorsementsTable();
         if (node != null && node.getType() == com.upokecenter.cbor.CBORType.Array) {
             for (CBORObject entryNode : node.getValues()) {
-                Frame.FrameWithMounts fwm = Frame.decodeLegacyCborTreeWithMounts(entryNode);
-                if (fwm != null) {
-                    table.add(fwm.frame(), fwm.mounts());
+                Frame frame = Canonical.fromCborTree(entryNode, Frame.class, Scope.RECORD);
+                if (frame != null) {
+                    table.add(frame, frame.decodedMounts());
                 }
             }
         }

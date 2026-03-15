@@ -21,7 +21,7 @@ import java.util.*;
  * </ul>
  *
  * <p>Containment itself is expressed through reference entries in the
- * FrameTable, not a separate component.
+ * EndorsementsTable, not a separate component.
  *
  * <p>Any item can have a Roster, tracking who is "in" this item.
  * Examples: members of a group, participants in a chat room,

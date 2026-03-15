@@ -14,9 +14,9 @@ An Item has exactly three parts:
 |------|-----------|
 | **IID** | Stable 32-byte identity that persists across all versions |
 | **Manifest** | Signed, immutable snapshot of a specific version |
-| **FrameTable** | All content — every frame the item contains |
+| **EndorsementsTable** | All endorsed content — every frame the item contains |
 
-Everything is in the FrameTable. Text, metadata, streams, policy — all stored as frame entries in one table, serialized as one CBOR array in the manifest, versioned together. Vocabulary is derived at runtime from frame type verb definitions and persistent EntryVocabulary contributions (see [Vocabulary](vocabulary.md)).
+Everything is in the EndorsementsTable. Text, metadata, streams, policy — all stored as frames in one table, serialized as one CBOR array in the manifest, versioned together. Vocabulary is derived at runtime from frame type verb definitions and vocabulary contributions (see [Vocabulary](vocabulary.md)).
 
 See [Frames](frames.md) for the frame primitive itself — the single data model unit that unifies all content, assertions, properties, streams, and more.
 
@@ -56,70 +56,52 @@ V1 (parent: null)
 
 The version hash covers only BODY fields (content), not the full manifest. Signatures are non-BODY fields — the hash is computed first, then signed. BODY scope = content identity. RECORD scope = everything including signatures.
 
-## The FrameTable
+## The EndorsementsTable
 
-The FrameTable is the **single source of truth** for what an Item contains. Every frame — text, streams, properties, policy — stored as entries in one table.
+The EndorsementsTable is the **single source of truth** for what an Item contains. Every frame — text, streams, properties, policy — stored in one table, keyed by `FrameKey`.
 
 ### Structure
 
-The FrameTable is keyed by FrameKey — each frame's compound semantic address:
+The EndorsementsTable implements `Map<FrameKey, Frame>`:
 
 ```
-entries:    FrameKey → FrameEntry    (metadata: type, CID, mounts, identity flag)
-live:       FrameKey → Object        (decoded instance: the actual Roster, Log, etc.)
-aliasIndex: String   → FrameKey      (human names: "vault" → (VAULT), "chat" → (CHAT))
+frames:     FrameKey → Frame          (the frame: key, type, body, bodyHash, identity)
+mounts:     FrameKey → List<Mount>    (mount metadata, separate from frames)
 ```
-TODO: I think we unified this and live instances now live on the frame itself (no longer "entry")... if that's not so, let's, then let's update the docs.
 
-**Entries** are the serialized truth — they go into the manifest, get content-addressed, and sync over the network. **Live instances** are the in-memory decoded forms — they exist only at runtime. The alias index is transient convenience for resolving human-friendly names to frame keys.
-
-TODO: this is outdated, it's not "entry", and we've got that whole BINDING system now, so it's much simpler.
-### Frame Entries
-
-A `FrameEntry` is the metadata record for one frame:
+Each **Frame** carries both its serialized state and transient runtime state:
 
 ```
-FrameEntry {
-    frameKey:        FrameKey       — semantic address (unique within the item)
-    type:            ItemID         — what kind of thing this is (defines codec)
-    identity:        boolean        — does this contribute to the version hash?
-    alias:           String         — human-facing shorthand ("vault", "chat")
+Frame {
+    key:         FrameKey       — semantic address (unique within the item)
+    type:        ItemID         — what kind of thing this is (defines codec)
+    identity:    boolean        — does this contribute to the version hash?
+    bodyHash:    ContentID      — hash of the body (for endorsement)
+    alias:       String         — human-facing shorthand (deprecated — use TokenDictionary)
 
-    payload: {
-        snapshotCid:     ContentID       — hash of immutable content bytes (nullable)
-        streamHeads:     List<ContentID> — heads for append-only logs (nullable)
-        streamBased:     boolean         — explicit stream flag
-        referenceTarget: ItemID          — containment reference target (nullable)
-    }
-
-    config: {
-        settings: List<ScopedSetting>    — context-scoped knobs/overrides
-        policy:   PolicySet              — per-entry policy metadata
-    }
-
-    presentation: {
-        layout: { mounts: List<Mount> }  — where this appears (path/surface/spatial)
-        skin:   { sceneOverride: ViewNode } — per-entry scene override
-    }
-
-    vocabulary: {
-        contributions: List<VocabularyContribution> — context-scoped vocab terms
-    }
+    — transient runtime fields —
+    body:        FrameBody      — the semantic assertion (predicate, theme, bindings)
+    instance:    Object         — live decoded value (e.g., the Vault, Log, or String)
+    owner:       Item           — parent item reference
 }
 ```
 
-This single structure covers every mode of content:
+Frame content is expressed through **bindings** on the FrameBody. A binding has a compound semantic key (role + qualifiers), a target (CID, stream ref, item ref, or literal value), and two flags: `identity` (contributes to body hash?) and `index` (creates a frame index entry?).
 
-| Mode | What's set | Used for |
+### Content Modes
+
+The content mode is determined by the bindings on the FrameBody:
+
+| Mode | What's in the body | Used for |
 |------|-----------|----------|
-| **Snapshot** | `payload.snapshotCid` | Immutable, content-addressed. Documents, config, images. |
-| **Stream** | `payload.streamHeads`, `payload.streamBased` | Append-only logs. Chat messages, key history, activity feeds. Multiple heads enable branching. |
-| **Local-only** | nothing (no CID, not stream, no reference) | Never syncs. Private keys, caches, device-specific state. |
-| **Reference** | `payload.referenceTarget` | Points to another item by IID. The containment primitive. |
+| **Snapshot** | A binding targeting a CID | Immutable, content-addressed. Documents, config, images. |
+| **Stream** | A binding with a stream key | Append-only logs. Chat messages, key history, activity feeds. |
+| **Local-only** | An external binding | Never syncs. Private keys, caches, device-specific state. |
+| **Reference** | A GOAL binding targeting an ItemID | Points to another item by IID. The containment primitive. |
 
 ### The identity flag
 
-The `identity` flag on each entry controls whether that frame's content contributes to the version hash. A vault (local private keys) or a cache doesn't create a new version when updated — it's registered in the table but its content doesn't affect version identity.
+The `identity` flag on each frame controls whether that frame's content contributes to the version hash. A vault (local private keys) or a cache doesn't create a new version when updated — it's registered in the table but its content doesn't affect version identity.
 
 ### Mounts
 
@@ -168,11 +150,11 @@ An Item's versioned state is encapsulated in `ItemState`:
 
 ```
 ItemState {
-    frames: FrameTable    — everything the item contains
+    endorsedFrames: EndorsementsTable    — everything the item contains
 }
 ```
 
-ItemState wraps the FrameTable so the Manifest has a named field for "the state of this version." ItemState is shared between the live Item and the Manifest — the Item mutates its state during editing, and the Manifest snapshots it at commit time.
+ItemState wraps the EndorsementsTable so the Manifest has a named field for "the state of this version." ItemState is shared between the live Item and the Manifest — the Item mutates its state during editing, and the Manifest snapshots it at commit time.
 
 ## The Manifest
 
@@ -184,7 +166,7 @@ Manifest {
     iid:        ItemID            — which item this is
     parents:    List<ContentID>   — parent version hashes (history chain)
     type:       ItemID            — item type
-    state:      ItemState         — all content (the FrameTable)
+    state:      ItemState         — all content (the EndorsementsTable)
     ─── non-BODY fields (excluded from version hash) ───
     authorKey:  SigningPublicKey   — who signed this
     signature:  Signing           — the signature itself
@@ -220,27 +202,27 @@ FrameKey is not a hash — it's a structured key composed of semantic tokens. It
 ```
 new Item(librarian)
  → random IID generated
- → ItemState created with empty FrameTable
+ → ItemState created with empty EndorsementsTable
  → initializeFreshComponents():
      for each @Item.Frame field:
        1. Create default instance via Components.createDefault()
-       2. Build FrameEntry (snapshot/stream/local-only)
-       3. Add entry + live instance to FrameTable
+       2. Build Frame (snapshot/stream/local-only) with FrameBody
+       3. Add frame to EndorsementsTable
  → onFullyInitialized():
      1. initBuiltinComponents() — add PolicySet
-     2. buildVocabulary() — collect verb definitions, merge EntryVocabulary contributions
+     2. buildVocabulary() — collect verb definitions, merge vocabulary contributions
 ```
 
 ### Hydration (Loading)
 
 ```
 Item loaded from Manifest
- → FrameEntries extracted from Manifest.state.frames
+ → Frames extracted from Manifest.state.endorsedFrames
  → hydrate():
-     Phase 1: For each FrameEntry:
+     Phase 1: For each Frame:
        1. Fetch content by CID from the store
        2. Decode via Components.decode() or Canonical.decodeBinary()
-       3. Store live instance in FrameTable (keyed by FrameKey)
+       3. Store live instance on Frame
      Phase 2: Bind @Item.Frame fields from table
      Phase 3: Invoke initComponent() on all Component instances
  → onFullyInitialized()
@@ -250,7 +232,7 @@ Item loaded from Manifest
 
 ```
 item.edit()                    — enter edit mode
-item.addComponent(...)         — modify the FrameTable
+item.addComponent(...)         — modify the EndorsementsTable
 item.component("chat").add()   — modify a live frame instance
 ```
 
@@ -261,7 +243,7 @@ Edit mode is a flag — it doesn't create a copy. You mutate the item's state di
 ```
 item.commit(signer)
  → scanAndBindFields():
-     For each @Item.Frame field: encode value → CID → update FrameEntry
+     For each @Item.Frame field: encode value → CID → update Frame bodyHash
  → Build Manifest (iid, type, parents, state)
  → manifest.sign(signer) — sign BODY bytes with signer's key
  → storeManifest() — serialize and store via librarian
@@ -272,10 +254,10 @@ item.commit(signer)
 
 ```
 item.persist()
- → For each FrameEntry:
+ → For each Frame:
      1. Encode content
      2. Store bytes in the item's store
-     3. Update entry CID
+     3. Update frame bodyHash
  → Save metadata (no manifest, no version hash, no signature)
  → dirty = false
 ```
@@ -310,7 +292,7 @@ PolicySet is always `identity=true` — changing who can do what changes the ver
 **Vocabulary is derived at runtime.** An item's vocabulary — its linguistic surface (verbs it handles, nouns it recognizes, proper names for its frames) — is built by merging:
 1. Verb definitions on the item type (code layer)
 2. Verb definitions on each frame's type (code layer)
-3. `EntryVocabulary` contributions on each FrameEntry (persistent user layer)
+3. Vocabulary contributions on each frame (persistent user layer)
 
 See [Vocabulary](vocabulary.md) for the full vocabulary system.
 
@@ -368,7 +350,7 @@ Items compose behavior from typed frames. There are no special "chat room" or "s
 | User profile | Item + KeyLog (stream) + Vault (local) |
 | Document | Item + text frame + assertion frames (author, title) |
 
-The same FrameTable holds all of these. A "chat room" is just an item where one of the frames happens to be a stream-based Log.
+The same EndorsementsTable holds all of these. A "chat room" is just an item where one of the frames happens to be a stream-based Log.
 
 ## Vocabulary
 
@@ -381,7 +363,7 @@ Every Item has a vocabulary — its linguistic surface. Verbs, nouns, proper nam
 
 The vocabulary is derived at runtime from:
 - Verb definitions on the item type and its frame types (code layer)
-- `EntryVocabulary` contributions on frame entries (persistent user layer)
+- Vocabulary contributions on frames (persistent user layer)
 
 Typing into an Item's prompt dispatches through the vocabulary system. See [Vocabulary](vocabulary.md) for the full dispatch pipeline, expression input, and customization.
 
@@ -402,4 +384,4 @@ my-item/
     └── content/           # Content blocks (by CID)
 ```
 
-The working tree is a view of the FrameTable — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.
+The working tree is a view of the EndorsementsTable — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.

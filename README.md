@@ -133,7 +133,7 @@ In the current Java implementation, a type is declared as an annotated class. Th
 
 ```java
 @Type("cg:type/book")
-public class Book extends NounSememe {
+public class Book extends Item {
     @Frame(key = {TITLE})                String title;
     @Frame(key = {AUTHOR}, endorsed=false) ItemID author;
     @Frame(key = {TEXT, ENGLISH})         byte[] englishText;
@@ -404,7 +404,8 @@ Requires **Java 21** (via Gradle toolchain).
 
 ```
 core/               # Domain model
-  item/             #   Item, IDs, Manifest, Frames, FrameTable
+  item/             #   Item, IDs, Manifest
+  frame/            #   Frame, FrameBody, EndorsementsTable, Binding
   library/          #   Object store, indexes, TokenDictionary, seed vocabulary
   runtime/          #   Graph entry point, Librarian, Session, Scheduler
   network/          #   Peer Protocol, Session Protocol, transports

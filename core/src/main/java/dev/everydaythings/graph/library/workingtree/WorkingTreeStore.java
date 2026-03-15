@@ -293,7 +293,7 @@ public final class WorkingTreeStore implements ItemStore {
         for (Frame frame : frames) {
             String filename = hex(frame.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
             Path file = componentsDir.resolve(filename);
-            byte[] bytes = frame.encodeLegacyCbor(List.of());
+            byte[] bytes = frame.encodeCbor(List.of());
             fsTx.stageAtomicReplace(file, bytes);
         }
     }
@@ -327,7 +327,7 @@ public final class WorkingTreeStore implements ItemStore {
         for (Frame frame : table) {
             String filename = hex(frame.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
             Path file = componentsDir.resolve(filename);
-            byte[] bytes = frame.encodeLegacyCbor(table.mountsFor(frame.frameKey()));
+            byte[] bytes = frame.encodeCbor(table.mountsFor(frame.frameKey()));
             fsTx.stageAtomicReplace(file, bytes);
         }
     }
@@ -348,7 +348,7 @@ public final class WorkingTreeStore implements ItemStore {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(componentsDir, "*.cbor")) {
             for (Path file : stream) {
                 byte[] bytes = Files.readAllBytes(file);
-                Frame frame = Frame.decodeLegacyCbor(bytes);
+                Frame frame = Frame.decodeCbor(bytes);
                 frames.add(frame);
             }
         } catch (IOException e) {
@@ -375,7 +375,7 @@ public final class WorkingTreeStore implements ItemStore {
 
         try {
             byte[] bytes = Files.readAllBytes(file);
-            return Optional.of(Frame.decodeLegacyCbor(bytes));
+            return Optional.of(Frame.decodeCbor(bytes));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to load component: " + key, e);
         }

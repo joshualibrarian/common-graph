@@ -180,7 +180,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      */
     protected Signer(Path path, ItemStore fallbackStore) {
         super(path, fallbackStore);
-        // Vault, KeyLog, CertLog are set by Item's hydrate() via FrameTable
+        // Vault, KeyLog, CertLog are set by Item's hydrate() via EndorsementsTable
         // Key initialization happens in onFullyInitialized()
     }
 

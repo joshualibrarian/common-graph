@@ -140,8 +140,8 @@ public final class Ref implements Canonical {
     /**
      * Resolve a mount path on an item to a proper Ref.
      *
-     * <p>Looks up the path in the item's FrameTable to find the mounted
-     * entry, then returns a Ref with the entry's FrameKey. If the path
+     * <p>Looks up the path in the item's EndorsementsTable to find the mounted
+     * frame, then returns a Ref with the frame's FrameKey. If the path
      * doesn't resolve to a real frame (e.g., virtual directory), returns
      * a simple item-level Ref.
      *

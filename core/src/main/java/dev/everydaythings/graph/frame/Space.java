@@ -20,7 +20,7 @@ import java.util.*;
  * </ul>
  *
  * <p>Containment itself is expressed through reference entries in the
- * FrameTable, not a separate component.
+ * EndorsementsTable, not a separate component.
  *
  * <p>A Space describes a 3D environment you can "enter":
  * <ul>

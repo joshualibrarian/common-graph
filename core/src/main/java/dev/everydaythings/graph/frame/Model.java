@@ -19,7 +19,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  * </ul>
  *
  * <p>Containment itself is expressed through reference entries in the
- * FrameTable, not a separate component.
+ * EndorsementsTable, not a separate component.
  *
  * <p>A Model describes how an item looks as a 3D object:
  * <ul>

@@ -65,8 +65,8 @@ public final class TokenExtractor {
      * @return list of postings (currently empty - see note above)
      */
     public static List<Posting> fromManifest(Manifest manifest) {
-        // FrameKeys in FrameEntry are semantic addresses - we can't recover the original
-        // handle strings. Handle indexing needs to happen at component creation
+        // FrameKeys are semantic addresses - we can't recover the original
+        // handle strings. Handle indexing needs to happen at frame creation
         // time when the original names are available.
         return List.of();
     }

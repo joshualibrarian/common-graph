@@ -81,7 +81,7 @@ Token sources:
 - **Sememe symbols**: Language-neutral shorthand indexed with null scope
 - **Seed vocabulary**: English tokens indexed under `cg:language/eng` at bootstrap
 - **Lexicon imports**: WordNet, CILI — each language's lexemes scoped to its Language Item, merged idempotently
-- **Frame vocabulary**: EntryVocabulary contributions scoped to their item
+- **Frame vocabulary**: Vocabulary contributions scoped to their item
 - **Assertions**: Named assertion frames (title, alias) scoped to their item
 
 ## Storage Backends
@@ -162,8 +162,8 @@ The **WorkingTreeStore** provides filesystem-backed storage for items being acti
 ```
 WorkingTreeStore {
     exists(path) → boolean          # Is there an item at this path?
-    load(path) → [FrameEntry]       # Load frame entries from .item/
-    save(path, entries)             # Write frame entries to .item/
+    load(path) → [Frame]            # Load frames from .item/
+    save(path, frames)              # Write frames to .item/
     commit(path, signer) → Manifest # Build and sign manifest from working tree
 }
 ```

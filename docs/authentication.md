@@ -22,7 +22,7 @@ Common Graph uses Ed25519 signatures (see [references/Bernstein et al 2012](refe
 
 Every entity that can sign (users, hosts, devices) is a **Signer** — an Item with:
 
-- **Vault** — Local-only private key storage (never synced — see [Frame Types](components.md))
+- **Vault** — Local-only private key storage (never synced — see [Frames](frames.md))
 - **KeyLog** — Append-only history of key events (add, revoke, rotate)
 - **CertLog** — Certificates issued by this signer
 - **Public key** — Current signing public key (derived from Vault)

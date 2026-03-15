@@ -10,7 +10,7 @@ Manifest {
     iid: ItemID                 # Item identity
     parents: [VersionID]        # Parent version(s) — null for initial
     type: ItemID                # Item type reference
-    state: ItemState            # All frames (the FrameTable)
+    state: ItemState            # All frames (the EndorsementsTable)
     authorKey: SigningPublicKey  # Signer's public key (outside body hash)
     signature: Signing          # Cryptographic signature (outside body hash)
 }
@@ -42,20 +42,21 @@ The manifest's state is the unified container for all versioned content:
 
 ```
 ItemState {
-    frames: FrameTable     # All frame entries (handles, types, CIDs)
+    endorsedFrames: EndorsementsTable     # All endorsed frames
 }
 ```
 
-Each FrameEntry in the frame table records:
+Each Frame in the table records:
 
 | Field | Description |
 |-------|-------------|
-| `handle` | Stable HID within this item |
-| `type` | Frame type (ItemID) |
+| `key` | FrameKey — compound semantic address within this item |
+| `type` | Frame type (ItemID — defines codec/behavior) |
 | `identity` | Does this frame contribute to item identity? |
-| `snapshotCid` | Content hash (for snapshot frames) |
-| `streamHeads` | Head hashes (for stream frames) |
+| `bodyHash` | Hash of the FrameBody (semantic assertion) |
 | `mounts` | Presentation positions (path, surface, spatial) |
+
+Mounts are stored separately on the EndorsementsTable at runtime but serialized alongside each Frame in the CBOR encoding.
 
 ## Signing
 

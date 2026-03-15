@@ -69,29 +69,24 @@ A **sememe** is an Item that represents a specific, language-agnostic meaning. S
 
 ### The Sememe Hierarchy
 
-`Sememe` is the abstract base class. Every sememe has a **part of speech**, and each POS has its own subclass:
+`Sememe` extends `Item` directly — it is not sealed. Every sememe has a **part of speech** field (`PartOfSpeech`), which is itself a seed sememe (NOUN, VERB, ADJECTIVE, etc.). Parts of speech are not separate subclasses — they're data on the sememe.
 
-| Subclass | POS | Purpose |
-|----------|-----|---------|
-| `VerbSememe` | VERB | Dispatchable actions (create, move, exit) |
-| `NounSememe` | NOUN | Entities, predicates, concepts (author, title, item) |
-| `PrepositionSememe` | PREPOSITION | Thematic role carriers (to, from, with) |
-| `PronounSememe` | PRONOUN | References and variables (it, this, any) |
-| `AdjectiveSememe` | ADJECTIVE | Properties (recent, active) |
-| `AdverbSememe` | ADVERB | Modifiers |
-| `ConjunctionSememe` | CONJUNCTION | Connectors (and, or) |
-| `InterjectionSememe` | INTERJECTION | Exclamations |
+Seed constants are organized by domain into vocabulary classes:
 
-`NounSememe` is the primary extension point for domain-specific types that carry meaning beyond a plain noun:
+| Vocabulary Class | Contains |
+|-----------------|----------|
+| `CoreVocabulary` | Verbs (create, move, edit, exit) and nouns (author, title, item) |
+| `PrepositionVocabulary` | Prepositions (to, from, with, in, for, as) |
+| `LexicalVocabulary` | Lexeme-related predicates (LEXEME, GLOSS, etc.) |
 
-| Extension | What It Adds |
+Domain-specific subclasses extend `Sememe` for types that carry specialized metadata:
+
+| Subclass | What It Adds |
 |-----------|-------------|
 | `ThematicRole` | Semantic role identity (AGENT, THEME, GOAL, ...) |
 | `GrammaticalFeature` | Inflectional property identity (PAST, PLURAL, LEMMA, ...) |
 | `Operator` | Symbol, precedence, associativity, evaluation |
 | `Function` | Arity, category, evaluation |
-| `Unit` | Dimension, conversion factors, symbol |
-| `Dimension` | Base unit |
 
 All of these inherit glosses, tokens, symbols, and dictionary registration from `Sememe`, making them discoverable through the same vocabulary pipeline as any other sememe.
 
@@ -102,12 +97,11 @@ Sememe seeds use an **inner class pattern** with fluent configuration:
 ```java
 public static class Author {
     public static final String KEY = "cg.core:author";
-    @Seed public static final NounSememe SEED = new NounSememe(KEY)
+    @Seed public static final Sememe SEED = new Sememe(KEY)
             .gloss(ENG, "the creator or originator of a work")
             .word(LEMMA, ENG, "author")
             .cili("i90183")
-            .slot(ThematicRole.Theme.SEED)
-            .slot(ThematicRole.Target.SEED)
+            .slot(ThematicRole.Agent.KEY)
             .indexWeight(1000);
 }
 ```
@@ -135,18 +129,9 @@ public record LexemeDeclaration(Sememe form, String lang, String surface) {}
 
 During bootstrap, `SeedVocabulary` processes these declarations and feeds them into the appropriate Language's Lexicon. Words don't live on sememes — they live in languages.
 
-### Covariant Return Types
+### Fluent API
 
-Java doesn't have a `Self` return type. Each POS subclass provides covariant overrides so fluent chaining preserves the subclass type:
-
-```java
-// On NounSememe:
-@Override public NounSememe gloss(String lang, String text) {
-    super.gloss(lang, text); return this;
-}
-```
-
-~6 one-liner overrides per subclass. This lets `new NounSememe(KEY).gloss(...).symbol(...)` return `NounSememe` all the way through, so subclass-specific methods (like `withArguments()` on `VerbSememe`) remain accessible.
+Sememe's fluent methods return `Sememe` (the base type). Domain-specific subclasses like `ThematicRole`, `GrammaticalFeature`, `Operator`, and `Function` provide covariant overrides where needed so fluent chaining preserves the subclass type.
 
 ## Lexemes as Frames
 
@@ -161,7 +146,7 @@ A lexeme frame on a Language item has the key:
 ```
 
 Where:
-- `LEXEME` — the predicate (a seed NounSememe: `Sememe.Lexeme.SEED`)
+- `LEXEME` — the predicate (a seed Sememe: `LexicalVocabulary.Lexeme.SEED`)
 - `<sememe>` — the meaning being expressed (fills the REFERENT role)
 - `<form>` — the grammatical form (LEMMA, PAST, PLURAL, etc.)
 - `"<word>"` — the surface string (a literal key component)
@@ -334,7 +319,7 @@ The intent is to import VerbNet class data to auto-populate slot declarations: f
 
 ## Grammatical Features
 
-**Grammatical features** describe inflectional properties of words — tense, number, person, case, mood, degree. Like thematic roles, they are **sememes** (NounSememe subclass: `GrammaticalFeature`).
+**Grammatical features** describe inflectional properties of words — tense, number, person, case, mood, degree. Like thematic roles, they are **sememes** (`GrammaticalFeature extends Sememe`).
 
 ### Seed Features
 

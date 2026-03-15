@@ -1247,8 +1247,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         for (Frame frame : item.content()) { entries.add(frame); }
         entries.sort(Comparator.comparing(Frame::displayToken, String.CASE_INSENSITIVE_ORDER));
         for (Frame entry : entries) {
-            // Frame does not carry vocabulary contributions directly;
-            // vocabulary metadata is accessed via EntryVocabulary on FrameEntry (transitional).
+            // Frame does not carry vocabulary contributions directly.
             // Skip frames with no vocabulary to show.
             rootNode.children.add(new MetaNode(
                     "vocab:" + entry.frameKey().toCanonicalString(),

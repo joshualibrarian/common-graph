@@ -62,9 +62,6 @@ public final class FrameBody implements Canonical {
     /** Cached body bytes (CBOR encoding). */
     private transient byte[] cachedBytes;
 
-    /** Live decoded primary instance (e.g., the Vault, Log, or String decoded from content). */
-    private transient Object instance;
-
     // ==================================================================================
     // Constructors
     // ==================================================================================
@@ -198,22 +195,6 @@ public final class FrameBody implements Canonical {
         }
 
         return new FrameBody(pred, thm, bindings);
-    }
-
-    // ==================================================================================
-    // Live Instance
-    // ==================================================================================
-
-    /** Set the primary decoded instance (e.g., the component decoded from the TOPIC binding). */
-    public void setInstance(Object instance) { this.instance = instance; }
-
-    /**
-     * Get the primary decoded instance, typed.
-     */
-    @SuppressWarnings("unchecked")
-    public <T> T instanceAs(Class<T> type) {
-        if (instance != null && type.isInstance(instance)) return (T) instance;
-        return null;
     }
 
     // ==================================================================================

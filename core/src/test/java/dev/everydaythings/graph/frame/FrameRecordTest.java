@@ -176,35 +176,31 @@ class FrameRecordTest {
     }
 
     @Nested
-    @DisplayName("FrameEntry Integration")
-    class FrameEntryIntegration {
+    @DisplayName("Frame Integration")
+    class FrameIntegration {
 
         @Test
-        @DisplayName("body hash stored on FrameEntry")
-        void bodyHashOnEntry() {
+        @DisplayName("body hash stored on Frame")
+        void bodyHashOnFrame() {
             FrameBody body = FrameBody.of(TITLE, THE_HOBBIT);
             ContentID hash = body.hash();
 
-            FrameEntry entry = FrameEntry.builder()
-                    .frameKey(dev.everydaythings.graph.item.id.FrameKey.literal("title"))
-                    .type(ItemID.fromString("cg:type/text"))
-                    .identity(true)
-                    .bodyHash(hash)
-                    .build();
+            Frame frame = new Frame(
+                    dev.everydaythings.graph.item.id.FrameKey.literal("title"),
+                    ItemID.fromString("cg:type/text"),
+                    body, hash, true);
 
-            assertThat(entry.bodyHash()).isEqualTo(hash);
+            assertThat(frame.bodyHash()).isEqualTo(hash);
         }
 
         @Test
-        @DisplayName("body hash null for legacy entries")
-        void bodyHashNullForLegacy() {
-            FrameEntry entry = FrameEntry.builder()
-                    .frameKey(dev.everydaythings.graph.item.id.FrameKey.literal("vault"))
-                    .type(ItemID.fromString("cg:type/vault"))
-                    .identity(false)
-                    .build();
+        @DisplayName("body hash null when not set")
+        void bodyHashNull() {
+            Frame frame = Frame.snapshot(
+                    dev.everydaythings.graph.item.id.FrameKey.literal("vault"),
+                    ItemID.fromString("cg:type/vault"), null, false);
 
-            assertThat(entry.bodyHash()).isNull();
+            assertThat(frame.bodyHash()).isNull();
         }
     }
 }

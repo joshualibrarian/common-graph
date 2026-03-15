@@ -329,5 +329,5 @@ Left monitor: a dashboard item with nested layout. Right monitor: floating items
 - [Presentation](presentation.md) — Surface DSL, rendering pipeline, annotation system
 - [Network Architecture](network.md) — How librarians peer and sync
 - [Trust](trust.md) — Identity, signing, authentication
-- [Components](components.md) — Component system, types, modes, mounts
+- [Frames](frames.md) — Frame primitive, types, modes, mounts
 - [Vocabulary](vocabulary.md) — Token resolution, dispatch, scope chains
