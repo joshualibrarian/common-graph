@@ -399,29 +399,6 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     // ==================================================================================
-    // Alias Resolution (temporary — should move to TokenDictionary)
-    // ==================================================================================
-
-    /** @deprecated Use TokenDictionary for token resolution instead. */
-    @Deprecated
-    public Optional<FrameKey> resolveAlias(String token) {
-        if (token == null || token.isBlank()) return Optional.empty();
-
-        FrameKey literalKey = FrameKey.literal(token);
-        if (frames.containsKey(literalKey)) {
-            return Optional.of(literalKey);
-        }
-
-        for (Map.Entry<FrameKey, Frame> e : frames.entrySet()) {
-            Frame frame = e.getValue();
-            if (token.equals(frame.alias())) {
-                return Optional.of(e.getKey());
-            }
-        }
-        return Optional.empty();
-    }
-
-    // ==================================================================================
     // Endorsement Building
     // ==================================================================================
 

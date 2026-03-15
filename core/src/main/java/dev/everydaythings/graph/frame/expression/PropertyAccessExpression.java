@@ -67,7 +67,7 @@ public record PropertyAccessExpression(
         // Item component by handle
         if (obj instanceof Item item) {
             FrameKey frameKey = FrameKey.literal(prop);
-            Optional<?> component = item.content().getLive(frameKey, Object.class);
+            Optional<?> component = item.frames().getLive(frameKey, Object.class);
             if (component.isPresent()) return component.get();
         }
 

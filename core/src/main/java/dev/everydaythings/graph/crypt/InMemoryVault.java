@@ -261,57 +261,6 @@ public final class InMemoryVault extends Vault {
     }
 
     @Override
-    public javax.net.ssl.SSLContext sslContext() {
-        try {
-            // Ed25519 (our signing key type) isn't supported by JSSE's KeyManagerFactory
-            // in Java 21 — that requires Java 23+. So we generate a dedicated EC P-256 key
-            // for TLS, but sign it with the Ed25519 signing key. This binds the TLS identity
-            // to the CG signing identity: peers can verify the cert chain to confirm which
-            // Librarian they're talking to.
-            KeyEntry signingEntry = keys.get(SIGNING_KEY_ALIAS);
-            if (signingEntry == null) {
-                throw new IllegalStateException("No signing key — cannot create TLS context");
-            }
-
-            KeyPair tlsKeyPair = generateKeyPair(Algorithm.Sign.ES256);
-            X509Certificate tlsCert = issueCertificate(
-                    tlsKeyPair.getPublic(),
-                    signingEntry.keyPair.getPrivate(),
-                    signingEntry.certificate.getSubjectX500Principal(),
-                    (Algorithm.Sign) signingEntry.algorithm
-            );
-
-            KeyStore ks = KeyStore.getInstance("PKCS12");
-            ks.load(null, null);
-            char[] password = "inmemory".toCharArray();
-            ks.setKeyEntry("tls", tlsKeyPair.getPrivate(), password,
-                    new java.security.cert.Certificate[]{tlsCert, signingEntry.certificate});
-
-            javax.net.ssl.KeyManagerFactory kmf = javax.net.ssl.KeyManagerFactory.getInstance(
-                    javax.net.ssl.KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(ks, password);
-
-            // Trust all for testing (don't use in production!)
-            javax.net.ssl.TrustManager[] trustAll = new javax.net.ssl.TrustManager[]{
-                    new javax.net.ssl.X509TrustManager() {
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[0];
-                        }
-                        public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                        public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-                    }
-            };
-
-            javax.net.ssl.SSLContext ctx = javax.net.ssl.SSLContext.getInstance("TLS");
-            ctx.init(kmf.getKeyManagers(), trustAll, new SecureRandom());
-            return ctx;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create SSLContext", e);
-        }
-    }
-
-    @Override
     public io.netty.handler.ssl.SslContext serverSslContext() {
         try {
             KeyEntry signingEntry = keys.get(SIGNING_KEY_ALIAS);

@@ -468,40 +468,6 @@ public final class SoftwareVault extends Vault {
     }
 
     @Override
-    public javax.net.ssl.SSLContext sslContext() {
-        try {
-            // Create KeyManagerFactory with our keystore
-            javax.net.ssl.KeyManagerFactory kmf = javax.net.ssl.KeyManagerFactory.getInstance(
-                    javax.net.ssl.KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, password);
-
-            // Create TrustManagerFactory that trusts all certificates for now
-            // In production, this should use a proper trust store
-            javax.net.ssl.TrustManager[] trustAllCerts = new javax.net.ssl.TrustManager[]{
-                    new javax.net.ssl.X509TrustManager() {
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[0];
-                        }
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                            // Accept all for now - trust verification happens at CG layer
-                        }
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                            // Accept all for now - trust verification happens at CG layer
-                        }
-                    }
-            };
-
-            // Create SSLContext
-            javax.net.ssl.SSLContext sslContext = javax.net.ssl.SSLContext.getInstance("TLS");
-            sslContext.init(kmf.getKeyManagers(), trustAllCerts, new SecureRandom());
-
-            return sslContext;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create SSLContext", e);
-        }
-    }
-
-    @Override
     public io.netty.handler.ssl.SslContext serverSslContext() {
         throw new UnsupportedOperationException("SoftwareVault Netty SslContext not yet implemented");
     }

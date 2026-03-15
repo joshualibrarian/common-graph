@@ -354,7 +354,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Sync pre-initialized field values that were set AFTER super() returned
         // (Field initializers like typesExpr run after super constructor completes)
         if (freshBoot) {
-            content().setLive(
+            frames().setLive(
                     FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
                     "types",
                     typesExpr);
@@ -380,7 +380,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
         // Sync pre-initialized field values
         if (freshBoot) {
-            content().setLive(
+            frames().setLive(
                     FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
                     "types",
                     typesExpr);
@@ -431,7 +431,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // Register as live instance so getLive() can find it
             // (ContentField annotation only registers during initializeComponents,
             // but library is created here after that phase completes)
-            content().setLive(
+            frames().setLive(
                     FrameKey.of(ItemID.fromString(CoreVocabulary.Library.KEY)),
                     "library",
                     this.library);
@@ -639,7 +639,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             Item type = typeItem.get();
 
             // Look for SurfaceTemplateComponent on the type
-            var stc = type.content().getLive(
+            var stc = type.frames().getLive(
                     SurfaceTemplateComponent.HANDLE,
                     SurfaceTemplateComponent.class
             );
@@ -1271,14 +1271,14 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * Load a manifest for an item from a store.
      */
     private Optional<Manifest> loadManifest(ItemID iid, ItemStore store) {
-        // Get VID from library (index is internal to library)
-        Optional<byte[]> vidBytes = library().getItemRecord(iid);
-        if (vidBytes.isEmpty()) {
-            logger.trace("loadManifest() - getItemRecord empty for iid={}", iid.encodeText());
+        // Get VID from library index
+        Optional<ContentID> vidOpt = library().latestVersion(iid);
+        if (vidOpt.isEmpty()) {
+            logger.trace("loadManifest() - no version found for iid={}", iid.encodeText());
             return Optional.empty();
         }
 
-        ContentID vid = new ContentID(vidBytes.get());
+        ContentID vid = vidOpt.get();
         logger.trace("loadManifest() - got VID for iid={}, vid={}", iid.encodeText(), vid.encodeText());
 
         // Load manifest using consumer API

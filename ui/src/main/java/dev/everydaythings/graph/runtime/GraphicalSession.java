@@ -780,7 +780,7 @@ public class GraphicalSession extends Session {
         stopLiveTimer();
 
         // Rebuild tick registry from current context
-        contextItem().ifPresent(item -> tickRegistry.rebuild(item.content()));
+        contextItem().ifPresent(item -> tickRegistry.rebuild(item.frames()));
 
         liveTimer = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "live-widget-timer");
@@ -814,7 +814,7 @@ public class GraphicalSession extends Session {
 
     @Override
     protected void onContextComponentsChanged(Item item) {
-        tickRegistry.rebuild(item.content());
+        tickRegistry.rebuild(item.frames());
     }
 
     @Override
@@ -1292,7 +1292,7 @@ public class GraphicalSession extends Session {
 
         FrameKey key = context.frameKey();
 
-        Object component = item.content().getLive(key).orElse(null);
+        Object component = item.frames().getLive(key).orElse(null);
         if (component == null) {
             hideDetailPane();
             return;

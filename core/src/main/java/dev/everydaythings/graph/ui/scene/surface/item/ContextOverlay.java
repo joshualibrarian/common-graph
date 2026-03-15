@@ -58,7 +58,7 @@ public final class ContextOverlay {
         List<Entry> out = new ArrayList<>();
 
         // Component nouns/keys (local component aliases/handles) — lower than verbs.
-        for (Frame frame : item.content()) {
+        for (Frame frame : item.frames()) {
             String key = frame.alias() != null && !frame.alias().isBlank()
                     ? frame.alias()
                     : frame.frameKey().toCanonicalString();

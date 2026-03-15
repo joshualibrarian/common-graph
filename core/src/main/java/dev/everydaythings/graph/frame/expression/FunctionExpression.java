@@ -68,7 +68,7 @@ public record FunctionExpression(
         Item owner = context.owner();
         if (owner != null) {
             FrameKey frameKey = FrameKey.literal(function);
-            var exprOpt = owner.content().getLive(frameKey, ExpressionComponent.class);
+            var exprOpt = owner.frames().getLive(frameKey, ExpressionComponent.class);
             if (exprOpt.isPresent()) {
                 ExpressionComponent fn = exprOpt.get();
                 if (fn.isFunction()) {

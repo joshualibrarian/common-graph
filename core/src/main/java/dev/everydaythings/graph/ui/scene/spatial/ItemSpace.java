@@ -76,8 +76,8 @@ public class ItemSpace extends SpatialSchema<Item> {
     private void renderComponents(SpatialRenderer out) {
         RenderContext ctx = out.renderContext();
         double autoX = 0;
-        for (Frame entry : value().content()) {
-            Object component = value().content()
+        for (Frame entry : value().frames()) {
+            Object component = value().frames()
                     .getLive(entry.frameKey()).orElse(null);
             if (component == null) continue;
 

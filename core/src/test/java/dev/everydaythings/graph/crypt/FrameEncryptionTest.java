@@ -72,7 +72,7 @@ class FrameEncryptionTest {
 
             // Check that at least one non-local frame entry has an encryptedCid
             // (localOnly frames like vault should NOT be encrypted)
-            boolean anyEncrypted = librarian.content().stream()
+            boolean anyEncrypted = librarian.frames().stream()
                     .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("At least one frame should be encrypted")
@@ -89,7 +89,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted frame entry
-            Optional<Frame> encrypted = librarian.content().stream()
+            Optional<Frame> encrypted = librarian.frames().stream()
                     .filter(e -> e.body().isEncrypted())
                     .findFirst();
 
@@ -110,7 +110,7 @@ class FrameEncryptionTest {
         @DisplayName("cleartext commit has no encryptedCid")
         void cleartextCommitNoEncryptedCid() {
             // Librarian's initial commit is cleartext
-            boolean anyEncrypted = librarian.content().stream()
+            boolean anyEncrypted = librarian.frames().stream()
                     .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("No frames should be encrypted without EncryptionContext")
@@ -123,7 +123,7 @@ class FrameEncryptionTest {
             librarian.edit();
             librarian.commit(librarian, EncryptionContext.NONE);
 
-            boolean anyEncrypted = librarian.content().stream()
+            boolean anyEncrypted = librarian.frames().stream()
                     .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("NONE context should produce no encryption")
@@ -140,7 +140,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // vault is localOnly — should not be encrypted even with allFrames
-            Optional<Frame> vaultEntry = librarian.content().stream()
+            Optional<Frame> vaultEntry = librarian.frames().stream()
                     .filter(e -> "vault".equals(e.alias()))
                     .findFirst();
 
@@ -167,7 +167,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry
-            Optional<Frame> encrypted = librarian.content().stream()
+            Optional<Frame> encrypted = librarian.frames().stream()
                     .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();
@@ -198,7 +198,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry
-            Optional<Frame> encrypted = librarian.content().stream()
+            Optional<Frame> encrypted = librarian.frames().stream()
                     .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();
@@ -234,7 +234,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry and verify the envelope has 2 recipients
-            Optional<Frame> encrypted = librarian.content().stream()
+            Optional<Frame> encrypted = librarian.frames().stream()
                     .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();
@@ -261,7 +261,7 @@ class FrameEncryptionTest {
             assertThat(libEncKey).isNotNull();
 
             // Set an EncryptionPolicy on a non-local frame's config
-            Optional<Frame> frame = librarian.content().stream()
+            Optional<Frame> frame = librarian.frames().stream()
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
@@ -277,7 +277,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian);
 
             // After commit, the entry should still have the encryption policy
-            Optional<Frame> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.frames().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
@@ -321,7 +321,7 @@ class FrameEncryptionTest {
             assertThat(libEncKey).isNotNull();
 
             // Set an EncryptionPolicy with the librarian's own IID as recipient
-            Optional<Frame> frame = librarian.content().stream()
+            Optional<Frame> frame = librarian.frames().stream()
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
@@ -338,7 +338,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian);
 
             // The frame should now be encrypted
-            Optional<Frame> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.frames().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
@@ -354,7 +354,7 @@ class FrameEncryptionTest {
 
             // Set policy with encryptToReaders + an AccessPolicy with a READ rule
             // pointing to the librarian's IID
-            Optional<Frame> frame = librarian.content().stream()
+            Optional<Frame> frame = librarian.frames().stream()
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
@@ -380,7 +380,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian);
 
             // The frame should be encrypted (recipients derived from READ rule)
-            Optional<Frame> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.frames().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
@@ -393,7 +393,7 @@ class FrameEncryptionTest {
         @DisplayName("encryptToReaders with no AccessPolicy produces no encryption")
         void encryptToReadersWithoutAccessProducesNoEncryption() {
             // Set encryptToReaders but no AccessPolicy — no readers to derive
-            Optional<Frame> frame = librarian.content().stream()
+            Optional<Frame> frame = librarian.frames().stream()
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
@@ -408,7 +408,7 @@ class FrameEncryptionTest {
             librarian.edit();
             librarian.commit(librarian);
 
-            Optional<Frame> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.frames().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
@@ -439,7 +439,7 @@ class FrameEncryptionTest {
             assertThat(libEncKey).isNotNull();
 
             // Set a "no encryption" policy on a frame
-            Optional<Frame> frame = librarian.content().stream()
+            Optional<Frame> frame = librarian.frames().stream()
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
@@ -453,7 +453,7 @@ class FrameEncryptionTest {
             EncryptionContext ctx = EncryptionContext.allFrames(List.of(libEncKey));
             librarian.commit(librarian, ctx);
 
-            boolean anyEncrypted = librarian.content().stream()
+            boolean anyEncrypted = librarian.frames().stream()
                     .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("Explicit EncryptionContext should override per-frame policy")
@@ -476,7 +476,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry
-            Optional<Frame> encrypted = librarian.content().stream()
+            Optional<Frame> encrypted = librarian.frames().stream()
                     .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();

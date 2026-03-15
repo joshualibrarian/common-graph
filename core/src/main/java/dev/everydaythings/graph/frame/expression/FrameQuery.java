@@ -84,24 +84,6 @@ public record FrameQuery(
         return new FrameQuery(predicate, WHAT, Map.of());
     }
 
-    /**
-     * Convert from a PatternExpression (S → P → O) to a FrameQuery.
-     *
-     * <p>The mapping: subject → theme, predicate → predicate, object → target binding.
-     */
-    @SuppressWarnings("deprecation")
-    public static FrameQuery fromPattern(PatternExpression pattern) {
-        ItemID pred = isHole(pattern.predicate()) ? pattern.predicate() : pattern.predicate();
-        ItemID theme = isHole(pattern.subject()) ? pattern.subject() : pattern.subject();
-
-        Map<ItemID, BindingTarget> bindings = new LinkedHashMap<>();
-        if (!isHole(pattern.object())) {
-            bindings.put(GOAL_ROLE, BindingTarget.iid(pattern.object()));
-        }
-
-        return new FrameQuery(pred, theme, bindings);
-    }
-
     public static Builder builder() {
         return new Builder();
     }

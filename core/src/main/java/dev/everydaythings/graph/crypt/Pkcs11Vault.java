@@ -137,11 +137,6 @@ public final class Pkcs11Vault extends Vault {
     }
 
     @Override
-    public javax.net.ssl.SSLContext sslContext() {
-        throw new UnsupportedOperationException("Pkcs11Vault not yet implemented");
-    }
-
-    @Override
     public io.netty.handler.ssl.SslContext serverSslContext() {
         throw new UnsupportedOperationException("Pkcs11Vault not yet implemented");
     }

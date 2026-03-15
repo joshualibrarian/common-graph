@@ -168,12 +168,6 @@ public class Item {
         return state.frames();
     }
 
-    /** @deprecated Use {@link #frames()} */
-    @Deprecated
-    public EndorsementsTable content() {
-        return frames();
-    }
-
     /**
      * Bare frames — frames whose type is FrameBody.TYPE_ID (semantic assertions
      * without a component wrapper).
@@ -189,7 +183,7 @@ public class Item {
 
     /** Per-item policies — stored in EndorsementsTable under well-known handle. */
     public PolicySet policy() {
-        return content().getLive(BuiltinKeys.POLICY, PolicySet.class).orElse(null);
+        return frames().getLive(BuiltinKeys.POLICY, PolicySet.class).orElse(null);
     }
 
     /** Intrinsic vocabulary: semantic actions available on this item. */
@@ -225,9 +219,9 @@ public class Item {
         // Strip leading slash
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        // Check EndorsementsTable for content()
+        // Check EndorsementsTable for frames()
         if (handle.equals("content")) {
-            return Optional.of(content().displayToken());
+            return Optional.of(frames().displayToken());
         }
 
         // Resolve FrameKey from path component
@@ -235,13 +229,13 @@ public class Item {
 
         // Prefer stable frame metadata to avoid label mutation when a component
         // gets lazily hydrated after first render.
-        Optional<String> entryLabel = content().getFrame(key).map(dev.everydaythings.graph.frame.Frame::displayToken);
+        Optional<String> entryLabel = frames().getFrame(key).map(dev.everydaythings.graph.frame.Frame::displayToken);
         if (entryLabel.isPresent()) {
             return entryLabel;
         }
 
         // Fall back to live payload display token when no entry metadata exists.
-        Optional<Object> live = content().getLive(key);
+        Optional<Object> live = frames().getLive(key);
         if (live.isPresent()) {
             return Optional.of(resolvePayloadDisplayToken(live.get()));
         }
@@ -262,9 +256,9 @@ public class Item {
         // Strip leading slash
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        // Check EndorsementsTable for content()
+        // Check EndorsementsTable for frames()
         if (handle.equals("content")) {
-            return Optional.of(content().emoji());
+            return Optional.of(frames().emoji());
         }
 
         // Resolve FrameKey from path component
@@ -272,13 +266,13 @@ public class Item {
 
         // Prefer stable frame metadata to avoid icon mutation when a component
         // gets lazily hydrated after first render.
-        Optional<String> entryEmoji = content().getFrame(key).map(this::resolveFrameEmoji);
+        Optional<String> entryEmoji = frames().getFrame(key).map(this::resolveFrameEmoji);
         if (entryEmoji.isPresent()) {
             return entryEmoji;
         }
 
         // Fall back to live payload emoji when no entry metadata exists.
-        Optional<Object> live = content().getLive(key);
+        Optional<Object> live = frames().getLive(key);
         if (live.isPresent()) {
             return Optional.of(resolvePayloadEmoji(live.get()));
         }
@@ -307,7 +301,7 @@ public class Item {
         if (librarian != null) {
             Optional<Item> typeItem = librarian.get(typeId, Item.class);
             if (typeItem.isPresent()) {
-                var st = typeItem.get().content().getLive(
+                var st = typeItem.get().frames().getLive(
                         dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
                         dev.everydaythings.graph.frame.SurfaceTemplateComponent.class
                 ).orElse(null);
@@ -392,7 +386,7 @@ public class Item {
 
         FrameKey key = FrameKey.literal(handle);
 
-        return content().getLive(key)
+        return frames().getLive(key)
                 .map(o -> {
                     Type typeAnno = o.getClass().getAnnotation(Type.class);
                     if (typeAnno != null && !typeAnno.icon().isEmpty()) {
@@ -412,7 +406,7 @@ public class Item {
 
         FrameKey key = FrameKey.literal(handle);
 
-        return content().getLive(key)
+        return frames().getLive(key)
                 .map(o -> {
                     Type typeAnno = o.getClass().getAnnotation(Type.class);
                     if (typeAnno != null && typeAnno.color() != 0) {
@@ -438,8 +432,8 @@ public class Item {
      */
     public boolean isExpandable(TreeLink.ChildMode mode) {
         return switch (mode) {
-            case PRESENTATION -> !content().childrenAt("/").isEmpty();
-            case INSPECT -> !content().isEmpty();
+            case PRESENTATION -> !frames().childrenAt("/").isEmpty();
+            case INSPECT -> !frames().isEmpty();
         };
     }
 
@@ -477,7 +471,7 @@ public class Item {
      */
     public List<Ref> childrenAtPath(String path) {
         List<Ref> children = new ArrayList<>();
-        for (var child : content().childrenAt(path)) {
+        for (var child : frames().childrenAt(path)) {
             if (child.frame() != null) {
                 children.add(Ref.of(iid(), child.frame().frameKey()));
             } else {
@@ -496,7 +490,7 @@ public class Item {
         // All non-built-in component frames (content components, relations).
         // Policy now lives under component config metadata and should not appear
         // as a standalone inspect tree component.
-        for (dev.everydaythings.graph.frame.Frame frame : content()) {
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
             if (BuiltinKeys.POLICY.equals(frame.frameKey())) {
                 continue;
             }
@@ -554,7 +548,7 @@ public class Item {
      */
     public DisplayInfo displayInfo() {
         // 1. Check for instance-level SurfaceTemplateComponent
-        var stcOpt = content().getLive(
+        var stcOpt = frames().getLive(
                 dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
                 dev.everydaythings.graph.frame.SurfaceTemplateComponent.class);
         if (stcOpt.isPresent()) {
@@ -597,7 +591,7 @@ public class Item {
         Item typeItem = typeItemOpt.get();
 
         // Get the type's SurfaceTemplateComponent
-        return typeItem.content().getLive(
+        return typeItem.frames().getLive(
                 dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
                 dev.everydaythings.graph.frame.SurfaceTemplateComponent.class
         ).orElse(null);
@@ -621,7 +615,7 @@ public class Item {
                 FrameKey.of(ItemID.fromString(RoutingVocabulary.Name.KEY)),
                 FrameKey.of(ItemID.fromString(CoreVocabulary.Title.KEY)),
                 FrameKey.of(ItemID.fromString(CoreVocabulary.HashKey.KEY))}) {
-            var opt = content().getLive(key, Object.class);
+            var opt = frames().getLive(key, Object.class);
             if (opt.isPresent()) {
                 Object value = opt.get();
                 if (value instanceof String s && !s.isBlank()) {
@@ -631,7 +625,7 @@ public class Item {
         }
         // Try literal field-name keys (for items with bare @Frame fields)
         for (String fieldName : new String[]{"name", "title", "label"}) {
-            var opt = content().getLive(FrameKey.literal(fieldName), Object.class);
+            var opt = frames().getLive(FrameKey.literal(fieldName), Object.class);
             if (opt.isPresent()) {
                 Object value = opt.get();
                 if (value instanceof String s && !s.isBlank()) {
@@ -776,7 +770,7 @@ public class Item {
         };
 
         // 1. Scan content table for string values
-        var content = content();
+        var content = frames();
         if (content != null) {
             for (dev.everydaythings.graph.frame.Frame frame : content) {
                 var frameKey = frame.frameKey();
@@ -876,12 +870,12 @@ public class Item {
 
     public Object property(String name) {
         return switch (name) {
-            case "components" -> content();
+            case "components" -> frames();
             case "vocabulary" -> vocabulary();
             default -> {
                 // Try to resolve as a component key (includes policy)
                 FrameKey key = FrameKey.literal(name);
-                Object live = content().getLive(key).orElse(null);
+                Object live = frames().getLive(key).orElse(null);
                 if (live != null) {
                     yield live;
                 }
@@ -967,7 +961,7 @@ public class Item {
 
         // Populate component table from manifest
         for (dev.everydaythings.graph.frame.Frame frame : manifest.components()) {
-            content().add(frame);
+            frames().add(frame);
         }
 
         // Hydrate: decode all, bind fields, invoke callbacks
@@ -1007,7 +1001,7 @@ public class Item {
 
             // Load component entries from store into table
             for (dev.everydaythings.graph.frame.Frame frame : wts.loadHeadComponents()) {
-                content().add(frame);
+                frames().add(frame);
             }
 
             // Hydrate: decode all, bind fields, invoke callbacks
@@ -1111,7 +1105,7 @@ public class Item {
 
             // Load component entries from store into table
             for (dev.everydaythings.graph.frame.Frame frame : wts.loadHeadComponents()) {
-                content().add(frame);
+                frames().add(frame);
             }
 
             // Hydrate: decode all, bind fields, invoke callbacks
@@ -1212,10 +1206,10 @@ public class Item {
             if (fieldValue == null) continue;
 
             // Check if EndorsementsTable has a different instance
-            var tableValue = content().getLive(spec.frameKey(), Object.class);
+            var tableValue = frames().getLive(spec.frameKey(), Object.class);
             if (tableValue.isPresent() && tableValue.get() != fieldValue) {
                 // Field has a different value - sync it to the table
-                content().setLive(spec.frameKey(), spec.canonicalKeyString(), fieldValue);
+                frames().setLive(spec.frameKey(), spec.canonicalKeyString(), fieldValue);
             }
         }
     }
@@ -1267,11 +1261,16 @@ public class Item {
      * @return The component, or null if not found
      */
     public Object component(String ref) {
-        // 1. Try alias index
-        Optional<FrameKey> aliased = content().resolveAlias(ref);
-        if (aliased.isPresent()) return component(aliased.get());
-        // 2. Direct literal key lookup
-        return component(FrameKey.literal(ref));
+        // 1. Direct literal key lookup
+        Object direct = component(FrameKey.literal(ref));
+        if (direct != null) return direct;
+        // 2. Scan by alias (temporary — should use TokenDictionary)
+        for (var entry : frames().entrySet()) {
+            if (ref.equals(entry.getValue().alias())) {
+                return component(entry.getKey());
+            }
+        }
+        return null;
     }
 
     /**
@@ -1281,17 +1280,17 @@ public class Item {
      * @return The component, or null if not found
      */
     public Object component(FrameKey key) {
-        Optional<Object> live = content().getLive(key);
+        Optional<Object> live = frames().getLive(key);
         if (live.isPresent()) return live.get();
 
         // Lazy decode from frame when live cache is cold.
-        Optional<dev.everydaythings.graph.frame.Frame> frameOpt = content().getFrame(key);
+        Optional<dev.everydaythings.graph.frame.Frame> frameOpt = frames().getFrame(key);
         if (frameOpt.isEmpty()) return null;
 
         try {
             Object decoded = decodeComponent(frameOpt.get());
             if (decoded != null) {
-                content().setLive(key, decoded);
+                frames().setLive(key, decoded);
                 return decoded;
             }
         } catch (Exception e) {
@@ -1304,7 +1303,7 @@ public class Item {
         if (spec != null) {
             Object fieldValue = spec.getValue(this);
             if (fieldValue != null) {
-                content().setLive(key, fieldValue);
+                frames().setLive(key, fieldValue);
                 return fieldValue;
             }
         }
@@ -1319,7 +1318,7 @@ public class Item {
      */
     public Optional<dev.everydaythings.graph.frame.Frame> componentFrame(Object componentInstance) {
         if (componentInstance == null) return Optional.empty();
-        for (dev.everydaythings.graph.frame.Frame frame : content()) {
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
             if (frame.instance() == componentInstance) {
                 return Optional.of(frame);
             }
@@ -1364,13 +1363,13 @@ public class Item {
         // 1. Add frame
         dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(key, typeId, null, true);
         frame.setAlias(handle);
-        content().add(frame);
+        frames().add(frame);
 
         // 2. Register live instance
-        content().setLive(key, handle, component);
+        frames().setLive(key, handle, component);
 
         // 3. Invalidate expression caches — any formula might reference this handle
-        content().forEachLive(ExpressionComponent.class, ExpressionComponent::invalidate);
+        frames().forEachLive(ExpressionComponent.class, ExpressionComponent::invalidate);
 
         // 4. Call lifecycle hooks
         if (component instanceof FrameAware fa) {
@@ -1792,7 +1791,7 @@ public class Item {
      * {@code populateVocabulary()}.
      */
     private void initBuiltinComponents() {
-        if (!content().hasLive(BuiltinKeys.POLICY)) {
+        if (!frames().hasLive(BuiltinKeys.POLICY)) {
             addBuiltinComponent("policy", new PolicySet());
         }
     }
@@ -1805,8 +1804,8 @@ public class Item {
         ItemID typeId = Item.idOf(component.getClass());
         dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(key, typeId, null, true);
         frame.setAlias(handle);
-        content().add(frame);
-        content().setLive(key, handle, component);
+        frames().add(frame);
+        frames().setLive(key, handle, component);
     }
 
     /**
@@ -1882,22 +1881,22 @@ public class Item {
             // Add mount for path-based components
             if (spec.hasMountPath()) {
                 String mountPath = "/" + spec.path();  // Convert filesystem path to presentation path
-                content().addMount(spec.frameKey(), new Mount.PathMount(mountPath));
+                frames().addMount(spec.frameKey(), new Mount.PathMount(mountPath));
             }
 
             // Add to table: both frame and live instance
-            content().add(frame);
-            content().setLive(spec.frameKey(), alias, instance);
+            frames().add(frame);
+            frames().setLive(spec.frameKey(), alias, instance);
 
         }
 
         // Save component metadata to store and materialize mount directories
         if (store != null) {
             store.runInWriteTransaction(tx -> {
-                store.saveHeadComponents(content(), tx);
+                store.saveHeadComponents(frames(), tx);
             });
             if (store instanceof WorkingTreeStore wts) {
-                wts.materializeMountPaths(content());
+                wts.materializeMountPaths(frames());
             }
         }
     }
@@ -1965,7 +1964,7 @@ public class Item {
 
         // Materialize mount directories for working tree items
         if (store instanceof WorkingTreeStore wts) {
-            wts.materializeMountPaths(content());
+            wts.materializeMountPaths(frames());
         }
 
         // Update state
@@ -2012,17 +2011,17 @@ public class Item {
 
         store.runInWriteTransaction(tx -> {
             // Persist each component
-            for (dev.everydaythings.graph.frame.Frame frame : content()) {
+            for (dev.everydaythings.graph.frame.Frame frame : frames()) {
                 persistComponent(frame, store, tx);
             }
 
             // Save component metadata
-            store.saveHeadComponents(content(), tx);
+            store.saveHeadComponents(frames(), tx);
         });
 
         // Materialize mount directories for working tree items
         if (store instanceof WorkingTreeStore wts) {
-            wts.materializeMountPaths(content());
+            wts.materializeMountPaths(frames());
         }
 
         // Clear dirty flag
@@ -2046,7 +2045,7 @@ public class Item {
         if (body.isReference()) return;
 
         // Get live instance
-        Optional<?> liveOpt = content().getLive(frame.frameKey(), Object.class);
+        Optional<?> liveOpt = frames().getLive(frame.frameKey(), Object.class);
         if (liveOpt.isEmpty()) return;
 
         Object live = liveOpt.get();
@@ -2176,7 +2175,7 @@ public class Item {
                 (librarian != null) ? librarian::resolveEncryptionKeys : iid -> java.util.List.of();
 
         // Bind component fields (encode and add to content table, with optional encryption + frame body)
-        schema().bindComponentFieldsForCommit(this, content(), storePayloadConsumer, encryptionContext, storeFrame, keyResolver);
+        schema().bindComponentFieldsForCommit(this, frames(), storePayloadConsumer, encryptionContext, storeFrame, keyResolver);
 
         // Bind unendorsed frame fields (create frame bodies, store and index)
         schema().bindUnendorsedFramesForCommit(this, frames(), storePayload, storeFrame);
@@ -2223,14 +2222,14 @@ public class Item {
 
         // Phase 1: Decode components that don't already have live instances
         // (Fresh items may already have live instances from initializeFreshComponents())
-        for (dev.everydaythings.graph.frame.Frame frame : content()) {
-            if (content().hasLive(frame.frameKey())) {
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+            if (frames().hasLive(frame.frameKey())) {
                 continue;  // Already decoded/created
             }
             try {
                 Object instance = decodeComponent(frame);
                 if (instance != null) {
-                    content().setLive(frame.frameKey(), instance);
+                    frames().setLive(frame.frameKey(), instance);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to decode component {} (type {}): {}",
@@ -2243,8 +2242,8 @@ public class Item {
         bindFieldsFromTable();
 
         // Phase 3: Frame hydration — notify frame instances of their context
-        for (dev.everydaythings.graph.frame.Frame frame : content()) {
-            Object instance = content().getLive(frame.frameKey()).orElse(null);
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+            Object instance = frames().getLive(frame.frameKey()).orElse(null);
             if (instance == null) continue;
             if (instance instanceof FrameAware fa) {
                 fa.onFramePlaced(new FrameContext(this, frame.frameKey(), frame));
@@ -2267,13 +2266,13 @@ public class Item {
         if (state == null) return;
         java.util.List<dev.everydaythings.graph.frame.FrameEndorsement> endorsements = state.endorsements();
         if (endorsements.isEmpty()) return;
-        if (!content().isEmpty()) return; // Already have entries (old format or fresh item)
+        if (!frames().isEmpty()) return; // Already have entries (old format or fresh item)
 
         for (dev.everydaythings.graph.frame.FrameEndorsement endorsement : endorsements) {
             try {
                 dev.everydaythings.graph.frame.Frame frame = resolveEndorsement(endorsement);
                 if (frame != null) {
-                    content().add(frame, endorsement.mounts());
+                    frames().add(frame, endorsement.mounts());
                 }
             } catch (Exception e) {
                 logger.warn("Failed to resolve endorsement {}: {}",
@@ -2562,7 +2561,7 @@ public class Item {
         }
 
         // Check content table for runtime mounts
-        return content().pathForKey(key)
+        return frames().pathForKey(key)
                 .map(mountPath -> {
                     // Convert presentation path to filesystem path
                     // e.g., "/documents" -> ".documents" (leading dot for hidden)
@@ -2583,24 +2582,24 @@ public class Item {
      */
     private void bindFieldsFromTable() {
         // Use schema for efficient field binding
-        schema().bindFieldsFromTable(this, content());
+        schema().bindFieldsFromTable(this, frames());
 
         // Handle simple types that weren't decoded - decode and cache
         for (FrameFieldSpec spec : schema().endorsedFrameFields()) {
             FrameKey key = spec.frameKey();
 
             // Skip if already has a live instance in the table
-            if (content().hasLive(key)) continue;
+            if (frames().hasLive(key)) continue;
 
             // Try to decode from stored content
-            Optional<dev.everydaythings.graph.frame.Frame> frameOpt = content().getFrame(key);
+            Optional<dev.everydaythings.graph.frame.Frame> frameOpt = frames().getFrame(key);
             if (frameOpt.isPresent() && frameOpt.get().body() != null && frameOpt.get().body().hasContent()) {
                 Optional<byte[]> bytesOpt = fetchContent(frameOpt.get().body().contentCid());
                 if (bytesOpt.isPresent()) {
                     Object value = ItemSchema.decodeSimpleValue(spec.field(), bytesOpt.get());
                     if (value != null) {
                         spec.setValue(this, value);
-                        content().setLive(key, value);
+                        frames().setLive(key, value);
                     }
                 }
             }
@@ -2717,11 +2716,11 @@ public class Item {
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(path);
 
         // Check if path exists as a real component
-        return content().atPath(canonical)
+        return frames().atPath(canonical)
                 .map(entry -> Ref.of(iid(), entry.frameKey()))
                 .orElseGet(() -> {
                     // Check if path exists as a virtual directory (has children under it)
-                    if (content().hasChildren(canonical)) {
+                    if (frames().hasChildren(canonical)) {
                         return Ref.of(iid());
                     }
                     throw new IllegalArgumentException("No such path: " + target);

@@ -84,17 +84,11 @@ public class ItemPolicyResolver implements PolicyEngine.Resolver {
     // ---
 
     private Roster findRoster() {
-        if (item == null || item.content() == null) return null;
+        if (item == null || item.frames() == null) return null;
 
-        // Try alias first (most items register roster under "roster")
-        var hid = item.content().resolveAlias("roster");
-        if (hid.isPresent()) {
-            return item.content().getLive(hid.get(), Roster.class).orElse(null);
-        }
-
-        // Fallback: scan for any Roster instance
+        // Scan for any Roster instance
         Roster[] found = new Roster[1];
-        item.content().forEachLive(Roster.class, r -> {
+        item.frames().forEachLive(Roster.class, r -> {
             if (found[0] == null) found[0] = r;
         });
         return found[0];

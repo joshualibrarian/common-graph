@@ -242,14 +242,14 @@ public abstract class ItemStoreTest {
             FrameBody body = testFrameBody(subject, CoreVocabulary.Title.SEED.iid(), "Test Title");
 
             // Persist
-            ContentID cid = store.relation(body);
+            ContentID cid = store.storeFrameBody(body);
 
             assertThat(cid)
                     .as("ContentID from persist")
                     .isNotNull();
 
             // Retrieve
-            var retrieved = store.relation(cid);
+            var retrieved = store.frameBody(cid);
 
             assertThat(retrieved)
                     .as("Retrieved frame body")
@@ -265,7 +265,7 @@ public abstract class ItemStoreTest {
         void retrieveNonExistentFrameBodyReturnsEmpty() {
             ContentID cid = new ContentID(new byte[32], dev.everydaythings.graph.Hash.DEFAULT);
 
-            var retrieved = store.relation(cid);
+            var retrieved = store.frameBody(cid);
 
             assertThat(retrieved)
                     .as("Non-existent frame body")
@@ -280,8 +280,8 @@ public abstract class ItemStoreTest {
             FrameBody b1 = testFrameBody(subject, CoreVocabulary.Title.SEED.iid(), "Title");
             FrameBody b2 = testFrameBody(subject, CoreVocabulary.Description.SEED.iid(), "Description");
 
-            ContentID cid1 = store.relation(b1);
-            ContentID cid2 = store.relation(b2);
+            ContentID cid1 = store.storeFrameBody(b1);
+            ContentID cid2 = store.storeFrameBody(b2);
 
             // CIDs should be different
             assertThat(cid1)
@@ -289,8 +289,8 @@ public abstract class ItemStoreTest {
                     .isNotEqualTo(cid2);
 
             // Both should be retrievable
-            assertThat(store.relation(cid1)).isPresent();
-            assertThat(store.relation(cid2)).isPresent();
+            assertThat(store.frameBody(cid1)).isPresent();
+            assertThat(store.frameBody(cid2)).isPresent();
         }
 
         @Test
@@ -298,10 +298,10 @@ public abstract class ItemStoreTest {
         void iterateFrameBodiesForTheme() {
             ItemID subject = testItemID("iterate-rels");
 
-            store.relation(testFrameBody(subject, CoreVocabulary.Title.SEED.iid(), "Title"));
-            store.relation(testFrameBody(subject, CoreVocabulary.Description.SEED.iid(), "Desc"));
+            store.storeFrameBody(testFrameBody(subject, CoreVocabulary.Title.SEED.iid(), "Title"));
+            store.storeFrameBody(testFrameBody(subject, CoreVocabulary.Description.SEED.iid(), "Desc"));
 
-            var frameBodies = store.relations()
+            var frameBodies = store.frameBodies()
                     .filter(r -> subject.equals(r.theme()))
                     .toList();
 
@@ -314,11 +314,11 @@ public abstract class ItemStoreTest {
         @DisplayName("iterate all frame bodies")
         void iterateAllFrameBodies() {
             // Store frame bodies for different themes
-            store.relation(testFrameBody(testItemID("s1"), CoreVocabulary.Title.SEED.iid(), "T1"));
-            store.relation(testFrameBody(testItemID("s2"), CoreVocabulary.Title.SEED.iid(), "T2"));
-            store.relation(testFrameBody(testItemID("s3"), CoreVocabulary.Title.SEED.iid(), "T3"));
+            store.storeFrameBody(testFrameBody(testItemID("s1"), CoreVocabulary.Title.SEED.iid(), "T1"));
+            store.storeFrameBody(testFrameBody(testItemID("s2"), CoreVocabulary.Title.SEED.iid(), "T2"));
+            store.storeFrameBody(testFrameBody(testItemID("s3"), CoreVocabulary.Title.SEED.iid(), "T3"));
 
-            var frameBodies = store.relations().toList();
+            var frameBodies = store.frameBodies().toList();
 
             assertThat(frameBodies)
                     .as("All frame bodies")
@@ -500,7 +500,7 @@ public abstract class ItemStoreTest {
                     .as("Manifests in transaction")
                     .isGreaterThanOrEqualTo(1);
 
-            assertThat(store.relations()
+            assertThat(store.frameBodies()
                     .filter(r -> iid.equals(r.theme()))
                     .count())
                     .as("Frame bodies in transaction")

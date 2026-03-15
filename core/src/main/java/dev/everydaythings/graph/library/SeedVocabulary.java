@@ -320,8 +320,8 @@ public final class SeedVocabulary {
         seedItems.add(typeSeed);
 
         // Create relations
-        storeRelation(createTitleRelation(typeId, key));
-        storeRelation(createImplementedByRelation(typeId, type, typeSeed));
+        storeFrameBody(createTitleRelation(typeId, key));
+        storeFrameBody(createImplementedByRelation(typeId, type, typeSeed));
     }
 
     private void registerNonItemType(Class<?> type) {
@@ -350,8 +350,8 @@ public final class SeedVocabulary {
         }
 
         // Create relations
-        storeRelation(createImplementedByRelation(typeId, type, typeSememe));
-        storeRelation(createTitleRelation(typeId, key));
+        storeFrameBody(createImplementedByRelation(typeId, type, typeSememe));
+        storeFrameBody(createTitleRelation(typeId, key));
     }
 
     private void registerValueType(Class<? extends dev.everydaythings.graph.value.Value> type) {
@@ -361,7 +361,7 @@ public final class SeedVocabulary {
         ItemID typeId = ItemID.fromString(annotation.value());
 
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
-        storeRelation(FrameBody.of(
+        storeFrameBody(FrameBody.of(
                 CoreVocabulary.ImplementedBy.SEED.iid(),
                 typeId,
                 Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofJavaClass(type))));
@@ -391,11 +391,11 @@ public final class SeedVocabulary {
                     if (stored) {
                         seedItems.add(item);
                     }
-                    storeRelation(createInstanceOfRelation(item));
+                    storeFrameBody(createInstanceOfRelation(item));
 
                     String key = extractKeyFromItem(item);
                     if (key != null) {
-                        storeRelation(createTitleRelation(item.iid(), key));
+                        storeFrameBody(createTitleRelation(item.iid(), key));
                     }
                 }
             } catch (IllegalAccessException e) {
@@ -464,7 +464,7 @@ public final class SeedVocabulary {
      * the entry with a snapshot CID so it survives manifest generation.
      */
     private void attachComponent(Item item, FrameKey key, String alias, Object component) {
-        var contentTable = item.content();
+        var contentTable = item.frames();
         if (contentTable != null) {
             // Encode and compute CID upfront so the entry has a snapshot
             byte[] bytes = ((Canonical) component).encodeBinary(Canonical.Scope.RECORD);
@@ -486,7 +486,7 @@ public final class SeedVocabulary {
         var glosses = sememe.glosses();
         if (glosses == null || glosses.isEmpty()) return;
 
-        var contentTable = sememe.content();
+        var contentTable = sememe.frames();
         if (contentTable == null) return;
 
         for (var entry : glosses.entrySet()) {
@@ -575,8 +575,8 @@ public final class SeedVocabulary {
                     byte[] content = item.encodeComponentValue(frame.frameKey());
 
                     // Fall back to live value in content table (for manually-attached components)
-                    if (content == null && item.content() != null) {
-                        Object live = item.content().getLive(frame.frameKey()).orElse(null);
+                    if (content == null && item.frames() != null) {
+                        Object live = item.frames().getLive(frame.frameKey()).orElse(null);
                         if (live instanceof Canonical c) {
                             content = c.encodeBinary(Canonical.Scope.RECORD);
                         }
@@ -594,13 +594,13 @@ public final class SeedVocabulary {
         }
     }
 
-    private void storeRelation(FrameBody body) {
+    private void storeFrameBody(FrameBody body) {
         if (body == null) return;
         try {
             byte[] record = body.encodeBinary(Canonical.Scope.RECORD);
             store.persistContent(record, tx);
         } catch (Exception e) {
-            logger.warn("Failed to store relation: {}", e.getMessage());
+            logger.warn("Failed to store frame body: {}", e.getMessage());
         }
     }
 

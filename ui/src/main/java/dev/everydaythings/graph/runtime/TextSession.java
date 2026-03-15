@@ -753,7 +753,7 @@ public class TextSession extends Session {
     private void startLiveTimer() {
         stopLiveTimer();
 
-        contextItem().ifPresent(item -> tickRegistry.rebuild(item.content()));
+        contextItem().ifPresent(item -> tickRegistry.rebuild(item.frames()));
 
         liveTimer = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "tui-live-timer");
@@ -782,7 +782,7 @@ public class TextSession extends Session {
 
     @Override
     protected void onContextComponentsChanged(Item item) {
-        tickRegistry.rebuild(item.content());
+        tickRegistry.rebuild(item.frames());
     }
 
     @Override

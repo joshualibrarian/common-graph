@@ -658,7 +658,7 @@ public final class Library implements Canonical, AutoCloseable {
 
         // 3. Store all frame bodies AND index tokens
         //    IMPLEMENTED_BY frames first (needed for type hydration during token indexing)
-        List<FrameBody> allBodies = source.relations().toList();
+        List<FrameBody> allBodies = source.frameBodies().toList();
         logger.info("importFrom: {} frame bodies to import", allBodies.size());
         ItemID implByPred = CoreVocabulary.ImplementedBy.SEED.iid();
         List<FrameBody> deferredBodies = new ArrayList<>();
@@ -788,7 +788,7 @@ public final class Library implements Canonical, AutoCloseable {
      */
     private Optional<FrameBody> hydrateFrameRef(LibraryIndex.FrameRef ref) {
         return loadFrameBody(ref.bodyHash())
-                .or(() -> store.relation(ref.storageCid()));
+                .or(() -> store.frameBody(ref.storageCid()));
     }
 
     /**
@@ -855,15 +855,6 @@ public final class Library implements Canonical, AutoCloseable {
     }
 
     /**
-     * Get the opaque record bytes (typically VID) for an item.
-     *
-     * @deprecated Use {@link #latestVersion(ItemID)}
-     */
-    @Deprecated
-    public Optional<byte[]> getItemRecord(ItemID iid) {
-        return latestVersion(iid).map(ContentID::encodeBinary);
-    }
-
     // ==================================================================================
     // Item Access
     // ==================================================================================

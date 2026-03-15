@@ -59,17 +59,6 @@ class FrameQueryTest {
         assertThat(q.bindings()).containsKey(GOAL_ROLE);
     }
 
-    @SuppressWarnings("deprecation")
-    @Test
-    @DisplayName("fromPattern converts SPO pattern to frame query")
-    void fromPattern() {
-        PatternExpression pattern = PatternExpression.pattern(THE_HOBBIT, AUTHOR, WHAT);
-        FrameQuery q = FrameQuery.fromPattern(pattern);
-
-        assertThat(q.predicate()).isEqualTo(AUTHOR);
-        assertThat(q.theme()).isEqualTo(THE_HOBBIT);
-    }
-
     @Test
     @DisplayName("toExpressionString formats query readably")
     void expressionString() {

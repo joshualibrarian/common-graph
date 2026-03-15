@@ -113,11 +113,6 @@ public final class KeychainVault extends Vault {
     }
 
     @Override
-    public javax.net.ssl.SSLContext sslContext() {
-        throw new UnsupportedOperationException("KeychainVault not yet implemented");
-    }
-
-    @Override
     public io.netty.handler.ssl.SslContext serverSslContext() {
         throw new UnsupportedOperationException("KeychainVault not yet implemented");
     }

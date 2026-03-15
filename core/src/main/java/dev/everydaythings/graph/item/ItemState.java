@@ -68,12 +68,6 @@ public class ItemState implements Canonical {
         return endorsements != null ? endorsements : List.of();
     }
 
-    /** @deprecated Use {@link #frames()} */
-    @Deprecated
-    public EndorsementsTable content() {
-        return frames;
-    }
-
     public int totalEntries() {
         return frames.size();
     }

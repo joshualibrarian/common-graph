@@ -7,7 +7,7 @@
 
 ## Abstract
 
-Every layer of the computing stack — from filesystems to operating systems to the web — is semantically inert. Data is stored as opaque bytes, identified by location, and interpreted only by the specific application that created it. The consequence is that no layer of infrastructure can answer the most basic question about any piece of data: *what does it mean?* This paper argues that the absence of a shared semantic layer is not merely an inconvenience but a foundational deficiency, one that forces every application, search engine, and integration layer to reinvent meaning-handling from scratch. We propose that this deficiency cannot be repaired by annotating existing layers, as decades of attempts have demonstrated, but requires a new base layer built on a semantic primitive. Drawing on Fillmore's frame semantics, we propose the *semantic frame* — a predicate-role structure grounded in established computational linguistics — as that primitive. We further argue that frames require a shared vocabulary of meanings, anchored not in application-specific schemas but in the empirically validated, cross-lingual semantic structures documented by WordNet, the Collaborative Interlingual Index (CILI), VerbNet, and ISO 24617-4. Together, frames and a shared meaning vocabulary constitute a base layer in which data is self-describing, queryable by meaning, and interoperable across languages, applications, and systems — without crawling, probabilistic parsing, or centralized indexing.
+Every layer of the computing stack — from filesystems to operating systems to the web — is semantically inert. Data is stored as opaque bytes, identified by location, and interpreted only by the specific application that created it. The consequence is that no layer of infrastructure can answer the most basic question about any piece of data: *what does it mean?* This paper argues that the absence of a shared semantic layer is not merely an inconvenience but a foundational deficiency, one that forces every application, search engine, and integration layer to reinvent meaning-handling from scratch. We propose that this deficiency cannot be repaired by annotating existing layers, as decades of attempts have demonstrated, but requires a new base layer built on a semantic primitive. Drawing on Fillmore's frame semantics, we propose the *semantic frame* — a predicate-role structure grounded in established computational linguistics — as that primitive. We further argue that frames require a shared vocabulary of meanings, anchored not in application-specific schemas but in the empirically validated, cross-lingual semantic structures documented by WordNet, the Collaborative Interlingual Index (CILI), VerbNet, and ISO 24617-4. Together, frames and a shared meaning vocabulary constitute a base layer in which data is self-describing, queryable by meaning, and interoperable across languages, applications, and systems — without crawling, probabilistic parsing, or centralized indexing. We show that this primitive is expressive enough to subsume not only document-like data and social structures, but mathematical and functional expressions as well — evidence that semantic frames capture universal cognitive structure, not merely linguistic convention.
 
 ---
 
@@ -61,7 +61,7 @@ The need for a semantic layer has been recognized for decades, and there have be
 
 **The Semantic Web** is the most ambitious attempt. Berners-Lee's 2001 vision in *Scientific American* described a web in which "information is given well-defined meaning, better enabling computers and people to work in cooperation" (Berners-Lee et al., 2001). The technical realization — RDF (Resource Description Framework) triples, OWL (Web Ontology Language) ontologies, SPARQL queries — is intellectually rigorous and computationally powerful. Twenty-five years later, RDF is widely used in specialized domains (biomedical ontologies, library science, government open data) but has not become a general-purpose semantic layer. The web remains overwhelmingly opaque bytes at URLs.
 
-Why? Several reinforcing reasons:
+This is not because the technical stack is weak. RDF's genuine strengths are substantial: it provides a universal graph model, a formal basis for inference (RDFS and OWL entailment), and a powerful query language in SPARQL that supports graph traversal, federation, and reasoning over distributed data. In specialized domains where these capabilities matter — biomedical knowledge graphs, library cataloging, government linked data — RDF has proven its value. The failure is not technical but structural: RDF did not become the *general-purpose* semantic layer because of how it relates to the data it describes.
 
 First, RDF annotates existing resources — it is layered *on top of* the web, not *built into* it. A web page can exist without any RDF. Most do. The semantic annotation is optional, which means it is optional, which means it is absent in the vast majority of cases. Any semantic layer that is optional will remain marginal, because the cost of creating semantic metadata falls on the producer while the benefit accrues to the consumer. This is a classic misaligned-incentive problem.
 
@@ -89,7 +89,7 @@ The key-value pair is computing's universal pattern for associating data with de
 
 This is not a new insight. Gruber (1993) defined an ontology as "an explicit specification of a conceptualization" and argued that shared vocabularies are essential for knowledge sharing among systems. The Semantic Web pursued this through URI-identified predicates. But URIs are locations, not meanings — they are globally unique identifiers, but they do not carry semantic content intrinsically. Two different URIs can denote the same concept (schema.org/author vs. Dublin Core's dc:creator), and nothing in the infrastructure connects them.
 
-What we need instead are keys that refer to *meanings* — language-independent, application-independent units of semantic content with stable identities. Computational linguistics provides exactly such units. We will return to what those units are and where they come from in section 6. For now, the requirement: keys must be grounded meanings, not strings.
+What we need instead are keys that refer to *meanings* — language-independent, application-independent units of semantic content with stable identities. Computational linguistics provides exactly such units. We will return to what those units are and where they come from in section 7. For now, the requirement: keys must be grounded meanings, not strings.
 
 ### Structured assertions: predicates, roles, and bindings
 
@@ -117,7 +117,7 @@ Different predicates expect different roles:
 - **COMMERCIAL_TRANSACTION** expects a Buyer, a Seller, Goods, and Money — Fillmore's original commercial event frame, formalized in FrameNet as Commerce_buy
 - **MOTION** expects a Theme (what moves), a Source (where from), a Goal (where to), and optionally a Path
 - **TITLE** expects a Name (the designation being assigned) and the thing being named
-- **MOVE** (in chess) expects an Agent (who moved), a Theme (what piece), a Source (from where), and a Goal (to where)
+- **MOVE** (in chess) expects a Location (which game), an Agent (who moved), a Theme (what piece), a Source (from where), and a Goal (to where)
 
 The predicate is, in effect, a *data template*. It declares: "to make this kind of assertion, fill these roles." This is exactly what FrameNet's frame definitions do — but applied to data rather than to linguistic annotation. The roles are not arbitrary attribute names — they are grounded meanings from the same shared vocabulary as the predicate itself. Agent, Theme, Goal, Source, Instrument — these are semantic functions that have been studied, classified, and validated across decades of linguistic research, catalogued in over 1,200 frames by FrameNet, organized into universal role inventories by VerbNet and ISO 24617-4, and cross-linked by SemLink.
 
@@ -136,7 +136,7 @@ The role vocabulary itself comes from established research. Fillmore's original 
 - **Setting roles**: Location (where), Time (when)
 - **Information roles**: Topic (subject of communication), Name (designation)
 
-This inventory is not arbitrary and it is not infinite. It reflects empirical findings about how human languages structure meaning. Every language studied — from English to Lakhota to Japanese — uses the same core set of semantic functions to describe who did what to whom, where, when, how, and why. The roles are universal; the words that express them vary by language.
+This inventory is not arbitrary and it is not infinite. It reflects empirical findings about how human languages structure meaning. Every language studied — from English to Lakhota to Japanese — uses the same core set of semantic functions to describe who did what to whom, where, when, how, and why (Youn et al., 2016). The roles are universal; the words that express them vary by language.
 
 #### Two levels of role: universal and frame-specific
 
@@ -144,7 +144,7 @@ The ~25 universal thematic roles (Agent, Theme, Goal, etc.) are powerful precise
 
 This is the same tension that FrameNet and VerbNet resolve differently. FrameNet defines frame-specific elements: the Commerce_buy frame has Buyer, Seller, Goods, Money — roles that are specific to that frame and carry more meaning than the universal Agent, Theme, Source. VerbNet maps these back to universal roles: Buyer maps to Agent, Goods maps to Theme. Both levels are useful. The universal level enables cross-frame queries ("find all frames where someone is an Agent"). The frame-specific level enables precise description ("find all frames where someone is a Buyer").
 
-The semantic base layer needs both levels, connected through the vocabulary's own inheritance hierarchy. PLAYER, BUYER, and AUTHOR are all meanings in the shared vocabulary, and each is a *specialization* of the universal role AGENT. This relationship is expressed in the system's own terms — as a frame: HYPERNYM { (THEME) = PLAYER, (AGENT) = AGENT }. PLAYER is a kind of AGENT. The vocabulary describes itself with the same primitives it uses to describe everything else.
+The semantic base layer needs both levels, connected through the vocabulary's own inheritance hierarchy. PLAYER, BUYER, and AUTHOR are all meanings in the shared vocabulary, and each is a *specialization* of the universal role AGENT. This relationship is expressed in the system's own terms — as a frame: HYPERNYM { (THEME) = PLAYER, (GOAL) = AGENT }. PLAYER is a kind of AGENT. The vocabulary describes itself with the same primitives it uses to describe everything else.
 
 This means a PLAYER frame on a chess game doesn't use the generic "Agent" role — it uses the more specific **PLAYER** role, because PLAYER carries the additional meaning that the context needs. But because PLAYER inherits from AGENT, any query at the universal level still works: "all frames where Fischer is an AGENT" finds chess games, authorship assertions, and anything else where Fischer acts intentionally.
 
@@ -180,8 +180,6 @@ A semantic layer that works only in English is not a semantic layer — it is an
 
 This requires a clean separation between *meanings* and *words*. Meanings (which we will call sememes, following usage in structural semantics) are language-neutral units with stable identities. Words are language-specific expressions that point to meanings. The predicate AUTHORED is a meaning — it exists independently of the English word "authored," the Spanish word "escrito," or the German word "verfasst." Each of those words, in its respective language, points to the same meaning.
 
-This requirement has strong empirical support. Youn et al. (2016), studying polysemy patterns across 81 languages from diverse language families, found that "the semantic networks for different [language] groups share a large amount of structure in common across geographic and cultural differences." The structure of human lexical semantics is not culturally contingent — it is, to a striking degree, universal. This means a shared vocabulary of meanings is not an imposition of one culture's categories on another. It reflects structure that is already shared.
-
 ---
 
 ## 5. The Frame as Primitive
@@ -205,7 +203,7 @@ Consider what this structure subsumes:
 
 A **title assertion**: predicate TITLE, bindings (THEME) = the-book, (NAME) = "The Hobbit". The predicate TITLE defines two roles: what is being titled (THEME) and what the title is (NAME).
 
-A **chess move**: predicate MOVE, bindings (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4. The thematic roles fit naturally — Agent (who moved), Theme (what was moved), Source (from where), Goal (to where). A single move is a single semantic assertion.
+A **chess move**: predicate MOVE, bindings (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4. The thematic roles fit naturally — Location (where it happened), Agent (who moved), Theme (what was moved), Source (from where), Goal (to where). A single move is a single semantic assertion.
 
 A **video**: predicate VIDEO, bindings (THEME) = the-movie, (VIDEO, MKV, UHD) = master-file, (VIDEO, MKV, HD) = transcode. Content in different formats is expressed through compound role keys.
 
@@ -213,7 +211,7 @@ An **authorship assertion**: predicate AUTHORED, bindings (THEME) = The Hobbit, 
 
 The critical observation is that these are all structurally identical: a predicate and a set of role bindings with compound semantic keys. The predicate determines what roles the frame expects. The roles determine what the values mean. The compound key structure eliminates the need for separate type metadata — (MKV, UHD) is both the role (video content) and the type (Matroska, ultra-high-definition) in a single semantic expression.
 
-Note that THEME appears in all of these examples as a binding — the role that identifies what the frame is *about*. This is a convention, not a structural requirement. THEME is a thematic role like any other, drawn from the same vocabulary as AGENT, GOAL, or INSTRUMENT. It happens to be the role that most predicates use to anchor themselves to a subject. A particular implementation might elevate it to a distinguished position for performance or convenience, but at the level of the primitive, it is simply a role that the predicate expects and the frame fills.
+Note that each of these frames has a binding that anchors it to its *subject* — the thing the frame is about. For TITLE and AUTHORED, that anchor is the THEME binding ("The Hobbit" — the entity being described). For MOVE, it is the LOCATION binding (the chess game — the context where the move occurs). This is not a coincidence but a structural pattern: every frame has some role that connects it to the item it describes. Which role that is depends on the predicate. Property predicates (TITLE, AUTHORED, HYPERNYM) naturally use THEME — the entity being characterized. Event predicates (MOVE, MESSAGE, BID) naturally use LOCATION — the setting where the event occurs. The predicate determines the anchor, because the predicate defines what roles the frame expects and what they mean.
 
 This is the sense in which a frame is a *data template with its primary semantic components as the key*. The predicate is the template. The roles are the slots. The bindings fill them. The frame does what Fillmore showed frames do in language — it connects disparate things (a person, a book, the relationship of authorship) into something with coherent unity and meaning. But where Fillmore's frames describe pre-existing utterances, these frames *structure data at the point of creation*. The frame is not an annotation on data. It *is* the data.
 
@@ -227,17 +225,23 @@ This is a stronger claim than what ontology languages like OWL provide. OWL lets
 
 Frames are the primitive. But a single frame is rarely the whole story. A book is not one frame — it is a TITLE frame ("The Hobbit"), an AUTHORED frame (Tolkien), one or more TEXT frames (the chapters), a COVER_ART frame (the dust jacket illustration), perhaps a TABLE_OF_CONTENTS, a PUBLICATION frame (1937, Allen & Unwin), and more. Each of these frames is a separate assertion with its own predicate and bindings. But they are all *about the same thing* — the book. They only make sense together, as a coherent whole.
 
-This is not an additional design decision. It falls directly out of the frame primitive. Every frame has a Theme binding — the thing the frame is about. If multiple frames share the same Theme, they are collectively *describing that thing*. The TITLE frame says what the book is called. The AUTHORED frame says who wrote it. The TEXT frame carries its content. The Theme binding is what connects them. The thing they point to — the entity that all these frames are about — must exist.
+This observation leads directly to a design decision. If frames can be about the same thing, they need a shared identity to point to. That identity — and the collection of frames that describe it — we call an **item**.
 
-What is that thing? It is the *collection of frames that cohere around a shared identity*. Call it what you will — we will use the word **item**, for lack of a better one — but its existence is structurally necessary. Frames need something to be about. Multiple frames about the same thing need a shared identity to point to. That identity, and the collection of frames that describe it, is the item.
+An item is not a new primitive in the way a frame is. It is an architectural choice: a stable, cryptographic identity that frames can reference in a role binding to indicate "I am about *this thing*." The book is an item. Tolkien is an item. A chess game is an item. Each exists as an identity around which frames accumulate — title frames, authorship frames, move frames, player frames — building up a coherent, multi-faceted description. The role that carries this reference depends on the predicate: THEME for an authorship assertion (the work being described), LOCATION for a chess move (the game where it happens). The predicate determines how the frame connects to its item, using whatever role is semantically natural.
 
-An item, then, is not a new primitive. It is an emergent structure — what you get when frames accumulate around a shared identity. The book is an item. Tolkien is an item. A language is an item.
+This is a deliberate design decision, not an emergent property. The frame primitive alone does not conjure stable identities into existence. Something must *provide* them. We choose content-addressed cryptographic identity: an item's identity is a hash derived from its defining characteristics, making it stable, verifiable, and independent of any central registry. This choice has consequences — it means identity is not assigned by a central authority but established by the convergence of content — and those consequences are load-bearing parts of the architecture, not incidental details.
 
-A chess game makes this vivid. The game is an item — a cryptographic identity with a type (CHESS). Players register by signing their own PLAYER frames on the item: `PLAYER { (AGENT) = Fischer, (ROLE) = WHITE }` signed by Fischer; `PLAYER { (AGENT) = Spassky, (ROLE) = BLACK }` signed by Spassky. Each player *attests their own participation* — it is not assigned by a third party, it is declared by the participant. Then each move is a signed frame: `MOVE { (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 }` signed by Fischer. The game is the accumulation of these signed assertions — player registrations, moves, and eventually a RESULT frame — all cohering around the same item identity.
+A chess game makes the pattern vivid. The game is an item — a stable identity with a type. But the game is not a single monolithic structure. It is an *accumulation of signed frames*:
 
-No special "game engine" data structure is needed. No move log, no game state object, no stream. Each move is independently meaningful, independently signed, and independently queryable. "All games where someone opened with pawn to e4" is an index lookup on MOVE frames with (GOAL) = e4 and (THEME) = pawn. "All games Fischer played" is a lookup on PLAYER frames with (AGENT) = Fischer. The game's history is just the ordered sequence of MOVE frames on the item.
+Players register by signing their own PLAYER frames: `PLAYER { (AGENT) = Fischer, (ROLE) = WHITE }` signed by Fischer; `PLAYER { (AGENT) = Spassky, (ROLE) = BLACK }` signed by Spassky. Each player *attests their own participation* — it is not assigned by a third party, it is declared by the participant and carries their signature.
 
-This pattern generalizes immediately to any multi-participant activity. A chat room is an item where people join with signed MEMBERSHIP frames and contribute with signed MESSAGE frames. An auction is an item where bidders assert signed BID frames. A band, a class, a project — all the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is and who is involved.
+Then each move is a signed frame: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 }` signed by Fischer. The next move: `MOVE { (LOCATION) = the-game, (AGENT) = Spassky, (THEME) = queen-pawn, (SOURCE) = d7, (GOAL) = d5 }` signed by Spassky. Each move is independently meaningful, independently signed, and independently verifiable. The LOCATION binding connects each move to the game — the item where the event occurs. The game is the ordered sequence of these signed assertions, all cohering around the same item identity.
+
+No special "game engine" data structure is needed. No move log, no state machine, no event stream. Each move is a frame — the same primitive as a title, an authorship assertion, or a video. And because each move is a frame, it is independently queryable. "All games where someone opened with pawn to e4" is an index lookup on MOVE frames with (GOAL) = e4. "All games Fischer played" is a lookup on PLAYER frames with (AGENT) = Fischer. "Fischer's longest game" is a count of MOVE frames per game item where Fischer has a PLAYER frame. The game's history, its participants, its outcome — all are frames, all are indexed, all are queryable.
+
+This is a stronger claim than "games can be modeled as frames." It is that a game *is* an item in exactly the same way a book is an item. A book is its title frame plus its authorship frame plus its chapter frames plus its cover art frame. A chess game is its player frames plus its move frames plus its result frame. The item IS the accumulation of its frames. There is no separate "game object" or "book object" hiding behind the frames. The frames are the thing.
+
+This pattern generalizes immediately. A chat room is an item where people join with signed MEMBERSHIP frames and contribute with signed MESSAGE frames. A key log — the history of a person's cryptographic keys — is an item with KEY frames (key published), REVOKE frames (key revoked), and DELEGATE frames (key authorized another). An auction is an item where bidders assert signed BID frames. A band, a class, a project — all the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is and who is involved.
 
 And here the architecture closes a circle: even sememes themselves — the units of meaning that make up the shared vocabulary — are items. Consider the sememe METER (the unit of length). It is not a bare label. It is a coherent collection of frames: a GLOSS frame in English ("the base unit of length in the metric system"), a GLOSS frame in Spanish ("la unidad base de longitud en el sistema métrico"), a DIMENSION frame (LENGTH, which is another sememe itself), CONVERSION frames to other units (1 meter = 3.28084 feet), a HYPERNYM frame (METER is-a LENGTH_UNIT), and a SYMBOL frame ("m"). Each of these is a separate assertion — a separate frame with its own predicate and bindings. Together, they constitute what METER *means*. The meaning is not a definition string. It is the structured totality of everything asserted about it.
 
@@ -273,8 +277,6 @@ We propose a different approach: anchor the shared vocabulary not in hand-author
 
 **CILI** — the Collaborative Interlingual Index (Bond, Vossen, McCrae, & Fellbaum, 2016) — extends WordNet across languages. CILI provides language-neutral concept identifiers that link WordNet synsets to their equivalents in other languages' wordnets. The English concept "dog," the Spanish concept "perro," and the Japanese concept "inu" share the same CILI identifier. This is not a translation — it is an identity: these words in different languages refer to the same meaning.
 
-The empirical finding of Youn et al. (2016) — that the structure of lexical semantics is universal across language groups, independent of geography, culture, and environment — provides strong support for the feasibility of this approach. The shared meaning space is not an artificial construct imposed from above. It reflects structure that is empirically present in human cognition.
-
 Three additional resources provide critical vocabulary for the frame primitive specifically:
 
 **FrameNet** (Baker, Fillmore, & Lowe, 1998; Ruppenhofer et al., 2006), the direct computational heir of Fillmore's theory, provides over 1,200 frame definitions — structured scenes with named roles, hierarchical relationships between frames (inheritance, subframes, causation), and annotated examples from real text. FrameNet is, in a very direct sense, a library of data templates: each frame declares what roles it expects, which are required, and how it relates to other frames. This is the richest source of predicate-to-role mappings available.
@@ -289,25 +291,19 @@ Together, these resources provide three layers of shared vocabulary:
 2. **Predicates** (from WordNet verb synsets, VerbNet classes): what kinds of assertions can be made — AUTHORED, PURCHASED, LOCATED_AT, TITLED — each declaring the roles it expects
 3. **Roles** (from VerbNet, ISO 24617-4): what semantic functions participants play — Agent, Theme, Goal, Source, Instrument — the universal binding keys
 
-This gives us the vocabulary to express *kinds* of things and *kinds* of relationships. But it does not, by itself, give us specific things and specific relationships. And this is where the shared meaning space faces its deepest challenge.
-
 ### The entity problem
 
 Consider the AUTHORED example from section 5: predicate AUTHORED, bindings (THEME) = The Hobbit, (AGENT) = Tolkien. The predicate AUTHORED is a shared meaning — a grounded concept from the vocabulary. The type PERSON is a shared meaning. The type BOOK is a shared meaning. But what about Tolkien *himself*?
 
-Today, Tolkien exists as a page on Wikipedia, an author page on Amazon, an entry on Goodreads, a profile on TMDB, a record in the Library of Congress authority file, an entry in Wikidata, and countless other disconnected representations across the web. Each of these is a silo. None of them is the *canonical Tolkien* — the single identity that every system could use as the AGENT binding in an AUTHORED frame. If you assert "Tolkien authored The Hobbit" on Amazon and someone else asserts it on Goodreads, there is no infrastructure-level way to know these assertions are about the same person.
+Today, Tolkien exists as a page on Wikipedia, an author page on Amazon, an entry on Goodreads, a profile on TMDB, a record in the Library of Congress authority file, an entry in Wikidata, and countless other disconnected representations across the web. Each of these is a silo. None of them is the *canonical Tolkien* — the single identity that every system could use as the AGENT binding in an AUTHORED frame.
 
-This is not a problem that WordNet solves. WordNet provides the *concept* PERSON, but it does not provide an identity for every specific person. CILI links meanings across languages, but meanings are types, not individuals. The shared meaning space needs vocabulary for predicates and roles, but it also needs a way for *specific entities* — individual people, specific books, particular organizations — to have stable, shared identities.
+This is the hardest problem the shared meaning space must address, and we should be honest about its difficulty. WordNet provides the *concept* PERSON, but not an identity for every specific person. CILI links meanings across languages, but meanings are types, not individuals. Every previous attempt to solve entity identity at scale has run into the same tension: centralized registries (Wikidata, Library of Congress authority files) are fragile, political, and exclusionary — who decides which entities get canonical identifiers? — while fully decentralized naming is ambiguous — which "Tolkien" do you mean?
 
-This is the entity problem, and every previous attempt to solve it has run into the same tension: centralized identity registries are fragile, political, and exclusionary (who decides which entities get canonical identifiers?), while fully decentralized naming is ambiguous (which "Tolkien" do you mean?).
+The semantic base layer takes a specific architectural position on this. Entities are items — collections of frames with cryptographic identities. Tolkien is not a string, not a URL, not a row in a central registry. He is an item with a stable cryptographic identity, carrying frames that assert his name, his birth date, his works, his relationships. These frames are signed by the people and institutions that assert them.
 
-The semantic base layer resolves this differently. Entities, like everything else, are data — specifically, they are collections of frames. Tolkien is not a string, not a URL, not a row in a central registry. He is an *entity with a cryptographic identity* — a stable identifier derived from the content that defines him, carrying frames that assert his name, his birth date, his works, his relationships. These frames are signed by the people who assert them. The entity's identity is not granted by a central authority — it is established by the convergence of signed assertions from trusted sources.
+The mechanism for convergence is the social graph itself. When Alice creates an AUTHORED frame binding a Tolkien entity as the AGENT, she is binding to a specific cryptographic identity — one that she encountered through her trust network. If the Library of Congress publishes a SAME_AS frame linking their Tolkien authority record to Alice's Tolkien entity, and if Bob trusts both Alice and the Library of Congress, then Bob's system can resolve all three as the same entity. Convergence happens not through a central registry but through the accumulation of signed assertions from parties that trust each other.
 
-When Alice creates an AUTHORED frame binding Tolkien as the AGENT, she is binding the frame not to the string "Tolkien" or to a URL, but to a specific cryptographic identity — one that she and Bob and the Library of Congress and anyone else can all refer to, because it is a content-addressed identity in the shared meaning space. If Alice's Tolkien and Bob's Tolkien are the same entity, they share the same identity. If they are different (perhaps one is J.R.R. and the other is Christopher), they have different identities, unambiguously.
-
-The implication is radical: the shared meaning space is not just a vocabulary of types and predicates. It is a *space* — a shared space where entities exist, where frames assert things about them, and where the accumulation of signed assertions from multiple sources gradually builds up a rich, distributed, multi-perspective representation of every entity that anyone cares enough to describe.
-
-This is what no existing system provides. Wikipedia provides a single editorial perspective. Wikidata provides structured data, but centrally governed. Amazon provides a product catalog. Each is a silo with its own entity identities that do not interoperate. The semantic base layer proposes that entities live in the same shared, decentralized space as the vocabulary itself — identifiable by content, described by frames, attested by signatures, and discoverable by meaning.
+This is not a complete solution. It is a mechanism — one that trades the problems of centralized identity (political control, single points of failure) for different problems (convergence latency, conflicting identities that must be resolved through trust). We believe this trade-off is correct for a decentralized semantic layer, but we acknowledge that the entity problem remains the area where the architecture is most genuinely unproven.
 
 ### Meaning and expression
 
@@ -317,57 +313,104 @@ The resulting architecture separates *meaning* from *expression*: meanings (syns
 
 The shared meaning space is not a closed vocabulary. It is a commons. Domain-specific communities can extend it with their own concepts (medical terminology, legal concepts, engineering standards), connected to the base vocabulary through the same hierarchical relationships. Individuals can create entities and describe them with frames. New languages can connect to it by linking their words to existing meanings. The vocabulary grows from the edges, not from the center — extensible without fragmentation, because every extension is anchored in the same shared backbone.
 
-### What this subsumes
+---
 
-Consider how much of the modern web is built from the same handful of semantic patterns — patterns that are currently implemented from scratch by every platform, in every silo, with no interoperability between them.
+## 8. Computation as Frames
 
-**Marketplaces.** A product listing on Amazon, eBay, Etsy, or Craigslist is a collection of frames: PRICE (with a quantity and currency), CATEGORY (with a type from a taxonomy), LOCATION (with a geographic reference), DESCRIPTION (with text and images), OFFER (with a seller identity). Every marketplace reinvents this structure in its own schema, its own database, its own search index. A user selling the same item on three platforms creates three disconnected listings that share no vocabulary, no identity, and no way to cross-reference. In the shared meaning space, the item is *one entity* with frames asserting its price, location, category, and seller — discoverable by anyone whose trust graph reaches it.
+The claim that semantic frames constitute a genuine base layer — not merely a metadata system for documents and social data — requires demonstrating that the primitive is expressive enough for domains far removed from natural language. Mathematics is the strongest test case: the most formal, least ambiguous domain of structured knowledge. If thematic roles can describe mathematical operations, they are not linguistic conveniences — they are universal structuring principles.
 
-**Communities and groups.** A subreddit, a Discord server, a Facebook group, a Slack workspace, a mailing list — each is a collection of people with shared frames: MEMBERSHIP assertions, MODERATION assertions, TOPIC assertions, and a stream of contributed content (posts, messages, threads). Every platform implements this from scratch, and your membership, reputation, and history in one community is invisible to every other. In the shared meaning space, a community is an item. Your membership is a signed frame. Your contributions are signed frames. They exist in the graph regardless of which interface you use to access them.
+The mapping turns out to be natural, not forced.
 
-**Auctions and bids.** An auction is a SELLING frame with a TIME constraint and a stream of BID frames, each signed by the bidder with an AMOUNT binding. The auction house — whether Sotheby's, eBay, or a local charity — is not a platform feature. It is an item that hosts the auction frame and applies trust policies to determine which bidders are accepted.
+### Arithmetic
 
-**Reviews and ratings.** A restaurant review on Yelp, a product review on Amazon, a movie review on Letterboxd — each is a REVIEW frame with a RATING binding, a TOPIC binding (what was reviewed), and an AGENT binding (who reviewed it). Every review platform builds its own review database. None of them interoperate. A restaurant's reputation is fragmented across Yelp, Google, TripAdvisor, and a dozen others. In the shared meaning space, reviews are signed frames on the restaurant entity — from any source, weighted by the viewer's own trust policies.
+Consider the simplest case: 3 + 5 = 8. The operation ADD is the predicate. The operands are not Agents (they don't initiate anything) or Patients (they don't change). One is the Theme — the entity being operated on — and the other is the Instrument — the means by which the operation is performed. Even though addition is commutative, natural language reveals the asymmetry: we say "add 5 *to* 3," not "add 3 and 5 symmetrically." The answer is a Result — something that comes into existence through the operation.
 
-**Academic publishing.** A paper is an item. Citations are CITES frames — signed, linking one paper entity to another. Author attribution is AUTHORED frames. Peer review is REVIEW frames. Impact is not a proprietary metric computed by Elsevier or Google Scholar — it is a countable set of signed attestations in the graph. An academic community doesn't need a centralized index because the citation graph IS the index.
+```
+ADD { (THEME) = 3, (INSTRUMENT) = 5, (RESULT) = 8 }
+```
 
-**Social networks.** A follow is a signed frame. A post is an item with TEXT and MEDIA frames. A like is a signed frame. A comment is a frame whose Theme is another frame. A block is a signed frame. Every social platform builds these same primitives from scratch, locks users into its silo, and applies its own opaque algorithms to determine visibility. In the shared meaning space, these are all just frames — signed, portable, and visible according to each viewer's own trust policies rather than a platform's engagement-optimization algorithm.
+Subtraction makes the asymmetry explicit: 10 - 3 = 7. 10 is the Theme — the quantity being diminished. 3 is the Instrument — the means of reduction. 7 is the Result.
 
-The pattern is the same in every case: entities with stable identities, described by signed semantic frames, discoverable by meaning, visible according to trust. What currently requires hundreds of purpose-built platforms with incompatible databases and proprietary APIs is, structurally, the same relatively small set of predicates applied to different types of entities. The platforms differ in their user interfaces, their trust policies, and their communities — but the underlying data model is the same, and it is frames.
+```
+SUBTRACT { (THEME) = 10, (INSTRUMENT) = 3, (RESULT) = 7 }
+```
 
-This is, perhaps, the most ambitious aspect of the proposal: not just a shared vocabulary of predicates and roles, but a shared space for *everything that has meaning* — types, predicates, roles, and the specific entities that fill those roles. A space where the concept AUTHOR and the person Tolkien and the book The Hobbit all have stable, shared, content-addressed identities, and where the frame AUTHORED { (AGENT) = Tolkien, (THEME) = The Hobbit } connects them into a single coherent assertion that any system, in any language, can understand.
+This is not a metaphor. Theme ("the thing being acted on") and Instrument ("by what means") are exactly the semantic functions these values serve in the operation. The roles were defined for natural language, but they describe the same cognitive structure: a thing, something acting on it, and an outcome.
+
+### Calculus
+
+The real test is calculus, where operations are rich enough to demand multiple roles.
+
+The definite integral ∫₀¹ x² dx has a clear frame structure:
+
+```
+INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx, (RESULT) = ⅓ }
+```
+
+- **x²** is the Theme — the thing being operated on
+- **0** is the Source — where integration begins
+- **1** is the Goal — where integration ends
+- **dx** is the Instrument — the means by which integration is performed
+- **⅓** is the Result — what comes into existence
+
+Source and Goal for the bounds of integration. These roles were defined for physical motion — "move from the house to the store" — but they map onto the abstract endpoints of integration with no strain, because the cognitive structure is the same: a starting point, an ending point, and a traversal between them.
+
+Differentiation: d/dx(x²) = 2x becomes `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x, (RESULT) = 2x }`. The variable of differentiation is the Instrument — the means by which the operation is performed.
+
+Limits: lim(x→∞) 1/x = 0 becomes `LIMIT { (THEME) = 1/x, (GOAL) = ∞, (RESULT) = 0 }`. The variable approaches the Goal — the same directional metaphor as physical motion.
+
+### The role mapping
+
+The correspondence is systematic:
+
+| Math concept | Thematic role | Linguistic parallel |
+|---|---|---|
+| Operand / expression being operated on | Theme | "the thing being acted on" |
+| Second operand / applied quantity | Instrument | "by what means" |
+| Lower bound / starting value | Source | "where from" |
+| Upper bound / ending value | Goal | "where to" |
+| Answer / output | Result | "what comes into existence" |
+| Both sides of an equation | Pivot | "central participant in fixed state" |
+| Degree or magnitude of change | Extent | "by how much" |
+| Path of integration (in line integrals) | Path | "the route taken" |
+
+### Why this matters
+
+This mapping is significant not because it enables a math engine (though it does — an expression like `5 meters + 3 feet` is an ADD frame whose operands are quantities with unit sememes, and the system can resolve it because METER and FOOT are both LENGTH units in the vocabulary with known conversion factors). It is significant because it demonstrates that thematic roles are not linguistic artifacts. They are cognitive structuring principles.
+
+Mathematics and natural language both need to express: what is being operated on (Theme), by what means (Instrument), where we start (Source), where we end (Goal), by how much (Extent), and what results (Result). The roles are the same because the underlying cognitive operations are the same — whether the domain is physical motion, financial transactions, linguistic predication, or abstract mathematics.
+
+If a single set of ~25 thematic roles can structure natural language assertions, social interactions, and mathematical expressions, then those roles are genuinely universal — and a base layer built on them is not domain-specific. It is as general as meaning itself.
+
+The practical consequence: mathematical and functional expressions are not a separate system bolted onto the side of a semantic layer. They are frames, using the same predicates and roles as everything else. A spreadsheet cell is a frame whose value is the result of an expression frame. The boundary between "data" and "computation" dissolves the same way the boundary between "data" and "metadata" does — because both are role bindings on predicates, and the frame primitive is expressive enough to carry either.
 
 ---
 
-## 8. What Follows
+## 9. What Follows
 
 If we accept the premises — that computing needs a semantic base layer, that it must be built in rather than bolted on, that the frame is the right primitive, and that the shared meaning space is anchored in empirical linguistics — then several consequences follow. These are not features to be engineered. They are structural properties that emerge from the premises.
 
-**Queryability without crawling.** If every piece of data is a frame with a grounded predicate and semantically-keyed bindings, then the data *is* the index. Querying "all books authored by Tolkien" is not a text search — it is a lookup: frames with predicate AUTHORED, where the binding for AGENT refers to Tolkien. No crawler needs to have visited and interpreted every document. No search engine needs to guess, from word frequency and link structure, what a page is about. The data described itself at the moment of creation.
+**Queryability without crawling.** If every piece of data is a frame with a grounded predicate and semantically-keyed bindings, then the data *is* the index. Querying "all books authored by Tolkien" is not a text search — it is a lookup: frames with predicate AUTHORED, where the binding for AGENT refers to Tolkien. No crawler needs to have visited and interpreted every document. No search engine needs to guess, from word frequency and link structure, what a page is about. The data described itself at the moment of creation. This is not a hypothetical benefit — it is a direct consequence of write-time resolution.
 
-This is not a hypothetical benefit. It is a direct consequence of write-time resolution. When meaning is captured at creation, every frame is pre-indexed by its predicate and its semantic bindings. Query is lookup, not search.
+The indexing cost is concrete and bounded. Each frame is indexed by its predicate and by each meaning in its compound binding keys — the same multi-dimensional index described in section 4. For a system with N frames and an average of K bindings per frame, the index contains O(N × K) entries. Queries resolve in O(log N) via standard index lookup. This is not a research problem; it is a well-understood data structure operating on richer keys than most systems use.
 
 **Multilingual interoperability without translation.** If meanings are language-neutral and words are language-specific pointers to meanings, then a Spanish speaker and an English speaker interacting with the same data see it through their own words but operate on the same semantic structures. The English speaker sees "author"; the Spanish speaker sees "autor"; both interact with the same grounded meaning. The system does not translate — it resolves, through different words, to the same concept.
 
-This is a structural consequence of the meaning/expression separation, not a feature that requires engineering beyond the initial vocabulary architecture.
-
 **Trust as data.** If every frame is a signed assertion by an identified party, then trust and provenance are not separate systems — they are properties of the data itself. A "like" is a signed frame. A spam label is a signed frame. A fact-check is a signed frame. Different users, with different trust relationships, see different views of the same underlying data — not because a platform is making editorial decisions, but because trust policies (themselves data) produce different evaluations of the same signed assertions. This is Szabo's (1997) vision of formalizing relationships on public networks, realized through the frame primitive.
 
-**Content-addressed identity.** If frames are the data primitive and their identity is determined by their semantic content (predicate + theme + bindings), then two identical assertions produce the same identity regardless of who makes them or when. Identity follows from content, not from location. This is the same principle as content-addressed storage (Merkle, 1979; Benet, 2014), applied not to opaque bytes but to semantic structures. A frame's identity is the hash of its meaning — not its location, not its creation time, not who said it.
+**Content-addressed identity.** If frames are the data primitive and their identity is determined by their semantic content (predicate + bindings), then two identical assertions produce the same identity regardless of who makes them or when. Identity follows from content, not from location. This is the same principle as content-addressed storage (Merkle, 1979; Benet, 2014), applied not to opaque bytes but to semantic structures.
 
-**Composability.** Because everything is the same primitive — a frame with predicate, theme, and bindings — everything composes in the same way. A document is frames. A chat room is frames. A chess game is frames. A trust relationship is frames. There is no structural distinction between "content" and "metadata" and "relationships" and "configuration" — these are all frames with different predicates. This uniformity is not a simplification that sacrifices expressiveness. It is the recognition that Fillmore's insight — meaning is constituted by structured relationships between participants — applies as much to data as it does to language.
+**Composability.** Because everything is the same primitive — a frame with predicate and bindings — everything composes in the same way. A document is frames. A chat room is frames. A chess game is frames. A trust relationship is frames. A mathematical expression is frames. There is no structural distinction between "content" and "metadata" and "relationships" and "configuration" and "computation" — these are all frames with different predicates.
 
-**Computation as frames.** If frames can represent any structured assertion, they can also represent mathematical and functional expressions — because an expression *is* a structured assertion. Addition is a predicate with two Themes and a Result. Integration is a predicate with a Theme (the integrand), a Source (lower bound), a Goal (upper bound), and an Instrument (the variable of integration). The thematic roles designed for natural language — Source, Goal, Extent, Result, Instrument — map onto mathematical operations with surprising naturalness, because both language and mathematics need to express the same cognitive structures: what is being operated on, where we start, where we end, by what means, and what results.
+**Self-describing data.** A frame carries everything needed to interpret it. Its predicate says what kind of assertion it is. Its binding keys say what each value means. All of these are references into the shared meaning space. No external schema, no format specification, no application-specific decoder ring is needed. This is the property that files, database rows, and web pages lack — and the property whose absence creates the need for integration layers, documentation, and reverse-engineering.
 
-This means expressions and equations are not a separate system requiring a separate engine. They are frames in the same shared meaning space as everything else. The expression `5 meters + 3 feet` is an ADD frame whose operands are quantities with unit sememes — and the system can resolve it because METER and FOOT are both LENGTH units in the vocabulary with known conversion factors. The result of an expression can fill a role on another frame. A spreadsheet cell is a frame whose value is the result of an expression frame. The boundary between "data" and "computation" dissolves the same way the boundary between "data" and "metadata" does — because both are role bindings on predicates, and the frame primitive is expressive enough to carry either.
-
-**Self-describing data.** A frame carries everything needed to interpret it. Its predicate says what kind of assertion it is. Its theme says what it's about. Its binding keys say what each value means. All of these are references into the shared meaning space. No external schema, no format specification, no application-specific decoder ring is needed to understand what a frame asserts. This is the property that files, database rows, and web pages lack — and the property whose absence creates the need for integration layers, documentation, and reverse-engineering.
+**Subsumption of platforms.** Consider how much of the modern web is built from the same handful of semantic patterns — patterns that are currently implemented from scratch by every platform, in every silo, with no interoperability. A product listing is frames (PRICE, CATEGORY, LOCATION, DESCRIPTION, OFFER). A community is frames (MEMBERSHIP, MODERATION, TOPIC, MESSAGE). A review is frames (RATING, TOPIC, AGENT). An academic paper's citation graph is CITES frames. A social network's interactions are frames (FOLLOW, POST, COMMENT, BLOCK). Each of these is currently a proprietary database on a proprietary platform. In the shared meaning space, they are all the same primitive — signed frames on items, visible according to trust, queryable by meaning.
 
 Each of these properties is a direct consequence of the architecture, not an independent design decision. This is important because it means the properties are *coupled*: you cannot get some without the others, and you do not need to engineer them separately. A base layer built on semantic frames with a shared meaning vocabulary is, by construction, queryable, multilingual, trust-aware, content-addressed, composable, and self-describing.
 
 ---
 
-## 9. Honest Reckoning
+## 10. Honest Reckoning
 
 We are not the first to propose an ambitious rethinking of how computing handles information. The history of such proposals is largely a history of instructive failures, and we would be foolish to ignore it.
 

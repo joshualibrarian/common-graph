@@ -152,7 +152,7 @@ public final class Ref implements Canonical {
     public static Ref fromPath(Item item, String path) {
         Objects.requireNonNull(item, "item");
         if (path == null || path.isBlank()) return of(item.iid());
-        var entry = item.content().atPath(path);
+        var entry = item.frames().atPath(path);
         return entry.map(e -> of(item.iid(), e.frameKey()))
                 .orElse(of(item.iid()));
     }

@@ -50,7 +50,7 @@ class SeedVocabularyTest {
     }
 
     private boolean hasImplementedByRelation(ItemID typeId) {
-        return store.relations()
+        return store.frameBodies()
                 .filter(r -> r.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
                 .anyMatch(r -> typeId.equals(r.bindingId(ItemID.fromString("cg.role:theme"))));
     }
@@ -230,7 +230,7 @@ class SeedVocabularyTest {
                 .orElse(null);
         assertThat(itemTypeSeed).as("bootstrap() should return Item type seed").isNotNull();
 
-        assertThat(itemTypeSeed.content().getFrame(SurfaceTemplateComponent.HANDLE))
+        assertThat(itemTypeSeed.frames().getFrame(SurfaceTemplateComponent.HANDLE))
                 .as("Returned seed should have surface template entry").isPresent();
     }
 
@@ -244,7 +244,7 @@ class SeedVocabularyTest {
         Item cached = librarian.library().getCached(itemTypeId).orElse(null);
         assertThat(cached).as("Item type should be in cache").isNotNull();
 
-        assertThat(cached.content().getFrame(SurfaceTemplateComponent.HANDLE))
+        assertThat(cached.frames().getFrame(SurfaceTemplateComponent.HANDLE))
                 .as("Cached seed should have surface template entry").isPresent();
     }
 
@@ -266,21 +266,21 @@ class SeedVocabularyTest {
         Item item = (Item) ctor.newInstance(librarian, manifest);
 
         // Verify component entry exists
-        assertThat(item.content().getFrame(SurfaceTemplateComponent.HANDLE))
+        assertThat(item.frames().getFrame(SurfaceTemplateComponent.HANDLE))
                 .as("Should have surface template component entry").isPresent();
 
         // Verify live instance was hydrated (not just entry)
-        assertThat(item.content().hasLive(SurfaceTemplateComponent.HANDLE))
+        assertThat(item.frames().hasLive(SurfaceTemplateComponent.HANDLE))
                 .as("Surface template should have live instance").isTrue();
 
         // Verify live instance is the correct type
-        assertThat(item.content().getLive(SurfaceTemplateComponent.HANDLE))
+        assertThat(item.frames().getLive(SurfaceTemplateComponent.HANDLE))
                 .isPresent()
                 .get()
                 .isInstanceOf(SurfaceTemplateComponent.class);
 
         // Verify display fields are populated on the hydrated component
-        var stc = item.content().getLive(
+        var stc = item.frames().getLive(
                 SurfaceTemplateComponent.HANDLE, SurfaceTemplateComponent.class).orElse(null);
         assertThat(stc).isNotNull();
         assertThat(stc.glyph()).as("Display glyph should survive round-trip").isNotNull();

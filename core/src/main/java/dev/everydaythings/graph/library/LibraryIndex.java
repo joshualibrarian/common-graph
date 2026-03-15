@@ -127,32 +127,7 @@ public interface LibraryIndex extends Service {
         return latestVersion(iid).isPresent();
     }
 
-    // ==================================================================================
-    // Deprecated Item Record API (replaced by indexVersion/latestVersion)
-    // ==================================================================================
 
-    /** @deprecated Use {@link #latestVersion(ItemID)} */
-    @Deprecated
-    default Optional<byte[]> getItemRecord(ItemID iid) {
-        return latestVersion(iid).map(ContentID::encodeBinary);
-    }
-
-    /** @deprecated Use {@link #indexVersion(ItemID, ContentID, long, WriteTransaction)} */
-    @Deprecated
-    default void putItemRecord(ItemID iid, byte[] recordBytes, WriteTransaction wtx) {
-        Objects.requireNonNull(iid, "iid");
-        Objects.requireNonNull(recordBytes, "recordBytes");
-        Objects.requireNonNull(wtx, "wtx");
-        // Legacy: recordBytes is VID bytes, timestamp defaults to now
-        ContentID vid = new ContentID(recordBytes);
-        indexVersion(iid, vid, System.currentTimeMillis(), wtx);
-    }
-
-    /** @deprecated Use {@link #indexVersion} */
-    @Deprecated
-    default void touchItem(ItemID iid, WriteTransaction wtx) {
-        // No-op in new model — items are tracked via ITEMS index entries
-    }
 
     // ==================================================================================
     // Frame Query API

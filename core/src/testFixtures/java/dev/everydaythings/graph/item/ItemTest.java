@@ -257,7 +257,7 @@ public abstract class ItemTest {
         @Test
         @DisplayName("component table exists")
         void componentTableExists() {
-            assertThat((Object) item.content())
+            assertThat((Object) item.frames())
                     .as("Component table")
                     .isNotNull();
         }
@@ -319,11 +319,11 @@ public abstract class ItemTest {
         void persistPreservesComponentState() {
             assumeTrue(supportsPersist(), "Item does not support persist()");
 
-            int componentCountBefore = item.content().size();
+            int componentCountBefore = item.frames().size();
 
             item.persist();
 
-            assertThat(item.content().size())
+            assertThat(item.frames().size())
                     .as("Component count after persist")
                     .isEqualTo(componentCountBefore);
         }
@@ -333,11 +333,11 @@ public abstract class ItemTest {
         void persistPreservesMountState() {
             assumeTrue(supportsPersist(), "Item does not support persist()");
 
-            long mountCountBefore = item.content().mounted().count();
+            long mountCountBefore = item.frames().mounted().count();
 
             item.persist();
 
-            assertThat(item.content().mounted().count())
+            assertThat(item.frames().mounted().count())
                     .as("Mounted entry count after persist")
                     .isEqualTo(mountCountBefore);
         }

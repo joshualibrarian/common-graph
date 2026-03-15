@@ -436,8 +436,8 @@ public class Sememe extends Item {
         String iso3 = lang.equals("en") ? "eng" : lang;
 
         // Try SememeGloss component
-        if (content() != null) {
-            var live = content().getLive(
+        if (frames() != null) {
+            var live = frames().getLive(
                     dev.everydaythings.graph.item.id.FrameKey.literal(
                             SememeGloss.handleKeyFor(iso3)));
             if (live.isPresent() && live.get() instanceof SememeGloss sg) {
@@ -624,12 +624,12 @@ public class Sememe extends Item {
      * Resolve the implementing Java class from the IMPLEMENTED_BY frame.
      */
     public Optional<Class<?>> resolveImplementingClass() {
-        if (content() != null) {
+        if (frames() != null) {
             ItemID implPredicate = CoreVocabulary.ImplementedBy.SEED.iid();
-            var it = content().bareFrames().iterator();
+            var it = frames().bareFrames().iterator();
             while (it.hasNext()) {
                 var frame = it.next();
-                Optional<Object> live = content().getLive(frame.frameKey());
+                Optional<Object> live = frames().getLive(frame.frameKey());
                 if (live.isPresent() && live.get() instanceof FrameBody body) {
                     if (implPredicate.equals(body.predicate())) {
                         BindingTarget target = body.bindings().get(ThematicRole.Goal.SEED.iid());

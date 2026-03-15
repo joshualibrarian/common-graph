@@ -270,18 +270,6 @@ public abstract class Vault {
     }
 
     /**
-     * Create an SSLContext configured with this vault's signing key.
-     *
-     * <p>The returned context can be used for TLS connections where
-     * this vault's identity needs to be proven.
-     *
-     * @return SSLContext configured for mutual TLS
-     * @deprecated Use {@link #serverSslContext()} and {@link #clientSslContext()} instead.
-     */
-    @Deprecated
-    public abstract javax.net.ssl.SSLContext sslContext();
-
-    /**
      * Create a Netty {@link io.netty.handler.ssl.SslContext} for the server side.
      *
      * <p>Generates a dedicated EC P-256 TLS key pair signed by the Ed25519 signing key,

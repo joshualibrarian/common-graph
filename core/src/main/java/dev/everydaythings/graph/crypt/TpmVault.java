@@ -110,11 +110,6 @@ public final class TpmVault extends Vault {
     }
 
     @Override
-    public javax.net.ssl.SSLContext sslContext() {
-        throw new UnsupportedOperationException("TpmVault not yet implemented");
-    }
-
-    @Override
     public io.netty.handler.ssl.SslContext serverSslContext() {
         throw new UnsupportedOperationException("TpmVault not yet implemented");
     }

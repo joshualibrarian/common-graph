@@ -108,10 +108,10 @@ public record ReferenceExpression(
         // TODO: The double lookup (ExpressionComponent then Object) could be simplified
         //  to one getLive(handleId, Object.class) call with instanceof dispatch.
         FrameKey frameKey = FrameKey.literal(handle);
-        var exprOpt = targetItem.content().getLive(frameKey, ExpressionComponent.class);
+        var exprOpt = targetItem.frames().getLive(frameKey, ExpressionComponent.class);
         if (exprOpt.isEmpty()) {
             // Try getting any component with that handle
-            var anyOpt = targetItem.content().getLive(frameKey, Object.class);
+            var anyOpt = targetItem.frames().getLive(frameKey, Object.class);
             if (anyOpt.isPresent()) {
                 Object component = anyOpt.get();
                 // If it's an ExpressionComponent, evaluate it

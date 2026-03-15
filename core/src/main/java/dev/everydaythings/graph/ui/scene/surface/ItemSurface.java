@@ -211,9 +211,9 @@ public class ItemSurface extends SceneSchema<Item> {
         ListSurface childList = new ListSurface();
 
         // Add tables if non-empty (render them at COMPACT mode)
-        if (!item.content().isEmpty()) {
-            childList.add(createTableSurface(item.content().emoji(), item.content().displayToken(),
-                    item.content().displaySubtitle(), null));
+        if (!item.frames().isEmpty()) {
+            childList.add(createTableSurface(item.frames().emoji(), item.frames().displayToken(),
+                    item.frames().displaySubtitle(), null));
         }
 
         if (!childList.items().isEmpty()) {

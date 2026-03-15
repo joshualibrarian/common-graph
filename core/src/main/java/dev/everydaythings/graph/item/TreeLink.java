@@ -347,7 +347,7 @@ public class TreeLink {
     private Optional<Inspectable> resolveInspectable(FrameKey key) {
         Optional<Item> item = resolver.apply(target.target());
         if (item.isEmpty()) return Optional.empty();
-        return item.get().content().getLive(key)
+        return item.get().frames().getLive(key)
                 .filter(o -> o instanceof Inspectable)
                 .map(o -> (Inspectable) o);
     }

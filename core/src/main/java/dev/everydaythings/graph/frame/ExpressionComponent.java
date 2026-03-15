@@ -189,30 +189,33 @@ public class ExpressionComponent implements Canonical {
     }
 
     /**
-     * Create a pattern query expression (replaces QueryComponent).
+     * Create a pattern query expression.
      */
     public static ExpressionComponent pattern(ItemID subject, ItemID predicate, ItemID object) {
-        return new ExpressionComponent(
-                dev.everydaythings.graph.frame.expression.PatternExpression.pattern(
-                        subject, predicate, object),
-                null, null);
+        // Map S→P→O to frame query: theme=subject, predicate=predicate, binding(GOAL→object)
+        var builder = dev.everydaythings.graph.frame.expression.FrameQuery.builder()
+                .predicate(predicate).theme(subject);
+        if (object != null) builder.binding(
+                ItemID.fromString("cg.role:goal"),
+                dev.everydaythings.graph.frame.BindingTarget.iid(object));
+        return new ExpressionComponent(builder.build(), null, null);
     }
 
     /**
-     * Create a "subjects" query: ? → P → *
+     * Create a "subjects" query: who has [predicate]?
      */
     public static ExpressionComponent subjects(ItemID predicate) {
         return new ExpressionComponent(
-                dev.everydaythings.graph.frame.expression.PatternExpression.subjects(predicate),
+                dev.everydaythings.graph.frame.expression.FrameQuery.withPredicate(predicate),
                 null, null);
     }
 
     /**
-     * Create an "objects" query: * → P → ?
+     * Create an "objects" query: what is the [predicate] of anything?
      */
     public static ExpressionComponent objects(ItemID predicate) {
         return new ExpressionComponent(
-                dev.everydaythings.graph.frame.expression.PatternExpression.objects(predicate),
+                dev.everydaythings.graph.frame.expression.FrameQuery.withPredicate(predicate),
                 null, null);
     }
 

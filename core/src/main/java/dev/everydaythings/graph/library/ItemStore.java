@@ -116,8 +116,8 @@ public interface ItemStore extends Service {
      * @param recordCid The CID of the RECORD bytes
      * @return The frame body, or empty if not found
      */
-    default Optional<FrameBody> relation(ContentID recordCid) {
-        byte[] bytes = retrieveRelation(recordCid);
+    default Optional<FrameBody> frameBody(ContentID recordCid) {
+        byte[] bytes = retrieveFrameBody(recordCid);
         if (bytes == null) return Optional.empty();
         return Optional.of(Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD));
     }
@@ -128,7 +128,7 @@ public interface ItemStore extends Service {
      * @param r The frame body to store
      * @return The content ID of the stored RECORD bytes
      */
-    default ContentID relation(FrameBody r) {
+    default ContentID storeFrameBody(FrameBody r) {
         byte[] record = r.encodeBinary(Canonical.Scope.RECORD);
         var cid = new ContentID[1];
         runInWriteTransaction(tx -> cid[0] = persistContent(record, tx));
@@ -255,7 +255,7 @@ public interface ItemStore extends Service {
      * @param recordCid The CID of the RECORD bytes
      * @return The frame body record bytes, or null if not found
      */
-    default byte[] retrieveRelation(ContentID recordCid) {
+    default byte[] retrieveFrameBody(ContentID recordCid) {
         return retrieveContent(recordCid);
     }
 
@@ -360,7 +360,7 @@ public interface ItemStore extends Service {
      * @return The implementing Java class, or empty if not found
      */
     default Optional<Class<?>> findImplementation(ItemID typeId) {
-        return relations()
+        return frameBodies()
                 .filter(rel -> rel.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
                 .filter(rel -> typeId.equals(rel.bindingId(ItemID.fromString("cg.role:theme"))))
                 .findFirst()
@@ -483,10 +483,8 @@ public interface ItemStore extends Service {
      * silently skipping non-frame content.
      *
      * @return Stream of decoded frame bodies
-     * @deprecated Use frame index queries instead.
      */
-    @Deprecated
-    default Stream<FrameBody> relations() {
+    default Stream<FrameBody> frameBodies() {
         return StreamSupport.stream(iterateObjects().spliterator(), false)
                 .flatMap(bytes -> {
                     try {

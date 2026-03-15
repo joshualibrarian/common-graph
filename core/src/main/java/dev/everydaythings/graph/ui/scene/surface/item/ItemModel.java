@@ -434,7 +434,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 // Check the item's components for a @Surface annotation.
                 // This allows navigating to an Item (e.g., a clock) and
                 // automatically seeing its component's rendered surface.
-                for (Frame frame : ci.content()) {
+                for (Frame frame : ci.frames()) {
                     Object live = ci.component(frame.frameKey());
                     if (live != null) {
                         SurfaceSchema cs = resolveLiveSurface(live);
@@ -561,7 +561,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     @SuppressWarnings("unchecked")
     private SurfaceSchema assembleSurfaceMounts(Item item) {
         List<SurfaceSchema> surfaces = new ArrayList<>();
-        var table = item.content();
+        var table = item.frames();
         for (Frame frame : table) {
             for (Mount mount : table.mountsFor(frame.frameKey())) {
                 if (mount instanceof Mount.SurfaceMount) {
@@ -1033,7 +1033,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         Optional<Item> focused = resolver.apply(context.target());
         if (focused.isEmpty()) return null;
 
-        for (Frame frame : focused.get().content()) {
+        for (Frame frame : focused.get().frames()) {
             if (!frame.frameKey().toCanonicalString().equals(handleKey)) continue;
 
             Object instance = frame.instance();
@@ -1095,7 +1095,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 .style("config-panel");
 
         List<Frame> entries = new ArrayList<>();
-        for (Frame frame : item.content()) { entries.add(frame); }
+        for (Frame frame : item.frames()) { entries.add(frame); }
         entries.sort(Comparator.comparing(Frame::displayToken, String.CASE_INSENSITIVE_ORDER));
 
         boolean hasSettings = false;
@@ -1244,7 +1244,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         }
 
         List<Frame> entries = new ArrayList<>();
-        for (Frame frame : item.content()) { entries.add(frame); }
+        for (Frame frame : item.frames()) { entries.add(frame); }
         entries.sort(Comparator.comparing(Frame::displayToken, String.CASE_INSENSITIVE_ORDER));
         for (Frame entry : entries) {
             // Frame does not carry vocabulary contributions directly.

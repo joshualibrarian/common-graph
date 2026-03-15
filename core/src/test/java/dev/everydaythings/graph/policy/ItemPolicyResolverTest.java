@@ -447,7 +447,10 @@ class ItemPolicyResolverTest {
     }
 
     private Roster findRoster() {
-        var hid = item.content().resolveAlias("roster");
-        return hid.flatMap(h -> item.content().getLive(h, Roster.class)).orElse(null);
+        Roster[] found = new Roster[1];
+        item.frames().forEachLive(Roster.class, r -> {
+            if (found[0] == null) found[0] = r;
+        });
+        return found[0];
     }
 }

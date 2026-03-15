@@ -1015,18 +1015,6 @@ public interface Canonical {
         boolean setting() default false;
     }
 
-    // =========================================================================
-    // DECODER ANNOTATION (deprecated — use @Factory instead)
-    // =========================================================================
-
-    /**
-     * @deprecated Use {@link dev.everydaythings.graph.item.Factory} instead.
-     */
-    @Deprecated
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    @interface Decoder {
-    }
 
     // =========================================================================
     // DECODER CACHE

@@ -21,9 +21,9 @@
  *     <td>Constant values</td>
  *   </tr>
  *   <tr>
- *     <td>{@link PatternExpression}</td>
- *     <td>{@code ? → implemented-by → *}</td>
- *     <td>Graph pattern queries</td>
+ *     <td>{@link FrameQuery}</td>
+ *     <td>{@code predicate=AUTHOR, theme=THE_HOBBIT}</td>
+ *     <td>Frame queries (incomplete frames with holes)</td>
  *   </tr>
  *   <tr>
  *     <td>{@link BinaryExpression}</td>
