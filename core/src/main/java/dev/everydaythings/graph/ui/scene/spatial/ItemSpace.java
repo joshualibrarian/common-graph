@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.ui.scene.spatial;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.Scene;
 
@@ -76,7 +76,7 @@ public class ItemSpace extends SpatialSchema<Item> {
     private void renderComponents(SpatialRenderer out) {
         RenderContext ctx = out.renderContext();
         double autoX = 0;
-        for (FrameEntry entry : value().content()) {
+        for (Frame entry : value().content()) {
             Object component = value().content()
                     .getLive(entry.frameKey()).orElse(null);
             if (component == null) continue;

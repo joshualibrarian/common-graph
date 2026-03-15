@@ -155,7 +155,10 @@ public class Lexicon implements Selectable {
                 String form = language.inflect(lexeme, features);
                 // Skip if form equals the base word (already indexed by add())
                 if (form != null && !form.equals(lexeme.word())) {
-                    postings.add(Posting.scoped(form, languageId, lexeme.sememe(), lexeme.frequency()));
+                    // Combine POS with inflection features: e.g. {VERB, PAST} or {NOUN, PLURAL}
+                    Set<ItemID> combined = new HashSet<>(features);
+                    combined.add(lexeme.partOfSpeech());
+                    postings.add(Posting.scoped(form, languageId, lexeme.sememe(), lexeme.frequency(), combined));
                 }
             }
         }

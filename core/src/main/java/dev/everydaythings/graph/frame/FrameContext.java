@@ -23,12 +23,12 @@ public final class FrameContext {
     /** This frame's key on the item. */
     private final FrameKey key;
 
-    /** The endorsement entry for this frame (null for unendorsed frames). */
-    private final FrameEntry entry;
+    /** The frame (null for unendorsed frames). */
+    private final Frame frame;
 
-    public FrameContext(Item theme, FrameKey key, FrameEntry entry) {
+    public FrameContext(Item theme, FrameKey key, Frame frame) {
         this.theme = theme;
         this.key = key;
-        this.entry = entry;
+        this.frame = frame;
     }
 }

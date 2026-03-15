@@ -1,7 +1,10 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval;
+
+import java.util.Set;
 
 /**
  * Runtime binding role for parser terms.
@@ -19,16 +22,19 @@ public enum BindingRole {
 
     /**
      * Classify a resolved token into a runtime binding role.
+     *
+     * @param item     The resolved item (nullable)
+     * @param token    The resolved token
+     * @param features Grammatical features from the token pipeline (POS is a feature)
      */
-    public static BindingRole classify(Item item, Eval.ResolvedToken token) {
-        if (item instanceof Sememe sememe) {
-            var pos = sememe.pos();
-            if (pos.equals(PartOfSpeech.VERB)) return ACTION;
-            if (pos.equals(PartOfSpeech.NOUN) || pos.equals(PartOfSpeech.PRONOUN)) return REFERENCE;
+    public static BindingRole classify(Item item, Eval.ResolvedToken token, Set<ItemID> features) {
+        if (!features.isEmpty()) {
+            if (features.contains(PartOfSpeech.VERB)) return ACTION;
+            if (features.contains(PartOfSpeech.NOUN) || features.contains(PartOfSpeech.PRONOUN)) return REFERENCE;
             // ADJECTIVE, ADVERB, PREPOSITION, CONJUNCTION, INTERJECTION
             return QUALIFIER;
         }
-        // Non-sememe items and literals behave as references in frame bindings.
+        // No features available — non-sememe items and literals behave as references.
         return REFERENCE;
     }
 }

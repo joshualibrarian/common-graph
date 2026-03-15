@@ -25,9 +25,10 @@ import java.util.stream.Stream;
 /**
  * A Sememe is a unit of meaning, like "meters" are a unit of measure.
  *
- * <p>Concrete base for all meaning-carrying types. Part of speech is a
- * property ({@link #pos()}), not a class identity — any sememe can serve
- * as a predicate, type definition, or vocabulary entry regardless of POS.
+ * <p>Concrete base for all meaning-carrying types. Part of speech is NOT
+ * a property of the sememe — it is a lexical feature on {@link Lexeme},
+ * where it linguistically belongs. Any sememe can serve as a predicate,
+ * type definition, or vocabulary entry.
  *
  * <p>Seed constants are organized by domain into vocabulary classes:
  * <ul>
@@ -77,11 +78,6 @@ public class Sememe extends Item {
     @Getter
     @Frame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
-
-    /** Part of speech — an ItemID referencing a POS value seed (e.g., PartOfSpeech.VERB). */
-    @Getter
-    @Frame(key = {PartOfSpeech.Predicate.KEY})
-    private ItemID pos;
 
     /**
      * Glosses by language for bootstrap (e.g., {"en": "the creator..."}).
@@ -178,50 +174,43 @@ public class Sememe extends Item {
     /**
      * Create a seed sememe (no librarian, deterministic IID).
      *
-     * <p>This constructor is for defining sememes as static constants.
-     * The IID is derived from the canonical key.
-     *
      * @param canonicalKey The canonical key (e.g., "cg.core:author")
-     * @param pos          Part of speech
      * @param glosses      Glosses by language
      * @param sources      External source references
      */
-    protected Sememe(String canonicalKey, ItemID pos,
+    protected Sememe(String canonicalKey,
                      Map<String, String> glosses, Map<String, String> sources) {
-        this(canonicalKey, pos, glosses, sources, List.of(), List.of());
+        this(canonicalKey, glosses, sources, List.of(), List.of());
     }
 
     /**
      * Create a seed sememe with token aliases (English words).
      *
      * @param canonicalKey The canonical key (e.g., "cg.verb:create")
-     * @param pos          Part of speech
      * @param glosses      Glosses by language
      * @param sources      External source references
      * @param tokens       English word aliases (e.g., "create", "new", "make")
      */
-    protected Sememe(String canonicalKey, ItemID pos,
+    protected Sememe(String canonicalKey,
                      Map<String, String> glosses, Map<String, String> sources,
                      List<String> tokens) {
-        this(canonicalKey, pos, glosses, sources, List.of(), tokens);
+        this(canonicalKey, glosses, sources, List.of(), tokens);
     }
 
     /**
      * Create a seed sememe with both symbols and tokens.
      *
      * @param canonicalKey The canonical key
-     * @param pos          Part of speech
      * @param glosses      Glosses by language
      * @param sources      External source references
      * @param symbols      Language-neutral symbols (universal scope)
      * @param tokens       English word aliases (language-scoped)
      */
-    protected Sememe(String canonicalKey, ItemID pos,
+    protected Sememe(String canonicalKey,
                      Map<String, String> glosses, Map<String, String> sources,
                      List<String> symbols, List<String> tokens) {
         super(ItemID.fromString(canonicalKey));
         this.canonicalKey = canonicalKey;
-        this.pos = pos;
         this.glosses = Map.copyOf(glosses);
         this.sources = Map.copyOf(sources);
         this.symbols = List.copyOf(symbols);
@@ -233,12 +222,10 @@ public class Sememe extends Item {
      * for use with chained {@link #gloss}, {@link #token}, {@link #cili}, etc.
      *
      * @param canonicalKey The canonical key (e.g., "cg.core:author")
-     * @param pos          Part of speech
      */
-    public Sememe(String canonicalKey, ItemID pos) {
+    public Sememe(String canonicalKey) {
         super(ItemID.fromString(canonicalKey));
         this.canonicalKey = canonicalKey;
-        this.pos = pos;
         this.glosses = new HashMap<>();
         this.sources = new HashMap<>();
         this.symbols = new ArrayList<>();
@@ -250,15 +237,13 @@ public class Sememe extends Item {
      *
      * @param librarian    The librarian for storage
      * @param canonicalKey The canonical key
-     * @param pos          Part of speech
      * @param glosses      Glosses by language
      * @param sources      External source references
      */
-    public Sememe(Librarian librarian, String canonicalKey, ItemID pos,
+    public Sememe(Librarian librarian, String canonicalKey,
                   Map<String, String> glosses, Map<String, String> sources) {
         super(librarian, ItemID.fromString(canonicalKey));
         this.canonicalKey = canonicalKey;
-        this.pos = pos;
         this.glosses = Map.copyOf(glosses);
         this.sources = Map.copyOf(sources);
         this.symbols = List.of();
@@ -288,20 +273,19 @@ public class Sememe extends Item {
     }
 
     /**
-     * Create and commit a sememe, dispatching to the correct subclass based on POS.
+     * Create and commit a sememe.
      *
      * @param librarian    The librarian for storage
      * @param signer       The signer to sign with
      * @param canonicalKey The canonical key
-     * @param pos          Part of speech
      * @param glosses      Glosses by language
      * @param sources      External source references
      * @return The created and committed sememe
      */
     public static Sememe create(Librarian librarian, Signer signer,
-                                String canonicalKey, ItemID pos,
+                                String canonicalKey,
                                 Map<String, String> glosses, Map<String, String> sources) {
-        Sememe sememe = new Sememe(librarian, canonicalKey, pos, glosses, sources);
+        Sememe sememe = new Sememe(librarian, canonicalKey, glosses, sources);
         sememe.commit(signer);
         return sememe;
     }
@@ -328,12 +312,25 @@ public class Sememe extends Item {
      * @param lang    language code (e.g., ENG)
      * @param surface the written word
      */
-    public Sememe word(Sememe form, String lang, String surface) {
+    /**
+     * Declare a word form with explicit part of speech.
+     *
+     * @param pos     the part of speech (e.g., PartOfSpeech.VERB)
+     * @param form    the grammatical form (LEMMA, PAST, PLURAL, etc.)
+     * @param lang    language code (e.g., ENG)
+     * @param surface the written word
+     */ // TODO: don't we ALSO need the GramaticalFeatures here?  Perhaps they could go at the end with a `...` syntax?
+    public Sememe word(ItemID pos, Sememe form, String lang, String surface) {
         if (this.lexemeDeclarations == null) this.lexemeDeclarations = new ArrayList<>();
-        this.lexemeDeclarations.add(new LexemeDeclaration(form, lang, surface));
+        this.lexemeDeclarations.add(new LexemeDeclaration(pos, form, lang, surface));
         // Also populate transient tokens list for bootstrap indexing compatibility
         this.tokens.add(surface);
         return this;
+    }
+
+    //TODO: I feel like this method may need some improvement... don't we need to be ABLE to pass in other (multiple) grammatical features.  We should be able to set the PAST or whatever using this method... even though we mostly probably won't, we should be able to.  Perhaps we move it to the end of the method and use varargs?
+    public Sememe word(Sememe form, String lang, String surface) {
+        return word(PartOfSpeech.NOUN, form, lang, surface);
     }
 
     /** Set the CILI (Collaborative Interlingual Index) identifier. */
@@ -400,7 +397,7 @@ public class Sememe extends Item {
                 CoreVocabulary.Rename.SEED, CoreVocabulary.Invite.SEED, CoreVocabulary.Serve.SEED);
     }
 
-    /**
+    /** TODO: this is not a sustainable pattern, we need to refactor this out.  ALL sememes which get imported are scanned for tokens.
      * Get all seed Sememes that have tokens (for indexing).
      *
      * <p>Returns all Sememes that have explicit token aliases defined.
@@ -548,41 +545,41 @@ public class Sememe extends Item {
 
     public static class Any {
         public static final String KEY = "cg.query:any";
-        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+        @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "matches anything; wildcard; any value")
                 .cili("i61150")
                 .symbol("*")
-                .word(LEMMA, ENG, "wildcard").word(LEMMA, ENG, "anything");
+                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "wildcard").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "anything");
     }
 
     public static class What {
         public static final String KEY = "cg.query:what";
-        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+        @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the result being queried for; variable; unknown")
                 .cili("i74896")
                 .symbol("?")
-                .word(LEMMA, ENG, "variable").word(LEMMA, ENG, "result");
+                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "variable").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "result");
     }
 
     public static class It {
         public static final String KEY = "cg.pronoun:it";
-        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+        @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the most recently mentioned or created item")
-                .word(LEMMA, ENG, "it").word(LEMMA, ENG, "that");
+                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "it").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "that");
     }
 
     public static class This {
         public static final String KEY = "cg.pronoun:this";
-        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+        @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the currently focused item")
-                .word(LEMMA, ENG, "this");
+                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "this");
     }
 
     public static class Last {
         public static final String KEY = "cg.pronoun:last";
-        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.PRONOUN)
+        @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the previously mentioned item")
-                .word(LEMMA, ENG, "last").word(LEMMA, ENG, "previous");
+                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "last").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "previous");
     }
 
     // ==================================================================================
@@ -591,16 +588,16 @@ public class Sememe extends Item {
 
     public static class And {
         public static final String KEY = "cg.conj:and";
-        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.CONJUNCTION)
+        @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "coordinating conjunction; connects elements")
-                .word(LEMMA, ENG, "and");
+                .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "and");
     }
 
     public static class Or {
         public static final String KEY = "cg.conj:or";
-        @Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.CONJUNCTION)
+        @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "coordinating disjunction; alternative elements")
-                .word(LEMMA, ENG, "or");
+                .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "or");
     }
 
     // ==================================================================================
@@ -629,10 +626,10 @@ public class Sememe extends Item {
     public Optional<Class<?>> resolveImplementingClass() {
         if (content() != null) {
             ItemID implPredicate = CoreVocabulary.ImplementedBy.SEED.iid();
-            var it = content().relationEntries().iterator();
+            var it = content().relationFrames().iterator();
             while (it.hasNext()) {
-                var entry = it.next();
-                Optional<Object> live = content().getLive(entry.frameKey());
+                var frame = it.next();
+                Optional<Object> live = content().getLive(frame.frameKey());
                 if (live.isPresent() && live.get() instanceof FrameBody body) {
                     if (implPredicate.equals(body.predicate())) {
                         BindingTarget target = body.bindings().get(ThematicRole.Goal.SEED.iid());
@@ -675,7 +672,7 @@ public class Sememe extends Item {
      * @param lang    language code (e.g., "en")
      * @param surface the written word
      */
-    public record LexemeDeclaration(Sememe form, String lang, String surface) {}
+    public record LexemeDeclaration(ItemID pos, Sememe form, String lang, String surface) {}
 
     /**
      * Describes facets of a predicate (domain, range, cardinality, etc.)

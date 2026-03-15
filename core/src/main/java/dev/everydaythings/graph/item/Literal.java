@@ -74,6 +74,9 @@ public final class Literal implements BindingTarget {
     /** Well-known type for instant/timestamp values (epoch millis). */
     public static final ItemID TYPE_INSTANT = ItemID.fromString("cg.value:instant");
 
+    /** Well-known type for opaque CBOR payloads (structured config, policy, etc.). */
+    public static final ItemID TYPE_CBOR = ItemID.fromString("cg.value:cbor");
+
     /* ------------------------ Well-known address type IDs ------------------------ */
 
     /** Well-known type for Java class addresses (fully qualified class names). */

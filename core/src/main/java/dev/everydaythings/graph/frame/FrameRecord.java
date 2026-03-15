@@ -29,7 +29,7 @@ import java.util.Objects;
  * unendorsed frames (likes, annotations, trust attestations).
  *
  * @see FrameBody
- * @see FrameEntry
+ * @see Frame
  */
 @Getter
 public final class FrameRecord implements Signing.Target {

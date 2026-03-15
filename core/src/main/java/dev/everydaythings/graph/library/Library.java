@@ -514,9 +514,13 @@ public final class Library implements Canonical, AutoCloseable {
      * @return The content CID of the stored body bytes
      */
     public ContentID storeFrameBody(FrameBody body, ItemStore targetStore) {
-        // Store the body bytes (content-addressed)
+        // Store the BODY-scope bytes (identity hash, content-addressed)
         ContentID bodyCid = ContentID.of(body.bodyBytes());
         targetStore.runInWriteTransaction(tx -> targetStore.persistContent(body.bodyBytes(), tx));
+
+        // Also store RECORD-scope bytes (includes all bindings, needed for reconstruction)
+        byte[] recordBytes = body.encodeBinary(Canonical.Scope.RECORD);
+        targetStore.runInWriteTransaction(tx -> targetStore.persistContent(recordBytes, tx));
 
         // Index in library's index
         index().ifPresent(idx -> {

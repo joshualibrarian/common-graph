@@ -5,12 +5,11 @@ import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Type;
-import dev.everydaythings.graph.frame.FrameTable;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.LibraryException;
@@ -267,11 +266,11 @@ public final class WorkingTreeStore implements ItemStore {
      * Save component metadata to head/components/ directory.
      * This allows fast component table loading on boot without parsing the full manifest.
      *
-     * @param components The component entries to save
-     * @param wtx        Write transaction
+     * @param frames The component frames to save
+     * @param wtx    Write transaction
      */
-    public void saveHeadComponents(List<FrameEntry> components, WriteTransaction wtx) {
-        Objects.requireNonNull(components, "components");
+    public void saveHeadComponents(List<Frame> frames, WriteTransaction wtx) {
+        Objects.requireNonNull(frames, "frames");
         Objects.requireNonNull(wtx, "wtx");
 
         Path componentsDir = headDir().resolve(DIR_COMPONENTS);
@@ -290,11 +289,45 @@ public final class WorkingTreeStore implements ItemStore {
             throw new UncheckedIOException("Failed to clear head/components", e);
         }
 
-        // Write each component entry
-        for (FrameEntry entry : components) {
-            String filename = hex(entry.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
+        // Write each frame (no mounts needed for per-frame save; mounts are saved separately)
+        for (Frame frame : frames) {
+            String filename = hex(frame.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
             Path file = componentsDir.resolve(filename);
-            byte[] bytes = entry.encodeBinary(Canonical.Scope.RECORD);
+            byte[] bytes = frame.encodeLegacyCbor(List.of());
+            fsTx.stageAtomicReplace(file, bytes);
+        }
+    }
+
+    /**
+     * Save component metadata from an EndorsementsTable.
+     * Each frame is encoded with its associated mounts from the table.
+     */
+    @Override
+    public void saveHeadComponents(dev.everydaythings.graph.frame.EndorsementsTable table, WriteTransaction wtx) {
+        Objects.requireNonNull(table, "table");
+        Objects.requireNonNull(wtx, "wtx");
+
+        Path componentsDir = headDir().resolve(DIR_COMPONENTS);
+        FsTx fsTx = (FsTx) wtx;
+
+        // Clear existing component files
+        try {
+            if (Files.exists(componentsDir)) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(componentsDir)) {
+                    for (Path file : stream) {
+                        fsTx.stageDelete(file);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to clear head/components", e);
+        }
+
+        // Write each frame with its mounts
+        for (Frame frame : table) {
+            String filename = hex(frame.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
+            Path file = componentsDir.resolve(filename);
+            byte[] bytes = frame.encodeLegacyCbor(table.mountsFor(frame.frameKey()));
             fsTx.stageAtomicReplace(file, bytes);
         }
     }
@@ -305,24 +338,24 @@ public final class WorkingTreeStore implements ItemStore {
      *
      * @return List of component entries
      */
-    public List<FrameEntry> loadHeadComponents() {
+    public List<Frame> loadHeadComponents() {
         Path componentsDir = headDir().resolve(DIR_COMPONENTS);
         if (!Files.exists(componentsDir)) {
             return List.of();
         }
 
-        List<FrameEntry> components = new ArrayList<>();
+        List<Frame> frames = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(componentsDir, "*.cbor")) {
             for (Path file : stream) {
                 byte[] bytes = Files.readAllBytes(file);
-                FrameEntry entry = FrameEntry.decode(bytes);
-                components.add(entry);
+                Frame frame = Frame.decodeLegacyCbor(bytes);
+                frames.add(frame);
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to load head/components", e);
         }
 
-        return components;
+        return frames;
     }
 
     /**
@@ -331,7 +364,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param key The component frame key
      * @return The component entry, or empty if not found
      */
-    public Optional<FrameEntry> loadHeadComponent(FrameKey key) {
+    public Optional<Frame> loadHeadComponent(FrameKey key) {
         Objects.requireNonNull(key, "key");
 
         Path file = headDir().resolve(DIR_COMPONENTS).resolve(
@@ -342,7 +375,7 @@ public final class WorkingTreeStore implements ItemStore {
 
         try {
             byte[] bytes = Files.readAllBytes(file);
-            return Optional.of(FrameEntry.decode(bytes));
+            return Optional.of(Frame.decodeLegacyCbor(bytes));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to load component: " + key, e);
         }
@@ -379,10 +412,10 @@ public final class WorkingTreeStore implements ItemStore {
      *
      * @param content The content table to derive mount paths from
      */
-    public void materializeMountPaths(FrameTable content) {
-        for (FrameEntry entry : content) {
-            if (entry.isLocalResource()) continue;
-            for (Mount.PathMount pm : entry.pathMounts()) {
+    public void materializeMountPaths(dev.everydaythings.graph.frame.EndorsementsTable content) {
+        for (dev.everydaythings.graph.frame.Frame frame : content) {
+            if (frame.body() != null && frame.body().isExternal()) continue;
+            for (Mount.PathMount pm : content.pathMountsFor(frame.frameKey())) {
                 String mountPath = pm.path();
                 if ("/".equals(mountPath)) continue;
 

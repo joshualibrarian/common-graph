@@ -29,8 +29,8 @@ class FrameEntryTest {
         void referenceFactoryCreatesEntry() {
             FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
 
-            assertThat(entry.isReference()).isTrue();
-            assertThat(entry.payload().referenceTarget()).isEqualTo(TARGET);
+            assertThat(entry.body().isReference()).isTrue();
+            assertThat(entry.body().referenceTargetId()).isEqualTo(TARGET);
             assertThat(entry.frameKey()).isEqualTo(HANDLE);
             assertThat(entry.type()).isEqualTo(TYPE);
         }
@@ -69,7 +69,7 @@ class FrameEntryTest {
         @DisplayName("reference has no snapshot")
         void referenceHasNoSnapshot() {
             FrameEntry entry = FrameEntry.reference(HANDLE, TYPE, TARGET);
-            assertThat(entry.hasSnapshot()).isFalse();
+            assertThat(entry.body().hasContent()).isFalse();
         }
 
         @Test
@@ -111,21 +111,21 @@ class FrameEntryTest {
         void snapshotIsNotReference() {
             ContentID cid = new ContentID(new byte[32], Hash.DEFAULT);
             FrameEntry entry = FrameEntry.snapshot(HANDLE, TYPE, cid);
-            assertThat(entry.isReference()).isFalse();
+            assertThat(entry.body().isReference()).isFalse();
         }
 
         @Test
         @DisplayName("stream is not a reference")
         void streamIsNotReference() {
             FrameEntry entry = FrameEntry.stream(HANDLE, TYPE, List.of(), true);
-            assertThat(entry.isReference()).isFalse();
+            assertThat(entry.body().isReference()).isFalse();
         }
 
         @Test
         @DisplayName("local resource is not a reference")
         void localResourceIsNotReference() {
             FrameEntry entry = FrameEntry.localResource(HANDLE, TYPE);
-            assertThat(entry.isReference()).isFalse();
+            assertThat(entry.body().isReference()).isFalse();
             assertThat(entry.isLocalResource()).isTrue();
         }
     }
@@ -141,8 +141,8 @@ class FrameEntryTest {
             byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
             FrameEntry decoded = FrameEntry.decode(bytes);
 
-            assertThat(decoded.isReference()).isTrue();
-            assertThat(decoded.payload().referenceTarget()).isEqualTo(TARGET);
+            assertThat(decoded.body().isReference()).isTrue();
+            assertThat(decoded.body().referenceTargetId()).isEqualTo(TARGET);
             assertThat(decoded.alias()).isEqualTo("myref");
             assertThat(decoded.type()).isEqualTo(TYPE);
             assertThat(decoded.identity()).isFalse();
@@ -156,9 +156,9 @@ class FrameEntryTest {
             byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
             FrameEntry decoded = FrameEntry.decode(bytes);
 
-            assertThat(decoded.isReference()).isFalse();
-            assertThat(decoded.payload().referenceTarget()).isNull();
-            assertThat(decoded.hasSnapshot()).isTrue();
+            assertThat(decoded.body().isReference()).isFalse();
+            assertThat(decoded.body().referenceTargetId()).isNull();
+            assertThat(decoded.body().hasContent()).isTrue();
         }
     }
 }

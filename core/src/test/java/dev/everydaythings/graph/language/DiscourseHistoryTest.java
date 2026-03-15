@@ -3,8 +3,6 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.item.Item;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -12,12 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class DiscourseHistoryTest {
 
-    private static final Item ALICE = new Sememe(
-            "cg:test/alice", PartOfSpeech.NOUN, Map.of("en", "alice"), Map.of());
-    private static final Item BOB = new Sememe(
-            "cg:test/bob", PartOfSpeech.NOUN, Map.of("en", "bob"), Map.of());
-    private static final Item CAROL = new Sememe(
-            "cg:test/carol", PartOfSpeech.NOUN, Map.of("en", "carol"), Map.of());
+    private static final Item ALICE = new Sememe("cg:test/alice").gloss("en", "alice");
+    private static final Item BOB = new Sememe("cg:test/bob").gloss("en", "bob");
+    private static final Item CAROL = new Sememe("cg:test/carol").gloss("en", "carol");
 
     @Test
     void emptyHistoryReturnsEmpty() {

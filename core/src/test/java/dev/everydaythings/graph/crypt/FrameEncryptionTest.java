@@ -4,7 +4,7 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.library.ItemStore;
@@ -73,8 +73,7 @@ class FrameEncryptionTest {
             // Check that at least one non-local frame entry has an encryptedCid
             // (localOnly frames like vault should NOT be encrypted)
             boolean anyEncrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null)
-                    .anyMatch(e -> e.payload().isEncrypted());
+                    .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("At least one frame should be encrypted")
                     .isTrue();
@@ -90,21 +89,21 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted frame entry
-            Optional<FrameEntry> encrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().isEncrypted())
+            Optional<Frame> encrypted = librarian.content().stream()
+                    .filter(e -> e.body().isEncrypted())
                     .findFirst();
 
             assertThat(encrypted).isPresent();
-            FrameEntry entry = encrypted.get();
-            assertThat(entry.payload().snapshotCid())
+            Frame entry = encrypted.get();
+            assertThat(entry.body().contentCid())
                     .as("snapshotCid should be set (plaintext hash)")
                     .isNotNull();
-            assertThat(entry.payload().encryptedCid())
+            assertThat(entry.body().encryptedCid())
                     .as("encryptedCid should be set (envelope hash)")
                     .isNotNull();
-            assertThat(entry.payload().snapshotCid())
+            assertThat(entry.body().contentCid())
                     .as("snapshotCid and encryptedCid should differ")
-                    .isNotEqualTo(entry.payload().encryptedCid());
+                    .isNotEqualTo(entry.body().encryptedCid());
         }
 
         @Test
@@ -112,8 +111,7 @@ class FrameEncryptionTest {
         void cleartextCommitNoEncryptedCid() {
             // Librarian's initial commit is cleartext
             boolean anyEncrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null)
-                    .anyMatch(e -> e.payload().isEncrypted());
+                    .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("No frames should be encrypted without EncryptionContext")
                     .isFalse();
@@ -126,8 +124,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, EncryptionContext.NONE);
 
             boolean anyEncrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null)
-                    .anyMatch(e -> e.payload().isEncrypted());
+                    .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("NONE context should produce no encryption")
                     .isFalse();
@@ -143,17 +140,15 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // vault is localOnly — should not be encrypted even with allFrames
-            Optional<FrameEntry> vaultEntry = librarian.content().stream()
+            Optional<Frame> vaultEntry = librarian.content().stream()
                     .filter(e -> "vault".equals(e.alias()))
                     .findFirst();
 
-            // If vault has a payload, it should not be encrypted
+            // Vault is localOnly — should not be encrypted
             vaultEntry.ifPresent(entry -> {
-                if (entry.payload() != null) {
-                    assertThat(entry.payload().isEncrypted())
-                            .as("localOnly frames should not be encrypted")
-                            .isFalse();
-                }
+                assertThat(entry.body().isEncrypted())
+                        .as("localOnly frames should not be encrypted")
+                        .isFalse();
             });
         }
     }
@@ -172,12 +167,12 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry
-            Optional<FrameEntry> encrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().isEncrypted())
+            Optional<Frame> encrypted = librarian.content().stream()
+                    .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();
 
-            ContentID encCid = encrypted.get().payload().encryptedCid();
+            ContentID encCid = encrypted.get().body().encryptedCid();
             ItemStore store = librarian.library().primaryStore().orElseThrow();
 
             // The object store should have content at the encryptedCid
@@ -203,12 +198,12 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry
-            Optional<FrameEntry> encrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().isEncrypted())
+            Optional<Frame> encrypted = librarian.content().stream()
+                    .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();
 
-            ContentID snapshotCid = encrypted.get().payload().snapshotCid();
+            ContentID snapshotCid = encrypted.get().body().contentCid();
             ItemStore store = librarian.library().primaryStore().orElseThrow();
 
             // The plaintext should NOT be stored — only the encrypted envelope is stored
@@ -239,12 +234,12 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry and verify the envelope has 2 recipients
-            Optional<FrameEntry> encrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().isEncrypted())
+            Optional<Frame> encrypted = librarian.content().stream()
+                    .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();
 
-            ContentID encCid = encrypted.get().payload().encryptedCid();
+            ContentID encCid = encrypted.get().body().encryptedCid();
             ItemStore store = librarian.library().primaryStore().orElseThrow();
             byte[] envelopeBytes = store.content(encCid).orElseThrow();
 
@@ -266,8 +261,8 @@ class FrameEncryptionTest {
             assertThat(libEncKey).isNotNull();
 
             // Set an EncryptionPolicy on a non-local frame's config
-            Optional<FrameEntry> frame = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().snapshotCid() != null)
+            Optional<Frame> frame = librarian.content().stream()
+                    .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
             String targetAlias = frame.get().alias();
@@ -282,7 +277,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian);
 
             // After commit, the entry should still have the encryption policy
-            Optional<FrameEntry> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.content().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
@@ -326,8 +321,8 @@ class FrameEncryptionTest {
             assertThat(libEncKey).isNotNull();
 
             // Set an EncryptionPolicy with the librarian's own IID as recipient
-            Optional<FrameEntry> frame = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().snapshotCid() != null)
+            Optional<Frame> frame = librarian.content().stream()
+                    .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
             String targetAlias = frame.get().alias();
@@ -343,11 +338,11 @@ class FrameEncryptionTest {
             librarian.commit(librarian);
 
             // The frame should now be encrypted
-            Optional<FrameEntry> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.content().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
-            assertThat(afterCommit.get().payload().isEncrypted())
+            assertThat(afterCommit.get().body().isEncrypted())
                     .as("Frame with EncryptionPolicy recipients should be encrypted")
                     .isTrue();
         }
@@ -359,8 +354,8 @@ class FrameEncryptionTest {
 
             // Set policy with encryptToReaders + an AccessPolicy with a READ rule
             // pointing to the librarian's IID
-            Optional<FrameEntry> frame = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().snapshotCid() != null)
+            Optional<Frame> frame = librarian.content().stream()
+                    .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
             String targetAlias = frame.get().alias();
@@ -385,11 +380,11 @@ class FrameEncryptionTest {
             librarian.commit(librarian);
 
             // The frame should be encrypted (recipients derived from READ rule)
-            Optional<FrameEntry> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.content().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
-            assertThat(afterCommit.get().payload().isEncrypted())
+            assertThat(afterCommit.get().body().isEncrypted())
                     .as("encryptToReaders should encrypt to the READ rule's subject")
                     .isTrue();
         }
@@ -398,8 +393,8 @@ class FrameEncryptionTest {
         @DisplayName("encryptToReaders with no AccessPolicy produces no encryption")
         void encryptToReadersWithoutAccessProducesNoEncryption() {
             // Set encryptToReaders but no AccessPolicy — no readers to derive
-            Optional<FrameEntry> frame = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().snapshotCid() != null)
+            Optional<Frame> frame = librarian.content().stream()
+                    .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
             String targetAlias = frame.get().alias();
@@ -413,11 +408,11 @@ class FrameEncryptionTest {
             librarian.edit();
             librarian.commit(librarian);
 
-            Optional<FrameEntry> afterCommit = librarian.content().stream()
+            Optional<Frame> afterCommit = librarian.content().stream()
                     .filter(e -> targetAlias.equals(e.alias()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
-            assertThat(afterCommit.get().payload().isEncrypted())
+            assertThat(afterCommit.get().body().isEncrypted())
                     .as("encryptToReaders with no AccessPolicy should not encrypt")
                     .isFalse();
         }
@@ -444,8 +439,8 @@ class FrameEncryptionTest {
             assertThat(libEncKey).isNotNull();
 
             // Set a "no encryption" policy on a frame
-            Optional<FrameEntry> frame = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().snapshotCid() != null)
+            Optional<Frame> frame = librarian.content().stream()
+                    .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
 
@@ -459,8 +454,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             boolean anyEncrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null)
-                    .anyMatch(e -> e.payload().isEncrypted());
+                    .anyMatch(e -> e.body().isEncrypted());
             assertThat(anyEncrypted)
                     .as("Explicit EncryptionContext should override per-frame policy")
                     .isTrue();
@@ -482,13 +476,13 @@ class FrameEncryptionTest {
             librarian.commit(librarian, ctx);
 
             // Find an encrypted entry
-            Optional<FrameEntry> encrypted = librarian.content().stream()
-                    .filter(e -> e.payload() != null && e.payload().isEncrypted())
+            Optional<Frame> encrypted = librarian.content().stream()
+                    .filter(e -> e.body().isEncrypted())
                     .findFirst();
             assertThat(encrypted).isPresent();
 
             // Manually decrypt the stored envelope to verify the round-trip
-            ContentID encCid = encrypted.get().payload().encryptedCid();
+            ContentID encCid = encrypted.get().body().encryptedCid();
             ItemStore store = librarian.library().primaryStore().orElseThrow();
             byte[] envelopeBytes = store.content(encCid).orElseThrow();
 

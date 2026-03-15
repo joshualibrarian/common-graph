@@ -20,8 +20,8 @@ import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.ActionResult;
-import dev.everydaythings.graph.frame.FrameEntry;
-import dev.everydaythings.graph.frame.FrameTable;
+import dev.everydaythings.graph.frame.EndorsementsTable;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
@@ -163,13 +163,13 @@ public class Item {
     // ==================================================================================
 
     /** Frame table — all endorsed frames on this item. */
-    public FrameTable frames() {
+    public EndorsementsTable frames() {
         return state.frames();
     }
 
     /** @deprecated Use {@link #frames()} */
     @Deprecated
-    public FrameTable content() {
+    public EndorsementsTable content() {
         return frames();
     }
 
@@ -183,13 +183,13 @@ public class Item {
      * @return stream of endorsed FrameBody objects
      */
     public java.util.stream.Stream<FrameBody> endorsedRelations() {
-        return content().relationEntries()
-                .map(entry -> content().getLive(entry.frameKey(), FrameBody.class))
+        return content().relationFrames()
+                .map(frame -> content().getLive(frame.frameKey(), FrameBody.class))
                 .flatMap(java.util.Optional::stream);
     }
 
 
-    /** Per-item policies — stored in FrameTable under well-known handle. */
+    /** Per-item policies — stored in EndorsementsTable under well-known handle. */
     public PolicySet policy() {
         return content().getLive(BuiltinKeys.POLICY, PolicySet.class).orElse(null);
     }
@@ -227,7 +227,7 @@ public class Item {
         // Strip leading slash
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        // Check FrameTable for content()
+        // Check EndorsementsTable for content()
         if (handle.equals("content")) {
             return Optional.of(content().displayToken());
         }
@@ -235,9 +235,9 @@ public class Item {
         // Resolve FrameKey from path component
         FrameKey key = FrameKey.literal(handle);
 
-        // Prefer stable entry metadata to avoid label mutation when a component
+        // Prefer stable frame metadata to avoid label mutation when a component
         // gets lazily hydrated after first render.
-        Optional<String> entryLabel = content().get(key).map(FrameEntry::displayToken);
+        Optional<String> entryLabel = content().getFrame(key).map(dev.everydaythings.graph.frame.Frame::displayToken);
         if (entryLabel.isPresent()) {
             return entryLabel;
         }
@@ -264,7 +264,7 @@ public class Item {
         // Strip leading slash
         String handle = path.startsWith("/") ? path.substring(1) : path;
 
-        // Check FrameTable for content()
+        // Check EndorsementsTable for content()
         if (handle.equals("content")) {
             return Optional.of(content().emoji());
         }
@@ -272,9 +272,9 @@ public class Item {
         // Resolve FrameKey from path component
         FrameKey key = FrameKey.literal(handle);
 
-        // Prefer stable entry metadata to avoid icon mutation when a component
+        // Prefer stable frame metadata to avoid icon mutation when a component
         // gets lazily hydrated after first render.
-        Optional<String> entryEmoji = content().get(key).map(this::resolveEntryEmoji);
+        Optional<String> entryEmoji = content().getFrame(key).map(this::resolveFrameEmoji);
         if (entryEmoji.isPresent()) {
             return entryEmoji;
         }
@@ -288,15 +288,15 @@ public class Item {
     }
 
     /**
-     * Resolve emoji from entry metadata with semantic type fallback.
+     * Resolve emoji from frame metadata with semantic type fallback.
      */
-    private String resolveEntryEmoji(FrameEntry entry) {
-        if (entry == null) return "📦";
-        String typeGlyph = resolveTypeGlyph(entry.type());
+    private String resolveFrameEmoji(dev.everydaythings.graph.frame.Frame frame) {
+        if (frame == null) return "📦";
+        String typeGlyph = resolveTypeGlyph(frame.type());
         if (typeGlyph != null && !typeGlyph.isBlank()) {
             return typeGlyph;
         }
-        return entry.emoji();
+        return frame.emoji();
     }
 
     /**
@@ -341,7 +341,7 @@ public class Item {
     /**
      * Resolve an emoji/glyph for an arbitrary live payload object.
      *
-     * <p>FrameTable payloads are open-ended and not required to implement
+     * <p>EndorsementsTable payloads are open-ended and not required to implement
      * {@link Component}, so this must not rely on a single interface.
      */
     private static String resolvePayloadEmoji(Object payload) {
@@ -480,8 +480,8 @@ public class Item {
     public List<Ref> childrenAtPath(String path) {
         List<Ref> children = new ArrayList<>();
         for (var child : content().childrenAt(path)) {
-            if (child.entry() != null) {
-                children.add(Ref.of(iid(), child.entry().frameKey()));
+            if (child.frame() != null) {
+                children.add(Ref.of(iid(), child.frame().frameKey()));
             } else {
                 children.add(Ref.of(iid()));
             }
@@ -495,14 +495,14 @@ public class Item {
     private List<Ref> childrenInspect() {
         List<Ref> children = new ArrayList<>();
 
-        // All non-built-in component entries (content components, relations).
+        // All non-built-in component frames (content components, relations).
         // Policy now lives under component config metadata and should not appear
         // as a standalone inspect tree component.
-        for (FrameEntry entry : content()) {
-            if (BuiltinKeys.POLICY.equals(entry.frameKey())) {
+        for (dev.everydaythings.graph.frame.Frame frame : content()) {
+            if (BuiltinKeys.POLICY.equals(frame.frameKey())) {
                 continue;
             }
-            Ref ref = entry.ref();
+            Ref ref = frame.ref();
             if (ref != null) {
                 children.add(ref);
             }
@@ -780,8 +780,8 @@ public class Item {
         // 1. Scan content table for string values
         var content = content();
         if (content != null) {
-            for (var entry : content) {
-                var frameKey = entry.frameKey();
+            for (dev.everydaythings.graph.frame.Frame frame : content) {
+                var frameKey = frame.frameKey();
                 var opt = content.getLive(frameKey);
                 if (opt.isPresent()) {
                     Object value = opt.get();
@@ -805,8 +805,8 @@ public class Item {
 
         // 4. Scan path mounts — mounted components get high-weight tokens
         if (content != null) {
-            for (var entry : content) {
-                for (Mount.PathMount pm : entry.pathMounts()) {
+            for (dev.everydaythings.graph.frame.Frame frame : content) {
+                for (Mount.PathMount pm : content.pathMountsFor(frame.frameKey())) {
                     String mountPath = pm.path();
                     if (mountPath != null && !mountPath.isBlank()) {
                         // Leaf segment of the mount path
@@ -950,7 +950,7 @@ public class Item {
     /**
      * Hydrate an existing item from a manifest.
      *
-     * <p>This constructor populates the FrameTable from the manifest,
+     * <p>This constructor populates the EndorsementsTable from the manifest,
      * then calls hydrate() to decode all components and bind fields.
      *
      * @param librarian The librarian (provides store access for content fetching)
@@ -968,8 +968,8 @@ public class Item {
         state.setOwner(this);
 
         // Populate component table from manifest
-        for (FrameEntry entry : manifest.components()) {
-            content().add(entry);
+        for (dev.everydaythings.graph.frame.Frame frame : manifest.components()) {
+            content().add(frame);
         }
 
         // Hydrate: decode all, bind fields, invoke callbacks
@@ -1007,9 +1007,9 @@ public class Item {
             this.freshBoot = false;
             this.dirty = false;
 
-            // Load component entries from store into FrameTable
-            for (FrameEntry entry : wts.loadHeadComponents()) {
-                content().add(entry);
+            // Load component entries from store into table
+            for (dev.everydaythings.graph.frame.Frame frame : wts.loadHeadComponents()) {
+                content().add(frame);
             }
 
             // Hydrate: decode all, bind fields, invoke callbacks
@@ -1021,7 +1021,7 @@ public class Item {
             this.freshBoot = true;
             this.dirty = true;
 
-            // Initialize fresh components (creates defaults, populates FrameTable)
+            // Initialize fresh components (creates defaults, populates EndorsementsTable)
             initializeFreshComponents();
 
             // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1061,7 +1061,7 @@ public class Item {
         // Set owner on state tables before populating them
         state.setOwner(this);
 
-        // Initialize fresh components (creates defaults, populates FrameTable)
+        // Initialize fresh components (creates defaults, populates EndorsementsTable)
         initializeFreshComponents();
 
         // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1111,9 +1111,9 @@ public class Item {
             this.freshBoot = false;
             this.dirty = false;
 
-            // Load component entries from store into FrameTable
-            for (FrameEntry entry : wts.loadHeadComponents()) {
-                content().add(entry);
+            // Load component entries from store into table
+            for (dev.everydaythings.graph.frame.Frame frame : wts.loadHeadComponents()) {
+                content().add(frame);
             }
 
             // Hydrate: decode all, bind fields, invoke callbacks
@@ -1125,7 +1125,7 @@ public class Item {
             this.freshBoot = true;
             this.dirty = true;
 
-            // Initialize fresh components (creates defaults, populates FrameTable)
+            // Initialize fresh components (creates defaults, populates EndorsementsTable)
             initializeFreshComponents();
 
             // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1159,7 +1159,7 @@ public class Item {
         // Set owner on state tables before populating them
         state.setOwner(this);
 
-        // Initialize fresh components (creates defaults, populates FrameTable)
+        // Initialize fresh components (creates defaults, populates EndorsementsTable)
         initializeFreshComponents();
 
         // Hydrate: bind fields and invoke callbacks (components already in table)
@@ -1192,18 +1192,18 @@ public class Item {
         initBuiltinComponents();
         populateVocabulary();
         populateRelationTable();
-        // Sync pre-initialized field values to FrameTable (handles subclass field initializers)
+        // Sync pre-initialized field values to EndorsementsTable (handles subclass field initializers)
         syncFieldValuesToTable();
     }
 
     /**
-     * Sync pre-initialized field values to the FrameTable.
+     * Sync pre-initialized field values to the EndorsementsTable.
      *
      * <p>This handles the case where a subclass has field initializers like:
      * {@code ExpressionComponent typesExpr = ExpressionComponent.subjects(...)}
      *
      * <p>Since superclass constructor runs before subclass field initializers,
-     * the FrameTable may have a default instance while the field has the
+     * the EndorsementsTable may have a default instance while the field has the
      * actual desired value. This method syncs them.
      */
     private void syncFieldValuesToTable() {
@@ -1213,7 +1213,7 @@ public class Item {
             Object fieldValue = spec.getValue(this);
             if (fieldValue == null) continue;
 
-            // Check if FrameTable has a different instance
+            // Check if EndorsementsTable has a different instance
             var tableValue = content().getLive(spec.frameKey(), Object.class);
             if (tableValue.isPresent() && tableValue.get() != fieldValue) {
                 // Field has a different value - sync it to the table
@@ -1224,9 +1224,6 @@ public class Item {
 
     /**
      * Populate relation entries in the component table from the cached schema.
-     *
-     * <p>Uses {@link ItemSchema#populateRelationEntries(FrameTable, Item)} to add
-     * all frame bodies from {@code @Item.Frame} annotations as ComponentEntries.
      *
      * <p>Called automatically from {@link #onFullyInitialized()} for path-based items.
      */
@@ -1254,20 +1251,8 @@ public class Item {
         // Code layer: @Verb annotations from class hierarchy
         schema().populateVocabulary(vocabulary(), this);
 
-        // User/data layer: EntryVocabulary contributions from ComponentEntries
-        if (content() != null) {
-            for (var entry : content()) {
-                var entryVocab = entry.vocabulary();
-                if (entryVocab.contributions() == null) continue;
-                for (var term : entryVocab.contributions()) {
-                    if (term.isExpression() && term.token() != null) {
-                        vocabulary().addExpression(term.token(), term.expression());
-                    } else if (term.termRef() != null && term.token() != null) {
-                        vocabulary().addAlias(term.token(), term.termRef());
-                    }
-                }
-            }
-        }
+        // User/data layer: EntryVocabulary contributions from frames
+        // TODO: vocabulary contributions will move to CONFIG binding on FrameBody (separate track)
     }
 
     /**
@@ -1301,12 +1286,12 @@ public class Item {
         Optional<Object> live = content().getLive(key);
         if (live.isPresent()) return live.get();
 
-        // Lazy decode from metadata entry when live cache is cold.
-        Optional<FrameEntry> entryOpt = content().get(key);
-        if (entryOpt.isEmpty()) return null;
+        // Lazy decode from frame when live cache is cold.
+        Optional<dev.everydaythings.graph.frame.Frame> frameOpt = content().getFrame(key);
+        if (frameOpt.isEmpty()) return null;
 
         try {
-            Object decoded = decodeComponent(entryOpt.get());
+            Object decoded = decodeComponent(frameOpt.get());
             if (decoded != null) {
                 content().setLive(key, decoded);
                 return decoded;
@@ -1329,19 +1314,16 @@ public class Item {
     }
 
     /**
-     * Find the FrameEntry that owns a given live component instance.
-     *
-     * <p>This is useful for component-level logic that needs to update
-     * entry facets (config/presentation/vocabulary) for itself.
+     * Find the Frame that owns a given live component instance.
      *
      * @param componentInstance live component instance
-     * @return matching entry, if present
+     * @return matching frame, if present
      */
-    public Optional<FrameEntry> componentEntry(Object componentInstance) {
+    public Optional<dev.everydaythings.graph.frame.Frame> componentFrame(Object componentInstance) {
         if (componentInstance == null) return Optional.empty();
-        for (FrameEntry entry : content()) {
-            if (entry.instance() == componentInstance) {
-                return Optional.of(entry);
+        for (dev.everydaythings.graph.frame.Frame frame : content()) {
+            if (frame.instance() == componentInstance) {
+                return Optional.of(frame);
             }
         }
         return Optional.empty();
@@ -1381,27 +1363,20 @@ public class Item {
         FrameKey key = FrameKey.literal(handle);
         ItemID typeId = Item.idOf(component.getClass());
 
-        // 1. Add metadata entry
-        FrameEntry entry = FrameEntry.builder()
-                .frameKey(key)
-                .alias(handle)
-                .type(typeId)
-                .identity(true)
-                .build();
-        content().add(entry);
+        // 1. Add frame
+        dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(key, typeId, null, true);
+        frame.setAlias(handle);
+        content().add(frame);
 
         // 2. Register live instance
         content().setLive(key, handle, component);
 
         // 3. Invalidate expression caches — any formula might reference this handle
-        // TODO: Build dependency graph so only expressions referencing this handle are
-        //  invalidated (referencesLocal() infrastructure exists). Blanket invalidation
-        //  is fine for now but won't scale to items with many expressions.
         content().forEachLive(ExpressionComponent.class, ExpressionComponent::invalidate);
 
         // 4. Call lifecycle hooks
         if (component instanceof FrameAware fa) {
-            fa.onFramePlaced(new FrameContext(this, key, entry));
+            fa.onFramePlaced(new FrameContext(this, key, frame));
         }
 
         // 5. Scan component class for verbs and register them
@@ -1602,7 +1577,7 @@ This public non- profit land trust’s top founding principle is to promote and 
     // ==================================================================================
 
     /**
-     * Ensure built-in components (PolicySet) exist in the FrameTable.
+     * Ensure built-in components (PolicySet) exist in the EndorsementsTable.
      *
      * <p>Policy is persisted as an intrinsic component. Vocabulary is intrinsic runtime
      * state derived from schema/content and is not stored as a component entry.
@@ -1617,14 +1592,14 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Add a built-in component (Vocabulary or PolicySet) to the FrameTable.
+     * Add a built-in component (Vocabulary or PolicySet) to the EndorsementsTable.
      */
     private void addBuiltinComponent(String handle, Object component) {
         FrameKey key = FrameKey.literal(handle);
         ItemID typeId = Item.idOf(component.getClass());
-        FrameEntry entry = FrameEntry.builder()
-                .frameKey(key).alias(handle).type(typeId).identity(true).build();
-        content().add(entry);
+        dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(key, typeId, null, true);
+        frame.setAlias(handle);
+        content().add(frame);
         content().setLive(key, handle, component);
     }
 
@@ -1635,13 +1610,12 @@ This public non- profit land trust’s top founding principle is to promote and 
      * annotations and create each component. For local resource components, opens at
      * the mount path. For other components, creates a default instance.
      *
-     * <p>This method populates the FrameTable with both entries (metadata) and
+     * <p>This method populates the EndorsementsTable with both frames (metadata) and
      * live instances. Field binding and initComponent() callbacks are handled
      * by hydrate() which is called afterward.
      */
     private void initializeFreshComponents() {
         ItemSchema itemSchema = schema();
-        List<FrameEntry> entries = new ArrayList<>();
 
         // Create instances for all Component-typed @ComponentField fields
         // (Non-Component fields like SigningPublicKey are handled during commit)
@@ -1657,25 +1631,23 @@ This public non- profit land trust’s top founding principle is to promote and 
             Class<?> type = spec.fieldType();
 
             Object instance;
-            FrameEntry entry;
+            dev.everydaythings.graph.frame.Frame frame;
 
             String alias = spec.canonicalKeyString();
 
-            if (spec.localOnly() && store != null && store.root() != null) {
-                // Local resource with filesystem: open at mount path
-                Path componentPath = store.root().resolve(spec.path());
-                instance = CreationScanner.openPathBased(type, componentPath);
-                entry = FrameEntry.builder()
-                        .frameKey(spec.frameKey()).alias(alias)
-                        .type(spec.type()).identity(spec.identity()).build();
-            } else if (spec.localOnly()) {
-                // Local resource but in-memory mode: create default in-memory instance
-                instance = CreationScanner.createDefault(type)
-                        .orElseThrow(() -> new IllegalStateException(
-                                "Cannot create default in-memory instance of local resource: " + type.getName()));
-                entry = FrameEntry.builder()
-                        .frameKey(spec.frameKey()).alias(alias)
-                        .type(spec.type()).identity(spec.identity()).build();
+            if (spec.localOnly()) {
+                if (store != null && store.root() != null) {
+                    // Local resource with filesystem: open at mount path
+                    Path componentPath = store.root().resolve(spec.path());
+                    instance = CreationScanner.openPathBased(type, componentPath);
+                } else {
+                    // Local resource but in-memory mode: create default in-memory instance
+                    instance = CreationScanner.createDefault(type)
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Cannot create default in-memory instance of local resource: " + type.getName()));
+                }
+                frame = dev.everydaythings.graph.frame.Frame.localResource(spec.frameKey(), spec.type(), spec.identity());
+                if (alias != null) frame.setAlias(alias);
             } else {
                 // Regular component: use pre-initialized field value if present, else create default
                 Object existingValue = spec.getValue(this);
@@ -1689,41 +1661,34 @@ This public non- profit land trust’s top founding principle is to promote and 
                             ? defaultOpt.get()
                             : CreationScanner.instantiate(type);
                 }
-                // Create appropriate entry type based on component kind
+                // Create appropriate frame type based on component kind
                 if (spec.stream()) {
                     // Stream component: starts with empty heads, content added via append
-                    entry = FrameEntry.builder()
-                            .frameKey(spec.frameKey()).alias(alias)
-                            .type(spec.type()).identity(spec.identity())
-                            .payload(FrameEntry.EntryPayload.builder().streamBased(true).build())
-                            .build();
+                    frame = dev.everydaythings.graph.frame.Frame.stream(spec.frameKey(), spec.type(), List.of(), spec.identity());
+                    if (alias != null) frame.setAlias(alias);
                 } else {
                     // Snapshot component: CID computed during commit, use placeholder for now
-                    // Note: The actual CID is computed in scanAndBindFields() during commit
-                    entry = FrameEntry.builder()
-                            .frameKey(spec.frameKey()).alias(alias)
-                            .type(spec.type()).identity(spec.identity()).build();
+                    frame = dev.everydaythings.graph.frame.Frame.snapshot(spec.frameKey(), spec.type(), null, spec.identity());
+                    if (alias != null) frame.setAlias(alias);
                 }
             }
 
-            // Add mount to FrameEntry for path-based components
+            // Add mount for path-based components
             if (spec.hasMountPath()) {
                 String mountPath = "/" + spec.path();  // Convert filesystem path to presentation path
-                entry.addMount(new Mount.PathMount(mountPath));
+                content().addMount(spec.frameKey(), new Mount.PathMount(mountPath));
             }
 
-            // Add to FrameTable: both metadata and live instance
-            content().add(entry);
+            // Add to table: both frame and live instance
+            content().add(frame);
             content().setLive(spec.frameKey(), alias, instance);
-
-            entries.add(entry);
 
         }
 
         // Save component metadata to store and materialize mount directories
         if (store != null) {
             store.runInWriteTransaction(tx -> {
-                store.saveHeadComponents(entries, tx);
+                store.saveHeadComponents(content(), tx);
             });
             if (store instanceof WorkingTreeStore wts) {
                 wts.materializeMountPaths(content());
@@ -1774,6 +1739,9 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // Populate state tables from annotated fields
         scanAndBindFields(encryptionContext);
+
+        // Build endorsements from EndorsementsTable for manifest serialization
+        state.buildEndorsements();
 
         // Build manifest with the item's state
         Manifest manifest = Manifest.builder()
@@ -1836,17 +1804,14 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         logger.debug("Persisting item {} (type={})", iid, getClass().getSimpleName());
 
-        List<FrameEntry> entries = new ArrayList<>();
-
         store.runInWriteTransaction(tx -> {
             // Persist each component
-            for (FrameEntry entry : content()) {
-                FrameEntry updatedEntry = persistComponent(entry, store, tx);
-                entries.add(updatedEntry);
+            for (dev.everydaythings.graph.frame.Frame frame : content()) {
+                persistComponent(frame, store, tx);
             }
 
             // Save component metadata
-            store.saveHeadComponents(entries, tx);
+            store.saveHeadComponents(content(), tx);
         });
 
         // Materialize mount directories for working tree items
@@ -1861,25 +1826,22 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Persist a single component, returning an updated entry with CID if applicable.
+     * Persist a single component's content.
      */
-    private FrameEntry persistComponent(FrameEntry entry, ItemStore targetStore,
-                                          dev.everydaythings.graph.library.WriteTransaction tx) {
-        // Local resources are managed by the component itself - nothing to persist
-        if (entry.isLocalResource()) {
-            return entry;
-        }
+    private void persistComponent(dev.everydaythings.graph.frame.Frame frame, ItemStore targetStore,
+                                  dev.everydaythings.graph.library.WriteTransaction tx) {
+        FrameBody body = frame.body();
+        if (body == null) return;
+
+        // External/local resources are managed by the component itself - nothing to persist
+        if (body.isExternal()) return;
 
         // References point to another item - no content bytes to persist
-        if (entry.isReference()) {
-            return entry;
-        }
+        if (body.isReference()) return;
 
         // Get live instance
-        Optional<?> liveOpt = content().getLive(entry.frameKey(), Object.class);
-        if (liveOpt.isEmpty()) {
-            return entry; // No live instance, keep existing entry
-        }
+        Optional<?> liveOpt = content().getLive(frame.frameKey(), Object.class);
+        if (liveOpt.isEmpty()) return;
 
         Object live = liveOpt.get();
         byte[] bytes;
@@ -1889,14 +1851,11 @@ This public non- profit land trust’s top founding principle is to promote and 
         } else if (ItemSchema.isSimpleSerializableType(live)) {
             bytes = ItemSchema.encodeSimpleValue(live);
         } else {
-            return entry; // Unknown type, keep existing entry
+            return; // Unknown type
         }
 
-        // Store and get CID
-        ContentID cid = targetStore.persistContent(bytes, tx);
-
-        // Return updated entry with new CID
-        return FrameEntry.snapshot(entry.frameKey(), entry.type(), cid, entry.identity());
+        // Store content
+        targetStore.persistContent(bytes, tx);
     }
 
     /**
@@ -1924,6 +1883,9 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // Populate state tables from annotated fields (no encryption for save)
         scanAndBindFields(null);
+
+        // Build endorsements from EndorsementsTable for manifest serialization
+        state.buildEndorsements();
 
         // Build without signature (seed items are code-defined, deterministic)
         Manifest manifest = Manifest.builder()
@@ -2001,17 +1963,17 @@ This public non- profit land trust’s top founding principle is to promote and 
         java.util.function.Consumer<byte[]> storePayloadConsumer = (librarian != null) ? librarian::storePayload : null;
 
         // Frame body storage function - stores canonical frame bodies via librarian
-        java.util.function.Consumer<FrameBody> storeRelation = (librarian != null) ? librarian::storeFrame : null;
+        java.util.function.Consumer<FrameBody> storeFrame = (librarian != null) ? librarian::storeFrame : null;
 
         // Key resolver for per-frame EncryptionPolicy (ItemID → EncryptionPublicKeys)
         java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver =
                 (librarian != null) ? librarian::resolveEncryptionKeys : iid -> java.util.List.of();
 
-        // Bind component fields (encode and add to content table, with optional encryption)
-        schema().bindComponentFieldsForCommit(this, content(), storePayloadConsumer, encryptionContext, keyResolver);
+        // Bind component fields (encode and add to content table, with optional encryption + frame body)
+        schema().bindComponentFieldsForCommit(this, content(), storePayloadConsumer, encryptionContext, storeFrame, keyResolver);
 
         // Bind relation fields (create relations, store in DB, add as ComponentEntries)
-        schema().bindRelationFieldsForCommit(this, content(), storePayload, storeRelation);
+        schema().bindRelationFieldsForCommit(this, content(), storePayload, storeFrame);
 
     }
 
@@ -2029,16 +1991,16 @@ This public non- profit land trust’s top founding principle is to promote and 
     // ==================================================================================
 
     /**
-     * Unified hydration: decode components from store, populate FrameTable, bind fields.
+     * Unified hydration: decode components from store, populate EndorsementsTable, bind fields.
      *
-     * <p>The FrameTable is the source of truth for what an item contains.
+     * <p>The EndorsementsTable is the source of truth for what an item contains.
      * Fields (@ComponentField) are optional developer ergonomics that bind to
      * entries in the table.
      *
      * <p>Flow:
      * <ol>
-     *   <li>For each FrameEntry in the table, decode the content from the store</li>
-     *   <li>Store the live instance in FrameTable</li>
+     *   <li>For each Frame in the table, decode the content from the store</li>
+     *   <li>Store the live instance in EndorsementsTable</li>
      *   <li>Bind matching @ComponentField fields</li>
      *   <li>Invoke initComponent() callbacks on all Component instances</li>
      * </ol>
@@ -2050,76 +2012,137 @@ This public non- profit land trust’s top founding principle is to promote and 
      * </ul>
      */
     protected void hydrate() {
+        // Phase 0: Resolve endorsements into EndorsementsTable entries (new manifest format)
+        resolveEndorsements();
+
         // Phase 1: Decode components that don't already have live instances
         // (Fresh items may already have live instances from initializeFreshComponents())
-        for (FrameEntry entry : content()) {
-            if (content().hasLive(entry.frameKey())) {
+        for (dev.everydaythings.graph.frame.Frame frame : content()) {
+            if (content().hasLive(frame.frameKey())) {
                 continue;  // Already decoded/created
             }
             try {
-                Object instance = decodeComponent(entry);
+                Object instance = decodeComponent(frame);
                 if (instance != null) {
-                    content().setLive(entry.frameKey(), instance);
+                    content().setLive(frame.frameKey(), instance);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to decode component {} (type {}): {}",
-                        entry.alias() != null ? entry.alias() : entry.frameKey(),
-                        entry.type(), e.getMessage());
+                        frame.alias() != null ? frame.alias() : frame.frameKey(),
+                        frame.type(), e.getMessage());
             }
         }
 
-        // Phase 2: Bind @ComponentField fields from FrameTable
+        // Phase 2: Bind @ComponentField fields from EndorsementsTable
         bindFieldsFromTable();
 
         // Phase 3: Frame hydration — notify frame instances of their context
-        for (FrameEntry entry : content()) {
-            Object instance = content().getLive(entry.frameKey()).orElse(null);
+        for (dev.everydaythings.graph.frame.Frame frame : content()) {
+            Object instance = content().getLive(frame.frameKey()).orElse(null);
             if (instance == null) continue;
             if (instance instanceof FrameAware fa) {
-                fa.onFramePlaced(new FrameContext(this, entry.frameKey(), entry));
+                fa.onFramePlaced(new FrameContext(this, frame.frameKey(), frame));
             }
         }
     }
 
     /**
-     * Decode a component from its FrameEntry.
+     * Resolve endorsements from the manifest into EndorsementsTable entries.
      *
-     * @param entry The component metadata
+     * <p>When a manifest was decoded from the new endorsement format, the
+     * EndorsementsTable is empty and the endorsements list contains the frame
+     * metadata. This method fetches each FrameBody by its body hash,
+     * reconstructs a Frame from it, and populates the EndorsementsTable.
+     *
+     * <p>For old-format manifests (EndorsementsTable already populated), this
+     * method is a no-op.
+     */
+    private void resolveEndorsements() {
+        if (state == null) return;
+        java.util.List<dev.everydaythings.graph.frame.FrameEndorsement> endorsements = state.endorsements();
+        if (endorsements.isEmpty()) return;
+        if (!content().isEmpty()) return; // Already have entries (old format or fresh item)
+
+        for (dev.everydaythings.graph.frame.FrameEndorsement endorsement : endorsements) {
+            try {
+                dev.everydaythings.graph.frame.Frame frame = resolveEndorsement(endorsement);
+                if (frame != null) {
+                    content().add(frame, endorsement.mounts());
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to resolve endorsement {}: {}",
+                        endorsement.key(), e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Resolve a single endorsement to a Frame by fetching its FrameBody.
+     */
+    private dev.everydaythings.graph.frame.Frame resolveEndorsement(dev.everydaythings.graph.frame.FrameEndorsement endorsement) {
+        if (librarian == null) {
+            // No librarian — can't fetch bodies. Create a minimal frame.
+            return new dev.everydaythings.graph.frame.Frame(endorsement.key(),
+                    ItemID.fromString("cg:type/unknown"), null,
+                    endorsement.bodyHash(), true);
+        }
+
+        // Fetch the FrameBody from the object store
+        java.util.Optional<byte[]> bodyBytes = fetchContent(endorsement.bodyHash());
+        if (bodyBytes.isEmpty()) {
+            logger.warn("FrameBody not found for endorsement {}: bodyHash={}",
+                    endorsement.key(), endorsement.bodyHash());
+            return null;
+        }
+
+        FrameBody body = FrameBody.fromCborTree(
+                com.upokecenter.cbor.CBORObject.DecodeFromBytes(bodyBytes.get()));
+        if (body == null) {
+            logger.warn("Failed to decode FrameBody for endorsement {}", endorsement.key());
+            return null;
+        }
+
+        return dev.everydaythings.graph.frame.Frame.fromFrameBody(body, endorsement);
+    }
+
+    /**
+     * Decode a component from its Frame.
+     *
+     * @param frame The frame metadata
      * @return The decoded instance, or null if content unavailable
      */
     @SuppressWarnings("unchecked")
-    private Object decodeComponent(FrameEntry entry) {
+    private Object decodeComponent(dev.everydaythings.graph.frame.Frame frame) {
+        FrameBody body = frame.body();
+        if (body == null) return null;
+
         // Reference → resolve the target item via librarian
-        if (entry.isReference()) {
-            return resolveReference(entry);
+        if (body.isReference()) {
+            return resolveReference(frame);
         }
 
-        // Local resource → open at mount path (requires filesystem)
-        if (entry.isLocalResource()) {
-            return openLocalResource(entry);
+        // External/local resource → open at mount path (requires filesystem)
+        if (body.isExternal()) {
+            return openLocalResource(frame);
         }
 
         // Snapshot → fetch content by CID (decrypt if encrypted)
-        if (entry.hasSnapshot()) {
+        if (body.hasContent()) {
             Optional<byte[]> bytesOpt;
-            if (entry.payload().isEncrypted()) {
-                bytesOpt = fetchAndDecrypt(entry);
+            if (body.isEncrypted()) {
+                bytesOpt = fetchAndDecrypt(frame);
             } else {
-                bytesOpt = fetchContent(entry.payload().snapshotCid());
+                bytesOpt = fetchContent(body.contentCid());
             }
             if (bytesOpt.isEmpty()) {
                 return null;
             }
-            return decodeContent(entry, bytesOpt.get());
+            return decodeContent(frame, bytesOpt.get());
         }
 
         // Stream → create a fresh instance via factory
-        // Stream components (KeyLog, CertLog, etc.) are append-only logs whose heads
-        // contain individual entries, not the full component state. We can't decode
-        // the component from a single head. Instead, create a fresh instance and let
-        // it replay entries from the store when needed.
-        if (entry.hasStream()) {
-            return createStreamComponent(entry);
+        if (body.isStream()) {
+            return createStreamComponent(frame);
         }
 
         return null;
@@ -2128,20 +2151,14 @@ This public non- profit land trust’s top founding principle is to promote and 
     /**
      * Create a fresh instance of a stream component.
      *
-     * <p>Stream components (KeyLog, CertLog, etc.) are append-only logs whose
-     * heads contain individual entries, not the full component state. Instead of
-     * trying to decode the component from a single entry, we create a fresh
-     * instance via the component's factory method. The component can replay
-     * entries from the store later when needed.
-     *
-     * @param entry The stream component entry
+     * @param frame The stream component frame
      * @return A fresh component instance, or null if the type can't be created
      */
     @SuppressWarnings("unchecked")
-    private Object createStreamComponent(FrameEntry entry) {
-        Optional<Class<?>> impl = findImplementation(entry.type());
+    private Object createStreamComponent(dev.everydaythings.graph.frame.Frame frame) {
+        Optional<Class<?>> impl = findImplementation(frame.type());
         if (impl.isEmpty()) {
-            logger.debug("createStreamComponent() - no implementation for type {}", entry.type());
+            logger.debug("createStreamComponent() - no implementation for type {}", frame.type());
             return null;
         }
         Class<?> cls = impl.get();
@@ -2154,23 +2171,20 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Resolve a reference component entry to the target item.
+     * Resolve a reference frame to the target item.
      *
-     * <p>Uses the librarian to look up the referenced item by its ItemID.
-     * Returns the resolved Item as the live instance, or null if the
-     * reference cannot be resolved (no librarian, item not found).
-     *
-     * @param entry The reference component entry
+     * @param frame The reference frame
      * @return The resolved Item, or null if unavailable
      */
-    private Object resolveReference(FrameEntry entry) {
+    private Object resolveReference(dev.everydaythings.graph.frame.Frame frame) {
         if (librarian == null) {
             return null;
         }
-        Optional<Item> resolved = librarian.get(entry.payload().referenceTarget(), Item.class);
+        ItemID target = frame.body().referenceTargetId();
+        Optional<Item> resolved = librarian.get(target, Item.class);
         if (resolved.isEmpty()) {
             logger.debug("Reference target not found: {} (handle={})",
-                    entry.payload().referenceTarget(), entry.displayToken());
+                    target, frame.displayToken());
         }
         return resolved.orElse(null);
     }
@@ -2178,27 +2192,25 @@ This public non- profit land trust’s top founding principle is to promote and 
     /**
      * Open a local resource component at its mount path.
      *
-     * @param entry The component entry (must be local resource)
+     * @param frame The frame (must be local resource)
      * @return The opened component, or null if no filesystem access
      */
     @SuppressWarnings("unchecked")
-    private Object openLocalResource(FrameEntry entry) {
+    private Object openLocalResource(dev.everydaythings.graph.frame.Frame frame) {
         // Need filesystem access to open local resources
         Path root = (store != null) ? store.root() : null;
         if (root == null) {
-            // No filesystem context - local resources stay null
-            // (e.g., loading someone else's Signer via Librarian.get())
             return null;
         }
 
         // Find mount path for this handle
-        Path mountPath = resolveMountPath(entry.frameKey());
+        Path mountPath = resolveMountPath(frame.frameKey());
         if (mountPath == null) {
             return null;
         }
 
         // Find implementation class
-        Optional<Class<?>> implOpt = findImplementation(entry.type());
+        Optional<Class<?>> implOpt = findImplementation(frame.type());
         if (implOpt.isEmpty()) {
             return null;
         }
@@ -2234,14 +2246,16 @@ This public non- profit land trust’s top founding principle is to promote and 
      * If the librarian has no encryption key or decryption fails, falls back to trying
      * the plaintext CID directly (in case the content was stored cleartext locally).
      */
-    private Optional<byte[]> fetchAndDecrypt(FrameEntry entry) {
-        ContentID encCid = entry.payload().encryptedCid();
+    private Optional<byte[]> fetchAndDecrypt(dev.everydaythings.graph.frame.Frame frame) {
+        FrameBody body = frame.body();
+        ContentID encCid = body.encryptedCid();
+        ContentID plainCid = body.contentCid();
 
         // Fetch the encrypted envelope bytes
         Optional<byte[]> envelopeBytes = fetchContent(encCid);
         if (envelopeBytes.isEmpty()) {
             // Fallback: try plaintext CID (content might have been decrypted locally)
-            return fetchContent(entry.payload().snapshotCid());
+            return fetchContent(plainCid);
         }
 
         // Try to decrypt if the librarian has an encryption key
@@ -2255,14 +2269,14 @@ This public non- profit land trust’s top founding principle is to promote and 
                 return Optional.of(plaintext);
             } catch (Exception e) {
                 logger.debug("Failed to decrypt frame {} (encryptedCid={}): {}",
-                        entry.alias(), encCid, e.getMessage());
+                        frame.alias(), encCid, e.getMessage());
                 // Fallback: try plaintext CID
-                return fetchContent(entry.payload().snapshotCid());
+                return fetchContent(plainCid);
             }
         }
 
         // No vault available — try plaintext CID as fallback
-        return fetchContent(entry.payload().snapshotCid());
+        return fetchContent(plainCid);
     }
 
     /**
@@ -2271,8 +2285,8 @@ This public non- profit land trust’s top founding principle is to promote and 
      * <p>Priority: FrameBody, then primitive types, then Canonical types via universal decoder.
      */
     @SuppressWarnings("unchecked")
-    private Object decodeContent(FrameEntry entry, byte[] bytes) {
-        ItemID typeId = entry.type();
+    private Object decodeContent(dev.everydaythings.graph.frame.Frame frame, byte[] bytes) {
+        ItemID typeId = frame.type();
         // FrameBody entries → decode directly (FrameBody is Canonical, not a Component)
         if (FrameBody.TYPE_ID.equals(typeId)) {
             return Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD);
@@ -2288,7 +2302,7 @@ This public non- profit land trust’s top founding principle is to promote and 
 
         // Fallback for intrinsic schema-backed fields:
         // decode using the declared field type.
-        FrameFieldSpec frameSpec = schema().getFrameField(entry.frameKey());
+        FrameFieldSpec frameSpec = schema().getFrameField(frame.frameKey());
         if (frameSpec != null) {
             CBORObject node = CBORObject.DecodeFromBytes(bytes);
             return Canonical.decodeIntoType(frameSpec.fieldType(), frameSpec.fieldType(), node, Canonical.Scope.RECORD);
@@ -2353,9 +2367,9 @@ This public non- profit land trust’s top founding principle is to promote and 
     }
 
     /**
-     * Bind @ComponentField fields from the FrameTable's live instances.
+     * Bind @ComponentField fields from the EndorsementsTable's live instances.
      *
-     * <p>Uses {@link ItemSchema#bindFieldsFromTable(Item, FrameTable)} to inject
+     * <p>Uses {@link ItemSchema#bindFieldsFromTable(Item, EndorsementsTable)} to inject
      * live instances into their corresponding fields.
      *
      * <p>For simple types (String, int, etc.) that weren't decoded during hydrate(),
@@ -2373,9 +2387,9 @@ This public non- profit land trust’s top founding principle is to promote and 
             if (content().hasLive(key)) continue;
 
             // Try to decode from stored content
-            Optional<FrameEntry> entryOpt = content().get(key);
-            if (entryOpt.isPresent() && entryOpt.get().hasSnapshot()) {
-                Optional<byte[]> bytesOpt = fetchContent(entryOpt.get().payload().snapshotCid());
+            Optional<dev.everydaythings.graph.frame.Frame> frameOpt = content().getFrame(key);
+            if (frameOpt.isPresent() && frameOpt.get().body() != null && frameOpt.get().body().hasContent()) {
+                Optional<byte[]> bytesOpt = fetchContent(frameOpt.get().body().contentCid());
                 if (bytesOpt.isPresent()) {
                     Object value = ItemSchema.decodeSimpleValue(spec.field(), bytesOpt.get());
                     if (value != null) {

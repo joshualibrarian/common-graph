@@ -7,7 +7,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.Type;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.FrameBody;
@@ -415,19 +415,26 @@ public interface ItemStore extends Service {
     /**
      * Save component metadata for the item's current head.
      *
-     * @param entries Component entries to save
-     * @param tx      Write transaction
+     * @param frames Component frames to save
+     * @param tx     Write transaction
      */
-    default void saveHeadComponents(List<FrameEntry> entries, WriteTransaction tx) {
+    default void saveHeadComponents(List<Frame> frames, WriteTransaction tx) {
         // Default: no-op
+    }
+
+    /**
+     * Save component metadata from an EndorsementsTable (transition overload).
+     */
+    default void saveHeadComponents(dev.everydaythings.graph.frame.EndorsementsTable table, WriteTransaction tx) {
+        // Default: no-op. Implementations override as needed.
     }
 
     /**
      * Load component metadata for the item's current head.
      *
-     * @return List of component entries, or empty if not supported
+     * @return List of component frames, or empty if not supported
      */
-    default List<FrameEntry> loadHeadComponents() {
+    default List<Frame> loadHeadComponents() {
         return List.of();
     }
 

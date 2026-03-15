@@ -5,8 +5,12 @@ import dev.everydaythings.graph.item.Factory;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -37,8 +41,8 @@ import java.util.Objects;
 @Getter
 public final class FrameBody implements Canonical {
 
-    /** Canonical type key for frame bodies. */
-    public static final String TYPE_KEY = "cg:type/relation";
+    /** Canonical type key for frame bodies. */ // TODO: I'm confused by this... I changed it from "relation" to "frame", but still... why the different pattern.  "Type" is a kinda slippery word, I'm not sure your meaning here.
+    public static final String TYPE_KEY = "cg:type/frame";
 
     /** Deterministic ItemID for the frame body type. */
     public static final ItemID TYPE_ID = ItemID.fromString(TYPE_KEY);
@@ -57,6 +61,9 @@ public final class FrameBody implements Canonical {
 
     /** Cached body bytes (CBOR encoding). */
     private transient byte[] cachedBytes;
+
+    /** Live decoded primary instance (e.g., the Vault, Log, or String decoded from content). */
+    private transient Object instance;
 
     // ==================================================================================
     // Constructors
@@ -194,13 +201,47 @@ public final class FrameBody implements Canonical {
     }
 
     // ==================================================================================
+    // Live Instance
+    // ==================================================================================
+
+    /** Set the primary decoded instance (e.g., the component decoded from the TOPIC binding). */
+    public void setInstance(Object instance) { this.instance = instance; }
+
+    /**
+     * Get the primary decoded instance, typed.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T instanceAs(Class<T> type) {
+        if (instance != null && type.isInstance(instance)) return (T) instance;
+        return null;
+    }
+
+    // ==================================================================================
     // Binding Accessors
     // ==================================================================================
 
     /**
-     * Get the full Binding for a specific role (first match by primary key).
+     * Get the full Binding for a specific simple (single-element) key.
+     *
+     * <p>Only matches bindings with exactly one key element. Compound keys
+     * like (TOPIC, STREAM) are NOT matched — use {@link #getCompoundBinding}
+     * for those.
      */
     public Binding getBinding(ItemID role) {
+        if (frameBindings == null) return null;
+        for (Binding b : frameBindings) {
+            if (b.isSimpleKey() && b.role() != null && b.role().equals(role)) return b;
+        }
+        return null;
+    }
+
+    /**
+     * Get the full Binding whose primary role matches, regardless of key length.
+     *
+     * <p>Matches both simple keys like (TOPIC) and compound keys like
+     * (TOPIC, STREAM). Returns the first match.
+     */
+    public Binding getBindingByRole(ItemID role) {
         if (frameBindings == null) return null;
         for (Binding b : frameBindings) {
             if (b.role() != null && b.role().equals(role)) return b;
@@ -245,6 +286,156 @@ public final class FrameBody implements Canonical {
             }
         }
         return Map.copyOf(map);
+    }
+
+    // ==================================================================================
+    // Semantic Accessors (role-based convenience methods)
+    // ==================================================================================
+
+    /**
+     * The content CID for this frame (Topic binding).
+     *
+     * <p>For component frames, this is the snapshot content CID.
+     * Equivalent to the legacy {@code EntryPayload.snapshotCid()}.
+     */
+    public ContentID contentCid() {
+        return extractCid(ThematicRole.Topic.SEED.iid());
+    }
+
+    /**
+     * The encrypted content CID for this frame — (TOPIC, ENCRYPTED) compound binding.
+     *
+     * <p>Equivalent to the legacy {@code EntryPayload.encryptedCid()}.
+     */
+    public ContentID encryptedCid() {
+        Binding b = getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Encrypted.SEED.iid());
+        if (b == null) return null;
+        return extractCidFromTarget(b.target());
+    }
+
+    /**
+     * The reference target ItemID for this frame (Goal binding).
+     *
+     * <p>For reference frames that point to another item.
+     * Equivalent to the legacy {@code EntryPayload.referenceTarget()}.
+     */
+    public ItemID referenceTargetId() {
+        return bindingId(ThematicRole.Goal.SEED.iid());
+    }
+
+    /**
+     * Whether this frame has a content snapshot (simple TOPIC binding is present).
+     *
+     * <p>A simple (TOPIC) binding means snapshot content. Compound keys like
+     * (TOPIC, STREAM) or (TOPIC, EXTERNAL) are different content modes.
+     */
+    public boolean hasContent() {
+        return binding(ThematicRole.Topic.SEED.iid()) != null;
+    }
+
+    /**
+     * Whether this frame is a reference to another item (Goal binding is present).
+     */
+    public boolean isReference() {
+        return binding(ThematicRole.Goal.SEED.iid()) != null;
+    }
+
+    /**
+     * Whether this frame has encrypted content — (TOPIC, ENCRYPTED) compound binding is present.
+     */
+    public boolean isEncrypted() {
+        return getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Encrypted.SEED.iid()) != null;
+    }
+
+    /**
+     * The config payload bytes for this frame (Config role binding).
+     *
+     * <p>Returns the raw CBOR bytes from the Config binding's Literal payload,
+     * or null if no config is bound.
+     */
+    public byte[] configPayload() {
+        BindingTarget target = binding(ThematicRole.Config.SEED.iid());
+        if (target instanceof Literal lit) {
+            return lit.payload();
+        }
+        return null;
+    }
+
+    // ==================================================================================
+    // Compound-Key Content Mode Accessors
+    // ==================================================================================
+
+    /**
+     * Whether this frame carries stream-mode content — a (TOPIC, STREAM) compound binding.
+     */
+    public boolean isStream() {
+        return getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Stream.SEED.iid()) != null;
+    }
+
+    /**
+     * Whether this frame carries external data — a (TOPIC, EXTERNAL) compound binding.
+     */
+    public boolean isExternal() {
+        return getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.External.SEED.iid()) != null;
+    }
+
+    /**
+     * The stream head CID for stream-mode frames.
+     *
+     * <p>Returns the CID from the (TOPIC, STREAM) compound binding, or null
+     * if this frame is not stream-based.
+     */
+    public ContentID streamHeadCid() {
+        Binding b = getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Stream.SEED.iid());
+        if (b == null) return null;
+        return extractCidFromTarget(b.target());
+    }
+
+    /**
+     * The external filesystem path for external-data frames.
+     *
+     * <p>Returns the path string from the (TOPIC, EXTERNAL) compound binding's
+     * Literal target, or null if this frame is not external.
+     */
+    public String externalPath() {
+        Binding b = getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.External.SEED.iid());
+        if (b == null) return null;
+        if (b.target() instanceof Literal lit) {
+            try { return lit.asText(); } catch (Exception e) { return null; }
+        }
+        return null;
+    }
+
+    /**
+     * Get a binding by compound key (two-element key match).
+     */
+    public Binding getCompoundBinding(ItemID first, ItemID second) {
+        if (frameBindings == null) return null;
+        for (Binding b : frameBindings) {
+            if (b.keyEquals(first, second)) return b;
+        }
+        return null;
+    }
+
+    /**
+     * Extract a ContentID from a binding that uses RefTarget or IidTarget.
+     */
+    private ContentID extractCid(ItemID role) {
+        return extractCidFromTarget(binding(role));
+    }
+
+    /**
+     * Extract a ContentID from a BindingTarget (RefTarget or IidTarget).
+     */
+    private static ContentID extractCidFromTarget(BindingTarget target) {
+        if (target instanceof BindingTarget.RefTarget ref) {
+            HashID id = ref.ref();
+            return id instanceof ContentID cid ? cid : new ContentID(id.encodeBinary());
+        }
+        if (target instanceof BindingTarget.IidTarget iid) {
+            return new ContentID(iid.iid().encodeBinary());
+        }
+        return null;
     }
 
     // ==================================================================================

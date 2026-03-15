@@ -7,11 +7,15 @@ import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.policy.PolicySet;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.value.Color;
@@ -35,7 +39,7 @@ import java.util.Objects;
  * (we know they exist) but their content doesn't affect the VID.
  */
 @Getter
-public final class FrameEntry implements Canonical {
+/* package-private */ final class FrameEntry implements Canonical {
 
     /** Type reference - defines codec, capabilities, supported selectors. */
     @Canon(order = 1)
@@ -108,6 +112,9 @@ public final class FrameEntry implements Canonical {
     @Canon(order = 23)
     private EntryVocabulary vocabulary;
 
+    /** The frame's semantic body — predicate, theme, and bindings (transient, runtime-only). */
+    private transient FrameBody body;
+
     /** Owner Item (for Ref - transient, set during hydration). */
     private transient Item owner;
 
@@ -154,134 +161,95 @@ public final class FrameEntry implements Canonical {
      * Create a snapshot-only component entry (identity=true by default).
      */
     public static FrameEntry snapshot(FrameKey key, ItemID type, ContentID cid) {
-        return FrameEntry.builder()
-                .frameKey(key)
-                .type(type)
-                .identity(true)
-                .payload(EntryPayload.builder().snapshotCid(cid).build())
-                .build();
+        return snapshot(key, type, cid, true);
     }
 
     /**
      * Create a snapshot-only component entry with alias.
      */
     public static FrameEntry snapshot(String alias, ItemID type, ContentID cid) {
-        return FrameEntry.builder()
-                .frameKey(FrameKey.literal(alias))
-                .alias(alias)
-                .type(type)
-                .identity(true)
-                .payload(EntryPayload.builder().snapshotCid(cid).build())
-                .build();
+        return snapshot(alias, type, cid, true);
     }
 
     /**
      * Create a snapshot-only component entry with explicit identity flag.
      */
     public static FrameEntry snapshot(FrameKey key, ItemID type, ContentID cid, boolean identity) {
-        return FrameEntry.builder()
-                .frameKey(key)
-                .type(type)
-                .identity(identity)
-                .payload(EntryPayload.builder().snapshotCid(cid).build())
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(key).type(type).identity(identity).build();
+        entry.body = buildSnapshotBody(type, cid);
+        return entry;
     }
 
     /**
      * Create a snapshot-only component entry with alias and explicit identity flag.
      */
     public static FrameEntry snapshot(String alias, ItemID type, ContentID cid, boolean identity) {
-        return FrameEntry.builder()
-                .frameKey(FrameKey.literal(alias))
-                .alias(alias)
-                .type(type)
-                .identity(identity)
-                .payload(EntryPayload.builder().snapshotCid(cid).build())
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(FrameKey.literal(alias)).alias(alias)
+                .type(type).identity(identity).build();
+        entry.body = buildSnapshotBody(type, cid);
+        return entry;
     }
 
     /**
      * Create a stream-only component entry.
      */
     public static FrameEntry stream(FrameKey key, ItemID type, List<ContentID> heads, boolean identity) {
-        return FrameEntry.builder()
-                .frameKey(key)
-                .type(type)
-                .identity(identity)
-                .payload(EntryPayload.builder().streamHeads(heads).streamBased(true).build())
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(key).type(type).identity(identity).build();
+        entry.body = buildStreamBody(type, heads);
+        return entry;
     }
 
     /**
      * Create a stream-only component entry with alias.
      */
     public static FrameEntry stream(String alias, ItemID type, List<ContentID> heads, boolean identity) {
-        return FrameEntry.builder()
-                .frameKey(FrameKey.literal(alias))
-                .alias(alias)
-                .type(type)
-                .identity(identity)
-                .payload(EntryPayload.builder().streamHeads(heads).streamBased(true).build())
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(FrameKey.literal(alias)).alias(alias)
+                .type(type).identity(identity).build();
+        entry.body = buildStreamBody(type, heads);
+        return entry;
     }
 
     /**
-     * Create a local resource component entry.
+     * Create an external/local resource component entry.
      *
-     * <p>Local resource components have null snapshotCid and empty streamHeads.
-     * They require a mount to define their path in the working tree.
-     * They never sync — the absence of content references implies locality.
-     *
-     * @param key  The frame key
-     * @param type The component type
-     * @return A local resource component entry
+     * <p>External components store data outside the graph at a filesystem path.
+     * They require a mount to define their path and cannot be synced.
+     * Identity defaults to false.
      */
     public static FrameEntry localResource(FrameKey key, ItemID type) {
-        return FrameEntry.builder()
-                .frameKey(key)
-                .type(type)
-                .identity(false)  // local resources don't affect VID
-                .build();
+        return localResource(key, type, false);
     }
 
     /**
-     * Create a local resource component entry with alias.
+     * Create an external/local resource component entry with alias.
      */
     public static FrameEntry localResource(String alias, ItemID type) {
-        return FrameEntry.builder()
-                .frameKey(FrameKey.literal(alias))
-                .alias(alias)
-                .type(type)
-                .identity(false)
-                .build();
+        return localResource(alias, type, false);
     }
 
     /**
-     * Create a local resource component entry with explicit identity flag.
-     *
-     * @param key      The frame key
-     * @param type     The component type
-     * @param identity Whether this component contributes to item identity
-     * @return A local resource component entry
+     * Create an external/local resource component entry with explicit identity flag.
      */
     public static FrameEntry localResource(FrameKey key, ItemID type, boolean identity) {
-        return FrameEntry.builder()
-                .frameKey(key)
-                .type(type)
-                .identity(identity)
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(key).type(type).identity(identity).build();
+        entry.body = buildExternalBody(type);
+        return entry;
     }
 
     /**
-     * Create a local resource component entry with alias and identity flag.
+     * Create an external/local resource component entry with alias and identity flag.
      */
     public static FrameEntry localResource(String alias, ItemID type, boolean identity) {
-        return FrameEntry.builder()
-                .frameKey(FrameKey.literal(alias))
-                .alias(alias)
-                .type(type)
-                .identity(identity)
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(FrameKey.literal(alias)).alias(alias)
+                .type(type).identity(identity).build();
+        entry.body = buildExternalBody(type);
+        return entry;
     }
 
     // ==================================================================================
@@ -301,14 +269,19 @@ public final class FrameEntry implements Canonical {
      * @return A component entry for the relation
      */
     public static FrameEntry forRelation(ItemID predicate, ContentID cid, boolean identity) {
-        String alias = formatPredicate(predicate);
-        return FrameEntry.builder()
+        return forRelation(predicate, cid, identity, null);
+    }
+
+    public static FrameEntry forRelation(ItemID predicate, ContentID cid, boolean identity, String displayName) {
+        String alias = displayName != null ? displayName : formatPredicate(predicate);
+        FrameEntry entry = FrameEntry.builder()
                 .frameKey(FrameKey.literal("rel:" + cid.encodeText()))
                 .alias(alias)
                 .type(FrameBody.TYPE_ID)
                 .identity(identity)
-                .payload(EntryPayload.builder().snapshotCid(cid).build())
                 .build();
+        entry.body = buildSnapshotBody(FrameBody.TYPE_ID, cid);
+        return entry;
     }
 
     /**
@@ -322,6 +295,86 @@ public final class FrameEntry implements Canonical {
             return text.substring(colonIdx + 1);
         }
         return predicate.displayAtWidth(12);
+    }
+
+    // ==================================================================================
+    // FrameBody Reconstruction
+    // ==================================================================================
+
+    /**
+     * Reconstruct a FrameEntry from a FrameBody and FrameEndorsement.
+     *
+     * <p>Used during hydration when manifests contain FrameEndorsements
+     * instead of full FrameEntries. The FrameBody's bindings are inspected
+     * to extract the original data: content CID (Topic role), alias (Alias role),
+     * encrypted CID (Encrypted role), and config (Config role).
+     *
+     * @param body        The frame body (fetched from object store by bodyHash)
+     * @param endorsement The endorsement from the manifest
+     * @return A reconstructed FrameEntry suitable for standard hydration
+     */
+    public static FrameEntry fromFrameBody(FrameBody body, FrameEndorsement endorsement) {
+        EntryConfig config = extractConfig(body, ThematicRole.Config.SEED.iid());
+
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(endorsement.key())
+                .type(body.predicate())
+                .identity(hasIdentityBindings(body))
+                .bodyHash(endorsement.bodyHash())
+                .config(config)
+                .presentation(EntryPresentation.withMounts(endorsement.mounts()))
+                .build();
+        entry.body = body;
+        return entry;
+    }
+
+    /**
+     * Build a FrameEndorsement from this entry.
+     *
+     * <p>Used during commit to convert FrameTable entries to the
+     * manifest's endorsement format. Requires bodyHash to be set
+     * (Phase 3 ensures this for all frames).
+     */
+    public FrameEndorsement toEndorsement() {
+        ContentID hash = bodyHash != null ? bodyHash : ContentID.of(new byte[0]);
+        return new FrameEndorsement(frameKey, hash, mounts());
+    }
+
+    private static ContentID extractCid(FrameBody body, ItemID role) {
+        BindingTarget target = body.binding(role);
+        if (target instanceof BindingTarget.RefTarget ref) {
+            HashID id = ref.ref();
+            return id instanceof ContentID cid ? cid : new ContentID(id.encodeBinary());
+        }
+        if (target instanceof BindingTarget.IidTarget iid) {
+            return new ContentID(iid.iid().encodeBinary());
+        }
+        return null;
+    }
+
+    private static String extractText(FrameBody body, ItemID role) {
+        BindingTarget target = body.binding(role);
+        if (target instanceof Literal lit) {
+            return lit.asText();
+        }
+        return null;
+    }
+
+    private static EntryConfig extractConfig(FrameBody body, ItemID role) {
+        BindingTarget target = body.binding(role);
+        if (target instanceof Literal lit && lit.payload() != null) {
+            try {
+                return Canonical.decodeBinary(lit.payload(), EntryConfig.class, Canonical.Scope.RECORD);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasIdentityBindings(FrameBody body) {
+        if (body.frameBindings() == null) return true;
+        return body.frameBindings().stream().anyMatch(Binding::identity);
     }
 
     // ==================================================================================
@@ -342,12 +395,10 @@ public final class FrameEntry implements Canonical {
      */
     public static FrameEntry reference(FrameKey key, ItemID type, ItemID target) {
         Objects.requireNonNull(target, "reference target");
-        return FrameEntry.builder()
-                .frameKey(key)
-                .type(type)
-                .identity(false)
-                .payload(EntryPayload.builder().referenceTarget(target).build())
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(key).type(type).identity(false).build();
+        entry.body = buildReferenceBody(type, target);
+        return entry;
     }
 
     /**
@@ -355,13 +406,11 @@ public final class FrameEntry implements Canonical {
      */
     public static FrameEntry reference(String alias, ItemID type, ItemID target) {
         Objects.requireNonNull(target, "reference target");
-        return FrameEntry.builder()
-                .frameKey(FrameKey.literal(alias))
-                .alias(alias)
-                .type(type)
-                .identity(false)
-                .payload(EntryPayload.builder().referenceTarget(target).build())
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(FrameKey.literal(alias)).alias(alias)
+                .type(type).identity(false).build();
+        entry.body = buildReferenceBody(type, target);
+        return entry;
     }
 
     /**
@@ -369,13 +418,11 @@ public final class FrameEntry implements Canonical {
      */
     public static FrameEntry reference(String alias, ItemID type, ItemID target, boolean identity) {
         Objects.requireNonNull(target, "reference target");
-        return FrameEntry.builder()
-                .frameKey(FrameKey.literal(alias))
-                .alias(alias)
-                .type(type)
-                .identity(identity)
-                .payload(EntryPayload.builder().referenceTarget(target).build())
-                .build();
+        FrameEntry entry = FrameEntry.builder()
+                .frameKey(FrameKey.literal(alias)).alias(alias)
+                .type(type).identity(identity).build();
+        entry.body = buildReferenceBody(type, target);
+        return entry;
     }
 
     // ==================================================================================
@@ -384,27 +431,27 @@ public final class FrameEntry implements Canonical {
 
     /**
      * Does this component have snapshot content?
+     * @deprecated Use {@code body().hasContent()} instead.
      */
+    @Deprecated
     public boolean hasSnapshot() {
-        return payload().snapshotCid != null;
+        return body().hasContent();
     }
 
     /**
      * Is this a stream-based component?
-     *
-     * <p>Returns true if this component is stream-based, even if it has no
-     * heads yet. This allows distinguishing fresh stream components from
-     * local resources.
+     * @deprecated Use {@code body().isStream()} instead.
      */
+    @Deprecated
     public boolean hasStream() {
-        return payload().streamBased;
+        return body().isStream();
     }
 
     /**
      * Does this stream component have any heads?
      */
     public boolean hasStreamHeads() {
-        return payload().streamHeads != null && !payload().streamHeads.isEmpty();
+        return body().streamHeadCid() != null;
     }
 
     /**
@@ -414,9 +461,12 @@ public final class FrameEntry implements Canonical {
      * storing content bytes. The referenced item has its own versioning.
      * This is the containment primitive: items "inside" a container are
      * reference entries in that container's FrameTable.
+     *
+     * @deprecated Use {@code body().isReference()} instead.
      */
+    @Deprecated
     public boolean isReference() {
-        return payload().referenceTarget != null;
+        return body().isReference();
     }
 
     /**
@@ -430,14 +480,45 @@ public final class FrameEntry implements Canonical {
     }
 
     /**
-     * Is this a local resource component?
-     *
-     * <p>Local resources have no content references (null snapshotCid,
-     * not stream-based, and not a reference). They require a mount to
-     * define their path and cannot be synced.
+     * Is this a local resource / external component?
+     * @deprecated Use {@code body().isExternal()} instead.
      */
+    @Deprecated
     public boolean isLocalResource() {
-        return !hasSnapshot() && !payload().streamBased && payload().referenceTarget == null;
+        return body().isExternal();
+    }
+
+    /**
+     * Sync payload from body before CBOR encoding.
+     *
+     * <p>Body is now the source of truth. The payload field is the
+     * serialized form (backward compat). This syncs body → payload
+     * before encoding so that round-trip works.
+     */
+    @Override
+    public com.upokecenter.cbor.CBORObject toCborTree(Scope scope) {
+        if (body != null) {
+            syncPayloadFromBody();
+        }
+        return Canonical.super.toCborTree(scope);
+    }
+
+    private void syncPayloadFromBody() {
+        ContentID cid = body.contentCid();
+        ContentID encCid = body.encryptedCid();
+        ItemID refTarget = body.referenceTargetId();
+        boolean stream = body.isStream();
+        ContentID streamCid = body.streamHeadCid();
+
+        EntryPayload.EntryPayloadBuilder builder = EntryPayload.builder();
+        if (cid != null) builder.snapshotCid(cid);
+        if (encCid != null) builder.encryptedCid(encCid);
+        if (refTarget != null) builder.referenceTarget(refTarget);
+        if (stream) {
+            builder.streamBased(true);
+            if (streamCid != null) builder.streamHead(streamCid);
+        }
+        this.payload = builder.build();
     }
 
     /**
@@ -506,19 +587,140 @@ public final class FrameEntry implements Canonical {
     }
 
     /**
+     * The frame's semantic body (predicate, theme, bindings).
+     *
+     * <p>Always returns a non-null FrameBody. If explicitly set during
+     * commit or hydration, returns that instance. Otherwise, lazily builds
+     * one from the legacy facet data (payload, config, alias) so that
+     * callers can uniformly use body-based accessors during migration.
+     */
+    public FrameBody body() {
+        if (body == null) {
+            body = buildBodyFromFacets();
+        }
+        return body;
+    }
+
+    /**
+     * Set the frame body. Called during commit and hydration.
+     */
+    public void setBody(FrameBody body) {
+        this.body = body;
+    }
+
+    // ==================================================================================
+    // Body Builders (used by factory methods)
+    // ==================================================================================
+
+    /** Placeholder theme for factory-created entries (set to real IID during commit). */
+    private static final ItemID PLACEHOLDER = ItemID.fromString("cg:placeholder");
+
+    private static FrameBody buildSnapshotBody(ItemID type, ContentID cid) {
+        List<Binding> bindings = new ArrayList<>();
+        if (cid != null) {
+            bindings.add(new Binding(ThematicRole.Topic.SEED.iid(),
+                    BindingTarget.ref(cid), true, false));
+        }
+        return new FrameBody(type, PLACEHOLDER, bindings);
+    }
+
+    private static FrameBody buildStreamBody(ItemID type, List<ContentID> heads) {
+        List<Binding> bindings = new ArrayList<>();
+        List<ItemID> streamKey = List.of(
+                ThematicRole.Topic.SEED.iid(), CoreVocabulary.Stream.SEED.iid());
+        if (heads != null && !heads.isEmpty()) {
+            bindings.add(Binding.compound(streamKey,
+                    BindingTarget.ref(heads.getFirst()), true, false));
+        } else {
+            bindings.add(Binding.compound(streamKey,
+                    Literal.ofText(""), false, false));
+        }
+        return new FrameBody(type, PLACEHOLDER, bindings);
+    }
+
+    private static FrameBody buildExternalBody(ItemID type) {
+        List<Binding> bindings = new ArrayList<>();
+        List<ItemID> externalKey = List.of(
+                ThematicRole.Topic.SEED.iid(), CoreVocabulary.External.SEED.iid());
+        bindings.add(Binding.compound(externalKey,
+                Literal.ofText(""), false, false));
+        return new FrameBody(type, PLACEHOLDER, bindings);
+    }
+
+    private static FrameBody buildReferenceBody(ItemID type, ItemID target) {
+        List<Binding> bindings = new ArrayList<>();
+        bindings.add(new Binding(ThematicRole.Goal.SEED.iid(),
+                BindingTarget.iid(target), true, false));
+        return new FrameBody(type, PLACEHOLDER, bindings);
+    }
+
+    /**
+     * Build a FrameBody from legacy facet data.
+     *
+     * <p>This is fallback bridge code for entries deserialized from old CBOR
+     * format where body was null and payload had the data. Factory methods
+     * now set body directly.
+     */
+    private FrameBody buildBodyFromFacets() {
+        java.util.List<Binding> bindings = new java.util.ArrayList<>();
+
+        EntryPayload p = payload();
+        ItemID topicId = ThematicRole.Topic.SEED.iid();
+
+        // Content mode determines the Topic binding key:
+        // - Stream: compound key (TOPIC, STREAM) with stream head CID (or placeholder)
+        // - Local resource: compound key (TOPIC, EXTERNAL) with no target
+        // - Snapshot: simple key (TOPIC) with snapshot CID
+        if (p.streamBased) {
+            List<ItemID> streamKey = List.of(topicId, CoreVocabulary.Stream.SEED.iid());
+            if (p.streamHeads() != null && !p.streamHeads().isEmpty()) {
+                bindings.add(Binding.compound(streamKey,
+                        BindingTarget.ref(p.streamHeads().getFirst()), true, false));
+            } else {
+                bindings.add(Binding.compound(streamKey,
+                        Literal.ofText(""), false, false));
+            }
+        } else if (p.snapshotCid() != null) {
+            bindings.add(new Binding(topicId,
+                    BindingTarget.ref(p.snapshotCid()), true, false));
+        } else if (p.referenceTarget() == null) {
+            List<ItemID> externalKey = List.of(topicId, CoreVocabulary.External.SEED.iid());
+            bindings.add(Binding.compound(externalKey,
+                    Literal.ofText(""), false, false));
+        }
+
+        if (p.referenceTarget() != null) {
+            bindings.add(new Binding(ThematicRole.Goal.SEED.iid(),
+                    BindingTarget.iid(p.referenceTarget()), true, false));
+        }
+        if (p.encryptedCid() != null) {
+            List<ItemID> encKey = List.of(topicId, CoreVocabulary.Encrypted.SEED.iid());
+            bindings.add(Binding.compound(encKey,
+                    BindingTarget.ref(p.encryptedCid()), false, false));
+        }
+        if (config != null && config.policy() != null) {
+            byte[] configBytes = config.encodeBinary(Canonical.Scope.RECORD);
+            bindings.add(Binding.nonIdentity(ThematicRole.Config.SEED.iid(),
+                    new Literal(Literal.TYPE_CBOR, configBytes)));
+        }
+
+        ItemID typeId = type != null ? type : ItemID.fromString("cg:type/unknown");
+        ItemID themeId = (owner != null) ? owner.iid() : ItemID.fromString("cg:placeholder");
+        return new FrameBody(typeId, themeId, bindings);
+    }
+
+    /**
      * Set the live runtime instance for this entry.
      */
     public void setInstance(Object instance) {
         this.instance = instance;
-        payload().instance = instance;
     }
 
     /**
      * Get the live runtime instance for this entry.
      */
     public Object instance() {
-        if (instance != null) return instance;
-        return payload().instance;
+        return instance;
     }
 
     /**
@@ -677,8 +879,9 @@ public final class FrameEntry implements Canonical {
 
     public String displaySubtitle() {
         if (type == null) return null;
-        if (payload().referenceTarget != null) {
-            return "\u2192 " + payload().referenceTarget.displayAtWidth(12);
+        ItemID refTarget = body().referenceTargetId();
+        if (refTarget != null) {
+            return "\u2192 " + refTarget.displayAtWidth(12);
         }
         return type.displayAtWidth(16);
     }
@@ -694,10 +897,12 @@ public final class FrameEntry implements Canonical {
     public String emoji() {
         // Different emoji based on content mode
         if (isRelation()) return "🔗";  // Relation
-        if (payload().referenceTarget != null) return "🔗";  // Reference
-        if (payload().streamBased) return "📡";  // Stream
-        if (payload().snapshotCid != null) return "📄";  // Snapshot
-        return "📦";  // Local resource
+        FrameBody b = body();
+        if (b.isReference()) return "🔗";  // Reference
+        if (b.isStream()) return "📡";    // Stream
+        if (b.hasContent()) return "📄";  // Snapshot
+        if (b.isExternal()) return "📦";  // External/local resource
+        return "📦";  // Unknown
     }
 
     public DisplayInfo displayInfo() {

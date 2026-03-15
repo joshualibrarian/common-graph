@@ -257,7 +257,7 @@ public abstract class ItemTest {
         @Test
         @DisplayName("component table exists")
         void componentTableExists() {
-            assertThat(item.content())
+            assertThat((Object) item.content())
                     .as("Component table")
                     .isNotNull();
         }

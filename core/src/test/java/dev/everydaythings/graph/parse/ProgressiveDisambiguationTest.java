@@ -50,8 +50,8 @@ class ProgressiveDisambiguationTest {
                     mockVerb(CREATE_IID), Set.of(), List.of(), false);
 
             List<Posting> candidates = List.of(
-                    Posting.universal("set", SET_VERB_IID),
-                    Posting.universal("set", SET_NOUN_IID)
+                    Posting.universal("set", SET_VERB_IID, PartOfSpeech.VERB),
+                    Posting.universal("set", SET_NOUN_IID, PartOfSpeech.NOUN)
             );
 
             Function<ItemID, Optional<Item>> resolver = iid -> {
@@ -74,8 +74,8 @@ class ProgressiveDisambiguationTest {
                     mockVerb(CREATE_IID), Set.of(), List.of(), true);
 
             List<Posting> candidates = List.of(
-                    Posting.universal("on", ON_PREP_IID),
-                    Posting.universal("on", NOUN_A_IID)
+                    Posting.universal("on", ON_PREP_IID, PartOfSpeech.PREPOSITION),
+                    Posting.universal("on", NOUN_A_IID, PartOfSpeech.NOUN)
             );
 
             Function<ItemID, Optional<Item>> resolver = iid -> {
@@ -97,17 +97,19 @@ class ProgressiveDisambiguationTest {
             ExpressionContext ctx = new ExpressionContext(
                     mockVerb(CREATE_IID), Set.of(), List.of(), false);
 
+            ItemID forPrepIid = ItemID.random();
+
             List<ExpressionToken> allTokens = List.of(
                     RefToken.of(ON_PREP_IID, "on"),
                     new CandidateToken("for", List.of(
-                            Posting.universal("for", ItemID.random()),
-                            Posting.universal("for", NOUN_A_IID)
+                            Posting.universal("for", forPrepIid, PartOfSpeech.PREPOSITION),
+                            Posting.universal("for", NOUN_A_IID, PartOfSpeech.NOUN)
                     ))
             );
 
             List<Posting> candidates = List.of(
-                    Posting.universal("for", ItemID.random()),
-                    Posting.universal("for", NOUN_A_IID)
+                    Posting.universal("for", forPrepIid, PartOfSpeech.PREPOSITION),
+                    Posting.universal("for", NOUN_A_IID, PartOfSpeech.NOUN)
             );
 
             ItemID prepCandidateIid = candidates.get(0).target();
@@ -136,15 +138,11 @@ class ProgressiveDisambiguationTest {
                     false);
 
             List<Posting> candidates = List.of(
-                    Posting.universal("extra", NOUN_A_IID),
-                    Posting.universal("extra", NOUN_B_IID)
+                    Posting.universal("extra", NOUN_A_IID, PartOfSpeech.NOUN),
+                    Posting.universal("extra", NOUN_B_IID, PartOfSpeech.NOUN)
             );
 
-            Function<ItemID, Optional<Item>> resolver = iid -> {
-                if (iid.equals(NOUN_A_IID)) return Optional.of(mockNoun(NOUN_A_IID));
-                if (iid.equals(NOUN_B_IID)) return Optional.of(mockNoun(NOUN_B_IID));
-                return Optional.empty();
-            };
+            Function<ItemID, Optional<Item>> resolver = iid -> Optional.empty();
 
             List<Posting> surviving = ctx.pruneForPosition(
                     0, candidates, List.of(), resolver);
@@ -294,14 +292,18 @@ class ProgressiveDisambiguationTest {
     // ==================================================================================
 
     private static Sememe mockVerb(ItemID iid) {
-        return new Sememe("test:verb/" + iid.toString().substring(0, 8), PartOfSpeech.VERB);
+        // Verb with a slot role so inferPOSFromItem detects it as a verb
+        return new Sememe("test:verb/" + iid.toString().substring(0, 8))
+                .slot("cg.role:theme");
     }
 
     private static Sememe mockNoun(ItemID iid) {
-        return new Sememe("test:noun/" + iid.toString().substring(0, 8), PartOfSpeech.NOUN);
+        return new Sememe("test:noun/" + iid.toString().substring(0, 8));
     }
 
     private static Sememe mockPreposition(ItemID iid) {
-        return new Sememe("test:prep/" + iid.toString().substring(0, 8), PartOfSpeech.PREPOSITION);
+        // Preposition with assignedRole so inferPOSFromItem detects it
+        return new Sememe("test:prep/" + iid.toString().substring(0, 8))
+                .role("cg.role:goal");
     }
 }

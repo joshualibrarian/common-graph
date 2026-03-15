@@ -266,39 +266,33 @@ class FrameKeyTest {
     }
 
     @Nested
-    @DisplayName("FrameEntry integration")
-    class EntryIntegration {
+    @DisplayName("Frame integration")
+    class FrameIntegration {
 
         @Test
-        @DisplayName("entry with explicit semantic frameKey returns it")
+        @DisplayName("frame with explicit semantic frameKey returns it")
         void explicitSemanticFrameKey() {
             FrameKey key = FrameKey.of(TITLE);
-            dev.everydaythings.graph.frame.FrameEntry entry =
-                    dev.everydaythings.graph.frame.FrameEntry.builder()
-                            .frameKey(key)
-                            .type(ItemID.fromString("cg:type/text"))
-                            .identity(true)
-                            .build();
+            dev.everydaythings.graph.frame.Frame frame =
+                    dev.everydaythings.graph.frame.Frame.snapshot(
+                            key, ItemID.fromString("cg:type/text"), null, true);
 
-            assertThat(entry.frameKey()).isEqualTo(key);
-            assertThat(entry.frameKey().isSemantic()).isTrue();
-            assertThat(entry.frameKey().headSememe()).isEqualTo(TITLE);
+            assertThat(frame.frameKey()).isEqualTo(key);
+            assertThat(frame.frameKey().isSemantic()).isTrue();
+            assertThat(frame.frameKey().headSememe()).isEqualTo(TITLE);
         }
 
         @Test
-        @DisplayName("entry with explicit literal frameKey returns it")
+        @DisplayName("frame with explicit literal frameKey returns it")
         void explicitLiteralFrameKey() {
             FrameKey key = FrameKey.literal("vault");
-            dev.everydaythings.graph.frame.FrameEntry entry =
-                    dev.everydaythings.graph.frame.FrameEntry.builder()
-                            .frameKey(key)
-                            .type(ItemID.fromString("cg:type/vault"))
-                            .identity(true)
-                            .build();
+            dev.everydaythings.graph.frame.Frame frame =
+                    dev.everydaythings.graph.frame.Frame.snapshot(
+                            key, ItemID.fromString("cg:type/vault"), null, true);
 
-            assertThat(entry.frameKey()).isEqualTo(key);
-            assertThat(entry.frameKey().isLiteral()).isTrue();
-            assertThat(entry.frameKey().literalValue()).isEqualTo("vault");
+            assertThat(frame.frameKey()).isEqualTo(key);
+            assertThat(frame.frameKey().isLiteral()).isTrue();
+            assertThat(frame.frameKey().literalValue()).isEqualTo("vault");
         }
     }
 }

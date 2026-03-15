@@ -4,7 +4,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.Type;
@@ -147,9 +147,9 @@ public final class SeedVocabulary {
                         // Abstract classes: derive tokens statically from @Type annotation
                         String key = ann.value();
                         String name = extractReadableName(key);
-                        Sememe ns = new Sememe(key, PartOfSpeech.NOUN)
+                        Sememe ns = new Sememe(key)
                                 .gloss("en", name)
-                                .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
                         if (ns.extractTokens().findAny().isPresent()) {
                             result.add(ns);
                         }
@@ -180,9 +180,9 @@ public final class SeedVocabulary {
 
                 String key = ann.value();
                 String name = extractReadableName(key);
-                Sememe ns = new Sememe(key, PartOfSpeech.NOUN)
+                Sememe ns = new Sememe(key)
                         .gloss("en", name)
-                        .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                        .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
                 if (ns.extractTokens().findAny().isPresent()) {
                     result.add(ns);
                 }
@@ -298,9 +298,9 @@ public final class SeedVocabulary {
         if (Modifier.isAbstract(type.getModifiers())) {
             // Abstract classes: create a Sememe seed with display name
             String name = extractReadableName(key);
-            typeSeed = new Sememe(key, PartOfSpeech.NOUN)
+            typeSeed = new Sememe(key)
                     .gloss("en", name)
-                    .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                    .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
         } else {
             // Concrete classes: instantiate via seed constructor
             typeSeed = createTypeSeed(type, typeId);
@@ -336,9 +336,9 @@ public final class SeedVocabulary {
 
         // Create Sememe seed Item for this non-Item type
         String name = extractReadableName(key);
-        Sememe typeSememe = new Sememe(key, PartOfSpeech.NOUN)
+        Sememe typeSememe = new Sememe(key)
                 .gloss("en", name)
-                .word(GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
 
         // Attach unified presentation component (display metadata + surface template)
         attachTypePresentation(typeSememe, type, annotation);
@@ -470,14 +470,10 @@ public final class SeedVocabulary {
             byte[] bytes = ((Canonical) component).encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
 
-            FrameEntry entry = FrameEntry.builder()
-                    .frameKey(key)
-                    .type(ItemID.fromString(SurfaceTemplateComponent.KEY))
-                    .identity(false)
-                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
-                    .build();
+            Frame frame = Frame.snapshot(key,
+                    ItemID.fromString(SurfaceTemplateComponent.KEY), cid, false);
 
-            contentTable.add(entry);
+            contentTable.add(frame);
             contentTable.setLive(key, alias, component);
             logger.debug("Attached surface template to {}", item.displayToken());
         }
@@ -509,12 +505,8 @@ public final class SeedVocabulary {
             byte[] bytes = gloss.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
 
-            FrameEntry ce = FrameEntry.builder()
-                    .frameKey(key)
-                    .type(ItemID.fromString(SememeGloss.KEY))
-                    .identity(false)
-                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(cid).build())
-                    .build();
+            Frame ce = Frame.snapshot(key,
+                    ItemID.fromString(SememeGloss.KEY), cid, false);
 
             contentTable.add(ce);
             contentTable.setLive(key, handleKey, gloss);
@@ -535,9 +527,9 @@ public final class SeedVocabulary {
         if (item != null) {
             byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
-            FrameEntry entry = FrameEntry.forRelation(body.predicate(), cid, true);
-            item.content().add(entry);
-            item.content().setLive(entry.frameKey(), body);
+            Frame frame = Frame.forRelation(body.predicate(), cid, true, "implementedBy");
+            item.content().add(frame);
+            item.content().setLive(frame.frameKey(), body);
         }
 
         return body;
@@ -577,14 +569,14 @@ public final class SeedVocabulary {
             store.persistManifest(item.iid(), record, tx);
 
             // Store component content
-            for (FrameEntry entry : manifest.components()) {
-                if (entry.payload().snapshotCid() != null) {
+            for (Frame frame : manifest.components()) {
+                if (frame.body().hasContent()) {
                     // Try @ContentField-based encoding first
-                    byte[] content = item.encodeComponentValue(entry.frameKey());
+                    byte[] content = item.encodeComponentValue(frame.frameKey());
 
                     // Fall back to live value in content table (for manually-attached components)
                     if (content == null && item.content() != null) {
-                        Object live = item.content().getLive(entry.frameKey()).orElse(null);
+                        Object live = item.content().getLive(frame.frameKey()).orElse(null);
                         if (live instanceof Canonical c) {
                             content = c.encodeBinary(Canonical.Scope.RECORD);
                         }

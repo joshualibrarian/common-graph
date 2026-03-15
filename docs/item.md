@@ -1,6 +1,6 @@
 # Items
 
-An **Item** is the fundamental unit of the Common Graph. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item.
+In the Common Graph, **frames** hold all the data, indexed with semantic keys.  However, an **Item** is the fundamental unit of coherent meaning. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item.  Anything that makes sense **as a whole**.
 
 An Item is a **versioned, signed, typed collection of frames with stable identity**. Every Item carries its own identity, its own history, its own type definition, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
 
@@ -69,9 +69,11 @@ entries:    FrameKey → FrameEntry    (metadata: type, CID, mounts, identity fl
 live:       FrameKey → Object        (decoded instance: the actual Roster, Log, etc.)
 aliasIndex: String   → FrameKey      (human names: "vault" → (VAULT), "chat" → (CHAT))
 ```
+TODO: I think we unified this and live instances now live on the frame itself (no longer "entry")... if that's not so, let's, then let's update the docs.
 
 **Entries** are the serialized truth — they go into the manifest, get content-addressed, and sync over the network. **Live instances** are the in-memory decoded forms — they exist only at runtime. The alias index is transient convenience for resolving human-friendly names to frame keys.
 
+TODO: this is outdated, it's not "entry", and we've got that whole BINDING system now, so it's much simpler.
 ### Frame Entries
 
 A `FrameEntry` is the metadata record for one frame:

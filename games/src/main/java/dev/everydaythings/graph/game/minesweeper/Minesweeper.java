@@ -4,7 +4,6 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
-import dev.everydaythings.graph.frame.FrameEntry;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
@@ -202,32 +201,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     }
 
     private void publishConfigSettings(dev.everydaythings.graph.item.Item owningItem) {
-        owningItem.componentEntry(this).ifPresent(entry -> {
-            entry.putSetting(FrameEntry.ScopedSetting.builder()
-                    .scopePath(CONFIG_SCOPE_ROOT)
-                    .key(CONFIG_DIFFICULTY)
-                    .value(difficulty.name().toLowerCase(Locale.ROOT))
-                    .valueType("enum")
-                    .build());
-            entry.putSetting(FrameEntry.ScopedSetting.builder()
-                    .scopePath(CONFIG_SCOPE_ROOT)
-                    .key(CONFIG_COLS)
-                    .value(Integer.toString(cols))
-                    .valueType("int")
-                    .build());
-            entry.putSetting(FrameEntry.ScopedSetting.builder()
-                    .scopePath(CONFIG_SCOPE_ROOT)
-                    .key(CONFIG_ROWS)
-                    .value(Integer.toString(rows))
-                    .valueType("int")
-                    .build());
-            entry.putSetting(FrameEntry.ScopedSetting.builder()
-                    .scopePath(CONFIG_SCOPE_ROOT)
-                    .key(CONFIG_MINES)
-                    .value(Integer.toString(mineCount))
-                    .valueType("int")
-                    .build());
-        });
+        // TODO: Config settings migration — FrameEntry.putSetting moved to CONFIG binding on FrameBody
     }
 
     // ==================================================================================

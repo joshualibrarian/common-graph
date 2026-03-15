@@ -1042,7 +1042,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         String candidate = normalized;
         int n = 2;
-        while (item.content().get(dev.everydaythings.graph.item.id.FrameKey.literal(candidate)).isPresent()) {
+        while (item.content().containsKey(dev.everydaythings.graph.item.id.FrameKey.literal(candidate))) {
             candidate = normalized + "-" + n++;
         }
         return candidate;

@@ -10,15 +10,15 @@
 
 Search engines exist because the web has no idea what anything means.
 
-An HTML page is text with layout hints. A JPEG is opaque bytes with a filename. A product listing, a research paper, a restaurant menu, a medical record — to the infrastructure, they're all the same: blobs at URLs. The web has no mechanism for semantic indexing. None. Every query you make goes to a company that crawled billions of pages, guessed what they're about from word frequency and link structure, and built a proprietary index that you rent access to.
+An HTML page is text with layout hints. A JPEG is opaque bytes with a filename. A product listing, a research paper, a restaurant menu, a medical record — to the infrastructure, they're all the same: blobs at URLs. The web has no mechanism for semantic indexing. Every query you make goes to a company that crawled billions of pages, guessed what they're about from word frequency and link structure, and built a proprietary index that you rent access to.
 
 This is so normal that it's invisible. But think about what it means: the entire world's information infrastructure has *zero native ability* to answer "what is this about?" Every search result is a probabilistic guess by a third party. "Red shirt" gives you Star Trek memes and fashion and political commentary and soccer jerseys, and the engine does its best to guess which you meant from your click history and location and what ads it can sell against the ambiguity.
 
 The deeper problem is that files, web pages, emails, messages, and documents are all **semantically inert**. They don't know what they mean. They can't describe their relationships to other things. They can't assert their authorship or verify their integrity. They can't express that this JPEG is a photo of a specific person, that this PDF is version 3 of a contract between two specific parties, or that this code file implements a specific algorithm. All of that meaning lives in human heads, in proprietary databases, in app-specific metadata formats that don't talk to each other.
 
-Common Graph makes meaning structural. **Semantics are resolved at write time, not read time.** When you create or relate anything, the system resolves your intent to globally-anchored meaning *before the data is stored*. Every item, every assertion, every relationship is grounded in **sememes**: universal units of meaning with stable identities derived from decades of computational linguistics (WordNet, VerbNet, CILI). The meaning isn't guessed later by a search engine — it's declared at the moment of creation, by the person who knows what they mean.
+Common Graph makes meaning structural. **Semantics are resolved at write time, not read time.** When you create or relate anything, the system resolves your intent to globally-anchored meaning *before the data is stored*. Every item, every assertion, every relationship is grounded in **sememes**: universal units of meaning with stable identities derived from decades of computational linguistics (WordNet, FrameNet, VerbNet, CILI). The meaning isn't guessed later by a search engine — it's declared at the moment of creation, by the person who knows what they mean.
 
-When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment of type shirt with color attribute red." Star Trek Red Shirt memes are a different sememe entirely. They simply don't match.
+When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment of won on the torso with color attribute red." Star Trek Red Shirt memes are a different sememe entirely. They simply don't match.
 
 ---
 
@@ -41,7 +41,7 @@ Your content is a signed item on your device. It's discoverable through the grap
 
 **Trust without a moderator.**
 
-A "like" is a signed frame. A spam label is a signed frame. A fact-check is a signed frame. Everyone's trust policies produce different views of the same data — no appeals board, no opaque algorithm, no single point of content control. A research community requires three independent endorsements for factual claims. A family trusts everything from family devices. These are policy frames in the graph, not features of a platform.
+A "like" is a signed frame. A spam label is a signed frame. A fact-check is a signed frame. Everyone's trust policies produce different views of the same data — no appeals board, no opaque algorithm, no single point of content control. A research community may require three independent endorsements for factual claims. A family trusts everything from family devices. These are policy frames in the graph, not features of a platform.
 
 **Converse across languages.**
 
@@ -95,7 +95,7 @@ VIDEO frame:
   (MKV, SD)  → cid:sd-transcode            [non-identity]
 ```
 
-TITLE expects NAME. CHESS expects WHITE, BLACK, MOVES. VIDEO uses compound keys that carry the content type and format. No generic "value" or "content" roles — predicates declare what they need.
+TITLE expects NAME. CHESS expects WHITE, BLACK, MOVES. VIDEO uses compound keys that carry the content type and format.  Predicates declare what they need via the shape of the thematic roles they expect.
 
 **Identity bindings control versioning.** The body hash — the frame's content identity — is computed from predicate + theme + identity bindings only. Non-identity bindings (cached transcodes, streaming logs, signatures) live on the frame but don't affect its hash. Replace an HD transcode tomorrow — body hash unchanged. Edit the resume source — new body hash, new item version.
 

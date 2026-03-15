@@ -127,7 +127,7 @@ public final class Lexeme implements Canonical {
      * @return A posting that maps this word to its sememe, scoped to the language
      */
     public Posting toPosting() {
-        return Posting.scoped(word, language, sememe, frequency);
+        return new Posting(Posting.normalize(word), language, sememe, frequency, Set.of(partOfSpeech));
     }
 
     // No-arg constructor for Canonical decoding

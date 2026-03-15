@@ -272,7 +272,6 @@ public abstract class LanguageImporter {
                 librarian,
                 signer,
                 canonicalKey,
-                pos,
                 Map.of("en", definition),
                 sources
         );

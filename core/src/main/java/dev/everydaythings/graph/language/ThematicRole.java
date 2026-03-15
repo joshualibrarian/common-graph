@@ -177,7 +177,7 @@ public class ThematicRole extends Sememe {
     }
 
     // ==================================================================================
-    // SEED INSTANCES — instrumental, manner, and circumstantial roles
+    // SEED INSTANCES — instrument, manner, and circumstantial roles
     // ==================================================================================
 
     /** The tool or means manipulated by an agent. [VN: Instrument, LIRICS: Instrument] */
@@ -269,6 +269,18 @@ public class ThematicRole extends Sememe {
     }
 
     // ==================================================================================
+    // SEED INSTANCES — frame-structural role (CG extension)
+    // ==================================================================================
+
+    /** The configuration governing a frame's behavior (policy, scene, settings). [CG extension] */
+    public static class Config {
+        public static final String KEY = "cg.role:config";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "configuration governing a frame's behavior — policy, scene, settings")
+                .word(LEMMA, ENG, "config");
+    }
+
+    // ==================================================================================
     // CONSTRUCTORS
     // ==================================================================================
 
@@ -286,24 +298,24 @@ public class ThematicRole extends Sememe {
 
     /** Fluent seed constructor. */
     public ThematicRole(String canonicalKey) {
-        super(canonicalKey, PartOfSpeech.NOUN);
+        super(canonicalKey);
     }
 
     /** Seed constructor (no sources). */
     public ThematicRole(String canonicalKey, Map<String, String> glosses, List<String> tokens) {
-        super(canonicalKey, PartOfSpeech.NOUN, glosses, Map.of(), tokens);
+        super(canonicalKey, glosses, Map.of(), tokens);
     }
 
     /** Seed constructor (with sources for CILI). */
     public ThematicRole(String canonicalKey, Map<String, String> glosses,
                         Map<String, String> sources, List<String> tokens) {
-        super(canonicalKey, PartOfSpeech.NOUN, glosses, sources, tokens);
+        super(canonicalKey, glosses, sources, tokens);
     }
 
     /** Runtime constructor (with librarian). */
     protected ThematicRole(Librarian librarian, String canonicalKey,
                    Map<String, String> glosses) {
-        super(librarian, canonicalKey, PartOfSpeech.NOUN, glosses, Map.of());
+        super(librarian, canonicalKey, glosses, Map.of());
     }
 
     // ==================================================================================
@@ -320,7 +332,7 @@ public class ThematicRole extends Sememe {
     // LOOKUP
     // ==================================================================================
 
-    /**
+    /** TODO: we need to talk about this switch... why do we need it?  Those tokens should be assigned to those sememes via the token dictionary and normal lookup path... not with this special switch?
      * Look up a ThematicRole by its constant name (e.g., "THEME", "AGENT").
      *
      * <p>Used by {@code @Param(role="THEME")} annotation processing to
@@ -356,6 +368,7 @@ public class ThematicRole extends Sememe {
             case "TOPIC" -> Topic.SEED;
             case "NAME" -> Name.SEED;
             case "REFERENT" -> Referent.SEED;
+            case "CONFIG" -> Config.SEED;
             default -> null;
         };
     }

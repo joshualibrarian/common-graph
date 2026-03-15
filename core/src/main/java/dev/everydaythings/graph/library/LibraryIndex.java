@@ -2,7 +2,7 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
@@ -348,28 +348,29 @@ public interface LibraryIndex extends Service {
     /**
      * Index an endorsed frame from a manifest's frame table.
      */
-    default void indexEndorsedFrame(ItemID ownerIid, FrameEntry entry, WriteTransaction wtx) {
+    default void indexEndorsedFrame(ItemID ownerIid, Frame frame, WriteTransaction wtx) {
         Objects.requireNonNull(ownerIid, "ownerIid");
-        Objects.requireNonNull(entry, "entry");
+        Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(wtx, "wtx");
 
-        ContentID bodyHash = entry.bodyHash();
-        if (bodyHash == null && entry.hasSnapshot()) {
-            bodyHash = entry.payload().snapshotCid();
+        FrameBody body = frame.body();
+        ContentID bodyHash = frame.bodyHash();
+        if (bodyHash == null && body.hasContent()) {
+            bodyHash = body.contentCid();
         }
         if (bodyHash == null) return;
 
-        ContentID storageCid = entry.hasSnapshot() ? entry.payload().snapshotCid() : bodyHash;
+        ContentID storageCid = body.hasContent() ? body.contentCid() : bodyHash;
 
-        ItemID predicate = entry.frameKey().headSememe();
+        ItemID predicate = frame.frameKey().headSememe();
         if (predicate == null) return;
 
         Map<ItemID, BindingTarget> bindings = new HashMap<>();
         bindings.put(ownerIid, BindingTarget.iid(ownerIid));
 
-        if (entry.isReference() && entry.payload().referenceTarget() != null) {
-            bindings.put(entry.payload().referenceTarget(),
-                    BindingTarget.iid(entry.payload().referenceTarget()));
+        ItemID refTarget = body.referenceTargetId();
+        if (refTarget != null) {
+            bindings.put(refTarget, BindingTarget.iid(refTarget));
         }
 
         indexFrame(predicate, bindings, bodyHash, storageCid, wtx);

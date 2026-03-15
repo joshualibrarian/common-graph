@@ -4,7 +4,6 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -282,7 +281,7 @@ public class Function extends Sememe {
     public Function(String canonicalKey, String name, String gloss,
                     int minArity, int maxArity, String category,
                     List<String> aliases) {
-        super(canonicalKey, PartOfSpeech.NOUN,
+        super(canonicalKey,
                 Map.of("en", gloss),
                 Map.of(),
                 List.of(name),       // primary name as universal symbol

@@ -100,6 +100,25 @@ public class FrameFieldSpec {
     }
 
     /**
+     * Human-readable display name for this frame's predicate.
+     *
+     * <p>Extracts the last path segment from the original annotation key string.
+     * For example, {@code "cg.rel:hypernym"} → {@code "hypernym"}.
+     */
+    public String predicateDisplayName() {
+        Item.Frame ann = field.getAnnotation(Item.Frame.class);
+        if (ann != null && ann.key().length > 0) {
+            String firstKey = ann.key()[0];
+            int slash = firstKey.lastIndexOf('/');
+            if (slash >= 0) return firstKey.substring(slash + 1);
+            int colon = firstKey.lastIndexOf(':');
+            if (colon >= 0) return firstKey.substring(colon + 1);
+            return firstKey;
+        }
+        return field.getName();
+    }
+
+    /**
      * Get the field value from an item instance.
      *
      * @param item The item to read from

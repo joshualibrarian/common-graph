@@ -3,7 +3,8 @@ package dev.everydaythings.graph.item;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.FrameEndorsement;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -100,10 +101,22 @@ public final class Manifest implements Signing.Target {
     // ==================================================================================
 
     /**
-     * Get the component entries.
+     * Get the component entries (frame table snapshot).
      */
-    public List<FrameEntry> components() {
-        return state != null ? state.componentSnapshot() : List.of();
+    public List<Frame> components() {
+        if (state == null) return List.of();
+        var table = state.frames();
+        return table != null ? table.stream().toList() : List.of();
+    }
+
+    /**
+     * Get the frame endorsements from this manifest's state.
+     *
+     * <p>Returns endorsements if available (new format), or an empty list
+     * for old-format manifests where entries are in the FrameTable directly.
+     */
+    public List<FrameEndorsement> endorsements() {
+        return state != null ? state.endorsements() : List.of();
     }
 
     // ==================================================================================

@@ -83,8 +83,9 @@ public record ExpressionContext(
                 // Ambiguous — skip; contributes no definite information to the frame
                 continue;
             } else if (token instanceof ExpressionToken.RefToken ref) {
+                Set<ItemID> refFeats = ref.sourcePosting() != null ? ref.sourcePosting().features() : Set.of();
                 resolved.add(new dev.everydaythings.graph.runtime.Eval.ResolvedToken.Link(
-                        ref.target(), ref.displayText()));
+                        ref.target(), ref.displayText(), refFeats));
             } else if (token instanceof ExpressionToken.LiteralToken lit) {
                 resolved.add(new dev.everydaythings.graph.runtime.Eval.ResolvedToken.Literal(
                         lit.value(), lit.displayText()));
@@ -138,24 +139,27 @@ public record ExpressionContext(
 
         List<Posting> filtered = new ArrayList<>(postings.size());
         for (Posting posting : postings) {
-            Optional<Item> target = resolver.apply(posting.target());
-            if (target.isEmpty()) {
-                // Can't resolve → keep it (don't penalize unknown items)
+            Set<ItemID> feats = posting.features();
+
+            // Fast path: features available on posting
+            if (!feats.isEmpty()) {
+                // Rule 1: Once we have a verb, exclude other verbs from completions
+                if (feats.contains(PartOfSpeech.VERB)) continue;
+                // Rule 2: Preposition needs an object, not another preposition
+                if (lastTokenIsPreposition && feats.contains(PartOfSpeech.PREPOSITION)) continue;
                 filtered.add(posting);
                 continue;
             }
 
-            Item item = target.get();
-
-            // Rule 1: Once we have a verb, exclude other verbs from completions
-            if (item instanceof Sememe sv && sv.pos().equals(PartOfSpeech.VERB)) {
+            // Slow path: hydrate to infer POS (postings without features)
+            Optional<Item> target = resolver.apply(posting.target());
+            if (target.isEmpty()) {
+                filtered.add(posting);
                 continue;
             }
-
-            // Rule 2: Preposition needs an object, not another preposition
-            if (lastTokenIsPreposition && item instanceof Sememe sp && sp.pos().equals(PartOfSpeech.PREPOSITION)) {
-                continue;
-            }
+            Set<ItemID> inferred = FrameAssembler.inferPOSFromItem(target.get());
+            if (inferred.contains(PartOfSpeech.VERB)) continue;
+            if (lastTokenIsPreposition && inferred.contains(PartOfSpeech.PREPOSITION)) continue;
 
             filtered.add(posting);
         }
@@ -190,18 +194,12 @@ public record ExpressionContext(
 
         // Rule 1: Verb exclusion — if we already have a verb, remove verb candidates
         if (verb != null) {
-            surviving.removeIf(p -> {
-                Optional<Item> item = resolver.apply(p.target());
-                return item.isPresent() && item.get() instanceof Sememe sv && sv.pos().equals(PartOfSpeech.VERB);
-            });
+            surviving.removeIf(p -> featuresOf(p, resolver).contains(PartOfSpeech.VERB));
         }
 
         // Rule 2: Preposition exclusion — after a dangling preposition, remove preposition candidates
         if (lastTokenIsPreposition) {
-            surviving.removeIf(p -> {
-                Optional<Item> item = resolver.apply(p.target());
-                return item.isPresent() && item.get() instanceof Sememe sp && sp.pos().equals(PartOfSpeech.PREPOSITION);
-            });
+            surviving.removeIf(p -> featuresOf(p, resolver).contains(PartOfSpeech.PREPOSITION));
         }
 
         // Rule 3: Role type constraints — when verb is known with unfilled roles,
@@ -216,7 +214,7 @@ public record ExpressionContext(
                 if (item.isPresent()) {
                     if (item.get().vocabulary().lookup(createId).isPresent()) {
                         hasCreateable = true;
-                    } else if (!(item.get() instanceof Sememe sv2 && sv2.pos().equals(PartOfSpeech.VERB))) {
+                    } else if (!featuresOf(p, resolver).contains(PartOfSpeech.VERB)) {
                         hasNonCreateable = true;
                     }
                 }
@@ -250,12 +248,13 @@ public record ExpressionContext(
             ExpressionToken prev = allTokens.get(tokenIndex - 1);
             if (prev instanceof ExpressionToken.RefToken ref) {
                 Optional<Item> prevItem = resolver.apply(ref.target());
-                if (prevItem.isPresent() && prevItem.get() instanceof Sememe sp3 && sp3.pos().equals(PartOfSpeech.PREPOSITION)) {
+                Set<ItemID> prevFeats = ref.sourcePosting() != null ? ref.sourcePosting().features() : Set.of();
+                if (prevFeats.isEmpty() && prevItem.isPresent()) {
+                    prevFeats = FrameAssembler.inferPOSFromItem(prevItem.get());
+                }
+                if (prevFeats.contains(PartOfSpeech.PREPOSITION)) {
                     // After a preposition — exclude other prepositions from candidates
-                    surviving.removeIf(p -> {
-                        Optional<Item> item = resolver.apply(p.target());
-                        return item.isPresent() && item.get() instanceof Sememe sp4 && sp4.pos().equals(PartOfSpeech.PREPOSITION);
-                    });
+                    surviving.removeIf(p -> featuresOf(p, resolver).contains(PartOfSpeech.PREPOSITION));
                 }
             }
         }
@@ -267,10 +266,7 @@ public record ExpressionContext(
         // for the specific POS category.
         if (verb != null && unfilledRoles.isEmpty() && !filledRoles.isEmpty()) {
             // All roles filled — exclude noun sememes (they can't fill any role)
-            surviving.removeIf(p -> {
-                Optional<Item> item = resolver.apply(p.target());
-                return item.isPresent() && item.get() instanceof Sememe sn && sn.pos().equals(PartOfSpeech.NOUN);
-            });
+            surviving.removeIf(p -> featuresOf(p, resolver).contains(PartOfSpeech.NOUN));
         }
 
         return surviving;
@@ -322,5 +318,16 @@ public record ExpressionContext(
         }
 
         return candidates;
+    }
+
+    /**
+     * Get features for a posting, using posting field with hydration fallback.
+     */
+    private static Set<ItemID> featuresOf(Posting posting, Function<ItemID, Optional<Item>> resolver) {
+        Set<ItemID> feats = posting.features();
+        if (!feats.isEmpty()) return feats;
+        Optional<Item> item = resolver.apply(posting.target());
+        if (item.isEmpty()) return Set.of();
+        return FrameAssembler.inferPOSFromItem(item.get());
     }
 }

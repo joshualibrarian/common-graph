@@ -174,6 +174,24 @@ public final class Binding implements Canonical {
         return new Binding(role, target, true, true);
     }
 
+    /**
+     * Create a compound-key binding (e.g., (TOPIC, STREAM) or (TOPIC, EXTERNAL)).
+     */
+    public static Binding compound(List<ItemID> key, BindingTarget target, boolean identity, boolean index) {
+        return new Binding(key, target, identity, index);
+    }
+
+    /**
+     * Whether this binding's compound key matches the given sequence.
+     */
+    public boolean keyEquals(ItemID... roles) {
+        if (key == null || key.size() != roles.length) return false;
+        for (int i = 0; i < roles.length; i++) {
+            if (!key.get(i).equals(roles[i])) return false;
+        }
+        return true;
+    }
+
     // ==================================================================================
     // Display
     // ==================================================================================

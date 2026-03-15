@@ -10,7 +10,6 @@ import dev.everydaythings.graph.frame.expression.FunctionExpression;
 import dev.everydaythings.graph.frame.expression.ReferenceExpression;
 import dev.everydaythings.graph.frame.expression.SememeExpression;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -205,7 +204,7 @@ public class Operator extends Sememe {
     public Operator(String canonicalKey, String symbol, String name,
                     int arity, int precedence,
                     Associativity associativity, Fixity fixity) {
-        super(canonicalKey, PartOfSpeech.NOUN,
+        super(canonicalKey,
                 Map.of("en", name),     // name serves as English gloss
                 Map.of(),               // no CILI sources for operators
                 List.of(symbol),        // symbol as universal symbol

@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -312,7 +313,9 @@ public class Eval {
      * A resolved token - either an Item reference or a literal value.
      */
     public sealed interface ResolvedToken {
-        public record Link(ItemID iid, String originalToken) implements ResolvedToken {}
+        public record Link(ItemID iid, String originalToken, Set<ItemID> features) implements ResolvedToken {
+            public Link(ItemID iid, String originalToken) { this(iid, originalToken, Set.of()); }
+        }
         public record Literal(Object value, String originalToken) implements ResolvedToken {}
         public record Unresolved(String token) implements ResolvedToken {}
     }
@@ -409,13 +412,13 @@ public class Eval {
 
         Posting preferred = preferredExactPosting(postings, lookupToken, hint);
         if (preferred != null) {
-            return new ResolvedToken.Link(preferred.target(), token);
+            return new ResolvedToken.Link(preferred.target(), token, preferred.features());
         }
 
         // Look for exact match in scoped results
         for (Posting p : postings) {
             if (p.token().equalsIgnoreCase(lookupToken)) {
-                return new ResolvedToken.Link(p.target(), token);
+                return new ResolvedToken.Link(p.target(), token, p.features());
             }
         }
 
@@ -424,11 +427,11 @@ public class Eval {
             List<Posting> allPostings = librarianHandle.lookup(lookupToken).limit(10).toList();
             Posting allPreferred = preferredExactPosting(allPostings, lookupToken, hint);
             if (allPreferred != null) {
-                return new ResolvedToken.Link(allPreferred.target(), token);
+                return new ResolvedToken.Link(allPreferred.target(), token, allPreferred.features());
             }
             for (Posting p : allPostings) {
                 if (p.token().equalsIgnoreCase(lookupToken)) {
-                    return new ResolvedToken.Link(p.target(), token);
+                    return new ResolvedToken.Link(p.target(), token, p.features());
                 }
             }
         }
@@ -474,15 +477,31 @@ public class Eval {
 
         for (ResolvedToken token : tokens) {
             if (token instanceof ResolvedToken.Link link) {
-                Optional<Item> item = librarianHandle.get(link.iid());
-                if (item.isPresent() && item.get() instanceof Sememe pronoun
-                        && pronoun.pos().equals(PartOfSpeech.PRONOUN)) {
-                    Optional<Item> referent = discourseHistory.resolve(pronoun, context);
-                    if (referent.isPresent()) {
-                        result.add(new ResolvedToken.Link(
-                                referent.get().iid(), link.originalToken()));
-                        anyResolved = true;
-                        continue;
+                // Check POS from the link first (fast path); fall back to hydration
+                boolean isPronoun = link.features().contains(PartOfSpeech.PRONOUN);
+                if (!isPronoun) {
+                    Optional<Item> item = librarianHandle.get(link.iid());
+                    isPronoun = item.isPresent() && item.get() instanceof Sememe;
+                    // Legacy: check known pronoun IIDs for seeds without POS on posting
+                    if (isPronoun) {
+                        ItemID iid = link.iid();
+                        isPronoun = iid.equals(Sememe.It.SEED.iid())
+                                || iid.equals(Sememe.This.SEED.iid())
+                                || iid.equals(Sememe.Last.SEED.iid())
+                                || iid.equals(Sememe.Any.SEED.iid())
+                                || iid.equals(Sememe.What.SEED.iid());
+                    }
+                }
+                if (isPronoun) {
+                    Optional<Item> item = librarianHandle.get(link.iid());
+                    if (item.isPresent() && item.get() instanceof Sememe pronoun) {
+                        Optional<Item> referent = discourseHistory.resolve(pronoun, context);
+                        if (referent.isPresent()) {
+                            result.add(new ResolvedToken.Link(
+                                    referent.get().iid(), link.originalToken()));
+                            anyResolved = true;
+                            continue;
+                        }
                     }
                 }
             }

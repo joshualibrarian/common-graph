@@ -208,18 +208,18 @@ public class GrammaticalFeature extends Sememe {
 
     /** Fluent seed constructor. */
     public GrammaticalFeature(String canonicalKey) {
-        super(canonicalKey, PartOfSpeech.NOUN);
+        super(canonicalKey);
     }
 
     /** Seed constructor. */
     public GrammaticalFeature(String canonicalKey, Map<String, String> glosses, List<String> tokens) {
-        super(canonicalKey, PartOfSpeech.NOUN, glosses, Map.of(), tokens);
+        super(canonicalKey, glosses, Map.of(), tokens);
     }
 
     /** Seed constructor (with sources for CILI). */
     public GrammaticalFeature(String canonicalKey, Map<String, String> glosses,
                               Map<String, String> sources, List<String> tokens) {
-        super(canonicalKey, PartOfSpeech.NOUN, glosses, sources, tokens);
+        super(canonicalKey, glosses, sources, tokens);
     }
 
     // ==================================================================================

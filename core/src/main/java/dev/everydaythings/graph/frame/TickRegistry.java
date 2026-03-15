@@ -29,9 +29,9 @@ public class TickRegistry {
      * <p>Called on context change. Scans each live instance for
      * {@link Tick @Tick} methods via {@link ComponentScanner}.
      *
-     * @param table the component table to scan
+     * @param table the endorsements table to scan
      */
-    public void rebuild(FrameTable table) {
+    public void rebuild(EndorsementsTable table) {
         List<TickTarget> newTargets = new ArrayList<>();
         table.forEachLive(instance -> {
             ComponentScanner.ComponentMeta meta = ComponentScanner.metaFor(instance.getClass());

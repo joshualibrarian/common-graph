@@ -29,14 +29,12 @@ class FrameAssemblerTest {
     private static final Sememe AND = Sememe.And.SEED;
 
     // Test modifier sememes
-    private static final Sememe PUBLIC_ADJ = new Sememe(
-            "cg:test/public", PartOfSpeech.ADJECTIVE,
-            Map.of("en", "accessible to everyone"), Map.of(),
-            List.of("public"));
-    private static final Sememe QUIETLY = new Sememe(
-            "cg:test/quietly", PartOfSpeech.ADVERB,
-            Map.of("en", "without notification"), Map.of(),
-            List.of("quietly"));
+    private static final Sememe PUBLIC_ADJ = new Sememe("cg:test/public")
+            .gloss("en", "accessible to everyone")
+            .word(PartOfSpeech.ADJECTIVE, Sememe.LEMMA, Sememe.ENG, "public");
+    private static final Sememe QUIETLY = new Sememe("cg:test/quietly")
+            .gloss("en", "without notification")
+            .word(PartOfSpeech.ADVERB, Sememe.LEMMA, Sememe.ENG, "quietly");
 
     // Mock "noun" items — use random IIDs
     private static final ItemID CHESS_IID = ItemID.fromString("cg:test/chess");
@@ -45,18 +43,14 @@ class FrameAssemblerTest {
     private static final ItemID JANE_IID = ItemID.fromString("cg:test/jane");
 
     // Simple stub items for nouns (we just need iid() and displayToken())
-    private static final Item CHESS_ITEM = new Sememe(
-            "cg:test/chess", PartOfSpeech.NOUN,
-            Map.of("en", "chess"), Map.of());
-    private static final Item LIBRARIAN_ITEM = new Sememe(
-            "cg:test/librarian", PartOfSpeech.NOUN,
-            Map.of("en", "librarian"), Map.of());
-    private static final Item BOB_ITEM = new Sememe(
-            "cg:test/bob", PartOfSpeech.NOUN,
-            Map.of("en", "bob"), Map.of());
-    private static final Item JANE_ITEM = new Sememe(
-            "cg:test/jane", PartOfSpeech.NOUN,
-            Map.of("en", "jane"), Map.of());
+    private static final Item CHESS_ITEM = new Sememe("cg:test/chess")
+            .gloss("en", "chess");
+    private static final Item LIBRARIAN_ITEM = new Sememe("cg:test/librarian")
+            .gloss("en", "librarian");
+    private static final Item BOB_ITEM = new Sememe("cg:test/bob")
+            .gloss("en", "bob");
+    private static final Item JANE_ITEM = new Sememe("cg:test/jane")
+            .gloss("en", "jane");
 
     /**
      * Resolver that knows about our seed sememes and mock items.
@@ -81,6 +75,10 @@ class FrameAssemblerTest {
 
     private ResolvedToken link(Item item) {
         return new ResolvedToken.Link(item.iid(), item.displayToken());
+    }
+
+    private ResolvedToken link(Item item, ItemID pos) {
+        return new ResolvedToken.Link(item.iid(), item.displayToken(), Set.of(pos));
     }
 
     private ResolvedToken link(ItemID iid, String token) {
@@ -422,7 +420,7 @@ class FrameAssemblerTest {
     @Test
     void adverbModifiesVerb() {
         var tokens = List.of(
-                link(QUIETLY), link(CREATE), link(CHESS_IID, "chess"));
+                link(QUIETLY, PartOfSpeech.ADVERB), link(CREATE), link(CHESS_IID, "chess"));
 
         var frame = FrameAssembler.assemble(tokens, resolver);
 
@@ -440,7 +438,7 @@ class FrameAssemblerTest {
     @Test
     void adjectiveModifiesNoun() {
         var tokens = List.of(
-                link(CREATE), link(PUBLIC_ADJ), link(CHESS_IID, "chess"));
+                link(CREATE), link(PUBLIC_ADJ, PartOfSpeech.ADJECTIVE), link(CHESS_IID, "chess"));
 
         var frame = FrameAssembler.assemble(tokens, resolver);
 
@@ -459,7 +457,7 @@ class FrameAssemblerTest {
     @Test
     void adverbAndAdjective() {
         var tokens = List.of(
-                link(QUIETLY), link(CREATE), link(PUBLIC_ADJ), link(CHESS_IID, "chess"));
+                link(QUIETLY, PartOfSpeech.ADVERB), link(CREATE), link(PUBLIC_ADJ, PartOfSpeech.ADJECTIVE), link(CHESS_IID, "chess"));
 
         var frame = FrameAssembler.assemble(tokens, resolver);
 

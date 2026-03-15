@@ -9,9 +9,10 @@ import lombok.Getter;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
-/**
+/** TODO: what... are we going to do about "regions"?  Like... "en-us" and "en-uk"... we haven't dealt with that at all yet.
  * A natural language with its lexicon.
  *
  * <p>Language items contain:
@@ -117,6 +118,30 @@ public class Language extends Item {
     protected Language(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
         // Fields are set by bindFieldsFromTable() via reflection during super() call
+    }
+
+    // ==================================================================================
+    // DISPLAY
+    // ==================================================================================
+
+    @Override
+    public String displayToken() {
+        if (languageCode != null && !languageCode.isBlank()) {
+            String name = LANGUAGE_NAMES.get(languageCode);
+            if (name != null) return name;
+        }
+        return super.displayToken();
+    }
+
+    /** ISO 639-3 code → English name, loaded from bundled resource. */
+    private static final Map<String, String> LANGUAGE_NAMES = loadLanguageNames();
+
+    private static Map<String, String> loadLanguageNames() {
+        Map<String, String> map = new java.util.HashMap<>();
+        for (String[] entry : dev.everydaythings.graph.library.SeedVocabulary.loadLanguageCodes()) {
+            map.put(entry[0], entry[1]);
+        }
+        return Map.copyOf(map);
     }
 
     // ==================================================================================

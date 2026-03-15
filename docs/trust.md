@@ -1,6 +1,6 @@
 # Trust
 
-Common Graph *is* a social network. Not in the debased sense of a feed-scrolling advertisement platform — but in the literal sense: a network of social relationships, modeled explicitly as signed data. Every connection between people, every endorsement, every reaction, every moderation decision is a first-class relation in the graph. The "social" isn't a feature built on top of infrastructure. It *is* the infrastructure.
+Common Graph *is* a social network. Not in the debased sense of a feed-scrolling advertisement platform — but in the literal sense: a network of social relationships, both public and private, modeled explicitly as signed data. Every connection between people, every endorsement, every reaction, every moderation decision is a first-class relation in the graph. The "social" isn't a feature built on top of infrastructure. It *is* the infrastructure.
 
 Trust is the organizing principle. It determines what you see, who you sync with, whose assertions you accept, how far your queries propagate, and whose reactions matter. There is no separate "moderation system" — trust *is* moderation. There is no separate "reputation system" — trust *is* reputation. There is no separate "content filtering algorithm" — trust policies, applied to signed relations, produce different views for different people from the same underlying data.
 

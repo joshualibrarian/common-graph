@@ -7,7 +7,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.TreeLink;
 import dev.everydaythings.graph.dispatch.VerbEntry;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.id.FrameKey;
@@ -434,8 +434,8 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 // Check the item's components for a @Surface annotation.
                 // This allows navigating to an Item (e.g., a clock) and
                 // automatically seeing its component's rendered surface.
-                for (FrameEntry entry : ci.content()) {
-                    Object live = ci.component(entry.frameKey());
+                for (Frame frame : ci.content()) {
+                    Object live = ci.component(frame.frameKey());
                     if (live != null) {
                         SurfaceSchema cs = resolveLiveSurface(live);
                         if (cs != null) return cs;
@@ -561,10 +561,11 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     @SuppressWarnings("unchecked")
     private SurfaceSchema assembleSurfaceMounts(Item item) {
         List<SurfaceSchema> surfaces = new ArrayList<>();
-        for (FrameEntry entry : item.content()) {
-            for (Mount mount : entry.presentation().layout().mounts()) {
+        var table = item.content();
+        for (Frame frame : table) {
+            for (Mount mount : table.mountsFor(frame.frameKey())) {
                 if (mount instanceof Mount.SurfaceMount) {
-                    Object live = item.component(entry.frameKey());
+                    Object live = item.component(frame.frameKey());
                     if (live != null) {
                         SurfaceSchema s = resolveLiveSurface(live);
                         if (s != null) surfaces.add(s);
@@ -1032,23 +1033,23 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         Optional<Item> focused = resolver.apply(context.target());
         if (focused.isEmpty()) return null;
 
-        for (FrameEntry entry : focused.get().content()) {
-            if (!entry.frameKey().toCanonicalString().equals(handleKey)) continue;
+        for (Frame frame : focused.get().content()) {
+            if (!frame.frameKey().toCanonicalString().equals(handleKey)) continue;
 
-            Object instance = entry.instance();
+            Object instance = frame.instance();
             if (instance == null) return null;
 
             CanonicalSchema schema = CanonicalSchema.of(instance.getClass());
             for (CanonicalSchema.FieldSchema fs : schema.fields()) {
                 if (fs.isSetting() && fs.name().equals(fieldName)) {
-                    return new ConfigFieldRef(instance, fs, entry);
+                    return new ConfigFieldRef(instance, fs, frame);
                 }
             }
         }
         return null;
     }
 
-    private record ConfigFieldRef(Object instance, CanonicalSchema.FieldSchema fs, FrameEntry entry) {}
+    private record ConfigFieldRef(Object instance, CanonicalSchema.FieldSchema fs, Frame frame) {}
 
     private SurfaceSchema buildTreeModeBar() {
         ContainerSurface modeBar = ContainerSurface.horizontal()
@@ -1093,12 +1094,12 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 .gap("0.5em")
                 .style("config-panel");
 
-        List<FrameEntry> entries = new ArrayList<>();
-        item.content().forEach(entries::add);
-        entries.sort(Comparator.comparing(FrameEntry::displayToken, String.CASE_INSENSITIVE_ORDER));
+        List<Frame> entries = new ArrayList<>();
+        for (Frame frame : item.content()) { entries.add(frame); }
+        entries.sort(Comparator.comparing(Frame::displayToken, String.CASE_INSENSITIVE_ORDER));
 
         boolean hasSettings = false;
-        for (FrameEntry entry : entries) {
+        for (Frame entry : entries) {
             ContainerSurface section = buildComponentConfigSection(entry);
             if (section != null) {
                 panel.add(section);
@@ -1121,7 +1122,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      *
      * @return a container with header + settings + policy, or null if nothing to show
      */
-    private ContainerSurface buildComponentConfigSection(FrameEntry entry) {
+    private ContainerSurface buildComponentConfigSection(Frame entry) {
         // Gather settings from live instance
         List<CanonicalSchema.FieldSchema> settings = List.of();
         Object instance = entry.instance();
@@ -1132,7 +1133,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                     .toList();
         }
 
-        PolicySet policy = entry.policy();
+        PolicySet policy = null; // Frame does not carry policy; access via item config if needed
 
         // Nothing to show for this component
         if (settings.isEmpty() && policy == null) return null;
@@ -1242,46 +1243,18 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             rootNode.children.add(new MetaNode("vocab:verbs", "🧭", "Effective Verbs", verbChildren));
         }
 
-        List<FrameEntry> entries = new ArrayList<>();
-        item.content().forEach(entries::add);
-        entries.sort(Comparator.comparing(FrameEntry::displayToken, String.CASE_INSENSITIVE_ORDER));
-        for (FrameEntry entry : entries) {
-            Map<String, List<FrameEntry.VocabularyContribution>> byScope = new LinkedHashMap<>();
-            for (FrameEntry.VocabularyContribution term : entry.vocabulary().contributions()) {
-                String scope = term.scope() == null || term.scope().isBlank()
-                        ? "/"
-                        : term.scope();
-                byScope.computeIfAbsent(scope, ignored -> new ArrayList<>()).add(term);
-            }
-            if (byScope.isEmpty()) continue;
-
-            List<MetaNode> componentChildren = new ArrayList<>();
-            for (Map.Entry<String, List<FrameEntry.VocabularyContribution>> scoped : byScope.entrySet()) {
-                List<MetaNode> scopeChildren = new ArrayList<>();
-                for (FrameEntry.VocabularyContribution term : scoped.getValue()) {
-                    String token = term.token();
-                    if (token == null || token.isBlank()) {
-                        token = term.termRef() != null ? shortSememe(term.termRef()) : "(unnamed)";
-                    }
-                    String label = token;
-                    scopeChildren.add(new MetaNode(
-                            "vocab:" + entry.frameKey().toCanonicalString() + ":" + scoped.getKey() + ":" + token,
-                            "🏷️",
-                            label,
-                            List.of()));
-                }
-                componentChildren.add(new MetaNode(
-                        "vocab:" + entry.frameKey().toCanonicalString() + ":" + scoped.getKey(),
-                        "📍",
-                        "Scope " + scoped.getKey(),
-                        scopeChildren));
-            }
-
+        List<Frame> entries = new ArrayList<>();
+        for (Frame frame : item.content()) { entries.add(frame); }
+        entries.sort(Comparator.comparing(Frame::displayToken, String.CASE_INSENSITIVE_ORDER));
+        for (Frame entry : entries) {
+            // Frame does not carry vocabulary contributions directly;
+            // vocabulary metadata is accessed via EntryVocabulary on FrameEntry (transitional).
+            // Skip frames with no vocabulary to show.
             rootNode.children.add(new MetaNode(
                     "vocab:" + entry.frameKey().toCanonicalString(),
                     entry.emoji(),
                     entry.displayToken(),
-                    componentChildren));
+                    List.of()));
         }
 
         if (rootNode.children.isEmpty()) {

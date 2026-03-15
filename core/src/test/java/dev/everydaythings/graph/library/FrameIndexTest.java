@@ -2,7 +2,7 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -230,17 +230,12 @@ class FrameIndexTest {
             ContentID snapshotCid = ContentID.of(new byte[]{42});
             ContentID bodyHash = ContentID.of(new byte[]{99});
 
-            FrameEntry entry = FrameEntry.builder()
-                    .frameKey(FrameKey.literal("title"))
-                    .type(ItemID.fromString("cg:type/text"))
-                    .identity(true)
-                    .bodyHash(bodyHash)
-                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(snapshotCid).build())
-                    .frameKey(FrameKey.of(TITLE))
-                    .build();
+            Frame frame = Frame.snapshot(FrameKey.of(TITLE),
+                    ItemID.fromString("cg:type/text"), snapshotCid, true);
+            frame.setBodyHash(bodyHash);
 
             index.runInWriteTransaction(tx ->
-                    index.indexEndorsedFrame(THE_HOBBIT, entry, tx));
+                    index.indexEndorsedFrame(THE_HOBBIT, frame, tx));
 
             // Findable by predicate
             List<LibraryIndex.FrameRef> refs = index.framesByPredicate(TITLE).toList();
@@ -257,15 +252,11 @@ class FrameIndexTest {
         void literalKeyNotIndexed() {
             ContentID snapshotCid = ContentID.of(new byte[]{42});
 
-            FrameEntry entry = FrameEntry.builder()
-                    .frameKey(FrameKey.literal("vault"))
-                    .type(ItemID.fromString("cg:type/vault"))
-                    .identity(false)
-                    .payload(FrameEntry.EntryPayload.builder().snapshotCid(snapshotCid).build())
-                    .build();
+            Frame frame = Frame.snapshot(FrameKey.literal("vault"),
+                    ItemID.fromString("cg:type/vault"), snapshotCid, false);
 
             index.runInWriteTransaction(tx ->
-                    index.indexEndorsedFrame(THE_HOBBIT, entry, tx));
+                    index.indexEndorsedFrame(THE_HOBBIT, frame, tx));
 
             // Literal-keyed frames are not indexed (item-internal)
             assertThat(index.framesByItem(THE_HOBBIT).toList()).isEmpty();
@@ -274,14 +265,11 @@ class FrameIndexTest {
         @Test
         @DisplayName("endorsed frame with no content is not indexed")
         void noContentNotIndexed() {
-            FrameEntry entry = FrameEntry.builder()
-                    .frameKey(FrameKey.literal("vault"))
-                    .type(ItemID.fromString("cg:type/vault"))
-                    .identity(false)
-                    .build();
+            Frame frame = Frame.snapshot(FrameKey.literal("vault"),
+                    ItemID.fromString("cg:type/vault"), null, false);
 
             index.runInWriteTransaction(tx ->
-                    index.indexEndorsedFrame(THE_HOBBIT, entry, tx));
+                    index.indexEndorsedFrame(THE_HOBBIT, frame, tx));
 
             assertThat(index.framesByItem(THE_HOBBIT).toList()).isEmpty();
         }
@@ -291,17 +279,12 @@ class FrameIndexTest {
         void referenceIndexed() {
             ContentID bodyHash = ContentID.of(new byte[]{77});
 
-            FrameEntry entry = FrameEntry.builder()
-                    .frameKey(FrameKey.literal("author"))
-                    .type(ItemID.fromString("cg:type/person"))
-                    .identity(false)
-                    .bodyHash(bodyHash)
-                    .payload(FrameEntry.EntryPayload.builder().referenceTarget(TOLKIEN).build())
-                    .frameKey(FrameKey.of(AUTHOR))
-                    .build();
+            Frame frame = Frame.reference(FrameKey.of(AUTHOR),
+                    ItemID.fromString("cg:type/person"), TOLKIEN);
+            frame.setBodyHash(bodyHash);
 
             index.runInWriteTransaction(tx ->
-                    index.indexEndorsedFrame(THE_HOBBIT, entry, tx));
+                    index.indexEndorsedFrame(THE_HOBBIT, frame, tx));
 
             // Both owner and reference target are indexed
             assertThat(index.framesByItem(THE_HOBBIT).toList()).hasSize(1);

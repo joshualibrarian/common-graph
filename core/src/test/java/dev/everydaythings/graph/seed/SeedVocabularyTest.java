@@ -5,7 +5,7 @@ import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.TreeLink;
-import dev.everydaythings.graph.frame.FrameEntry;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -197,15 +197,15 @@ class SeedVocabularyTest {
         Manifest manifest = store.manifests(itemTypeId).findFirst().orElse(null);
         assertThat(manifest).isNotNull();
 
-        FrameEntry surfaceEntry = manifest.components().stream()
+        Frame surfaceEntry = manifest.components().stream()
                 .filter(e -> e.frameKey().equals(SurfaceTemplateComponent.HANDLE))
                 .findFirst()
                 .orElse(null);
         assertThat(surfaceEntry).as("Item type should have surface template component").isNotNull();
-        assertThat(surfaceEntry.payload().snapshotCid()).as("Surface template should have CID").isNotNull();
+        assertThat(surfaceEntry.body().contentCid()).as("Surface template should have CID").isNotNull();
 
         // Content should be retrievable from store
-        assertThat(store.content(surfaceEntry.payload().snapshotCid()))
+        assertThat(store.content(surfaceEntry.body().contentCid()))
                 .as("Surface template content should be stored").isPresent();
 
         // Should NOT have a separate "display" handle
@@ -230,7 +230,7 @@ class SeedVocabularyTest {
                 .orElse(null);
         assertThat(itemTypeSeed).as("bootstrap() should return Item type seed").isNotNull();
 
-        assertThat(itemTypeSeed.content().get(SurfaceTemplateComponent.HANDLE))
+        assertThat(itemTypeSeed.content().getFrame(SurfaceTemplateComponent.HANDLE))
                 .as("Returned seed should have surface template entry").isPresent();
     }
 
@@ -244,7 +244,7 @@ class SeedVocabularyTest {
         Item cached = librarian.library().getCached(itemTypeId).orElse(null);
         assertThat(cached).as("Item type should be in cache").isNotNull();
 
-        assertThat(cached.content().get(SurfaceTemplateComponent.HANDLE))
+        assertThat(cached.content().getFrame(SurfaceTemplateComponent.HANDLE))
                 .as("Cached seed should have surface template entry").isPresent();
     }
 
@@ -266,7 +266,7 @@ class SeedVocabularyTest {
         Item item = (Item) ctor.newInstance(librarian, manifest);
 
         // Verify component entry exists
-        assertThat(item.content().get(SurfaceTemplateComponent.HANDLE))
+        assertThat(item.content().getFrame(SurfaceTemplateComponent.HANDLE))
                 .as("Should have surface template component entry").isPresent();
 
         // Verify live instance was hydrated (not just entry)

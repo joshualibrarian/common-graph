@@ -91,13 +91,13 @@ class ItemModelRenderingTest {
         System.err.println("=== Chess Component Test ===");
         System.err.println("Host item: " + hostItem.displayToken() + " (" + hostItem.getClass().getSimpleName() + ")");
         System.err.println("Host IID: " + hostItem.iid().encodeText());
-        System.err.println("liveCount before: " + hostItem.content().liveCount());
+        System.err.println("liveCount before: " + hostItem.content().size());
 
         // Add chess component (same as Session.addComponentToItem does)
         ChessGame chess = ChessGame.create();
         String componentHandle = "chess";
         hostItem.addComponent(componentHandle, chess);
-        System.err.println("liveCount after: " + hostItem.content().liveCount());
+        System.err.println("liveCount after: " + hostItem.content().size());
 
         // Verify the live instance is stored
         FrameKey chessKey = FrameKey.literal("chess");
@@ -108,7 +108,7 @@ class ItemModelRenderingTest {
         // Verify the resolver returns the SAME instance
         Item resolved = resolver.apply(hostItem.iid()).orElseThrow();
         System.err.println("Same instance? " + (resolved == hostItem));
-        System.err.println("resolved liveCount: " + resolved.content().liveCount());
+        System.err.println("resolved liveCount: " + resolved.content().size());
         Optional<Object> resolvedLive = resolved.content().getLive(chessKey);
         System.err.println("resolved getLive(chess): " + (resolvedLive.isPresent() ? resolvedLive.get().getClass().getName() : "EMPTY"));
 

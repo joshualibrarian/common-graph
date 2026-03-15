@@ -43,9 +43,9 @@ public final class PartOfSpeech {
      */
     public static class Predicate {
         public static final String KEY = "cg.core:part-of-speech";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "the grammatical category of a word")
-                .word(Sememe.LEMMA, Sememe.ENG, "part-of-speech");
+                .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "part-of-speech");
     }
 
     // ==================================================================================
@@ -54,57 +54,57 @@ public final class PartOfSpeech {
 
     public static class Noun {
         public static final String KEY = "cg.pos:noun";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that names a person, place, thing, or idea")
-                .cili("i73935").word(Sememe.LEMMA, Sememe.ENG, "noun");
+                .cili("i73935").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "noun");
     }
 
     public static class Verb {
         public static final String KEY = "cg.pos:verb";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that expresses an action or state")
-                .cili("i73936").word(Sememe.LEMMA, Sememe.ENG, "verb");
+                .cili("i73936").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "verb");
     }
 
     public static class Adjective {
         public static final String KEY = "cg.pos:adjective";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that modifies a noun")
-                .cili("i73937").word(Sememe.LEMMA, Sememe.ENG, "adjective");
+                .cili("i73937").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "adjective");
     }
 
     public static class Adverb {
         public static final String KEY = "cg.pos:adverb";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that modifies a verb, adjective, or other adverb")
-                .cili("i73938").word(Sememe.LEMMA, Sememe.ENG, "adverb");
+                .cili("i73938").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "adverb");
     }
 
     public static class Pronoun {
         public static final String KEY = "cg.pos:pronoun";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that substitutes for a noun")
-                .cili("i73939").word(Sememe.LEMMA, Sememe.ENG, "pronoun");
+                .cili("i73939").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "pronoun");
     }
 
     public static class Conjunction {
         public static final String KEY = "cg.pos:conjunction";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that connects clauses or sentences")
-                .cili("i73940").word(Sememe.LEMMA, Sememe.ENG, "conjunction");
+                .cili("i73940").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "conjunction");
     }
 
     public static class Interjection {
         public static final String KEY = "cg.pos:interjection";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word expressing sudden feeling")
-                .cili("i73941").word(Sememe.LEMMA, Sememe.ENG, "interjection");
+                .cili("i73941").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "interjection");
     }
 
     public static class Preposition {
         public static final String KEY = "cg.pos:preposition";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY, NOUN)
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word governing a noun or pronoun to express a relation")
-                .cili("i73942").word(Sememe.LEMMA, Sememe.ENG, "preposition");
+                .cili("i73942").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "preposition");
     }
 }

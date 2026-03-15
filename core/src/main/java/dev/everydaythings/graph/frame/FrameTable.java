@@ -29,7 +29,7 @@ import java.util.function.Consumer;
  * Field bindings ({@code @Item.Frame}) are optional developer ergonomics
  * that bind to entries in this table.
  */
-public class FrameTable extends AbstractSet<FrameEntry> implements Canonical {
+/* package-private */ class FrameTable extends AbstractSet<FrameEntry> implements Canonical {
 
     // ==================================================================================
     // Owner Tracking
