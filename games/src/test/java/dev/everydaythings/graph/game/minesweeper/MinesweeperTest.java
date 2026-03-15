@@ -383,44 +383,13 @@ class MinesweeperTest {
     }
 
     // ==================================================================================
-    // CBOR Round-Trip
-    // ==================================================================================
-
-    @Test
-    void cborRoundTrip_revealOp() {
-        Minesweeper game = Minesweeper.create();
-        var op = new Minesweeper.RevealOp(3, 7);
-        var encoded = game.encodeOp(op);
-        var decoded = game.decodeOp(encoded);
-        assertThat(decoded).isEqualTo(op);
-    }
-
-    @Test
-    void cborRoundTrip_flagOp() {
-        Minesweeper game = Minesweeper.create();
-        var op = new Minesweeper.FlagOp(5, 2);
-        var encoded = game.encodeOp(op);
-        var decoded = game.decodeOp(encoded);
-        assertThat(decoded).isEqualTo(op);
-    }
-
-    @Test
-    void cborRoundTrip_chordOp() {
-        Minesweeper game = Minesweeper.create();
-        var op = new Minesweeper.ChordOp(1, 8);
-        var encoded = game.encodeOp(op);
-        var decoded = game.decodeOp(encoded);
-        assertThat(decoded).isEqualTo(op);
-    }
-
-    // ==================================================================================
     // Determinism
     // ==================================================================================
 
     @Test
     void deterministic_sameSeed_sameLayout() {
         // Two games with the same reveal should produce the same mine layout
-        // (because GameRandom.fromEvent uses event CID as seed)
+        // (because GameRandom uses deterministic seed from opCount)
         Minesweeper game1 = Minesweeper.create();
         Minesweeper game2 = Minesweeper.create();
 

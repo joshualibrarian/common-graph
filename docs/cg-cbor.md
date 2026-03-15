@@ -36,7 +36,7 @@ CG-CBOR uses unassigned tags in the 1-byte range (6-22):
 | 20 | `CG-HEARTBEAT` | Shared: keep-alive signal |
 | 21 | `CG-ACK` | Shared: acknowledgment |
 | 22 | `CG-ERROR` | Shared: error response |
-| 23 | — | Reserved for future CG use |
+| 23 | `CG-FRAME` | Inline nested frame (FrameTarget) |
 
 ---
 
@@ -320,6 +320,35 @@ A 2-element CBOR array:
 - Algorithm IDs are COSE integers (e.g., -8 for ED25519)
 - Verification requires the signer's public key (resolved via `kid`)
 - Nested signatures are possible (sign a CG-SIG to countersign)
+
+---
+
+## Tag 23: CG-FRAME (Inline Nested Frame)
+
+An inline nested frame, used as a binding target within another frame. Enables expression trees and compositional frames.
+
+### Encoding
+
+```
+Tag 23: [<predicate>, <bindings>]
+```
+
+A 2-element CBOR array (the standard FrameBody encoding):
+
+1. **predicate**: `bytes(<predicate-iid>)` — the frame type
+2. **bindings**: CBOR array of Binding elements
+
+### Use Cases
+
+- **Expression trees**: `MUL { THEME → ADD { THEME→3, INSTRUMENT→5 }, INSTRUMENT → 2 }`
+- **Parametric 3D modeling**: Mathematical expressions with coordinate bindings rendered as geometry
+- **CSG operations**: Boolean operations (UNION, SUBTRACT, INTERSECT) composing compound meshes
+
+### Notes
+
+- Nesting is recursive — a FrameTarget can itself contain FrameTargets
+- The nested frame has no independent identity (no separate CID) — it's part of the enclosing frame's body hash
+- Decoded via `BindingTarget.fromCborTree()` dispatch on tag number
 
 ---
 

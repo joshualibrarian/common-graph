@@ -297,6 +297,18 @@ public class ThematicRole extends Sememe {
     }
 
     // ==================================================================================
+    // SEED INSTANCES — causal ordering role (CG extension)
+    // ==================================================================================
+
+    /** Causal ordering — this frame follows/is-caused-by an earlier frame. [CG extension] */
+    public static class Follows {
+        public static final String KEY = "cg.role:follows";
+        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
+                .gloss(ENG, "causal predecessor — this frame follows/is-caused-by the target frame")
+                .word(LEMMA, ENG, "follows");
+    }
+
+    // ==================================================================================
     // CONSTRUCTORS
     // ==================================================================================
 
@@ -387,6 +399,7 @@ public class ThematicRole extends Sememe {
             case "CONFIG" -> Config.SEED;
             case "PRESENTATION" -> Presentation.SEED;
             case "VOCABULARY" -> Vocabulary.SEED;
+            case "FOLLOWS" -> Follows.SEED;
             default -> null;
         };
     }

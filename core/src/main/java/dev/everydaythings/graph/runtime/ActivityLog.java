@@ -1,9 +1,11 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.frame.Log;
+import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.dispatch.ActionResult;
+import dev.everydaythings.graph.frame.InspectEntry;
+import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 
@@ -15,11 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Activity log — a persistent stream of activity entries.
- *
- * <p>Extends {@link Log} to get append-only stream semantics with
- * content-addressed storage. Each entry is a {@link ActivityEntry}
- * encoded via Canonical.
+ * Activity log — an in-memory stream of activity entries.
  *
  * <p>Used on both Session (user interactions) and Librarian (infrastructure
  * events). The {@code identity = false} frame binding means appending
@@ -31,7 +29,7 @@ import java.util.Optional;
  * @see ActivityEntry
  */
 @Type(value = ActivityLog.KEY, glyph = "📋", color = 0x6699CC)
-public class ActivityLog extends Log<ActivityEntry> {
+public class ActivityLog implements Canonical, Inspectable {
 
     public static final String KEY = "cg:type/activity-log";
     public static final String HANDLE = "activity";
@@ -39,20 +37,16 @@ public class ActivityLog extends Log<ActivityEntry> {
     /** In-memory index: context IID → most recent entry for that context. */
     private final transient Map<ItemID, ActivityEntry> lastByContext = new LinkedHashMap<>();
 
-    /** In-memory cache of recent entries for fast queries without ActionContext. */
+    /** In-memory cache of recent entries for fast queries. */
     private final transient List<ActivityEntry> recentEntries = new ArrayList<>();
     private static final int MAX_RECENT = 100;
 
     // ==================================================================================
-    // Simple Append (no ActionContext needed)
+    // Append
     // ==================================================================================
 
     /**
-     * Append an entry to the activity log without an ActionContext.
-     *
-     * <p>This stores the entry in-memory only (no content-addressed storage).
-     * Use the inherited {@link Log#append} with an ActionContext for
-     * persistent storage.
+     * Append an entry to the activity log.
      *
      * @param entry The entry to append
      */
@@ -72,9 +66,6 @@ public class ActivityLog extends Log<ActivityEntry> {
 
     /**
      * Get the most recent entry for a specific context.
-     *
-     * <p>This is the query the feedback panel evaluates:
-     * "last activity where context matches this view."
      */
     public Optional<ActivityEntry> lastForContext(ItemID contextIid) {
         if (contextIid == null) return last();
@@ -107,24 +98,38 @@ public class ActivityLog extends Log<ActivityEntry> {
         return recentEntries.size();
     }
 
+    /**
+     * Check if the log is empty.
+     */
+    public boolean isEmpty() {
+        return recentEntries.isEmpty();
+    }
+
     // ==================================================================================
-    // Display Overrides
+    // Inspectable
     // ==================================================================================
 
     @Override
+    public List<InspectEntry> inspectEntries() {
+        List<InspectEntry> result = new ArrayList<>(recentEntries.size());
+        for (int i = recentEntries.size() - 1; i >= 0; i--) {
+            ActivityEntry e = recentEntries.get(i);
+            result.add(new InspectEntry(
+                    String.valueOf(i),
+                    e.toString(),
+                    e.isSuccess() ? "✓" : "✗",
+                    e));
+        }
+        return result;
+    }
+
+    public boolean isExpandable() {
+        return !isEmpty();
+    }
+
     public String displayToken() {
         long n = recentEntries.size();
         return "activity" + (n > 0 ? " (" + n + ")" : "");
-    }
-
-    @Override
-    protected String entryLabel(long seq, ActivityEntry payload) {
-        return payload.toString();
-    }
-
-    @Override
-    protected String entryEmoji(long seq, ActivityEntry payload) {
-        return payload.isSuccess() ? "✓" : "✗";
     }
 
     // ==================================================================================

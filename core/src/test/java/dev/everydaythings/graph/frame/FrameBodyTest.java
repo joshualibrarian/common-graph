@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,8 +32,9 @@ class FrameBodyTest {
         void minimalBody() {
             FrameBody body = new FrameBody(TITLE, THE_HOBBIT);
             assertThat(body.predicate()).isEqualTo(TITLE);
-            assertThat(body.theme()).isEqualTo(THE_HOBBIT);
-            assertThat(body.bindings()).isEmpty();
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
+            // THEME is now a regular binding
+            assertThat(body.frameBindings()).hasSize(1);
         }
 
         @Test
@@ -43,10 +45,24 @@ class FrameBodyTest {
             );
             FrameBody body = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
             assertThat(body.predicate()).isEqualTo(AUTHOR);
-            assertThat(body.theme()).isEqualTo(THE_HOBBIT);
-            assertThat(body.bindings()).hasSize(1);
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
+            // THEME binding + GOAL binding
+            assertThat(body.frameBindings()).hasSize(2);
             assertThat(body.bindings().get(GOAL_ROLE))
                     .isInstanceOf(BindingTarget.IidTarget.class);
+        }
+
+        @Test
+        @DisplayName("primary constructor with predicate and bindings only")
+        void primaryConstructor() {
+            List<Binding> bindings = List.of(
+                    FrameBody.homeBinding(THE_HOBBIT),
+                    new Binding(GOAL_ROLE, BindingTarget.iid(TOLKIEN))
+            );
+            FrameBody body = new FrameBody(AUTHOR, bindings);
+            assertThat(body.predicate()).isEqualTo(AUTHOR);
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
+            assertThat(body.frameBindings()).hasSize(2);
         }
 
         @Test
@@ -59,7 +75,7 @@ class FrameBodyTest {
         @Test
         @DisplayName("null theme rejected")
         void nullTheme() {
-            assertThatThrownBy(() -> new FrameBody(TITLE, null))
+            assertThatThrownBy(() -> new FrameBody(TITLE, (ItemID) null))
                     .isInstanceOf(NullPointerException.class);
         }
 
@@ -67,7 +83,46 @@ class FrameBodyTest {
         @DisplayName("null bindings treated as empty")
         void nullBindings() {
             FrameBody body = new FrameBody(TITLE, THE_HOBBIT, (Map<ItemID, BindingTarget>) null);
-            assertThat(body.bindings()).isEmpty();
+            // Still has THEME binding from convenience constructor
+            assertThat(body.frameBindings()).hasSize(1);
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
+        }
+    }
+
+    @Nested
+    @DisplayName("Home binding")
+    class HomeBinding {
+
+        @Test
+        @DisplayName("home() returns THEME binding")
+        void homeReturnsThemeBinding() {
+            FrameBody body = new FrameBody(TITLE, THE_HOBBIT);
+            Binding home = body.home();
+            assertThat(home).isNotNull();
+            assertThat(home.targetId()).isEqualTo(THE_HOBBIT);
+        }
+
+        @Test
+        @DisplayName("homeId() returns owning item IID")
+        void homeIdReturnsIid() {
+            FrameBody body = new FrameBody(TITLE, THE_HOBBIT);
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
+        }
+
+        @Test
+        @DisplayName("homeBinding() creates THEME binding")
+        void homeBindingFactory() {
+            Binding b = FrameBody.homeBinding(THE_HOBBIT);
+            assertThat(b.targetId()).isEqualTo(THE_HOBBIT);
+            assertThat(b.identity()).isTrue();
+        }
+
+        @Test
+        @DisplayName("deprecated theme() delegates to homeId()")
+        @SuppressWarnings("deprecation")
+        void themeDelegatesToHomeId() {
+            FrameBody body = new FrameBody(TITLE, THE_HOBBIT);
+            assertThat(body.theme()).isEqualTo(body.homeId());
         }
     }
 
@@ -126,14 +181,13 @@ class FrameBodyTest {
     class CborRoundTrip {
 
         @Test
-        @DisplayName("minimal body round-trips")
+        @DisplayName("minimal body round-trips via new 2-element format")
         void minimalRoundTrip() {
             FrameBody original = new FrameBody(TITLE, THE_HOBBIT);
             byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
             FrameBody decoded = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.BODY);
             assertThat(decoded.predicate()).isEqualTo(original.predicate());
-            assertThat(decoded.theme()).isEqualTo(original.theme());
-            assertThat(decoded.bindings()).isEmpty();
+            assertThat(decoded.homeId()).isEqualTo(original.homeId());
         }
 
         @Test
@@ -143,11 +197,12 @@ class FrameBodyTest {
                     GOAL_ROLE, BindingTarget.iid(TOLKIEN)
             );
             FrameBody original = new FrameBody(AUTHOR, THE_HOBBIT, bindings);
-            byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
-            FrameBody decoded = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.BODY);
+            byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
+            FrameBody decoded = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD);
             assertThat(decoded.predicate()).isEqualTo(original.predicate());
-            assertThat(decoded.theme()).isEqualTo(original.theme());
-            assertThat(decoded.bindings()).hasSize(1);
+            assertThat(decoded.homeId()).isEqualTo(original.homeId());
+            // THEME binding + GOAL binding
+            assertThat(decoded.frameBindings()).hasSize(2);
         }
 
         @Test
@@ -160,6 +215,21 @@ class FrameBodyTest {
             byte[] bytes = original.encodeBinary(Canonical.Scope.BODY);
             FrameBody decoded = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.BODY);
             assertThat(decoded.hash()).isEqualTo(original.hash());
+        }
+
+        @Test
+        @DisplayName("primary constructor body round-trips")
+        void primaryConstructorRoundTrip() {
+            List<Binding> bindings = List.of(
+                    FrameBody.homeBinding(THE_HOBBIT),
+                    new Binding(GOAL_ROLE, BindingTarget.iid(TOLKIEN))
+            );
+            FrameBody original = new FrameBody(AUTHOR, bindings);
+            byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
+            FrameBody decoded = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD);
+            assertThat(decoded.predicate()).isEqualTo(AUTHOR);
+            assertThat(decoded.homeId()).isEqualTo(THE_HOBBIT);
+            assertThat(decoded.frameBindings()).hasSize(2);
         }
     }
 
@@ -197,7 +267,7 @@ class FrameBodyTest {
             );
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT, bindings);
             assertThat(body.predicate()).isEqualTo(AUTHOR);
-            assertThat(body.bindings()).hasSize(1);
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
         }
 
         @Test
@@ -205,7 +275,7 @@ class FrameBodyTest {
         void ofWithoutBindings() {
             FrameBody body = FrameBody.of(TITLE, THE_HOBBIT);
             assertThat(body.predicate()).isEqualTo(TITLE);
-            assertThat(body.bindings()).isEmpty();
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
         }
     }
 }

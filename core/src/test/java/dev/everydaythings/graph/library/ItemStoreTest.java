@@ -255,7 +255,7 @@ public abstract class ItemStoreTest {
                     .as("Retrieved frame body")
                     .isPresent();
 
-            assertThat(retrieved.get().theme())
+            assertThat(retrieved.get().homeId())
                     .as("Frame body theme")
                     .isEqualTo(subject);
         }
@@ -302,7 +302,7 @@ public abstract class ItemStoreTest {
             store.storeFrameBody(testFrameBody(subject, CoreVocabulary.Description.SEED.iid(), "Desc"));
 
             var frameBodies = store.frameBodies()
-                    .filter(r -> subject.equals(r.theme()))
+                    .filter(r -> subject.equals(r.homeId()))
                     .toList();
 
             assertThat(frameBodies)
@@ -501,7 +501,7 @@ public abstract class ItemStoreTest {
                     .isGreaterThanOrEqualTo(1);
 
             assertThat(store.frameBodies()
-                    .filter(r -> iid.equals(r.theme()))
+                    .filter(r -> iid.equals(r.homeId()))
                     .count())
                     .as("Frame bodies in transaction")
                     .isGreaterThanOrEqualTo(1);

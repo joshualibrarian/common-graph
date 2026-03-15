@@ -1,11 +1,9 @@
 package dev.everydaythings.graph.crypt;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.frame.Dag;
-import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
+import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Type;
 
 import lombok.AllArgsConstructor;
@@ -16,7 +14,7 @@ import java.util.*;
 /**
  * Append-only log for keys (add, set-current, tombstone).
  *
- * <p>KeyLog is a stream component that tracks the public key history for a Signer.
+ * <p>KeyLog tracks the public key history for a Signer.
  * It supports:
  * <ul>
  *   <li>Adding new keys (signing or encryption)</li>
@@ -26,17 +24,18 @@ import java.util.*;
  *
  * <p>Unlike the private key (stored in Vault), KeyLog content is syncable
  * and can be shared to prove identity and key history.
+ *
+ * <p>Operations are applied in-memory via {@link #apply(Op)}. When a
+ * Library is available, operations can be persisted as frames via FrameChain.
  */
 @Type(value = KeyLog.KEY, glyph = "\uD83D\uDD11", icon = "/icons/key.png")
-public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
+public class KeyLog implements Canonical, Inspectable {
 
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/keylog";
 
     /**
      * Create a new empty KeyLog.
-     *
-     * <p>Used by the component system to instantiate KeyLog components.
      */
     @Factory(label = "Empty", glyph = "\uD83D\uDD11", primary = true,
             doc = "New empty key log")
@@ -50,7 +49,10 @@ public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
     // purpose mask -> (keyCid -> LWW info)
     private final Map<Integer, Map<String, Lww>> currentByPurpose = new HashMap<>();
 
-    private record Lww(long seq, byte[] authorRef, boolean current) {}
+    /** Sequence counter for LWW ordering. */
+    private long sequence = 0;
+
+    private record Lww(long seq, boolean current) {}
 
     private static String hex(byte[] b) {
         StringBuilder sb = new StringBuilder(b.length * 2);
@@ -129,102 +131,42 @@ public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
         public final int reason;
     }
 
-    /* ========================= op encode/decode ========================= */
-    @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
-        switch (op) {
-            case AddKey a -> {
-                m.set(num(0), num(1)); // t=1
-                m.set(num(1), Canonical.toCborTree(a.key, Canonical.Scope.RECORD));
-            }
-            case SetCurrent s -> {
-                m.set(num(0), num(2));
-                m.set(num(1), CBORObject.FromByteArray(s.keyCid));
-                m.set(num(2), num(s.purposeMask));
-                m.set(num(3), s.current ? CBORObject.True : CBORObject.False);
-            }
-            case TombstoneKey t -> {
-                m.set(num(0), num(3));
-                m.set(num(1), CBORObject.FromByteArray(t.keyCid));
-                m.set(num(2), num(t.reason));
-            }
-            default ->
-                throw new IllegalArgumentException("unknown op " + op.getClass());
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        int t = c.get(num(0)).AsInt32();
-        return switch (t) {
-            case 1 -> {
-                CBORObject keyNode = c.get(num(1));
-                GraphPublicKey key = decodeGraphPublicKey(keyNode);
-                yield new AddKey(key);
-            }
-            case 2 -> new SetCurrent(c.get(num(1)).GetByteString(), c.get(num(2)).AsInt32(), c.get(num(3)).AsBoolean());
-            case 3 -> new TombstoneKey(c.get(num(1)).GetByteString(), c.get(num(2)).AsInt32());
-            default -> throw new IllegalArgumentException("bad t=" + t);
-        };
-    }
+    /* ============================ apply ============================== */
 
     /**
-     * Decode a GraphPublicKey from CBOR, dispatching to the correct concrete class
-     * based on the algorithm kind (SIGN → SigningPublicKey, KEY_MGMT → EncryptionPublicKey).
+     * Apply an operation to this KeyLog, updating materialized state.
+     *
+     * @param op the operation to apply
      */
-    private static GraphPublicKey decodeGraphPublicKey(CBORObject node) {
-        // Algorithm is at index 0 in the ARRAY encoding (first field by @Canon(order=1))
-        CBORObject algNode = node.get(0);
-        Algorithm alg = Algorithm.fromCose(algNode.AsInt32());
-        if (alg.kind() == Algorithm.Kind.SIGN) {
-            return Canonical.fromCborTree(node, SigningPublicKey.class, Canonical.Scope.RECORD);
-        } else if (alg.kind() == Algorithm.Kind.KEY_MGMT) {
-            return Canonical.fromCborTree(node, EncryptionPublicKey.class, Canonical.Scope.RECORD);
-        }
-        throw new IllegalArgumentException("Unsupported algorithm kind for key: " + alg);
-    }
-
-    private static CBORObject num(int i) {
-        return CBORObject.FromInt32(i);
-    }
-
-    /* ============================ fold semantics ============================ */
-    @Override
-    protected void fold(Op op, Event ev) {
+    public void apply(Op op) {
+        sequence++;
         if (op instanceof AddKey a) {
             byte[] keyRec = a.key.encodeBinary(Scope.BODY);
             String cid = hex(hash(keyRec));
             keys.put(cid, a.key);
-            // do not set 'current' implicitly; that's a separate op
         } else if (op instanceof SetCurrent s) {
             String cid = hex(s.keyCid);
-            if (!keys.containsKey(cid) || tombstoned.contains(cid)) return; // ignore for unknown/tombstoned
+            if (!keys.containsKey(cid) || tombstoned.contains(cid)) return;
             Map<String, Lww> lww = currentByPurpose.computeIfAbsent(s.purposeMask, k -> new HashMap<>());
             Lww cur = lww.get(cid);
-            Lww incoming = new Lww(ev.seq, ev.authorKeyRef, s.current);
-            if (cur == null || newer(incoming, cur)) lww.put(cid, incoming);
+            Lww incoming = new Lww(sequence, s.current);
+            if (cur == null || incoming.seq > cur.seq) lww.put(cid, incoming);
         } else if (op instanceof TombstoneKey t) {
             String cid = hex(t.keyCid);
             tombstoned.add(cid);
-            // clear from current for all purposes
             for (Map<String, Lww> m : currentByPurpose.values()) m.remove(cid);
         }
     }
 
-    private static boolean newer(Lww a, Lww b) {
-        if (a.seq != b.seq) return a.seq > b.seq;
-        return lexi(a.authorRef, b.authorRef) > 0;
+    /**
+     * Check if this KeyLog is empty (no operations applied).
+     */
+    public boolean isEmpty() {
+        return keys.isEmpty();
     }
 
-    private static int lexi(byte[] x, byte[] y) {
-        int n = Math.min(x.length, y.length);
-        for (int i = 0; i < n; i++) {
-            int d = (x[i] & 0xff) - (y[i] & 0xff);
-            if (d != 0) return d;
-        }
-        return Integer.compare(x.length, y.length);
+    public boolean isExpandable() {
+        return !isEmpty();
     }
 
     /* ============================== helpers ============================== */
@@ -260,18 +202,13 @@ public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
     public String displayToken() {
         int n = keys.size();
         int dead = tombstoned.size();
-        if (n == 0) {
-            return heads().isEmpty() ? "keys (empty)" : "keys (" + heads().size() + " events)";
-        }
+        if (n == 0) return "keys (empty)";
         return "keys (" + n + (dead > 0 ? ", " + dead + " tombstoned" : "") + ")";
     }
 
     @Override
     public String toString() {
         if (keys.isEmpty()) {
-            if (!heads().isEmpty()) {
-                return heads().size() + " event(s) recorded (state not materialized).";
-            }
             return "No keys registered.";
         }
         StringBuilder sb = new StringBuilder();
@@ -332,8 +269,6 @@ public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
 
     /**
      * Get the current signing key, if one is set.
-     *
-     * @return The current signing key, or empty if none set
      */
     public Optional<SigningPublicKey> currentSigningKey() {
         Set<String> cids = currentKeyCids(Purpose.SIGN);
@@ -346,8 +281,6 @@ public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
 
     /**
      * Get the current encryption key, if one is set.
-     *
-     * @return The current encryption key, or empty if none set
      */
     public Optional<EncryptionPublicKey> currentEncryptionKey() {
         Set<String> cids = currentKeyCids(Purpose.ENCRYPT);
@@ -373,11 +306,6 @@ public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
 
     /**
      * Get the current signed pre-key (SPK), if one is set.
-     *
-     * <p>The SPK is the medium-term X25519 key used in X3DH key agreement.
-     * There should be at most one current SPK at a time.
-     *
-     * @return The current SPK, or empty if none set
      */
     public Optional<EncryptionPublicKey> currentPreKey() {
         Set<String> cids = currentKeyCids(Purpose.PRE_KEY);
@@ -390,11 +318,6 @@ public class KeyLog extends Dag<KeyLog.Op> implements Inspectable {
 
     /**
      * Get all available (non-tombstoned, current) one-time pre-keys.
-     *
-     * <p>OPKs are single-use X25519 keys consumed during X3DH exchanges.
-     * After use, they should be tombstoned with reason {@link #REASON_CONSUMED}.
-     *
-     * @return List of available OPKs (may be empty)
      */
     public List<EncryptionPublicKey> availableOneTimePreKeys() {
         Set<String> cids = currentKeyCids(Purpose.ONE_TIME_PRE_KEY);

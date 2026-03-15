@@ -81,14 +81,14 @@ class PeerProtocolTest {
         List<FrameBody> lib1PeersWith = lib1.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
         assertThat(lib1PeersWith).isNotEmpty();
         assertThat(lib1PeersWith).anyMatch(r ->
-                r.theme().equals(lib1.iid()) &&
+                r.homeId().equals(lib1.iid()) &&
                 r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid()) instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib2.iid())
         );
 
         // lib1 should have reachable-at frame for lib2
         List<FrameBody> lib1Reachable = lib1.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
-                .filter(r -> r.theme().equals(lib2.iid()))
+                .filter(r -> r.homeId().equals(lib2.iid()))
                 .toList();
         assertThat(lib1Reachable).isNotEmpty();
         assertThat(lib1Reachable).anyMatch(r ->
@@ -98,14 +98,14 @@ class PeerProtocolTest {
         List<FrameBody> lib2PeersWith = lib2.library().byPredicate(RoutingVocabulary.PeersWith.SEED.iid()).toList();
         assertThat(lib2PeersWith).isNotEmpty();
         assertThat(lib2PeersWith).anyMatch(r ->
-                r.theme().equals(lib2.iid()) &&
+                r.homeId().equals(lib2.iid()) &&
                 r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.SEED.iid()) instanceof BindingTarget.IidTarget target &&
                 target.iid().equals(lib1.iid())
         );
 
         // lib2 should have reachable-at frame for lib1
         List<FrameBody> lib2Reachable = lib2.library().byPredicate(RoutingVocabulary.ReachableAt.SEED.iid())
-                .filter(r -> r.theme().equals(lib1.iid()))
+                .filter(r -> r.homeId().equals(lib1.iid()))
                 .toList();
         assertThat(lib2Reachable).isNotEmpty();
         assertThat(lib2Reachable).anyMatch(r ->

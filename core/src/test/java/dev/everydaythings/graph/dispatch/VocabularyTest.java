@@ -2,7 +2,6 @@ package dev.everydaythings.graph.dispatch;
 
 import dev.everydaythings.graph.item.ItemScanner;
 import dev.everydaythings.graph.item.ItemSchema;
-import dev.everydaythings.graph.frame.Log;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -96,74 +95,6 @@ class VocabularyTest {
                     .as("Item verb should have ITEM source")
                     .isEqualTo(VerbSpec.VerbSource.ITEM);
         }
-    }
-
-    @Test
-    void componentVerbsAreScanned() {
-        // Test that @Verb annotations are scanned from component classes
-        // Log has verbs: PUT (append), LIST (read), COUNT (count), SHOW (tail), GET (latest)
-
-        List<VerbSpec> verbs = ItemScanner.scanComponentVerbs(Log.class, "log");
-
-        assertThat(verbs)
-                .as("Log should have component verbs scanned")
-                .isNotEmpty();
-
-        // Check for PUT verb (append method)
-        Optional<VerbSpec> putVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(CoreVocabulary.Put.KEY)))
-                .findFirst();
-
-        assertThat(putVerb)
-                .as("Log should have PUT verb from append method")
-                .isPresent();
-
-        assertThat(putVerb.get().methodName())
-                .as("PUT verb should map to append method")
-                .isEqualTo("append");
-
-        assertThat(putVerb.get().source())
-                .as("Component verb should have COMPONENT source")
-                .isEqualTo(VerbSpec.VerbSource.COMPONENT);
-
-        // Check for LIST verb (read method)
-        Optional<VerbSpec> listVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(CoreVocabulary.ListVerb.KEY)))
-                .findFirst();
-
-        assertThat(listVerb)
-                .as("Log should have LIST verb from read method")
-                .isPresent();
-
-        assertThat(listVerb.get().methodName())
-                .as("LIST verb should map to read method")
-                .isEqualTo("read");
-
-        // Check for SHOW verb (tail method)
-        Optional<VerbSpec> showVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(CoreVocabulary.Show.KEY)))
-                .findFirst();
-
-        assertThat(showVerb)
-                .as("Log should have SHOW verb from tail method")
-                .isPresent();
-
-        assertThat(showVerb.get().methodName())
-                .as("SHOW verb should map to tail method")
-                .isEqualTo("tail");
-
-        // Check for GET verb (latest method)
-        Optional<VerbSpec> getVerb = verbs.stream()
-                .filter(vs -> vs.sememeId().equals(ItemID.fromString(CoreVocabulary.Get.KEY)))
-                .findFirst();
-
-        assertThat(getVerb)
-                .as("Log should have GET verb from latest method")
-                .isPresent();
-
-        assertThat(getVerb.get().methodName())
-                .as("GET verb should map to latest method")
-                .isEqualTo("latest");
     }
 
     @Test

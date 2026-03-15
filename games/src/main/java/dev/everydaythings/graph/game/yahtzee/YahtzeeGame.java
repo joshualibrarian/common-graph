@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.game.yahtzee;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.GameComponent;
 import dev.everydaythings.graph.game.GameRandom;
 import dev.everydaythings.graph.game.Phased;
@@ -13,7 +12,6 @@ import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
@@ -89,7 +87,6 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
     // ==================================================================================
 
     private final int maxSeats;
-    private long sequence = 0;
     private final ScoreBoard scores = new ScoreBoard();
     private final int[] dice = new int[NUM_DICE];
     private final boolean[] kept = new boolean[NUM_DICE];
@@ -120,16 +117,6 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
 
     public static YahtzeeGame create(int maxPlayers) {
         return new YahtzeeGame(maxPlayers).withDemoSigner();
-    }
-
-    // ==================================================================================
-    // Signer Setup
-    // ==================================================================================
-
-    public YahtzeeGame withSigner(Signing.Signer signer, Signing.Hasher hasher) {
-        this.signer = signer;
-        this.hasher = hasher;
-        return this;
     }
 
     // ==================================================================================
@@ -181,66 +168,27 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
     }
 
     // ==================================================================================
-    // Encode/Decode
+    // Apply
     // ==================================================================================
 
     @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
+    protected void apply(Op op) {
+        opCount++;
         switch (op) {
-            case RollOp r -> m.Add("type", "roll");
-            case KeepOp k -> {
-                m.Add("type", "keep");
-                CBORObject arr = CBORObject.NewArray();
-                for (int idx : k.indices()) arr.Add(idx);
-                m.Add("indices", arr);
-            }
-            case ScoreOp s -> {
-                m.Add("type", "score");
-                m.Add("seat", s.seat());
-                m.Add("category", s.category());
-            }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        String type = c.get("type").AsString();
-        return switch (type) {
-            case "roll" -> new RollOp();
-            case "keep" -> {
-                Set<Integer> indices = new HashSet<>();
-                for (CBORObject idx : c.get("indices").getValues()) {
-                    indices.add(idx.AsInt32());
-                }
-                yield new KeepOp(indices);
-            }
-            case "score" -> new ScoreOp(
-                    c.get("seat").AsInt32(),
-                    c.get("category").AsString()
-            );
-            default -> throw new IllegalArgumentException("Unknown op type: " + type);
-        };
-    }
-
-    @Override
-    protected void fold(Op op, Event ev) {
-        switch (op) {
-            case RollOp r -> foldRoll(ev);
-            case KeepOp k -> foldKeep(k);
-            case ScoreOp s -> foldScore(s);
+            case RollOp r -> applyRoll();
+            case KeepOp k -> applyKeep(k);
+            case ScoreOp s -> applyScore(s);
         }
     }
 
     // ==================================================================================
-    // Fold Logic
+    // Apply Logic
     // ==================================================================================
 
-    private void foldRoll(Event ev) {
+    private void applyRoll() {
         if (rollsRemaining <= 0) return;
 
-        GameRandom rng = GameRandom.fromEvent(ev);
+        GameRandom rng = GameRandom.fromSeed(opSeed());
         for (int i = 0; i < NUM_DICE; i++) {
             if (!kept[i]) {
                 dice[i] = rng.nextInt(1, 7); // 1-6 inclusive
@@ -255,7 +203,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         }
     }
 
-    private void foldKeep(KeepOp k) {
+    private void applyKeep(KeepOp k) {
         Arrays.fill(kept, false);
         for (int idx : k.indices()) {
             if (idx >= 0 && idx < NUM_DICE) {
@@ -265,7 +213,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         // Stay in KEEP — player can roll again or score from here
     }
 
-    private void foldScore(ScoreOp s) {
+    private void applyScore(ScoreOp s) {
         YahtzeeCategory cat = YahtzeeCategory.valueOf(s.category());
         int points = cat.score(dice);
         scores.add(s.seat(), cat.name(), points);
@@ -344,9 +292,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
             return "No rolls remaining — must score";
         }
 
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new RollOp(), ++sequence, s, h);
+        apply(new RollOp());
         return diceString();
     }
 
@@ -362,9 +308,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         }
 
         Set<Integer> indices = parseIndices(indicesStr);
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new KeepOp(indices), ++sequence, s, h);
+        apply(new KeepOp(indices));
         return "Keeping dice at: " + indices + " → " + diceString();
     }
 
@@ -395,9 +339,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         }
 
         int points = cat.score(dice);
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new ScoreOp(seat, cat.name()), ++sequence, s, h);
+        apply(new ScoreOp(seat, cat.name()));
         return "Scored " + points + " in " + cat.displayName();
     }
 
@@ -410,7 +352,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
      */
     public String doRoll() {
         if (rollsRemaining <= 0) return "No rolls remaining";
-        append(new RollOp(), ++sequence, signer, hasher);
+        apply(new RollOp());
         return diceString();
     }
 
@@ -418,7 +360,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
      * Keep specific dice directly.
      */
     public String doKeep(Set<Integer> indices) {
-        append(new KeepOp(indices), ++sequence, signer, hasher);
+        apply(new KeepOp(indices));
         return "Keeping: " + indices;
     }
 
@@ -439,7 +381,7 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
             return "Already used: " + cat.displayName();
         }
         int points = cat.score(dice);
-        append(new ScoreOp(seat, cat.name()), ++sequence, signer, hasher);
+        apply(new ScoreOp(seat, cat.name()));
         return "Scored " + points + " in " + cat.displayName();
     }
 

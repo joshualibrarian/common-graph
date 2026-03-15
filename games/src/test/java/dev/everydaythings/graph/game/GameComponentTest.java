@@ -1,14 +1,10 @@
 package dev.everydaythings.graph.game;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.frame.Dag;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.Test;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -19,7 +15,7 @@ class GameComponentTest {
     /**
      * Minimal concrete GameComponent for testing the base class behavior.
      */
-    @Type(value = "cg:type/test-game", glyph = "🎲")
+    @Type(value = "cg:type/test-game", glyph = "\uD83C\uDFB2")
     static class TestGame extends GameComponent<TestGame.Op> {
 
         sealed interface Op permits MoveOp {}
@@ -41,23 +37,15 @@ class GameComponentTest {
         @Override public boolean isGameOver() { return gameOver; }
         @Override public Optional<Integer> winner() { return Optional.ofNullable(winnerSeat); }
 
+        @Override
+        protected void apply(Op op) {
+            opCount++;
+            // no-op for testing
+        }
+
         void advanceTurn() { turn++; }
         void endGame(int winner) { gameOver = true; winnerSeat = winner; }
         void endDraw() { gameOver = true; }
-
-        @Override protected CBORObject encodeOp(Op op) {
-            return switch (op) {
-                case MoveOp m -> CBORObject.FromString(m.value());
-            };
-        }
-
-        @Override protected Op decodeOp(CBORObject cbor) {
-            return new MoveOp(cbor.AsString());
-        }
-
-        @Override protected void fold(Op op, Dag.Event ev) {
-            // no-op for testing
-        }
     }
 
     static ItemID pid(String name) {

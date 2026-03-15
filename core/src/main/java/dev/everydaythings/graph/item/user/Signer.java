@@ -85,16 +85,16 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Syncable stream component. Tracks all public keys this signer has used,
      * which keys are current for which purposes, and tombstoned keys.
      */
-    @Frame(key = {CoreVocabulary.KeyHistory.KEY}, path = ".keys", stream = true)
+    @Frame(key = {CoreVocabulary.KeyHistory.KEY}, path = ".keys")
     private KeyLog keyLog;
 
     /**
      * Certificate log.
      *
-     * <p>Syncable stream component. Tracks certificates issued by this signer
+     * <p>Syncable component. Tracks certificates issued by this signer
      * to attest to other identities, grant trust, etc.
      */
-    @Frame(key = {CoreVocabulary.CertHistory.KEY}, path = ".certs", stream = true)
+    @Frame(key = {CoreVocabulary.CertHistory.KEY}, path = ".certs")
     private CertLog certLog;
 
     /**
@@ -333,18 +333,16 @@ public abstract class Signer extends Item implements Signing.Signer {
             return;
         }
 
-        long seq = 1;
-
         // Add signing key and set it as current for SIGN
-        keyLog.append(new KeyLog.AddKey(publicKey), seq++, this, Signing.defaultHasher());
+        keyLog.apply(new KeyLog.AddKey(publicKey));
         byte[] signKeyCid = KeyLog.keyCidBytes(publicKey);
-        keyLog.append(new KeyLog.SetCurrent(signKeyCid, Purpose.SIGN, true), seq++, this, Signing.defaultHasher());
+        keyLog.apply(new KeyLog.SetCurrent(signKeyCid, Purpose.SIGN, true));
 
         // Add encryption key and set it as current for ENCRYPT (if available)
         if (encryptionPublicKey != null) {
-            keyLog.append(new KeyLog.AddKey(encryptionPublicKey), seq++, this, Signing.defaultHasher());
+            keyLog.apply(new KeyLog.AddKey(encryptionPublicKey));
             byte[] encKeyCid = KeyLog.keyCidBytes(encryptionPublicKey);
-            keyLog.append(new KeyLog.SetCurrent(encKeyCid, Purpose.ENCRYPT, true), seq, this, Signing.defaultHasher());
+            keyLog.apply(new KeyLog.SetCurrent(encKeyCid, Purpose.ENCRYPT, true));
         }
     }
 
@@ -374,17 +372,12 @@ public abstract class Signer extends Item implements Signing.Signer {
         // Create TlsCert record from the X.509 certificate
         CertLog.TlsCert tlsCert = CertLog.TlsCert.fromX509(keyCid, x509);
 
-        // Sequence numbers start at 1
-        long seq = 1;
+        // Add the TLS cert to the log
+        certLog.apply(new CertLog.AddTlsCert(tlsCert));
 
-        // Add the TLS cert to the log (this Signer implements Signing.Signer)
-        certLog.append(new CertLog.AddTlsCert(tlsCert), seq++, this, Signing.defaultHasher());
-
-        // Compute the cert CID for SetCurrentTls
+        // Compute the cert CID and set as current
         byte[] certCid = CertLog.tlsCertCidBytes(tlsCert);
-
-        // Set it as the current TLS certificate
-        certLog.append(new CertLog.SetCurrentTls(certCid, true), seq, this, Signing.defaultHasher());
+        certLog.apply(new CertLog.SetCurrentTls(certCid, true));
     }
 
     // ==================================================================================

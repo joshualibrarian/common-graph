@@ -20,6 +20,7 @@ import java.util.Objects;
  * <ul>
  *   <li>{@link RefTarget} — unified reference (Tag 6) to any HashID (ItemID or ContentID)</li>
  *   <li>{@link IidTarget} — legacy reference to another Item (encodes as bare ByteString)</li>
+ *   <li>{@link FrameTarget} — inline nested frame (Tag 23) for expression trees</li>
  *   <li>{@link Literal} — inline typed value</li>
  * </ul>
  */
@@ -31,6 +32,7 @@ public interface BindingTarget extends Canonical {
      * <p>Dispatch:
      * <ul>
      *   <li>Tag 6 → {@link RefTarget} (unified reference)</li>
+     *   <li>Tag 23 → {@link FrameTarget} (inline nested frame)</li>
      *   <li>Array → {@link Literal}</li>
      *   <li>Bare ByteString → {@link IidTarget} (backward compat for old data)</li>
      * </ul>
@@ -38,9 +40,10 @@ public interface BindingTarget extends Canonical {
     @Factory
     static BindingTarget fromCborTree(CBORObject node) {
         if (node == null || node.isNull()) return null;
-        // Tag 6 = REF (new unified reference format)
-        if (node.isTagged() && node.getMostInnerTag().ToInt32Checked() == 6) {
-            return RefTarget.fromCborTree(node);
+        if (node.isTagged()) {
+            int tag = node.getMostInnerTag().ToInt32Checked();
+            if (tag == Canonical.CgTag.REF) return RefTarget.fromCborTree(node);
+            if (tag == Canonical.CgTag.FRAME) return FrameTarget.fromCborTree(node);
         }
         if (node.getType() == CBORType.ByteString) {
             return IidTarget.fromCborTree(node);
@@ -56,6 +59,9 @@ public interface BindingTarget extends Canonical {
 
     /** Convenience factory for unified references (Tag 6). */
     static RefTarget ref(HashID ref) { return new RefTarget(ref); }
+
+    /** Convenience factory for inline nested frames (Tag 23). */
+    static FrameTarget frame(FrameBody body) { return new FrameTarget(body); }
 
     /**
      * Unified reference target using CG-CBOR Tag 6 (REF).
@@ -85,7 +91,7 @@ public interface BindingTarget extends Canonical {
         @Override
         public CBORObject toCborTree(Scope scope) {
             return CBORObject.FromObjectAndTag(
-                    CBORObject.FromByteArray(ref.encodeBinary()), 6);
+                    CBORObject.FromByteArray(ref.encodeBinary()), Canonical.CgTag.REF);
         }
 
         @Factory
@@ -140,6 +146,70 @@ public interface BindingTarget extends Canonical {
         public static IidTarget fromCborTree(CBORObject node) {
             if (node == null || node.isNull()) return null;
             return new IidTarget(node.GetByteString());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof IidTarget other)) return false;
+            return Objects.equals(iid, other.iid);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(iid);
+        }
+
+        @Override
+        public String toString() {
+            return iid != null ? iid.displayAtWidth(12) : "null";
+        }
+    }
+
+    /**
+     * Inline nested frame — enables expression trees and compositional frames.
+     *
+     * <p>Encodes as CG-CBOR Tag 23 wrapping the FrameBody's CBOR encoding.
+     * This allows bindings to contain entire sub-frames, enabling nested
+     * expressions like {@code MUL { THEME → ADD { THEME→3, INSTRUMENT→5 }, INSTRUMENT → 2 }}.
+     */
+    final class FrameTarget implements BindingTarget {
+        private final FrameBody body;
+
+        public FrameTarget(FrameBody body) {
+            this.body = Objects.requireNonNull(body, "body");
+        }
+
+        public FrameBody body() { return body; }
+
+        @Override
+        public CBORObject toCborTree(Scope scope) {
+            return CBORObject.FromObjectAndTag(body.toCborTree(scope), Canonical.CgTag.FRAME);
+        }
+
+        @Factory
+        public static FrameTarget fromCborTree(CBORObject node) {
+            if (node == null || node.isNull()) return null;
+            CBORObject inner = node.isTagged() ? node.UntagOne() : node;
+            FrameBody body = FrameBody.fromCborTree(inner);
+            return body != null ? new FrameTarget(body) : null;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof FrameTarget other)) return false;
+            return Objects.equals(body, other.body);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(body);
+        }
+
+        @Override
+        public String toString() {
+            return "Frame(" + body + ")";
         }
     }
 }

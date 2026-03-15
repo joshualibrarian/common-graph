@@ -349,26 +349,15 @@ class X3DHTest {
     @Nested
     class KeyLogIntegration {
 
-        private Signing.Signer testSigner;
-        private Signing.Hasher testHasher;
-        private long seq;
-
         @BeforeEach
         void setupSigning() {
-            Vault signerVault = InMemoryVault.create();
-            byte[] keyRef = signingKey(signerVault).keyId();
-            testSigner = new Signing.Signer() {
-                @Override public byte[] keyRef() { return keyRef; }
-                @Override public byte[] signRaw(byte[] data) { return signerVault.sign(data); }
-            };
-            testHasher = Signing.defaultHasher();
-            seq = 0;
+            // No setup needed — KeyLog.apply() doesn't require signing infrastructure
         }
 
         private void addKeyToLog(KeyLog keyLog, EncryptionPublicKey key, Purpose purpose) {
-            keyLog.append(new KeyLog.AddKey(key), seq++, testSigner, testHasher);
+            keyLog.apply(new KeyLog.AddKey(key));
             byte[] keyCid = KeyLog.keyCidBytes(key);
-            keyLog.append(new KeyLog.SetCurrent(keyCid, purpose, true), seq++, testSigner, testHasher);
+            keyLog.apply(new KeyLog.SetCurrent(keyCid, purpose, true));
         }
 
         @Test
@@ -419,8 +408,7 @@ class X3DHTest {
 
             // Tombstone one OPK (consumed)
             byte[] consumedCid = KeyLog.keyCidBytes(bundle.oneTimePreKeys().getFirst());
-            keyLog.append(new KeyLog.TombstoneKey(consumedCid, KeyLog.REASON_CONSUMED),
-                    seq++, testSigner, testHasher);
+            keyLog.apply(new KeyLog.TombstoneKey(consumedCid, KeyLog.REASON_CONSUMED));
 
             assertThat(keyLog.availableOneTimePreKeys()).hasSize(2);
         }

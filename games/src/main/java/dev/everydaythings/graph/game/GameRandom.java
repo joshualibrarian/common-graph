@@ -1,7 +1,5 @@
 package dev.everydaythings.graph.game;
 
-import dev.everydaythings.graph.frame.Dag;
-
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -11,21 +9,20 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * Deterministic, verifiable randomness for games built on Dag.
+ * Deterministic, verifiable randomness for games.
  *
- * <p>GameRandom derives its seed from Dag event content IDs (CIDs).
- * Since CIDs are cryptographic hashes of signed operations, the random
- * sequence is:
+ * <p>GameRandom provides deterministic random sequences seeded from
+ * byte arrays. In a game context, the seed is typically derived from
+ * the operation count via {@link GameComponent#opSeed()}, ensuring:
  * <ul>
- *   <li><b>Deterministic</b> — replaying the same events produces the same rolls</li>
- *   <li><b>Verifiable</b> — anyone with the Dag can recompute all random outcomes</li>
- *   <li><b>Unpredictable</b> — depends on both players' signed inputs</li>
+ *   <li><b>Deterministic</b> — replaying the same operations produces the same rolls</li>
+ *   <li><b>Verifiable</b> — anyone with the operation history can recompute all random outcomes</li>
  * </ul>
  *
- * <h3>Usage in fold()</h3>
+ * <h3>Usage in apply()</h3>
  * <pre>{@code
  * case RollOp roll -> {
- *     GameRandom rng = GameRandom.fromEvent(ev);
+ *     GameRandom rng = GameRandom.fromSeed(opSeed());
  *     int die1 = rng.nextInt(1, 7);  // 1-6
  *     int die2 = rng.nextInt(1, 7);
  *     // ... apply dice result to game state
@@ -57,17 +54,6 @@ public final class GameRandom {
     // ==================================================================================
     // Factory Methods
     // ==================================================================================
-
-    /**
-     * Create from a single Dag event.
-     *
-     * <p>Seed derived from the event's CID (hash of signed body).
-     * Simplest case: one event triggers one random decision.
-     */
-    public static GameRandom fromEvent(Dag.Event ev) {
-        Objects.requireNonNull(ev, "ev");
-        return new GameRandom(seedFromBytes(ev.cid));
-    }
 
     /**
      * Create from arbitrary seed bytes.

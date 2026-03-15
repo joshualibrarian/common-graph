@@ -1,13 +1,11 @@
 package dev.everydaythings.graph.game.dominoes;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
@@ -83,7 +81,6 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     // ==================================================================================
 
     private final int maxSeats;
-    private long sequence = 0;
     private final ZoneMap<DominoTile> zoneMap = new ZoneMap<>();
     private final ScoreBoard scores = new ScoreBoard();
 
@@ -122,12 +119,6 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
 
     public static DominoesGame create(int maxPlayers) {
         return new DominoesGame(maxPlayers).withDemoSigner();
-    }
-
-    public DominoesGame withSigner(Signing.Signer signer, Signing.Hasher hasher) {
-        this.signer = signer;
-        this.hasher = hasher;
-        return this;
     }
 
     // ==================================================================================
@@ -173,53 +164,11 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     @Override public ZoneMap<DominoTile> zones() { return zoneMap; }
     @Override public ScoreBoard scoreBoard() { return scores; }
 
-    // ==================================================================================
-    // Encode/Decode
-    // ==================================================================================
-
     @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
+    protected void apply(Op op) {
+        opCount++;
         switch (op) {
-            case StartOp s -> m.Add("type", "start");
-            case PlayOp p -> {
-                m.Add("type", "play");
-                m.Add("seat", p.seat());
-                m.Add("tile", p.tileOrdinal());
-                m.Add("train", p.targetTrain());
-            }
-            case DrawOp d -> {
-                m.Add("type", "draw");
-                m.Add("seat", d.seat());
-            }
-            case PassOp p -> {
-                m.Add("type", "pass");
-                m.Add("seat", p.seat());
-            }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        String type = c.get("type").AsString();
-        return switch (type) {
-            case "start" -> new StartOp();
-            case "play" -> new PlayOp(
-                    c.get("seat").AsInt32(),
-                    c.get("tile").AsInt32(),
-                    c.get("train").AsString()
-            );
-            case "draw" -> new DrawOp(c.get("seat").AsInt32());
-            case "pass" -> new PassOp(c.get("seat").AsInt32());
-            default -> throw new IllegalArgumentException("Unknown op type: " + type);
-        };
-    }
-
-    @Override
-    protected void fold(Op op, Event ev) {
-        switch (op) {
-            case StartOp s -> foldStart(ev);
+            case StartOp s -> foldStart();
             case PlayOp p -> foldPlay(p);
             case DrawOp d -> foldDraw(d);
             case PassOp p -> foldPass(p);
@@ -230,7 +179,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     // Fold Logic
     // ==================================================================================
 
-    private void foldStart(Event ev) {
+    private void foldStart() {
         started = true;
         roundOver = false;
 
@@ -241,7 +190,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
         zoneMap.define("mexican", ZoneVisibility.PUBLIC);
 
         // Shuffle full set
-        GameRandom rng = GameRandom.fromEvent(ev);
+        GameRandom rng = GameRandom.fromSeed(opSeed());
         List<DominoTile> tiles = new ArrayList<>(DominoTile.fullSet());
         rng.shuffle(tiles);
 
@@ -423,9 +372,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
     @Verb(value = GameVocabulary.Deal.KEY, doc = "Start the game")
     public String start(ActionContext ctx) {
         if (started) return "Game already started";
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new StartOp(), ++sequence, s, h);
+        apply(new StartOp());
         return "Game started with double-" + startingDouble + " as center";
     }
 
@@ -454,9 +401,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
             return "Tile " + tile + " doesn't match end value " + end;
         }
 
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new PlayOp(seat, tileOrdinal, train), ++sequence, s, h);
+        apply(new PlayOp(seat, tileOrdinal, train));
         return "Played " + tile + " on " + train;
     }
 
@@ -471,9 +416,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
         if (hasDrawnThisTurn) return "Already drew this turn";
         if (zoneMap.zone("boneyard").size() == 0) return "Boneyard is empty";
 
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new DrawOp(seat), ++sequence, s, h);
+        apply(new DrawOp(seat));
         return "Drew a tile";
     }
 
@@ -485,9 +428,7 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
 
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new PassOp(seat), ++sequence, s, h);
+        apply(new PassOp(seat));
         return "Passed — train is now open";
     }
 
@@ -497,22 +438,22 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
 
     public String doStart() {
         if (started) return "Already started";
-        append(new StartOp(), ++sequence, signer, hasher);
+        apply(new StartOp());
         return "Started";
     }
 
     public String doPlay(int seat, int tileOrdinal, String train) {
-        append(new PlayOp(seat, tileOrdinal, train), ++sequence, signer, hasher);
+        apply(new PlayOp(seat, tileOrdinal, train));
         return "Played " + DominoTile.fromOrdinal(tileOrdinal);
     }
 
     public String doDraw(int seat) {
-        append(new DrawOp(seat), ++sequence, signer, hasher);
+        apply(new DrawOp(seat));
         return "Drew";
     }
 
     public String doPass(int seat) {
-        append(new PassOp(seat), ++sequence, signer, hasher);
+        apply(new PassOp(seat));
         return "Passed";
     }
 

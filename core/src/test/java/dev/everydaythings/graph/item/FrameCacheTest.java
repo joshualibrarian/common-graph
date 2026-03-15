@@ -76,7 +76,7 @@ class FrameCacheTest {
         assertThat(unendorsed).hasSize(1);
         assertThat(unendorsed.getFirst().body()).isNotNull();
         assertThat(unendorsed.getFirst().body().predicate()).isEqualTo(LIKE);
-        assertThat(unendorsed.getFirst().body().theme()).isEqualTo(item.iid());
+        assertThat(unendorsed.getFirst().body().homeId()).isEqualTo(item.iid());
     }
 
     @Test

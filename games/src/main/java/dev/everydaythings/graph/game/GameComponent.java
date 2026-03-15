@@ -1,27 +1,22 @@
 package dev.everydaythings.graph.game;
 
+import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.frame.Dag;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.crypt.Signing;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
  * Abstract base for any game — turn-based, simultaneous, or free-form.
  *
- * <p>Extends {@link Dag} for multi-writer sync, conflict resolution, and
- * verifiable history. Every game operation is a signed, content-addressed
- * event in the DAG — making games syncable, replayable, and forkable.
- *
- * <p>This is the universal game base. Concrete games compose capability
- * interfaces to declare what features they have:
+ * <p>Every game operation mutates state via {@link #apply(Object)}.
+ * Concrete games compose capability interfaces to declare what
+ * features they have:
  * <ul>
  *   <li>{@link Spatial} — board topology with pieces</li>
  *   <li>{@link Zoned} — named zones with visibility (hands, decks)</li>
@@ -30,21 +25,9 @@ import java.util.*;
  *   <li>{@link Randomized} — verifiable deterministic randomness</li>
  * </ul>
  *
- * <h3>Example: Chess</h3>
- * <pre>{@code
- * public class Chess extends GameComponent<Chess.Op>
- *         implements Spatial<ChessPiece> { ... }
- * }</pre>
- *
- * <h3>Example: Poker</h3>
- * <pre>{@code
- * public class Poker extends GameComponent<Poker.Op>
- *         implements Zoned<PlayingCard>, Scored, Phased, Randomized { ... }
- * }</pre>
- *
  * @param <Op> The operation type (moves, bets, draws, etc.)
  */
-public abstract class GameComponent<Op> extends Dag<Op> {
+public abstract class GameComponent<Op> implements Canonical {
 
     /**
      * Player seats — maps seat index (0-based) to player ItemID.
@@ -68,11 +51,8 @@ public abstract class GameComponent<Op> extends Dag<Op> {
     @Canon(order = 0, setting = true)
     protected GameMode mode = GameMode.ANALYSIS;
 
-    /** Signer for signing Dag operations. Set by subclass withSigner()/withDemoSigner(). */
-    protected transient Signing.Signer signer;
-
-    /** Hasher for content addressing Dag operations. */
-    protected transient Signing.Hasher hasher;
+    /** Number of operations applied. */
+    protected int opCount = 0;
 
     // ==================================================================================
     // Abstract Methods — Subclasses Must Implement
@@ -112,6 +92,36 @@ public abstract class GameComponent<Op> extends Dag<Op> {
      * @return seat index of winner, or empty if draw or in-progress
      */
     public abstract Optional<Integer> winner();
+
+    /**
+     * Apply an operation to this game, updating materialized state.
+     *
+     * @param op the operation to apply
+     */
+    protected abstract void apply(Op op);
+
+    // ==================================================================================
+    // Operation Tracking
+    // ==================================================================================
+
+    /**
+     * Check if this game has no operations recorded.
+     */
+    public boolean isEmpty() {
+        return opCount == 0;
+    }
+
+    public boolean isExpandable() {
+        return !isEmpty();
+    }
+
+    /**
+     * Deterministic seed bytes derived from the current operation count.
+     * Use with {@link GameRandom#fromSeed(byte[])} for deterministic randomness.
+     */
+    protected byte[] opSeed() {
+        return ByteBuffer.allocate(8).putLong(opCount).array();
+    }
 
     // ==================================================================================
     // Mode
@@ -311,33 +321,6 @@ public abstract class GameComponent<Op> extends Dag<Op> {
     }
 
     // ==================================================================================
-    // Signer Resolution
-    // ==================================================================================
-
-    /**
-     * Resolve a signer from the ActionContext, falling back to the transient signer.
-     *
-     * @param ctx the action context (may be null for direct calls)
-     * @return a signer
-     * @throws IllegalStateException if no signer is available
-     */
-    protected Signing.Signer resolveSigner(ActionContext ctx) {
-        if (ctx != null) {
-            Optional<Signer> s = ctx.callerSigner();
-            if (s.isPresent()) return s.get();
-        }
-        if (signer != null) return signer;
-        throw new IllegalStateException("No signer configured");
-    }
-
-    /**
-     * Resolve a hasher, falling back to the default hasher.
-     */
-    protected Signing.Hasher resolveHasher() {
-        return hasher != null ? hasher : Signing.defaultHasher();
-    }
-
-    // ==================================================================================
     // Authorization Helpers
     // ==================================================================================
 
@@ -508,57 +491,15 @@ public abstract class GameComponent<Op> extends Dag<Op> {
     }
 
     // ==================================================================================
-    // Demo Signer/Hasher (testing only)
+    // Setup (no-ops for backwards compatibility with factory methods)
     // ==================================================================================
 
     /**
-     * Use a demo signer for testing (not cryptographically secure).
-     *
-     * <p>Returns {@code this} for fluent chaining. Subclasses should override
-     * to return their concrete type if they expose this in factory methods.
+     * No-op retained for backwards compatibility with factory methods.
+     * Signing infrastructure has been removed from GameComponent.
      */
     @SuppressWarnings("unchecked")
     public <T extends GameComponent<Op>> T withDemoSigner() {
-        this.signer = new DemoSigner();
-        this.hasher = new DemoHasher();
         return (T) this;
-    }
-
-    /**
-     * Simple demo signer — produces deterministic "signatures" for testing.
-     * NOT FOR PRODUCTION USE.
-     */
-    protected static class DemoSigner implements Signing.Signer {
-        private static final byte[] KEY_REF = "demo-game-player".getBytes();
-
-        @Override
-        public byte[] keyRef() {
-            return KEY_REF;
-        }
-
-        @Override
-        public byte[] signRaw(byte[] data) {
-            try {
-                MessageDigest md = MessageDigest.getInstance("SHA-256");
-                md.update("demo-sig:".getBytes());
-                return md.digest(data);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    /**
-     * Simple demo hasher for testing.
-     */
-    protected static class DemoHasher implements Signing.Hasher {
-        @Override
-        public byte[] cid(byte[] data) {
-            try {
-                return MessageDigest.getInstance("SHA-256").digest(data);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 }

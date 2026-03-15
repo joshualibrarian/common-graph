@@ -2,12 +2,10 @@ package dev.everydaythings.graph.crypt;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.frame.Dag;
-import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
+import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Type;
-import dev.everydaythings.graph.item.id.ItemID;
 
 import java.io.ByteArrayInputStream;
 import java.security.MessageDigest;
@@ -18,7 +16,7 @@ import java.util.*;
 /**
  * Append-only log for certificates issued by this signer.
  *
- * <p>CertLog is a stream component that tracks certificates a Signer has issued.
+ * <p>CertLog tracks certificates a Signer has issued.
  * It supports two types of certificates:
  * <ul>
  *   <li><b>KeyCert</b> - CG-native certificates for trust attestations</li>
@@ -31,9 +29,12 @@ import java.util.*;
  *
  * <p>Unlike private keys (stored in Vault), CertLog content is syncable
  * and represents the public record of certificates.
+ *
+ * <p>Operations are applied in-memory via {@link #apply(Op)}. When a
+ * Library is available, operations can be persisted as frames via FrameChain.
  */
 @Type(value = CertLog.KEY, glyph = "📋")
-public class CertLog extends Dag<CertLog.Op> implements Inspectable {
+public class CertLog implements Canonical, Inspectable {
 
     // === TYPE DEFINITION ===
     public static final String KEY = "cg:type/certlog";
@@ -72,9 +73,6 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
 
     /**
      * Add an X.509 TLS certificate to the log.
-     *
-     * <p>The certificate should be self-signed by this Signer's key.
-     * The subject CN typically contains the Signer's IID for identification.
      */
     public static final class AddTlsCert implements Op {
         public final TlsCert cert;
@@ -86,9 +84,6 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
 
     /**
      * Set the current TLS certificate.
-     *
-     * <p>Only one TLS cert can be "current" at a time. This is the cert
-     * that will be presented during TLS handshakes.
      */
     public static final class SetCurrentTls implements Op {
         public final byte[] certCid;
@@ -128,9 +123,6 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
 
     /**
      * An X.509 TLS certificate.
-     *
-     * <p>Contains the DER-encoded certificate bytes and metadata.
-     * The actual X509Certificate object can be parsed on demand.
      */
     public record TlsCert(
             byte[] keyCid,         // CID of the key this cert is for (from KeyLog)
@@ -138,9 +130,6 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
             long notBefore,        // validity start (epoch millis)
             long notAfter          // validity end (epoch millis)
     ) {
-        /**
-         * Create a TlsCert from an X509Certificate.
-         */
         public static TlsCert fromX509(byte[] keyCid, X509Certificate x509) {
             try {
                 return new TlsCert(
@@ -154,9 +143,6 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
             }
         }
 
-        /**
-         * Parse the X509Certificate from the stored bytes.
-         */
         public X509Certificate toX509() {
             try {
                 CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -166,17 +152,11 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
             }
         }
 
-        /**
-         * Check if the certificate is currently valid.
-         */
         public boolean isValid() {
             long now = System.currentTimeMillis();
             return now >= notBefore && now <= notAfter;
         }
 
-        /**
-         * Encode to CBOR.
-         */
         public CBORObject toCbor() {
             CBORObject obj = CBORObject.NewMap();
             obj.set("keyCid", CBORObject.FromByteArray(keyCid));
@@ -186,9 +166,6 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
             return obj;
         }
 
-        /**
-         * Decode from CBOR.
-         */
         public static TlsCert fromCbor(CBORObject obj) {
             return new TlsCert(
                     obj.get("keyCid").GetByteString(),
@@ -200,64 +177,15 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
     }
 
     // ==================================================================================
-    // Encode/Decode
+    // Apply (fold operations into state)
     // ==================================================================================
 
-    @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
-        switch (op) {
-            case AddCert a -> {
-                m.set(num(0), num(1)); // t=1
-                m.set(num(1), Canonical.toCborTree(a.cert, Canonical.Scope.BODY));
-                m.set(num(2), Canonical.toCborTree(a.cert, Canonical.Scope.RECORD));
-            }
-            case AddTlsCert a -> {
-                m.set(num(0), num(10)); // t=10 for TLS certs
-                m.set(num(1), a.cert.toCbor());
-            }
-            case SetCurrentTls s -> {
-                m.set(num(0), num(11)); // t=11
-                m.set(num(1), CBORObject.FromByteArray(s.certCid));
-                m.set(num(2), s.current ? CBORObject.True : CBORObject.False);
-            }
-            case RevokeCert r -> {
-                m.set(num(0), num(2)); // t=2
-                m.set(num(1), CBORObject.FromByteArray(r.targetCid));
-                m.set(num(2), num(r.reason));
-            }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        int t = c.get(num(0)).AsInt32();
-        return switch (t) {
-            case 1 -> {
-                KeyCert body = Canonical.fromCborTree(c.get(num(1)), KeyCert.class, Canonical.Scope.BODY);
-                KeyCert rec = Canonical.fromCborTree(c.get(num(2)), KeyCert.class, Canonical.Scope.RECORD);
-                body.alg = rec.alg;
-                body.sig = rec.sig;
-                yield new AddCert(body);
-            }
-            case 10 -> new AddTlsCert(TlsCert.fromCbor(c.get(num(1))));
-            case 11 -> new SetCurrentTls(c.get(num(1)).GetByteString(), c.get(num(2)).AsBoolean());
-            case 2 -> new RevokeCert(c.get(num(1)).GetByteString(), c.get(num(2)).AsInt32());
-            default -> throw new IllegalArgumentException("bad t=" + t);
-        };
-    }
-
-    private static CBORObject num(int i) {
-        return CBORObject.FromInt32(i);
-    }
-
-    // ==================================================================================
-    // Fold (apply operations to state)
-    // ==================================================================================
-
-    @Override
-    protected void fold(Op op, Event ev) {
+    /**
+     * Apply an operation to this CertLog, updating materialized state.
+     *
+     * @param op the operation to apply
+     */
+    public void apply(Op op) {
         switch (op) {
             case AddCert a -> {
                 byte[] bodyBytes = a.cert.encodeBinary(Scope.BODY);
@@ -279,12 +207,22 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
             case RevokeCert r -> {
                 String cid = hex(r.targetCid);
                 revoked.add(cid);
-                // If revoking the current TLS cert, clear it
                 if (cid.equals(currentTlsCertCid)) {
                     currentTlsCertCid = null;
                 }
             }
         }
+    }
+
+    /**
+     * Check if this CertLog is empty (no operations applied).
+     */
+    public boolean isEmpty() {
+        return keyCerts.isEmpty() && tlsCerts.isEmpty();
+    }
+
+    public boolean isExpandable() {
+        return !isEmpty();
     }
 
     // ==================================================================================
@@ -330,9 +268,6 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
     @Override
     public String toString() {
         if (keyCerts.isEmpty() && tlsCerts.isEmpty()) {
-            if (!heads().isEmpty()) {
-                return heads().size() + " event(s) recorded (state not materialized).";
-            }
             return "No certificates issued.";
         }
         StringBuilder sb = new StringBuilder();
@@ -377,23 +312,14 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
     // Queries - KeyCerts
     // ==================================================================================
 
-    /**
-     * Get all KeyCerts in this log.
-     */
     public Map<String, KeyCert> certs() {
         return Collections.unmodifiableMap(keyCerts);
     }
 
-    /**
-     * Get a KeyCert by its CID.
-     */
     public Optional<KeyCert> getCert(String certCidHex) {
         return Optional.ofNullable(keyCerts.get(certCidHex));
     }
 
-    /**
-     * Get all non-revoked KeyCerts.
-     */
     public Map<String, KeyCert> activeCerts() {
         Map<String, KeyCert> active = new LinkedHashMap<>();
         for (var entry : keyCerts.entrySet()) {
@@ -408,38 +334,23 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
     // Queries - TLS Certs
     // ==================================================================================
 
-    /**
-     * Get all TLS certificates in this log.
-     */
     public Map<String, TlsCert> tlsCerts() {
         return Collections.unmodifiableMap(tlsCerts);
     }
 
-    /**
-     * Get a TLS certificate by its CID.
-     */
     public Optional<TlsCert> getTlsCert(String certCidHex) {
         return Optional.ofNullable(tlsCerts.get(certCidHex));
     }
 
-    /**
-     * Get the current TLS certificate, if one is set.
-     */
     public Optional<TlsCert> currentTlsCert() {
         if (currentTlsCertCid == null) return Optional.empty();
         return Optional.ofNullable(tlsCerts.get(currentTlsCertCid));
     }
 
-    /**
-     * Get the current TLS certificate as an X509Certificate.
-     */
     public Optional<X509Certificate> currentTlsX509() {
         return currentTlsCert().map(TlsCert::toX509);
     }
 
-    /**
-     * Get all non-revoked, valid TLS certificates.
-     */
     public Map<String, TlsCert> activeTlsCerts() {
         Map<String, TlsCert> active = new LinkedHashMap<>();
         for (var entry : tlsCerts.entrySet()) {
@@ -454,16 +365,10 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
     // Queries - Revocation
     // ==================================================================================
 
-    /**
-     * Check if a cert has been revoked.
-     */
     public boolean isRevoked(byte[] targetCid) {
         return revoked.contains(hex(targetCid));
     }
 
-    /**
-     * Check if a cert has been revoked.
-     */
     public boolean isRevoked(String targetCidHex) {
         return revoked.contains(targetCidHex);
     }
@@ -472,16 +377,10 @@ public class CertLog extends Dag<CertLog.Op> implements Inspectable {
     // Helpers
     // ==================================================================================
 
-    /**
-     * Compute the CID for a TLS certificate.
-     */
     public static String tlsCertCid(TlsCert cert) {
         return hex(hash(cert.certBytes()));
     }
 
-    /**
-     * Compute the CID for a TLS certificate.
-     */
     public static byte[] tlsCertCidBytes(TlsCert cert) {
         return hash(cert.certBytes());
     }

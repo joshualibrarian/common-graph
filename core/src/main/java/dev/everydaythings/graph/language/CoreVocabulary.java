@@ -32,6 +32,23 @@ public final class CoreVocabulary {
                 .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY);
     }
 
+    /**
+     * Declares a frame structure expected on instances of a type.
+     *
+     * <p>EXPECTS frames live on a Sememe (type definition) and describe what
+     * frames its instances should carry. TOPIC identifies the expected predicate;
+     * additional roles constrain expected bindings.
+     *
+     * <p>Serves double duty: forward (creation guidance — "chess needs players")
+     * and backward (duck typing — "this item has players and moves, it's chess").
+     */
+    public static class Expects {
+        public static final String KEY = "cg.type:expects";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "declares a frame structure expected on instances of this type")
+                .slot(ThematicRole.Topic.KEY);
+    }
+
     // ==================================================================================
     // ACTION VERBS
     // ==================================================================================

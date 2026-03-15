@@ -401,37 +401,6 @@ class SetGameTest {
     }
 
     // ==================================================================================
-    // CBOR Round-Trip
-    // ==================================================================================
-
-    @Test
-    void cborRoundTrip_startOp() {
-        SetGame game = SetGame.create();
-        var op = new SetGame.StartOp();
-        var encoded = game.encodeOp(op);
-        var decoded = game.decodeOp(encoded);
-        assertThat(decoded).isEqualTo(op);
-    }
-
-    @Test
-    void cborRoundTrip_callSetOp() {
-        SetGame game = SetGame.create();
-        var op = new SetGame.CallSetOp(2, 10, 45, 73);
-        var encoded = game.encodeOp(op);
-        var decoded = game.decodeOp(encoded);
-        assertThat(decoded).isEqualTo(op);
-    }
-
-    @Test
-    void cborRoundTrip_dealMoreOp() {
-        SetGame game = SetGame.create();
-        var op = new SetGame.DealMoreOp(1);
-        var encoded = game.encodeOp(op);
-        var decoded = game.decodeOp(encoded);
-        assertThat(decoded).isEqualTo(op);
-    }
-
-    // ==================================================================================
     // Text Rendering
     // ==================================================================================
 

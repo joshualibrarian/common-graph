@@ -168,7 +168,7 @@ public final class Frame implements Canonical {
             }
         }
         bindings.add(Binding.nonIdentity(ThematicRole.Config.SEED.iid(), configLiteral));
-        setBody(new FrameBody(body.predicate(), body.theme(), bindings));
+        setBody(new FrameBody(body.predicate(), bindings));
     }
 
     // ==================================================================================
@@ -224,9 +224,6 @@ public final class Frame implements Canonical {
     // Static Factories
     // ==================================================================================
 
-    /** Placeholder theme for factory-created frames (set to real IID during commit). */
-    private static final ItemID PLACEHOLDER = ItemID.fromString("cg:placeholder");
-
     /** Create a snapshot frame. */
     public static Frame snapshot(FrameKey key, ItemID type, ContentID cid, boolean identity) {
         List<Binding> bindings = new ArrayList<>();
@@ -234,7 +231,7 @@ public final class Frame implements Canonical {
             bindings.add(new Binding(ThematicRole.Topic.SEED.iid(),
                     BindingTarget.ref(cid), true, false));
         }
-        FrameBody body = new FrameBody(type, PLACEHOLDER, bindings);
+        FrameBody body = new FrameBody(type, bindings);
         return new Frame(key, type, body, null, identity);
     }
 
@@ -255,7 +252,7 @@ public final class Frame implements Canonical {
             bindings.add(Binding.compound(streamKey,
                     Literal.ofText(""), false, false));
         }
-        FrameBody body = new FrameBody(type, PLACEHOLDER, bindings);
+        FrameBody body = new FrameBody(type, bindings);
         return new Frame(key, type, body, null, identity);
     }
 
@@ -266,7 +263,7 @@ public final class Frame implements Canonical {
                 ThematicRole.Topic.SEED.iid(), CoreVocabulary.External.SEED.iid());
         bindings.add(Binding.compound(externalKey,
                 Literal.ofText(""), false, false));
-        FrameBody body = new FrameBody(type, PLACEHOLDER, bindings);
+        FrameBody body = new FrameBody(type, bindings);
         return new Frame(key, type, body, null, identity);
     }
 
@@ -281,7 +278,7 @@ public final class Frame implements Canonical {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(new Binding(ThematicRole.Goal.SEED.iid(),
                 BindingTarget.iid(target), true, false));
-        FrameBody body = new FrameBody(type, PLACEHOLDER, bindings);
+        FrameBody body = new FrameBody(type, bindings);
         return new Frame(key, type, body, null, false);
     }
 
@@ -291,7 +288,7 @@ public final class Frame implements Canonical {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(new Binding(ThematicRole.Goal.SEED.iid(),
                 BindingTarget.iid(target), true, false));
-        FrameBody body = new FrameBody(type, PLACEHOLDER, bindings);
+        FrameBody body = new FrameBody(type, bindings);
         return new Frame(key, type, body, null, identity);
     }
 
@@ -304,7 +301,7 @@ public final class Frame implements Canonical {
             bindings.add(new Binding(ThematicRole.Topic.SEED.iid(),
                     BindingTarget.ref(cid), true, false));
         }
-        FrameBody body = new FrameBody(FrameBody.TYPE_ID, PLACEHOLDER, bindings);
+        FrameBody body = new FrameBody(FrameBody.TYPE_ID, bindings);
         Frame frame = new Frame(key, FrameBody.TYPE_ID, body, null, identity);
         frame.alias = alias;
         return frame;

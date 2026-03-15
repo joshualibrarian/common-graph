@@ -66,7 +66,7 @@ class ChessTest {
     void move_appliesLegalMoves() {
         ChessGame chess = ChessGame.create();
 
-        // Legal opening move - actually applies through Dag
+        // Legal opening move
         assertThat(chess.move("e2e4")).isNull();
         assertThat(chess.moveCount()).isEqualTo(1);
         assertThat(chess.sideToMove().name()).isEqualTo("BLACK");
@@ -138,18 +138,17 @@ class ChessTest {
     }
 
     @Test
-    void dagIntegration_movesCreateEvents() {
+    void movesTrackOperations() {
         ChessGame chess = ChessGame.create();
 
-        // Initially no heads (empty Dag)
+        // Initially empty (no operations)
         assertThat(chess.isEmpty()).isTrue();
 
         // Make a move
         chess.move("e2e4");
 
-        // Now has heads (events in Dag)
+        // Now has operations
         assertThat(chess.isEmpty()).isFalse();
-        assertThat(chess.heads()).hasSize(1);
     }
 
     @Test

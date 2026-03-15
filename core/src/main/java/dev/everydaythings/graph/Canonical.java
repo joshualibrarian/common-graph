@@ -90,6 +90,9 @@ public interface Canonical {
         /** Tag 10: Encrypted envelope. Reserved. */
         int ENCRYPTED = 10;
 
+        /** Tag 23: Inline nested frame (FrameTarget). Enables expression trees and compositional frames. */
+        int FRAME = 23;
+
         // Protocol tags (11-22): message type discrimination for CG and Session protocols.
         // Wire format: [4-byte length][Tag(N, CBOR map)]
 

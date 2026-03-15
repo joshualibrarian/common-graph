@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.game.set;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
@@ -8,7 +7,6 @@ import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
@@ -88,8 +86,6 @@ public class SetGame extends GameComponent<SetGame.Op>
     private boolean started = false;
     private boolean gameOver = false;
 
-    private long sequence = 0;
-
     // ==================================================================================
     // Factory
     // ==================================================================================
@@ -110,76 +106,24 @@ public class SetGame extends GameComponent<SetGame.Op>
     }
 
     // ==================================================================================
-    // Signer Setup
-    // ==================================================================================
-
-    public SetGame withSigner(Signing.Signer signer, Signing.Hasher hasher) {
-        this.signer = signer;
-        this.hasher = hasher;
-        return this;
-    }
-
-    // ==================================================================================
-    // Encode/Decode
+    // Apply
     // ==================================================================================
 
     @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
+    protected void apply(Op op) {
+        opCount++;
         switch (op) {
-            case StartOp s -> m.set(num(0), num(1));
-            case CallSetOp c -> {
-                m.set(num(0), num(2));
-                m.set(num(1), num(c.seat()));
-                m.set(num(2), num(c.card1Ord()));
-                m.set(num(3), num(c.card2Ord()));
-                m.set(num(4), num(c.card3Ord()));
-            }
-            case DealMoreOp d -> {
-                m.set(num(0), num(3));
-                m.set(num(1), num(d.seat()));
-            }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        int type = c.get(num(0)).AsInt32();
-        return switch (type) {
-            case 1 -> new StartOp();
-            case 2 -> new CallSetOp(
-                    c.get(num(1)).AsInt32(),
-                    c.get(num(2)).AsInt32(),
-                    c.get(num(3)).AsInt32(),
-                    c.get(num(4)).AsInt32());
-            case 3 -> new DealMoreOp(c.get(num(1)).AsInt32());
-            default -> throw new IllegalArgumentException("Unknown set op type: " + type);
-        };
-    }
-
-    private static CBORObject num(int i) {
-        return CBORObject.FromInt32(i);
-    }
-
-    // ==================================================================================
-    // Fold
-    // ==================================================================================
-
-    @Override
-    protected void fold(Op op, Event ev) {
-        switch (op) {
-            case StartOp start -> foldStart(ev);
+            case StartOp start -> applyStart();
             case CallSetOp call -> foldCallSet(call);
             case DealMoreOp deal -> foldDealMore();
         }
     }
 
-    private void foldStart(Event ev) {
+    private void applyStart() {
         if (started) return;
         started = true;
 
-        GameRandom rng = GameRandom.fromEvent(ev);
+        GameRandom rng = GameRandom.fromSeed(opSeed());
         List<SetCard> deck = SetCard.fullDeck();
         zoneMap.zone("deck").addAll(deck);
         zoneMap.zone("deck").shuffle(rng);
@@ -295,8 +239,7 @@ public class SetGame extends GameComponent<SetGame.Op>
     @Verb(value = CoreVocabulary.Create.KEY, doc = "Start the game")
     public void start() {
         if (started) return;
-        requireSigner();
-        append(new StartOp(), ++sequence, signer, hasher);
+        apply(new StartOp());
     }
 
     @Verb(value = GameVocabulary.Call.KEY, doc = "Call a set of three cards")
@@ -306,8 +249,7 @@ public class SetGame extends GameComponent<SetGame.Op>
             @Param(value = "card2", doc = "Second card ordinal") int card2,
             @Param(value = "card3", doc = "Third card ordinal") int card3) {
         if (gameOver || !started) return false;
-        requireSigner();
-        append(new CallSetOp(seat, card1, card2, card3), ++sequence, signer, hasher);
+        apply(new CallSetOp(seat, card1, card2, card3));
         return true;
     }
 
@@ -315,15 +257,8 @@ public class SetGame extends GameComponent<SetGame.Op>
     public boolean dealMore(
             @Param(value = "seat", doc = "Requesting player seat") int seat) {
         if (gameOver || !started) return false;
-        requireSigner();
-        append(new DealMoreOp(seat), ++sequence, signer, hasher);
+        apply(new DealMoreOp(seat));
         return true;
-    }
-
-    private void requireSigner() {
-        if (signer == null || hasher == null) {
-            throw new IllegalStateException("No signer configured — call withDemoSigner() first");
-        }
     }
 
     // ==================================================================================

@@ -291,7 +291,7 @@ class LibrarianTest extends SignerTest {
             assertThat(body)
                     .as("Created frame body")
                     .isNotNull();
-            assertThat(body.theme())
+            assertThat(body.homeId())
                     .isEqualTo(author.iid());
             assertThat(body.predicate())
                     .isEqualTo(wroteId);

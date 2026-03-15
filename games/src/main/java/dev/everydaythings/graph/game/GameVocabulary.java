@@ -25,6 +25,18 @@ public final class GameVocabulary {
     private static final Sememe LEMMA = GrammaticalFeature.Lemma.SEED;
 
     // ==================================================================================
+    // Game predicates (nouns — used in EXPECTS frames and as frame predicates)
+    // ==================================================================================
+
+    public static class Player {
+        public static final String KEY = "cg.game:player";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a participant in a game, assigned to a side or seat")
+                .word(PartOfSpeech.NOUN, LEMMA, "en", "player")
+                .slot(ThematicRole.Agent.KEY).slot(ThematicRole.Theme.KEY);
+    }
+
+    // ==================================================================================
     // Board and spatial game verbs
     // ==================================================================================
 

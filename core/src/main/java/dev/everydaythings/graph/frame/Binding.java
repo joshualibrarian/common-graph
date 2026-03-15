@@ -175,6 +175,13 @@ public final class Binding implements Canonical {
     }
 
     /**
+     * Create an identity binding with an inline nested frame.
+     */
+    public static Binding frame(ItemID role, FrameBody body) {
+        return new Binding(role, new BindingTarget.FrameTarget(body));
+    }
+
+    /**
      * Create a compound-key binding (e.g., (TOPIC, STREAM) or (TOPIC, EXTERNAL)).
      */
     public static Binding compound(List<ItemID> key, BindingTarget target, boolean identity, boolean index) {

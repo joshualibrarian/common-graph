@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.game.spades;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.game.card.PlayingCard;
 import dev.everydaythings.graph.dispatch.ActionContext;
@@ -8,7 +7,6 @@ import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
@@ -86,7 +84,6 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
     // Game State
     // ==================================================================================
 
-    private long sequence = 0;
     private final ZoneMap<PlayingCard> zoneMap = new ZoneMap<>();
     private final ScoreBoard scores = new ScoreBoard();
 
@@ -117,12 +114,6 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
 
     public static SpadesGame create() {
         return new SpadesGame().withDemoSigner();
-    }
-
-    public SpadesGame withSigner(Signing.Signer signer, Signing.Hasher hasher) {
-        this.signer = signer;
-        this.hasher = hasher;
-        return this;
     }
 
     // ==================================================================================
@@ -165,35 +156,14 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
     }
 
     // ==================================================================================
-    // Encode/Decode
+    // Apply
     // ==================================================================================
 
     @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
+    protected void apply(Op op) {
+        opCount++;
         switch (op) {
-            case DealOp d -> m.Add("type", "deal");
-            case BidOp b -> { m.Add("type", "bid"); m.Add("seat", b.seat()); m.Add("tricks", b.tricks()); }
-            case PlayCardOp p -> { m.Add("type", "play"); m.Add("seat", p.seat()); m.Add("card", p.cardOrdinal()); }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        String type = c.get("type").AsString();
-        return switch (type) {
-            case "deal" -> new DealOp();
-            case "bid" -> new BidOp(c.get("seat").AsInt32(), c.get("tricks").AsInt32());
-            case "play" -> new PlayCardOp(c.get("seat").AsInt32(), c.get("card").AsInt32());
-            default -> throw new IllegalArgumentException("Unknown op type: " + type);
-        };
-    }
-
-    @Override
-    protected void fold(Op op, Event ev) {
-        switch (op) {
-            case DealOp d -> foldDeal(ev);
+            case DealOp d -> foldDeal();
             case BidOp b -> foldBid(b);
             case PlayCardOp p -> foldPlayCard(p);
         }
@@ -203,7 +173,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
     // Fold Logic
     // ==================================================================================
 
-    private void foldDeal(Event ev) {
+    private void foldDeal() {
         phase = PHASE_BID;
         Arrays.fill(bids, -1);
         Arrays.fill(tricksWon, 0);
@@ -231,7 +201,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
         }
 
         // Shuffle and deal
-        GameRandom rng = GameRandom.fromEvent(ev);
+        GameRandom rng = GameRandom.fromSeed(opSeed());
         List<PlayingCard> deck = new ArrayList<>(PlayingCard.fullDeck());
         rng.shuffle(deck);
 
@@ -403,9 +373,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
     @Verb(value = GameVocabulary.Deal.KEY, doc = "Deal cards for a new round")
     public String deal(ActionContext ctx) {
         if (!PHASE_DEAL.equals(phase)) return "Cannot deal now";
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new DealOp(), ++sequence, s, h);
+        apply(new DealOp());
         return "Cards dealt";
     }
 
@@ -418,9 +386,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
         if (!PHASE_BID.equals(phase)) return "Not in bidding phase";
         if (tricks < 0 || tricks > CARDS_PER_HAND) return "Bid must be 0-13";
 
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new BidOp(seat, tricks), ++sequence, s, h);
+        apply(new BidOp(seat, tricks));
         return "Bid " + (tricks == 0 ? "nil" : tricks + " tricks");
     }
 
@@ -436,9 +402,7 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
         String error = validatePlay(seat, card);
         if (error != null) return error;
 
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new PlayCardOp(seat, cardOrdinal), ++sequence, s, h);
+        apply(new PlayCardOp(seat, cardOrdinal));
         return "Played " + card;
     }
 
@@ -448,17 +412,17 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
 
     public String doDeal() {
         if (!PHASE_DEAL.equals(phase)) return "Cannot deal now";
-        append(new DealOp(), ++sequence, signer, hasher);
+        apply(new DealOp());
         return "Dealt";
     }
 
     public String doBid(int seat, int tricks) {
-        append(new BidOp(seat, tricks), ++sequence, signer, hasher);
+        apply(new BidOp(seat, tricks));
         return "Bid " + tricks;
     }
 
     public String doPlayCard(int seat, int cardOrdinal) {
-        append(new PlayCardOp(seat, cardOrdinal), ++sequence, signer, hasher);
+        apply(new PlayCardOp(seat, cardOrdinal));
         return "Played " + PlayingCard.fromOrdinal(cardOrdinal);
     }
 

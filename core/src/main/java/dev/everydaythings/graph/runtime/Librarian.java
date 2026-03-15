@@ -13,6 +13,7 @@ import dev.everydaythings.graph.value.ValueType;
 import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.DisplayInfo;
+import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.ActionContext;
@@ -177,8 +178,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     @Frame(key = {CoreVocabulary.ImplementedBy.KEY})
     ExpressionComponent typesExpr = ExpressionComponent.subjects(CoreVocabulary.ImplementedBy.SEED.iid());
 
-    // Infrastructure activity log — persistent stream, doesn't churn VID
-    @Frame(key = {CoreVocabulary.Activity.KEY}, stream = true, identity = false)
+    // Infrastructure activity log — in-memory, doesn't churn VID
+    @Frame(key = {CoreVocabulary.Activity.KEY}, identity = false)
     private ActivityLog activityLog = new ActivityLog();
 
     // --- Services ---
@@ -1872,7 +1873,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 })
                 .map(body -> {
                     Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:goal"));
-                    return TypeEntry.of(body.theme(), lit.asJavaClass());
+                    return TypeEntry.of(body.homeId(), lit.asJavaClass());
                 });
     }
 
@@ -1896,7 +1897,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 })
                 .map(body -> {
                     Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:goal"));
-                    return TypeEntry.of(body.theme(), lit.asJavaClass());
+                    return TypeEntry.of(body.homeId(), lit.asJavaClass());
                 });
     }
 
@@ -2153,21 +2154,28 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     }
 
     /**
-     * Create a new plain Item.
+     * Create a new Item.
      *
-     * <p>Overrides {@link Item#actionNew} because the inherited version uses
-     * {@code this.getClass()} which would try to construct a new Librarian
-     * (no suitable constructor exists).
+     * <p>If the name resolves to a type Sememe with an IMPLEMENTED_BY relation,
+     * creates a typed Item with the implementation attached as a component.
+     * Otherwise creates a plain Item with the name as title.
      *
-     * <p>At the Librarian level, "create" produces a plain Item.
-     * For typed items ("create signer"), Eval dispatches CREATE on the type
-     * seed item directly, not on Librarian.
+     * <p>For example, "create chess" resolves "chess" to the chess type Sememe,
+     * finds ChessGame via IMPLEMENTED_BY, instantiates it, and attaches it
+     * to a new Item via {@link Item#addComponent}.
      */
     @Override
     public Item actionNew(
             ActionContext ctx,
             @Param(
                     value = "name", required = false, role = "NAME") String name) {
+        // Try to resolve as a type and create a typed Item
+        if (name != null && !name.isBlank()) {
+            Optional<Item> typed = createTypedItem(name);
+            if (typed.isPresent()) return typed.get();
+        }
+
+        // Fall back: plain item with title
         Item newItem = Item.create(this);
         if (name != null && !name.isBlank()) {
             newItem.relate(
@@ -2175,6 +2183,35 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     Literal.ofText(name));
         }
         return newItem;
+    }
+
+    /**
+     * Try to create a typed Item from a type name.
+     *
+     * <p>Looks up the name in the TokenDictionary, checks if any match is
+     * a type Sememe with an IMPLEMENTED_BY relation, and if so creates a new
+     * Item with the implementation attached as a component.
+     */
+    private Optional<Item> createTypedItem(String typeName) {
+        TokenDictionary tokenDict = tokenIndex();
+        if (tokenDict == null) return Optional.empty();
+
+        var postings = tokenDict.lookup(typeName).toList();
+
+        for (var posting : postings) {
+            Optional<Sememe> sememe = get(posting.target(), Sememe.class);
+            if (sememe.isPresent() && sememe.get().hasImplementation()) {
+                Class<?> implClass = sememe.get().resolveImplementingClass().orElseThrow();
+                Object component = CreationScanner.instantiate(implClass);
+
+                Item newItem = Item.create(this);
+                String handle = sememe.get().displayToken();
+                newItem.addComponent(handle, component);
+                return Optional.of(newItem);
+            }
+        }
+
+        return Optional.empty();
     }
 
     // ==================================================================================

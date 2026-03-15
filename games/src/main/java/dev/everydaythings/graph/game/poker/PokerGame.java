@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.game.poker;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.game.card.PlayingCard;
 import dev.everydaythings.graph.dispatch.ActionContext;
@@ -8,7 +7,6 @@ import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
@@ -104,7 +102,6 @@ public class PokerGame extends GameComponent<PokerGame.Op>
     // ==================================================================================
 
     private final int maxSeats;
-    private long sequence = 0;
     private final ZoneMap<PlayingCard> zoneMap = new ZoneMap<>();
     private final ScoreBoard scores = new ScoreBoard();
 
@@ -151,12 +148,6 @@ public class PokerGame extends GameComponent<PokerGame.Op>
 
     public static PokerGame create(int maxPlayers) {
         return new PokerGame(maxPlayers).withDemoSigner();
-    }
-
-    public PokerGame withSigner(Signing.Signer signer, Signing.Hasher hasher) {
-        this.signer = signer;
-        this.hasher = hasher;
-        return this;
     }
 
     public PokerGame withBlinds(int small, int big) {
@@ -209,44 +200,11 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         return List.of(PHASE_PREFLOP, PHASE_FLOP, PHASE_TURN, PHASE_RIVER, PHASE_SHOWDOWN);
     }
 
-    // ==================================================================================
-    // Encode/Decode
-    // ==================================================================================
-
     @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
+    protected void apply(Op op) {
+        opCount++;
         switch (op) {
-            case DealOp d -> m.Add("type", "deal");
-            case BetOp b -> { m.Add("type", "bet"); m.Add("seat", b.seat()); m.Add("amount", b.amount()); }
-            case CallOp c -> { m.Add("type", "call"); m.Add("seat", c.seat()); }
-            case RaiseOp r -> { m.Add("type", "raise"); m.Add("seat", r.seat()); m.Add("amount", r.amount()); }
-            case CheckOp c -> { m.Add("type", "check"); m.Add("seat", c.seat()); }
-            case FoldOp f -> { m.Add("type", "fold"); m.Add("seat", f.seat()); }
-            case AllInOp a -> { m.Add("type", "allin"); m.Add("seat", a.seat()); }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        String type = c.get("type").AsString();
-        return switch (type) {
-            case "deal" -> new DealOp();
-            case "bet" -> new BetOp(c.get("seat").AsInt32(), c.get("amount").AsInt32());
-            case "call" -> new CallOp(c.get("seat").AsInt32());
-            case "raise" -> new RaiseOp(c.get("seat").AsInt32(), c.get("amount").AsInt32());
-            case "check" -> new CheckOp(c.get("seat").AsInt32());
-            case "fold" -> new FoldOp(c.get("seat").AsInt32());
-            case "allin" -> new AllInOp(c.get("seat").AsInt32());
-            default -> throw new IllegalArgumentException("Unknown op type: " + type);
-        };
-    }
-
-    @Override
-    protected void fold(Op op, Event ev) {
-        switch (op) {
-            case DealOp d -> foldDeal(ev);
+            case DealOp d -> foldDeal();
             case BetOp b -> foldBet(b);
             case CallOp c -> foldCall(c);
             case RaiseOp r -> foldRaise(r);
@@ -260,7 +218,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
     // Fold Logic
     // ==================================================================================
 
-    private void foldDeal(Event ev) {
+    private void foldDeal() {
         handInProgress = true;
         phase = PHASE_PREFLOP;
         pot = 0;
@@ -294,7 +252,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         }
 
         // Shuffle and fill deck
-        GameRandom rng = GameRandom.fromEvent(ev);
+        GameRandom rng = GameRandom.fromSeed(opSeed());
         List<PlayingCard> deck = new ArrayList<>(PlayingCard.fullDeck());
         rng.shuffle(deck);
         Zone<PlayingCard> deckZone = zoneMap.zone("deck");
@@ -545,9 +503,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
     @Verb(value = GameVocabulary.Deal.KEY, doc = "Deal a new hand")
     public String deal(ActionContext ctx) {
         if (handInProgress) return "Hand already in progress";
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new DealOp(), ++sequence, s, h);
+        apply(new DealOp());
         return "Hand dealt";
     }
 
@@ -556,9 +512,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
                       @Param(value = "amount", doc = "Bet amount") int amount) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new BetOp(seat, amount), ++sequence, s, h);
+        apply(new BetOp(seat, amount));
         return "Bet " + amount;
     }
 
@@ -566,9 +520,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
     public String call(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new CallOp(seat), ++sequence, s, h);
+        apply(new CallOp(seat));
         return "Called";
     }
 
@@ -577,9 +529,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
                         @Param(value = "amount", doc = "Total raise amount") int amount) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new RaiseOp(seat, amount), ++sequence, s, h);
+        apply(new RaiseOp(seat, amount));
         return "Raised to " + amount;
     }
 
@@ -587,9 +537,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
     public String check(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new CheckOp(seat), ++sequence, s, h);
+        apply(new CheckOp(seat));
         return "Checked";
     }
 
@@ -597,9 +545,7 @@ public class PokerGame extends GameComponent<PokerGame.Op>
     public String fold(ActionContext ctx) {
         int seat = authorizedSeat(ctx);
         if (seat < 0) seat = currentSeat;
-        Signing.Signer s = resolveSigner(ctx);
-        Signing.Hasher h = resolveHasher();
-        append(new FoldOp(seat), ++sequence, s, h);
+        apply(new FoldOp(seat));
         return "Folded";
     }
 
@@ -609,37 +555,37 @@ public class PokerGame extends GameComponent<PokerGame.Op>
 
     public String doDeal() {
         if (handInProgress) return "Hand in progress";
-        append(new DealOp(), ++sequence, signer, hasher);
+        apply(new DealOp());
         return "Dealt";
     }
 
     public String doBet(int seat, int amount) {
-        append(new BetOp(seat, amount), ++sequence, signer, hasher);
+        apply(new BetOp(seat, amount));
         return "Bet " + amount;
     }
 
     public String doCall(int seat) {
-        append(new CallOp(seat), ++sequence, signer, hasher);
+        apply(new CallOp(seat));
         return "Called";
     }
 
     public String doRaise(int seat, int amount) {
-        append(new RaiseOp(seat, amount), ++sequence, signer, hasher);
+        apply(new RaiseOp(seat, amount));
         return "Raised to " + amount;
     }
 
     public String doCheck(int seat) {
-        append(new CheckOp(seat), ++sequence, signer, hasher);
+        apply(new CheckOp(seat));
         return "Checked";
     }
 
     public String doFold(int seat) {
-        append(new FoldOp(seat), ++sequence, signer, hasher);
+        apply(new FoldOp(seat));
         return "Folded";
     }
 
     public String doAllIn(int seat) {
-        append(new AllInOp(seat), ++sequence, signer, hasher);
+        apply(new AllInOp(seat));
         return "All in";
     }
 

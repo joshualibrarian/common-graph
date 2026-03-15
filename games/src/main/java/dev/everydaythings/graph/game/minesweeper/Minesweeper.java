@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.game.minesweeper;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
@@ -9,7 +8,6 @@ import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.View;
@@ -28,9 +26,9 @@ import java.util.*;
  * revealed; each revealed tile shows the count of adjacent mines.
  * Revealing a mine loses the game. Revealing all non-mine tiles wins.
  *
- * <p>Mines are placed on the first reveal using verifiable randomness
- * from the Dag event, ensuring the first click is always safe and
- * the layout is deterministically replayable.
+ * <p>Mines are placed on the first reveal using deterministic randomness
+ * seeded from the operation count, ensuring the first click is always
+ * safe and the layout is deterministically replayable.
  *
  * @see MineTile
  */
@@ -161,8 +159,6 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     private int revealedCount = 0;
     private int flagCount = 0;
 
-    private long sequence = 0;
-
     // ==================================================================================
     // Factory
     // ==================================================================================
@@ -185,16 +181,6 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         for (MineTile[] row : visible) Arrays.fill(row, MineTile.HIDDEN);
     }
 
-    // ==================================================================================
-    // Signer Setup
-    // ==================================================================================
-
-    public Minesweeper withSigner(Signing.Signer signer, Signing.Hasher hasher) {
-        this.signer = signer;
-        this.hasher = hasher;
-        return this;
-    }
-
     @Override
     public void onFramePlaced(FrameContext ctx) {
         publishConfigSettings(ctx.theme());
@@ -205,68 +191,25 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     }
 
     // ==================================================================================
-    // Encode/Decode
+    // Apply
     // ==================================================================================
 
     @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
+    protected void apply(Op op) {
+        opCount++;
         switch (op) {
-            case RevealOp r -> {
-                m.set(num(0), num(1));
-                m.set(num(1), num(r.x()));
-                m.set(num(2), num(r.y()));
-            }
-            case FlagOp f -> {
-                m.set(num(0), num(2));
-                m.set(num(1), num(f.x()));
-                m.set(num(2), num(f.y()));
-            }
-            case ChordOp c -> {
-                m.set(num(0), num(3));
-                m.set(num(1), num(c.x()));
-                m.set(num(2), num(c.y()));
-            }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        int type = c.get(num(0)).AsInt32();
-        int x = c.get(num(1)).AsInt32();
-        int y = c.get(num(2)).AsInt32();
-        return switch (type) {
-            case 1 -> new RevealOp(x, y);
-            case 2 -> new FlagOp(x, y);
-            case 3 -> new ChordOp(x, y);
-            default -> throw new IllegalArgumentException("Unknown minesweeper op type: " + type);
-        };
-    }
-
-    private static CBORObject num(int i) {
-        return CBORObject.FromInt32(i);
-    }
-
-    // ==================================================================================
-    // Fold
-    // ==================================================================================
-
-    @Override
-    protected void fold(Op op, Event ev) {
-        switch (op) {
-            case RevealOp reveal -> foldReveal(reveal.x(), reveal.y(), ev);
+            case RevealOp reveal -> foldReveal(reveal.x(), reveal.y());
             case FlagOp flag -> foldFlag(flag.x(), flag.y());
             case ChordOp chord -> foldChord(chord.x(), chord.y());
         }
     }
 
-    private void foldReveal(int x, int y, Event ev) {
+    private void foldReveal(int x, int y) {
         if (!inBounds(x, y) || result != GameResult.IN_PROGRESS) return;
         if (visible[x][y] != MineTile.HIDDEN) return;
 
         if (!minesPlaced) {
-            placeMines(x, y, GameRandom.fromEvent(ev));
+            placeMines(x, y, GameRandom.fromSeed(opSeed()));
         }
 
         if (mines[x][y]) {
@@ -448,8 +391,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
             }
             return false;
         }
-        requireSigner();
-        append(new RevealOp(x, y), ++sequence, signer, hasher);
+        apply(new RevealOp(x, y));
         return true;
     }
 
@@ -464,8 +406,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         if (!inBounds(x, y)) return false;
         MineTile tile = visible[x][y];
         if (tile != MineTile.HIDDEN && tile != MineTile.FLAGGED) return false;
-        requireSigner();
-        append(new FlagOp(x, y), ++sequence, signer, hasher);
+        apply(new FlagOp(x, y));
         return true;
     }
 
@@ -481,15 +422,8 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         int expected = visible[x][y].adjacentCount();
         if (expected <= 0) return false;
         if (countAdjacentFlagged(x, y) != expected) return false;
-        requireSigner();
-        append(new ChordOp(x, y), ++sequence, signer, hasher);
+        apply(new ChordOp(x, y));
         return true;
-    }
-
-    private void requireSigner() {
-        if (signer == null || hasher == null) {
-            throw new IllegalStateException("No signer configured — call withDemoSigner() first");
-        }
     }
 
     // ==================================================================================

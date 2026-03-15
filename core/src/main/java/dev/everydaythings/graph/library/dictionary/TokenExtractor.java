@@ -48,7 +48,7 @@ public final class TokenExtractor {
 
         float weight = predicateWeightResolver.apply(body.predicate());
         if (weight > 0) {
-            return extractTextPostingFromBody(body, body.theme(), weight);
+            return extractTextPostingFromBody(body, body.homeId(), weight);
         }
         return List.of();
     }

@@ -3,7 +3,6 @@ package dev.everydaythings.graph.game.chess;
 import com.github.bhlangonijr.chesslib.*;
 import com.github.bhlangonijr.chesslib.move.Move;
 import com.github.bhlangonijr.chesslib.MoveBackup;
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.game.BoardState;
 import dev.everydaythings.graph.game.GameBoard;
 import dev.everydaythings.graph.game.GameComponent;
@@ -19,7 +18,6 @@ import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.crypt.Signing;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.surface.HandleSurface;
@@ -36,17 +34,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Chess game as a streaming log component.
+ * Chess game component.
  *
  * <p>Wraps the chesslib library for legal move generation, validation,
- * and game state detection. The game history is stored as a Dag (stream
- * of operations), making games:
- * <ul>
- *   <li>Syncable between players</li>
- *   <li>Replayable (step through history)</li>
- *   <li>Verifiable (all moves signed)</li>
- *   <li>Forkable (analysis lines)</li>
- * </ul>
+ * and game state detection. Operations are applied directly to
+ * materialized state via {@link #apply(Op)}.
  *
  * @see <a href="https://github.com/bhlangonijr/chesslib">chesslib</a>
  */
@@ -231,9 +223,6 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     // Draw offer pending
     private Side drawOfferFrom = null;
 
-    // Sequence counter for Dag events
-    private long sequence = 0;
-
     // Chess clock (null = casual play, no time control)
     private transient ChessClock clock;
 
@@ -247,9 +236,6 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
 
     /**
      * Create a new chess game from the starting position.
-     *
-     * <p>By default, uses a demo signer for interactive play.
-     * For production use, call withSigner() to set a real identity.
      */
     public static ChessGame create() {
         return new ChessGame().withDemoSigner();
@@ -312,8 +298,6 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
 
     /**
      * Create a new chess game from a FEN position.
-     *
-     * <p>By default, uses a demo signer for interactive play.
      */
     public static ChessGame fromFen(String fen) {
         ChessGame chess = new ChessGame().withDemoSigner();
@@ -357,60 +341,12 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     }
 
     // ==================================================================================
-    // Encode/Decode
+    // Apply (operations to state)
     // ==================================================================================
 
     @Override
-    protected CBORObject encodeOp(Op op) {
-        CBORObject m = CBORObject.NewMap();
-        switch (op) {
-            case MoveOp move -> {
-                m.set(num(0), num(1));  // type = 1 (move)
-                m.set(num(1), CBORObject.FromString(move.san()));
-            }
-            case ResignOp r -> {
-                m.set(num(0), num(2));  // type = 2
-                m.set(num(1), CBORObject.FromString(r.side().name()));
-            }
-            case DrawOfferOp o -> {
-                m.set(num(0), num(3));
-                m.set(num(1), CBORObject.FromString(o.side().name()));
-            }
-            case DrawAcceptOp a -> {
-                m.set(num(0), num(4));
-                m.set(num(1), CBORObject.FromString(a.side().name()));
-            }
-            case DrawDeclineOp d -> {
-                m.set(num(0), num(5));
-                m.set(num(1), CBORObject.FromString(d.side().name()));
-            }
-        }
-        return m;
-    }
-
-    @Override
-    protected Op decodeOp(CBORObject c) {
-        int type = c.get(num(0)).AsInt32();
-        return switch (type) {
-            case 1 -> new MoveOp(c.get(num(1)).AsString());
-            case 2 -> new ResignOp(Side.valueOf(c.get(num(1)).AsString()));
-            case 3 -> new DrawOfferOp(Side.valueOf(c.get(num(1)).AsString()));
-            case 4 -> new DrawAcceptOp(Side.valueOf(c.get(num(1)).AsString()));
-            case 5 -> new DrawDeclineOp(Side.valueOf(c.get(num(1)).AsString()));
-            default -> throw new IllegalArgumentException("Unknown chess op type: " + type);
-        };
-    }
-
-    private static CBORObject num(int i) {
-        return CBORObject.FromInt32(i);
-    }
-
-    // ==================================================================================
-    // Fold (apply operations to state)
-    // ==================================================================================
-
-    @Override
-    protected void fold(Op op, Event ev) {
+    protected void apply(Op op) {
+        opCount++;
         switch (op) {
             case MoveOp move -> {
                 try {
@@ -457,22 +393,6 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
             }
         }
     }
-
-    // ==================================================================================
-    // Signer/Hasher Setup (for interactive play)
-    // ==================================================================================
-
-    /**
-     * Set the signer and hasher for making moves.
-     *
-     * <p>Required before calling makeMove(). For demo purposes, use withDemoSigner().
-     */
-    public ChessGame withSigner(Signing.Signer signer, Signing.Hasher hasher) {
-        this.signer = signer;
-        this.hasher = hasher;
-        return this;
-    }
-
 
     // ==================================================================================
     // Inspect Entries
@@ -526,7 +446,7 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
                        @Param(value = "san", doc = "Move in algebraic notation") String san) {
         if (mode == GameMode.ARCHIVE) return "Game is in archive mode — fork to analyze";
         authorizedSeat(ctx); // no-op in ANALYSIS mode, enforced in AUTHENTICATED
-        return doMove(san, resolveSigner(ctx), resolveHasher());
+        return doMove(san);
     }
 
     /**
@@ -537,14 +457,11 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
      */
     public String move(String san) {
         if (mode == GameMode.ARCHIVE) return "Game is in archive mode — fork to analyze";
-        return doMove(san, signer, hasher);
+        return doMove(san);
     }
 
-    private String doMove(String san, Signing.Signer s, Signing.Hasher h) {
+    private String doMove(String san) {
         if (isGameOver()) return "Game is already over";
-        if (s == null || h == null) {
-            throw new IllegalStateException("No signer configured - call withSigner() or withDemoSigner() first");
-        }
 
         // Normalize: strip whitespace so "d7 d6" → "d7d6" (UCI format)
         String normalized = san.replaceAll("\\s+", "");
@@ -552,9 +469,8 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
         try {
             Move m = new Move(normalized, chessBoard.getSideToMove());
             if (chessBoard.legalMoves().contains(m)) {
-                // Move is legal - append to Dag
                 MoveOp op = new MoveOp(normalized);
-                append(op, ++sequence, s, h);
+                apply(op);
 
                 // Clock integration: switch sides, start on first move
                 if (clock != null) {
@@ -586,20 +502,17 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
         } else if (side == null) {
             side = sideToMove(); // default to current side in analysis mode
         }
-        doResign(side, resolveSigner(ctx), resolveHasher());
+        doResign(side);
     }
 
     /** Convenience for direct calls and tests. */
     public void resign(Side side) {
-        doResign(side, signer, hasher);
+        doResign(side);
     }
 
-    private void doResign(Side side, Signing.Signer s, Signing.Hasher h) {
+    private void doResign(Side side) {
         if (isGameOver()) return;
-        if (s == null || h == null) {
-            throw new IllegalStateException("No signer configured");
-        }
-        append(new ResignOp(side), ++sequence, s, h);
+        apply(new ResignOp(side));
     }
 
     /**
@@ -615,20 +528,17 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
         } else if (side == null) {
             side = sideToMove();
         }
-        doOfferDraw(side, resolveSigner(ctx), resolveHasher());
+        doOfferDraw(side);
     }
 
     /** Convenience for direct calls and tests. */
     public void offerDraw(Side side) {
-        doOfferDraw(side, signer, hasher);
+        doOfferDraw(side);
     }
 
-    private void doOfferDraw(Side side, Signing.Signer s, Signing.Hasher h) {
+    private void doOfferDraw(Side side) {
         if (isGameOver()) return;
-        if (s == null || h == null) {
-            throw new IllegalStateException("No signer configured");
-        }
-        append(new DrawOfferOp(side), ++sequence, s, h);
+        apply(new DrawOfferOp(side));
     }
 
     /**
@@ -644,20 +554,17 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
         } else if (side == null) {
             side = sideToMove();
         }
-        doAcceptDraw(side, resolveSigner(ctx), resolveHasher());
+        doAcceptDraw(side);
     }
 
     /** Convenience for direct calls and tests. */
     public void acceptDraw(Side side) {
-        doAcceptDraw(side, signer, hasher);
+        doAcceptDraw(side);
     }
 
-    private void doAcceptDraw(Side side, Signing.Signer s, Signing.Hasher h) {
+    private void doAcceptDraw(Side side) {
         if (isGameOver() || drawOfferFrom == null) return;
-        if (s == null || h == null) {
-            throw new IllegalStateException("No signer configured");
-        }
-        append(new DrawAcceptOp(side), ++sequence, s, h);
+        apply(new DrawAcceptOp(side));
     }
 
     /**
@@ -673,20 +580,17 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
         } else if (side == null) {
             side = sideToMove();
         }
-        doDeclineDraw(side, resolveSigner(ctx), resolveHasher());
+        doDeclineDraw(side);
     }
 
     /** Convenience for direct calls and tests. */
     public void declineDraw(Side side) {
-        doDeclineDraw(side, signer, hasher);
+        doDeclineDraw(side);
     }
 
-    private void doDeclineDraw(Side side, Signing.Signer s, Signing.Hasher h) {
+    private void doDeclineDraw(Side side) {
         if (drawOfferFrom == null) return;
-        if (s == null || h == null) {
-            throw new IllegalStateException("No signer configured");
-        }
-        append(new DrawDeclineOp(side), ++sequence, s, h);
+        apply(new DrawDeclineOp(side));
     }
 
     /**

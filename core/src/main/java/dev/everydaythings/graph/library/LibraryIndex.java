@@ -316,7 +316,10 @@ public interface LibraryIndex extends Service {
 
         ContentID bodyHash = body.hash();
         Map<ItemID, BindingTarget> allBindings = new HashMap<>(body.bindings());
-        allBindings.put(body.theme(), BindingTarget.iid(body.theme()));
+        ItemID homeId = body.homeId();
+        if (homeId != null) {
+            allBindings.put(homeId, BindingTarget.iid(homeId));
+        }
         indexFrame(body.predicate(), allBindings, bodyHash, recordCid, wtx);
     }
 

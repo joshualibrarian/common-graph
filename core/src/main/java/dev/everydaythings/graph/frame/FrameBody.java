@@ -11,7 +11,6 @@ import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
-import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,14 +21,17 @@ import java.util.Objects;
 /**
  * The semantic assertion of a frame — the "what is being said."
  *
- * <p>A FrameBody contains the assertion fields: predicate, theme,
- * and bindings. Each binding controls whether it contributes to body
- * identity via its {@link Binding#isIdentity()} flag. Two identical
- * identity assertions from different signers produce the same body hash.
+ * <p>A FrameBody is {@code (predicate, bindings)}. The predicate names the
+ * frame type (a Sememe). The bindings fill the frame's semantic roles.
  *
- * <p>The body hash is computed from deterministic CBOR encoding of
- * predicate, theme, and identity bindings only. Non-identity bindings
- * ride along but don't affect the hash.
+ * <p>The owning item is a regular binding in the bindings list — typically
+ * the THEME role for property assertions (AUTHORED, HYPERNYM) or the
+ * LOCATION role for events/computations (MOVE, ADD, MESSAGE). Use
+ * {@link #homeId()} to get the owning item's IID.
+ *
+ * <p>Each binding controls whether it contributes to body identity via its
+ * {@link Binding#isIdentity()} flag. Two identical identity assertions
+ * from different signers produce the same body hash.
  *
  * <p>Each binding carries a transient {@code instance} field for live
  * decoded runtime state — the frame IS the runtime container.
@@ -38,10 +40,9 @@ import java.util.Objects;
  * @see FrameEndorsement
  * @see Binding
  */
-@Getter
 public final class FrameBody implements Canonical {
 
-    /** Canonical type key for frame bodies. */ // TODO: I'm confused by this... I changed it from "relation" to "frame", but still... why the different pattern.  "Type" is a kinda slippery word, I'm not sure your meaning here.
+    /** Canonical type key for frame bodies. */
     public static final String TYPE_KEY = "cg:type/frame";
 
     /** Deterministic ItemID for the frame body type. */
@@ -49,9 +50,6 @@ public final class FrameBody implements Canonical {
 
     /** The frame type — a sememe that names this kind of assertion. */
     private final ItemID predicate;
-
-    /** What this frame is about — the item this assertion lives on. */
-    private final ItemID theme;
 
     /** Role bindings (semantic, with identity/index flags and live instances). */
     private final List<Binding> frameBindings;
@@ -67,38 +65,51 @@ public final class FrameBody implements Canonical {
     // ==================================================================================
 
     /**
-     * Primary constructor with explicit Binding list.
+     * Primary constructor — predicate + bindings.
+     *
+     * <p>The owning item should be included as a binding (typically THEME role).
+     * Use the convenience constructors that accept a theme ItemID to have it
+     * prepended automatically.
      */
-    public FrameBody(ItemID predicate, ItemID theme, List<Binding> frameBindings) {
+    public FrameBody(ItemID predicate, List<Binding> frameBindings) {
         this.predicate = Objects.requireNonNull(predicate, "predicate");
-        this.theme = Objects.requireNonNull(theme, "theme");
         this.frameBindings = frameBindings != null ? List.copyOf(frameBindings) : List.of();
     }
 
     /**
-     * Backward-compatible constructor from Map (all bindings identity=true, index=false).
+     * Convenience constructor — prepends a THEME binding for the owning item.
      */
-    public FrameBody(ItemID predicate, ItemID theme, Map<ItemID, BindingTarget> bindings) {
+    public FrameBody(ItemID predicate, ItemID theme, List<Binding> frameBindings) {
         this.predicate = Objects.requireNonNull(predicate, "predicate");
-        this.theme = Objects.requireNonNull(theme, "theme");
-        if (bindings != null && !bindings.isEmpty()) {
-            List<Binding> list = new ArrayList<>(bindings.size());
-            for (var entry : bindings.entrySet()) {
-                list.add(new Binding(entry.getKey(), entry.getValue()));
-            }
-            this.frameBindings = List.copyOf(list);
-        } else {
-            this.frameBindings = List.of();
-        }
+        List<Binding> all = new ArrayList<>();
+        if (theme != null) all.add(homeBinding(theme));
+        if (frameBindings != null) all.addAll(frameBindings);
+        this.frameBindings = List.copyOf(all);
     }
 
     /**
-     * Construct with no bindings.
+     * Convenience constructor from Map — prepends a THEME binding for the owning item.
+     * All map bindings get identity=true, index=false.
+     */
+    public FrameBody(ItemID predicate, ItemID theme, Map<ItemID, BindingTarget> bindings) {
+        this.predicate = Objects.requireNonNull(predicate, "predicate");
+        List<Binding> all = new ArrayList<>();
+        if (theme != null) all.add(homeBinding(theme));
+        if (bindings != null && !bindings.isEmpty()) {
+            for (var entry : bindings.entrySet()) {
+                all.add(new Binding(entry.getKey(), entry.getValue()));
+            }
+        }
+        this.frameBindings = List.copyOf(all);
+    }
+
+    /**
+     * Convenience constructor with no bindings — prepends a THEME binding.
      */
     public FrameBody(ItemID predicate, ItemID theme) {
         this.predicate = Objects.requireNonNull(predicate, "predicate");
-        this.theme = Objects.requireNonNull(theme, "theme");
-        this.frameBindings = List.of();
+        Objects.requireNonNull(theme, "theme");
+        this.frameBindings = List.of(homeBinding(theme));
     }
 
     /**
@@ -107,8 +118,58 @@ public final class FrameBody implements Canonical {
     @SuppressWarnings("unused")
     private FrameBody() {
         this.predicate = null;
-        this.theme = null;
         this.frameBindings = null;
+    }
+
+    // ==================================================================================
+    // Accessors
+    // ==================================================================================
+
+    /** The frame type — a sememe that names this kind of assertion. */
+    public ItemID predicate() { return predicate; }
+
+    /** Role bindings (semantic, with identity/index flags and live instances). */
+    public List<Binding> frameBindings() { return frameBindings; }
+
+    // ==================================================================================
+    // Home Binding (owning item)
+    // ==================================================================================
+
+    /**
+     * The binding that connects this frame to its owning item.
+     *
+     * <p>Scans for THEME first (property assertions), then LOCATION
+     * (events/computations).
+     */
+    public Binding home() {
+        Binding theme = getBinding(ThematicRole.Theme.SEED.iid());
+        if (theme != null) return theme;
+        return getBinding(ThematicRole.Location.SEED.iid());
+    }
+
+    /**
+     * The owning item's IID (convenience).
+     */
+    public ItemID homeId() {
+        Binding h = home();
+        return h != null ? h.targetId() : null;
+    }
+
+    /**
+     * Create a home binding for the given item (THEME role, identity=true).
+     */
+    public static Binding homeBinding(ItemID itemId) {
+        return new Binding(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(itemId));
+    }
+
+    /**
+     * The owning item's IID.
+     *
+     * @deprecated Use {@link #homeId()} — theme is now a regular THEME binding.
+     */
+    @Deprecated
+    public ItemID theme() {
+        return homeId();
     }
 
     // ==================================================================================
@@ -128,7 +189,7 @@ public final class FrameBody implements Canonical {
 
     /**
      * The content identity of this assertion.
-     * Computed from predicate, theme, and identity bindings only.
+     * Computed from predicate and identity bindings only.
      */
     public ContentID hash() {
         if (cachedHash == null) {
@@ -142,14 +203,13 @@ public final class FrameBody implements Canonical {
     // ==================================================================================
 
     /**
-     * Custom CBOR encoding: BODY scope includes only identity bindings,
-     * RECORD scope includes all bindings.
+     * Custom CBOR encoding: 2-element array [predicate, bindings].
+     * BODY scope includes only identity bindings, RECORD scope includes all.
      */
     @Override
     public CBORObject toCborTree(Scope scope) {
         CBORObject array = CBORObject.NewArray();
         array.Add(predicate != null ? predicate.toCborTree(scope) : CBORObject.Null);
-        array.Add(theme != null ? theme.toCborTree(scope) : CBORObject.Null);
 
         CBORObject bindingsArray = CBORObject.NewArray();
         if (frameBindings != null) {
@@ -163,8 +223,11 @@ public final class FrameBody implements Canonical {
     }
 
     /**
-     * Decode from CBOR. Handles both new format (array of Binding) and
-     * old format (map of ItemID → BindingTarget) for backward compat.
+     * Decode from CBOR. Handles both:
+     * <ul>
+     *   <li>New format: 2-element array [predicate, bindings]</li>
+     *   <li>Old format: 3-element array [predicate, theme, bindings]</li>
+     * </ul>
      */
     @Factory
     public static FrameBody fromCborTree(CBORObject node) {
@@ -172,29 +235,42 @@ public final class FrameBody implements Canonical {
         if (node.getType() != CBORType.Array || node.size() < 2) return null;
 
         ItemID pred = new ItemID(node.get(0).GetByteString());
-        ItemID thm = new ItemID(node.get(1).GetByteString());
 
+        if (node.size() == 2) {
+            // New format: [predicate, bindings]
+            List<Binding> bindings = decodeBindings(node.get(1));
+            return new FrameBody(pred, bindings);
+        }
+
+        // Old format: [predicate, theme, bindings]
+        ItemID thm = new ItemID(node.get(1).GetByteString());
         List<Binding> bindings = new ArrayList<>();
+        bindings.add(homeBinding(thm));
         if (node.size() > 2) {
-            CBORObject bindingsNode = node.get(2);
-            if (bindingsNode != null && bindingsNode.getType() == CBORType.Array) {
-                for (CBORObject bNode : bindingsNode.getValues()) {
-                    Binding b = Canonical.fromCborTree(bNode, Binding.class, Scope.RECORD);
-                    if (b != null) bindings.add(b);
-                }
-            } else if (bindingsNode != null && bindingsNode.getType() == CBORType.Map) {
-                // Backward compat: old format was Map<ItemID, BindingTarget>
-                for (CBORObject key : bindingsNode.getKeys()) {
-                    ItemID role = new ItemID(key.GetByteString());
-                    BindingTarget target = BindingTarget.fromCborTree(bindingsNode.get(key));
-                    if (role != null && target != null) {
-                        bindings.add(new Binding(role, target));
-                    }
+            bindings.addAll(decodeBindings(node.get(2)));
+        }
+        return new FrameBody(pred, bindings);
+    }
+
+    private static List<Binding> decodeBindings(CBORObject bindingsNode) {
+        List<Binding> bindings = new ArrayList<>();
+        if (bindingsNode == null || bindingsNode.isNull()) return bindings;
+        if (bindingsNode.getType() == CBORType.Array) {
+            for (CBORObject bNode : bindingsNode.getValues()) {
+                Binding b = Canonical.fromCborTree(bNode, Binding.class, Scope.RECORD);
+                if (b != null) bindings.add(b);
+            }
+        } else if (bindingsNode.getType() == CBORType.Map) {
+            // Backward compat: old format was Map<ItemID, BindingTarget>
+            for (CBORObject key : bindingsNode.getKeys()) {
+                ItemID role = new ItemID(key.GetByteString());
+                BindingTarget target = BindingTarget.fromCborTree(bindingsNode.get(key));
+                if (role != null && target != null) {
+                    bindings.add(new Binding(role, target));
                 }
             }
         }
-
-        return new FrameBody(pred, thm, bindings);
+        return bindings;
     }
 
     // ==================================================================================
@@ -214,6 +290,19 @@ public final class FrameBody implements Canonical {
             if (b.isSimpleKey() && b.role() != null && b.role().equals(role)) return b;
         }
         return null;
+    }
+
+    /**
+     * Get ALL bindings for a given simple role (for multi-parent chains like FOLLOWS).
+     *
+     * <p>Returns every binding whose single-element key matches the given role.
+     * Compound keys are excluded. Returns an empty list if no matches found.
+     */
+    public List<Binding> getAllBindings(ItemID role) {
+        if (frameBindings == null) return List.of();
+        return frameBindings.stream()
+                .filter(b -> b.isSimpleKey() && role.equals(b.role()))
+                .toList();
     }
 
     /**
@@ -479,9 +568,12 @@ public final class FrameBody implements Canonical {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("FrameBody{");
-        sb.append(predicate.displayAtWidth(16));
-        sb.append(" about ");
-        sb.append(theme.displayAtWidth(16));
+        sb.append(predicate != null ? predicate.displayAtWidth(16) : "null");
+        ItemID home = homeId();
+        if (home != null) {
+            sb.append(" about ");
+            sb.append(home.displayAtWidth(16));
+        }
         if (frameBindings != null && !frameBindings.isEmpty()) {
             sb.append(", ").append(frameBindings.size()).append(" bindings");
         }
@@ -498,12 +590,11 @@ public final class FrameBody implements Canonical {
         if (this == o) return true;
         if (!(o instanceof FrameBody other)) return false;
         return Objects.equals(predicate, other.predicate)
-                && Objects.equals(theme, other.theme)
                 && Objects.equals(frameBindings, other.frameBindings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(predicate, theme, frameBindings);
+        return Objects.hash(predicate, frameBindings);
     }
 }

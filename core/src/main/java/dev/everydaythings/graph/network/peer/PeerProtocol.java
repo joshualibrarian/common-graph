@@ -456,7 +456,7 @@ public class PeerProtocol implements Protocol {
     private boolean matchesFilter(FrameBody body, Request.Target.Relations filter) {
         if (filter.item() != null) {
             // Check theme
-            boolean found = filter.item().equals(body.theme());
+            boolean found = filter.item().equals(body.homeId());
             // Check bindings
             if (!found && body.bindings() != null) {
                 for (BindingTarget target : body.bindings().values()) {

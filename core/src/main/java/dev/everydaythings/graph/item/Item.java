@@ -1617,7 +1617,7 @@ public class Item {
             // Load the body
             library.loadFrameBody(ref.bodyHash()).ifPresent(body -> {
                 // Only include frames where this item is the theme
-                if (!iid.equals(body.theme())) return;
+                if (!iid.equals(body.homeId())) return;
 
                 dev.everydaythings.graph.frame.Frame frame =
                         dev.everydaythings.graph.frame.Frame.fromBody(body);
@@ -1657,7 +1657,7 @@ public class Item {
             if (endorsedHashes.contains(ref.bodyHash())) return;
 
             library.loadFrameBody(ref.bodyHash()).ifPresent(body -> {
-                if (!iid.equals(body.theme())) return;
+                if (!iid.equals(body.homeId())) return;
 
                 dev.everydaythings.graph.frame.Frame frame =
                         dev.everydaythings.graph.frame.Frame.fromBody(body);
