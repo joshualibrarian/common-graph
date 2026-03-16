@@ -532,12 +532,47 @@ public sealed interface SessionMessage extends ProtocolMessage {
 
     private static CBORObject viewToCbor(View view) {
         CBORObject obj = CBORObject.NewMap();
-        obj.set("type", CBORObject.FromString(view.getClass().getSimpleName()));
+        if (view.title() != null) {
+            obj.set("title", CBORObject.FromString(view.title()));
+        }
+        if (view.icon() != null) {
+            obj.set("icon", CBORObject.FromString(view.icon()));
+        }
+        // Render the surface tree into an instruction stream
+        if (view.root() != null) {
+            RenderInstructionRecorder recorder = new RenderInstructionRecorder();
+            try {
+                view.root().render(recorder);
+                obj.set("instructions", recorder.toCbor());
+            } catch (Exception e) {
+                // If rendering fails, send a text fallback
+                CBORObject fallback = CBORObject.NewArray();
+                CBORObject instr = CBORObject.NewArray();
+                instr.Add(CBORObject.FromString("text"));
+                instr.Add(CBORObject.FromString("(render error: " + e.getMessage() + ")"));
+                CBORObject styles = CBORObject.NewArray();
+                styles.Add(CBORObject.FromString("error"));
+                instr.Add(styles);
+                fallback.Add(instr);
+                obj.set("instructions", fallback);
+            }
+        }
         return obj;
     }
 
     private static View viewFromCbor(CBORObject obj) {
-        return View.empty();
+        // For now, views received from the wire are stored as-is.
+        // Full round-trip deserialization of render instructions back to
+        // SurfaceSchema trees is not needed — the instructions are a
+        // one-way rendering format consumed by remote renderers.
+        View view = View.empty();
+        if (obj.ContainsKey("title")) {
+            view.title(obj.get("title").AsString());
+        }
+        if (obj.ContainsKey("icon")) {
+            view.icon(obj.get("icon").AsString());
+        }
+        return view;
     }
 
     private static CBORObject postingsToCbor(List<Posting> postings) {
