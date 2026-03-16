@@ -582,7 +582,7 @@ public final class SceneCompiler {
      * Check if a class has 2D surface annotations (Container, Text, Image, Shape, Embed).
      * Classes with only 3D annotations (Body, Face, Transform, etc.) return false.
      */
-    static boolean has2DAnnotation(Class<?> clazz) {
+    public static boolean has2DAnnotation(Class<?> clazz) {
         return clazz.isAnnotationPresent(Scene.Container.class)
                 || clazz.isAnnotationPresent(Scene.Text.class)
                 || clazz.isAnnotationPresent(Scene.Image.class)

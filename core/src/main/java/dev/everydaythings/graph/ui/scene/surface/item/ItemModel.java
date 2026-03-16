@@ -381,10 +381,24 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
 
     /**
      * Detail content when the root item itself is selected.
+     *
+     * <p>Resolution order for presentation mode:
+     * <ol>
+     *   <li>Item's own scene — subclass declares {@code @Scene.Container} or other
+     *       structural annotations directly on the class. This is the primary mechanism
+     *       for items to customize their detail panel (e.g., ChessItem's board layout).</li>
+     *   <li>Surface mounts — assembled from frames with surface mount declarations
+     *       (the old component pattern).</li>
+     *   <li>Directory listing — path-mounted children shown as a tree.</li>
+     * </ol>
      */
     private SurfaceSchema detailForRoot(Item item) {
         if (structureMode == TreeLink.ChildMode.PRESENTATION) {
-            // Assemble surface mounts (the item's "face")
+            // Item's own scene (subclass declares @Scene structural annotations)
+            SurfaceSchema itemScene = resolveItemScene(item);
+            if (itemScene != null) return itemScene;
+
+            // Surface mounts from frames (old component pattern)
             SurfaceSchema assembled = assembleSurfaceMounts(item);
             if (assembled != null) return assembled;
 
@@ -401,6 +415,33 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             }
         }
         return null;
+    }
+
+    /**
+     * Resolve an item subclass's own scene annotations.
+     *
+     * <p>When an Item subclass (e.g., ChessItem) declares {@code @Scene.Container}
+     * or other structural annotations, those annotations define the item's custom
+     * detail panel content. The annotations compile against the item instance,
+     * so bind expressions like {@code "value.ranks"} resolve against the item's methods.
+     *
+     * <p>This is the bridge between Java annotations (the current seed-time source)
+     * and the eventual data pipeline where scenes are CBOR-serialized frame data
+     * on the type item itself. When that pipeline is complete, this method will
+     * resolve from the type's stored surface template instead of from reflection.
+     *
+     * @param item the item to check for custom scene annotations
+     * @return a compiled surface from the subclass's annotations, or null if none
+     */
+    private SurfaceSchema resolveItemScene(Item item) {
+        Class<?> clazz = item.getClass();
+        if (clazz == Item.class) return null;
+        if (!SceneCompiler.has2DAnnotation(clazz)) return null;
+
+        SurfaceSchema<Object> schema = new SurfaceSchema<>() {};
+        schema.value(item);
+        schema.structureClass(clazz);
+        return schema;
     }
 
     /**

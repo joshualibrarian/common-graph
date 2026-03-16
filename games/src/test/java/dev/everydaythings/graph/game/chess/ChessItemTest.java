@@ -1,9 +1,15 @@
 package dev.everydaythings.graph.game.chess;
 
+import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.network.session.RenderInstructionRecorder;
 import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.ui.scene.SceneCompiler;
+import dev.everydaythings.graph.ui.scene.View;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -97,5 +103,96 @@ class ChessItemTest {
     @Test
     void fen_returnsCurrentPosition() {
         assertThat(chess.fen()).startsWith("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+    }
+
+    // =========================================================================
+    // Scene compilation (display pipeline)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Display Pipeline")
+    class DisplayPipeline {
+
+        @Test
+        @DisplayName("viewBoard() produces a non-empty View")
+        void viewBoard_producesView() {
+            View view = chess.viewBoard();
+            assertThat(view).isNotNull();
+            assertThat(view.root()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("viewBoard() compiles to render instructions")
+        void viewBoard_compilesToInstructions() {
+            View view = chess.viewBoard();
+
+            RenderInstructionRecorder recorder = new RenderInstructionRecorder();
+            view.root().render(recorder);
+            CBORObject instructions = recorder.toCbor();
+
+            System.out.println("Total instructions: " + instructions.size());
+            for (int i = 0; i < Math.min(20, instructions.size()); i++) {
+                System.out.println("  [" + i + "]: " + instructions.get(i).ToJSONString());
+            }
+            if (instructions.size() > 20) {
+                System.out.println("  ... (" + (instructions.size() - 20) + " more)");
+            }
+
+            // Should have substantial content: board grid, pieces, handles, etc.
+            assertThat(instructions.size()).isGreaterThan(10);
+        }
+
+        @Test
+        @DisplayName("SceneCompiler.compile() works on ChessItem")
+        void sceneCompiler_compilesChessItem() {
+            View view = SceneCompiler.compile(chess);
+
+            assertThat(view).isNotNull();
+            assertThat(view.root()).isNotNull();
+
+            RenderInstructionRecorder recorder = new RenderInstructionRecorder();
+            view.root().render(recorder);
+            CBORObject instructions = recorder.toCbor();
+
+            System.out.println("SceneCompiler.compile() instructions: " + instructions.size());
+            for (int i = 0; i < Math.min(10, instructions.size()); i++) {
+                System.out.println("  [" + i + "]: " + instructions.get(i).ToJSONString());
+            }
+
+            assertThat(instructions.size()).isGreaterThan(2);
+        }
+
+        @Test
+        @DisplayName("board state produces 64 squares across 8 ranks")
+        void ranks_produces8RanksOf8Squares() {
+            var ranks = chess.ranks();
+            assertThat(ranks).hasSize(8);
+            for (var rank : ranks) {
+                assertThat(rank.squares()).hasSize(8);
+            }
+        }
+
+        @Test
+        @DisplayName("starting position has correct pieces")
+        void startingPosition_hasCorrectPieces() {
+            var ranks = chess.ranks();
+            // Rank 8 (index 0) should have black pieces
+            var rank8 = ranks.get(0);
+            assertThat(rank8.label()).isEqualTo("8");
+            assertThat(rank8.squares().get(0).piece()).isEqualTo(ChessPiece.BLACK_ROOK);
+            assertThat(rank8.squares().get(4).piece()).isEqualTo(ChessPiece.BLACK_KING);
+
+            // Rank 1 (index 7) should have white pieces
+            var rank1 = ranks.get(7);
+            assertThat(rank1.label()).isEqualTo("1");
+            assertThat(rank1.squares().get(0).piece()).isEqualTo(ChessPiece.WHITE_ROOK);
+            assertThat(rank1.squares().get(4).piece()).isEqualTo(ChessPiece.WHITE_KING);
+
+            // Rank 4 (index 4) should be empty
+            var rank4 = ranks.get(4);
+            for (var sq : rank4.squares()) {
+                assertThat(sq.piece()).isNull();
+            }
+        }
     }
 }
