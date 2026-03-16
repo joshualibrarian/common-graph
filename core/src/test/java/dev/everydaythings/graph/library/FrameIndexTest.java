@@ -231,7 +231,7 @@ class FrameIndexTest {
             ContentID bodyHash = ContentID.of(new byte[]{99});
 
             Frame frame = Frame.snapshot(FrameKey.of(TITLE),
-                    ItemID.fromString("cg:type/text"), snapshotCid, true);
+                    ItemID.fromString("cg.sememe:text"), snapshotCid, true);
             frame.setBodyHash(bodyHash);
 
             index.runInWriteTransaction(tx ->
@@ -253,7 +253,7 @@ class FrameIndexTest {
             ContentID snapshotCid = ContentID.of(new byte[]{42});
 
             Frame frame = Frame.snapshot(FrameKey.literal("vault"),
-                    ItemID.fromString("cg:type/vault"), snapshotCid, false);
+                    ItemID.fromString("cg.sememe:vault"), snapshotCid, false);
 
             index.runInWriteTransaction(tx ->
                     index.indexEndorsedFrame(THE_HOBBIT, frame, tx));
@@ -266,7 +266,7 @@ class FrameIndexTest {
         @DisplayName("endorsed frame with no content is not indexed")
         void noContentNotIndexed() {
             Frame frame = Frame.snapshot(FrameKey.literal("vault"),
-                    ItemID.fromString("cg:type/vault"), null, false);
+                    ItemID.fromString("cg.sememe:vault"), null, false);
 
             index.runInWriteTransaction(tx ->
                     index.indexEndorsedFrame(THE_HOBBIT, frame, tx));
@@ -280,7 +280,7 @@ class FrameIndexTest {
             ContentID bodyHash = ContentID.of(new byte[]{77});
 
             Frame frame = Frame.reference(FrameKey.of(AUTHOR),
-                    ItemID.fromString("cg:type/person"), TOLKIEN);
+                    ItemID.fromString("cg.sememe:person"), TOLKIEN);
             frame.setBodyHash(bodyHash);
 
             index.runInWriteTransaction(tx ->

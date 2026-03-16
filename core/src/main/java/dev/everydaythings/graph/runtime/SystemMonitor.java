@@ -2,8 +2,13 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Tick;
 import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.surface.primitive.ProgressBarSurface;
@@ -35,10 +40,20 @@ import java.nio.file.FileSystems;
 @Getter
 @NoArgsConstructor
 @Canonical.Canonization
-@Type(value = "cg:type/system-monitor", glyph = "📊")
+@Implements(SystemMonitor.TypeSeed.KEY)
+@Type(glyph = "📊")
 @Scene.Container(direction = Direction.VERTICAL, gap = "0.75em",
         padding = "0.75em", width = "100%")
 public class SystemMonitor implements Canonical {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:system-monitor";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "system health monitoring")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "system-monitor");
+    }
 
     // --- Canonical: configuration ---
 

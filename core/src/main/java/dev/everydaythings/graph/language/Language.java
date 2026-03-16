@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
@@ -25,14 +26,22 @@ import java.util.Set;
  * with deterministic IIDs derived from {@code "cg:language/<code>"}. Subclasses
  * (e.g., English) can add language-specific import logic.
  */
-@Type(value = Language.KEY, glyph = "🗣️", color = 0xE08050)
+@Implements(Language.TypeSeed.KEY)
+@Type(glyph = "🗣️", color = 0xE08050)
 public class Language extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:type/language";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:language";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a natural language with its lexicon")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "language");
+    }
 
     /** The English Language Item IID — used to scope seed English lexemes. */
     public static final ItemID ENGLISH = ItemID.fromString("cg:language/eng");

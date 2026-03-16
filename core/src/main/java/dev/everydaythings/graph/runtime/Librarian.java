@@ -2,6 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.ExpressionComponent;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.Type;
@@ -33,6 +34,8 @@ import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.SeedVocabulary;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
@@ -118,7 +121,8 @@ import picocli.CommandLine.Mixin;
  * }</pre>
  */
 @Log4j2
-@Type(value = Librarian.KEY, glyph = "📚", color = 0x4B6EAF)
+@Implements(Librarian.TypeSeed.KEY)
+@Type(glyph = "📚", color = 0x4B6EAF)
 @Command(
     name = "librarian",
     mixinStandardHelpOptions = true,
@@ -127,7 +131,14 @@ import picocli.CommandLine.Mixin;
 public final class Librarian extends Signer implements AutoCloseable, Daemon, Callable<Integer> {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = "cg:type/librarian";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:librarian";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the local runtime bootstrap item")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "librarian");
+    }
 
     /** Default port for Common Graph protocol. */
     public static final int DEFAULT_PORT = 7432;
@@ -623,7 +634,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * proper way to get display metadata for any type - the graph is the source
      * of truth for all display information.
      *
-     * @param typeId The type's ItemID (e.g., "cg:type/log")
+     * @param typeId The type's ItemID (e.g., "cg.sememe:log")
      * @return DisplayInfo from the type, or a default based on the type key
      */
     public DisplayInfo resolveTypeDisplay(ItemID typeId) {
@@ -666,13 +677,14 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
     /**
      * Extract a short readable name from a type ItemID.
-     * <p>e.g., "cg:type/log" → "Log", "cg:type/expression" → "Expression"
+     * <p>e.g., "cg.sememe:log" → "Log", "cg.sememe:expression" → "Expression"
      */
     private static String extractTypeShortName(ItemID typeId) {
         String text = typeId.encodeText();
-        int lastSlash = text.lastIndexOf('/');
-        if (lastSlash >= 0 && lastSlash < text.length() - 1) {
-            String shortName = text.substring(lastSlash + 1);
+        int sep = text.lastIndexOf('/');
+        if (sep < 0) sep = text.lastIndexOf(':');
+        if (sep >= 0 && sep < text.length() - 1) {
+            String shortName = text.substring(sep + 1);
             if (!shortName.isEmpty()) {
                 return Character.toUpperCase(shortName.charAt(0)) + shortName.substring(1);
             }
@@ -1803,7 +1815,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Represents an entry in a type catalog.
      *
-     * @param typeId The type's ItemID (e.g., "cg:type/librarian")
+     * @param typeId The type's ItemID (e.g., "cg.sememe:librarian")
      * @param implClass The implementing Java class
      * @param displayName Human-readable name derived from the type key
      */
@@ -1891,7 +1903,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
-                        return c != null && c.isAnnotationPresent(Type.class);
+                        return c != null && (c.isAnnotationPresent(Implements.class)
+                                || c.isAnnotationPresent(Type.class));
                     }
                     return false;
                 })
@@ -2189,8 +2202,11 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * Try to create a typed Item from a type name.
      *
      * <p>Looks up the name in the TokenDictionary, checks if any match is
-     * a type Sememe with an IMPLEMENTED_BY relation, and if so creates a new
-     * Item with the implementation attached as a component.
+     * a type Sememe with an IMPLEMENTED_BY relation, and creates either:
+     * <ul>
+     *   <li>For Item subclasses: a fresh instance of that class</li>
+     *   <li>For non-Item types (components): a plain Item with the component attached</li>
+     * </ul>
      */
     private Optional<Item> createTypedItem(String typeName) {
         TokenDictionary tokenDict = tokenIndex();
@@ -2202,12 +2218,25 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             Optional<Sememe> sememe = get(posting.target(), Sememe.class);
             if (sememe.isPresent() && sememe.get().hasImplementation()) {
                 Class<?> implClass = sememe.get().resolveImplementingClass().orElseThrow();
-                Object component = CreationScanner.instantiate(implClass);
 
-                Item newItem = Item.create(this);
-                String handle = sememe.get().displayToken();
-                newItem.addComponent(handle, component);
-                return Optional.of(newItem);
+                if (Item.class.isAssignableFrom(implClass)) {
+                    // Item subclass — create a fresh typed instance
+                    try {
+                        @SuppressWarnings("unchecked")
+                        var ctor = ((Class<? extends Item>) implClass).getDeclaredConstructor(Librarian.class);
+                        ctor.setAccessible(true);
+                        return Optional.of(ctor.newInstance(this));
+                    } catch (Exception e) {
+                        logger.debug("Failed to create typed Item {}: {}", implClass.getSimpleName(), e.getMessage());
+                    }
+                } else {
+                    // Non-Item type — create a wrapper Item with the component attached
+                    Object component = CreationScanner.instantiate(implClass);
+                    Item newItem = Item.create(this);
+                    String handle = sememe.get().displayToken();
+                    newItem.addComponent(handle, component);
+                    return Optional.of(newItem);
+                }
             }
         }
 

@@ -23,7 +23,7 @@ class EndorsementsTableMountTest {
     @BeforeEach
     void setUp() {
         table = new EndorsementsTable();
-        docType = ItemID.fromString("cg:type/document");
+        docType = ItemID.fromString("cg.sememe:document");
     }
 
     private Frame addFrameWithMount(String handleName, String path) {

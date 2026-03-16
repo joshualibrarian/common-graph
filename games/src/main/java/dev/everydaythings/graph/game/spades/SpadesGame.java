@@ -3,9 +3,14 @@ package dev.everydaythings.graph.game.spades;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.game.card.PlayingCard;
 import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
 
@@ -38,10 +43,20 @@ import java.util.*;
  *   <li>{@link Phased} — DEAL → BID → PLAY</li>
  * </ul>
  */
-@Type(value = "cg:type/spades", glyph = "\u2660")
+@Implements(SpadesGame.TypeSeed.KEY)
+@Type(glyph = "\u2660")
 @Scene(as = SpadesSurface.class)
 public class SpadesGame extends GameComponent<SpadesGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:spades";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the game of spades")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "spades");
+    }
 
     // ==================================================================================
     // Constants

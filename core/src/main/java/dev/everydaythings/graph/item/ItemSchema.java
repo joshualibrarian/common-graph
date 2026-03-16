@@ -331,7 +331,8 @@ public class ItemSchema {
                 resolveEncryptionContext(encryptionContext, existingConfig, keyResolver);
 
         // For types with @Type annotation
-        if (value.getClass().isAnnotationPresent(Type.class)) {
+        if (value.getClass().isAnnotationPresent(Implements.class)
+                || value.getClass().isAnnotationPresent(Type.class)) {
             ItemID typeId = Item.idOf(value.getClass());
             boolean isLocalOnly = spec.localOnly();
 

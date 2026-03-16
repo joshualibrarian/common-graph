@@ -7,6 +7,7 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -120,32 +121,38 @@ public final class SeedVocabulary {
                 .ignoreFieldVisibility()
                 .scan()) {
 
-            // 1. @Item.Seed static fields on @Type classes
-            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
+            // 1. @Item.Seed static fields on @Implements classes
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (!Item.class.isAssignableFrom(clazz)) continue;
                 collectSeedItemsWithTokens(clazz, result);
             }
 
-            // 2. @Item.Seed static fields on non-@Type classes (e.g. GameVocabulary)
+            // 1b. @Item.Seed static fields on @Type classes without @Implements
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
+                Class<?> clazz = classInfo.loadClass();
+                if (clazz.isAnnotationPresent(Implements.class)) continue;
+                if (!Item.class.isAssignableFrom(clazz)) continue;
+                collectSeedItemsWithTokens(clazz, result);
+            }
+
+            // 2. @Item.Seed static fields on non-identity classes (e.g. GameVocabulary)
             for (ClassInfo classInfo : scanResult.getClassesWithFieldAnnotation(Item.Seed.class)) {
                 Class<?> clazz = classInfo.loadClass();
-                if (clazz.isAnnotationPresent(Type.class)) continue; // already handled above
+                if (hasIdentity(clazz)) continue; // already handled above
                 collectSeedItemsWithTokens(clazz, result);
             }
 
-            // 3. @Type classes → type seed items (concrete or abstract)
-            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
+            // 3. @Implements/@Type classes → type seed items (concrete or abstract)
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (!Item.class.isAssignableFrom(clazz)) continue;
 
-                Type ann = clazz.getAnnotation(Type.class);
-                if (ann == null || ann.value().isBlank()) continue;
+                String key = readKey(clazz);
+                if (key == null || key.isBlank()) continue;
 
                 try {
                     if (Modifier.isAbstract(clazz.getModifiers())) {
-                        // Abstract classes: derive tokens statically from @Type annotation
-                        String key = ann.value();
                         String name = extractReadableName(key);
                         Sememe ns = new Sememe(key)
                                 .gloss("en", name)
@@ -154,11 +161,10 @@ public final class SeedVocabulary {
                             result.add(ns);
                         }
                     } else {
-                        // Concrete classes: instantiate via seed constructor
                         Class<? extends Item> itemClass = (Class<? extends Item>) clazz;
                         Constructor<? extends Item> ctor = itemClass.getDeclaredConstructor(ItemID.class);
                         ctor.setAccessible(true);
-                        ItemID typeId = ItemID.fromString(ann.value());
+                        ItemID typeId = ItemID.fromString(key);
                         Item typeSeed = ctor.newInstance(typeId);
                         if (typeSeed.extractTokens().findAny().isPresent()) {
                             result.add(typeSeed);
@@ -169,16 +175,15 @@ public final class SeedVocabulary {
                 }
             }
 
-            // 4. @Type classes (non-Item) → sememe seed items
-            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
+            // 4. @Implements/@Type non-Item classes → sememe seed items
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (Item.class.isAssignableFrom(clazz)) continue;
                 if (Modifier.isAbstract(clazz.getModifiers())) continue;
 
-                Type ann = clazz.getAnnotation(Type.class);
-                if (ann == null || ann.value().isBlank()) continue;
+                String key = readKey(clazz);
+                if (key == null || key.isBlank()) continue;
 
-                String key = ann.value();
                 String name = extractReadableName(key);
                 Sememe ns = new Sememe(key)
                         .gloss("en", name)
@@ -205,26 +210,19 @@ public final class SeedVocabulary {
                 .ignoreFieldVisibility()
                 .scan()) {
 
-            // Find all @Type classes (items and components unified)
-            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
-                Class<?> clazz = classInfo.loadClass();
-                if (Item.class.isAssignableFrom(clazz)) {
-                    Class<? extends Item> itemClass = (Class<? extends Item>) clazz;
-                    registerItemType(itemClass);
-                    scanForSeedItems(clazz);
-                } else {
-                    registerNonItemType(clazz);
-                }
-            }
-
-            // Find non-@Type classes with @Item.Seed fields (e.g. GameVocabulary)
+            // 1. ALL @Item.Seed fields across the full classpath — these define concepts
             for (ClassInfo classInfo : scanResult.getClassesWithFieldAnnotation(Item.Seed.class)) {
                 Class<?> clazz = classInfo.loadClass();
-                if (clazz.isAnnotationPresent(Type.class)) continue; // already handled above
                 scanForSeedItems(clazz);
             }
 
-            // Find all @Value.Type classes
+            // 2. @Implements classes → IMPLEMENTED_BY + display (no Sememe creation)
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
+                Class<?> clazz = classInfo.loadClass();
+                registerImplementation(clazz);
+            }
+
+            // 3. @Value.Type classes (unchanged)
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(
                     dev.everydaythings.graph.value.Value.Type.class)) {
                 Class<?> clazz = classInfo.loadClass();
@@ -287,70 +285,44 @@ public final class SeedVocabulary {
     // Type Registration
     // ==================================================================================
 
-    private void registerItemType(Class<? extends Item> type) {
-        Type annotation = type.getAnnotation(Type.class);
-        if (annotation == null || annotation.value().isBlank()) return;
+    /**
+     * Register a class as an implementation of a concept.
+     *
+     * <p>Creates IMPLEMENTED_BY relation and attaches display metadata from @Type.
+     * Does NOT create Sememe seeds — those come from @Item.Seed fields in TypeSeed
+     * inner classes, scanned independently by scanForSeedItems().
+     */
+    private void registerImplementation(Class<?> clazz) {
+        String key = readKey(clazz);
+        if (key == null || key.isBlank()) return;
+        if (Modifier.isAbstract(clazz.getModifiers())) return;
 
-        String key = annotation.value();
         ItemID typeId = ItemID.fromString(key);
 
-        Item typeSeed;
-        if (Modifier.isAbstract(type.getModifiers())) {
-            // Abstract classes: create a Sememe seed with display name
-            String name = extractReadableName(key);
-            typeSeed = new Sememe(key)
-                    .gloss("en", name)
-                    .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
-        } else {
-            // Concrete classes: instantiate via seed constructor
-            typeSeed = createTypeSeed(type, typeId);
-            if (typeSeed == null) return;
+        // Find the seed item by IID — it was stored earlier in the seed scan
+        Item seedItem = seedItems.stream()
+                .filter(i -> typeId.equals(i.iid()))
+                .findFirst()
+                .orElse(null);
+
+        // Attach display metadata if @Type present
+        Type annotation = clazz.getAnnotation(Type.class);
+        if (annotation != null && seedItem != null) {
+            attachTypePresentation(seedItem, clazz, annotation, key);
         }
 
-        // Attach unified presentation component (display metadata + surface template)
-        attachTypePresentation(typeSeed, type, annotation);
-
-        // Store manifest and content - only create relations if storage succeeds
-        boolean stored = storeItem(typeSeed);
-        if (!stored) {
-            logger.warn("Skipping relations for {} since item storage failed", key);
-            return;
+        // Store manifest first (with presentation but without IMPLEMENTED_BY).
+        // storeItem() calls generateSeedManifest() which rebuilds the EndorsementsTable
+        // from @Item.Frame fields, so any manually added frames would be lost.
+        if (seedItem != null) {
+            storeItem(seedItem);
         }
 
-        seedItems.add(typeSeed);
-
-        // Create relations
-        storeFrameBody(createTitleRelation(typeId, key));
-        storeFrameBody(createImplementedByRelation(typeId, type, typeSeed));
-    }
-
-    private void registerNonItemType(Class<?> type) {
-        Type annotation = type.getAnnotation(Type.class);
-        if (annotation == null || annotation.value().isBlank()) return;
-
-        String key = annotation.value();
-        ItemID typeId = ItemID.fromString(key);
-
-        // Skip abstract classes
-        if (Modifier.isAbstract(type.getModifiers())) return;
-
-        // Create Sememe seed Item for this non-Item type
-        String name = extractReadableName(key);
-        Sememe typeSememe = new Sememe(key)
-                .gloss("en", name)
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
-
-        // Attach unified presentation component (display metadata + surface template)
-        attachTypePresentation(typeSememe, type, annotation);
-
-        // Store manifest and content
-        boolean stored = storeItem(typeSememe);
-        if (stored) {
-            seedItems.add(typeSememe);
-        }
-
-        // Create relations
-        storeFrameBody(createImplementedByRelation(typeId, type, typeSememe));
+        // Create IMPLEMENTED_BY relation and attach to seed item AFTER storeItem().
+        // This ensures the in-memory cached instance carries the frame at runtime,
+        // since generateSeedManifest()'s scanAndBindFields() won't overwrite it again.
+        FrameBody implBy = createImplementedByRelation(typeId, clazz, seedItem);
+        storeFrameBody(implBy);
         storeFrameBody(createTitleRelation(typeId, key));
     }
 
@@ -405,26 +377,6 @@ public final class SeedVocabulary {
     }
 
     // ==================================================================================
-    // Item Creation
-    // ==================================================================================
-
-    private Item createTypeSeed(Class<? extends Item> type, ItemID typeId) {
-        try {
-            Constructor<? extends Item> ctor = type.getDeclaredConstructor(ItemID.class);
-            ctor.setAccessible(true);
-            Item result = ctor.newInstance(typeId);
-            logger.info("Created type seed for {}: {}", type.getSimpleName(), typeId.encodeText());
-            return result;
-        } catch (NoSuchMethodException e) {
-            logger.debug("No (ItemID) constructor for {}", type.getName());
-            return null;
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            logger.error("Failed to instantiate type seed for {}: {}", type.getName(), e.getMessage(), e);
-            return null;
-        }
-    }
-
-    // ==================================================================================
     // Unified Presentation Attachment
     // ==================================================================================
 
@@ -435,10 +387,10 @@ public final class SeedVocabulary {
      * <p>This replaces the former two-component pattern (DisplayComponent + SurfaceTemplateComponent)
      * with a single component at handle "surface".
      */
-    private void attachTypePresentation(Item typeItem, Class<?> typeClass, Type annotation) {
+    private void attachTypePresentation(Item typeItem, Class<?> typeClass, Type annotation, String key) {
         // Start with display fields from @Type annotation
         SurfaceTemplateComponent stc = SurfaceTemplateComponent.fromType(annotation);
-        stc.typeName(extractReadableName(annotation.value()));
+        stc.typeName(extractReadableName(key));
 
         // Compile surface template from @Scene annotations (if present)
         Class<?> surfaceClass = null;
@@ -543,10 +495,10 @@ public final class SeedVocabulary {
     }
 
     private FrameBody createInstanceOfRelation(Item item) {
-        Type typeAnnotation = item.getClass().getAnnotation(Type.class);
-        if (typeAnnotation == null || typeAnnotation.value().isBlank()) return null;
+        String key = readKey(item.getClass());
+        if (key == null || key.isBlank()) return null;
 
-        ItemID typeId = ItemID.fromString(typeAnnotation.value());
+        ItemID typeId = ItemID.fromString(key);
         ItemID instanceId = item.iid();
 
         // Don't create relation if instance IS the type
@@ -630,6 +582,21 @@ public final class SeedVocabulary {
     // ==================================================================================
     // Utility Methods
     // ==================================================================================
+
+    /**
+     * Read the canonical key from @Implements (preferred) or @Type (fallback).
+     */
+    private static String readKey(Class<?> clazz) {
+        Implements impl = clazz.getAnnotation(Implements.class);
+        return impl != null ? impl.value() : null;
+    }
+
+    /**
+     * Check if a class has identity metadata (@Implements or @Type).
+     */
+    private static boolean hasIdentity(Class<?> clazz) {
+        return clazz.isAnnotationPresent(Implements.class) || clazz.isAnnotationPresent(Type.class);
+    }
 
     private static String extractReadableName(String typeKey) {
         String shortName = extractShortName(typeKey);

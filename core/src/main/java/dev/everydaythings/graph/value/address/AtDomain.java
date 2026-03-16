@@ -1,9 +1,13 @@
 package dev.everydaythings.graph.value.address;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 
 import java.util.Objects;
@@ -30,14 +34,22 @@ import java.util.regex.Pattern;
  *   <li>{@code support@company.co.uk}</li>
  * </ul>
  */
-@Type(value = AtDomain.KEY, glyph = "📧")
+@Implements(AtDomain.TypeSeed.KEY)
+@Type(glyph = "📧")
 public class AtDomain extends AddressSpace {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg.address:at-domain";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.address:at-domain";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "email-style at-domain addressing")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "at-domain");
+    }
 
 
     /** The address space item - use for predicates and type references. */

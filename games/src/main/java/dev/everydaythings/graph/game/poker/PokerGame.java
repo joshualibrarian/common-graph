@@ -3,9 +3,14 @@ package dev.everydaythings.graph.game.poker;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.game.card.PlayingCard;
 import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
 
@@ -30,10 +35,20 @@ import java.util.*;
  *   <li>{@link Randomized} — deck shuffle from deterministic event RNG</li>
  * </ul>
  */
-@Type(value = "cg:type/poker", glyph = "\uD83C\uDCA1")
+@Implements(PokerGame.TypeSeed.KEY)
+@Type(glyph = "\uD83C\uDCA1")
 @Scene(as = PokerSurface.class)
 public class PokerGame extends GameComponent<PokerGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased, Randomized {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:poker";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the game of poker")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "poker");
+    }
 
     // ==================================================================================
     // Constants

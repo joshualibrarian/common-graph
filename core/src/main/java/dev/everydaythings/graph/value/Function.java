@@ -1,9 +1,12 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -31,10 +34,18 @@ import java.util.stream.Collectors;
  * {@link dev.everydaythings.graph.frame.expression.FunctionExpression}
  * looks up the Function by name and delegates.
  */
-@Type(value = Function.KEY, glyph = "ƒ")
+@Implements(Function.TypeSeed.KEY)
+@Type(glyph = "ƒ")
 public class Function extends Sememe {
 
-    public static final String KEY = "cg:type/function";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:function";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a mathematical function")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "function");
+    }
 
     // ==================================================================================
     // INSTANCE FIELDS (function-specific; canonicalKey, glosses, symbols inherited)

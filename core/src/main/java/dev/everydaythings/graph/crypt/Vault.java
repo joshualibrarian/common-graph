@@ -1,9 +1,14 @@
 package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Picker;
 import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.crypt.Algorithm;
 
 import java.nio.file.Path;
@@ -43,11 +48,19 @@ import java.util.Set;
  * byte[] signature = vault.sign("signing", dataToSign);
  * }</pre>
  */
-@Type(value = Vault.KEY, glyph = "\uD83D\uDD10")
+@Implements(Vault.TypeSeed.KEY)
+@Type(glyph = "\uD83D\uDD10")
 public abstract class Vault {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = "cg:type/vault";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:vault";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "secure storage for cryptographic keys")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "vault");
+    }
 
     /** Default alias for the primary signing key */
     public static final String SIGNING_KEY_ALIAS = "signing";

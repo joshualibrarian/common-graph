@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
@@ -21,12 +23,20 @@ import lombok.Getter;
  * <p>The component handle is derived from the language code (e.g., "gloss/eng"),
  * so each language gets exactly one gloss slot on a sememe.
  */
-@Type(value = SememeGloss.KEY, glyph = "\uD83D\uDCD6")
+@Implements(SememeGloss.TypeSeed.KEY)
+@Type(glyph = "\uD83D\uDCD6")
 @Canonical.Canonization(classType = Canonical.ClassCollectionType.ARRAY)
 @Getter
 public class SememeGloss implements Canonical {
 
-    public static final String KEY = "cg:type/sememe-gloss";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:sememe-gloss";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a per-language definition of a sememe")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "gloss");
+    }
 
     /** The language this gloss is in (e.g., Language.ENGLISH). */
     @Canon(order = 0)

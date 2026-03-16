@@ -2,9 +2,14 @@ package dev.everydaythings.graph.game.dominoes;
 
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
 
@@ -33,10 +38,20 @@ import java.util.*;
  *   <li>{@link Scored} — cumulative pip scoring across rounds</li>
  * </ul>
  */
-@Type(value = "cg:type/dominoes", glyph = "\uD83C\uDC04")
+@Implements(DominoesGame.TypeSeed.KEY)
+@Type(glyph = "\uD83C\uDC04")
 @Scene(as = DominoesSurface.class)
 public class DominoesGame extends GameComponent<DominoesGame.Op>
         implements Zoned<DominoTile>, Scored {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:dominoes";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the game of dominoes")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "dominoes");
+    }
 
     // ==================================================================================
     // Operations

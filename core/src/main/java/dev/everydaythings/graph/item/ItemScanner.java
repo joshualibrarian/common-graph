@@ -108,7 +108,8 @@ public final class ItemScanner {
                         validateFrameField(frameSpec, frameKeys, paths);
 
                         // Scan component class for @Verb methods
-                        if (field.getType().isAnnotationPresent(Type.class)) {
+                        if (field.getType().isAnnotationPresent(Implements.class)
+                                || field.getType().isAnnotationPresent(Type.class)) {
                             String keyString = frameSpec.canonicalKeyString();
                             List<VerbSpec> verbs = scanComponentVerbs(field.getType(), keyString);
                             if (!verbs.isEmpty()) {
@@ -168,10 +169,11 @@ public final class ItemScanner {
         // Determine type
         Class<?> fieldType = field.getType();
         ItemID type;
-        if (fieldType.isAnnotationPresent(Type.class)) {
+        if (fieldType.isAnnotationPresent(Implements.class)
+                || fieldType.isAnnotationPresent(Type.class)) {
             type = Item.idOf(fieldType);
         } else {
-            type = ItemID.fromString("cg:type/" + fieldType.getSimpleName().toLowerCase());
+            type = ItemID.fromString("cg.sememe:" + fieldType.getSimpleName().toLowerCase());
         }
 
         boolean localOnly = ann.localOnly();

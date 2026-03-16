@@ -1,9 +1,13 @@
 package dev.everydaythings.graph.value.address;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 
 import java.util.ArrayList;
@@ -33,14 +37,22 @@ import java.util.regex.Pattern;
  *   <li>{@code ~myhost/projects/common-graph/readme}</li>
  * </ul>
  */
-@Type(value = Tilde.KEY, glyph = "〰️")
+@Implements(Tilde.TypeSeed.KEY)
+@Type(glyph = "〰️")
 public class Tilde extends AddressSpace {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg.address:tilde";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.address:tilde";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "tilde-based user addressing")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "tilde");
+    }
 
 
     /** The address space item - use for predicates and type references. */

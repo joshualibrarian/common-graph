@@ -148,9 +148,10 @@ public class FrameFieldSpec {
         }
     }
 
-    /** Check if the field type has a @Type annotation. */
+    /** Check if the field type has a @Implements or @Type annotation. */
     public boolean isAnnotatedType() {
-        return field.getType().isAnnotationPresent(Type.class);
+        return field.getType().isAnnotationPresent(Implements.class)
+                || field.getType().isAnnotationPresent(Type.class);
     }
 
     /** Check if the field type is iterable (can hold multiple values). */

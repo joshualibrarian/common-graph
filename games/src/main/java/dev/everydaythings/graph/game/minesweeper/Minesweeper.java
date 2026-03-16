@@ -3,9 +3,14 @@ package dev.everydaythings.graph.game.minesweeper;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -36,12 +41,21 @@ import java.util.*;
 @Scene.Rule(match = ".tile.flagged", background = "#FAB387")
 @Scene.Rule(match = ".tile.mine", background = "#F38BA8")
 @Scene.Rule(match = ".tile.revealed", background = "#45475A")
-@Type(value = Minesweeper.KEY, glyph = "\uD83D\uDCA3")
+@Implements(Minesweeper.TypeSeed.KEY)
+@Type(glyph = "\uD83D\uDCA3")
 @Scene.Container(direction = Direction.VERTICAL, padding = "0.5em", gap = "0.25em")
 public class Minesweeper extends GameComponent<Minesweeper.Op>
         implements Spatial<MineTile>, Randomized, FrameAware {
 
-    public static final String KEY = "cg:type/minesweeper";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:minesweeper";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the minesweeper grid game")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "minesweeper");
+    }
+
     private static final String CONFIG_SCOPE_ROOT = "/";
     private static final String CONFIG_DIFFICULTY = "difficulty";
     private static final String CONFIG_COLS = "cols";

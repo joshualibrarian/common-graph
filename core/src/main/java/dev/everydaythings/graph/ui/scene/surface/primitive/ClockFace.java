@@ -2,8 +2,13 @@ package dev.everydaythings.graph.ui.scene.surface.primitive;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Tick;
 import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.ui.scene.Transition;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
@@ -32,10 +37,20 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Canonical.Canonization
-@Type(value = "cg:type/clock", glyph = "🕐")
+@Implements(ClockFace.TypeSeed.KEY)
+@Type(glyph = "🕐")
 @Scene.Container(direction = Direction.STACK, style = "clock", width = "100%", height = "100%")
 @Scene.Shape(type = "circle", fill = "#1E1E2E", stroke = "#CDD6F4", strokeWidth = "1%")
 public class ClockFace implements Canonical {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:clock";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "analog clock display")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "clock");
+    }
 
     // --- Canonical: visual definition ---
 

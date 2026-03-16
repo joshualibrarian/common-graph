@@ -1,11 +1,16 @@
 package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 
 import dev.everydaythings.graph.item.Type;
 
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 
 /**
  * 3D object representation of an item (the "holdable" form).
@@ -40,10 +45,18 @@ import dev.everydaythings.graph.item.id.ItemID;
  *   <li>A person might have an avatar model</li>
  * </ul>
  */
-@Type(value = Model.KEY, glyph = "🎭")
+@Implements(Model.TypeSeed.KEY)
+@Type(glyph = "🎭")
 public final class Model {
 
-    public static final String KEY = "cg:type/model";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:model";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "3D object representation of an item")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "model");
+    }
 
     /** The type of model */
     private ModelType type;

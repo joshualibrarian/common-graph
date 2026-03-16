@@ -1,10 +1,15 @@
 package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 
 import dev.everydaythings.graph.item.Type;
 
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 
 import java.time.Instant;
 import java.util.*;
@@ -31,10 +36,18 @@ import java.util.*;
  * principals who have <i>presence</i> - they're participating,
  * not just stored here.
  */
-@Type(value = Roster.KEY, glyph = "👥")
+@Implements(Roster.TypeSeed.KEY)
+@Type(glyph = "👥")
 public class Roster {
 
-    public static final String KEY = "cg:type/roster";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:roster";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "tracks principals present in an item")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "roster");
+    }
 
     /** Members with their membership info */
     private final Map<ItemID, Membership> members;

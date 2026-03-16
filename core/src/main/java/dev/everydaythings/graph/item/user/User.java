@@ -1,11 +1,15 @@
 package dev.everydaythings.graph.item.user;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -29,10 +33,18 @@ import java.nio.file.Path;
  *   <li>{@code serve alice} — tells the Librarian to serve this user as principal</li>
  * </ul>
  */
-@Type(value = User.KEY, glyph = "👤")
+@Implements(User.TypeSeed.KEY)
+@Type(glyph = "👤")
 public class User extends Signer {
 
-    public static final String KEY = "cg:type/user";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:user";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a signer representing a human identity")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "user");
+    }
 
     // ==================================================================================
     // Constructors
@@ -44,7 +56,7 @@ public class User extends Signer {
      * <p>Creates a deterministic seed item for the User type.
      * Used only during vocabulary bootstrap — not for creating actual users.
      *
-     * @param iid The deterministic type IID (from "cg:type/user")
+     * @param iid The deterministic type IID (from "cg.sememe:user")
      */
     protected User(ItemID iid) {
         super(iid);

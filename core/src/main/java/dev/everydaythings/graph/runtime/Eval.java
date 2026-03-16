@@ -4,6 +4,7 @@ import dev.everydaythings.graph.parse.ExpressionParser;
 import dev.everydaythings.graph.parse.ExpressionToken;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.frame.expression.Expression;
+import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.dispatch.VerbEntry;
@@ -683,6 +684,65 @@ public class Eval {
     }
 
     /**
+     * Create a fresh Item instance for dispatch when the Eval needs to redirect
+     * from a type Sememe to the implementing class.
+     *
+     * <p>Tries constructors in order: (Librarian, InMemoryMarker), (Librarian).
+     */
+    private Item createFreshItemForDispatch(Class<?> implClass) {
+        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                ? local.librarian() : null;
+        if (librarian == null) return null;
+
+        // Try (Librarian, InMemoryMarker) constructor via reflection
+        // InMemoryMarker is protected, so access via Class.forName
+        try {
+            Class<?> markerClass = Class.forName(
+                    "dev.everydaythings.graph.item.Item$InMemoryMarker");
+            Object markerInstance = markerClass.getField("INSTANCE").get(null);
+            var ctor = implClass.getDeclaredConstructor(Librarian.class, markerClass);
+            ctor.setAccessible(true);
+            return (Item) ctor.newInstance(librarian, markerInstance);
+        } catch (NoSuchMethodException | ClassNotFoundException ignored) {
+            // try next
+        } catch (Exception e) {
+            logger.debug("Failed to create fresh {} via (Librarian,InMemoryMarker): {}",
+                    implClass.getSimpleName(), e.getMessage());
+        }
+
+        // Try (Librarian) constructor
+        try {
+            var ctor = implClass.getDeclaredConstructor(Librarian.class);
+            ctor.setAccessible(true);
+            return (Item) ctor.newInstance(librarian);
+        } catch (Exception e) {
+            logger.debug("Failed to create fresh {} via (Librarian): {}",
+                    implClass.getSimpleName(), e.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a new Item that wraps a non-Item component type.
+     *
+     * <p>Used when "create chess" resolves to a type whose implementing class
+     * (e.g., ChessGame) is a component, not an Item subclass. Creates a plain
+     * Item and attaches the component via {@link Item#addComponent}.
+     */
+    private Item createComponentItem(Class<?> implClass, Sememe sememe) {
+        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                ? local.librarian() : null;
+        if (librarian == null) return null;
+
+        Object component = CreationScanner.instantiate(implClass);
+        Item newItem = Item.create(librarian);
+        String handle = sememe.displayToken();
+        newItem.addComponent(handle, component);
+        return newItem;
+    }
+
+    /**
      * Handle expressions with no verb — navigate to item or return literal.
      */
     private EvalResult evaluateWithoutVerb(List<ResolvedToken> resolved) {
@@ -788,6 +848,31 @@ public class Eval {
         // Verb alone with no bindings and no context → navigate to verb sememe
         if (target == null) {
             return EvalResult.item(frame.verb());
+        }
+
+        // Type-seed redirect: when dispatching CREATE on a Sememe that represents
+        // a type with an implementing class, either:
+        // (a) For Item subclasses: create a fresh instance and dispatch on it, so the
+        //     Item's own @Verb(Create) method receives parameters.
+        // (b) For non-Item types (components): create a wrapper Item with the component
+        //     attached and return it directly as a Created result.
+        if (target instanceof Sememe sememe
+                && verbId.equals(ItemID.fromString(CoreVocabulary.Create.KEY))) {
+            Optional<Class<?>> implClass = sememe.resolveImplementingClass();
+            if (implClass.isPresent()) {
+                if (Item.class.isAssignableFrom(implClass.get())) {
+                    Item fresh = createFreshItemForDispatch(implClass.get());
+                    if (fresh != null && fresh.vocabulary().lookup(verbId).isPresent()) {
+                        target = fresh;
+                    }
+                } else {
+                    // Non-Item type — create a wrapper Item with the component attached
+                    Item wrapper = createComponentItem(implClass.get(), sememe);
+                    if (wrapper != null) {
+                        return EvalResult.created(wrapper);
+                    }
+                }
+            }
         }
 
         logger.debug("evaluateFrame: dispatch target={}", target.displayToken());

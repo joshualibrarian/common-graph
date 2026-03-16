@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.ExpressionComponent;
@@ -10,6 +11,8 @@ import dev.everydaythings.graph.frame.expression.FunctionExpression;
 import dev.everydaythings.graph.frame.expression.ReferenceExpression;
 import dev.everydaythings.graph.frame.expression.SememeExpression;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -32,10 +35,18 @@ import java.util.Map;
  * <p>This unifies the expression system: verb frames, mathematical formulas,
  * queries, and reactive rules all compose using the same operator vocabulary.
  */
-@Type(value = Operator.KEY, glyph = "➕")
+@Implements(Operator.TypeSeed.KEY)
+@Type(glyph = "➕")
 public class Operator extends Sememe {
 
-    public static final String KEY = "cg:type/operator";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:operator";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a mathematical operator")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "operator");
+    }
 
     public enum Associativity { LEFT, RIGHT, NONE }
     public enum Fixity { PREFIX, INFIX, POSTFIX }

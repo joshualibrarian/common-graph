@@ -24,7 +24,7 @@ public class TestHydration {
             System.out.println("Librarian opened: " + lib.iid());
 
             // Try to get the Librarian type seed
-            ItemID librarianType = ItemID.fromString("cg:type/librarian");
+            ItemID librarianType = ItemID.fromString("cg.sememe:librarian");
             System.out.println("Looking up: " + librarianType.encodeText());
 
             Optional<Item> item = lib.get(librarianType, Item.class);
@@ -35,7 +35,7 @@ public class TestHydration {
             }
 
             // Try to get the Host type seed
-            ItemID hostType = ItemID.fromString("cg:type/host");
+            ItemID hostType = ItemID.fromString("cg.sememe:host");
             System.out.println("Looking up: " + hostType.encodeText());
 
             Optional<Item> hostItem = lib.get(hostType, Item.class);

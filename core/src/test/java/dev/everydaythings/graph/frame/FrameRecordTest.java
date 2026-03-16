@@ -187,7 +187,7 @@ class FrameRecordTest {
 
             Frame frame = new Frame(
                     dev.everydaythings.graph.item.id.FrameKey.literal("title"),
-                    ItemID.fromString("cg:type/text"),
+                    ItemID.fromString("cg.sememe:text"),
                     body, hash, true);
 
             assertThat(frame.bodyHash()).isEqualTo(hash);
@@ -198,7 +198,7 @@ class FrameRecordTest {
         void bodyHashNull() {
             Frame frame = Frame.snapshot(
                     dev.everydaythings.graph.item.id.FrameKey.literal("vault"),
-                    ItemID.fromString("cg:type/vault"), null, false);
+                    ItemID.fromString("cg.sememe:vault"), null, false);
 
             assertThat(frame.bodyHash()).isNull();
         }

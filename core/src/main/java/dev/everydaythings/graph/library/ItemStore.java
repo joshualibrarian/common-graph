@@ -6,6 +6,7 @@ import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.*;
@@ -383,7 +384,8 @@ public interface ItemStore extends Service {
      */
     default Optional<Class<?>> findComponentImplementation(ItemID typeId) {
         return findImplementation(typeId)
-                .filter(c -> c.isAnnotationPresent(Type.class));
+                .filter(c -> c.isAnnotationPresent(Implements.class)
+                        || c.isAnnotationPresent(Type.class));
     }
 
     /**

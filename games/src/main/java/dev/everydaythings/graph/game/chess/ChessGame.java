@@ -12,9 +12,14 @@ import dev.everydaythings.graph.game.Spatial;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
@@ -42,13 +47,22 @@ import java.util.stream.Collectors;
  *
  * @see <a href="https://github.com/bhlangonijr/chesslib">chesslib</a>
  */
-@Type(value = ChessGame.KEY, glyph = "♟️")
+@Implements(ChessGame.TypeSeed.KEY)
+@Type(glyph = "♟️")
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "chess-root", direction = Direction.VERTICAL, width = "100%", height = "100%",
         padding = "0.6em", gap = "0.5em", style = "fill")
 public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<ChessPiece>, Inspectable {
 
-    public static final String KEY = "cg:type/chess";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:chess";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the game of chess")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "chess");
+    }
+
     private static final String SIDE_PANEL_WIDTH = "25%";
     private static final String HANDLE_ROW_HEIGHT = "5.1em";
     private static final String HANDLE_ROW_PADDING = "0 25% 0 0";

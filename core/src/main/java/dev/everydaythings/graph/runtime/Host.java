@@ -1,7 +1,11 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.user.Signer;
@@ -26,14 +30,22 @@ import java.util.List;
  *   <li>reachable-at: IP addresses where it can be reached</li>
  * </ul>
  */
-@Type(value = Host.KEY, glyph = "🖥️", color = 0x5080B0)
+@Implements(Host.TypeSeed.KEY)
+@Type(glyph = "🖥️", color = 0x5080B0)
 public class Host extends Signer {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:type/host";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:host";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a network host device")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "host");
+    }
 
 
     // ==================================================================================
@@ -53,7 +65,7 @@ public class Host extends Signer {
     /**
      * Type seed constructor - creates a minimal Host for use as type seed.
      *
-     * <p>Used by SeedStore to create the "cg:type/host" type item.
+     * <p>Used by SeedStore to create the "cg.sememe:host" type item.
      */
     @SuppressWarnings("unused")  // Used via reflection by SeedStore
     protected Host(ItemID typeId) {

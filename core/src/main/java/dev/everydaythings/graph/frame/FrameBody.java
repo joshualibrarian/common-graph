@@ -43,7 +43,7 @@ import java.util.Objects;
 public final class FrameBody implements Canonical {
 
     /** Canonical type key for frame bodies. */
-    public static final String TYPE_KEY = "cg:type/frame";
+    public static final String TYPE_KEY = "cg.sememe:frame";
 
     /** Deterministic ItemID for the frame body type. */
     public static final ItemID TYPE_ID = ItemID.fromString(TYPE_KEY);

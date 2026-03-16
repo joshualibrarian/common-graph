@@ -25,11 +25,11 @@ import dev.everydaythings.graph.ui.scene.Scene;
  * <h2>Usage</h2>
  * <pre>{@code
  * // Items get ItemSpace by default
- * @Item.Type(value = "cg:type/item", glyph = "📦")
+ * @Item.Type(value = "cg.sememe:item", glyph = "📦")
  * public class Item { ... }
  *
  * // Custom scene for a specific type
- * @Item.Type(value = "cg:type/chess", glyph = "♟", scene = ChessScene.class)
+ * @Item.Type(value = "cg.sememe:chess", glyph = "♟", scene = ChessScene.class)
  * public class ChessGame extends Item { ... }
  * }</pre>
  */

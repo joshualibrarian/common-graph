@@ -3,8 +3,13 @@ package dev.everydaythings.graph.policy;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -26,11 +31,21 @@ import java.util.regex.Pattern;
  *
  * <p>Stored as an endorsed frame on the Item.
  */
-@Type(value = "cg:type/policy", glyph = "🛡️", color = 0xC8A064)
+@Implements(PolicySet.TypeSeed.KEY)
+@Type(glyph = "🛡️", color = 0xC8A064)
 @Getter @Setter @Builder
 @NoArgsConstructor @AllArgsConstructor
 @Canonical.Canonization
 public class PolicySet implements Canonical {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:policy";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "per-item trust policies")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "policy");
+    }
 
     // ==================================================================================
     // Component Display

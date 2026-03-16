@@ -1,10 +1,14 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.DisplayInfo;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -37,14 +41,22 @@ import java.util.stream.Stream;
  * @see Value
  * @see Numeric
  */
-@Type(value = ValueType.KEY, glyph = "🔢")
+@Implements(ValueType.TypeSeed.KEY)
+@Type(glyph = "🔢")
 public class ValueType extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:type/value-type";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:value-type";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a primitive value type")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "value-type");
+    }
 
 
     // ==================================================================================
@@ -194,7 +206,7 @@ public class ValueType extends Item {
     /**
      * Type seed constructor - creates a minimal ValueType for use as type seed.
      *
-     * <p>Used by SeedStore to create the "cg:type/value-type" type item.
+     * <p>Used by SeedStore to create the "cg.sememe:value-type" type item.
      */
     @SuppressWarnings("unused")  // Used via reflection by SeedStore
     protected ValueType(ItemID typeId) {

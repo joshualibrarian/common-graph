@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
 
 import dev.everydaythings.graph.item.Type;
 
@@ -12,6 +13,9 @@ import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.frame.expression.Expression;
 import dev.everydaythings.graph.frame.expression.LiteralExpression;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Value;
 import lombok.Getter;
@@ -53,8 +57,18 @@ import java.util.stream.Stream;
  * @see Value
  */
 @Log4j2
-@Type(value = "cg:type/expression", glyph = "🧮")
+@Implements(ExpressionComponent.TypeSeed.KEY)
+@Type(glyph = "🧮")
 public class ExpressionComponent implements Canonical {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:expression";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a computed expression component")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "expression");
+    }
 
     // ==================================================================================
     // Canonical Fields

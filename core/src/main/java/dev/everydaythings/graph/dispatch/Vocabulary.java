@@ -1,12 +1,16 @@
 package dev.everydaythings.graph.dispatch;
 
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Implements;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.surface.VocabularySurface;
@@ -40,10 +44,20 @@ import java.util.stream.Stream;
  *   <li><b>Component verbs</b> - from {@code @Verb} on component classes</li>
  * </ol>
  */
-@Type(value = "cg:type/vocabulary", glyph = "📖", color = 0x64B4C8)
+@Implements(Vocabulary.TypeSeed.KEY)
+@Type(glyph = "📖", color = 0x64B4C8)
 @Canonical.Canonization
 @Scene(as = VocabularySurface.class)
 public class Vocabulary implements Canonical, Iterable<VerbEntry> {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:vocabulary";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "verb index for an item")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "vocabulary");
+    }
 
     // ==================================================================================
     // Component Display

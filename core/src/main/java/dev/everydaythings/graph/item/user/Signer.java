@@ -1,10 +1,14 @@
 package dev.everydaythings.graph.item.user;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.crypt.Vault;
 import dev.everydaythings.graph.item.id.HashID;
@@ -58,11 +62,19 @@ import java.util.Objects;
  * }
  * }</pre>
  */
-@Type(value = Signer.KEY, glyph = "✍️", color = 0xAF644B)
+@Implements(Signer.TypeSeed.KEY)
+@Type(glyph = "✍️", color = 0xAF644B)
 public abstract class Signer extends Item implements Signing.Signer {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = "cg:type/signer";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:signer";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "an item that can cryptographically sign other items")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "signer");
+    }
 
     public static final Algorithm.Sign ALGORITHM = Algorithm.Sign.ED25519;
 

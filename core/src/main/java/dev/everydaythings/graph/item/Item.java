@@ -10,7 +10,10 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
@@ -76,12 +79,20 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 @Scene.Rule(match = ".selected", background = "#313244")
 @Scene.Rule(match = ":selected", background = "reverse")
 @Scene.Rule(match = ":hover", opacity = "bright")
-@Type(value = Item.KEY, glyph = "📦")
+@Implements(Item.TypeSeed.KEY)
+@Type(glyph = "📦")
 @Scene(as = ItemSurface.class)
 public class Item {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = "cg:type/item";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:item";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the fundamental unit of Common Graph")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "item");
+    }
 
     // === WELL-KNOWN FRAME KEYS ===
     // Lazy-initialized via holder class to break circular clinit:
@@ -89,8 +100,6 @@ public class Item {
     private static class BuiltinKeys {
         static final FrameKey POLICY = FrameKey.literal("policy");
     }
-
-    // Type seed instance is auto-created by SeedStore from @Type annotation
 
     // ==================================================================================
     // Instance Fields
@@ -359,10 +368,10 @@ public class Item {
         if (payload instanceof dev.everydaythings.graph.value.Value value) {
             return value.displayToken();
         }
-        Type type =
-                payload.getClass().getAnnotation(Type.class);
-        if (type != null) {
-            String key = type.value();
+        Implements impl =
+                payload.getClass().getAnnotation(Implements.class);
+        if (impl != null) {
+            String key = impl.value();
             int slash = key.lastIndexOf('/');
             if (slash >= 0 && slash < key.length() - 1) {
                 String shortName = key.substring(slash + 1);
@@ -505,9 +514,9 @@ public class Item {
 
     public ItemID icon() {
         // Return this Item's type ID - UI will find the icon for that type
-        Type typeAnnotation = getClass().getAnnotation(Type.class);
-        if (typeAnnotation != null && !typeAnnotation.value().isBlank()) {
-            return ItemID.fromString(typeAnnotation.value());
+        Implements impl = getClass().getAnnotation(Implements.class);
+        if (impl != null) {
+            return ItemID.fromString(impl.value());
         }
         return ItemID.fromString(KEY); // Default to base Item type
     }
@@ -579,10 +588,10 @@ public class Item {
         if (librarian == null) return null;
 
         // Get this item's type ID
-        Type typeAnnotation = getClass().getAnnotation(Type.class);
-        if (typeAnnotation == null || typeAnnotation.value().isBlank()) return null;
+        Implements impl = getClass().getAnnotation(Implements.class);
+        if (impl == null) return null;
 
-        ItemID typeId = ItemID.fromString(typeAnnotation.value());
+        ItemID typeId = ItemID.fromString(impl.value());
 
         // Look up the type item
         var typeItemOpt = librarian.get(typeId, Item.class);
@@ -638,16 +647,17 @@ public class Item {
     }
 
     /**
-     * Find the type name from the @Type annotation.
+     * Find the type name from the @Implements or @Type annotation.
      */
     protected String findTypeName() {
-        Type typeAnnotation = getClass().getAnnotation(Type.class);
-        if (typeAnnotation != null && !typeAnnotation.value().isBlank()) {
-            String key = typeAnnotation.value();
-            // Extract last segment: "cg:type/librarian" -> "Librarian"
-            int lastSlash = key.lastIndexOf('/');
-            if (lastSlash >= 0 && lastSlash < key.length() - 1) {
-                String shortName = key.substring(lastSlash + 1);
+        Implements impl = getClass().getAnnotation(Implements.class);
+        if (impl != null) {
+            String key = impl.value();
+            // Extract last segment: "cg.sememe:librarian" -> "Librarian"
+            int sep = key.lastIndexOf('/');
+            if (sep < 0) sep = key.lastIndexOf(':');
+            if (sep >= 0 && sep < key.length() - 1) {
+                String shortName = key.substring(sep + 1);
                 return shortName.substring(0, 1).toUpperCase() + shortName.substring(1);
             }
             return key;
@@ -1825,8 +1835,9 @@ public class Item {
         // Create instances for all Component-typed @ComponentField fields
         // (Non-Component fields like SigningPublicKey are handled during commit)
         for (FrameFieldSpec spec : itemSchema.endorsedFrameFields()) {
-            // Skip fields that don't have @Type annotation
-            if (!spec.fieldType().isAnnotationPresent(Type.class)) {
+            // Skip fields that don't have @Implements or @Type annotation
+            if (!spec.fieldType().isAnnotationPresent(Implements.class)
+                    && !spec.fieldType().isAnnotationPresent(Type.class)) {
                 continue;
             }
 
@@ -2288,7 +2299,7 @@ public class Item {
         if (librarian == null) {
             // No librarian — can't fetch bodies. Create a minimal frame.
             return new dev.everydaythings.graph.frame.Frame(endorsement.key(),
-                    ItemID.fromString("cg:type/unknown"), null,
+                    ItemID.fromString("cg.sememe:unknown"), null,
                     endorsement.bodyHash(), true);
         }
 
@@ -2746,13 +2757,12 @@ public class Item {
     }
 
     /**
-     * Resolve the item type from @Type annotation.
+     * Resolve the item type from @Implements or @Type annotation.
      */
     protected String resolveItemType() {
-        Type ann = getClass().getAnnotation(Type.class);
-        return (ann != null && !ann.value().isBlank())
-                ? ann.value()
-                : getClass().getName();
+        Implements impl = getClass().getAnnotation(Implements.class);
+        if (impl != null) return impl.value();
+        return getClass().getName();
     }
 
     // ==================================================================================
@@ -2777,15 +2787,13 @@ public class Item {
     // ==================================================================================
 
     /**
-     * Get the type key from any @Type-annotated class (Item or component).
+     * Get the type key from any @Implements or @Type-annotated class.
      */
     public static String keyOf(Class<?> type) {
-        Type annotation = type.getAnnotation(Type.class);
-        if (annotation == null) {
-            throw new IllegalArgumentException(
-                    "Class " + type.getName() + " is missing @Type annotation");
-        }
-        return annotation.value();
+        Implements impl = type.getAnnotation(Implements.class);
+        if (impl != null) return impl.value();
+        throw new IllegalArgumentException(
+                "Class " + type.getName() + " is missing @Implements annotation");
     }
 
     /**

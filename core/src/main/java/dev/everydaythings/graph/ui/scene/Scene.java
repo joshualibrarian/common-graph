@@ -163,7 +163,7 @@ public @interface Scene {
      * @Scene.Rule(match = ".heading", color = "#89B4FA", fontSize = "1.33")
      * @Scene.Rule(match = ".square.light", background = "#F0D9B5")
      * @Scene.Rule(match = ".chrome!tui", display = "visible", opacity = "dim")
-     * @Type(value = "cg:type/chess-board", glyph = "♟")
+     * @Type(glyph = "♟")
      * public class ChessBoard { ... }
      * }</pre>
      */

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -36,10 +37,18 @@ import java.util.Map;
  * @see SemanticFrame
  * @see PrepositionVocabulary
  */
-@Type(value = ThematicRole.KEY, glyph = "\uD83C\uDFAD", color = 0xB08DE0)
+@Implements(ThematicRole.TypeSeed.KEY)
+@Type(glyph = "\uD83C\uDFAD", color = 0xB08DE0)
 public class ThematicRole extends Sememe {
 
-    public static final String KEY = "cg:type/role";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:role";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a semantic role that a participant fills in a frame")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "role");
+    }
 
     // ==================================================================================
     // SEED INSTANCES — core participant roles

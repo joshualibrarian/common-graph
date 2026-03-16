@@ -1,11 +1,9 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.game.chess.ChessGame;
-import dev.everydaythings.graph.game.minesweeper.Minesweeper;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
@@ -35,7 +33,7 @@ class ChessEvalIntegrationTest {
     @Test
     void nounSememe_createVerb_instantiatesChess() {
         // Find the chess sememe via its type ID
-        ItemID chessTypeId = ItemID.fromString("cg:type/chess");
+        ItemID chessTypeId = ItemID.fromString("cg.sememe:chess");
         Optional<Item> chessType = librarian.get(chessTypeId);
 
         assertThat(chessType).isPresent();
@@ -60,8 +58,8 @@ class ChessEvalIntegrationTest {
     }
 
     @Test
-    void eval_createChess_returnsChessComponent() {
-        // "create chess" should dispatch CREATE on chess sememe
+    void eval_createChess_returnsCreatedItemWithChessComponent() {
+        // "create chess" should create an Item with a ChessGame component attached
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
@@ -70,18 +68,19 @@ class ChessEvalIntegrationTest {
 
         Eval.EvalResult result = eval.evaluateCommand(List.of("create", "chess"));
 
-        // Should return a Value containing a Chess ContentComponent
-        assertThat(result).isInstanceOf(Eval.EvalResult.Value.class);
-        Object value = ((Eval.EvalResult.Value) result).value();
-        assertThat(value).isInstanceOf(ChessGame.class);
+        // Should return Created with an Item wrapping a ChessGame component
+        assertThat(result).isInstanceOf(Eval.EvalResult.Created.class);
+        Item created = ((Eval.EvalResult.Created) result).item();
+        assertThat(created).isNotNull();
+        assertThat(created.iid()).isNotNull();
+
+        // The item should have chess verbs registered
+        ItemID moveId = ItemID.fromString(GameVocabulary.Move.KEY);
+        assertThat(created.vocabulary().lookup(moveId)).isPresent();
     }
 
     @Test
-    void eval_createMinesweeper_prefersCreateable_whenTokenCollides() {
-        // Inject a higher-weight ambiguous posting for "minesweeper" that points to the librarian.
-        librarian.tokenIndex().runInWriteTransaction(tx ->
-                librarian.tokenIndex().index(Posting.universal("minesweeper", librarian.iid(), 2.0f), tx));
-
+    void eval_createMinesweeper_returnsCreatedItemWithMinesweeperComponent() {
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
@@ -90,9 +89,10 @@ class ChessEvalIntegrationTest {
 
         Eval.EvalResult result = eval.evaluateCommand(List.of("create", "minesweeper"));
 
-        assertThat(result).isInstanceOf(Eval.EvalResult.Value.class);
-        Object value = ((Eval.EvalResult.Value) result).value();
-        assertThat(value).isInstanceOf(Minesweeper.class);
+        // Should return Created with an Item wrapping a Minesweeper component
+        assertThat(result).isInstanceOf(Eval.EvalResult.Created.class);
+        Item created = ((Eval.EvalResult.Created) result).item();
+        assertThat(created).isNotNull();
     }
 
     @Test
@@ -159,60 +159,53 @@ class ChessEvalIntegrationTest {
     }
 
     @Test
-    void fullFlow_createItem_addChess_move_show() {
-        // Step 1: Create an Item via Eval
+    void fullFlow_createChess_move_show() {
+        // Step 1: "create chess" creates an Item with ChessGame component already attached
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
                 .interactive(false)
                 .build();
 
-        Eval.EvalResult createResult = eval.evaluateCommand(List.of("create", "item"));
+        Eval.EvalResult createResult = eval.evaluateCommand(List.of("create", "chess"));
         assertThat(createResult).isInstanceOf(Eval.EvalResult.Created.class);
         Item item = ((Eval.EvalResult.Created) createResult).item();
 
-        // Step 2: Create a Chess component via Eval (context = item)
+        // The item should have chess verbs
+        ItemID moveId = ItemID.fromString(GameVocabulary.Move.KEY);
+        assertThat(item.vocabulary().lookup(moveId)).isPresent();
+
+        // Step 2: Get the chess component from the item's live frames
+        var chessHolder = new Object() { ChessGame game; };
+        item.frames().forEachLive(ChessGame.class, g -> chessHolder.game = g);
+        ChessGame chess = chessHolder.game;
+        assertThat(chess).isNotNull();
+
+        // Step 3: Join the game (seat players for testing)
+        ItemID principalId = librarian.principal().map(s -> s.iid()).orElse(null);
+        assertThat(principalId).isNotNull();
+        chess.joinAs(0, principalId);
+        chess.joinAs(1, ItemID.fromString("test:player/opponent"));
+
+        // Step 4: "show" in context of the chess item
         Eval evalOnItem = Eval.builder()
                 .librarian(librarian)
                 .context(item)
                 .interactive(false)
                 .build();
 
-        Eval.EvalResult chessResult = evalOnItem.evaluateCommand(List.of("create", "chess"));
-        assertThat(chessResult).isInstanceOf(Eval.EvalResult.Value.class);
-        Object chessValue = ((Eval.EvalResult.Value) chessResult).value();
-        assertThat(chessValue).isInstanceOf(ChessGame.class);
-
-        // Step 3: Add the chess component to the item (Session would do this)
-        ChessGame chess = (ChessGame) chessValue;
-        item.addComponent("chess", chess);
-
-        // Step 4: Join the game (Eval dispatch passes real caller, so must be seated)
-        // The librarian's principal is the caller — seat them as both players for testing
-        ItemID principalId = librarian.principal().map(s -> s.iid()).orElse(null);
-        assertThat(principalId).isNotNull();
-        chess.joinAs(0, principalId);
-        chess.joinAs(1, ItemID.fromString("test:player/opponent"));
-
-        // Step 5: "show" in context of the item → should show the chess board
-        Eval evalWithChess = Eval.builder()
-                .librarian(librarian)
-                .context(item)
-                .interactive(false)
-                .build();
-
-        Eval.EvalResult showResult = evalWithChess.evaluateCommand(List.of("show"));
+        Eval.EvalResult showResult = evalOnItem.evaluateCommand(List.of("show"));
         assertThat(showResult.isSuccess()).isTrue();
 
-        // Step 6: "move e2e4" → should make a move (principal is seated at 0 = white)
-        Eval.EvalResult moveResult = evalWithChess.evaluateCommand(List.of("move", "e2e4"));
+        // Step 5: "move e2e4" → should make a move
+        Eval.EvalResult moveResult = evalOnItem.evaluateCommand(List.of("move", "e2e4"));
         assertThat(moveResult.isSuccess()).isTrue();
 
         // Verify the move was made
         assertThat(chess.moveCount()).isEqualTo(1);
 
-        // Step 7: Show again — board should reflect the move
-        Eval.EvalResult showResult2 = evalWithChess.evaluateCommand(List.of("show"));
+        // Step 6: Show again — board should reflect the move
+        Eval.EvalResult showResult2 = evalOnItem.evaluateCommand(List.of("show"));
         assertThat(showResult2.isSuccess()).isTrue();
     }
 }

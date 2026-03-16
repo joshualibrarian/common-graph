@@ -2,7 +2,9 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.parse.InputSnapshot;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
@@ -10,6 +12,9 @@ import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -76,13 +81,23 @@ import java.util.function.Consumer;
  */
 @Log4j2
 @Accessors(fluent = true)
-@Type(value = "cg:type/session", glyph = "\u27A4", color = 0x6699CC)
+@Implements(Session.TypeSeed.KEY)
+@Type(glyph = "\u27A4", color = 0x6699CC)
 @Command(
     name = "session",
     mixinStandardHelpOptions = true,
     description = "Open a session to a Librarian"
 )
 public abstract class Session extends Item implements Callable<Integer>, Closeable {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:session";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "UI session for item interaction")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "session");
+    }
 
     // ==================================================================================
     // UI Mode
@@ -188,7 +203,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param context   The initial context as a Ref
      */
     protected Session(LibrarianHandle librarian, Ref context) {
-        super(ItemID.fromString("cg:type/session")); // Seed constructor — deterministic IID
+        super(ItemID.fromString("cg.sememe:session")); // Seed constructor — deterministic IID
         this.activityLog = new ActivityLog();
         this.librarian = librarian;
         onExit(() -> running = false);
@@ -203,7 +218,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * No-arg constructor for picocli (used by SessionShell).
      */
     protected Session() {
-        super(ItemID.fromString("cg:type/session"));
+        super(ItemID.fromString("cg.sememe:session"));
         this.activityLog = new ActivityLog();
     }
 
@@ -957,7 +972,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Add a component result to the current context item.
      *
      * <p>Derives a handle name from the component's {@code @Type}
-     * annotation (e.g., "cg:type/chess" → "chess").
+     * annotation (e.g., "cg.sememe:chess" → "chess").
      */
     protected void addComponentToContext(Object component) {
         Item ctx = contextItem().orElse(null);
@@ -1011,12 +1026,12 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Derive a handle name from a component's type annotation.
      *
      * <p>Extracts the short name from the canonical key
-     * (e.g., "cg:type/chess" → "chess").
+     * (e.g., "cg.sememe:chess" → "chess").
      */
     private String deriveHandle(Object component) {
-        Type ann = component.getClass().getAnnotation(Type.class);
-        if (ann != null) {
-            String key = ann.value();
+        Implements impl = component.getClass().getAnnotation(Implements.class);
+        if (impl != null) {
+            String key = impl.value();
             int lastSlash = key.lastIndexOf('/');
             if (lastSlash >= 0 && lastSlash < key.length() - 1) {
                 return key.substring(lastSlash + 1);
@@ -1052,7 +1067,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Check if a value is a component (has @Type annotation).
      */
     private static boolean isComponent(Object value) {
-        return value != null && value.getClass().isAnnotationPresent(Type.class);
+        return value != null && (value.getClass().isAnnotationPresent(Implements.class)
+                || value.getClass().isAnnotationPresent(Type.class));
     }
 
     // ==================================================================================

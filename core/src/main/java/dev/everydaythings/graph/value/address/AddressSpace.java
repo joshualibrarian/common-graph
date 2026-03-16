@@ -1,9 +1,13 @@
 package dev.everydaythings.graph.value.address;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.ValueType;
 
@@ -42,14 +46,22 @@ import java.util.regex.Pattern;
  *
  * @see ValueType
  */
-@Type(value = AddressSpace.KEY, glyph = "📍")
+@Implements(AddressSpace.TypeSeed.KEY)
+@Type(glyph = "📍")
 public abstract class AddressSpace extends ValueType {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:type/address-space";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:address-space";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a namespace for external addresses")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "address-space");
+    }
 
 
     // ==================================================================================

@@ -1,8 +1,13 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
@@ -28,10 +33,18 @@ import java.util.Optional;
  *
  * @see ActivityEntry
  */
-@Type(value = ActivityLog.KEY, glyph = "📋", color = 0x6699CC)
+@Implements(ActivityLog.TypeSeed.KEY)
+@Type(glyph = "📋", color = 0x6699CC)
 public class ActivityLog implements Canonical, Inspectable {
 
-    public static final String KEY = "cg:type/activity-log";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:activity-log";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "audit trail of item operations")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "activity-log");
+    }
     public static final String HANDLE = "activity";
 
     /** In-memory index: context IID → most recent entry for that context. */

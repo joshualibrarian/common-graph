@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 
 import dev.everydaythings.graph.item.Type;
 
@@ -9,6 +11,9 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.value.Color;
@@ -33,10 +38,18 @@ import dev.everydaythings.graph.value.Color;
  * @see SceneCompiler
  * @see ViewNode
  */
-@Type(value = SurfaceTemplateComponent.KEY, glyph = "\uD83D\uDDBC")
+@Implements(SurfaceTemplateComponent.TypeSeed.KEY)
+@Type(glyph = "\uD83D\uDDBC")
 public class SurfaceTemplateComponent implements Canonical {
 
-    public static final String KEY = "cg:type/surface-template";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:surface-template";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "display template for an item type")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "surface-template");
+    }
     public static final FrameKey HANDLE = FrameKey.literal("surface");
 
     // ==================================================================================

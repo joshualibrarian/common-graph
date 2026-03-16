@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -16,7 +17,8 @@ class FrameAnnotationTest {
     // Test fixtures — tiny Item subclasses with @Frame fields
     // ==================================================================================
 
-    @Type("cg:test/frame-endorsed")
+    @Implements("cg:test/frame-endorsed")
+    @Type
     static class EndorsedFrameItem extends Item {
         @Frame(key = {CoreVocabulary.Vault.KEY}, path = ".vault", localOnly = true)
         private String vault;
@@ -26,7 +28,8 @@ class FrameAnnotationTest {
         }
     }
 
-    @Type("cg:test/frame-semantic")
+    @Implements("cg:test/frame-semantic")
+    @Type
     static class SemanticFrameItem extends Item {
         @Frame(key = {CoreVocabulary.Title.KEY})
         private String title;
@@ -36,7 +39,8 @@ class FrameAnnotationTest {
         }
     }
 
-    @Type("cg:test/frame-unendorsed")
+    @Implements("cg:test/frame-unendorsed")
+    @Type
     static class UnendorsedFrameItem extends Item {
         @Frame(key = {CoreVocabulary.Author.KEY}, endorsed = false)
         private ItemID author;
@@ -46,7 +50,8 @@ class FrameAnnotationTest {
         }
     }
 
-    @Type("cg:test/frame-mixed")
+    @Implements("cg:test/frame-mixed")
+    @Type
     static class MixedFrameItem extends Item {
         @Frame(key = {CoreVocabulary.Description.KEY})
         private String data;

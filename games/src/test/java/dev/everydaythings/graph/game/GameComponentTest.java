@@ -1,8 +1,13 @@
 package dev.everydaythings.graph.game;
 
 import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.game.chess.ChessGame;
+import dev.everydaythings.graph.item.CreationScanner;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -15,7 +20,8 @@ class GameComponentTest {
     /**
      * Minimal concrete GameComponent for testing the base class behavior.
      */
-    @Type(value = "cg:type/test-game", glyph = "\uD83C\uDFB2")
+    @Implements("cg.sememe:test-game")
+    @Type(glyph = "\uD83C\uDFB2")
     static class TestGame extends GameComponent<TestGame.Op> {
 
         sealed interface Op permits MoveOp {}
@@ -316,5 +322,31 @@ class GameComponentTest {
         assertThatIllegalStateException()
                 .isThrownBy(() -> game.leaveVerb(ctxFor(pid("alice"))))
                 .withMessageContaining("Not in the game");
+    }
+
+    // ==================================================================================
+    // Creation Flow — games as components on Items
+    // ==================================================================================
+
+    @Test
+    void creationScanner_instantiatesChessGameViaStaticFactory() {
+        Object result = CreationScanner.instantiate(ChessGame.class);
+
+        assertThat(result).isInstanceOf(ChessGame.class);
+        ChessGame chess = (ChessGame) result;
+        assertThat(chess.isGameOver()).isFalse();
+    }
+
+    @Test
+    void addComponent_attachesGameToItem() {
+        Librarian lib = Librarian.createInMemory();
+        Item item = Item.create(lib);
+        ChessGame chess = ChessGame.create();
+
+        item.addComponent("chess", chess);
+
+        // The chess component's verbs should be registered on the item's vocabulary
+        assertThat(item.vocabulary().lookup(
+                ItemID.fromString(GameVocabulary.Move.KEY))).isPresent();
     }
 }

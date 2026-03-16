@@ -275,7 +275,7 @@ class FrameKeyTest {
             FrameKey key = FrameKey.of(TITLE);
             dev.everydaythings.graph.frame.Frame frame =
                     dev.everydaythings.graph.frame.Frame.snapshot(
-                            key, ItemID.fromString("cg:type/text"), null, true);
+                            key, ItemID.fromString("cg.sememe:text"), null, true);
 
             assertThat(frame.frameKey()).isEqualTo(key);
             assertThat(frame.frameKey().isSemantic()).isTrue();
@@ -288,7 +288,7 @@ class FrameKeyTest {
             FrameKey key = FrameKey.literal("vault");
             dev.everydaythings.graph.frame.Frame frame =
                     dev.everydaythings.graph.frame.Frame.snapshot(
-                            key, ItemID.fromString("cg:type/vault"), null, true);
+                            key, ItemID.fromString("cg.sememe:vault"), null, true);
 
             assertThat(frame.frameKey()).isEqualTo(key);
             assertThat(frame.frameKey().isLiteral()).isTrue();

@@ -178,7 +178,7 @@ class UserIntegrationTest {
 
         assertThat(result).isInstanceOf(Eval.EvalResult.ItemResult.class);
         Item item = ((Eval.EvalResult.ItemResult) result).item();
-        assertThat(item.iid()).isEqualTo(ItemID.fromString("cg:type/user"));
+        assertThat(item.iid()).isEqualTo(ItemID.fromString("cg.sememe:user"));
     }
 
     @Test

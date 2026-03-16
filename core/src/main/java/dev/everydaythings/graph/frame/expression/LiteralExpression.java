@@ -70,7 +70,7 @@ public record LiteralExpression(
     public ItemID resultType() {
         if (value == null) return null;
         // TODO: Map Java types to graph types
-        // e.g., Long -> cg:type/integer, String -> cg:type/text
+        // e.g., Long -> cg.sememe:integer, String -> cg.sememe:text
         return null;
     }
 

@@ -1,9 +1,13 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -43,14 +47,22 @@ import java.util.stream.Stream;
  *                                        .with(Dimension.TIME, -1);
  * }</pre>
  */
-@Type(value = Dimension.KEY, glyph = "📐", color = 0x8060A0)
+@Implements(Dimension.TypeSeed.KEY)
+@Type(glyph = "📐", color = 0x8060A0)
 public class Dimension extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:type/dimension";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:dimension";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a physical dimension for quantities")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "dimension");
+    }
 
 
     // ==================================================================================
@@ -163,7 +175,7 @@ public class Dimension extends Item {
     /**
      * Type seed constructor - creates a minimal Dimension for use as type seed.
      *
-     * <p>Used by SeedStore to create the "cg:type/dimension" type item.
+     * <p>Used by SeedStore to create the "cg.sememe:dimension" type item.
      */
     @SuppressWarnings("unused")  // Used via reflection by SeedStore
     protected Dimension(ItemID typeId) {

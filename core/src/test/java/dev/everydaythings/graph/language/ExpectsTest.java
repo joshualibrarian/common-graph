@@ -41,7 +41,7 @@ class ExpectsTest {
     @Test
     void fluentExpects_withRoleBinding() {
         // Chess expects: Player(THEME=White), Player(THEME=Black), Move, Resign
-        Sememe chess = new Sememe("cg:type/chess")
+        Sememe chess = new Sememe("cg.sememe:chess")
                 .gloss("en", "the game of chess")
                 .expects("cg.game:player", ThematicRole.Theme.KEY, ColorVocabulary.White.KEY)
                 .expects("cg.game:player", ThematicRole.Theme.KEY, ColorVocabulary.Black.KEY)
@@ -87,7 +87,7 @@ class ExpectsTest {
     @Test
     void passiveType_structuralExpectations() {
         // A Book type — no behavior code, just structural expectations
-        Sememe book = new Sememe("cg:type/book")
+        Sememe book = new Sememe("cg.sememe:book")
                 .gloss("en", "a written work")
                 .expects(CoreVocabulary.Author.KEY)
                 .expects(CoreVocabulary.Title.KEY)

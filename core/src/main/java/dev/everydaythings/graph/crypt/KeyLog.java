@@ -4,7 +4,12 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 
 import lombok.AllArgsConstructor;
 
@@ -28,11 +33,19 @@ import java.util.*;
  * <p>Operations are applied in-memory via {@link #apply(Op)}. When a
  * Library is available, operations can be persisted as frames via FrameChain.
  */
-@Type(value = KeyLog.KEY, glyph = "\uD83D\uDD11", icon = "/icons/key.png")
+@Implements(KeyLog.TypeSeed.KEY)
+@Type(glyph = "\uD83D\uDD11", icon = "/icons/key.png")
 public class KeyLog implements Canonical, Inspectable {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = "cg:type/keylog";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:keylog";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "append-only public key history")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "keylog");
+    }
 
     /**
      * Create a new empty KeyLog.

@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Picker;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.*;
@@ -14,6 +15,8 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.FrameRecord;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
@@ -71,8 +74,18 @@ import java.util.stream.Stream;
  * }</pre>
  */
 @Log4j2
-@Type(value = "cg:type/library", glyph = "📚")
+@Implements(Library.TypeSeed.KEY)
+@Type(glyph = "📚")
 public final class Library implements Canonical, AutoCloseable {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:library";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "local storage for items")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "library");
+    }
 
     // ==================================================================================
     // Backend Selection

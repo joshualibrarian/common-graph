@@ -1,9 +1,13 @@
 package dev.everydaythings.graph.value.address;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 
 import java.util.Objects;
@@ -27,17 +31,25 @@ import java.util.regex.Pattern;
  *
  * <p>Used in relations to reference Java implementations:
  * <pre>{@code
- * (cg:type/dimension) —[implementedBy]→ "dev.everydaythings.graph.value.Dimension"
+ * (cg.sememe:dimension) —[implementedBy]→ "dev.everydaythings.graph.value.Dimension"
  * }</pre>
  */
-@Type(value = JavaClass.KEY, glyph = "☕")
+@Implements(JavaClass.TypeSeed.KEY)
+@Type(glyph = "☕")
 public class JavaClass extends AddressSpace {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg.address:java-class";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.address:java-class";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "Java class fully-qualified name addressing")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "java-class");
+    }
 
 
     /** The address space item - use for predicates and type references. */

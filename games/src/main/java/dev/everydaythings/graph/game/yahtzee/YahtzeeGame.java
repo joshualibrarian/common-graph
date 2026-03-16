@@ -8,9 +8,14 @@ import dev.everydaythings.graph.game.ScoreBoard;
 import dev.everydaythings.graph.game.Scored;
 import dev.everydaythings.graph.game.dice.Die;
 import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
 
@@ -35,10 +40,20 @@ import java.util.*;
  *   <li>{@link Randomized} — dice rolls from deterministic event RNG</li>
  * </ul>
  */
-@Type(value = "cg:type/yahtzee", glyph = "\uD83C\uDFB2")
+@Implements(YahtzeeGame.TypeSeed.KEY)
+@Type(glyph = "\uD83C\uDFB2")
 @Scene(as = YahtzeeSurface.class)
 public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         implements Scored, Phased, Randomized {
+
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:yahtzee";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the game of yahtzee")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "yahtzee");
+    }
 
     // ==================================================================================
     // Constants

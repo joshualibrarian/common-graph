@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -28,14 +30,22 @@ import java.util.Set;
  *
  * <p>After initial generation, the generate method should be removed.
  */
-@Type(value = English.KEY, glyph = "🇬🇧")
+@Implements(English.TypeSeed.KEY)
+@Type(glyph = "🇬🇧")
 public class English extends Language {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:language/eng";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg:language/eng";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the English language")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "english");
+    }
 
 
     // ==================================================================================

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -27,10 +28,18 @@ import java.util.Map;
  * @see Lexeme
  * @see Language#inflect(Lexeme, java.util.Set)
  */
-@Type(value = GrammaticalFeature.KEY, glyph = "\uD83D\uDD24", color = 0x70B0D0)
+@Implements(GrammaticalFeature.TypeSeed.KEY)
+@Type(glyph = "\uD83D\uDD24", color = 0x70B0D0)
 public class GrammaticalFeature extends Sememe {
 
-    public static final String KEY = "cg:type/grammatical-feature";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:grammatical-feature";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "an inflectional property of a word form")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "feature");
+    }
 
     // ==================================================================================
     // BASE FORM

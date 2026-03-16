@@ -1,9 +1,14 @@
 package dev.everydaythings.graph.game.set;
 
 import dev.everydaythings.graph.game.*;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.game.GameVocabulary;
@@ -33,13 +38,21 @@ import java.util.*;
  * @see SetCard
  * @see SetProperty
  */
-@Type(value = SetGame.KEY, glyph = "\uD83C\uDCCF")
+@Implements(SetGame.TypeSeed.KEY)
+@Type(glyph = "\uD83C\uDCCF")
 @Scene.Body(shape = "box", width = "60cm", height = "0", depth = "50cm", color = 0x2E7D32)
 @Scene(as = SetSurface.class)
 public class SetGame extends GameComponent<SetGame.Op>
         implements Zoned<SetCard>, Scored, Randomized {
 
-    public static final String KEY = "cg:type/set-game";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:set-game";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "the Set card game")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "set-game");
+    }
 
 
     // ==================================================================================

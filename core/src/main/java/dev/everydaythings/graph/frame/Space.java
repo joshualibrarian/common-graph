@@ -1,10 +1,15 @@
 package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 
 import dev.everydaythings.graph.item.Type;
 
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 
 import java.util.*;
 
@@ -36,10 +41,18 @@ import java.util.*;
  * <p>This is the 3D equivalent of Surface. Both describe
  * "what you see when inside an item" - Surface in 2D, Space in 3D.
  */
-@Type(value = Space.KEY, glyph = "🌌")
+@Implements(Space.TypeSeed.KEY)
+@Type(glyph = "🌌")
 public final class Space {
 
-    public static final String KEY = "cg:type/space";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:space";
+        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "3D environment for items")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "space");
+    }
 
     /** Items placed in this space */
     private final Map<ItemID, Placement> placements;

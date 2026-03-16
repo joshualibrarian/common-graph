@@ -1,10 +1,14 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -52,14 +56,22 @@ import java.util.stream.Stream;
  * Map<ItemID, Integer> dims = meter.dimensions();
  * }</pre>
  */
-@Type(value = Unit.KEY, glyph = "⚖️", color = 0x609080)
+@Implements(Unit.TypeSeed.KEY)
+@Type(glyph = "⚖️", color = 0x609080)
 public class Unit extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:type/unit";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:unit";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a unit of measure")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "unit");
+    }
 
     /** Helper: deterministic IID from canonical key (avoids triggering class init on Dimension). */
     private static ItemID dim(String key) { return ItemID.fromString(key); }
@@ -345,7 +357,7 @@ public class Unit extends Item {
     /**
      * Type seed constructor - creates a minimal Unit for use as type seed.
      *
-     * <p>Used by SeedStore to create the "cg:type/unit" type item.
+     * <p>Used by SeedStore to create the "cg.sememe:unit" type item.
      */
     @SuppressWarnings("unused")  // Used via reflection by SeedStore
     protected Unit(ItemID typeId) {

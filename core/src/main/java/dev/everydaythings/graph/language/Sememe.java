@@ -4,6 +4,7 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.CreationScanner;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
@@ -50,14 +51,22 @@ import java.util.stream.Stream;
  * enabling compile-time references.
  */
 @Log4j2
-@Type(value = Sememe.KEY, glyph = "\uD83D\uDCA1", color = 0xF0C040)
+@Implements(Sememe.TypeSeed.KEY)
+@Type(glyph = "\uD83D\uDCA1", color = 0xF0C040)
 public class Sememe extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = "cg:type/sememe";
+    public static final String KEY = TypeSeed.KEY;
+
+    public static class TypeSeed {
+        public static final String KEY = "cg.sememe:sememe";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss("en", "a unit of meaning")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "sememe");
+    }
 
 
     // ==================================================================================
@@ -265,7 +274,7 @@ public class Sememe extends Item {
     /**
      * Type seed constructor - creates a minimal Sememe for use as type seed.
      *
-     * <p>Used by SeedStore to create the "cg:type/sememe" type item.
+     * <p>Used by SeedStore to create the "cg.sememe:sememe" type item.
      */
     @SuppressWarnings("unused")  // Used via reflection by SeedStore
     protected Sememe(ItemID typeId) {
