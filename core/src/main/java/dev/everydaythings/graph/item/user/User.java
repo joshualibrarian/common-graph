@@ -145,7 +145,6 @@ public class User extends Signer {
      * @param name The user's name
      * @return The newly created User
      */
-    @Verb(value = CoreVocabulary.Create.KEY, doc = "Create a new user")
     public User actionNew(ActionContext ctx, @Param(value = "name", role = "NAME") String name) {
         Librarian lib = ctx.librarian();
         if (lib == null) {

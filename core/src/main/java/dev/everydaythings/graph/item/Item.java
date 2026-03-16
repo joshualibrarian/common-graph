@@ -2640,7 +2640,6 @@ public class Item {
      * @throws IllegalStateException if no librarian is available
      * @throws IllegalArgumentException if the type is abstract or has no suitable constructor
      */
-    @Verb(value = dev.everydaythings.graph.language.CoreVocabulary.Create.KEY, doc = "Create a new instance of this type")
     public Item actionNew(
             ActionContext ctx,
             @Param(

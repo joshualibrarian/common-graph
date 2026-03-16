@@ -1,13 +1,14 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.dispatch.ActionContext;
+import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -659,15 +660,80 @@ public class Sememe extends Item {
      *
      * <p>When the user types "create chess", this verb fires on the chess
      * sememe. It looks up the IMPLEMENTED_BY frame to find the Java
-     * class, then instantiates it via {@link CreationScanner}.
+     * class, instantiates it via {@code (Librarian)} constructor, creates
+     * an INSTANCE_OF relation, commits, caches, and returns a {@link Created}
+     * marker so the dispatch pipeline knows this was creation.
      */
     @Verb(value = CoreVocabulary.Create.KEY, doc = "Create a new instance of this type")
-    public Object actionCreate(ActionContext ctx) {
+    public Object actionCreate(ActionContext ctx,
+                               @Param(value = "name", required = false, role = "NAME") String name) {
         Class<?> implClass = resolveImplementingClass()
                 .orElseThrow(() -> new IllegalStateException(
-                        "No implementing class for type: " + displayToken()));
+                        "No implementing class for: " + displayToken()));
 
-        return CreationScanner.instantiate(implClass);
+        if (!Item.class.isAssignableFrom(implClass)) {
+            throw new IllegalStateException(
+                    implClass.getSimpleName() + " is not an Item subclass");
+        }
+
+        Librarian lib = ctx.librarian();
+        if (lib == null) {
+            throw new IllegalStateException("Cannot create item without librarian");
+        }
+
+        // 1. Instantiate — try (Librarian) first, fall back to (Librarian, InMemoryMarker)
+        Item newItem = instantiateItem(implClass, lib);
+
+        // 2. INSTANCE_OF relation: link instance to this sememe
+        newItem.relate(LexicalVocabulary.InstanceOf.SEED.iid(), this);
+
+        // 3. Optional name — Signers get setName(), others get a TITLE relation
+        if (name != null && !name.isBlank()) {
+            if (newItem instanceof Signer signer) {
+                signer.setName(name);
+            } else {
+                newItem.relate(CoreVocabulary.Title.SEED.iid(), Literal.ofText(name));
+            }
+        }
+
+        // 4. Commit + cache so it's stored and indexed
+        ctx.callerSigner().ifPresent(newItem::commit);
+        lib.library().cache(newItem);
+
+        // 5. Return Created marker so dispatch pipeline knows this was creation
+        return new Created(newItem);
+    }
+
+    /**
+     * Instantiate an Item subclass, trying constructors in priority order:
+     * (Librarian), then (Librarian, InMemoryMarker).
+     */
+    private static Item instantiateItem(Class<?> implClass, Librarian lib) {
+        // Try (Librarian) constructor first
+        try {
+            var ctor = implClass.getDeclaredConstructor(Librarian.class);
+            ctor.setAccessible(true);
+            return (Item) ctor.newInstance(lib);
+        } catch (NoSuchMethodException ignored) {
+            // fall through to InMemoryMarker
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
+        }
+
+        // Try (Librarian, InMemoryMarker) constructor
+        try {
+            Class<?> markerClass = Class.forName(
+                    "dev.everydaythings.graph.item.Item$InMemoryMarker");
+            Object markerInstance = markerClass.getField("INSTANCE").get(null);
+            var ctor = implClass.getDeclaredConstructor(Librarian.class, markerClass);
+            ctor.setAccessible(true);
+            return (Item) ctor.newInstance(lib, markerInstance);
+        } catch (NoSuchMethodException | ClassNotFoundException e) {
+            throw new IllegalArgumentException(
+                    implClass.getSimpleName() + " has no Librarian or (Librarian, InMemoryMarker) constructor");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
+        }
     }
 
     /**
