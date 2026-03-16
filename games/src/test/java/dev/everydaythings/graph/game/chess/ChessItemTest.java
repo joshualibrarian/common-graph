@@ -26,7 +26,7 @@ class ChessItemTest {
     void freshGame_isNotOver() {
         assertThat(chess.isGameOver()).isFalse();
         assertThat(chess.moveCount()).isEqualTo(0);
-        assertThat(chess.result()).isEqualTo(ChessGame.GameResult.IN_PROGRESS);
+        assertThat(chess.result()).isEqualTo(ChessItem.GameResult.IN_PROGRESS);
     }
 
     @Test
@@ -50,7 +50,7 @@ class ChessItemTest {
 
     @Test
     void show_rendersBoard() {
-        String board = chess.show();
+        String board = chess.renderBoard();
         assertThat(board).contains("a b c d e f g h");
         assertThat(board).contains("White to move");
     }
@@ -69,7 +69,7 @@ class ChessItemTest {
         assertThat(chess.move(ctx, "h5f7")).isNull();
 
         assertThat(chess.isGameOver()).isTrue();
-        assertThat(chess.result()).isEqualTo(ChessGame.GameResult.WHITE_WINS_CHECKMATE);
+        assertThat(chess.result()).isEqualTo(ChessItem.GameResult.WHITE_WINS_CHECKMATE);
     }
 
     @Test
@@ -79,7 +79,7 @@ class ChessItemTest {
         String msg = chess.resign(ctx);
         assertThat(msg).contains("White resigns");
         assertThat(chess.isGameOver()).isTrue();
-        assertThat(chess.result()).isEqualTo(ChessGame.GameResult.BLACK_WINS_RESIGNATION);
+        assertThat(chess.result()).isEqualTo(ChessItem.GameResult.BLACK_WINS_RESIGNATION);
     }
 
     @Test

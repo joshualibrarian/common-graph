@@ -12,13 +12,9 @@ import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -901,13 +897,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 }
                 navigateInto(item);
             }
-            case Eval.EvalResult.Created(Item item) -> {
+            case Eval.EvalResult.Created(Item item, Sememe type) -> {
                 // Item was created — don't navigate the current view.
                 // Cache it and refresh the tree so it's visible.
                 liveItemCache.put(item.iid(), item);
 
                 // Register session-scoped token postings for discoverability
-                registerInstanceTokens(item);
+                registerInstanceTokens(item, type);
 
                 if (itemModel != null) {
                     itemModel.refresh();
@@ -941,12 +937,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Register session-scoped token postings for a newly created item.
      *
-     * <p>Walks the item's INSTANCE_OF relations to find the Sememe type,
-     * then registers the sememe's tokens as session-scoped postings pointing
-     * to this instance. This makes the instance discoverable by typing the
+     * <p>Uses the Sememe type directly (passed through the Created marker)
+     * to register its tokens as session-scoped postings pointing to the
+     * new instance. This makes the instance discoverable by typing the
      * type name (e.g., "chess" finds the chess game instance).
      */
-    private void registerInstanceTokens(Item item) {
+    private void registerInstanceTokens(Item item, Sememe type) {
+        if (type == null) return;
         if (librarian == null) return;
         if (!(librarian instanceof LocalLibrarian local)) return;
 
@@ -956,32 +953,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         var dict = dictOpt.get();
 
-        // Walk INSTANCE_OF frames to find the Sememe
-        if (item.frames() == null) return;
-        ItemID instanceOfPred = LexicalVocabulary.InstanceOf.SEED.iid();
-        item.frames().bareFrames().forEach(frame -> {
-            var live = item.frames().getLive(frame.frameKey());
-            if (live.isEmpty()) return;
-            if (!(live.get() instanceof FrameBody body)) return;
-            if (!instanceOfPred.equals(body.predicate())) return;
-
-            // Found an INSTANCE_OF frame — resolve the target sememe
-            BindingTarget target = body.bindings().get(ThematicRole.Goal.SEED.iid());
-            if (target == null) {
-                target = body.bindings().get(ThematicRole.Theme.SEED.iid());
-            }
-            if (!(target instanceof Sememe sememe)) return;
-
-            // Register each token as a session-scoped posting
-            List<String> tokens = sememe.tokens();
-            if (tokens == null || tokens.isEmpty()) return;
-            for (String token : tokens) {
-                // Session-scoped: scope = this session's IID
-                // Weight slightly above default (1.1) so instances shadow the concept
-                Posting posting = Posting.scoped(token, iid(), item.iid(), 1.1f);
-                dict.index(posting, null);
-            }
-        });
+        List<String> tokens = type.tokens();
+        if (tokens == null || tokens.isEmpty()) return;
+        for (String token : tokens) {
+            // Session-scoped: scope = this session's IID
+            // Weight slightly above default (1.1) so instances shadow the concept
+            Posting posting = Posting.scoped(token, iid(), item.iid(), 1.1f);
+            dict.index(posting, null);
+        }
     }
 
     /**

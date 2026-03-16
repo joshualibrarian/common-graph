@@ -820,7 +820,7 @@ public class Eval {
                 showItemInfo(item);
                 yield 0;
             }
-            case EvalResult.Created(Item item) -> {
+            case EvalResult.Created(Item item, Sememe type) -> {
                 showItemInfo(item);
                 yield 0;
             }
@@ -1105,7 +1105,7 @@ public class Eval {
             Object value = result.value();
             if (value instanceof Created created) {
                 pushToHistory(created.item());
-                return EvalResult.created(created.item());
+                return EvalResult.created(created.item(), created.type());
             } else if (value instanceof Item item) {
                 pushToHistory(item);
                 return EvalResult.item(item);
@@ -1157,7 +1157,7 @@ public class Eval {
         record Value(Object value) implements EvalResult {}
         record ItemResult(Item item) implements EvalResult {}
         /** An item was created — session should NOT navigate the current view. */
-        record Created(Item item) implements EvalResult {}
+        record Created(Item item, Sememe type) implements EvalResult {}
         record ValueWithTarget(Object value, Item targetItem) implements EvalResult {}
         record Error(String message) implements EvalResult {}
         /**
@@ -1173,7 +1173,7 @@ public class Eval {
         static EvalResult empty() { return new Empty(); }
         static EvalResult value(Object v) { return new Value(v); }
         static EvalResult item(Item i) { return new ItemResult(i); }
-        static EvalResult created(Item i) { return new Created(i); }
+        static EvalResult created(Item i, Sememe type) { return new Created(i, type); }
         static EvalResult valueWithTarget(Object v, Item t) { return new ValueWithTarget(v, t); }
         static EvalResult error(String msg) { return new Error(msg); }
         static EvalResult ambiguous(List<Ambiguous.UnresolvedToken> tokens) { return new Ambiguous(tokens); }

@@ -946,14 +946,6 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
     }
 
     /**
-     * Unified chess board — one class with @Scene.Body + @Scene.Container.
-     * Embedded via @Scene.Embed in the BoardColumn.
-     */
-    public ChessBoard chessBoard() {
-        return new ChessBoard(this);
-    }
-
-    /**
      * Human-readable side-to-move label (e.g., "alice to move" or "WHITE to move").
      */
     public String sideToMoveLabel() {

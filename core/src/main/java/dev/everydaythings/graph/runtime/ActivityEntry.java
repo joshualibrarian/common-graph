@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.Sememe;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -118,7 +119,7 @@ public class ActivityEntry implements Canonical {
                     new ActivityEntry(input, contextIid, Kind.ITEM,
                             item.displayToken(), item.iid(), Source.SESSION);
 
-            case Eval.EvalResult.Created(Item item) ->
+            case Eval.EvalResult.Created(Item item, Sememe type) ->
                     new ActivityEntry(input, contextIid, Kind.CREATED,
                             item.displayToken(), item.iid(), Source.SESSION);
 

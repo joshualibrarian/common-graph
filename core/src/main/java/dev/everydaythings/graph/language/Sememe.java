@@ -701,7 +701,7 @@ public class Sememe extends Item {
         lib.library().cache(newItem);
 
         // 5. Return Created marker so dispatch pipeline knows this was creation
-        return new Created(newItem);
+        return new Created(newItem, this);
     }
 
     /**

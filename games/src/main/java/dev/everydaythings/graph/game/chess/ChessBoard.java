@@ -16,9 +16,9 @@ import java.util.List;
  *   <li><b>3D (Filament)</b>: {@code composeSurfaceOnBody()} → elevated boxes + GLB meshes</li>
  * </ul>
  *
- * <p>Embedded into {@link ChessGame} via {@code @Scene.Embed(bind = "value.chessBoard")}.
+ * <p>Embedded into {@link ChessItem} via {@code @Scene.Embed(bind = "value.chessBoard")}.
  *
- * @see ChessGame
+ * @see ChessItem
  */
 @Scene.Rule(match = ".square.light", background = "#F0D9B5")
 @Scene.Rule(match = ".square.dark", background = "#B58863")
@@ -26,14 +26,14 @@ import java.util.List;
 @Scene.Container(id = "board-root", direction = Direction.VERTICAL, aspectRatio = "1")
 public class ChessBoard {
 
-    private final ChessGame game;
+    private final ChessItem game;
 
-    public ChessBoard(ChessGame game) {
+    public ChessBoard(ChessItem game) {
         this.game = game;
     }
 
     // Delegates for bind expressions
-    public List<ChessGame.RankView> ranks() { return game.ranks(); }
+    public List<ChessItem.RankView> ranks() { return game.ranks(); }
     public List<String> fileLabels() { return game.fileLabels(); }
 
     // ==================================================================================

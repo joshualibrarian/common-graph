@@ -1300,7 +1300,7 @@ public class GraphicalSession extends Session {
 
         // Check if the component has a @Body annotation
         CompiledBody body = SpatialCompiler.compileBody(component.getClass());
-        boolean chessLike = component.getClass().getName().contains(".game.chess.ChessGame");
+        boolean chessLike = component.getClass().getName().contains(".game.chess.ChessItem");
         if (!body.isCompound() && !body.hasGeometry()) {
             hideDetailPane();
             return;
@@ -1645,7 +1645,7 @@ public class GraphicalSession extends Session {
     private float[] computeSurfaceCenterPx(Object component, LayoutNode.BoxNode tree,
                                            float[] elevBounds, float layoutW, float layoutH) {
         boolean chessLike = component != null
-                && component.getClass().getName().contains(".game.chess.ChessGame");
+                && component.getClass().getName().contains(".game.chess.ChessItem");
         if (chessLike) {
             LayoutNode.BoxNode board = findNodeById(tree, "board-root");
             if (board != null) {
@@ -1676,7 +1676,7 @@ public class GraphicalSession extends Session {
     }
 
     private void maybeSetSceneFocusExtent(Object component, LayoutNode.BoxNode tree, float ppu) {
-        if (component == null || !component.getClass().getName().contains(".game.chess.ChessGame")) return;
+        if (component == null || !component.getClass().getName().contains(".game.chess.ChessItem")) return;
         LayoutNode.BoxNode board = findNodeById(tree, "board-root");
         if (board == null) return;
         float boardWorldW = board.width() / ppu;
