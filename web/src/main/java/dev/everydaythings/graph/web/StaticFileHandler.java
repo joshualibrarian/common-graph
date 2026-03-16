@@ -77,6 +77,7 @@ public class StaticFileHandler extends ChannelInboundHandlerAdapter {
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, content.length);
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, "no-cache");
 
+        request.release();
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 

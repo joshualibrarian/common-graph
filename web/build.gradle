@@ -8,6 +8,11 @@
 
 plugins {
     id 'java-library'
+    id 'application'
+}
+
+application {
+    mainClass = 'dev.everydaythings.graph.web.WebMain'
 }
 
 dependencies {
@@ -17,4 +22,10 @@ dependencies {
 
     // Networking (Netty is 'implementation' in :core, not transitive)
     implementation "io.netty:netty-all:${nettyVersion}"
+}
+
+run {
+    standardInput = System.in
+    standardOutput = System.out
+    errorOutput = System.err
 }

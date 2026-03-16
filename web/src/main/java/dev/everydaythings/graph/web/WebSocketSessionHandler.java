@@ -10,7 +10,9 @@ import dev.everydaythings.graph.network.ProtocolError;
 import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.session.SessionMessage;
 import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.View;
+import dev.everydaythings.graph.ui.scene.surface.primitive.ContainerSurface;
 import dev.everydaythings.graph.ui.scene.surface.primitive.TextSurface;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -250,8 +252,27 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
 
         if (result.success()) {
             Object value = result.value();
-            View view = value instanceof View v ? v :
-                    value != null ? View.of(TextSurface.of(value.toString())) : View.empty();
+            View view;
+            if (value instanceof View v) {
+                view = v;
+            } else {
+                // Compile the context item's scene — this is what the native
+                // session does after every dispatch. The item's @Scene annotations
+                // define its visual presentation.
+                view = compileItemView(target);
+                // If the dispatch returned a non-View value (e.g., a string result),
+                // prepend it as text above the item view
+                if (value != null && !(value instanceof java.util.stream.BaseStream)) {
+                    String text = value.toString();
+                    if (!text.isBlank()) {
+                        view = View.of(
+                            ContainerSurface.vertical()
+                                .add(TextSurface.of(text).style("muted"))
+                                .add(view.root() != null ? view.root() : ContainerSurface.vertical())
+                        );
+                    }
+                }
+            }
             sendMessage(ctx, SessionMessage.DispatchResponse.success(requestId, view));
         } else {
             sendMessage(ctx, SessionMessage.DispatchResponse.failure(requestId,
@@ -275,6 +296,31 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
             subscriptions.remove(m.itemId());
         }
         sendMessage(ctx, new Ack(0));
+    }
+
+    // =========================================================================
+    // Item View Compilation
+    // =========================================================================
+
+    /**
+     * Compile an Item's scene annotations into a View.
+     *
+     * <p>This is the web equivalent of what the native session does via
+     * ItemModel.toSurface() → SceneCompiler.compile(). Every item is
+     * renderable through its @Scene annotations.
+     */
+    private View compileItemView(Item item) {
+        try {
+            return SceneCompiler.compile(item);
+        } catch (Exception e) {
+            logger.debug("Scene compilation failed for {}: {}", item.displayToken(), e.getMessage());
+            // Fallback: show item identity as text
+            return View.of(
+                    ContainerSurface.vertical()
+                            .add(TextSurface.of(item.displayToken()).style("heading"))
+                            .add(TextSurface.of(item.iid().encodeText()).style("muted"))
+            );
+        }
     }
 
     // =========================================================================
