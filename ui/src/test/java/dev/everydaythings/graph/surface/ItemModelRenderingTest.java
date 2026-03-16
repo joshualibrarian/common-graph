@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.surface;
 
-import dev.everydaythings.graph.game.chess.ChessGame;
+import dev.everydaythings.graph.game.chess.ChessItem;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -81,51 +80,27 @@ class ItemModelRenderingTest {
     }
 
     @Test
-    void rendersChessComponentAfterAddition() {
+    void rendersChessItemDirectly() {
         Librarian librarian = Librarian.createInMemory();
         Function<ItemID, Optional<Item>> resolver = iid -> librarian.get(iid, Item.class);
 
-        // Use the Librarian itself as the host (same as the real app).
-        // The Librarian is already cached.
-        Item hostItem = librarian;
-        System.err.println("=== Chess Component Test ===");
-        System.err.println("Host item: " + hostItem.displayToken() + " (" + hostItem.getClass().getSimpleName() + ")");
-        System.err.println("Host IID: " + hostItem.iid().encodeText());
-        System.err.println("liveCount before: " + hostItem.frames().size());
+        // Create ChessItem — a proper Item, not a component
+        ChessItem chess = new ChessItem(librarian);
+        librarian.library().cache(chess);
 
-        // Add chess component (same as Session.addComponentToItem does)
-        ChessGame chess = ChessGame.create();
-        String componentHandle = "chess";
-        hostItem.addComponent(componentHandle, chess);
-        System.err.println("liveCount after: " + hostItem.frames().size());
+        System.err.println("=== Chess Item Test ===");
+        System.err.println("Chess item: " + chess.displayToken() + " (" + chess.getClass().getSimpleName() + ")");
+        System.err.println("Chess IID: " + chess.iid().encodeText());
 
-        // Verify the live instance is stored
-        FrameKey chessKey = FrameKey.literal("chess");
-        Optional<Object> live = hostItem.frames().getLive(chessKey);
-        System.err.println("getLive(chess): " + (live.isPresent() ? live.get().getClass().getName() : "EMPTY"));
-        assertThat(live).isPresent();
-
-        // Verify the resolver returns the SAME instance
-        Item resolved = resolver.apply(hostItem.iid()).orElseThrow();
-        System.err.println("Same instance? " + (resolved == hostItem));
-        System.err.println("resolved liveCount: " + resolved.frames().size());
-        Optional<Object> resolvedLive = resolved.frames().getLive(chessKey);
-        System.err.println("resolved getLive(chess): " + (resolvedLive.isPresent() ? resolvedLive.get().getClass().getName() : "EMPTY"));
-
-        // Now create the ItemModel and select the chess component
-        Ref root = Ref.of(hostItem.iid());
+        // Create ItemModel for the chess item
+        Ref root = Ref.of(chess.iid());
         ItemModel itemModel = new ItemModel(root, resolver);
 
-        // Simulate what addComponentToItem does: select the component ref
-        Ref componentRef = Ref.of(hostItem.iid(), FrameKey.literal(componentHandle));
-        itemModel.select(componentRef);
+        System.err.println("\n=== ItemModel State ===");
+        System.err.println("Root: " + itemModel.root());
+        System.err.println("Context: " + itemModel.context());
 
-        System.err.println("\n=== After select ===");
-        System.err.println("context.target(): " + itemModel.context().target().encodeText());
-        System.err.println("context.frameKey(): " + (itemModel.context().frameKey() != null ? itemModel.context().frameKey().toCanonicalString() : "<none>"));
-
-        // Compile surface — this triggers detail() → resolveComponentSurface()
-        System.err.println("\n=== Compiling surface ===");
+        // Compile surface
         SurfaceSchema surface = itemModel.toSurface();
 
         assertThat(surface).isInstanceOf(ConstraintSurface.class);
@@ -137,7 +112,7 @@ class ItemModelRenderingTest {
                 (child.surface() != null ? child.surface().getClass().getSimpleName() : "null"));
         }
 
-        // Render to text to see what comes out
+        // Render to text
         TuiSurfaceRenderer renderer = new TuiSurfaceRenderer();
         surface.render(renderer);
         String output = renderer.result();

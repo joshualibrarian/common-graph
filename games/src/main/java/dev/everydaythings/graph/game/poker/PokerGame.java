@@ -35,7 +35,6 @@ import java.util.*;
  *   <li>{@link Randomized} — deck shuffle from deterministic event RNG</li>
  * </ul>
  */
-@Implements(PokerGame.TypeSeed.KEY)
 @Type(glyph = "\uD83C\uDCA1")
 @Scene(as = PokerSurface.class)
 public class PokerGame extends GameComponent<PokerGame.Op>

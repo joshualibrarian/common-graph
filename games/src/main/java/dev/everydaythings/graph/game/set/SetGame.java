@@ -38,7 +38,6 @@ import java.util.*;
  * @see SetCard
  * @see SetProperty
  */
-@Implements(SetGame.TypeSeed.KEY)
 @Type(glyph = "\uD83C\uDCCF")
 @Scene.Body(shape = "box", width = "60cm", height = "0", depth = "50cm", color = 0x2E7D32)
 @Scene(as = SetSurface.class)

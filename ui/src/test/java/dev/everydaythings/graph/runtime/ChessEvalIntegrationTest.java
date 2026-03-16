@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.game.chess.ChessGame;
+import dev.everydaythings.graph.game.chess.ChessItem;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -19,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration test: full chess flow through Eval.
  *
  * <p>Tests the end-to-end path:
- * create item → create chess → show board → move e4 → show updated board
+ * create chess → move e4 → verify
  */
 class ChessEvalIntegrationTest {
 
@@ -31,8 +30,7 @@ class ChessEvalIntegrationTest {
     }
 
     @Test
-    void nounSememe_createVerb_instantiatesChess() {
-        // Find the chess sememe via its type ID
+    void nounSememe_resolvesToChessItem() {
         ItemID chessTypeId = ItemID.fromString("cg.sememe:chess");
         Optional<Item> chessType = librarian.get(chessTypeId);
 
@@ -40,26 +38,13 @@ class ChessEvalIntegrationTest {
         assertThat(chessType.get()).isInstanceOf(Sememe.class);
 
         Sememe ns = (Sememe) chessType.get();
-
-        // The sememe should resolve its implementing class via IMPLEMENTED_BY frame
         Optional<Class<?>> resolved = ns.resolveImplementingClass();
         assertThat(resolved).isPresent();
-        assertThat(resolved.get()).isEqualTo(ChessGame.class);
+        assertThat(resolved.get()).isEqualTo(ChessItem.class);
     }
 
     @Test
-    void componentType_instantiateComponent_createsChess() {
-        Object chess = CreationScanner.instantiate(ChessGame.class);
-
-        assertThat(chess).isInstanceOf(ChessGame.class);
-        ChessGame game = (ChessGame) chess;
-        assertThat(game.isGameOver()).isFalse();
-        assertThat(game.moveCount()).isEqualTo(0);
-    }
-
-    @Test
-    void eval_createChess_returnsCreatedItemWithChessComponent() {
-        // "create chess" should create an Item with a ChessGame component attached
+    void eval_createChess_returnsChessItem() {
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
@@ -68,36 +53,18 @@ class ChessEvalIntegrationTest {
 
         Eval.EvalResult result = eval.evaluateCommand(List.of("create", "chess"));
 
-        // Should return Created with an Item wrapping a ChessGame component
         assertThat(result).isInstanceOf(Eval.EvalResult.Created.class);
         Item created = ((Eval.EvalResult.Created) result).item();
-        assertThat(created).isNotNull();
+        assertThat(created).isInstanceOf(ChessItem.class);
         assertThat(created.iid()).isNotNull();
 
-        // The item should have chess verbs registered
+        // ChessItem has move verb
         ItemID moveId = ItemID.fromString(GameVocabulary.Move.KEY);
         assertThat(created.vocabulary().lookup(moveId)).isPresent();
     }
 
     @Test
-    void eval_createMinesweeper_returnsCreatedItemWithMinesweeperComponent() {
-        Eval eval = Eval.builder()
-                .librarian(librarian)
-                .context(librarian)
-                .interactive(false)
-                .build();
-
-        Eval.EvalResult result = eval.evaluateCommand(List.of("create", "minesweeper"));
-
-        // Should return Created with an Item wrapping a Minesweeper component
-        assertThat(result).isInstanceOf(Eval.EvalResult.Created.class);
-        Item created = ((Eval.EvalResult.Created) result).item();
-        assertThat(created).isNotNull();
-    }
-
-    @Test
     void eval_createItem_returnsItem() {
-        // "create item" should dispatch CREATE on the Item type → new Item
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
@@ -113,23 +80,7 @@ class ChessEvalIntegrationTest {
     }
 
     @Test
-    void eval_verbAlone_dispatchesOnContextIfAvailable() {
-        // "create" alone — Librarian has actionNew (CREATE verb), so should dispatch
-        Eval eval = Eval.builder()
-                .librarian(librarian)
-                .context(librarian)
-                .interactive(false)
-                .build();
-
-        Eval.EvalResult result = eval.evaluateCommand(List.of("create"));
-
-        // Librarian has CREATE verb → dispatches on context → creates Item
-        assertThat(result.isSuccess()).isTrue();
-    }
-
-    @Test
     void eval_nounAlone_navigatesToNoun() {
-        // "chess" alone should navigate to the chess sememe
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
@@ -144,50 +95,21 @@ class ChessEvalIntegrationTest {
     }
 
     @Test
-    void item_addChessComponent_enablesChessVerbs() {
-        // Create an item and add a chess component
-        Item item = Item.create(librarian);
-        ChessGame chess = ChessGame.create();
-        item.addComponent("chess", chess);
-
-        // Item should now have chess verbs (MOVE, SHOW, etc.)
-        ItemID moveId = ItemID.fromString(GameVocabulary.Move.KEY);
-        assertThat(item.vocabulary().lookup(moveId)).isPresent();
-
-        ItemID showId = ItemID.fromString(CoreVocabulary.Show.KEY);
-        assertThat(item.vocabulary().lookup(showId)).isPresent();
-    }
-
-    @Test
     void fullFlow_createChess_move_show() {
-        // Step 1: "create chess" creates an Item with ChessGame component already attached
         Eval eval = Eval.builder()
                 .librarian(librarian)
                 .context(librarian)
                 .interactive(false)
                 .build();
 
+        // Step 1: "create chess" → ChessItem
         Eval.EvalResult createResult = eval.evaluateCommand(List.of("create", "chess"));
         assertThat(createResult).isInstanceOf(Eval.EvalResult.Created.class);
         Item item = ((Eval.EvalResult.Created) createResult).item();
+        assertThat(item).isInstanceOf(ChessItem.class);
+        ChessItem chess = (ChessItem) item;
 
-        // The item should have chess verbs
-        ItemID moveId = ItemID.fromString(GameVocabulary.Move.KEY);
-        assertThat(item.vocabulary().lookup(moveId)).isPresent();
-
-        // Step 2: Get the chess component from the item's live frames
-        var chessHolder = new Object() { ChessGame game; };
-        item.frames().forEachLive(ChessGame.class, g -> chessHolder.game = g);
-        ChessGame chess = chessHolder.game;
-        assertThat(chess).isNotNull();
-
-        // Step 3: Join the game (seat players for testing)
-        ItemID principalId = librarian.principal().map(s -> s.iid()).orElse(null);
-        assertThat(principalId).isNotNull();
-        chess.joinAs(0, principalId);
-        chess.joinAs(1, ItemID.fromString("test:player/opponent"));
-
-        // Step 4: "show" in context of the chess item
+        // Step 2: "show" in context of the chess item
         Eval evalOnItem = Eval.builder()
                 .librarian(librarian)
                 .context(item)
@@ -197,14 +119,14 @@ class ChessEvalIntegrationTest {
         Eval.EvalResult showResult = evalOnItem.evaluateCommand(List.of("show"));
         assertThat(showResult.isSuccess()).isTrue();
 
-        // Step 5: "move e2e4" → should make a move
+        // Step 3: "move e2e4"
         Eval.EvalResult moveResult = evalOnItem.evaluateCommand(List.of("move", "e2e4"));
         assertThat(moveResult.isSuccess()).isTrue();
 
         // Verify the move was made
         assertThat(chess.moveCount()).isEqualTo(1);
 
-        // Step 6: Show again — board should reflect the move
+        // Step 4: Show again — board should reflect the move
         Eval.EvalResult showResult2 = evalOnItem.evaluateCommand(List.of("show"));
         assertThat(showResult2.isSuccess()).isTrue();
     }

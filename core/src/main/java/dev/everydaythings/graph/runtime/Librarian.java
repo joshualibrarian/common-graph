@@ -14,7 +14,6 @@ import dev.everydaythings.graph.value.ValueType;
 import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.DisplayInfo;
-import dev.everydaythings.graph.item.CreationScanner;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.ActionContext;
@@ -2202,11 +2201,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * Try to create a typed Item from a type name.
      *
      * <p>Looks up the name in the TokenDictionary, checks if any match is
-     * a type Sememe with an IMPLEMENTED_BY relation, and creates either:
-     * <ul>
-     *   <li>For Item subclasses: a fresh instance of that class</li>
-     *   <li>For non-Item types (components): a plain Item with the component attached</li>
-     * </ul>
+     * a type Sememe with an IMPLEMENTED_BY relation pointing to an Item
+     * subclass, and creates a fresh instance of that class.
      */
     private Optional<Item> createTypedItem(String typeName) {
         TokenDictionary tokenDict = tokenIndex();
@@ -2220,7 +2216,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 Class<?> implClass = sememe.get().resolveImplementingClass().orElseThrow();
 
                 if (Item.class.isAssignableFrom(implClass)) {
-                    // Item subclass — create a fresh typed instance
                     try {
                         @SuppressWarnings("unchecked")
                         var ctor = ((Class<? extends Item>) implClass).getDeclaredConstructor(Librarian.class);
@@ -2229,13 +2224,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     } catch (Exception e) {
                         logger.debug("Failed to create typed Item {}: {}", implClass.getSimpleName(), e.getMessage());
                     }
-                } else {
-                    // Non-Item type — create a wrapper Item with the component attached
-                    Object component = CreationScanner.instantiate(implClass);
-                    Item newItem = Item.create(this);
-                    String handle = sememe.get().displayToken();
-                    newItem.addComponent(handle, component);
-                    return Optional.of(newItem);
                 }
             }
         }

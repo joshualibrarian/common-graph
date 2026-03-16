@@ -40,7 +40,6 @@ import java.util.*;
  *   <li>{@link Randomized} — dice rolls from deterministic event RNG</li>
  * </ul>
  */
-@Implements(YahtzeeGame.TypeSeed.KEY)
 @Type(glyph = "\uD83C\uDFB2")
 @Scene(as = YahtzeeSurface.class)
 public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>

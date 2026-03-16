@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
  *
  * @see <a href="https://github.com/bhlangonijr/chesslib">chesslib</a>
  */
-@Implements(ChessGame.TypeSeed.KEY)
 @Type(glyph = "♟️")
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "chess-root", direction = Direction.VERTICAL, width = "100%", height = "100%",
@@ -58,7 +57,8 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:chess";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
+        // @Item.Seed removed — ChessItem.TypeSeed now owns the seed for "cg.sememe:chess"
+        public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "the game of chess")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "chess");
     }

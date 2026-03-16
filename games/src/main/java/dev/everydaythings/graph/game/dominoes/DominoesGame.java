@@ -38,7 +38,6 @@ import java.util.*;
  *   <li>{@link Scored} — cumulative pip scoring across rounds</li>
  * </ul>
  */
-@Implements(DominoesGame.TypeSeed.KEY)
 @Type(glyph = "\uD83C\uDC04")
 @Scene(as = DominoesSurface.class)
 public class DominoesGame extends GameComponent<DominoesGame.Op>

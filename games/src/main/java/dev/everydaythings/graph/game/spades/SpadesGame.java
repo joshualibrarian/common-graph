@@ -43,7 +43,6 @@ import java.util.*;
  *   <li>{@link Phased} — DEAL → BID → PLAY</li>
  * </ul>
  */
-@Implements(SpadesGame.TypeSeed.KEY)
 @Type(glyph = "\u2660")
 @Scene(as = SpadesSurface.class)
 public class SpadesGame extends GameComponent<SpadesGame.Op>
