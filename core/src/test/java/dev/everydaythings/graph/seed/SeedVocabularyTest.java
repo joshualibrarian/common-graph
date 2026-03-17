@@ -56,10 +56,20 @@ class SeedVocabularyTest {
     }
 
     private List<Manifest> allManifestsOfType(ItemID typeId) {
+        // PHASE 6: type is now an implementation binding, not a sememe IID.
+        // Match by checking if the implementation class has @Implements pointing to typeId.
         List<Manifest> result = new ArrayList<>();
         for (Manifest m : store.manifests(null).toList()) {
-            if (typeId.equals(m.type())) {
-                result.add(m);
+            Class<?> implClass = m.implementationClass();
+            if (implClass != null) {
+                try {
+                    ItemID implTypeId = Item.idOf(implClass);
+                    if (typeId.equals(implTypeId)) {
+                        result.add(m);
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // Class doesn't have @Implements
+                }
             }
         }
         return result;

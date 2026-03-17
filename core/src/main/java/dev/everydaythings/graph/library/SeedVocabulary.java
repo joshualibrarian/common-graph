@@ -3,8 +3,10 @@ package dev.everydaythings.graph.library;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.PresentationConfig;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.Implements;
@@ -407,6 +409,20 @@ public final class SeedVocabulary {
         }
 
         attachComponent(typeItem, SurfaceTemplateComponent.HANDLE, "surface", stc);
+
+        // Phase 5: also store PresentationConfig in a PRESENTATION frame on the type item.
+        // This feeds the three-level cascade (instance → type → sememe).
+        PresentationConfig presConfig = PresentationConfig.of(
+                annotation.glyph(), annotation.color(), annotation.shape());
+        byte[] presBytes = presConfig.encodeBinary(Canonical.Scope.RECORD);
+        Literal presLiteral = new Literal(Literal.TYPE_CBOR, presBytes);
+
+        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+        FrameBody presBody = new FrameBody(ThematicRole.Presentation.SEED.iid(),
+                List.of(new Binding(ThematicRole.Topic.SEED.iid(), presLiteral)));
+        Frame presFrame = new Frame(presKey, ThematicRole.Presentation.SEED.iid(),
+                presBody, presBody.hash(), false);
+        typeItem.frames().add(presFrame);
     }
 
     /**

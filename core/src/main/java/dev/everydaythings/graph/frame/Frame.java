@@ -148,27 +148,16 @@ public final class Frame implements Canonical {
      * Set the per-frame policy override.
      *
      * <p>Stores the policy in the transient field and encodes it into the
-     * FrameBody's Config binding so it is committed with the frame.
+     * FrameBody's config map so it is committed with the frame.
      */
     public void setPolicy(PolicySet policy) {
         this.policy = policy;
         if (body == null) return;
-        // Encode the policy into a FrameConfig and store as Config binding in the body
+        // Encode the policy into a FrameConfig and store in the config map
         FrameConfig cfg = FrameConfig.builder().policy(policy).build();
         byte[] configBytes = cfg.encodeBinary(Canonical.Scope.RECORD);
         Literal configLiteral = new Literal(Literal.TYPE_CBOR, configBytes);
-        // Rebuild the body replacing the Config binding
-        List<Binding> bindings = new ArrayList<>();
-        if (body.frameBindings() != null) {
-            for (Binding b : body.frameBindings()) {
-                if (b.isSimpleKey() && ThematicRole.Config.SEED.iid().equals(b.role())) {
-                    continue; // will replace
-                }
-                bindings.add(b);
-            }
-        }
-        bindings.add(Binding.nonIdentity(ThematicRole.Config.SEED.iid(), configLiteral));
-        setBody(new FrameBody(body.predicate(), bindings));
+        setBody(body.withConfig(ThematicRole.Config.SEED.iid(), configLiteral));
     }
 
     // ==================================================================================

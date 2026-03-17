@@ -1,11 +1,14 @@
 package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.*;
+import dev.everydaythings.graph.language.RuntimeVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import org.junit.jupiter.api.*;
@@ -79,14 +82,15 @@ public abstract class ItemStoreTest {
     }
 
     /**
-     * A test type ID for manifests.
+     * A test implementation binding for manifests.
      */
-    protected static final ItemID TEST_TYPE = ItemID.fromString("cg:test/type");
+    protected static final Binding TEST_IMPL = Manifest.javaImplementation(Item.class);
 
     /**
-     * Another test type ID (for different versions).
+     * Another test implementation binding (for different versions).
      */
-    protected static final ItemID TEST_TYPE_2 = ItemID.fromString("cg:test/type2");
+    protected static final Binding TEST_IMPL_2 = new Binding(
+            RuntimeVocabulary.Java.SEED.iid(), Literal.ofText("cg.test.Type2"));
 
     /**
      * Create a simple test manifest.
@@ -94,7 +98,7 @@ public abstract class ItemStoreTest {
     protected Manifest testManifest(ItemID iid) {
         return Manifest.builder()
                 .iid(iid)
-                .type(TEST_TYPE)
+                .implementation(TEST_IMPL)
                 .build();
     }
 
@@ -169,12 +173,12 @@ public abstract class ItemStoreTest {
             // Create and persist two different manifests for the same IID
             Manifest m1 = Manifest.builder()
                     .iid(iid)
-                    .type(TEST_TYPE)
+                    .implementation(TEST_IMPL)
                     .build();
 
             Manifest m2 = Manifest.builder()
                     .iid(iid)
-                    .type(TEST_TYPE_2)  // Different type
+                    .implementation(TEST_IMPL_2)  // Different type
                     .build();
 
             ContentID vid1 = store.manifest(m1);
@@ -196,8 +200,8 @@ public abstract class ItemStoreTest {
             ItemID iid = testItemID("iterate-test");
 
             // Store two versions
-            Manifest m1 = Manifest.builder().iid(iid).type(TEST_TYPE).build();
-            Manifest m2 = Manifest.builder().iid(iid).type(TEST_TYPE_2).build();
+            Manifest m1 = Manifest.builder().iid(iid).implementation(TEST_IMPL).build();
+            Manifest m2 = Manifest.builder().iid(iid).implementation(TEST_IMPL_2).build();
 
             store.manifest(m1);
             store.manifest(m2);
@@ -484,7 +488,7 @@ public abstract class ItemStoreTest {
 
             store.runInWriteTransaction(tx -> {
                 // Multiple manifests
-                Manifest m1 = Manifest.builder().iid(iid).type(TEST_TYPE).build();
+                Manifest m1 = Manifest.builder().iid(iid).implementation(TEST_IMPL).build();
                 store.persistManifest(iid, m1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Frame body

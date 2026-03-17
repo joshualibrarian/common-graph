@@ -60,25 +60,35 @@ public class SurfaceTemplateComponent implements Canonical {
     private ViewNode root;
 
     // ==================================================================================
-    // Display Metadata (formerly DisplayComponent)
+    // Display Metadata — DEPRECATED (Phase 7)
+    //
+    // These fields are superseded by PresentationConfig in the presentation cascade.
+    // @Type glyph/color/shape now flow through PresentationConfig stored on seed items.
+    // Kept for backward compat with existing serialized STCs and non-seed items.
     // ==================================================================================
 
-    /** The glyph (emoji/icon) for display. */
+    /** @deprecated Use PresentationConfig cascade via Item.resolvedPresentation(). */
+    @Deprecated
     private String glyph;
 
-    /** RGB color packed as int (0xRRGGBB). */
+    /** @deprecated Use PresentationConfig cascade (PRIMARY palette token). */
+    @Deprecated
     private int color;
 
-    /** Shape kind: "sphere", "cube", or "disc". */
+    /** @deprecated Use PresentationConfig cascade (shape field). */
+    @Deprecated
     private String shape;
 
-    /** Optional type name (e.g., "Librarian"). */
+    /** @deprecated Use Item.findTypeName(). */
+    @Deprecated
     private String typeName;
 
-    /** Optional 2D icon path. */
+    /** @deprecated Use PresentationConfig or @Scene.Body(image=...). */
+    @Deprecated
     private String iconPath2D;
 
-    /** Optional 3D model path. */
+    /** @deprecated Use @Scene.Body(mesh=...). */
+    @Deprecated
     private String iconPath3D;
 
     // ==================================================================================

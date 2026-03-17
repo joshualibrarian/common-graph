@@ -39,7 +39,7 @@ import java.util.*;
  * Library is available, operations can be persisted as frames via FrameChain.
  */
 @Implements(CertLog.TypeSeed.KEY)
-@Type(glyph = "📋")
+@Type(glyph = "📜")
 public class CertLog implements Canonical, Inspectable {
 
     // === TYPE DEFINITION ===

@@ -1313,23 +1313,16 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     @SuppressWarnings("unchecked")
     private <T extends Item> Optional<T> hydrateItem(Manifest manifest, Class<T> expectedType) {
-        ItemID typeId = manifest.type();
-        if (typeId == null) {
-            logger.warn("hydrateItem() - manifest has null typeId for iid={}", manifest.iid().encodeText());
+        // PHASE 6: resolve implementation class directly from manifest binding
+        Class<?> resolved = manifest.implementationClass();
+        if (resolved == null || !Item.class.isAssignableFrom(resolved)) {
+            logger.warn("hydrateItem() - no valid implementation for iid={}, impl={}",
+                    manifest.iid().encodeText(), manifest.implementationName());
             return Optional.empty();
         }
 
-        logger.trace("hydrateItem() - typeId={} for iid={}", typeId.encodeText(), manifest.iid().encodeText());
-
-        // Find the implementing class
-        Optional<Class<? extends Item>> implClassOpt = library().findItemImplementation(typeId);
-        if (implClassOpt.isEmpty()) {
-            logger.debug("hydrateItem() - findItemImplementation returned empty for typeId={}", typeId.encodeText());
-            return Optional.empty();
-        }
-
-        Class<? extends Item> implClass = implClassOpt.get();
-        logger.trace("hydrateItem() - implClass={} for typeId={}", implClass.getSimpleName(), typeId.encodeText());
+        Class<? extends Item> implClass = resolved.asSubclass(Item.class);
+        logger.trace("hydrateItem() - implClass={} for iid={}", implClass.getSimpleName(), manifest.iid().encodeText());
 
         // Check type compatibility
         if (!expectedType.isAssignableFrom(implClass)) {

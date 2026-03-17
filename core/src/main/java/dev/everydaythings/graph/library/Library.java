@@ -75,7 +75,7 @@ import java.util.stream.Stream;
  */
 @Log4j2
 @Implements(Library.TypeSeed.KEY)
-@Type(glyph = "📚")
+@Type(glyph = "🏛️")
 public final class Library implements Canonical, AutoCloseable {
 
     public static final String KEY = TypeSeed.KEY;
@@ -648,7 +648,7 @@ public final class Library implements Canonical, AutoCloseable {
         List<Manifest> allManifests = source.manifests(null).toList();
         logger.info("importFrom: {} manifests to import", allManifests.size());
         for (Manifest m : allManifests) {
-            logger.debug("importFrom: importing manifest for iid={}, type={}", m.iid().encodeText(), m.type());
+            logger.debug("importFrom: importing manifest for iid={}, impl={}", m.iid().encodeText(), m.implementationName());
             manifest(m);
             // Register in directory
             directory().ifPresent(dir -> {
@@ -936,14 +936,12 @@ public final class Library implements Canonical, AutoCloseable {
         }
         Manifest manifest = manifestOpt.get();
 
-        // Find the Item implementation class for the manifest's type
-        ItemID typeId = manifest.type();
-        if (typeId == null) {
-            typeId = ItemID.fromString(Item.KEY);  // Default to base Item type
+        // PHASE 6: resolve implementation class directly from manifest
+        Class<? extends Item> itemClass = Item.class;
+        Class<?> implClass = manifest.implementationClass();
+        if (implClass != null && Item.class.isAssignableFrom(implClass)) {
+            itemClass = implClass.asSubclass(Item.class);
         }
-
-        Class<? extends Item> itemClass = findItemImplementation(typeId)
-                .orElse(Item.class);
 
         // Instantiate via hydration constructor (Librarian, Manifest)
         try {

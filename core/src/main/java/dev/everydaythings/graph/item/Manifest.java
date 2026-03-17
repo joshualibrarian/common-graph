@@ -3,8 +3,11 @@ package dev.everydaythings.graph.item;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameEndorsement;
 import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.language.RuntimeVocabulary;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -46,8 +49,12 @@ public final class Manifest implements Signing.Target {
     @Canon(order = 2)
     private List<ContentID> parents;
 
+    // PHASE 6: was `ItemID type` (sememe IID). Now carries the creating
+    // implementation as (platform, class-name). The sememe relationship
+    // lives in the item's IMPLEMENTS frame, not on the manifest.
+    @Getter(AccessLevel.NONE)
     @Canon(order = 3)
-    private ItemID type;
+    private Binding implementation;
 
     // --- STATE (the five tables) ---
     @Canon(order = 4)
@@ -59,6 +66,11 @@ public final class Manifest implements Signing.Target {
 
     @Canon(order = 6, isBody = false)
     private Signing signature;
+
+    // --- CONFIG (non-BODY, item-level config bindings) ---
+    @Getter(AccessLevel.NONE)
+    @Canon(order = 7, isBody = false)
+    private List<Binding> config;
 
     // --- DERIVED CACHES (NOT serialized) ---
     @Getter(AccessLevel.NONE)
@@ -75,13 +87,15 @@ public final class Manifest implements Signing.Target {
     private Manifest(
             @NonNull ItemID iid,
             @Singular("parent") List<ContentID> parents,
-            ItemID type,
-            ItemState state
+            Binding implementation,
+            ItemState state,
+            @Singular("configEntry") List<Binding> config
     ) {
         this.iid = Objects.requireNonNull(iid, "iid");
         this.parents = (parents == null) ? List.of() : List.copyOf(parents);
-        this.type = type;
+        this.implementation = implementation;
         this.state = state != null ? state : new ItemState();
+        this.config = (config == null || config.isEmpty()) ? null : List.copyOf(config);
 
         // Precompute caches for newly-built instances
         this.bodyBytes = encodeBinary(Canonical.Scope.BODY);
@@ -117,6 +131,97 @@ public final class Manifest implements Signing.Target {
      */
     public List<FrameEndorsement> endorsements() {
         return state != null ? state.endorsements() : List.of();
+    }
+
+    // ==================================================================================
+    // Config Accessors
+    // ==================================================================================
+
+    /**
+     * Item-level config bindings (record-scope, non-identity).
+     *
+     * <p>Config bindings carry presentation, vocabulary, and general config
+     * data at the item level. They do not affect the VID.
+     *
+     * @return config binding list, never null
+     */
+    public List<Binding> config() {
+        return config != null ? config : List.of();
+    }
+
+    /**
+     * Look up a config binding by qualifier (simple key match).
+     *
+     * @param qualifier the config qualifier IID (e.g., PRESENTATION, VOCABULARY, CONFIG)
+     * @return the matching binding, or null if not found
+     */
+    public Binding configBinding(ItemID qualifier) {
+        if (config == null || config.isEmpty()) return null;
+        for (Binding b : config) {
+            if (b.isSimpleKey() && qualifier.equals(b.role())) return b;
+        }
+        return null;
+    }
+
+    // ==================================================================================
+    // Implementation Accessors
+    // ==================================================================================
+
+    /**
+     * The creating implementation binding: platform + class/module name.
+     *
+     * <p>The binding's key is the platform IID (e.g., Java, Python) and
+     * its target is a Literal containing the implementation class name.
+     */
+    public Binding implementation() { return implementation; }
+
+    /**
+     * The platform that created this item (language/runtime IID).
+     *
+     * @return the platform sememe IID (e.g., RuntimeVocabulary.Java), or null
+     */
+    public ItemID platform() {
+        return implementation != null ? implementation.role() : null;
+    }
+
+    /**
+     * The implementation class/module name as a string.
+     *
+     * @return the implementation name, or null if not set
+     */
+    public String implementationName() {
+        if (implementation == null) return null;
+        if (implementation.target() instanceof Literal lit) return lit.asText();
+        return null;
+    }
+
+    /**
+     * Resolve the Java class for this manifest's implementation.
+     *
+     * @return the Java class, or null if not a Java implementation or class not found
+     */
+    public Class<?> implementationClass() {
+        if (implementation == null) return null;
+        if (implementation.target() instanceof Literal lit) {
+            try {
+                return lit.asJavaClass();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Build an implementation binding for a Java class.
+     *
+     * <p>Convenience factory for the common case of creating a manifest
+     * for a Java item.
+     */
+    public static Binding javaImplementation(Class<?> clazz) {
+        return new Binding(
+                RuntimeVocabulary.Java.SEED.iid(),
+                Literal.ofText(clazz.getName()));
     }
 
     // ==================================================================================

@@ -68,7 +68,17 @@ public record DisplayInfo(
         /** Cube (3D) / Rounded Square (2D) - for Components */
         CUBE,
         /** Flat Disc/Cylinder (3D) / Pill/Oval (2D) - for Values */
-        DISC
+        DISC;
+
+        /** Parse from string (case-insensitive), defaulting to SPHERE. */
+        public static Shape fromString(String s) {
+            if (s == null) return SPHERE;
+            return switch (s.toLowerCase()) {
+                case "cube" -> CUBE;
+                case "disc" -> DISC;
+                default -> SPHERE;
+            };
+        }
     }
 
     // ==================================================================================

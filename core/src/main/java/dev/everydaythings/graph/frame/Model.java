@@ -46,7 +46,7 @@ import dev.everydaythings.graph.language.Sememe;
  * </ul>
  */
 @Implements(Model.TypeSeed.KEY)
-@Type(glyph = "🎭")
+@Type(glyph = "🧊")
 public final class Model {
 
     public static final String KEY = TypeSeed.KEY;

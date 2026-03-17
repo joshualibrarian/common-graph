@@ -54,6 +54,9 @@ public final class FrameBody implements Canonical {
     /** Role bindings (semantic, with identity/index flags and live instances). */
     private final List<Binding> frameBindings;
 
+    /** Config bindings (record-scope only, not part of body identity). */
+    private final List<Binding> config;
+
     /** Cached body hash. */
     private transient ContentID cachedHash;
 
@@ -65,15 +68,27 @@ public final class FrameBody implements Canonical {
     // ==================================================================================
 
     /**
-     * Primary constructor — predicate + bindings.
+     * Primary constructor — predicate + bindings (no config).
      *
      * <p>The owning item should be included as a binding (typically THEME role).
      * Use the convenience constructors that accept a theme ItemID to have it
      * prepended automatically.
      */
     public FrameBody(ItemID predicate, List<Binding> frameBindings) {
+        this(predicate, frameBindings, List.of());
+    }
+
+    /**
+     * Full constructor — predicate + bindings + config map.
+     *
+     * <p>Config bindings are record-scope only and do not affect body identity.
+     * They carry presentation, vocabulary, and general config data that is
+     * separate from the semantic assertion.
+     */
+    public FrameBody(ItemID predicate, List<Binding> frameBindings, List<Binding> config) {
         this.predicate = Objects.requireNonNull(predicate, "predicate");
         this.frameBindings = frameBindings != null ? List.copyOf(frameBindings) : List.of();
+        this.config = config != null ? List.copyOf(config) : List.of();
     }
 
     /**
@@ -85,6 +100,7 @@ public final class FrameBody implements Canonical {
         if (theme != null) all.add(homeBinding(theme));
         if (frameBindings != null) all.addAll(frameBindings);
         this.frameBindings = List.copyOf(all);
+        this.config = List.of();
     }
 
     /**
@@ -101,6 +117,7 @@ public final class FrameBody implements Canonical {
             }
         }
         this.frameBindings = List.copyOf(all);
+        this.config = List.of();
     }
 
     /**
@@ -110,6 +127,7 @@ public final class FrameBody implements Canonical {
         this.predicate = Objects.requireNonNull(predicate, "predicate");
         Objects.requireNonNull(theme, "theme");
         this.frameBindings = List.of(homeBinding(theme));
+        this.config = List.of();
     }
 
     /**
@@ -119,6 +137,7 @@ public final class FrameBody implements Canonical {
     private FrameBody() {
         this.predicate = null;
         this.frameBindings = null;
+        this.config = null;
     }
 
     // ==================================================================================
@@ -130,6 +149,39 @@ public final class FrameBody implements Canonical {
 
     /** Role bindings (semantic, with identity/index flags and live instances). */
     public List<Binding> frameBindings() { return frameBindings; }
+
+    /** Config bindings (record-scope, non-identity). */
+    public List<Binding> config() { return config != null ? config : List.of(); }
+
+    /**
+     * Look up a config binding by qualifier (simple key match in the config list).
+     *
+     * @param qualifier the config qualifier IID (e.g., PRESENTATION, VOCABULARY, CONFIG)
+     * @return the matching binding, or null if not found
+     */
+    public Binding configBinding(ItemID qualifier) {
+        if (config == null || config.isEmpty()) return null;
+        for (Binding b : config) {
+            if (b.isSimpleKey() && qualifier.equals(b.role())) return b;
+        }
+        return null;
+    }
+
+    /**
+     * Create a new FrameBody with a config binding added or replaced.
+     *
+     * <p>Returns a new instance — FrameBody is immutable. The semantic bindings
+     * and body hash are unchanged since config is record-scope only.
+     *
+     * @param qualifier the config qualifier IID (e.g., PRESENTATION, VOCABULARY, CONFIG)
+     * @param target the config value
+     */
+    public FrameBody withConfig(ItemID qualifier, BindingTarget target) {
+        List<Binding> newConfig = new ArrayList<>(config());
+        newConfig.removeIf(b -> b.isSimpleKey() && qualifier.equals(b.role()));
+        newConfig.add(Binding.nonIdentity(qualifier, target));
+        return new FrameBody(predicate, frameBindings, newConfig);
+    }
 
     // ==================================================================================
     // Home Binding (owning item)
@@ -203,8 +255,12 @@ public final class FrameBody implements Canonical {
     // ==================================================================================
 
     /**
-     * Custom CBOR encoding: 2-element array [predicate, bindings].
-     * BODY scope includes only identity bindings, RECORD scope includes all.
+     * Custom CBOR encoding.
+     * <ul>
+     *   <li>BODY scope: {@code [predicate, identity-bindings]} (2-element, for hashing)</li>
+     *   <li>RECORD scope: {@code [predicate, all-bindings]} or
+     *       {@code [predicate, all-bindings, config]} (3-element if config present)</li>
+     * </ul>
      */
     @Override
     public CBORObject toCborTree(Scope scope) {
@@ -219,14 +275,25 @@ public final class FrameBody implements Canonical {
             }
         }
         array.Add(bindingsArray);
+
+        // Config map — record-scope only, omitted when empty for backward compat
+        if (scope == Scope.RECORD && config != null && !config.isEmpty()) {
+            CBORObject configArray = CBORObject.NewArray();
+            for (Binding b : config) {
+                configArray.Add(b.toCborTree(scope));
+            }
+            array.Add(configArray);
+        }
+
         return array;
     }
 
     /**
-     * Decode from CBOR. Handles both:
+     * Decode from CBOR. Handles three formats:
      * <ul>
-     *   <li>New format: 2-element array [predicate, bindings]</li>
-     *   <li>Old format: 3-element array [predicate, theme, bindings]</li>
+     *   <li>2-element: {@code [predicate, bindings]} — current format, no config</li>
+     *   <li>3-element, element 1 is Array: {@code [predicate, bindings, config]} — new format with config</li>
+     *   <li>3-element, element 1 is ByteString: {@code [predicate, theme, bindings]} — legacy format</li>
      * </ul>
      */
     @Factory
@@ -237,19 +304,27 @@ public final class FrameBody implements Canonical {
         ItemID pred = new ItemID(node.get(0).GetByteString());
 
         if (node.size() == 2) {
-            // New format: [predicate, bindings]
+            // Current format: [predicate, bindings]
             List<Binding> bindings = decodeBindings(node.get(1));
             return new FrameBody(pred, bindings);
         }
 
-        // Old format: [predicate, theme, bindings]
-        ItemID thm = new ItemID(node.get(1).GetByteString());
-        List<Binding> bindings = new ArrayList<>();
-        bindings.add(homeBinding(thm));
-        if (node.size() > 2) {
-            bindings.addAll(decodeBindings(node.get(2)));
+        CBORObject second = node.get(1);
+        if (second.getType() == CBORType.ByteString) {
+            // Legacy format: [predicate, theme, bindings]
+            ItemID thm = new ItemID(second.GetByteString());
+            List<Binding> bindings = new ArrayList<>();
+            bindings.add(homeBinding(thm));
+            if (node.size() > 2) {
+                bindings.addAll(decodeBindings(node.get(2)));
+            }
+            return new FrameBody(pred, bindings);
         }
-        return new FrameBody(pred, bindings);
+
+        // New format: [predicate, bindings, config]
+        List<Binding> bindings = decodeBindings(second);
+        List<Binding> config = node.size() > 2 ? decodeBindings(node.get(2)) : List.of();
+        return new FrameBody(pred, bindings, config);
     }
 
     private static List<Binding> decodeBindings(CBORObject bindingsNode) {
@@ -420,10 +495,18 @@ public final class FrameBody implements Canonical {
     /**
      * The config payload bytes for this frame (Config role binding).
      *
-     * <p>Returns the raw CBOR bytes from the Config binding's Literal payload,
-     * or null if no config is bound.
+     * <p>Checks the config map first (direct CONFIG key), then falls back
+     * to a CONFIG binding in the semantic bindings for backward compat.
+     *
+     * @return raw CBOR bytes from the Config binding's Literal payload, or null
      */
     public byte[] configPayload() {
+        // Config map path (new)
+        Binding cb = configBinding(ThematicRole.Config.SEED.iid());
+        if (cb != null && cb.target() instanceof Literal lit) {
+            return lit.payload();
+        }
+        // Body binding path (backward compat)
         BindingTarget target = binding(ThematicRole.Config.SEED.iid());
         if (target instanceof Literal lit) {
             return lit.payload();
@@ -432,11 +515,20 @@ public final class FrameBody implements Canonical {
     }
 
     /**
-     * Presentation config payload bytes for this frame: (CONFIG, PRESENTATION) compound binding.
+     * Presentation config payload bytes for this frame.
+     *
+     * <p>Checks the config map first (direct PRESENTATION key), then falls back
+     * to the compound (CONFIG, PRESENTATION) binding in semantic bindings.
      *
      * @return raw CBOR bytes from the presentation binding's Literal payload, or null
      */
     public byte[] configPresentationPayload() {
+        // Config map path (new) — direct PRESENTATION key
+        Binding cb = configBinding(ThematicRole.Presentation.SEED.iid());
+        if (cb != null && cb.target() instanceof Literal lit) {
+            return lit.payload();
+        }
+        // Body binding path (backward compat) — compound (CONFIG, PRESENTATION)
         Binding b = getCompoundBinding(ThematicRole.Config.SEED.iid(),
                 ThematicRole.Presentation.SEED.iid());
         if (b != null && b.target() instanceof Literal lit) {
@@ -446,11 +538,20 @@ public final class FrameBody implements Canonical {
     }
 
     /**
-     * Vocabulary config payload bytes for this frame: (CONFIG, VOCABULARY) compound binding.
+     * Vocabulary config payload bytes for this frame.
+     *
+     * <p>Checks the config map first (direct VOCABULARY key), then falls back
+     * to the compound (CONFIG, VOCABULARY) binding in semantic bindings.
      *
      * @return raw CBOR bytes from the vocabulary binding's Literal payload, or null
      */
     public byte[] configVocabularyPayload() {
+        // Config map path (new) — direct VOCABULARY key
+        Binding cb = configBinding(ThematicRole.Vocabulary.SEED.iid());
+        if (cb != null && cb.target() instanceof Literal lit) {
+            return lit.payload();
+        }
+        // Body binding path (backward compat) — compound (CONFIG, VOCABULARY)
         Binding b = getCompoundBinding(ThematicRole.Config.SEED.iid(),
                 ThematicRole.Vocabulary.SEED.iid());
         if (b != null && b.target() instanceof Literal lit) {
@@ -590,11 +691,12 @@ public final class FrameBody implements Canonical {
         if (this == o) return true;
         if (!(o instanceof FrameBody other)) return false;
         return Objects.equals(predicate, other.predicate)
-                && Objects.equals(frameBindings, other.frameBindings);
+                && Objects.equals(frameBindings, other.frameBindings)
+                && Objects.equals(config(), other.config());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(predicate, frameBindings);
+        return Objects.hash(predicate, frameBindings, config());
     }
 }

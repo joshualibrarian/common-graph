@@ -556,6 +556,23 @@ public class Item {
      * the type bootstrap. Types are loaded first, so this indicates a problem.
      */
     public DisplayInfo displayInfo() {
+        // Phase 5: check PresentationConfig cascade first
+        dev.everydaythings.graph.frame.PresentationConfig pc = resolvedPresentation();
+        if (pc != null && (pc.glyph() != null || pc.primaryColor() != -1)) {
+            DisplayInfo.Builder b = DisplayInfo.builder()
+                    .name(findDisplayName())
+                    .typeName(findTypeName());
+            if (pc.glyph() != null) b.iconText(pc.glyph());
+            if (pc.primaryColor() != -1) {
+                b.color(dev.everydaythings.graph.value.Color.fromPacked(pc.primaryColor()));
+            }
+            if (pc.shape() != null) {
+                b.shape(DisplayInfo.Shape.fromString(pc.shape()));
+            }
+            return b.build();
+        }
+
+        // Fall back to SurfaceTemplateComponent path
         // 1. Check for instance-level SurfaceTemplateComponent
         var stcOpt = frames().getLive(
                 dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
@@ -579,6 +596,83 @@ public class Item {
                 .color(findTypeColor())
                 .iconText(findIconText())
                 .build();
+    }
+
+    /**
+     * Resolve merged PresentationConfig via three-level cascade.
+     *
+     * <p>Merges presentation data from:
+     * <ol>
+     *   <li><b>Type/Sememe level</b> — the type item's PRESENTATION config</li>
+     *   <li><b>Instance level</b> — this item's manifest or frame PRESENTATION config</li>
+     * </ol>
+     *
+     * <p>Instance-level overrides type-level. Palette tokens merge (instance wins),
+     * style rules concatenate (instance rules are highest priority),
+     * glyph/shape override (instance wins).
+     *
+     * @return the merged PresentationConfig, or null if no presentation data at any level
+     */
+    public dev.everydaythings.graph.frame.PresentationConfig resolvedPresentation() {
+        dev.everydaythings.graph.frame.PresentationConfig result = null;
+
+        // Level 1 (base): type/sememe item's PRESENTATION config
+        if (librarian != null) {
+            Implements impl = getClass().getAnnotation(Implements.class);
+            if (impl != null) {
+                ItemID typeId = ItemID.fromString(impl.value());
+                var typeItemOpt = librarian.get(typeId, Item.class);
+                if (typeItemOpt.isPresent()) {
+                    result = extractPresentation(typeItemOpt.get());
+                }
+            }
+        }
+
+        // Level 2 (override): this item's PRESENTATION config
+        dev.everydaythings.graph.frame.PresentationConfig instanceConfig = extractPresentation(this);
+        if (instanceConfig != null) {
+            result = result != null ? result.merge(instanceConfig) : instanceConfig;
+        }
+
+        return result;
+    }
+
+    /**
+     * Extract PresentationConfig from an item's config maps or frames.
+     */
+    private dev.everydaythings.graph.frame.PresentationConfig extractPresentation(Item item) {
+        // Check manifest config first
+        Manifest mf = item.current();
+        if (mf != null) {
+            Binding mb = mf.configBinding(ThematicRole.Presentation.SEED.iid());
+            if (mb != null && mb.target() instanceof Literal lit) {
+                return decodePresentationConfig(lit.payload());
+            }
+        }
+
+        // Check PRESENTATION frame on the item
+        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+        var presFrame = item.frames().getFrame(presKey);
+        if (presFrame.isPresent() && presFrame.get().body() != null) {
+            BindingTarget topic = presFrame.get().body()
+                    .binding(ThematicRole.Topic.SEED.iid());
+            if (topic instanceof Literal lit) {
+                return decodePresentationConfig(lit.payload());
+            }
+        }
+
+        return null;
+    }
+
+    private static dev.everydaythings.graph.frame.PresentationConfig decodePresentationConfig(byte[] bytes) {
+        if (bytes == null) return null;
+        try {
+            return dev.everydaythings.graph.Canonical.decodeBinary(
+                    bytes, dev.everydaythings.graph.frame.PresentationConfig.class,
+                    dev.everydaythings.graph.Canonical.Scope.RECORD);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -704,6 +798,11 @@ public class Item {
     }
 
     public String emoji() {
+        // Phase 7: prefer PresentationConfig cascade
+        dev.everydaythings.graph.frame.PresentationConfig pc = resolvedPresentation();
+        if (pc != null && pc.glyph() != null) {
+            return pc.glyph();
+        }
         return findIconText();
     }
 
@@ -1705,8 +1804,14 @@ public class Item {
      * @return the raw payload bytes from the first matching binding/frame, or null
      */
     public byte[] resolveConfig(dev.everydaythings.graph.frame.Frame frame, ItemID qualifier) {
-        // Step 1: check for (CONFIG, qualifier) compound binding on this frame's body
+        // Step 1: check config map, then compound binding on this frame's body
         if (frame != null && frame.body() != null) {
+            // New path: direct qualifier key in config map
+            Binding configBinding = frame.body().configBinding(qualifier);
+            if (configBinding != null && configBinding.target() instanceof Literal lit) {
+                return lit.payload();
+            }
+            // Backward compat: compound (CONFIG, qualifier) in body bindings
             Binding binding = frame.body().getCompoundBinding(
                     ThematicRole.Config.SEED.iid(), qualifier);
             if (binding != null && binding.target() instanceof Literal lit) {
@@ -1714,7 +1819,15 @@ public class Item {
             }
         }
 
-        // Step 2: check for (qualifier) frame on this item
+        // Step 2: check manifest config map, then (qualifier) frame on this item
+        Manifest mf = current();
+        if (mf != null) {
+            Binding mb = mf.configBinding(qualifier);
+            if (mb != null && mb.target() instanceof Literal lit) {
+                return lit.payload();
+            }
+        }
+        // Fall back to (qualifier) frame on this item (backward compat)
         FrameKey itemKey = FrameKey.of(qualifier);
         Optional<dev.everydaythings.graph.frame.Frame> itemFrame = frames().getFrame(itemKey);
         if (itemFrame.isPresent()) {
@@ -1962,7 +2075,7 @@ public class Item {
         // Build manifest with the item's state
         Manifest manifest = Manifest.builder()
                 .iid(iid)
-                .type(Item.idOf(this.getClass()))
+                .implementation(Manifest.javaImplementation(this.getClass()))
                 .parents(base != null ? List.of(base) : List.of())
                 .state(state)
                 .build();
@@ -2106,7 +2219,7 @@ public class Item {
         // Build without signature (seed items are code-defined, deterministic)
         Manifest manifest = Manifest.builder()
                 .iid(iid)
-                .type(Item.idOf(this.getClass()))
+                .implementation(Manifest.javaImplementation(this.getClass()))
                 .parents(base != null ? List.of(base) : List.of())
                 .state(state)
                 .build();

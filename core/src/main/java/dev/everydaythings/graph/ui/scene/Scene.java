@@ -1045,6 +1045,18 @@ public @interface Scene {
         /** ID for referencing this body element. */
         String id() default "";
 
+        /**
+         * Emoji/text glyph fallback — lowest fidelity in the chain
+         * (glyph → image → mesh). Used when no image or mesh is available.
+         */
+        String glyph() default "";
+
+        /**
+         * 2D image fallback — mid fidelity in the chain (glyph → image → mesh).
+         * ContentID reference or classpath path to a 2D image asset.
+         */
+        String image() default "";
+
         /** Primitive shape: "box", "sphere", "cylinder", "plane", "none". */
         String shape() default "";
 

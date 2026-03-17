@@ -209,6 +209,50 @@ class ConfigCascadeTest {
         }
 
         @Test
+        @DisplayName("step 1: finds PRESENTATION in config map (new path)")
+        void step1_configMap() {
+            Item item = new Item(librarian);
+
+            Literal lit = Literal.ofText("config-map-style");
+
+            // Use the new config map path — direct PRESENTATION key
+            FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of())
+                    .withConfig(ThematicRole.Presentation.SEED.iid(), lit);
+
+            Frame frame = new Frame(
+                    FrameKey.literal("author"),
+                    AUTHOR_PRED, body, body.hash(), false);
+
+            byte[] resolved = item.resolvePresentation(frame);
+            assertThat(resolved).isEqualTo(lit.payload());
+        }
+
+        @Test
+        @DisplayName("config map takes precedence over compound binding")
+        void configMapWinsOverCompound() {
+            Item item = new Item(librarian);
+
+            Literal compoundLit = Literal.ofText("compound-style");
+            Literal configMapLit = Literal.ofText("config-map-style");
+
+            // Build body with both old compound binding AND new config map entry
+            FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
+                    Binding.compound(
+                            List.of(ThematicRole.Config.SEED.iid(),
+                                    ThematicRole.Presentation.SEED.iid()),
+                            compoundLit, false, false)))
+                    .withConfig(ThematicRole.Presentation.SEED.iid(), configMapLit);
+
+            Frame frame = new Frame(
+                    FrameKey.literal("author"),
+                    AUTHOR_PRED, body, body.hash(), false);
+
+            byte[] resolved = item.resolvePresentation(frame);
+            assertThat(resolved).as("config map should win over compound binding")
+                    .isEqualTo(configMapLit.payload());
+        }
+
+        @Test
         @DisplayName("vocabulary cascade works independently from presentation")
         void vocabularyCascade() {
             Item item = new Item(librarian);
@@ -231,6 +275,41 @@ class ConfigCascadeTest {
             // Vocabulary should cascade to item, presentation should be null
             assertThat(item.resolveVocabulary(authorFrame)).isNotNull();
             assertThat(item.resolvePresentation(authorFrame)).isNull();
+        }
+
+        @Test
+        @DisplayName("step 2: manifest config wins over item-level frame")
+        void step2_manifestConfig() {
+            Item item = new Item(librarian);
+
+            // Set a manifest with presentation config
+            Literal manifestLit = Literal.ofText("manifest-level-theme");
+            Manifest manifest = Manifest.builder()
+                    .iid(item.iid())
+                    .configEntry(Binding.nonIdentity(
+                            ThematicRole.Presentation.SEED.iid(), manifestLit))
+                    .build();
+            // Inject manifest via reflection (normally set during commit/hydrate)
+            item.current = manifest;
+
+            // Also add item-level (PRESENTATION) frame — should lose to manifest config
+            Literal frameLit = Literal.ofText("frame-level-theme");
+            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+            FrameBody presBody = new FrameBody(
+                    ThematicRole.Presentation.SEED.iid(), item.iid(),
+                    List.of(new Binding(ThematicRole.Topic.SEED.iid(), frameLit)));
+            item.frames().add(new Frame(presKey,
+                    ThematicRole.Presentation.SEED.iid(), presBody, presBody.hash(), false));
+
+            // Query frame has NO config binding — should cascade to manifest config
+            FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of());
+            Frame authorFrame = new Frame(
+                    FrameKey.literal("author"),
+                    AUTHOR_PRED, authorBody, authorBody.hash(), false);
+
+            byte[] resolved = item.resolvePresentation(authorFrame);
+            assertThat(resolved).as("manifest config should win over item-level frame")
+                    .isEqualTo(manifestLit.payload());
         }
     }
 }

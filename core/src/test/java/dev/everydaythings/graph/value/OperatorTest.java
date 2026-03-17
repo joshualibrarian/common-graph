@@ -99,7 +99,8 @@ class OperatorTest {
 
         // Count manifests of type Operator
         long count = store.manifests(null)
-                .filter(m -> ItemID.fromString(Operator.KEY).equals(m.type()))
+                .filter(m -> m.implementationName() != null
+                        && m.implementationName().contains("Operator"))
                 .count();
         assertThat(count).isGreaterThanOrEqualTo(2); // AND, OR
     }

@@ -45,7 +45,7 @@ import java.util.stream.Stream;
  * </ol>
  */
 @Implements(Vocabulary.TypeSeed.KEY)
-@Type(glyph = "📖", color = 0x64B4C8)
+@Type(glyph = "🗂️", color = 0x64B4C8)
 @Canonical.Canonization
 @Scene(as = VocabularySurface.class)
 public class Vocabulary implements Canonical, Iterable<VerbEntry> {
