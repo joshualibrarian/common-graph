@@ -4,6 +4,7 @@ import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.ViewConfig;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceRenderer;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
@@ -18,8 +19,7 @@ import java.util.List;
  * <h3>FRAMES mode</h3>
  * <ul>
  *   <li>Item IID and current VID</li>
- *   <li>List of frames: predicate, key, body hash, binding count, identity flag</li>
- *   <li>Config section per frame (if config bindings exist)</li>
+ *   <li>List of frames: resolved predicate name, qualifier, binding count, flags</li>
  * </ul>
  *
  * <h3>VERSIONS mode</h3>
@@ -52,26 +52,124 @@ public class InspectSurface extends SurfaceSchema<Void> {
         surface.vid = item.base() != null ? item.base().displayAtWidth(16) : "—";
         surface.dirty = item.dirty();
 
-        // Collect frame info
+        // Collect frame info with resolved names
         surface.frames = new ArrayList<>();
         for (Frame frame : item.frames()) {
             FrameKey key = frame.frameKey();
-            String predicate = frame.type() != null ? frame.type().displayAtWidth(16) : "—";
-            String bodyHash = frame.bodyHash() != null ? frame.bodyHash().displayAtWidth(12) : "—";
+
             int bindingCount = frame.body() != null ? frame.body().frameBindings().size() : 0;
             boolean identity = frame.identity();
             boolean stream = frame.body() != null && frame.body().isStream();
 
-            surface.frames.add(new FrameInfo(
-                    key.toCanonicalString(),
-                    predicate,
-                    bodyHash,
-                    bindingCount,
-                    identity,
-                    stream));
+            String name = resolveKeyHead(item, key);
+            String qualifier = resolveQualifiers(item, key);
+
+            surface.frames.add(new FrameInfo(name, qualifier, bindingCount, identity, stream));
         }
 
         return surface;
+    }
+
+    /**
+     * Resolve the head token of a FrameKey to a human-readable name.
+     */
+    private static String resolveKeyHead(Item item, FrameKey key) {
+        FrameKey.FrameToken head = key.head();
+        if (head instanceof FrameKey.Literal lit) {
+            return lit.value();
+        }
+        if (head instanceof FrameKey.Sememe sem) {
+            String resolved = item.resolveDisplayToken(sem.id());
+            if (resolved != null) return resolved;
+            // Fallback: truncated hash
+            return sem.id().displayAtWidth(12);
+        }
+        return "?";
+    }
+
+    /**
+     * Resolve qualifier tokens to a display string.
+     *
+     * <p>Returns null if no qualifiers. Literal qualifiers that look like
+     * IIDs are resolved to item display names. Sememe qualifiers are resolved
+     * to their display tokens.
+     */
+    private static String resolveQualifiers(Item item, FrameKey key) {
+        List<FrameKey.FrameToken> quals = key.qualifiers();
+        if (quals.isEmpty()) return null;
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < quals.size(); i++) {
+            if (i > 0) sb.append(", ");
+            FrameKey.FrameToken token = quals.get(i);
+            if (token instanceof FrameKey.Literal lit) {
+                sb.append('"').append(resolveLiteralQualifier(item, lit.value())).append('"');
+            } else if (token instanceof FrameKey.Sememe sem) {
+                String resolved = item.resolveDisplayToken(sem.id());
+                sb.append(resolved != null ? resolved : sem.id().displayAtWidth(12));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Try to resolve a literal qualifier to a human-readable string.
+     *
+     * <p>Handles several patterns:
+     * <ul>
+     *   <li>Pure IID ("iid:abc...") → look up item display name</li>
+     *   <li>Compound "{iid}:{suffix}" → show just the suffix</li>
+     *   <li>Short strings → as-is</li>
+     *   <li>Long strings → truncated</li>
+     * </ul>
+     */
+    private static String resolveLiteralQualifier(Item item, String value) {
+        if (value == null) return "?";
+
+        if (value.startsWith("iid:") || value.startsWith("\\")) {
+            // Try to parse as a pure IID first
+            if (item.itemLibrarian() != null) {
+                try {
+                    ItemID targetId = ItemID.fromString(value);
+                    var targetOpt = item.itemLibrarian().get(targetId, Item.class);
+                    if (targetOpt.isPresent()) {
+                        return targetOpt.get().displayToken();
+                    }
+                } catch (Exception ignored) {
+                    // Not a pure IID — might be compound
+                }
+            }
+
+            // Compound pattern: "{iid}:{human-readable-suffix}"
+            // IIDs are base32-encoded so they only contain [a-z2-7], plus "iid:" prefix.
+            // Find where the IID ends and the suffix begins.
+            String withoutPrefix = value.startsWith("iid:") ? value.substring(4) : value.substring(1);
+            int suffixStart = -1;
+            for (int i = 0; i < withoutPrefix.length(); i++) {
+                char c = withoutPrefix.charAt(i);
+                if (c == ':') {
+                    // Check if what follows looks like a human name (contains uppercase or space)
+                    String rest = withoutPrefix.substring(i + 1);
+                    if (!rest.isEmpty() && (rest.contains(" ") || !rest.equals(rest.toLowerCase()))) {
+                        suffixStart = i + 1;
+                        break;
+                    }
+                }
+            }
+            if (suffixStart >= 0) {
+                return withoutPrefix.substring(suffixStart);
+            }
+
+            // Pure IID we couldn't resolve — truncate
+            return value.substring(0, Math.min(value.length(), 16)) + "...";
+        }
+
+        // Truncate very long values
+        if (value.length() > 40) {
+            return value.substring(0, 37) + "...";
+        }
+
+        return value;
     }
 
     // ==================== Accessors ====================
@@ -119,26 +217,27 @@ public class InspectSurface extends SurfaceSchema<Void> {
             out.text("Frames (" + frames.size() + ")", List.of("inspect-section-title"));
 
             for (FrameInfo frame : frames) {
-                out.beginBox(Scene.Direction.VERTICAL, List.of("inspect-frame-entry"));
+                out.beginBox(Scene.Direction.HORIZONTAL, List.of("inspect-frame-entry"));
 
-                // Frame key + predicate
-                out.beginBox(Scene.Direction.HORIZONTAL, List.of("inspect-frame-header"));
-                out.text(frame.key(), List.of("inspect-frame-key", "mono"));
-                out.text(" → ", List.of("muted"));
-                out.text(frame.predicate(), List.of("inspect-frame-predicate"));
-                out.endBox();
+                // Predicate name
+                out.text(frame.name(), List.of("inspect-frame-name"));
 
-                // Details line
-                out.beginBox(Scene.Direction.HORIZONTAL, List.of("inspect-frame-details"));
-                out.text("body=" + frame.bodyHash(), List.of("mono", "muted"));
-                out.text(" bindings=" + frame.bindingCount(), List.of("muted"));
+                // Qualifier (if any)
+                if (frame.qualifier() != null) {
+                    out.text("  " + frame.qualifier(), List.of("inspect-frame-qualifier", "mono", "muted"));
+                }
+
+                // Metadata
+                if (frame.bindingCount() > 0) {
+                    String label = frame.bindingCount() == 1 ? "1 binding" : frame.bindingCount() + " bindings";
+                    out.text("  " + label, List.of("muted"));
+                }
                 if (frame.identity()) {
-                    out.text(" [identity]", List.of("badge"));
+                    out.text("  [identity]", List.of("badge"));
                 }
                 if (frame.stream()) {
-                    out.text(" [stream]", List.of("badge"));
+                    out.text("  [stream]", List.of("badge"));
                 }
-                out.endBox();
 
                 out.endBox();
             }
@@ -170,11 +269,16 @@ public class InspectSurface extends SurfaceSchema<Void> {
 
     /**
      * Summary information about a single frame for display.
+     *
+     * @param name         resolved predicate name ("policy", "display-layout")
+     * @param qualifier    qualifier text if any (quoted literals, resolved sememes), or null
+     * @param bindingCount number of bindings in the frame body
+     * @param identity     whether this frame contributes to version identity
+     * @param stream       whether this is an append-only stream frame
      */
     public record FrameInfo(
-            String key,
-            String predicate,
-            String bodyHash,
+            String name,
+            String qualifier,
             int bindingCount,
             boolean identity,
             boolean stream

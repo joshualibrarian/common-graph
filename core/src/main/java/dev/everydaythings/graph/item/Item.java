@@ -52,7 +52,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 
@@ -95,18 +94,33 @@ public class Item {
     }
 
     // === WELL-KNOWN FRAME KEYS ===
-    // Lazy-initialized via holder class to break circular clinit:
-    // FrameKey → literal → no static init chain
+    // Lazy-initialized via holder class to break circular clinit.
     private static class BuiltinKeys {
-        static final FrameKey POLICY = FrameKey.literal("policy");
+        static final FrameKey POLICY = FrameKey.of(ItemID.fromString(PolicySet.TypeSeed.KEY));
     }
 
     // ==================================================================================
     // Instance Fields
     // ==================================================================================
 
-    /** Runtime context - null for siloed items and seed items. Set by Librarian to itself. */
+    /** Runtime context - null for siloed items and seed items. Set by Librarian after bootstrap. */
     protected Librarian librarian;
+
+    /** Get the librarian context, or null for siloed/seed items. */
+    public Librarian itemLibrarian() {
+        return librarian;
+    }
+
+    /**
+     * Associate this item with its librarian.
+     *
+     * <p>Called during bootstrap to fix up seed items that were created
+     * before the librarian existed. After this, the item can resolve
+     * other items, display tokens, etc.
+     */
+    public void setLibrarian(Librarian librarian) {
+        this.librarian = librarian;
+    }
 
     @Getter
     protected final ItemID iid;
@@ -213,6 +227,23 @@ public class Item {
     }
 
     /**
+     * Resolve a sememe ItemID to its English display name.
+     *
+     * <p>Looks up the sememe in the library and returns its display token
+     * (e.g., "item-view", "display-layout", "activity"). Returns null if
+     * the sememe cannot be resolved (no librarian, or ID not found).
+     *
+     * @param sememeId the ItemID of the sememe to resolve
+     * @return the display token, or null if unresolvable
+     */
+    public String resolveDisplayToken(ItemID sememeId) {
+        if (sememeId == null || librarian == null) return null;
+        return librarian.get(sememeId, Sememe.class)
+                .map(Sememe::displayToken)
+                .orElse(null);
+    }
+
+    /**
      * Resolve a path within this item to get display token.
      *
      * <p>Paths like "/componentHandle" are resolved through the content table.
@@ -221,208 +252,19 @@ public class Item {
      * @return display token for the component, or empty if not found
      */
     public Optional<String> resolvePathDisplayToken(String path) {
-        if (path == null || path.isEmpty()) {
-            return Optional.of(displayToken());
-        }
-
-        // Strip leading slash
-        String handle = path.startsWith("/") ? path.substring(1) : path;
-
-        // Check EndorsementsTable for frames()
-        if (handle.equals("content")) {
-            return Optional.of(frames().displayToken());
-        }
-
-        // Resolve FrameKey from path component
-        FrameKey key = FrameKey.literal(handle);
-
-        // Prefer stable frame metadata to avoid label mutation when a component
-        // gets lazily hydrated after first render.
-        Optional<String> entryLabel = frames().getFrame(key).map(dev.everydaythings.graph.frame.Frame::displayToken);
-        if (entryLabel.isPresent()) {
-            return entryLabel;
-        }
-
-        // Fall back to live payload display token when no entry metadata exists.
-        Optional<Object> live = frames().getLive(key);
-        if (live.isPresent()) {
-            return Optional.of(resolvePayloadDisplayToken(live.get()));
-        }
-        return Optional.empty();
+        return DisplayResolver.resolvePathDisplayToken(this, path);
     }
 
-    /**
-     * Resolve a path within this item to get emoji.
-     *
-     * @param path the path to resolve (e.g., "/readme")
-     * @return emoji for the component, or empty if not found
-     */
     public Optional<String> resolvePathEmoji(String path) {
-        if (path == null || path.isEmpty()) {
-            return Optional.of(emoji());
-        }
-
-        // Strip leading slash
-        String handle = path.startsWith("/") ? path.substring(1) : path;
-
-        // Check EndorsementsTable for frames()
-        if (handle.equals("content")) {
-            return Optional.of(frames().emoji());
-        }
-
-        // Resolve FrameKey from path component
-        FrameKey key = FrameKey.literal(handle);
-
-        // Prefer stable frame metadata to avoid icon mutation when a component
-        // gets lazily hydrated after first render.
-        Optional<String> entryEmoji = frames().getFrame(key).map(this::resolveFrameEmoji);
-        if (entryEmoji.isPresent()) {
-            return entryEmoji;
-        }
-
-        // Fall back to live payload emoji when no entry metadata exists.
-        Optional<Object> live = frames().getLive(key);
-        if (live.isPresent()) {
-            return Optional.of(resolvePayloadEmoji(live.get()));
-        }
-        return Optional.empty();
+        return DisplayResolver.resolvePathEmoji(this, path);
     }
 
-    /**
-     * Resolve emoji from frame metadata with semantic type fallback.
-     */
-    private String resolveFrameEmoji(dev.everydaythings.graph.frame.Frame frame) {
-        if (frame == null) return "📦";
-        String typeGlyph = resolveTypeGlyph(frame.type());
-        if (typeGlyph != null && !typeGlyph.isBlank()) {
-            return typeGlyph;
-        }
-        return frame.emoji();
-    }
-
-    /**
-     * Resolve the semantic glyph for a type ID from type metadata.
-     */
-    private String resolveTypeGlyph(ItemID typeId) {
-        if (typeId == null) return null;
-
-        // 1) Type item's SurfaceTemplateComponent glyph (authoritative display metadata)
-        if (librarian != null) {
-            Optional<Item> typeItem = librarian.get(typeId, Item.class);
-            if (typeItem.isPresent()) {
-                var st = typeItem.get().frames().getLive(
-                        dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
-                        dev.everydaythings.graph.frame.SurfaceTemplateComponent.class
-                ).orElse(null);
-                if (st != null && st.glyph() != null && !st.glyph().isBlank()) {
-                    return st.glyph();
-                }
-            }
-        }
-
-        // 2) Implementation class annotations (works even without hydrated type item)
-        Optional<Class<?>> impl = findImplementation(typeId);
-        if (impl.isPresent()) {
-            Class<?> cls = impl.get();
-            Type type =
-                    cls.getAnnotation(Type.class);
-            if (type != null && !type.glyph().isEmpty()) {
-                return type.glyph();
-            }
-            dev.everydaythings.graph.value.Value.Type valueType =
-                    cls.getAnnotation(dev.everydaythings.graph.value.Value.Type.class);
-            if (valueType != null && !valueType.glyph().isEmpty()) {
-                return valueType.glyph();
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Resolve an emoji/glyph for an arbitrary live payload object.
-     *
-     * <p>EndorsementsTable payloads are open-ended and not required to implement
-     * {@link Component}, so this must not rely on a single interface.
-     */
-    private static String resolvePayloadEmoji(Object payload) {
-        if (payload == null) return "📦";
-        if (payload instanceof dev.everydaythings.graph.value.Value value) {
-            return value.emoji();
-        }
-        Type type =
-                payload.getClass().getAnnotation(Type.class);
-        if (type != null && !type.glyph().isEmpty()) {
-            return type.glyph();
-        }
-        dev.everydaythings.graph.value.Value.Type valueType =
-                payload.getClass().getAnnotation(dev.everydaythings.graph.value.Value.Type.class);
-        if (valueType != null && !valueType.glyph().isEmpty()) {
-            return valueType.glyph();
-        }
-        return "📦";
-    }
-
-    private static String resolvePayloadDisplayToken(Object payload) {
-        if (payload == null) return "(unnamed)";
-        if (payload instanceof dev.everydaythings.graph.value.Value value) {
-            return value.displayToken();
-        }
-        Implements impl =
-                payload.getClass().getAnnotation(Implements.class);
-        if (impl != null) {
-            String key = impl.value();
-            int slash = key.lastIndexOf('/');
-            if (slash >= 0 && slash < key.length() - 1) {
-                String shortName = key.substring(slash + 1);
-                if (!shortName.isEmpty()) {
-                    return Character.toUpperCase(shortName.charAt(0)) + shortName.substring(1);
-                }
-            }
-        }
-        return payload.getClass().getSimpleName();
-    }
-
-    /**
-     * Resolve a path to a 2D icon resource path, if the component has one.
-     *
-     * <p>Checks the component's {@code @Type(icon=...)} annotation.
-     */
     public Optional<String> resolvePathIconResource(String path) {
-        if (path == null || path.isEmpty()) return Optional.empty();
-
-        String handle = path.startsWith("/") ? path.substring(1) : path;
-
-        FrameKey key = FrameKey.literal(handle);
-
-        return frames().getLive(key)
-                .map(o -> {
-                    Type typeAnno = o.getClass().getAnnotation(Type.class);
-                    if (typeAnno != null && !typeAnno.icon().isEmpty()) {
-                        return typeAnno.icon();
-                    }
-                    return null;
-                });
+        return DisplayResolver.resolvePathIconResource(this, path);
     }
 
-    /**
-     * Resolve a path to the component's type color (from annotation).
-     */
     public Optional<dev.everydaythings.graph.value.Color> resolvePathTypeColor(String path) {
-        if (path == null || path.isEmpty()) return Optional.empty();
-
-        String handle = path.startsWith("/") ? path.substring(1) : path;
-
-        FrameKey key = FrameKey.literal(handle);
-
-        return frames().getLive(key)
-                .map(o -> {
-                    Type typeAnno = o.getClass().getAnnotation(Type.class);
-                    if (typeAnno != null && typeAnno.color() != 0) {
-                        return dev.everydaythings.graph.value.Color.fromPacked(typeAnno.color());
-                    }
-                    return null;
-                });
+        return DisplayResolver.resolvePathTypeColor(this, path);
     }
 
     public boolean isExpandable() {
@@ -513,296 +355,48 @@ public class Item {
     }
 
     public ItemID icon() {
-        // Return this Item's type ID - UI will find the icon for that type
-        Implements impl = getClass().getAnnotation(Implements.class);
-        if (impl != null) {
-            return ItemID.fromString(impl.value());
-        }
-        return ItemID.fromString(KEY); // Default to base Item type
+        return DisplayResolver.icon(this);
     }
 
     public String colorCategory() {
-        // Fallback coloring by name pattern
-        String name = getClass().getSimpleName().toLowerCase();
-        if (name.contains("librarian")) return "librarian";
-        if (name.contains("principal")) return "principal";
-        if (name.contains("workspace")) return "workspace";
-        return "item";
+        return DisplayResolver.colorCategory(this);
     }
 
     public String displaySubtitle() {
-        return iid != null ? iid.toString().substring(0, Math.min(20, iid.toString().length())) + "..." : "";
+        return DisplayResolver.displaySubtitle(this);
     }
 
-    /**
-     * Get display information for this item.
-     *
-     * <p>Base implementation provides defaults based on the class.
-     * Type subclasses should override with their own static TYPE_DISPLAY.
-     *
-     * @return display information for rendering this item
-     */
-    /**
-     * Get the display information for this item.
-     *
-     * <p>Resolution order:
-     * <ol>
-     *   <li>Check for a SurfaceTemplateComponent on this item (instance override)</li>
-     *   <li>Look up the type's SurfaceTemplateComponent from the library</li>
-     *   <li>Fall back to basic defaults (with "&#x2753;" glyph to indicate missing type info)</li>
-     * </ol>
-     *
-     * <p>If you see "&#x2753;" in the UI, the type's SurfaceTemplateComponent is missing from
-     * the type bootstrap. Types are loaded first, so this indicates a problem.
-     */
     public DisplayInfo displayInfo() {
-        // Phase 5: check PresentationConfig cascade first
-        dev.everydaythings.graph.frame.PresentationConfig pc = resolvedPresentation();
-        if (pc != null && (pc.glyph() != null || pc.primaryColor() != -1)) {
-            DisplayInfo.Builder b = DisplayInfo.builder()
-                    .name(findDisplayName())
-                    .typeName(findTypeName());
-            if (pc.glyph() != null) b.iconText(pc.glyph());
-            if (pc.primaryColor() != -1) {
-                b.color(dev.everydaythings.graph.value.Color.fromPacked(pc.primaryColor()));
-            }
-            if (pc.shape() != null) {
-                b.shape(DisplayInfo.Shape.fromString(pc.shape()));
-            }
-            return b.build();
-        }
-
-        // Fall back to SurfaceTemplateComponent path
-        // 1. Check for instance-level SurfaceTemplateComponent
-        var stcOpt = frames().getLive(
-                dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
-                dev.everydaythings.graph.frame.SurfaceTemplateComponent.class);
-        if (stcOpt.isPresent()) {
-            return stcOpt.get().toDisplayInfo(findDisplayName());
-        }
-
-        // 2. Look up type's SurfaceTemplateComponent from library
-        if (librarian != null) {
-            var typeSurface = getTypeSurfaceTemplate();
-            if (typeSurface != null) {
-                return typeSurface.toDisplayInfo(findDisplayName());
-            }
-        }
-
-        // 3. Fall back to annotation-based display info
-        return DisplayInfo.builder()
-                .name(findDisplayName())
-                .typeName(findTypeName())
-                .color(findTypeColor())
-                .iconText(findIconText())
-                .build();
+        return DisplayResolver.displayInfo(this);
     }
 
-    /**
-     * Resolve merged PresentationConfig via three-level cascade.
-     *
-     * <p>Merges presentation data from:
-     * <ol>
-     *   <li><b>Type/Sememe level</b> — the type item's PRESENTATION config</li>
-     *   <li><b>Instance level</b> — this item's manifest or frame PRESENTATION config</li>
-     * </ol>
-     *
-     * <p>Instance-level overrides type-level. Palette tokens merge (instance wins),
-     * style rules concatenate (instance rules are highest priority),
-     * glyph/shape override (instance wins).
-     *
-     * @return the merged PresentationConfig, or null if no presentation data at any level
-     */
     public dev.everydaythings.graph.frame.PresentationConfig resolvedPresentation() {
-        dev.everydaythings.graph.frame.PresentationConfig result = null;
-
-        // Level 1 (base): type/sememe item's PRESENTATION config
-        if (librarian != null) {
-            Implements impl = getClass().getAnnotation(Implements.class);
-            if (impl != null) {
-                ItemID typeId = ItemID.fromString(impl.value());
-                var typeItemOpt = librarian.get(typeId, Item.class);
-                if (typeItemOpt.isPresent()) {
-                    result = extractPresentation(typeItemOpt.get());
-                }
-            }
-        }
-
-        // Level 2 (override): this item's PRESENTATION config
-        dev.everydaythings.graph.frame.PresentationConfig instanceConfig = extractPresentation(this);
-        if (instanceConfig != null) {
-            result = result != null ? result.merge(instanceConfig) : instanceConfig;
-        }
-
-        return result;
+        return DisplayResolver.resolvedPresentation(this);
     }
 
-    /**
-     * Extract PresentationConfig from an item's config maps or frames.
-     */
-    private dev.everydaythings.graph.frame.PresentationConfig extractPresentation(Item item) {
-        // Check manifest config first
-        Manifest mf = item.current();
-        if (mf != null) {
-            Binding mb = mf.configBinding(ThematicRole.Presentation.SEED.iid());
-            if (mb != null && mb.target() instanceof Literal lit) {
-                return decodePresentationConfig(lit.payload());
-            }
-        }
-
-        // Check PRESENTATION frame on the item
-        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
-        var presFrame = item.frames().getFrame(presKey);
-        if (presFrame.isPresent() && presFrame.get().body() != null) {
-            BindingTarget topic = presFrame.get().body()
-                    .binding(ThematicRole.Topic.SEED.iid());
-            if (topic instanceof Literal lit) {
-                return decodePresentationConfig(lit.payload());
-            }
-        }
-
-        return null;
-    }
-
-    private static dev.everydaythings.graph.frame.PresentationConfig decodePresentationConfig(byte[] bytes) {
-        if (bytes == null) return null;
-        try {
-            return dev.everydaythings.graph.Canonical.decodeBinary(
-                    bytes, dev.everydaythings.graph.frame.PresentationConfig.class,
-                    dev.everydaythings.graph.Canonical.Scope.RECORD);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Get the SurfaceTemplateComponent from this item's type (if available in the library).
-     */
     protected dev.everydaythings.graph.frame.SurfaceTemplateComponent getTypeSurfaceTemplate() {
-        if (librarian == null) return null;
-
-        // Get this item's type ID
-        Implements impl = getClass().getAnnotation(Implements.class);
-        if (impl == null) return null;
-
-        ItemID typeId = ItemID.fromString(impl.value());
-
-        // Look up the type item
-        var typeItemOpt = librarian.get(typeId, Item.class);
-        if (typeItemOpt.isEmpty()) return null;
-
-        Item typeItem = typeItemOpt.get();
-
-        // Get the type's SurfaceTemplateComponent
-        return typeItem.frames().getLive(
-                dev.everydaythings.graph.frame.SurfaceTemplateComponent.HANDLE,
-                dev.everydaythings.graph.frame.SurfaceTemplateComponent.class
-        ).orElse(null);
+        return DisplayResolver.getTypeSurfaceTemplate(this);
     }
 
-    /**
-     * Find a human-readable display name for this item.
-     *
-     * <p>Resolution order:
-     * <ol>
-     *   <li>Check for a name frame (RoutingVocabulary.Name)</li>
-     *   <li>Check for a title frame (CoreVocabulary.Title)</li>
-     *   <li>Check for a hash-key frame (CoreVocabulary.HashKey)</li>
-     *   <li>Check for literal field-name keys ("name", "title", "label")</li>
-     *   <li>Use the class simple name</li>
-     * </ol>
-     */
     protected String findDisplayName() {
-        // Try semantic keys first
-        for (FrameKey key : new FrameKey[]{
-                FrameKey.of(ItemID.fromString(RoutingVocabulary.Name.KEY)),
-                FrameKey.of(ItemID.fromString(CoreVocabulary.Title.KEY)),
-                FrameKey.of(ItemID.fromString(CoreVocabulary.HashKey.KEY))}) {
-            var opt = frames().getLive(key, Object.class);
-            if (opt.isPresent()) {
-                Object value = opt.get();
-                if (value instanceof String s && !s.isBlank()) {
-                    return s;
-                }
-            }
-        }
-        // Try literal field-name keys (for items with bare @Frame fields)
-        for (String fieldName : new String[]{"name", "title", "label"}) {
-            var opt = frames().getLive(FrameKey.literal(fieldName), Object.class);
-            if (opt.isPresent()) {
-                Object value = opt.get();
-                if (value instanceof String s && !s.isBlank()) {
-                    return s;
-                }
-            }
-        }
-        // Fallback to class name
-        return getClass().getSimpleName();
+        return DisplayResolver.findDisplayName(this);
     }
 
-    /**
-     * Find the type name from the @Implements or @Type annotation.
-     */
     protected String findTypeName() {
-        Implements impl = getClass().getAnnotation(Implements.class);
-        if (impl != null) {
-            String key = impl.value();
-            // Extract last segment: "cg.sememe:librarian" -> "Librarian"
-            int sep = key.lastIndexOf('/');
-            if (sep < 0) sep = key.lastIndexOf(':');
-            if (sep >= 0 && sep < key.length() - 1) {
-                String shortName = key.substring(sep + 1);
-                return shortName.substring(0, 1).toUpperCase() + shortName.substring(1);
-            }
-            return key;
-        }
-        return getClass().getSimpleName();
+        return DisplayResolver.findTypeName(this);
     }
 
-    /**
-     * Find the type color from SurfaceTemplateComponent or annotation.
-     */
     protected dev.everydaythings.graph.value.Color findTypeColor() {
-        // Try to get from type's SurfaceTemplateComponent
-        var typeSurface = getTypeSurfaceTemplate();
-        if (typeSurface != null) {
-            return typeSurface.toColor();
-        }
-
-        // Fall back to annotation color
-        Type typeAnnotation = getClass().getAnnotation(Type.class);
-        if (typeAnnotation != null) {
-            return dev.everydaythings.graph.value.Color.fromPacked(typeAnnotation.color());
-        }
-
-        return dev.everydaythings.graph.value.Color.rgb(120, 120, 140); // Default gray
+        return DisplayResolver.findTypeColor(this);
     }
 
-    /**
-     * Find the icon text (glyph) from SurfaceTemplateComponent or annotation.
-     */
     protected String findIconText() {
-        // Try to get from type's SurfaceTemplateComponent
-        var typeSurface = getTypeSurfaceTemplate();
-        if (typeSurface != null && typeSurface.glyph() != null) {
-            return typeSurface.glyph();
-        }
-
-        // Fall back to @Type annotation glyph
-        Type typeAnnotation = getClass().getAnnotation(Type.class);
-        if (typeAnnotation != null && !typeAnnotation.glyph().isEmpty()) {
-            return typeAnnotation.glyph();
-        }
-
-        return "\uD83D\uDCE6";  // Default item glyph
+        return DisplayResolver.findIconText(this);
     }
 
     public String emoji() {
-        // Phase 7: prefer PresentationConfig cascade
-        dev.everydaythings.graph.frame.PresentationConfig pc = resolvedPresentation();
-        if (pc != null && pc.glyph() != null) {
-            return pc.glyph();
-        }
+        var pc = resolvedPresentation();
+        if (pc != null && pc.glyph() != null) return pc.glyph();
         return findIconText();
     }
 
@@ -837,7 +431,7 @@ public class Item {
     }
 
     // ==================================================================================
-    // Token Extraction (for indexing)
+    // Token Extraction (for indexing) — delegated to TokenExtractor
     // ==================================================================================
 
     /**
@@ -851,119 +445,13 @@ public class Item {
     /**
      * Extract tokens for indexing this item.
      *
-     * <p>Scans the actual content and relations stored in this item, not just
-     * class metadata. Classes define the schema; items hold the data.
-     *
-     * <p>Token sources:
-     * <ul>
-     *   <li>Content components - string values from handles like "name", "symbol", "label"</li>
-     *   <li>Frame bodies - can contribute tokens from predicates/objects</li>
-     *   <li>DisplayInfo - the computed display name and type</li>
-     *   <li>Path mounts - mounted component paths (highest weight, always first in lookups)</li>
-     * </ul>
+     * <p>Delegates to {@link TokenExtractor#extractTokens(Item)}.
+     * Subclasses may override for type-specific token extraction.
      *
      * @return stream of tokens for this item
      */
     public Stream<TokenEntry> extractTokens() {
-        List<TokenEntry> tokens = new ArrayList<>();
-        Set<String> seen = new HashSet<>();
-
-        // Helper to add token only if not already seen
-        BiConsumer<String, Float> addToken = (token, weight) -> {
-            if (token != null && !token.isBlank()) {
-                String normalized = token.toLowerCase().trim();
-                if (seen.add(normalized)) {
-                    tokens.add(new TokenEntry(token, weight));
-                }
-            }
-        };
-
-        // 1. Scan content table for string values
-        var content = frames();
-        if (content != null) {
-            for (dev.everydaythings.graph.frame.Frame frame : content) {
-                var frameKey = frame.frameKey();
-                var opt = content.getLive(frameKey);
-                if (opt.isPresent()) {
-                    Object value = opt.get();
-                    extractTokensFromValue(value, frameKey.toString(), addToken);
-                }
-            }
-        }
-
-        // 2. Add display info tokens (may overlap with content, but addToken dedupes)
-        var info = displayInfo();
-        if (info != null) {
-            addToken.accept(info.name(), 1.0f);
-            addToken.accept(info.typeName(), 0.5f);
-        }
-
-        // 3. Add displayToken if different from just class name
-        String label = displayToken();
-        if (label != null && !label.equals(getClass().getSimpleName())) {
-            addToken.accept(label, 0.9f);
-        }
-
-        // 4. Scan path mounts — mounted components get high-weight tokens
-        if (content != null) {
-            for (dev.everydaythings.graph.frame.Frame frame : content) {
-                for (Mount.PathMount pm : content.pathMountsFor(frame.frameKey())) {
-                    String mountPath = pm.path();
-                    if (mountPath != null && !mountPath.isBlank()) {
-                        // Leaf segment of the mount path
-                        String clean = mountPath.startsWith("/") ? mountPath.substring(1) : mountPath;
-                        String[] segments = clean.split("/");
-                        if (segments.length > 0) {
-                            String leaf = segments[segments.length - 1];
-                            if (!leaf.isBlank()) {
-                                addToken.accept(leaf, 1.5f);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return tokens.stream();
-    }
-
-    /**
-     * Extract tokens from a component value.
-     *
-     * <p>Handles common patterns: String, Map<String,String> for multilingual names, etc.
-     */
-    private void extractTokensFromValue(Object value, String handle,
-            BiConsumer<String, Float> addToken) {
-        // High-value handles get higher weight
-        float weight = switch (handle.toLowerCase()) {
-            case "name", "symbol", "label", "title" -> 1.0f;
-            case "names", "labels", "aliases" -> 0.9f;
-            case "description", "descriptions" -> 0.3f;
-            default -> 0.5f;
-        };
-
-        if (value instanceof String s) {
-            // Don't index very long strings (descriptions, etc.)
-            if (s.length() <= 100) {
-                addToken.accept(s, weight);
-            }
-        } else if (value instanceof Map<?, ?> map) {
-            // Multilingual maps like names = {en: "meter", de: "Meter"}
-            for (Object v : map.values()) {
-                if (v instanceof String s && s.length() <= 100) {
-                    addToken.accept(s, weight * 0.9f);
-                }
-            }
-        } else if (value instanceof Iterable<?> iter) {
-            // Lists of aliases, tokens, etc.
-            for (Object v : iter) {
-                if (v instanceof String s && s.length() <= 100) {
-                    addToken.accept(s, weight * 0.8f);
-                }
-            }
-        }
-        // Components themselves might have their own tokens - we could recurse
-        // but for now, we're scanning the raw data stored in the content table
+        return TokenExtractor.extractTokens(this);
     }
 
     // ==================================================================================
@@ -982,18 +470,9 @@ public class Item {
             case "components" -> frames();
             case "vocabulary" -> vocabulary();
             default -> {
-                // Try to resolve as a component key (includes policy)
-                FrameKey key = FrameKey.literal(name);
-                Object live = frames().getLive(key).orElse(null);
-                if (live != null) {
-                    yield live;
-                }
-                // Try alias resolution
+                // Resolve via component lookup (scans by sememe short name)
                 Object comp = component(name);
-                if (comp != null) {
-                    yield comp;
-                }
-                yield null;
+                yield comp;
             }
         };
     }
@@ -1020,7 +499,7 @@ public class Item {
         this.iid = Objects.requireNonNull(iid, "iid");
         this.dirty = false;  // Seed items are immutable
         state.setOwner(this);
-        initBuiltinComponents();
+        ensurePolicy();
         populateVocabulary();
     }
 
@@ -1032,7 +511,7 @@ public class Item {
         this.iid = ItemID.random();
         this.dirty = true;
         state.setOwner(this);
-        initBuiltinComponents();
+        ensurePolicy();
         populateVocabulary();
     }
 
@@ -1044,7 +523,7 @@ public class Item {
         this.iid = Objects.requireNonNull(iid, "iid");
         this.dirty = true;
         state.setOwner(this);
-        initBuiltinComponents();
+        ensurePolicy();
         populateVocabulary();
     }
 
@@ -1075,7 +554,7 @@ public class Item {
 
         // Hydrate: decode all, bind fields, invoke callbacks
         hydrate();
-        initBuiltinComponents();
+        ensurePolicy();
         populateVocabulary();
     }
 
@@ -1290,7 +769,7 @@ public class Item {
      * to ensure the vocabulary is populated.
      */
     protected void onFullyInitialized() {
-        initBuiltinComponents();
+        ensurePolicy();
         populateVocabulary();
         populateUnendorsedFrames();
         // Sync pre-initialized field values to EndorsementsTable (handles subclass field initializers)
@@ -1318,7 +797,7 @@ public class Item {
             var tableValue = frames().getLive(spec.frameKey(), Object.class);
             if (tableValue.isPresent() && tableValue.get() != fieldValue) {
                 // Field has a different value - sync it to the table
-                frames().setLive(spec.frameKey(), spec.canonicalKeyString(), fieldValue);
+                frames().setLive(spec.frameKey(), fieldValue);
             }
         }
     }
@@ -1370,13 +849,21 @@ public class Item {
      * @return The component, or null if not found
      */
     public Object component(String ref) {
-        // 1. Direct literal key lookup
-        Object direct = component(FrameKey.literal(ref));
-        if (direct != null) return direct;
-        // 2. Scan by alias (temporary — should use TokenDictionary)
+        // Scan by sememe short name or canonical string
         for (var entry : frames().entrySet()) {
-            if (ref.equals(entry.getValue().alias())) {
-                return component(entry.getKey());
+            FrameKey k = entry.getKey();
+            // Match against the full canonical string
+            if (ref.equals(k.toCanonicalString())) {
+                return component(k);
+            }
+            // Match against the sememe short name (e.g., "chess" matches cg.sememe:chess)
+            ItemID head = k.headSememe();
+            if (head != null) {
+                String headText = head.encodeText();
+                int colon = headText.lastIndexOf(':');
+                if (colon >= 0 && ref.equals(headText.substring(colon + 1))) {
+                    return component(k);
+                }
             }
         }
         return null;
@@ -1462,22 +949,56 @@ public class Item {
      * @param handle    The component handle (e.g., "chess")
      * @param component The component instance
      */
-    public void addComponent(String handle, Object component) {
-        Objects.requireNonNull(handle, "handle");
+    /**
+     * Dynamically add a component with a semantic predicate key.
+     *
+     * <p>This is the preferred way to attach components to items.
+     * The component's verbs are scanned and added to this item's vocabulary.
+     *
+     * @param predicateId the semantic predicate (Sememe IID) for the frame key
+     * @param component   the component instance
+     */
+    public void addFrame(ItemID predicateId, Object component) {
+        addFrame(predicateId, null, component);
+    }
+
+    /**
+     * Dynamically add a component with a semantic predicate key and optional qualifier.
+     *
+     * <p>This is the preferred way to attach components to items.
+     * The component's verbs are scanned and added to this item's vocabulary.
+     *
+     * @param predicateId the semantic predicate (Sememe IID) for the frame key
+     * @param qualifier   optional qualifier for multiple instances (null for first/only)
+     * @param component   the component instance
+     */
+    public void addFrame(ItemID predicateId, String qualifier, Object component) {
+        Objects.requireNonNull(predicateId, "predicateId");
         Objects.requireNonNull(component, "component");
 
-        FrameKey key = FrameKey.literal(handle);
+        FrameKey key = qualifier != null
+                ? FrameKey.mixed(predicateId, qualifier)
+                : FrameKey.of(predicateId);
         ItemID typeId = Item.idOf(component.getClass());
+        String handle = resolveDisplayToken(predicateId);
+        if (handle == null) {
+            String text = predicateId.encodeText();
+            int colon = text.lastIndexOf(':');
+            handle = colon >= 0 ? text.substring(colon + 1) : text;
+        }
+        if (qualifier != null) {
+            handle = handle + "-" + qualifier;
+        }
 
         // 1. Add frame
         dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(key, typeId, null, true);
-        frame.setAlias(handle);
+
         frames().add(frame);
 
         // 2. Register live instance
-        frames().setLive(key, handle, component);
+        frames().setLive(key, component);
 
-        // 3. Invalidate expression caches — any formula might reference this handle
+        // 3. Invalidate expression caches
         frames().forEachLive(ExpressionComponent.class, ExpressionComponent::invalidate);
 
         // 4. Call lifecycle hooks
@@ -1491,7 +1012,7 @@ public class Item {
             vocabulary().add(VerbEntry.componentVerb(spec, handle, component));
         }
 
-        // 6. Register handle as local vocabulary posting (completions + token resolution)
+        // 6. Register handle as local vocabulary posting
         vocabulary().addLocalPosting(Posting.builder()
                 .token(handle)
                 .scope(iid())
@@ -1499,6 +1020,7 @@ public class Item {
                 .weight(1.0f)
                 .build());
     }
+
 
     // ==================================================================================
     // Verb Dispatch
@@ -1905,30 +1427,22 @@ public class Item {
     // ==================================================================================
 
     /**
-     * Ensure built-in components (PolicySet) exist in the EndorsementsTable.
+     * Ensure the item-level policy binding exists.
      *
-     * <p>Policy is persisted as an intrinsic component. Vocabulary is intrinsic runtime
-     * state derived from schema/content and is not stored as a component entry.
+     * <p>Policy is item-level configuration — it will move to the manifest's
+     * config map when dual-bindings are implemented. For now, stored as a
+     * semantic frame in the endorsements table.
      *
-     * <p>Called in every constructor after {@code state.setOwner(this)}, before
-     * {@code populateVocabulary()}.
+     * <p>Called in every constructor after {@code state.setOwner(this)}.
      */
-    private void initBuiltinComponents() {
+    private void ensurePolicy() {
         if (!frames().hasLive(BuiltinKeys.POLICY)) {
-            addBuiltinComponent("policy", new PolicySet());
+            ItemID typeId = Item.idOf(PolicySet.class);
+            dev.everydaythings.graph.frame.Frame frame =
+                    dev.everydaythings.graph.frame.Frame.snapshot(BuiltinKeys.POLICY, typeId, null, true);
+            frames().add(frame);
+            frames().setLive(BuiltinKeys.POLICY, new PolicySet());
         }
-    }
-
-    /**
-     * Add a built-in component (Vocabulary or PolicySet) to the EndorsementsTable.
-     */
-    private void addBuiltinComponent(String handle, Object component) {
-        FrameKey key = FrameKey.literal(handle);
-        ItemID typeId = Item.idOf(component.getClass());
-        dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(key, typeId, null, true);
-        frame.setAlias(handle);
-        frames().add(frame);
-        frames().setLive(key, handle, component);
     }
 
     /**
@@ -1976,7 +1490,7 @@ public class Item {
                                     "Cannot create default in-memory instance of local resource: " + type.getName()));
                 }
                 frame = dev.everydaythings.graph.frame.Frame.localResource(spec.frameKey(), spec.type(), spec.identity());
-                if (alias != null) frame.setAlias(alias);
+                // alias removed — display names resolved via TokenDictionary
             } else {
                 // Regular component: use pre-initialized field value if present, else create default
                 Object existingValue = spec.getValue(this);
@@ -1994,11 +1508,11 @@ public class Item {
                 if (spec.stream()) {
                     // Stream component: starts with empty heads, content added via append
                     frame = dev.everydaythings.graph.frame.Frame.stream(spec.frameKey(), spec.type(), List.of(), spec.identity());
-                    if (alias != null) frame.setAlias(alias);
+                    // alias removed — display names resolved via TokenDictionary
                 } else {
                     // Snapshot component: CID computed during commit, use placeholder for now
                     frame = dev.everydaythings.graph.frame.Frame.snapshot(spec.frameKey(), spec.type(), null, spec.identity());
-                    if (alias != null) frame.setAlias(alias);
+                    // alias removed — display names resolved via TokenDictionary
                 }
             }
 
@@ -2010,7 +1524,7 @@ public class Item {
 
             // Add to table: both frame and live instance
             frames().add(frame);
-            frames().setLive(spec.frameKey(), alias, instance);
+            frames().setLive(spec.frameKey(), instance);
 
         }
 
@@ -2357,8 +1871,7 @@ public class Item {
                 }
             } catch (Exception e) {
                 logger.warn("Failed to decode component {} (type {}): {}",
-                        frame.alias() != null ? frame.alias() : frame.frameKey(),
-                        frame.type(), e.getMessage());
+                        frame.frameKey(), frame.type(), e.getMessage());
             }
         }
 
@@ -2598,7 +2111,7 @@ public class Item {
                 return Optional.of(plaintext);
             } catch (Exception e) {
                 logger.debug("Failed to decrypt frame {} (encryptedCid={}): {}",
-                        frame.alias(), encCid, e.getMessage());
+                        frame.frameKey(), encCid, e.getMessage());
                 // Fallback: try plaintext CID
                 return fetchContent(plainCid);
             }

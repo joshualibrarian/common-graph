@@ -34,6 +34,36 @@ public final class ViewVocabulary {
                 .slot(ThematicRole.Location.KEY);
     }
 
+    /**
+     * Predicate for display frames on a Host.
+     *
+     * <p>A DISPLAY frame on a Host represents a physical display device
+     * attached to that host. THEME identifies the host.
+     */
+    public static class Display {
+        public static final String KEY = "cg.sememe:display";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "a physical display device attached to a host")
+                .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "display")
+                .slot(ThematicRole.Theme.KEY);
+    }
+
+    /**
+     * Predicate for display layout frames on a Session.
+     *
+     * <p>A DISPLAY_LAYOUT frame on a Session positions a display within the
+     * session's unified coordinate space. THEME identifies the display,
+     * LOCATION identifies the session.
+     */
+    public static class DisplayLayout {
+        public static final String KEY = "cg.sememe:display-layout";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "placement of a display within a session's coordinate space")
+                .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "display-layout")
+                .slot(ThematicRole.Theme.KEY)
+                .slot(ThematicRole.Location.KEY);
+    }
+
     // ==================================================================================
     // VERBS
     // ==================================================================================

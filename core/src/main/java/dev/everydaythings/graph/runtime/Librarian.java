@@ -269,8 +269,11 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Create Librarian (seed store as fallback for type lookups)
         Librarian librarian = new Librarian(rootPath, seeds);
 
-        // Cache fully-populated seed items (with components attached during bootstrap)
+        // Cache fully-populated seed items with librarian reference set.
+        // Seeds are created with librarian=null during bootstrap; fix that now
+        // so all items returned from librarian.get() have a valid librarian.
         for (Item seed : seedItems) {
+            seed.setLibrarian(librarian);
             librarian.library().cache(seed);
         }
 
@@ -308,8 +311,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Create librarian using in-memory constructor
         Librarian librarian = new Librarian(seeds, InMemoryMarker.INSTANCE);
 
-        // Cache fully-populated seed items (with components attached during bootstrap)
+        // Cache fully-populated seed items with librarian reference set.
         for (Item seed : seedItems) {
+            seed.setLibrarian(librarian);
             librarian.library().cache(seed);
         }
 
@@ -367,7 +371,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         if (freshBoot) {
             frames().setLive(
                     FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
-                    "types",
                     typesExpr);
         }
     }
@@ -393,7 +396,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         if (freshBoot) {
             frames().setLive(
                     FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
-                    "types",
                     typesExpr);
         }
     }
@@ -444,7 +446,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             // but library is created here after that phase completes)
             frames().setLive(
                     FrameKey.of(ItemID.fromString(CoreVocabulary.Library.KEY)),
-                    "library",
                     this.library);
         }
 

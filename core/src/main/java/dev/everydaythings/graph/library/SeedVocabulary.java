@@ -442,7 +442,7 @@ public final class SeedVocabulary {
                     ItemID.fromString(SurfaceTemplateComponent.KEY), cid, false);
 
             contentTable.add(frame);
-            contentTable.setLive(key, alias, component);
+            contentTable.setLive(key, component);
             logger.debug("Attached surface template to {}", item.displayToken());
         }
     }
@@ -477,7 +477,7 @@ public final class SeedVocabulary {
                     ItemID.fromString(SememeGloss.KEY), cid, false);
 
             contentTable.add(ce);
-            contentTable.setLive(key, handleKey, gloss);
+            contentTable.setLive(key, gloss);
         }
     }
 

@@ -312,7 +312,7 @@ public class ItemSchema {
                     existingConfig, storeFrameBody, keyResolver);
             if (frame != null) {
                 contentTable.add(frame);
-                contentTable.setLive(spec.frameKey(), spec.canonicalKeyString(), value);
+                contentTable.setLive(spec.frameKey(), value);
             }
         }
     }
@@ -338,7 +338,7 @@ public class ItemSchema {
 
             if (isLocalOnly) {
                 Frame frame = Frame.snapshot(key, typeId, null, spec.identity());
-                if (alias != null) frame.setAlias(alias);
+                // alias removed — display names resolved via TokenDictionary
                 buildAndStoreComponentBody(item, spec, typeId, alias, null, null, existingConfig, frame, storeFrameBody);
                 return frame;
             }
@@ -511,7 +511,7 @@ public class ItemSchema {
         }
 
         Frame frame = Frame.snapshot(key, typeId, snapshotCid, identity);
-        if (alias != null) frame.setAlias(alias);
+        // alias removed — display names resolved via TokenDictionary
 
         // Carry forward existing config (policy, settings) from previous version
         if (existingConfig != null && existingConfig.policy() != null) {

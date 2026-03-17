@@ -188,20 +188,13 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
 
     /** Store a live decoded instance. */
     public void setLive(FrameKey key, Object instance) {
-        setLive(key, null, instance);
-    }
-
-    /** Store a live decoded instance and optional alias. */
-    public void setLive(FrameKey key, String alias, Object instance) {
         Frame frame = frames.get(key);
         if (frame == null) {
             throw new IllegalArgumentException("No frame for key: " + key);
         }
         frame.setInstance(instance);
-        if (alias != null && !alias.isBlank()) {
-            frame.setAlias(alias);
-        }
     }
+
 
     /** Get a live decoded instance by key (typed). */
     @SuppressWarnings("unchecked")

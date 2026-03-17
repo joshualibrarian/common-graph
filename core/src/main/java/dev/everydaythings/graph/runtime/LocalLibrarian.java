@@ -80,6 +80,12 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     @Override
+    public Optional<Host> host() {
+        checkOpen();
+        return Optional.ofNullable(librarian.host());
+    }
+
+    @Override
     public <T extends Item> Optional<T> get(ItemID iid, Class<T> type) {
         checkOpen();
         return librarian.get(iid, type);

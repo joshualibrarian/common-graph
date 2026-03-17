@@ -5,6 +5,7 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.library.ItemStore;
@@ -141,7 +142,7 @@ class FrameEncryptionTest {
 
             // vault is localOnly — should not be encrypted even with allFrames
             Optional<Frame> vaultEntry = librarian.frames().stream()
-                    .filter(e -> "vault".equals(e.alias()))
+                    .filter(e -> e.frameKey().toCanonicalString().contains("vault"))
                     .findFirst();
 
             // Vault is localOnly — should not be encrypted
@@ -265,7 +266,7 @@ class FrameEncryptionTest {
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
-            String targetAlias = frame.get().alias();
+            FrameKey targetKey = frame.get().frameKey();
 
             PolicySet policy = PolicySet.builder()
                     .encryption(PolicySet.EncryptionPolicy.toReaders())
@@ -278,7 +279,7 @@ class FrameEncryptionTest {
 
             // After commit, the entry should still have the encryption policy
             Optional<Frame> afterCommit = librarian.frames().stream()
-                    .filter(e -> targetAlias.equals(e.alias()))
+                    .filter(e -> targetKey.equals(e.frameKey()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
             assertThat(afterCommit.get().policy()).isNotNull();
@@ -325,7 +326,7 @@ class FrameEncryptionTest {
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
-            String targetAlias = frame.get().alias();
+            FrameKey targetKey = frame.get().frameKey();
 
             PolicySet policy = PolicySet.builder()
                     .encryption(PolicySet.EncryptionPolicy.toRecipients(
@@ -339,7 +340,7 @@ class FrameEncryptionTest {
 
             // The frame should now be encrypted
             Optional<Frame> afterCommit = librarian.frames().stream()
-                    .filter(e -> targetAlias.equals(e.alias()))
+                    .filter(e -> targetKey.equals(e.frameKey()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
             assertThat(afterCommit.get().body().isEncrypted())
@@ -358,7 +359,7 @@ class FrameEncryptionTest {
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
-            String targetAlias = frame.get().alias();
+            FrameKey targetKey = frame.get().frameKey();
 
             PolicySet policy = PolicySet.builder()
                     .encryption(PolicySet.EncryptionPolicy.toReaders())
@@ -381,7 +382,7 @@ class FrameEncryptionTest {
 
             // The frame should be encrypted (recipients derived from READ rule)
             Optional<Frame> afterCommit = librarian.frames().stream()
-                    .filter(e -> targetAlias.equals(e.alias()))
+                    .filter(e -> targetKey.equals(e.frameKey()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
             assertThat(afterCommit.get().body().isEncrypted())
@@ -397,7 +398,7 @@ class FrameEncryptionTest {
                     .filter(e -> e.body().hasContent())
                     .findFirst();
             assertThat(frame).isPresent();
-            String targetAlias = frame.get().alias();
+            FrameKey targetKey = frame.get().frameKey();
 
             PolicySet policy = PolicySet.builder()
                     .encryption(PolicySet.EncryptionPolicy.toReaders())
@@ -409,7 +410,7 @@ class FrameEncryptionTest {
             librarian.commit(librarian);
 
             Optional<Frame> afterCommit = librarian.frames().stream()
-                    .filter(e -> targetAlias.equals(e.alias()))
+                    .filter(e -> targetKey.equals(e.frameKey()))
                     .findFirst();
             assertThat(afterCommit).isPresent();
             assertThat(afterCommit.get().body().isEncrypted())

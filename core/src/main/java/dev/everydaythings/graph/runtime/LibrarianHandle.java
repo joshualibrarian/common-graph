@@ -173,6 +173,14 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
         return get(iid, Item.class);
     }
 
+    /**
+     * Get the Host item for this librarian's machine.
+     *
+     * <p>For local handles, returns the librarian's host directly.
+     * For remote handles, returns empty (the remote host is not local).
+     */
+    Optional<Host> host();
+
     // ==================================================================================
     // Lookup
     // ==================================================================================

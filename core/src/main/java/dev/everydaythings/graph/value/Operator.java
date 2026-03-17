@@ -39,6 +39,9 @@ import java.util.Map;
 @Type(glyph = "➕")
 public class Operator extends Sememe {
 
+    private static final dev.everydaythings.graph.item.id.ItemID EXPRESSION_PREDICATE =
+            dev.everydaythings.graph.item.id.ItemID.fromString(ExpressionComponent.TypeSeed.KEY);
+
     public static final String KEY = TypeSeed.KEY;
 
     public static class TypeSeed {
@@ -329,7 +332,7 @@ public class Operator extends Sememe {
                                 "Function parameters must be names, got: " + arg.toExpressionString());
                     })
                     .toList();
-            owner.addComponent(fn.function(), ExpressionComponent.function(params, right));
+            owner.addFrame(EXPRESSION_PREDICATE, fn.function(), ExpressionComponent.function(params, right));
             return fn.function() + "(" + String.join(", ", params) + ")";
         }
 
@@ -390,7 +393,7 @@ public class Operator extends Sememe {
         }
 
         // Store the expression formula (reactive — re-evaluated on access)
-        owner.addComponent(handle, ExpressionComponent.of(right));
+        owner.addFrame(EXPRESSION_PREDICATE, handle, ExpressionComponent.of(right));
 
         // Evaluate to show current value
         try {

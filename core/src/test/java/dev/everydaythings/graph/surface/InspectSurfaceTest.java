@@ -66,4 +66,35 @@ class InspectSurfaceTest {
         InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
         assertThat(surface.dirty()).isTrue();
     }
+
+    @Test
+    @DisplayName("frames have resolved names, not hashes")
+    void framesHaveResolvedNames() {
+        Librarian lib = Librarian.createInMemory();
+        Item item = Item.create(lib);
+
+        InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
+
+        // Every frame should have a name that doesn't start with "iid:"
+        for (InspectSurface.FrameInfo frame : surface.frames()) {
+            assertThat(frame.name())
+                    .as("Frame name should not be a raw IID hash")
+                    .doesNotStartWith("iid:");
+        }
+    }
+
+    @Test
+    @DisplayName("frame info has name and qualifier fields")
+    void frameInfoShape() {
+        Librarian lib = Librarian.createInMemory();
+        Item item = Item.create(lib);
+
+        InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
+
+        if (!surface.frames().isEmpty()) {
+            InspectSurface.FrameInfo frame = surface.frames().getFirst();
+            assertThat(frame.name()).isNotNull();
+            // qualifier may be null (no qualifier on simple frames)
+        }
+    }
 }

@@ -158,6 +158,12 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     }
 
     @Override
+    public Optional<Host> host() {
+        // Remote librarian's host is not local to this JVM
+        return Optional.empty();
+    }
+
+    @Override
     public <T extends Item> Optional<T> get(ItemID iid, Class<T> type) {
         checkOpen();
         // Items can't be directly transferred over the protocol - they're local objects.

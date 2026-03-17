@@ -18,6 +18,7 @@ import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.DisplayLayoutConfig;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ViewConfig;
 import dev.everydaythings.graph.frame.ViewHandle;
@@ -243,8 +244,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     public void bind(LibrarianHandle handle) {
         this.handle = handle;
 
-        // Add activity log to the component tree (created in constructor)
-        addComponent(ActivityLog.HANDLE, activityLog);
+        // Set Item-level librarian so display resolution works
+        if (handle instanceof LocalLibrarian local) {
+            setLibrarian(local.librarian());
+        }
+
+        // Add activity log with semantic key
+        addFrame(ItemID.fromString(ActivityLog.TypeSeed.KEY), activityLog);
 
         autoAuthenticate();
     }
@@ -483,18 +489,29 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 itemModel.setActiveView(vh);
             }
         }
+
+        // Notify subclasses (GraphicalSession creates OS window)
+        onViewOpened(key);
+
         return ActionResult.success("Viewing " + targetId.displayAtWidth(12));
     }
 
     @Verb(value = ViewVocabulary.Close.KEY, doc = "Close an open view")
     public ActionResult actionClose(
             @Param(value = "item", doc = "The item whose view to close", required = false) ItemID targetId) {
-        if (targetId != null) {
-            closeView(targetId);
-        } else {
-            // Close current view
+        ItemID actualTarget = targetId;
+        if (actualTarget == null) {
             Optional<Item> ctx = contextItem();
-            ctx.ifPresent(item -> closeView(item.iid()));
+            if (ctx.isPresent()) actualTarget = ctx.get().iid();
+        }
+
+        if (actualTarget != null) {
+            // Find the frame key before closing so we can notify
+            ViewHandle vh = findView(actualTarget);
+            closeView(actualTarget);
+            if (vh != null) {
+                onViewClosed(vh.frameKey());
+            }
         }
 
         // Clear view chrome from ItemModel
@@ -504,6 +521,18 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         goBack();
         return ActionResult.success("View closed");
     }
+
+    /**
+     * Hook called when a new ITEM_VIEW frame is opened.
+     * GraphicalSession overrides to create an OS window.
+     */
+    protected void onViewOpened(FrameKey key) {}
+
+    /**
+     * Hook called when an ITEM_VIEW frame is closed.
+     * GraphicalSession overrides to destroy the OS window.
+     */
+    protected void onViewClosed(FrameKey key) {}
 
     /**
      * Open a view of an item — creates an ITEM_VIEW frame on this session.
@@ -612,6 +641,83 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     private static final ItemID ITEM_VIEW_SEMEME_ID = ItemID.fromString(ViewVocabulary.ItemView.KEY);
 
     // ==================================================================================
+    // Display Layout Management (DISPLAY_LAYOUT frames on this session)
+    // ==================================================================================
+
+    private static final ItemID DISPLAY_LAYOUT_SEMEME_ID =
+            ItemID.fromString(ViewVocabulary.DisplayLayout.KEY);
+
+    /**
+     * Register a display layout in session space.
+     *
+     * <p>Creates a DISPLAY_LAYOUT frame qualified by "{hostId}:{displayId}"
+     * and stores the DisplayLayoutConfig as its live instance.
+     *
+     * @param config the display layout configuration
+     * @return the FrameKey of the new DISPLAY_LAYOUT frame
+     */
+    public FrameKey registerDisplayLayout(DisplayLayoutConfig config) {
+        String qualifier = config.hostId().encodeText() + ":" + config.displayId();
+        FrameKey key = FrameKey.mixed(DISPLAY_LAYOUT_SEMEME_ID, qualifier);
+
+        // Remove existing frame for this display if present
+        frames().removeByKey(key);
+
+        dev.everydaythings.graph.frame.Frame frame =
+                new dev.everydaythings.graph.frame.Frame(key, DISPLAY_LAYOUT_SEMEME_ID, null, null, false);
+        frames().add(frame);
+        frame.setInstance(config);
+
+        return key;
+    }
+
+    /**
+     * Get all DISPLAY_LAYOUT entries on this session.
+     */
+    public List<DisplayLayoutConfig> displayLayouts() {
+        List<DisplayLayoutConfig> result = new java.util.ArrayList<>();
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+            if (DISPLAY_LAYOUT_SEMEME_ID.equals(frame.type())
+                    && frame.instance() instanceof DisplayLayoutConfig dlc) {
+                result.add(dlc);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Remove all DISPLAY_LAYOUT frames for a given host.
+     *
+     * @param hostId the host whose layouts to remove
+     */
+    public void clearDisplayLayouts(ItemID hostId) {
+        List<FrameKey> toRemove = new java.util.ArrayList<>();
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+            if (DISPLAY_LAYOUT_SEMEME_ID.equals(frame.type())
+                    && frame.instance() instanceof DisplayLayoutConfig dlc
+                    && hostId.equals(dlc.hostId())) {
+                toRemove.add(frame.frameKey());
+            }
+        }
+        for (FrameKey key : toRemove) {
+            frames().removeByKey(key);
+        }
+    }
+
+    /**
+     * Replace all DISPLAY_LAYOUT frames for a host with the given layouts.
+     *
+     * @param hostId  the host to update
+     * @param layouts the new display layouts
+     */
+    public void registerHostDisplays(ItemID hostId, List<DisplayLayoutConfig> layouts) {
+        clearDisplayLayouts(hostId);
+        for (DisplayLayoutConfig layout : layouts) {
+            registerDisplayLayout(layout);
+        }
+    }
+
+    // ==================================================================================
     // Display (formerly on SessionItem)
     // ==================================================================================
 
@@ -623,6 +729,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     @Override
     public String displayToken() {
         return "session";
+    }
+
+    @Override
+    public String resolveDisplayToken(ItemID sememeId) {
+        if (sememeId == null || librarian == null) return null;
+        return librarian.get(sememeId, Sememe.class)
+                .map(Sememe::displayToken)
+                .orElse(null);
     }
 
     // ==================================================================================
@@ -1230,15 +1344,19 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         Item actual = liveItemCache.getOrDefault(target.iid(), target);
         liveItemCache.put(actual.iid(), actual);
 
-        String handleName = deriveUniqueHandle(actual, deriveHandle(component));
-        actual.addComponent(handleName, component);
+        // Resolve the semantic predicate from the component's @Implements annotation
+        ItemID predicateId = derivePredicateId(component);
+        if (predicateId == null) {
+            throw new IllegalArgumentException(
+                    "Component " + component.getClass().getSimpleName()
+                            + " must have @Implements annotation");
+        }
+        String qualifier = deriveUniqueQualifier(actual, predicateId);
+        actual.addFrame(predicateId, qualifier, component);
 
         // Refresh tree to pick up the new component, then select it
         if (itemModel != null) {
             itemModel.refresh();
-            // Build ref with FrameKey to match the component's frame
-            Ref componentRef = Ref.of(actual.iid(), FrameKey.literal(handleName));
-            itemModel.select(componentRef);
         }
 
         // Notify subclasses (e.g., GraphicalSession rebuilds tick registry)
@@ -1259,45 +1377,35 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     /**
-     * Derive a handle name from a component's type annotation.
-     *
-     * <p>Extracts the short name from the canonical key
-     * (e.g., "cg.sememe:chess" → "chess").
+     * Get the semantic predicate ItemID from a component's @Implements annotation.
      */
-    private String deriveHandle(Object component) {
+    private ItemID derivePredicateId(Object component) {
         Implements impl = component.getClass().getAnnotation(Implements.class);
         if (impl != null) {
-            String key = impl.value();
-            int lastSlash = key.lastIndexOf('/');
-            if (lastSlash >= 0 && lastSlash < key.length() - 1) {
-                return key.substring(lastSlash + 1);
-            }
-            int lastColon = key.lastIndexOf(':');
-            if (lastColon >= 0 && lastColon < key.length() - 1) {
-                return key.substring(lastColon + 1);
-            }
+            return ItemID.fromString(impl.value());
         }
-        return component.getClass().getSimpleName().toLowerCase();
+        return null;
     }
 
     /**
-     * Ensure runtime-added component handles are unique within an item.
+     * Derive a unique qualifier for a semantic frame key.
      *
-     * <p>Repeated "create chess" should produce chess, chess-2, chess-3...,
-     * not overwrite the existing "chess" entry.
+     * <p>If the item already has a frame with this predicate and no qualifier,
+     * returns "2", "3", etc. Returns null for the first instance.
      */
-    private String deriveUniqueHandle(Item item, String baseHandle) {
-        String normalized = (baseHandle == null || baseHandle.isBlank())
-                ? "component"
-                : baseHandle;
-
-        String candidate = normalized;
-        int n = 2;
-        while (item.frames().containsKey(dev.everydaythings.graph.item.id.FrameKey.literal(candidate))) {
-            candidate = normalized + "-" + n++;
+    private String deriveUniqueQualifier(Item item, ItemID predicateId) {
+        // First instance: no qualifier needed
+        if (!item.frames().containsKey(FrameKey.of(predicateId))) {
+            return null;
         }
-        return candidate;
+        // Subsequent: find next available number
+        int n = 2;
+        while (item.frames().containsKey(FrameKey.mixed(predicateId, String.valueOf(n)))) {
+            n++;
+        }
+        return String.valueOf(n);
     }
+
 
     /**
      * Check if a value is a component (has @Type annotation).

@@ -59,9 +59,7 @@ public final class Frame implements Canonical {
     @Canon(order = 4)
     private List<Mount> mounts = List.of();
 
-    /** Human-facing display alias (deprecated — use TokenDictionary). */
-    @Canon(order = 5)
-    private String alias;
+    // alias field REMOVED — display names come from TokenDictionary/sememe resolution
 
     // ==================================================================================
     // Transient runtime fields
@@ -109,7 +107,7 @@ public final class Frame implements Canonical {
     public boolean identity() { return identity; }
     public Object instance() { return instance; }
     public Item owner() { return owner; }
-    public String alias() { return alias; }
+    // alias() DELETED — display names resolved via TokenDictionary
     public List<FrameRecord> records() { return records != null ? records : List.of(); }
 
     /**
@@ -141,7 +139,6 @@ public final class Frame implements Canonical {
     public void setBodyHash(ContentID bodyHash) { this.bodyHash = bodyHash; }
     public void setInstance(Object instance) { this.instance = instance; }
     public void setOwner(Item owner) { this.owner = owner; }
-    public void setAlias(String alias) { this.alias = alias; }
     public void setRecords(List<FrameRecord> records) { this.records = records; }
 
     /**
@@ -196,7 +193,6 @@ public final class Frame implements Canonical {
 
     /** Display token for tree/inspector views. */
     public String displayToken() {
-        if (alias != null && !alias.isBlank()) return alias;
         return key.toCanonicalString();
     }
 
@@ -283,7 +279,6 @@ public final class Frame implements Canonical {
 
     /** Create a bare frame (type = FrameBody.TYPE_ID, for unendorsed semantic assertions). */
     public static Frame forFrameBody(ItemID predicate, ContentID cid, boolean identity, String displayName) {
-        String alias = displayName != null ? displayName : formatPredicate(predicate);
         FrameKey key = FrameKey.literal("frame:" + cid.encodeText());
         List<Binding> bindings = new ArrayList<>();
         if (cid != null) {
@@ -291,9 +286,7 @@ public final class Frame implements Canonical {
                     BindingTarget.ref(cid), true, false));
         }
         FrameBody body = new FrameBody(FrameBody.TYPE_ID, bindings);
-        Frame frame = new Frame(key, FrameBody.TYPE_ID, body, null, identity);
-        frame.alias = alias;
-        return frame;
+        return new Frame(key, FrameBody.TYPE_ID, body, null, identity);
     }
 
     /** Create a bare frame (no display name). */
