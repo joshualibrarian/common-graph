@@ -28,6 +28,22 @@ public interface Stage extends WindowDragController.WindowOps {
     /** Run the main event loop. Blocks until the window is closed. */
     void runLoop();
 
+    /**
+     * Process one frame of work (non-blocking).
+     *
+     * <p>Handles size changes, renders if dirty, advances animations.
+     * Does NOT call {@code glfwPollEvents()} — the caller is responsible
+     * for polling (enables a single poll to drive multiple windows).
+     *
+     * @return true if the window is still alive, false if it wants to close
+     */
+    boolean tick();
+
+    /**
+     * Whether the window is requesting to close.
+     */
+    boolean shouldClose();
+
     /** Clean up all resources. */
     void destroy();
 

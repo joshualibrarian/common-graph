@@ -10,6 +10,8 @@ import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
+import dev.everydaythings.graph.frame.ViewConfig;
+import dev.everydaythings.graph.frame.ViewHandle;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
@@ -116,6 +118,30 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * change context selection targets.
      */
     private TreePaneMode treePaneMode = TreePaneMode.PRESENTATION;
+
+    /**
+     * View mode — presentation (author's scene) or inspect (developer view).
+     *
+     * <p>Drives what {@link #contentSurface()} returns. PRESENTATION delegates
+     * to the item's own scene; INSPECT delegates to {@link InspectSurface}.
+     */
+    @Getter(lombok.AccessLevel.NONE) // Conflicts with existing viewMode() method
+    private ViewConfig.ViewMode currentViewMode = ViewConfig.ViewMode.PRESENTATION;
+
+    /**
+     * Inspector sub-mode — frames listing or version history.
+     * Only relevant when {@link #currentViewMode} is INSPECT.
+     */
+    @Getter(lombok.AccessLevel.NONE)
+    private ViewConfig.InspectMode currentInspectMode = ViewConfig.InspectMode.FRAMES;
+
+    /**
+     * Active view handle — non-null when the current root was opened via "view".
+     *
+     * <p>When set, the header shows view chrome (mode toggle + close button)
+     * and mode changes are synced to the ITEM_VIEW frame's ViewConfig.
+     */
+    private ViewHandle activeView;
 
     /**
      * The currently selected item (context).
@@ -306,15 +332,51 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     @Scene.Border(all = "0.3ch solid #4A90D9", radius = "0.3em")
     public SurfaceSchema header() {
         return resolver.apply(context.target())
-                .map(item -> {
-                    String typeName = item.displayInfo().typeName();
-                    if (structureMode == TreeLink.ChildMode.INSPECT) {
-                        typeName = (typeName != null ? typeName + " " : "") + "[Inspect]";
-                    }
-                    return HandleSurface.forHeader(
-                            item.emoji(), item.displayToken(), typeName);
-                })
+                .map(this::buildViewHeader)
                 .orElse(null);
+    }
+
+    /**
+     * Build the header — handle + mode toggle + close.
+     *
+     * <p>Always shows view chrome. The mode toggle switches between
+     * PRESENTATION (author's scene) and INSPECT (frame inspector).
+     * The close button navigates back. When an ITEM_VIEW frame is
+     * active, mode changes are synced to the frame's ViewConfig.
+     */
+    private SurfaceSchema buildViewHeader(Item item) {
+        ContainerSurface header = ContainerSurface.horizontal()
+                .gap("0.5em")
+                .style("view-header");
+
+        // Handle (icon + name)
+        HandleSurface handle = HandleSurface.forHeader(
+                item.emoji(), item.displayToken(), item.displayInfo().typeName());
+        header.add(handle);
+
+        // Mode indicator
+        boolean isPresentation = currentViewMode == ViewConfig.ViewMode.PRESENTATION;
+        String modeLabel = isPresentation ? "presentation" : "inspect";
+        if (!isPresentation) {
+            modeLabel += ":" + (currentInspectMode == ViewConfig.InspectMode.FRAMES ? "frames" : "versions");
+        }
+        ButtonSurface modeToggle = ButtonSurface.of(modeLabel, "viewMode:toggle")
+                .ghost()
+                .style("view-mode-toggle");
+        header.add(modeToggle);
+
+        // Dirty indicator
+        if (item.dirty()) {
+            header.add(TextSurface.of("*").style("dirty-indicator"));
+        }
+
+        // Close button
+        ButtonSurface closeBtn = ButtonSurface.of("×", "viewClose")
+                .ghost()
+                .style("view-close-button");
+        header.add(closeBtn);
+
+        return header;
     }
 
     /**
@@ -366,16 +428,99 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     )
     @Scene.Border(all = "0.2rem solid #D9834A", radius = "0.25em")
     public SurfaceSchema detail() {
+        return contentSurface();
+    }
+
+    // ==================== View Mode ====================
+
+    /**
+     * Get the current view mode (PRESENTATION or INSPECT).
+     */
+    public ViewConfig.ViewMode currentViewMode() { return currentViewMode; }
+
+    /**
+     * Get the current inspect sub-mode (FRAMES or VERSIONS).
+     */
+    public ViewConfig.InspectMode currentInspectMode() { return currentInspectMode; }
+
+    /**
+     * Set the view mode (PRESENTATION or INSPECT).
+     */
+    public void setViewMode(ViewConfig.ViewMode mode) {
+        if (mode != null && mode != this.currentViewMode) {
+            this.currentViewMode = mode;
+            changed();
+        }
+    }
+
+    /**
+     * Set the inspector sub-mode (FRAMES or VERSIONS).
+     */
+    public void setInspectMode(ViewConfig.InspectMode mode) {
+        if (mode != null && mode != this.currentInspectMode) {
+            this.currentInspectMode = mode;
+            changed();
+        }
+    }
+
+    /**
+     * Mark the current root as having an active ITEM_VIEW frame.
+     *
+     * <p>When set, the header shows view chrome (mode toggle, close button)
+     * and mode state syncs with the ViewConfig on the frame.
+     */
+    public void setActiveView(ViewHandle view) {
+        this.activeView = view;
+        if (view != null && view.config() != null) {
+            this.currentViewMode = view.config().mode();
+            this.currentInspectMode = view.config().inspectMode();
+        }
+        changed();
+    }
+
+    /**
+     * Clear the active view (no view chrome shown).
+     */
+    public void clearActiveView() {
+        this.activeView = null;
+        this.currentViewMode = ViewConfig.ViewMode.PRESENTATION;
+        this.currentInspectMode = ViewConfig.InspectMode.FRAMES;
+        changed();
+    }
+
+    /**
+     * Whether a view is currently active (header shows view chrome).
+     */
+    public boolean hasActiveView() {
+        return activeView != null;
+    }
+
+    /**
+     * Chrome-free content surface for the current context.
+     *
+     * <p>Returns the content tree WITHOUT header or prompt. This is what
+     * ViewSurface wraps in its chrome frame.
+     *
+     * <ul>
+     *   <li>PRESENTATION: delegates to {@link #detail()} (tree + author's scene)</li>
+     *   <li>INSPECT: delegates to {@link InspectSurface#of(Item, ViewConfig.InspectMode)}</li>
+     * </ul>
+     *
+     * @return the content surface, or null if no item is resolved
+     */
+    public SurfaceSchema<?> contentSurface() {
         Optional<Item> resolved = resolver.apply(context.target());
         if (resolved.isEmpty()) return null;
         Item item = resolved.get();
 
-        // Context == root → show composite/assembled view
+        if (currentViewMode == ViewConfig.ViewMode.INSPECT) {
+            return InspectSurface.of(item, currentInspectMode);
+        }
+
+        // PRESENTATION mode: same as detail()
         if (context.equals(root)) {
             return detailForRoot(item);
         }
-
-        // Context != root → show selected node's own content
         return detailForSelected(item);
     }
 
@@ -976,6 +1121,17 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
 
     @Override
     public boolean handleEvent(String action, String target) {
+        // View mode toggle
+        if ("viewMode:toggle".equals(action)) {
+            setViewMode(currentViewMode == ViewConfig.ViewMode.PRESENTATION
+                    ? ViewConfig.ViewMode.INSPECT
+                    : ViewConfig.ViewMode.PRESENTATION);
+            return true;
+        }
+        // View close — delegates to goBack (Session may intercept for frame removal)
+        if ("viewClose".equals(action)) {
+            return goBack();
+        }
         if (action != null && action.startsWith("treeMode:")) {
             String mode = action.substring("treeMode:".length());
             switch (mode) {

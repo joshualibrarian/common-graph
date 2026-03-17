@@ -11,12 +11,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.glfw.Callbacks;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWErrorCallback;
+
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.system.MemoryStack;
 
+import dev.everydaythings.graph.ui.GlfwLifecycle;
 import dev.everydaythings.graph.ui.Stage;
 
 import java.util.function.BiConsumer;
@@ -73,12 +74,7 @@ public class SkiaWindow implements Stage {
      * Initialize the window. Must be called from the main thread.
      */
     public void init(String title) {
-        // Set up error callback
-        GLFWErrorCallback.createPrint(System.err).set();
-
-        if (!glfwInit()) {
-            throw new IllegalStateException("Unable to initialize GLFW");
-        }
+        GlfwLifecycle.acquire();
 
         // Detect Wayland — window positioning is unsupported
         try {
@@ -191,17 +187,28 @@ public class SkiaWindow implements Stage {
      * Run the main event loop. Blocks until the window is closed.
      */
     public void runLoop() {
-        while (!glfwWindowShouldClose(window)) {
+        while (!shouldClose()) {
             glfwPollEvents();
-
-            if (dirty) {
-                render();
-                dirty = false;
-            } else {
-                // Wait for events when idle (saves CPU)
-                glfwWaitEventsTimeout(0.016); // ~60fps max
+            tick();
+            if (!dirty) {
+                glfwWaitEventsTimeout(0.016); // ~60fps max when idle
             }
         }
+    }
+
+    @Override
+    public boolean tick() {
+        if (glfwWindowShouldClose(window)) return false;
+        if (dirty) {
+            render();
+            dirty = false;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean shouldClose() {
+        return window == NULL || glfwWindowShouldClose(window);
     }
 
     /**
@@ -269,9 +276,7 @@ public class SkiaWindow implements Stage {
             glfwDestroyWindow(window);
         }
 
-        glfwTerminate();
-        var cb = glfwSetErrorCallback(null);
-        if (cb != null) cb.free();
+        GlfwLifecycle.release();
 
         log.info("SkiaWindow destroyed");
     }

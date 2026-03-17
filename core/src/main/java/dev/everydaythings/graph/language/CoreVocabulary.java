@@ -127,7 +127,7 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.verb:show";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "make visible or apparent").cili("i32454")
-                .word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "show").word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "display").word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "view")
+                .word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "show").word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "display")
                 .slot(ThematicRole.Theme.KEY);
     }
 

@@ -77,10 +77,10 @@ public class ItemSurface extends SceneSchema<Item> {
         static class Name {}
     }
 
-    // PREVIEW/FULL mode - header + content
+    // PREVIEW mode - header + content
     @Scene.Container(direction = Scene.Direction.VERTICAL)
-    @Scene.If("mode == PREVIEW || mode == FULL")
-    static class FullMode {
+    @Scene.If("mode == PREVIEW")
+    static class PreviewMode {
         @Scene.Container(direction = Scene.Direction.HORIZONTAL, style = {"header"})
         static class Header {
             @Scene.Image(bind = "icon")
@@ -99,9 +99,16 @@ public class ItemSurface extends SceneSchema<Item> {
         }
 
         @Scene.Text(bind = "subtitle", style = {"subtitle", "muted"})
-        @Scene.If("mode != FULL && subtitle != null && !subtitle.isEmpty()")
+        @Scene.If("subtitle != null && !subtitle.isEmpty()")
         static class Subtitle {}
 
+        // TODO: @Scene.Repeat(bind = "content") for children
+    }
+
+    // FULL mode - content only (chrome provided by ViewSurface)
+    @Scene.Container(direction = Scene.Direction.VERTICAL)
+    @Scene.If("mode == FULL")
+    static class FullMode {
         // TODO: @Scene.Repeat(bind = "content") for children
     }
 
@@ -308,13 +315,10 @@ public class ItemSurface extends SceneSchema<Item> {
     }
 
     private void renderFull(SurfaceRenderer out) {
-        // Full: complete vertical layout
+        // Full: content only — chrome (title bar, mode toggle, close)
+        // is now provided by ViewSurface when a view is active.
         out.beginBox(Scene.Direction.VERTICAL, style());
 
-        // Header row
-        renderHeader(out);
-
-        // All content
         for (SurfaceSchema child : content) {
             child.render(out);
         }

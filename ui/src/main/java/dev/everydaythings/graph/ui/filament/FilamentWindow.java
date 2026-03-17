@@ -5,8 +5,9 @@ import dev.everydaythings.filament.gltfio.Gltfio;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.glfw.Callbacks;
-import org.lwjgl.glfw.GLFWErrorCallback;
 
+
+import dev.everydaythings.graph.ui.GlfwLifecycle;
 import dev.everydaythings.graph.ui.Stage;
 
 import java.util.ArrayList;
@@ -117,17 +118,7 @@ public class FilamentWindow implements Stage {
      * Must be called from the main thread.
      */
     public void init(String title) {
-        GLFWErrorCallback.createPrint(System.err).set();
-
-        if (get() == LINUX) {
-            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-        } else if (get() == MACOSX) {
-            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_COCOA);
-        }
-
-        if (!glfwInit()) {
-            throw new IllegalStateException("Unable to initialize GLFW");
-        }
+        GlfwLifecycle.acquire();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -136,7 +127,7 @@ public class FilamentWindow implements Stage {
 
         window = glfwCreateWindow(width, height, title, NULL, NULL);
         if (window == NULL) {
-            glfwTerminate();
+            GlfwLifecycle.release();
             throw new RuntimeException("Failed to create GLFW window");
         }
 
@@ -352,59 +343,71 @@ public class FilamentWindow implements Stage {
      */
     public void runLoop() {
         lastFrameNanos = System.nanoTime();
-        while (!glfwWindowShouldClose(window)) {
+        while (!shouldClose()) {
             glfwPollEvents();
-
-            // Sync dimensions after events settle — never inside callbacks
-            // where macOS returns stale framebuffer sizes.
-            if (sizeChanged) {
-                sizeChanged = false;
-                syncSizes();
-                // Recreate swapchain so the JNI layer updates the CAMetalLayer's
-                // drawableSize to match the new window dimensions.
-                recreateSwapChain();
-            }
-
-            long now = System.nanoTime();
-
-            // Skip when minimized
-            if (width <= 0 || height <= 0) continue;
-
-            // Per-frame update (camera, animation, layout rebuild, etc.)
-            if (beforeRenderCallback != null) {
-                beforeRenderCallback.run();
-            }
-            lastFrameNanos = now;
-
-            // Render all panes
-            try {
-                if (swapChain == null) continue;
-
-                var activeViews = panes.stream()
-                        .filter(p -> p.viewportWidth() > 0 && p.viewportHeight() > 0)
-                        .map(FilamentPane::view)
-                        .toList();
-
-                boolean began = renderer.beginFrame(swapChain, now);
-
-                // On macOS/Metal, beginFrame fails transiently during live resize.
-                // Recreate the swapchain (throttled) and retry once.
-                if (!began) {
-                    if (maybeRecreateSwapChain(now)) {
-                        began = renderer.beginFrame(swapChain, now);
-                    }
-                }
-
-                if (began) {
-                    for (View view : activeViews) {
-                        renderer.render(view);
-                    }
-                    renderer.endFrame();
-                }
-            } catch (Exception e) {
-                log.warn("Frame render failed: {}", e.getMessage());
-            }
+            tick();
         }
+    }
+
+    @Override
+    public boolean tick() {
+        if (glfwWindowShouldClose(window)) return false;
+
+        // Sync dimensions after events settle — never inside callbacks
+        // where macOS returns stale framebuffer sizes.
+        if (sizeChanged) {
+            sizeChanged = false;
+            syncSizes();
+            // Recreate swapchain so the JNI layer updates the CAMetalLayer's
+            // drawableSize to match the new window dimensions.
+            recreateSwapChain();
+        }
+
+        long now = System.nanoTime();
+
+        // Skip when minimized
+        if (width <= 0 || height <= 0) return true;
+
+        // Per-frame update (camera, animation, layout rebuild, etc.)
+        if (beforeRenderCallback != null) {
+            beforeRenderCallback.run();
+        }
+        lastFrameNanos = now;
+
+        // Render all panes
+        try {
+            if (swapChain == null) return true;
+
+            var activeViews = panes.stream()
+                    .filter(p -> p.viewportWidth() > 0 && p.viewportHeight() > 0)
+                    .map(FilamentPane::view)
+                    .toList();
+
+            boolean began = renderer.beginFrame(swapChain, now);
+
+            // On macOS/Metal, beginFrame fails transiently during live resize.
+            // Recreate the swapchain (throttled) and retry once.
+            if (!began) {
+                if (maybeRecreateSwapChain(now)) {
+                    began = renderer.beginFrame(swapChain, now);
+                }
+            }
+
+            if (began) {
+                for (View view : activeViews) {
+                    renderer.render(view);
+                }
+                renderer.endFrame();
+            }
+        } catch (Exception e) {
+            log.warn("Frame render failed: {}", e.getMessage());
+        }
+        return true;
+    }
+
+    @Override
+    public boolean shouldClose() {
+        return window == NULL || glfwWindowShouldClose(window);
     }
 
     /**
@@ -487,9 +490,7 @@ public class FilamentWindow implements Stage {
             window = NULL;
         }
 
-        glfwTerminate();
-        var cb = glfwSetErrorCallback(null);
-        if (cb != null) cb.free();
+        GlfwLifecycle.release();
 
         log.info("FilamentWindow destroyed");
     }

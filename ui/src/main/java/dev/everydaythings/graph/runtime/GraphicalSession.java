@@ -963,7 +963,7 @@ public class GraphicalSession extends Session {
         if (itemModel() == null) return;
 
         try {
-            SurfaceSchema itemSurface = itemModel().toSurface();
+            SurfaceSchema itemSurface = toSurface();
             if (itemSurface == null) return;
 
             boolean filamentSkiaFallback = activeRenderer == RendererType.FILAMENT

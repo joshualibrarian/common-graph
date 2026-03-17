@@ -17,7 +17,13 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.ViewConfig;
+import dev.everydaythings.graph.frame.ViewHandle;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.language.ViewVocabulary;
 import dev.everydaythings.graph.runtime.options.SessionOptions;
 import dev.everydaythings.graph.parse.InputAction;
 import dev.everydaythings.graph.ui.input.InputBindings;
@@ -26,6 +32,7 @@ import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.ui.scene.View;
 import dev.everydaythings.graph.ui.scene.surface.item.ItemModel;
+import dev.everydaythings.graph.ui.scene.surface.item.ViewSurface;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.log4j.Log4j2;
@@ -459,6 +466,152 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     // ==================================================================================
+    // View Management (ITEM_VIEW frames on this session)
+    // ==================================================================================
+
+    @Verb(value = ViewVocabulary.View.KEY, doc = "Open a persistent view of an item")
+    public ActionResult actionView(
+            @Param(value = "item", doc = "The item to view") ItemID targetId) {
+        if (targetId == null) return ActionResult.failure(new IllegalArgumentException("No target item specified"));
+        FrameKey key = openView(targetId);
+        navigateInto(Ref.of(targetId));
+
+        // Tell ItemModel about the active view so it shows view chrome
+        if (itemModel != null) {
+            ViewHandle vh = findView(targetId);
+            if (vh != null) {
+                itemModel.setActiveView(vh);
+            }
+        }
+        return ActionResult.success("Viewing " + targetId.displayAtWidth(12));
+    }
+
+    @Verb(value = ViewVocabulary.Close.KEY, doc = "Close an open view")
+    public ActionResult actionClose(
+            @Param(value = "item", doc = "The item whose view to close", required = false) ItemID targetId) {
+        if (targetId != null) {
+            closeView(targetId);
+        } else {
+            // Close current view
+            Optional<Item> ctx = contextItem();
+            ctx.ifPresent(item -> closeView(item.iid()));
+        }
+
+        // Clear view chrome from ItemModel
+        if (itemModel != null) {
+            itemModel.clearActiveView();
+        }
+        goBack();
+        return ActionResult.success("View closed");
+    }
+
+    /**
+     * Open a view of an item — creates an ITEM_VIEW frame on this session.
+     *
+     * @param target the IID of the item to view
+     * @return the FrameKey of the new ITEM_VIEW frame
+     */
+    public FrameKey openView(ItemID target) {
+        // Check if a view already exists for this target
+        ViewHandle existing = findView(target);
+        if (existing != null) return existing.frameKey();
+
+        // Create a new ITEM_VIEW frame
+        FrameKey key = FrameKey.mixed(ITEM_VIEW_SEMEME_ID, target.encodeText());
+
+        FrameBody body = new FrameBody(ITEM_VIEW_SEMEME_ID, List.of(
+                Binding.ref(ThematicRole.Theme.SEED.iid(), target)
+        ));
+        dev.everydaythings.graph.frame.Frame frame =
+                new dev.everydaythings.graph.frame.Frame(key, ITEM_VIEW_SEMEME_ID, body, null, false);
+        frames().add(frame);
+
+        // Store default ViewConfig as live instance on the frame
+        frame.setInstance(ViewConfig.defaults());
+
+        return key;
+    }
+
+    /**
+     * Close a view by removing its ITEM_VIEW frame.
+     *
+     * @param target the IID of the viewed item
+     */
+    public void closeView(ItemID target) {
+        ViewHandle vh = findView(target);
+        if (vh != null) {
+            frames().removeByKey(vh.frameKey());
+        }
+    }
+
+    /**
+     * Find the ITEM_VIEW frame for a given target item.
+     *
+     * @param target the IID of the viewed item
+     * @return a ViewHandle if found, null otherwise
+     */
+    public ViewHandle findView(ItemID target) {
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+            if (ITEM_VIEW_SEMEME_ID.equals(frame.type()) && frame.body() != null) {
+                ItemID themeId = frame.body().homeId();
+                if (target.equals(themeId)) {
+                    ViewConfig config = frame.instance() instanceof ViewConfig vc
+                            ? vc : ViewConfig.defaults();
+                    return new ViewHandle(frame.frameKey(), target, config);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get all open views.
+     *
+     * @return list of ViewHandles for all ITEM_VIEW frames
+     */
+    public List<ViewHandle> openViews() {
+        List<ViewHandle> views = new java.util.ArrayList<>();
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+            if (ITEM_VIEW_SEMEME_ID.equals(frame.type()) && frame.body() != null) {
+                ItemID themeId = frame.body().homeId();
+                if (themeId != null) {
+                    ViewConfig config = frame.instance() instanceof ViewConfig vc
+                            ? vc : ViewConfig.defaults();
+                    views.add(new ViewHandle(frame.frameKey(), themeId, config));
+                }
+            }
+        }
+        return views;
+    }
+
+    /**
+     * Get the ViewConfig for a given view frame.
+     *
+     * @param key the ITEM_VIEW frame key
+     * @return the config, or null if not found
+     */
+    public ViewConfig viewConfig(FrameKey key) {
+        dev.everydaythings.graph.frame.Frame frame = frames().get(key);
+        if (frame == null) return null;
+        return frame.instance() instanceof ViewConfig vc ? vc : ViewConfig.defaults();
+    }
+
+    /**
+     * Update the ViewConfig for a given view frame.
+     *
+     * @param key    the ITEM_VIEW frame key
+     * @param config the new config
+     */
+    public void updateViewConfig(FrameKey key, ViewConfig config) {
+        dev.everydaythings.graph.frame.Frame frame = frames().get(key);
+        if (frame != null) {
+            frame.setInstance(config);
+        }
+    }
+
+    private static final ItemID ITEM_VIEW_SEMEME_ID = ItemID.fromString(ViewVocabulary.ItemView.KEY);
+
+    // ==================================================================================
     // Display (formerly on SessionItem)
     // ==================================================================================
 
@@ -789,9 +942,28 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
     /**
      * Generate the current surface for rendering.
+     *
+     * <p>When a view is active, wraps the content in {@link ViewSurface} chrome
+     * (title bar + content + prompt). Otherwise returns the standard ItemModel layout.
      */
     public SurfaceSchema toSurface() {
-        return itemModel != null ? itemModel.toSurface() : null;
+        if (itemModel == null) return null;
+
+        if (itemModel.hasActiveView()) {
+            return buildViewSurface();
+        }
+
+        return itemModel.toSurface();
+    }
+
+    private SurfaceSchema buildViewSurface() {
+        Optional<Item> item = contextItem();
+        if (item.isEmpty()) return itemModel.toSurface();
+
+        SurfaceSchema<?> content = itemModel.contentSurface();
+        SurfaceSchema<?> prompt = itemModel.prompt();
+        ViewConfig config = itemModel.activeView().config();
+        return ViewSurface.of(item.get(), content, prompt, config);
     }
 
     /**
@@ -877,7 +1049,38 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Handle a surface event (from mouse clicks, etc.).
      */
     public boolean handleEvent(String action, String target) {
+        // View close — remove ITEM_VIEW frame, clear view chrome, go back
+        if ("viewClose".equals(action)) {
+            contextItem().ifPresent(item -> closeView(item.iid()));
+            if (itemModel != null) {
+                itemModel.clearActiveView();
+            }
+            goBack();
+            return true;
+        }
+        // View mode toggle — sync config back to the ITEM_VIEW frame
+        if ("viewMode:toggle".equals(action) && itemModel != null) {
+            itemModel.handleEvent(action, target);
+            syncViewModeToFrame();
+            return true;
+        }
         return itemModel != null && itemModel.handleEvent(action, target);
+    }
+
+    /**
+     * Sync the current viewMode/inspectMode from ItemModel back to the
+     * ITEM_VIEW frame's ViewConfig.
+     */
+    private void syncViewModeToFrame() {
+        if (itemModel == null || !itemModel.hasActiveView()) return;
+        ViewHandle vh = itemModel.activeView();
+        if (vh == null) return;
+        ViewConfig current = viewConfig(vh.frameKey());
+        if (current == null) return;
+        ViewConfig updated = current
+                .withMode(itemModel.currentViewMode())
+                .withInspectMode(itemModel.currentInspectMode());
+        updateViewConfig(vh.frameKey(), updated);
     }
 
     // ==================================================================================
