@@ -37,12 +37,12 @@ import java.util.Map;
  * @see SemanticFrame
  * @see PrepositionVocabulary
  */
-@Implements(ThematicRole.TypeSeed.KEY)
+@Implements(ThematicRole.KEY)
 public class ThematicRole extends Sememe {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:role";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = ThematicRole.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:role";
         @Seed public static final Sememe SEED = new Sememe(KEY)

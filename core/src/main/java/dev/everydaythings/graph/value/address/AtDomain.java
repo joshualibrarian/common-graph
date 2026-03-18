@@ -33,14 +33,14 @@ import java.util.regex.Pattern;
  *   <li>{@code support@company.co.uk}</li>
  * </ul>
  */
-@Implements(AtDomain.TypeSeed.KEY)
+@Implements(AtDomain.KEY)
 public class AtDomain extends AddressSpace {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.address:at-domain";
 
     public static class TypeSeed {
         public static final String KEY = "cg.address:at-domain";

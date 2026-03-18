@@ -59,7 +59,7 @@ public class SurfaceTemplateComponent implements Canonical {
                 .gloss("en", "display template for an item type")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "surface-template");
     }
-    public static final FrameKey HANDLE = FrameKey.of(ItemID.fromString(TypeSeed.KEY));
+    public static final FrameKey HANDLE = FrameKey.of(ItemID.fromString(KEY));
 
     // ==================================================================================
     // Surface Template

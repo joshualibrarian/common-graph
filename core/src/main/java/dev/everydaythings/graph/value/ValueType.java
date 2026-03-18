@@ -44,16 +44,16 @@ import java.util.stream.Stream;
  * @see Value
  * @see Numeric
  */
-@Implements(ValueType.TypeSeed.KEY)
+@Implements(ValueType.KEY)
 public class ValueType extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:value-type";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = ValueType.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:value-type";
         @Seed public static final Sememe SEED = new Sememe(KEY)

@@ -37,12 +37,12 @@ import java.util.*;
  *   <li>{@link Scored} — cumulative pip scoring across rounds</li>
  * </ul>
  */
-@Implements(DominoesGame.TypeSeed.KEY)
+@Implements(DominoesGame.KEY)
 @Scene(as = DominoesSurface.class)
 public class DominoesGame extends GameComponent<DominoesGame.Op>
         implements Zoned<DominoTile>, Scored {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:dominoes";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:dominoes";

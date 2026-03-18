@@ -36,14 +36,14 @@ import java.util.regex.Pattern;
  *   <li>{@code ~myhost/projects/common-graph/readme}</li>
  * </ul>
  */
-@Implements(Tilde.TypeSeed.KEY)
+@Implements(Tilde.KEY)
 public class Tilde extends AddressSpace {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.address:tilde";
 
     public static class TypeSeed {
         public static final String KEY = "cg.address:tilde";

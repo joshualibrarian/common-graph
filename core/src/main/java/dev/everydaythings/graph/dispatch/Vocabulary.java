@@ -43,12 +43,12 @@ import java.util.stream.Stream;
  *   <li><b>Component verbs</b> - from {@code @Verb} on component classes</li>
  * </ol>
  */
-@Implements(Vocabulary.TypeSeed.KEY)
+@Implements(Vocabulary.KEY)
 @Canonical.Canonization
 @Scene(as = VocabularySurface.class)
 public class Vocabulary implements Canonical, Iterable<VerbEntry> {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:vocabulary";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:vocabulary";

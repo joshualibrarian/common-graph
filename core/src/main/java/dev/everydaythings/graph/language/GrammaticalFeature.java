@@ -28,12 +28,12 @@ import java.util.Map;
  * @see Lexeme
  * @see Language#inflect(Lexeme, java.util.Set)
  */
-@Implements(GrammaticalFeature.TypeSeed.KEY)
+@Implements(GrammaticalFeature.KEY)
 public class GrammaticalFeature extends Sememe {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:grammatical-feature";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = GrammaticalFeature.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:grammatical-feature";
         @Seed public static final Sememe SEED = new Sememe(KEY)

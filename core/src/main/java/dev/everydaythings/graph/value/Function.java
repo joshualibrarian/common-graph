@@ -37,12 +37,12 @@ import java.util.stream.Collectors;
  * {@link dev.everydaythings.graph.frame.expression.FunctionExpression}
  * looks up the Function by name and delegates.
  */
-@Implements(Function.TypeSeed.KEY)
+@Implements(Function.KEY)
 public class Function extends Sememe {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:function";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = Function.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:function";
         @Seed public static final Sememe SEED = new Sememe(KEY)

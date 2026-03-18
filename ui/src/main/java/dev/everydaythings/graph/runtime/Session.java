@@ -259,7 +259,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         }
 
         // Add activity log with semantic key
-        addFrame(ItemID.fromString(ActivityLog.TypeSeed.KEY), activityLog);
+        addFrame(ItemID.fromString(ActivityLog.KEY), activityLog);
 
         autoAuthenticate();
     }

@@ -67,7 +67,7 @@ public record FunctionExpression(
         // 1. Check for user-defined function on the owner item
         Item owner = context.owner();
         if (owner != null) {
-            FrameKey frameKey = FrameKey.of(ItemID.fromString(ExpressionComponent.TypeSeed.KEY), function);
+            FrameKey frameKey = FrameKey.of(ItemID.fromString(ExpressionComponent.KEY), function);
             var exprOpt = owner.frames().getLive(frameKey, ExpressionComponent.class);
             if (exprOpt.isPresent()) {
                 ExpressionComponent fn = exprOpt.get();

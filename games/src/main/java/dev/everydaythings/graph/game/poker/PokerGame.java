@@ -34,12 +34,12 @@ import java.util.*;
  *   <li>{@link Randomized} — deck shuffle from deterministic event RNG</li>
  * </ul>
  */
-@Implements(PokerGame.TypeSeed.KEY)
+@Implements(PokerGame.KEY)
 @Scene(as = PokerSurface.class)
 public class PokerGame extends GameComponent<PokerGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased, Randomized {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:poker";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:poker";

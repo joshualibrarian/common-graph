@@ -40,12 +40,12 @@ import java.util.*;
 @Scene.Rule(match = ".tile.flagged", background = "#FAB387")
 @Scene.Rule(match = ".tile.mine", background = "#F38BA8")
 @Scene.Rule(match = ".tile.revealed", background = "#45475A")
-@Implements(Minesweeper.TypeSeed.KEY)
+@Implements(Minesweeper.KEY)
 @Scene.Container(direction = Direction.VERTICAL, padding = "0.5em", gap = "0.25em")
 public class Minesweeper extends GameComponent<Minesweeper.Op>
         implements Spatial<MineTile>, Randomized, FrameAware {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:minesweeper";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:minesweeper";

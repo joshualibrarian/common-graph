@@ -38,15 +38,15 @@ import java.util.Map;
  * <p>This unifies the expression system: verb frames, mathematical formulas,
  * queries, and reactive rules all compose using the same operator vocabulary.
  */
-@Implements(Operator.TypeSeed.KEY)
+@Implements(Operator.KEY)
 public class Operator extends Sememe {
 
-    private static final dev.everydaythings.graph.item.id.ItemID EXPRESSION_PREDICATE =
-            dev.everydaythings.graph.item.id.ItemID.fromString(ExpressionComponent.TypeSeed.KEY);
+    private static final ItemID EXPRESSION_PREDICATE =
+            ItemID.fromString(ExpressionComponent.KEY);
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:operator";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = Operator.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:operator";
         @Seed public static final Sememe SEED = new Sememe(KEY)

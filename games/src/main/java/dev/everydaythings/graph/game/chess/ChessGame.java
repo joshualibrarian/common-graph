@@ -46,13 +46,13 @@ import java.util.stream.Collectors;
  *
  * @see <a href="https://github.com/bhlangonijr/chesslib">chesslib</a>
  */
-@Implements(ChessGame.TypeSeed.KEY)
+@Implements(ChessGame.KEY)
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "chess-root", direction = Direction.VERTICAL, width = "100%", height = "100%",
         padding = "0.6em", gap = "0.5em", style = "fill")
 public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<ChessPiece>, Inspectable {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:chess";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:chess";

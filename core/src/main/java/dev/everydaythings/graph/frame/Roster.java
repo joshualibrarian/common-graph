@@ -34,10 +34,10 @@ import java.util.*;
  * principals who have <i>presence</i> - they're participating,
  * not just stored here.
  */
-@Implements(Roster.TypeSeed.KEY)
+@Implements(Roster.KEY)
 public class Roster {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:roster";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:roster";

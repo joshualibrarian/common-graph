@@ -39,12 +39,12 @@ import java.util.*;
  *   <li>{@link Randomized} — dice rolls from deterministic event RNG</li>
  * </ul>
  */
-@Implements(YahtzeeGame.TypeSeed.KEY)
+@Implements(YahtzeeGame.KEY)
 @Scene(as = YahtzeeSurface.class)
 public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         implements Scored, Phased, Randomized {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:yahtzee";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:yahtzee";

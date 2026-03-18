@@ -39,10 +39,10 @@ import java.util.*;
  * <p>This is the 3D equivalent of Surface. Both describe
  * "what you see when inside an item" - Surface in 2D, Space in 3D.
  */
-@Implements(Space.TypeSeed.KEY)
+@Implements(Space.KEY)
 public final class Space {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:space";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:space";

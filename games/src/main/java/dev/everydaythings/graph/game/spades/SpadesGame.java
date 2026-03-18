@@ -42,12 +42,12 @@ import java.util.*;
  *   <li>{@link Phased} — DEAL → BID → PLAY</li>
  * </ul>
  */
-@Implements(SpadesGame.TypeSeed.KEY)
+@Implements(SpadesGame.KEY)
 @Scene(as = SpadesSurface.class)
 public class SpadesGame extends GameComponent<SpadesGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:spades";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:spades";

@@ -37,13 +37,13 @@ import java.util.*;
  * @see SetCard
  * @see SetProperty
  */
-@Implements(SetGame.TypeSeed.KEY)
+@Implements(SetGame.KEY)
 @Scene.Body(shape = "box", width = "60cm", height = "0", depth = "50cm", color = 0x2E7D32)
 @Scene(as = SetSurface.class)
 public class SetGame extends GameComponent<SetGame.Op>
         implements Zoned<SetCard>, Scored, Randomized {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:set-game";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:set-game";

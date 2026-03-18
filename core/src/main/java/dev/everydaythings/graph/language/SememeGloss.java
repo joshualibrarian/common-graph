@@ -22,12 +22,12 @@ import lombok.Getter;
  * <p>The component handle is derived from the language code (e.g., "gloss/eng"),
  * so each language gets exactly one gloss slot on a sememe.
  */
-@Implements(SememeGloss.TypeSeed.KEY)
+@Implements(SememeGloss.KEY)
 @Canonical.Canonization(classType = Canonical.ClassCollectionType.ARRAY)
 @Getter
 public class SememeGloss implements Canonical {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:sememe-gloss";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:sememe-gloss";

@@ -30,13 +30,13 @@ import java.util.regex.Pattern;
  *
  * <p>Stored as an endorsed frame on the Item.
  */
-@Implements(PolicySet.TypeSeed.KEY)
+@Implements(PolicySet.KEY)
 @Getter @Setter @Builder
 @NoArgsConstructor @AllArgsConstructor
 @Canonical.Canonization
 public class PolicySet implements Canonical {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:policy";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:policy";

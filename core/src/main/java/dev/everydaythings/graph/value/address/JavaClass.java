@@ -33,14 +33,14 @@ import java.util.regex.Pattern;
  * (cg.sememe:dimension) —[implementedBy]→ "dev.everydaythings.graph.value.Dimension"
  * }</pre>
  */
-@Implements(JavaClass.TypeSeed.KEY)
+@Implements(JavaClass.KEY)
 public class JavaClass extends AddressSpace {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.address:java-class";
 
     public static class TypeSeed {
         public static final String KEY = "cg.address:java-class";

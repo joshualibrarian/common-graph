@@ -25,14 +25,14 @@ import java.util.Set;
  * with deterministic IIDs derived from {@code "cg:language/<code>"}. Subclasses
  * (e.g., English) can add language-specific import logic.
  */
-@Implements(Language.TypeSeed.KEY)
+@Implements(Language.KEY)
 public class Language extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:language";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:language";

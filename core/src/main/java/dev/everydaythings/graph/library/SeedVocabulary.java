@@ -748,7 +748,7 @@ public final class SeedVocabulary {
             ItemID langIid = Language.iidFor(iso3);
             SememeGloss gloss = new SememeGloss(langIid, text);
 
-            FrameKey key = FrameKey.of(ItemID.fromString(SememeGloss.TypeSeed.KEY), iso3);
+            FrameKey key = FrameKey.of(ItemID.fromString(SememeGloss.KEY), iso3);
 
             byte[] bytes = gloss.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);

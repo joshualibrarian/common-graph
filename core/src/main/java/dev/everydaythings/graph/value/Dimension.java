@@ -50,16 +50,16 @@ import java.util.stream.Stream;
  *                                        .with(Dimension.TIME, -1);
  * }</pre>
  */
-@Implements(Dimension.TypeSeed.KEY)
+@Implements(Dimension.KEY)
 public class Dimension extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:dimension";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = Dimension.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:dimension";
         @Seed public static final Sememe SEED = new Sememe(KEY)

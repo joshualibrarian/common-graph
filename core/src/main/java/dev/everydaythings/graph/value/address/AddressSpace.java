@@ -45,14 +45,14 @@ import java.util.regex.Pattern;
  *
  * @see ValueType
  */
-@Implements(AddressSpace.TypeSeed.KEY)
+@Implements(AddressSpace.KEY)
 public abstract class AddressSpace extends ValueType {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:address-space";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:address-space";

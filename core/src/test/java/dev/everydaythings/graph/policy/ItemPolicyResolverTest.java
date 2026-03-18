@@ -443,7 +443,7 @@ class ItemPolicyResolverTest {
     private void addRosterWithMember(ItemID member) {
         Roster roster = new Roster();
         roster.add(member);
-        item.addFrame(dev.everydaythings.graph.item.id.ItemID.fromString(Roster.TypeSeed.KEY), roster);
+        item.addFrame(dev.everydaythings.graph.item.id.ItemID.fromString(Roster.KEY), roster);
     }
 
     private Roster findRoster() {

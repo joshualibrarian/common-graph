@@ -29,14 +29,14 @@ import java.util.Set;
  *
  * <p>After initial generation, the generate method should be removed.
  */
-@Implements(English.TypeSeed.KEY)
+@Implements(English.KEY)
 public class English extends Language {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg:language/eng";
 
     public static class TypeSeed {
         public static final String KEY = "cg:language/eng";

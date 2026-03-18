@@ -52,16 +52,16 @@ import java.util.stream.Stream;
  * enabling compile-time references.
  */
 @Log4j2
-@Implements(Sememe.TypeSeed.KEY)
+@Implements(Sememe.KEY)
 public class Sememe extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:sememe";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = Sememe.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:sememe";
         @Seed public static final Sememe SEED = new Sememe(KEY)
@@ -496,7 +496,7 @@ public class Sememe extends Item {
         if (frames() != null) {
             var live = frames().getLive(
                     dev.everydaythings.graph.item.id.FrameKey.of(
-                            dev.everydaythings.graph.item.id.ItemID.fromString(SememeGloss.TypeSeed.KEY), iso3));
+                            dev.everydaythings.graph.item.id.ItemID.fromString(SememeGloss.KEY), iso3));
             if (live.isPresent() && live.get() instanceof SememeGloss sg) {
                 return sg.text();
             }

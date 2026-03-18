@@ -104,7 +104,7 @@ public class Item {
     // === WELL-KNOWN FRAME KEYS ===
     // Lazy-initialized via holder class to break circular clinit.
     private static class BuiltinKeys {
-        static final FrameKey POLICY = FrameKey.of(ItemID.fromString(PolicySet.TypeSeed.KEY));
+        static final FrameKey POLICY = FrameKey.of(ItemID.fromString(PolicySet.KEY));
     }
 
     // ==================================================================================

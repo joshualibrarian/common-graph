@@ -58,16 +58,16 @@ import java.util.stream.Stream;
  * Map<ItemID, Integer> dims = meter.dimensions();
  * }</pre>
  */
-@Implements(Unit.TypeSeed.KEY)
+@Implements(Unit.KEY)
 public class Unit extends Item {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:unit";
 
-    @ItemSeed(key = TypeSeed.KEY)
+    @ItemSeed(key = Unit.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:unit";
         @Seed public static final Sememe SEED = new Sememe(KEY)
