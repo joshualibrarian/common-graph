@@ -2,11 +2,11 @@ package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
  * looks up the Function by name and delegates.
  */
 @Implements(Function.TypeSeed.KEY)
-@Type(glyph = "ƒ")
 public class Function extends Sememe {
 
     public static final String KEY = TypeSeed.KEY;
@@ -51,13 +50,13 @@ public class Function extends Sememe {
     // INSTANCE FIELDS (function-specific; canonicalKey, glosses, symbols inherited)
     // ==================================================================================
 
-    @Getter @Frame
+    @Getter @Frame(key = {CoreVocabulary.Arity.KEY})
     private int minArity;
 
-    @Getter @Frame
+    @Getter @Frame(key = {CoreVocabulary.Bounds.KEY})
     private int maxArity;  // -1 for variadic
 
-    @Getter @Frame
+    @Getter @Frame(key = {CoreVocabulary.Category.KEY})
     private String category;
 
     // ==================================================================================

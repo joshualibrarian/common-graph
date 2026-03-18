@@ -2,7 +2,6 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item.Seed;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
@@ -31,7 +30,6 @@ import java.util.Set;
  * <p>After initial generation, the generate method should be removed.
  */
 @Implements(English.TypeSeed.KEY)
-@Type(glyph = "🇬🇧")
 public class English extends Language {
 
     // ==================================================================================

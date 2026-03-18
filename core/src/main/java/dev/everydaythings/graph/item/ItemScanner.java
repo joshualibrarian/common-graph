@@ -4,7 +4,6 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.ParamSpec;
 import dev.everydaythings.graph.dispatch.VerbSpec;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -108,8 +107,7 @@ public final class ItemScanner {
                         validateFrameField(frameSpec, frameKeys, paths);
 
                         // Scan component class for @Verb methods
-                        if (field.getType().isAnnotationPresent(Implements.class)
-                                || field.getType().isAnnotationPresent(Type.class)) {
+                        if (field.getType().isAnnotationPresent(Implements.class)) {
                             String keyString = frameSpec.canonicalKeyString();
                             List<VerbSpec> verbs = scanComponentVerbs(field.getType(), keyString);
                             if (!verbs.isEmpty()) {
@@ -154,23 +152,23 @@ public final class ItemScanner {
         // Determine FrameKey
         FrameKey frameKey;
 
-        if (ann.key().length > 0) {
-            // Semantic key from annotation
-            ItemID[] tokens = new ItemID[ann.key().length];
-            for (int i = 0; i < ann.key().length; i++) {
-                tokens[i] = ItemID.fromString(ann.key()[i]);
-            }
-            frameKey = FrameKey.of(tokens);
-        } else {
-            // Default to field name as literal key
+        if (ann.key().length == 0) {
+            // Legacy: bare @Frame without key={} — uses field name as literal key.
+            // These should be migrated to semantic keys.
             frameKey = FrameKey.literal(field.getName());
+        } else {
+            ItemID head = ItemID.fromString(ann.key()[0]);
+            Object[] qualifiers = new Object[ann.key().length - 1];
+            for (int i = 1; i < ann.key().length; i++) {
+                qualifiers[i - 1] = ItemID.fromString(ann.key()[i]);
+            }
+            frameKey = FrameKey.of(head, qualifiers);
         }
 
         // Determine type
         Class<?> fieldType = field.getType();
         ItemID type;
-        if (fieldType.isAnnotationPresent(Implements.class)
-                || fieldType.isAnnotationPresent(Type.class)) {
+        if (fieldType.isAnnotationPresent(Implements.class)) {
             type = Item.idOf(fieldType);
         } else {
             type = ItemID.fromString("cg.sememe:" + fieldType.getSimpleName().toLowerCase());

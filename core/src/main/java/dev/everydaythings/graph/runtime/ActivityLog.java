@@ -3,7 +3,6 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -34,7 +33,6 @@ import java.util.Optional;
  * @see ActivityEntry
  */
 @Implements(ActivityLog.TypeSeed.KEY)
-@Type(glyph = "📋", color = 0x6699CC)
 public class ActivityLog implements Canonical, Inspectable {
 
     public static final String KEY = TypeSeed.KEY;

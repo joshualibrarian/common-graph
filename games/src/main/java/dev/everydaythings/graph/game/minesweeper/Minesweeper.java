@@ -6,7 +6,6 @@ import dev.everydaythings.graph.frame.FrameContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -41,7 +40,7 @@ import java.util.*;
 @Scene.Rule(match = ".tile.flagged", background = "#FAB387")
 @Scene.Rule(match = ".tile.mine", background = "#F38BA8")
 @Scene.Rule(match = ".tile.revealed", background = "#45475A")
-@Type(glyph = "\uD83D\uDCA3")
+@Implements(Minesweeper.TypeSeed.KEY)
 @Scene.Container(direction = Direction.VERTICAL, padding = "0.5em", gap = "0.25em")
 public class Minesweeper extends GameComponent<Minesweeper.Op>
         implements Spatial<MineTile>, Randomized, FrameAware {

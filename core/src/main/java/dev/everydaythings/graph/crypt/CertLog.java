@@ -7,7 +7,6 @@ import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
@@ -39,7 +38,6 @@ import java.util.*;
  * Library is available, operations can be persisted as frames via FrameChain.
  */
 @Implements(CertLog.TypeSeed.KEY)
-@Type(glyph = "📜")
 public class CertLog implements Canonical, Inspectable {
 
     // === TYPE DEFINITION ===

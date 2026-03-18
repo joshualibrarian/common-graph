@@ -5,7 +5,6 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -32,7 +31,6 @@ import java.util.regex.Pattern;
  * <p>Stored as an endorsed frame on the Item.
  */
 @Implements(PolicySet.TypeSeed.KEY)
-@Type(glyph = "🛡️", color = 0xC8A064)
 @Getter @Setter @Builder
 @NoArgsConstructor @AllArgsConstructor
 @Canonical.Canonization

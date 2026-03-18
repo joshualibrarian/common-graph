@@ -51,20 +51,10 @@ public final class DisplayResolver {
             return Optional.of(item.frames().displayToken());
         }
 
-        // Resolve FrameKey from path component
-        FrameKey key = FrameKey.literal(handle);
-
-        // Prefer stable frame metadata to avoid label mutation when a component
-        // gets lazily hydrated after first render.
-        Optional<String> entryLabel = item.frames().getFrame(key).map(Frame::displayToken);
-        if (entryLabel.isPresent()) {
-            return entryLabel;
-        }
-
-        // Fall back to live payload display token when no entry metadata exists.
-        Optional<Object> live = item.frames().getLive(key);
-        if (live.isPresent()) {
-            return Optional.of(resolvePayloadDisplayToken(live.get()));
+        // Resolve component by name (scans by sememe short name)
+        Object component = item.component(handle);
+        if (component != null) {
+            return Optional.of(resolvePayloadDisplayToken(component));
         }
         return Optional.empty();
     }
@@ -89,20 +79,10 @@ public final class DisplayResolver {
             return Optional.of(item.frames().emoji());
         }
 
-        // Resolve FrameKey from path component
-        FrameKey key = FrameKey.literal(handle);
-
-        // Prefer stable frame metadata to avoid icon mutation when a component
-        // gets lazily hydrated after first render.
-        Optional<String> entryEmoji = item.frames().getFrame(key).map(f -> resolveFrameEmoji(item, f));
-        if (entryEmoji.isPresent()) {
-            return entryEmoji;
-        }
-
-        // Fall back to live payload emoji when no entry metadata exists.
-        Optional<Object> live = item.frames().getLive(key);
-        if (live.isPresent()) {
-            return Optional.of(resolvePayloadEmoji(live.get()));
+        // Resolve component by name (scans by sememe short name)
+        Object component = item.component(handle);
+        if (component != null) {
+            return Optional.of(resolvePayloadEmoji(component));
         }
         return Optional.empty();
     }
@@ -140,16 +120,12 @@ public final class DisplayResolver {
         }
 
         // 2) Implementation class annotations (works even without hydrated type item)
-        Optional<Class<?>> impl = findImplementation(item, typeId);
-        if (impl.isPresent()) {
-            Class<?> cls = impl.get();
-            Type type = cls.getAnnotation(Type.class);
-            if (type != null && !type.glyph().isEmpty()) {
-                return type.glyph();
-            }
-            Value.Type valueType = cls.getAnnotation(Value.Type.class);
-            if (valueType != null && !valueType.glyph().isEmpty()) {
-                return valueType.glyph();
+        Optional<Class<?>> implClass = findImplementation(item, typeId);
+        if (implClass.isPresent()) {
+            Class<?> cls = implClass.get();
+            Implements impl = cls.getAnnotation(Implements.class);
+            if (impl != null && !"D83DDCE6".isEmpty()) {
+                return "D83DDCE6";
             }
         }
 
@@ -171,13 +147,9 @@ public final class DisplayResolver {
         if (payload instanceof Value value) {
             return value.emoji();
         }
-        Type type = payload.getClass().getAnnotation(Type.class);
-        if (type != null && !type.glyph().isEmpty()) {
-            return type.glyph();
-        }
-        Value.Type valueType = payload.getClass().getAnnotation(Value.Type.class);
-        if (valueType != null && !valueType.glyph().isEmpty()) {
-            return valueType.glyph();
+        Implements impl = payload.getClass().getAnnotation(Implements.class);
+        if (impl != null && !"D83DDCE6".isEmpty()) {
+            return "D83DDCE6";
         }
         return "\uD83D\uDCE6";
     }
@@ -214,17 +186,11 @@ public final class DisplayResolver {
         if (path == null || path.isEmpty()) return Optional.empty();
 
         String handle = path.startsWith("/") ? path.substring(1) : path;
+        Object component = item.component(handle);
+        if (component == null) return Optional.empty();
 
-        FrameKey key = FrameKey.literal(handle);
-
-        return item.frames().getLive(key)
-                .map(o -> {
-                    Type typeAnno = o.getClass().getAnnotation(Type.class);
-                    if (typeAnno != null && !typeAnno.icon().isEmpty()) {
-                        return typeAnno.icon();
-                    }
-                    return null;
-                });
+        // icon field was only on @Type (now deleted) — no longer available from annotations
+        return Optional.empty();
     }
 
     /**
@@ -234,17 +200,14 @@ public final class DisplayResolver {
         if (path == null || path.isEmpty()) return Optional.empty();
 
         String handle = path.startsWith("/") ? path.substring(1) : path;
+        Object component = item.component(handle);
+        if (component == null) return Optional.empty();
 
-        FrameKey key = FrameKey.literal(handle);
-
-        return item.frames().getLive(key)
-                .map(o -> {
-                    Type typeAnno = o.getClass().getAnnotation(Type.class);
-                    if (typeAnno != null && typeAnno.color() != 0) {
-                        return Color.fromPacked(typeAnno.color());
-                    }
-                    return null;
-                });
+        Implements impl = component.getClass().getAnnotation(Implements.class);
+        if (impl != null && 0x78788C != 0) {
+            return Optional.of(Color.fromPacked(0x78788C));
+        }
+        return Optional.empty();
     }
 
     // ==================================================================================
@@ -473,16 +436,6 @@ public final class DisplayResolver {
                 }
             }
         }
-        // Try literal field-name keys (for items with bare @Frame fields)
-        for (String fieldName : new String[]{"name", "title", "label"}) {
-            var opt = item.frames().getLive(FrameKey.literal(fieldName), Object.class);
-            if (opt.isPresent()) {
-                Object value = opt.get();
-                if (value instanceof String s && !s.isBlank()) {
-                    return s;
-                }
-            }
-        }
         // Fallback to class name
         return item.getClass().getSimpleName();
     }
@@ -517,9 +470,9 @@ public final class DisplayResolver {
         }
 
         // Fall back to annotation color
-        Type typeAnnotation = item.getClass().getAnnotation(Type.class);
-        if (typeAnnotation != null) {
-            return Color.fromPacked(typeAnnotation.color());
+        Implements impl = item.getClass().getAnnotation(Implements.class);
+        if (impl != null && 0x78788C != 0x78788C) {
+            return Color.fromPacked(0x78788C);
         }
 
         return Color.rgb(120, 120, 140); // Default gray
@@ -535,10 +488,10 @@ public final class DisplayResolver {
             return typeSurface.glyph();
         }
 
-        // Fall back to @Type annotation glyph
-        Type typeAnnotation = item.getClass().getAnnotation(Type.class);
-        if (typeAnnotation != null && !typeAnnotation.glyph().isEmpty()) {
-            return typeAnnotation.glyph();
+        // Fall back to @Implements annotation glyph
+        Implements implAnno = item.getClass().getAnnotation(Implements.class);
+        if (implAnno != null && !"D83DDCE6".isEmpty()) {
+            return "D83DDCE6";
         }
 
         return "\uD83D\uDCE6";  // Default item glyph

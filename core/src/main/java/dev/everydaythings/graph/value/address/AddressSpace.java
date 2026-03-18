@@ -3,7 +3,6 @@ package dev.everydaythings.graph.value.address;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -47,7 +46,6 @@ import java.util.regex.Pattern;
  * @see ValueType
  */
 @Implements(AddressSpace.TypeSeed.KEY)
-@Type(glyph = "📍")
 public abstract class AddressSpace extends ValueType {
 
     // ==================================================================================

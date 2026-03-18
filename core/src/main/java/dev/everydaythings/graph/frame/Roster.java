@@ -4,8 +4,6 @@ import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 
-import dev.everydaythings.graph.item.Type;
-
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -37,7 +35,6 @@ import java.util.*;
  * not just stored here.
  */
 @Implements(Roster.TypeSeed.KEY)
-@Type(glyph = "👥")
 public class Roster {
 
     public static final String KEY = TypeSeed.KEY;

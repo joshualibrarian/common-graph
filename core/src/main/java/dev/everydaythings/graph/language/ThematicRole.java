@@ -2,7 +2,6 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 
@@ -38,7 +37,6 @@ import java.util.Map;
  * @see PrepositionVocabulary
  */
 @Implements(ThematicRole.TypeSeed.KEY)
-@Type(glyph = "\uD83C\uDFAD", color = 0xB08DE0)
 public class ThematicRole extends Sememe {
 
     public static final String KEY = TypeSeed.KEY;

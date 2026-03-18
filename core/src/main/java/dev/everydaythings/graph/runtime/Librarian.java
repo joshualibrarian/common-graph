@@ -5,7 +5,6 @@ import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
@@ -121,7 +120,6 @@ import picocli.CommandLine.Mixin;
  */
 @Log4j2
 @Implements(Librarian.TypeSeed.KEY)
-@Type(glyph = "📚", color = 0x4B6EAF)
 @Command(
     name = "librarian",
     mixinStandardHelpOptions = true,
@@ -1896,8 +1894,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof Literal lit) {
                         Class<?> c = lit.asJavaClass();
-                        return c != null && (c.isAnnotationPresent(Implements.class)
-                                || c.isAnnotationPresent(Type.class));
+                        return c != null && c.isAnnotationPresent(Implements.class);
                     }
                     return false;
                 })

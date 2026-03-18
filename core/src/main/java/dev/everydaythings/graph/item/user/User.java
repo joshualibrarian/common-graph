@@ -5,7 +5,6 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -34,7 +33,6 @@ import java.nio.file.Path;
  * </ul>
  */
 @Implements(User.TypeSeed.KEY)
-@Type(glyph = "👤")
 public class User extends Signer {
 
     public static final String KEY = TypeSeed.KEY;

@@ -3,7 +3,6 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 
@@ -24,7 +23,6 @@ import lombok.Getter;
  * so each language gets exactly one gloss slot on a sememe.
  */
 @Implements(SememeGloss.TypeSeed.KEY)
-@Type(glyph = "\uD83D\uDCD6")
 @Canonical.Canonization(classType = Canonical.ClassCollectionType.ARRAY)
 @Getter
 public class SememeGloss implements Canonical {

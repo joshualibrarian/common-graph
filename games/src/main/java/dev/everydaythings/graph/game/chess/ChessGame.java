@@ -15,7 +15,6 @@ import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -47,7 +46,7 @@ import java.util.stream.Collectors;
  *
  * @see <a href="https://github.com/bhlangonijr/chesslib">chesslib</a>
  */
-@Type(glyph = "♟️")
+@Implements(ChessGame.TypeSeed.KEY)
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "chess-root", direction = Direction.VERTICAL, width = "100%", height = "100%",
         padding = "0.6em", gap = "0.5em", style = "fill")

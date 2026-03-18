@@ -5,7 +5,6 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -38,7 +37,7 @@ import java.util.*;
  *   <li>{@link Scored} — cumulative pip scoring across rounds</li>
  * </ul>
  */
-@Type(glyph = "\uD83C\uDC04")
+@Implements(DominoesGame.TypeSeed.KEY)
 @Scene(as = DominoesSurface.class)
 public class DominoesGame extends GameComponent<DominoesGame.Op>
         implements Zoned<DominoTile>, Scored {

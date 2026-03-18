@@ -4,7 +4,6 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -57,7 +56,6 @@ import java.util.stream.Stream;
  * }</pre>
  */
 @Implements(Unit.TypeSeed.KEY)
-@Type(glyph = "⚖️", color = 0x609080)
 public class Unit extends Item {
 
     // ==================================================================================
@@ -288,12 +286,12 @@ public class Unit extends Item {
 
     /** Short symbol (e.g., "m", "mm", "in") */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.Symbol.KEY})
     private String symbol;
 
     /** Language-tagged display names */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.Names.KEY})
     private Map<String, String> names;
 
     /**
@@ -301,7 +299,7 @@ public class Unit extends Item {
      * e.g., velocity = {LENGTH: 1, TIME: -1}
      */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.DimensionFormula.KEY})
     private Map<ItemID, Integer> dimensions;
 
     /**
@@ -309,14 +307,14 @@ public class Unit extends Item {
      * value_in_base = value_in_this * (scaleP / scaleQ)
      */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.ScaleNumerator.KEY})
     private long scaleP;
 
     /**
      * Rational scale denominator for conversion to base unit.
      */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.ScaleDenominator.KEY})
     private long scaleQ;
 
     // ==================================================================================

@@ -4,11 +4,11 @@ import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  *   <li>Self-describing formulas and datasets</li>
  * </ul>
  *
- * <p>Value classes declare their type via {@code @Value.Type("cg.value:xxx")}
+ * <p>Value classes declare their type via {@code @Implements("cg.value:xxx")}
  * which references a ValueType seed item.
  *
  * <p>Usage:
@@ -42,7 +42,6 @@ import java.util.stream.Stream;
  * @see Numeric
  */
 @Implements(ValueType.TypeSeed.KEY)
-@Type(glyph = "🔢")
 public class ValueType extends Item {
 
     // ==================================================================================
@@ -155,7 +154,7 @@ public class ValueType extends Item {
 
     /** Human-readable name */
     @Getter
-    @Frame
+    @Frame(key = {RoutingVocabulary.Name.KEY})
     private String name;
 
     /** Canonicalization rules (optional) */
@@ -165,12 +164,12 @@ public class ValueType extends Item {
 
     /** Value bounds (optional) */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.Bounds.KEY})
     private Bounds bounds;
 
     /** Unit rules for values of this type (optional) */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.UnitRules.KEY})
     private UnitRules unitRules;
 
     // ==================================================================================

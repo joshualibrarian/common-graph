@@ -6,7 +6,6 @@ import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Picker;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Literal;
@@ -75,7 +74,6 @@ import java.util.stream.Stream;
  */
 @Log4j2
 @Implements(Library.TypeSeed.KEY)
-@Type(glyph = "🏛️")
 public final class Library implements Canonical, AutoCloseable {
 
     public static final String KEY = TypeSeed.KEY;

@@ -2,7 +2,6 @@ package dev.everydaythings.graph.game;
 
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +16,6 @@ class GameComponentTest {
      * Minimal concrete GameComponent for testing the base class behavior.
      */
     @Implements("cg.sememe:test-game")
-    @Type(glyph = "\uD83C\uDFB2")
     static class TestGame extends GameComponent<TestGame.Op> {
 
         sealed interface Op permits MoveOp {}

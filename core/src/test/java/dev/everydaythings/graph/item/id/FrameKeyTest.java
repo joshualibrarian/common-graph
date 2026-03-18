@@ -72,19 +72,10 @@ class FrameKeyTest {
         }
 
         @Test
-        @DisplayName("fromHandle produces literal key")
-        void fromHandle() {
-            FrameKey key = FrameKey.fromHandle("vault");
-
-            assertThat(key.isLiteral()).isTrue();
-            assertThat(key.literalValue()).isEqualTo("vault");
-        }
-
-        @Test
-        @DisplayName("rejects empty token list")
-        void rejectsEmpty() {
-            assertThatThrownBy(() -> FrameKey.of(new ItemID[0]))
-                    .isInstanceOf(IllegalArgumentException.class);
+        @DisplayName("rejects null head")
+        void rejectsNullHead() {
+            assertThatThrownBy(() -> FrameKey.of(null))
+                    .isInstanceOf(NullPointerException.class);
         }
 
         @Test

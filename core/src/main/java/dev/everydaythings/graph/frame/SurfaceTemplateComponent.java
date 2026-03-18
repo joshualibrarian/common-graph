@@ -4,7 +4,6 @@ import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 
-import dev.everydaythings.graph.item.Type;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
@@ -39,7 +38,6 @@ import dev.everydaythings.graph.value.Color;
  * @see ViewNode
  */
 @Implements(SurfaceTemplateComponent.TypeSeed.KEY)
-@Type(glyph = "\uD83D\uDDBC")
 public class SurfaceTemplateComponent implements Canonical {
 
     public static final String KEY = TypeSeed.KEY;
@@ -50,7 +48,7 @@ public class SurfaceTemplateComponent implements Canonical {
                 .gloss("en", "display template for an item type")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "surface-template");
     }
-    public static final FrameKey HANDLE = FrameKey.literal("surface");
+    public static final FrameKey HANDLE = FrameKey.of(ItemID.fromString(TypeSeed.KEY));
 
     // ==================================================================================
     // Surface Template
@@ -119,27 +117,13 @@ public class SurfaceTemplateComponent implements Canonical {
     }
 
     /**
-     * Create a SurfaceTemplateComponent with display fields from a @Type annotation.
+     * Create a SurfaceTemplateComponent from an @Implements annotation.
      */
-    public static SurfaceTemplateComponent fromType(Type annotation) {
+    public static SurfaceTemplateComponent fromImplements(Implements annotation) {
         SurfaceTemplateComponent stc = new SurfaceTemplateComponent();
-        stc.glyph = annotation.glyph().isEmpty() ? "\uD83D\uDCE6" : annotation.glyph();
-        stc.color = annotation.color();
-        stc.shape = annotation.shape().isEmpty() ? "sphere" : annotation.shape();
-        if (!annotation.icon().isEmpty()) {
-            stc.iconPath2D = annotation.icon();
-        }
-        return stc;
-    }
-
-    /**
-     * Create a SurfaceTemplateComponent with display fields from a @Value.Type annotation.
-     */
-    public static SurfaceTemplateComponent fromValueType(dev.everydaythings.graph.value.Value.Type annotation) {
-        SurfaceTemplateComponent stc = new SurfaceTemplateComponent();
-        stc.glyph = annotation.glyph().isEmpty() ? "\uD83D\uDCE6" : annotation.glyph();
-        stc.color = annotation.color();
-        stc.shape = annotation.shape().isEmpty() ? "sphere" : annotation.shape();
+        stc.glyph = "📦".isEmpty() ? "\uD83D\uDCE6" : "📦";
+        stc.color = 0x78788C;
+        stc.shape = "sphere";
         return stc;
     }
 

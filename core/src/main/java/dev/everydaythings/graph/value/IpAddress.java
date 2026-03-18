@@ -3,6 +3,7 @@ package dev.everydaythings.graph.value;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.value.DisplayWidth;
 
 import java.net.InetAddress;
@@ -16,7 +17,7 @@ import java.util.Objects;
  *
  * <p>Encodes as a CBOR byte string containing the raw IP bytes (4 or 16).
  */
-@Value.Type("cg.value:ip")
+@Implements("cg.value:ip")
 public final class IpAddress implements Value {
 
     /** Display width: IPv4 is short (15 chars), IPv6 can be long (39 chars) */

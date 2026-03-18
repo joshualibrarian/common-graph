@@ -16,7 +16,6 @@ import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.FrameRecord;
@@ -79,7 +78,6 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 @Scene.Rule(match = ":selected", background = "reverse")
 @Scene.Rule(match = ":hover", opacity = "bright")
 @Implements(Item.TypeSeed.KEY)
-@Type(glyph = "📦")
 @Scene(as = ItemSurface.class)
 public class Item {
 
@@ -1462,9 +1460,8 @@ public class Item {
         // Create instances for all Component-typed @ComponentField fields
         // (Non-Component fields like SigningPublicKey are handled during commit)
         for (FrameFieldSpec spec : itemSchema.endorsedFrameFields()) {
-            // Skip fields that don't have @Implements or @Type annotation
-            if (!spec.fieldType().isAnnotationPresent(Implements.class)
-                    && !spec.fieldType().isAnnotationPresent(Type.class)) {
+            // Skip fields that don't have @Implements annotation
+            if (!spec.fieldType().isAnnotationPresent(Implements.class)) {
                 continue;
             }
 

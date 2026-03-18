@@ -155,23 +155,23 @@ public final class Literal implements BindingTarget {
     /* ------------------------ Generic Value factory ------------------------ */
 
     /**
-     * Create a Literal from any Value that declares its type via @Value.Type.
+     * Create a Literal from any Value that declares its type via @Implements.
      *
      * <p>This enables generic conversion from annotated Value instances to Literals
      * without needing type-specific factory methods like ofText(), ofInteger(), etc.
      *
      * <p>Example:
      * <pre>{@code
-     * @Value.Type("cg.value:endpoint")
+     * @Implements("cg.value:endpoint")
      * public final class Endpoint implements Value { ... }
      *
      * Endpoint ep = Endpoint.cg(host, 8080);
      * Literal lit = Literal.of(ep);  // Type discovered from annotation
      * }</pre>
      *
-     * @param value The Value (must have @Value.Type annotation)
+     * @param value The Value (must have @Implements annotation)
      * @return A Literal with the discovered type and encoded payload
-     * @throws IllegalArgumentException if the value's class lacks @Value.Type
+     * @throws IllegalArgumentException if the value's class lacks @Implements
      */
     public static Literal of(Value value) {
         Objects.requireNonNull(value, "value");
@@ -184,7 +184,7 @@ public final class Literal implements BindingTarget {
      * Create a Literal from a Value with an explicit type override.
      *
      * <p>Use this when you need to specify a different type than the default
-     * declared via @Value.Type, or when the class lacks the annotation.
+     * declared via @Implements, or when the class lacks the annotation.
      *
      * @param valueType The value type ID to use
      * @param value The Value to encode
@@ -198,16 +198,15 @@ public final class Literal implements BindingTarget {
     }
 
     /**
-     * Discover the value type ID for a Value class via @Value.Type annotation.
+     * Discover the value type ID for a Value class via @Implements annotation.
      */
     private static ItemID discoverValueType(Class<?> clazz) {
-        Value.Type ann = clazz.getAnnotation(Value.Type.class);
-        if (ann == null) {
-            throw new IllegalArgumentException(
-                    "Class " + clazz.getName() + " needs @Value.Type annotation to use Literal.of(). " +
-                    "Either add the annotation or use Literal.of(ItemID, Value).");
+        Implements impl = clazz.getAnnotation(Implements.class);
+        if (impl != null) {
+            return ItemID.fromString(impl.value());
         }
-        return ItemID.fromString(ann.value());
+        throw new IllegalArgumentException(
+                "Class " + clazz.getName() + " needs @Implements annotation to use Literal.of().");
     }
 
     /* ------------------------ Generic decoder ------------------------ */

@@ -2,12 +2,6 @@ package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.Ref;
-import dev.everydaythings.graph.item.Literal;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 
 /**
  * Marker interface for values that can be relation literals.
@@ -20,9 +14,9 @@ import java.lang.annotation.Target;
  *   <li><b>Token</b> - human-friendly string for UI/CLI/config</li>
  * </ul>
  *
- * <p>Value classes declare their type via {@code @Value.Type}:
+ * <p>Value classes declare their type via {@code @Implements}:
  * <pre>{@code
- * @Type("cg.value:endpoint")
+ * @Implements("cg.value:endpoint")
  * public final class Endpoint implements Value {
  *     // ...
  *     @Override
@@ -91,29 +85,4 @@ public interface Value extends Canonical {
         return encodeText(Scope.RECORD);
     }
 
-    /**
-     * Declares the value type ID for a Value class.
-     *
-     * <p>The type ID should correspond to a {@link ValueType} seed item
-     * (e.g., "cg.value:endpoint", "cg.value:quantity").
-     *
-     * <p>This enables generic conversion from any annotated Value to a
-     * {@link Literal} via
-     * {@code Literal.of(Value)}.
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    @interface Type {
-        /** The value type ID (e.g., "cg.value:endpoint") */
-        String value();
-
-        /** The default glyph (emoji/icon) for this value type. Defaults to 💎 for values. */
-        String glyph() default "💎";
-
-        /** RGB color as hex int. Defaults to value rose/magenta. */
-        int color() default 0xB4648C;
-
-        /** Shape kind: "sphere" (items), "cube" (components), "disc" (values). */
-        String shape() default "disc";
-    }
 }

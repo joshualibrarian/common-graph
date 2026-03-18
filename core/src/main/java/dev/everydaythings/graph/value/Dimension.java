@@ -3,12 +3,12 @@ package dev.everydaythings.graph.value;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
@@ -48,7 +48,6 @@ import java.util.stream.Stream;
  * }</pre>
  */
 @Implements(Dimension.TypeSeed.KEY)
-@Type(glyph = "📐", color = 0x8060A0)
 public class Dimension extends Item {
 
     // ==================================================================================
@@ -130,17 +129,17 @@ public class Dimension extends Item {
 
     /** Symbol used in dimensional formulas (e.g., "L", "T", "M") */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.Symbol.KEY})
     private String symbol;
 
     /** Human-readable name (e.g., "length", "time") */
     @Getter
-    @Frame
+    @Frame(key = {RoutingVocabulary.Name.KEY})
     private String name;
 
     /** Descriptions by language */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.Description.KEY})
     private Map<String, String> descriptions;
 
     // ==================================================================================

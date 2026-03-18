@@ -6,7 +6,6 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -35,7 +34,7 @@ import java.util.*;
  *   <li>{@link Randomized} — deck shuffle from deterministic event RNG</li>
  * </ul>
  */
-@Type(glyph = "\uD83C\uDCA1")
+@Implements(PokerGame.TypeSeed.KEY)
 @Scene(as = PokerSurface.class)
 public class PokerGame extends GameComponent<PokerGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased, Randomized {

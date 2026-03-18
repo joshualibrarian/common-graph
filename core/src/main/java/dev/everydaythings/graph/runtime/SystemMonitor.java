@@ -5,7 +5,6 @@ import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Tick;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
@@ -41,7 +40,6 @@ import java.nio.file.FileSystems;
 @NoArgsConstructor
 @Canonical.Canonization
 @Implements(SystemMonitor.TypeSeed.KEY)
-@Type(glyph = "📊")
 @Scene.Container(direction = Direction.VERTICAL, gap = "0.75em",
         padding = "0.75em", width = "100%")
 public class SystemMonitor implements Canonical {

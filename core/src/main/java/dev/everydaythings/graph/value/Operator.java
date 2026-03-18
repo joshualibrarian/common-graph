@@ -4,7 +4,7 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.ExpressionComponent;
-import dev.everydaythings.graph.item.Type;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.frame.expression.Expression;
 import dev.everydaythings.graph.frame.expression.FunctionExpression;
@@ -36,7 +36,6 @@ import java.util.Map;
  * queries, and reactive rules all compose using the same operator vocabulary.
  */
 @Implements(Operator.TypeSeed.KEY)
-@Type(glyph = "➕")
 public class Operator extends Sememe {
 
     private static final dev.everydaythings.graph.item.id.ItemID EXPRESSION_PREDICATE =
@@ -198,16 +197,16 @@ public class Operator extends Sememe {
     // INSTANCE FIELDS (operator-specific; canonicalKey, glosses, symbols inherited)
     // ==================================================================================
 
-    @Getter @Frame
+    @Getter @Frame(key = {CoreVocabulary.Arity.KEY})
     private int arity;
 
-    @Getter @Frame
+    @Getter @Frame(key = {CoreVocabulary.Precedence.KEY})
     private int precedence;
 
-    @Getter @Frame
+    @Getter @Frame(key = {CoreVocabulary.Associativity.KEY})
     private Associativity associativity;
 
-    @Getter @Frame
+    @Getter @Frame(key = {CoreVocabulary.Fixity.KEY})
     private Fixity fixity;
 
     // ==================================================================================

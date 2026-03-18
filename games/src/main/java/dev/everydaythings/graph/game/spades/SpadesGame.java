@@ -6,7 +6,6 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -43,7 +42,7 @@ import java.util.*;
  *   <li>{@link Phased} — DEAL → BID → PLAY</li>
  * </ul>
  */
-@Type(glyph = "\u2660")
+@Implements(SpadesGame.TypeSeed.KEY)
 @Scene(as = SpadesSurface.class)
 public class SpadesGame extends GameComponent<SpadesGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased {

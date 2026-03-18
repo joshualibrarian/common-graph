@@ -660,13 +660,9 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         }
 
         String handle = path.startsWith("/") ? path.substring(1) : path;
-        FrameKey key = FrameKey.literal(handle);
 
-        // Resolve by textual ref first, then by FrameKey.
+        // Resolve by sememe short name
         Object component = item.component(handle);
-        if (component == null) {
-            component = item.component(key);
-        }
         if (component == null) {
             return null;
         }
@@ -715,9 +711,8 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         String entryId = parts[1];
 
         String handle = compPath.startsWith("/") ? compPath.substring(1) : compPath;
-        FrameKey key = FrameKey.literal(handle);
 
-        Object comp = item.component(key);
+        Object comp = item.component(handle);
         if (comp == null) return null;
         if (comp instanceof Inspectable cc) {
             Object entryValue = cc.inspectEntries().stream()

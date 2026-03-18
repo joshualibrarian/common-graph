@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
@@ -148,10 +147,9 @@ public class FrameFieldSpec {
         }
     }
 
-    /** Check if the field type has a @Implements or @Type annotation. */
+    /** Check if the field type has an @Implements annotation. */
     public boolean isAnnotatedType() {
-        return field.getType().isAnnotationPresent(Implements.class)
-                || field.getType().isAnnotationPresent(Type.class);
+        return field.getType().isAnnotationPresent(Implements.class);
     }
 
     /** Check if the field type is iterable (can hold multiple values). */

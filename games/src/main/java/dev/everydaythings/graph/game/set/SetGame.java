@@ -4,7 +4,6 @@ import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -38,7 +37,7 @@ import java.util.*;
  * @see SetCard
  * @see SetProperty
  */
-@Type(glyph = "\uD83C\uDCCF")
+@Implements(SetGame.TypeSeed.KEY)
 @Scene.Body(shape = "box", width = "60cm", height = "0", depth = "50cm", color = 0x2E7D32)
 @Scene(as = SetSurface.class)
 public class SetGame extends GameComponent<SetGame.Op>

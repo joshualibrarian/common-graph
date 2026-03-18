@@ -14,7 +14,6 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -49,7 +48,6 @@ import java.util.stream.Collectors;
  * as a relation frame on this item.
  */
 @Implements(ChessItem.Chess.KEY)
-@Type(glyph = "♟️")
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "chess-root", direction = Direction.VERTICAL, width = "100%", height = "100%",
         padding = "0.6em", gap = "0.5em", style = "fill")

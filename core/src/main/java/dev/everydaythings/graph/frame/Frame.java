@@ -45,18 +45,18 @@ public final class Frame implements Canonical {
 
     /** The type ID (predicate of the body — defines codec/behavior). */
     @Canon(order = 1)
-    private ItemID type;
+    private ItemID type;    //TODO: should be a ref, so specific version can be saved
 
     /** Whether this frame contributes to version identity. */
     @Canon(order = 2)
-    private boolean identity;
+    private boolean identity;   //TODO: this should be... just on the binding?
 
     /** Hash of the body (for endorsement). */
     @Canon(order = 3)
     private ContentID bodyHash;
 
     /** Mounts — owned by EndorsementsTable at runtime, serialized here for CBOR. */
-    @Canon(order = 4)
+    @Canon(order = 4)   // TODO: ?
     private List<Mount> mounts = List.of();
 
     // alias field REMOVED — display names come from TokenDictionary/sememe resolution
@@ -279,7 +279,7 @@ public final class Frame implements Canonical {
 
     /** Create a bare frame (type = FrameBody.TYPE_ID, for unendorsed semantic assertions). */
     public static Frame forFrameBody(ItemID predicate, ContentID cid, boolean identity, String displayName) {
-        FrameKey key = FrameKey.literal("frame:" + cid.encodeText());
+        FrameKey key = FrameKey.of(predicate, cid != null ? cid.encodeText() : "?");
         List<Binding> bindings = new ArrayList<>();
         if (cid != null) {
             bindings.add(new Binding(ThematicRole.Topic.SEED.iid(),
@@ -319,7 +319,7 @@ public final class Frame implements Canonical {
     public static Frame fromBody(FrameBody body) {
         Objects.requireNonNull(body, "body");
         ContentID hash = body.hash();
-        FrameKey key = FrameKey.literal(body.predicate().encodeText() + ":" + hash.displayAtWidth(12));
+        FrameKey key = FrameKey.of(body.predicate(), hash.displayAtWidth(12));
         return new Frame(key, body.predicate(), body, hash, false);
     }
 

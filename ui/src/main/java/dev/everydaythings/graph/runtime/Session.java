@@ -10,7 +10,6 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -90,7 +89,6 @@ import java.util.function.Consumer;
 @Log4j2
 @Accessors(fluent = true)
 @Implements(Session.TypeSeed.KEY)
-@Type(glyph = "\u27A4", color = 0x6699CC)
 @Command(
     name = "session",
     mixinStandardHelpOptions = true,
@@ -1411,8 +1409,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Check if a value is a component (has @Type annotation).
      */
     private static boolean isComponent(Object value) {
-        return value != null && (value.getClass().isAnnotationPresent(Implements.class)
-                || value.getClass().isAnnotationPresent(Type.class));
+        return value != null && value.getClass().isAnnotationPresent(Implements.class);
     }
 
     // ==================================================================================

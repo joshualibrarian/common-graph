@@ -3,7 +3,6 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.frame.DisplayConfig;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -34,7 +33,6 @@ import java.util.List;
  * </ul>
  */
 @Implements(Host.TypeSeed.KEY)
-@Type(glyph = "🖥️", color = 0x5080B0)
 public class Host extends Signer {
 
     // ==================================================================================

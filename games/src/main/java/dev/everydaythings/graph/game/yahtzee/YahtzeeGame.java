@@ -11,7 +11,6 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -40,7 +39,7 @@ import java.util.*;
  *   <li>{@link Randomized} — dice rolls from deterministic event RNG</li>
  * </ul>
  */
-@Type(glyph = "\uD83C\uDFB2")
+@Implements(YahtzeeGame.TypeSeed.KEY)
 @Scene(as = YahtzeeSurface.class)
 public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         implements Scored, Phased, Randomized {

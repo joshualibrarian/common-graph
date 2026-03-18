@@ -3,8 +3,6 @@ package dev.everydaythings.graph.frame;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 
-import dev.everydaythings.graph.item.Type;
-
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.DisplayInfo;
@@ -58,7 +56,6 @@ import java.util.stream.Stream;
  */
 @Log4j2
 @Implements(ExpressionComponent.TypeSeed.KEY)
-@Type(glyph = "🧮")
 public class ExpressionComponent implements Canonical {
 
     public static final String KEY = TypeSeed.KEY;
@@ -396,11 +393,11 @@ public class ExpressionComponent implements Canonical {
     public DisplayInfo displayInfo() {
         String name = "Expression";
         // Build DisplayInfo from annotation values
-        Type typeAnnotation = getClass().getAnnotation(Type.class);
-        int color = typeAnnotation != null ? typeAnnotation.color() : 0xB48C64;
+        Implements impl = getClass().getAnnotation(Implements.class);
+        int color = impl != null ? 0x78788C : 0xB48C64;
         // Get glyph directly from annotation - "❓" if missing
-        String glyph = (typeAnnotation != null && !typeAnnotation.glyph().isEmpty())
-                ? typeAnnotation.glyph()
+        String glyph = (impl != null && !"D83DDCE6".isEmpty())
+                ? "D83DDCE6"
                 : "❓";
         return DisplayInfo.builder()
                 .name(name)

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.value.DisplayWidth;
 import lombok.Getter;
@@ -13,7 +14,7 @@ import java.util.Objects;
  * 1 inch and 25.4 mm are NOT the same quantity object; conversion happens at evaluation time.
  */
 @Getter
-@Value.Type("cg.value:quantity")
+@Implements("cg.value:quantity")
 public final class Quantity implements Value {
 
     /** Display width: quantities can be shown very compact (emoji + number) or full with unit */

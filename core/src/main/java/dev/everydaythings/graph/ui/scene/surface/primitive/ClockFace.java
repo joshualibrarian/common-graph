@@ -5,7 +5,6 @@ import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Tick;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
@@ -38,7 +37,6 @@ import java.util.List;
 @NoArgsConstructor
 @Canonical.Canonization
 @Implements(ClockFace.TypeSeed.KEY)
-@Type(glyph = "🕐")
 @Scene.Container(direction = Direction.STACK, style = "clock", width = "100%", height = "100%")
 @Scene.Shape(type = "circle", fill = "#1E1E2E", stroke = "#CDD6F4", strokeWidth = "1%")
 public class ClockFace implements Canonical {

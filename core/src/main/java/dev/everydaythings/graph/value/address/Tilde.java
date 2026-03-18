@@ -3,7 +3,6 @@ package dev.everydaythings.graph.value.address;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -38,7 +37,6 @@ import java.util.regex.Pattern;
  * </ul>
  */
 @Implements(Tilde.TypeSeed.KEY)
-@Type(glyph = "〰️")
 public class Tilde extends AddressSpace {
 
     // ==================================================================================

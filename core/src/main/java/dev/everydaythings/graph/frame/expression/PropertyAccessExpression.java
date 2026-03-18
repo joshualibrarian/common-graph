@@ -64,11 +64,10 @@ public record PropertyAccessExpression(
             if (val != null) return val;
         }
 
-        // Item component by handle
+        // Item component by name (scans by sememe short name)
         if (obj instanceof Item item) {
-            FrameKey frameKey = FrameKey.literal(prop);
-            Optional<?> component = item.frames().getLive(frameKey, Object.class);
-            if (component.isPresent()) return component.get();
+            Object component = item.component(prop);
+            if (component != null) return component;
         }
 
         // Optional unwrap

@@ -3,6 +3,7 @@ package dev.everydaythings.graph.value;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
 import lombok.Getter;
 
 import java.util.Objects;
@@ -27,11 +28,11 @@ import java.util.Objects;
  * <p>Example usage:
  * <pre>{@code
  * Endpoint ep = Endpoint.cg(IpAddress.parse("192.168.1.1"), 7432);
- * Literal lit = Literal.of(ep);  // Uses @Value.Type annotation
+ * Literal lit = Literal.of(ep);  // Uses @Implements annotation
  * }</pre>
  */
 @Getter
-@Value.Type("cg.value:endpoint")
+@Implements("cg.value:endpoint")
 @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
 public final class Endpoint implements Value {
 

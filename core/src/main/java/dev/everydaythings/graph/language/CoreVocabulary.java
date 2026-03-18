@@ -473,4 +473,92 @@ public final class CoreVocabulary {
                 .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "CILI")
                 .slot(ThematicRole.Referent.KEY);
     }
+
+    // ==================================================================================
+    // VALUE & OPERATOR PREDICATES
+    // ==================================================================================
+
+    public static class Arity {
+        public static final String KEY = "cg.core:arity";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "number of operands or arguments");
+    }
+
+    public static class Precedence {
+        public static final String KEY = "cg.core:precedence";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "parsing priority of an operator");
+    }
+
+    public static class Associativity {
+        public static final String KEY = "cg.core:associativity";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "left or right grouping direction of an operator");
+    }
+
+    public static class Fixity {
+        public static final String KEY = "cg.core:fixity";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "position of an operator relative to its operands");
+    }
+
+    public static class Category {
+        public static final String KEY = "cg.core:category";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "classification or grouping");
+    }
+
+    public static class Bounds {
+        public static final String KEY = "cg.core:bounds";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "value range constraints");
+    }
+
+    public static class UnitRules {
+        public static final String KEY = "cg.core:unit-rules";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "rules governing units for a value type");
+    }
+
+    public static class DimensionFormula {
+        public static final String KEY = "cg.core:dimension-formula";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "dimensional analysis formula mapping dimensions to exponents");
+    }
+
+    public static class ScaleNumerator {
+        public static final String KEY = "cg.core:scale-numerator";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "numerator of a unit's scale factor relative to SI base");
+    }
+
+    public static class ScaleDenominator {
+        public static final String KEY = "cg.core:scale-denominator";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "denominator of a unit's scale factor relative to SI base");
+    }
+
+    public static class Lexicon {
+        public static final String KEY = "cg.core:lexicon";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "a language's word inventory");
+    }
+
+    public static class Lexeme {
+        public static final String KEY = "cg.core:lexeme";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "a word form realizing a sememe in a specific language");
+    }
+
+    public static class DialectOf {
+        public static final String KEY = "cg.core:dialect-of";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "regional or dialectal variant of a parent language");
+    }
+
+    public static class Names {
+        public static final String KEY = "cg.core:names";
+        @Seed public static final Sememe SEED = new Sememe(KEY)
+                .gloss(Sememe.ENG, "language-tagged display names");
+    }
 }

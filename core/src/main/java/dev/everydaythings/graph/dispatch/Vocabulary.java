@@ -5,7 +5,6 @@ import dev.everydaythings.graph.item.Implements;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -45,7 +44,6 @@ import java.util.stream.Stream;
  * </ol>
  */
 @Implements(Vocabulary.TypeSeed.KEY)
-@Type(glyph = "🗂️", color = 0x64B4C8)
 @Canonical.Canonization
 @Scene(as = VocabularySurface.class)
 public class Vocabulary implements Canonical, Iterable<VerbEntry> {

@@ -9,7 +9,6 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
@@ -53,7 +52,6 @@ import java.util.stream.Stream;
  */
 @Log4j2
 @Implements(Sememe.TypeSeed.KEY)
-@Type(glyph = "\uD83D\uDCA1", color = 0xF0C040)
 public class Sememe extends Item {
 
     // ==================================================================================
@@ -489,8 +487,8 @@ public class Sememe extends Item {
         // Try SememeGloss component
         if (frames() != null) {
             var live = frames().getLive(
-                    dev.everydaythings.graph.item.id.FrameKey.literal(
-                            SememeGloss.handleKeyFor(iso3)));
+                    dev.everydaythings.graph.item.id.FrameKey.of(
+                            dev.everydaythings.graph.item.id.ItemID.fromString(SememeGloss.TypeSeed.KEY), iso3));
             if (live.isPresent() && live.get() instanceof SememeGloss sg) {
                 return sg.text();
             }

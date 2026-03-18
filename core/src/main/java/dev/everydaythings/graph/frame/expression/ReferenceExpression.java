@@ -107,7 +107,7 @@ public record ReferenceExpression(
         // Get the component from the target item's content
         // TODO: The double lookup (ExpressionComponent then Object) could be simplified
         //  to one getLive(handleId, Object.class) call with instanceof dispatch.
-        FrameKey frameKey = FrameKey.literal(handle);
+        FrameKey frameKey = FrameKey.of(ItemID.fromString(ExpressionComponent.TypeSeed.KEY), handle);
         var exprOpt = targetItem.frames().getLive(frameKey, ExpressionComponent.class);
         if (exprOpt.isEmpty()) {
             // Try getting any component with that handle

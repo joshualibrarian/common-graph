@@ -12,21 +12,21 @@ import java.lang.annotation.Target;
  * <p>The value is the concept's canonical key string (e.g., "cg.sememe:chess").
  * This links the Java class to its concept definition (a Sememe with that key).
  *
- * <p>The canonical key is defined ONCE, in the inner seed class's {@code KEY}
- * constant. This annotation references it:
+ * <p>Display metadata (glyph, color) lives on the Sememe seed via
+ * {@code .glyph()} and {@code .color()}, and flows into the library as a
+ * SurfaceTemplateComponent at bootstrap.
+ *
  * <pre>{@code
- * @Implements(ChessGame.Chess.KEY)
- * @Type(glyph = "♟️", color = 0x8B4513)
- * public class ChessGame extends Item {
+ * @Implements(ChessItem.Chess.KEY)
+ * public class ChessItem extends Item {
  *     public static class Chess {
  *         public static final String KEY = "cg.sememe:chess";
  *         @Seed public static final Sememe SEED = new Sememe(KEY)
+ *                 .glyph("♟️").color(0x8B4513)
  *                 .gloss("en", "the game of chess");
  *     }
  * }
  * }</pre>
- *
- * @see Type for display metadata (glyph, color, shape)
  */
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)

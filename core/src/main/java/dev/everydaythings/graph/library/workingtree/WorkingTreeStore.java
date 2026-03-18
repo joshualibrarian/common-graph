@@ -9,7 +9,6 @@ import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.LibraryException;

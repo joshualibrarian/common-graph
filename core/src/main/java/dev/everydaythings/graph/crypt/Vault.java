@@ -5,7 +5,6 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Picker;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
@@ -49,7 +48,6 @@ import java.util.Set;
  * }</pre>
  */
 @Implements(Vault.TypeSeed.KEY)
-@Type(glyph = "\uD83D\uDD10")
 public abstract class Vault {
 
     // === TYPE DEFINITION ===

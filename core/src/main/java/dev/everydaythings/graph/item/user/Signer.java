@@ -4,7 +4,6 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -63,7 +62,6 @@ import java.util.Objects;
  * }</pre>
  */
 @Implements(Signer.TypeSeed.KEY)
-@Type(glyph = "✍️", color = 0xAF644B)
 public abstract class Signer extends Item implements Signing.Signer {
 
     // === TYPE DEFINITION ===

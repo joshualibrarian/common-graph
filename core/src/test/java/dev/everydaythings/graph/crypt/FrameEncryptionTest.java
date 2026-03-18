@@ -6,7 +6,6 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.runtime.Librarian;

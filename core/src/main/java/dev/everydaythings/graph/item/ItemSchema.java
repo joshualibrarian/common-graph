@@ -11,7 +11,6 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameConfig;
 import dev.everydaythings.graph.frame.EndorsementsTable;
 import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
@@ -158,16 +157,6 @@ public class ItemSchema {
         }
     }
 
-    /**
-     * Get a frame field spec by key string.
-     */
-    public FrameFieldSpec getFrameField(String name) {
-        FrameKey key = FrameKey.literal(name);
-        return frameFields.stream()
-                .filter(spec -> spec.frameKey().equals(key))
-                .findFirst()
-                .orElse(null);
-    }
 
     /**
      * Get a frame field spec by FrameKey.
@@ -331,8 +320,7 @@ public class ItemSchema {
                 resolveEncryptionContext(encryptionContext, existingConfig, keyResolver);
 
         // For types with @Type annotation
-        if (value.getClass().isAnnotationPresent(Implements.class)
-                || value.getClass().isAnnotationPresent(Type.class)) {
+        if (value.getClass().isAnnotationPresent(Implements.class)) {
             ItemID typeId = Item.idOf(value.getClass());
             boolean isLocalOnly = spec.localOnly();
 

@@ -3,7 +3,6 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Sememe;
 import lombok.Getter;

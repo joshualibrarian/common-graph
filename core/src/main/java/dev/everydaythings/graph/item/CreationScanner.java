@@ -234,7 +234,7 @@ public final class CreationScanner {
             params.add(ParamSchema.fromParameter(param));
         }
 
-        return new FactoryOption(label, annotation.doc(), annotation.glyph(),
+        return new FactoryOption(label, annotation.doc(), "📦",
                 annotation.primary(), annotation.order(), method, List.copyOf(params));
     }
 

@@ -3,7 +3,6 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -27,7 +26,6 @@ import java.util.Set;
  * (e.g., English) can add language-specific import logic.
  */
 @Implements(Language.TypeSeed.KEY)
-@Type(glyph = "🗣️", color = 0xE08050)
 public class Language extends Item {
 
     // ==================================================================================
@@ -57,7 +55,7 @@ public class Language extends Item {
 
     /** The lexicon for this language. */
     @Getter
-    @Frame
+    @Frame(key = {CoreVocabulary.Lexicon.KEY})
     protected Lexicon lexicon;
 
     // ==================================================================================

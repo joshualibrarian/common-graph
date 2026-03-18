@@ -21,15 +21,13 @@ import java.util.Objects;
  * <ul>
  *   <li>{@code (TITLE)} — single sememe</li>
  *   <li>{@code (GLOSS, ENG)} — compound sememe (gloss for English)</li>
- *   <li>{@code (CHAT, "tavern")} — mixed (sememe + literal qualifier)</li>
- *   <li>{@code ("x")} — single literal (developer scratch variable)</li>
+ *   <li>{@code (EXPRESSION, "x")} — sememe head + literal qualifier</li>
+ *   <li>{@code (DISPLAY_LAYOUT, hostId, "Retina Display-0")} — multi-qualifier</li>
  * </ul>
  *
- * <p>The first token is the <em>head</em> — the primary predicate. Additional
- * tokens are qualifiers that distinguish multiple instances of the same predicate.
- *
- * <p>A single-literal FrameKey is the simplest case — a direct string key.
- * Example: {@code FrameKey.literal("vault")}.
+ * <p>The first token (head) is always a <em>sememe</em> — the semantic predicate.
+ * Additional tokens are qualifiers that distinguish multiple instances.
+ * Qualifiers can be sememes (ItemID) or literals (String).
  *
  * <p>CBOR format: array of tokens. Sememe tokens encode as byte strings
  * (ItemID multihash), literal tokens as text strings. The CBOR type
@@ -117,46 +115,69 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
     // Factories
     // ==================================================================================
 
-    /**
-     * Create a FrameKey from a single sememe.
-     *
-     * <p>Example: {@code FrameKey.of(TITLE)} → {@code (TITLE)}
-     */
-    public static FrameKey of(ItemID sememe) {
-        return new FrameKey(List.of(new Sememe(sememe)));
-    }
+    private static final org.apache.logging.log4j.Logger logger =
+            org.apache.logging.log4j.LogManager.getLogger(FrameKey.class);
 
     /**
-     * Create a compound FrameKey from multiple sememes.
+     * Create a FrameKey with a semantic head and optional qualifiers.
      *
-     * <p>Example: {@code FrameKey.of(GLOSS, ENG)} → {@code (GLOSS, ENG)}
+     * <p>The head is always a sememe (ItemID). Qualifiers can be:
+     * <ul>
+     *   <li>{@link ItemID} — becomes a Sememe token</li>
+     *   <li>{@link String} — becomes a Literal token</li>
+     * </ul>
+     *
+     * <p>Examples:
+     * <pre>{@code
+     * FrameKey.of(TITLE)                    // (TITLE)
+     * FrameKey.of(GLOSS, ENG)              // (GLOSS, ENG)
+     * FrameKey.of(EXPRESSION, "x")          // (EXPRESSION, "x")
+     * FrameKey.of(DISPLAY, hostId, "Retina Display-0")
+     * }</pre>
+     *
+     * @param head       the semantic predicate (must be an ItemID)
+     * @param qualifiers optional qualifiers (ItemID or String)
+     * @return the FrameKey
      */
-    public static FrameKey of(ItemID... sememes) {
-        if (sememes.length == 0) {
-            throw new IllegalArgumentException("FrameKey requires at least one token");
+    public static FrameKey of(ItemID head, Object... qualifiers) {
+        Objects.requireNonNull(head, "FrameKey head must not be null");
+        if (qualifiers.length == 0) {
+            return new FrameKey(List.of(new Sememe(head)));
         }
-        return new FrameKey(Arrays.stream(sememes)
-                .map(Sememe::new)
-                .map(s -> (FrameToken) s)
-                .toList());
+        List<FrameToken> tokens = new java.util.ArrayList<>(1 + qualifiers.length);
+        tokens.add(new Sememe(head));
+        for (Object q : qualifiers) {
+            if (q instanceof ItemID id) {
+                tokens.add(new Sememe(id));
+            } else if (q instanceof String s) {
+                tokens.add(new Literal(s));
+            } else {
+                throw new IllegalArgumentException(
+                        "FrameKey qualifier must be ItemID or String, got: "
+                                + (q == null ? "null" : q.getClass().getSimpleName()));
+            }
+        }
+        return new FrameKey(tokens);
     }
 
     /**
      * Create a single-literal FrameKey.
      *
-     * <p>This is the simplest case — a single opaque string key.
+     * @deprecated Literal-headed keys have no semantic meaning. Use
+     * {@link #of(ItemID, Object...)} with a semantic head instead.
      */
+    @Deprecated
     public static FrameKey literal(String value) {
+        logger.warn("FrameKey.literal('{}') used — migrate to semantic key", value);
         return new FrameKey(List.of(new Literal(value)));
     }
 
     /**
-     * Create a mixed FrameKey — sememe head with literal qualifier.
-     *
-     * <p>Example: {@code FrameKey.mixed(CHAT, "tavern")} → {@code (CHAT, "tavern")}
+     * @deprecated Use {@link #of(ItemID, Object...)} instead.
      */
+    @Deprecated
     public static FrameKey mixed(ItemID head, String qualifier) {
-        return new FrameKey(List.of(new Sememe(head), new Literal(qualifier)));
+        return of(head, qualifier);
     }
 
     /**
@@ -164,15 +185,6 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
      */
     public static FrameKey ofTokens(List<FrameToken> tokens) {
         return new FrameKey(tokens);
-    }
-
-    /**
-     * Create a FrameKey from a handle string.
-     *
-     * <p>Produces a single-literal key whose value is the handle string.
-     */
-    public static FrameKey fromHandle(String handle) {
-        return literal(handle);
     }
 
     // ==================================================================================

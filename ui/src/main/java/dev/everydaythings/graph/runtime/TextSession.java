@@ -4,7 +4,6 @@ import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.runtime.options.SessionOptions;
 import dev.everydaythings.graph.ui.input.*;
 import dev.everydaythings.graph.ui.scene.RenderContext;
@@ -497,11 +496,9 @@ public class TextSession extends Session {
             case Eval.EvalResult.ItemResult i -> true;
             case Eval.EvalResult.Created c -> true;
             case Eval.EvalResult.Value v -> v.value() != null
-                    && (v.value().getClass().isAnnotationPresent(Implements.class)
-                        || v.value().getClass().isAnnotationPresent(Type.class));
+                    && v.value().getClass().isAnnotationPresent(Implements.class);
             case Eval.EvalResult.ValueWithTarget vt -> vt.value() != null
-                    && (vt.value().getClass().isAnnotationPresent(Implements.class)
-                        || vt.value().getClass().isAnnotationPresent(Type.class));
+                    && vt.value().getClass().isAnnotationPresent(Implements.class);
             default -> false;
         };
 

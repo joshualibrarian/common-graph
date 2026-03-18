@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.item.Implements;
 import lombok.Getter;
 
 /**
@@ -16,7 +17,7 @@ import lombok.Getter;
  * such as "1/3" or "22/7".
  */
 @Getter
-@Value.Type("cg.value:rational")
+@Implements("cg.value:rational")
 public final class Rational implements Numeric {
 
     @Canon(order = 1)

@@ -10,7 +10,6 @@ import dev.everydaythings.graph.frame.PresentationConfig;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Type;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -43,6 +42,7 @@ import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,7 +54,7 @@ import java.util.Objects;
  * <ul>
  *   <li>{@code @Type} classes - registered with IMPLEMENTED_BY relations</li>
  *   <li>{@code @Item.Seed} fields - stored as seed items with manifests</li>
- *   <li>{@code @Value.Type} classes - registered with IMPLEMENTED_BY relations</li>
+ *   <li>{@code @Implements} Value classes - registered with IMPLEMENTED_BY relations</li>
  * </ul>
  *
  * <p>Usage:
@@ -126,14 +126,6 @@ public final class SeedVocabulary {
             // 1. @Item.Seed static fields on @Implements classes
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
-                if (!Item.class.isAssignableFrom(clazz)) continue;
-                collectSeedItemsWithTokens(clazz, result);
-            }
-
-            // 1b. @Item.Seed static fields on @Type classes without @Implements
-            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Type.class)) {
-                Class<?> clazz = classInfo.loadClass();
-                if (clazz.isAnnotationPresent(Implements.class)) continue;
                 if (!Item.class.isAssignableFrom(clazz)) continue;
                 collectSeedItemsWithTokens(clazz, result);
             }
@@ -224,15 +216,74 @@ public final class SeedVocabulary {
                 registerImplementation(clazz);
             }
 
-            // 3. @Value.Type classes (unchanged)
-            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(
-                    dev.everydaythings.graph.value.Value.Type.class)) {
+            // 3. @Implements on Value classes — register IMPLEMENTED_BY for value types
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
-                if (dev.everydaythings.graph.value.Value.class.isAssignableFrom(clazz)) {
+                if (dev.everydaythings.graph.value.Value.class.isAssignableFrom(clazz)
+                        && !Item.class.isAssignableFrom(clazz)) {
                     registerValueType((Class<? extends dev.everydaythings.graph.value.Value>) clazz);
                 }
             }
         }
+
+        // 4. Create LEXEME frames on Language items from seed word declarations
+        createLexemeFrames();
+    }
+
+    /**
+     * Create LEXEME frames on Language items from seed Sememe word declarations.
+     *
+     * <p>Iterates all seed items, collects their {@link Sememe.LexemeDeclaration}s,
+     * and creates a LEXEME frame on the appropriate Language item for each one.
+     */
+    private void createLexemeFrames() {
+        ItemID lexemePredicate = ItemID.fromString(CoreVocabulary.Lexeme.KEY);
+
+        // Group declarations by language code → Language item
+        Map<String, Item> languageItems = new HashMap<>();
+        for (Item seed : seedItems) {
+            if (seed instanceof Language lang && lang.languageCode() != null) {
+                languageItems.put(lang.languageCode(), lang);
+            }
+        }
+
+        // Map 2-letter codes to 3-letter
+        languageItems.putIfAbsent("en", languageItems.get("eng"));
+
+        int count = 0;
+        for (Item seed : seedItems) {
+            if (!(seed instanceof Sememe sememe)) continue;
+            var declarations = sememe.lexemeDeclarations();
+            if (declarations == null || declarations.isEmpty()) continue;
+
+            for (Sememe.LexemeDeclaration decl : declarations) {
+                // Resolve language
+                String langCode = decl.lang().equals("en") ? "eng" : decl.lang();
+                Item langItem = languageItems.get(langCode);
+                if (langItem == null) {
+                    logger.warn("No Language item for code '{}', skipping lexeme '{}'", langCode, decl.surface());
+                    continue;
+                }
+
+                // Build compound FrameKey: (LEXEME, sememeId, POS, form)
+                // form can be null due to circular clinit between Sememe and GrammaticalFeature
+                ItemID formId = decl.form() != null ? decl.form().iid()
+                        : ItemID.fromString(GrammaticalFeature.Lemma.KEY);
+                FrameKey key = FrameKey.of(lexemePredicate, sememe.iid(), decl.pos(), formId);
+
+                // Build frame body with THEME → surface form (CBOR-encoded text)
+                byte[] surfaceBytes = com.upokecenter.cbor.CBORObject.FromString(decl.surface()).EncodeToBytes();
+                Literal surfaceLiteral = new Literal(Literal.TYPE_TEXT, surfaceBytes);
+                FrameBody body = new FrameBody(lexemePredicate,
+                        List.of(new Binding(ThematicRole.Theme.SEED.iid(), surfaceLiteral)));
+
+                // Create and add frame to the Language item
+                Frame frame = new Frame(key, lexemePredicate, body, body.hash(), false);
+                langItem.frames().add(frame);
+                count++;
+            }
+        }
+        logger.info("Created {} LEXEME frames on Language items", count);
     }
 
     // ==================================================================================
@@ -307,10 +358,10 @@ public final class SeedVocabulary {
                 .findFirst()
                 .orElse(null);
 
-        // Attach display metadata if @Type present
-        Type annotation = clazz.getAnnotation(Type.class);
-        if (annotation != null && seedItem != null) {
-            attachTypePresentation(seedItem, clazz, annotation, key);
+        // Attach display metadata from @Implements
+        Implements impl = clazz.getAnnotation(Implements.class);
+        if (impl != null && seedItem != null) {
+            attachTypePresentation(seedItem, clazz, impl, key);
         }
 
         // Store manifest first (with presentation but without IMPLEMENTED_BY).
@@ -329,7 +380,7 @@ public final class SeedVocabulary {
     }
 
     private void registerValueType(Class<? extends dev.everydaythings.graph.value.Value> type) {
-        var annotation = type.getAnnotation(dev.everydaythings.graph.value.Value.Type.class);
+        Implements annotation = type.getAnnotation(Implements.class);
         if (annotation == null || annotation.value().isBlank()) return;
 
         ItemID typeId = ItemID.fromString(annotation.value());
@@ -389,9 +440,9 @@ public final class SeedVocabulary {
      * <p>This replaces the former two-component pattern (DisplayComponent + SurfaceTemplateComponent)
      * with a single component at handle "surface".
      */
-    private void attachTypePresentation(Item typeItem, Class<?> typeClass, Type annotation, String key) {
-        // Start with display fields from @Type annotation
-        SurfaceTemplateComponent stc = SurfaceTemplateComponent.fromType(annotation);
+    private void attachTypePresentation(Item typeItem, Class<?> typeClass, Implements annotation, String key) {
+        // Start with display fields from @Implements annotation
+        SurfaceTemplateComponent stc = SurfaceTemplateComponent.fromImplements(annotation);
         stc.typeName(extractReadableName(key));
 
         // Compile surface template from @Scene annotations (if present)
@@ -411,9 +462,8 @@ public final class SeedVocabulary {
         attachComponent(typeItem, SurfaceTemplateComponent.HANDLE, "surface", stc);
 
         // Phase 5: also store PresentationConfig in a PRESENTATION frame on the type item.
-        // This feeds the three-level cascade (instance → type → sememe).
         PresentationConfig presConfig = PresentationConfig.of(
-                annotation.glyph(), annotation.color(), annotation.shape());
+                "📦", 0x78788C, "sphere");
         byte[] presBytes = presConfig.encodeBinary(Canonical.Scope.RECORD);
         Literal presLiteral = new Literal(Literal.TYPE_CBOR, presBytes);
 
@@ -467,8 +517,7 @@ public final class SeedVocabulary {
             ItemID langIid = Language.iidFor(iso3);
             SememeGloss gloss = new SememeGloss(langIid, text);
 
-            String handleKey = SememeGloss.handleKeyFor(iso3);
-            FrameKey key = FrameKey.literal(handleKey);
+            FrameKey key = FrameKey.of(ItemID.fromString(SememeGloss.TypeSeed.KEY), iso3);
 
             byte[] bytes = gloss.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
@@ -611,7 +660,7 @@ public final class SeedVocabulary {
      * Check if a class has identity metadata (@Implements or @Type).
      */
     private static boolean hasIdentity(Class<?> clazz) {
-        return clazz.isAnnotationPresent(Implements.class) || clazz.isAnnotationPresent(Type.class);
+        return clazz.isAnnotationPresent(Implements.class);
     }
 
     private static String extractReadableName(String typeKey) {
