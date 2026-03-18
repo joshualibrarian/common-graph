@@ -77,6 +77,7 @@ public class Unit extends Item {
     @ItemSeed(key = Meter.KEY)
     public static class Meter {
         public static final String KEY = "cg.unit:meter";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "m",
                 Map.of("en", "meter", "en-GB", "metre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
@@ -84,6 +85,7 @@ public class Unit extends Item {
     @ItemSeed(key = Millimeter.KEY)
     public static class Millimeter {
         public static final String KEY = "cg.unit:millimeter";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "mm",
                 Map.of("en", "millimeter", "en-GB", "millimetre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1000);
@@ -91,6 +93,7 @@ public class Unit extends Item {
     @ItemSeed(key = Centimeter.KEY)
     public static class Centimeter {
         public static final String KEY = "cg.unit:centimeter";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "cm",
                 Map.of("en", "centimeter", "en-GB", "centimetre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 100);
@@ -98,6 +101,7 @@ public class Unit extends Item {
     @ItemSeed(key = Kilometer.KEY)
     public static class Kilometer {
         public static final String KEY = "cg.unit:kilometer";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "km",
                 Map.of("en", "kilometer", "en-GB", "kilometre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1000, 1);
@@ -105,6 +109,7 @@ public class Unit extends Item {
     @ItemSeed(key = Inch.KEY)
     public static class Inch {
         public static final String KEY = "cg.unit:inch";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "in",
                 Map.of("en", "inch"),
                 Map.of(dim(Dimension.Length.KEY), 1), 127, 5000);
@@ -112,6 +117,7 @@ public class Unit extends Item {
     @ItemSeed(key = Foot.KEY)
     public static class Foot {
         public static final String KEY = "cg.unit:foot";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "ft",
                 Map.of("en", "foot"),
                 Map.of(dim(Dimension.Length.KEY), 1), 381, 1250);
@@ -124,6 +130,7 @@ public class Unit extends Item {
     @ItemSeed(key = Second.KEY)
     public static class Second {
         public static final String KEY = "cg.unit:second";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "s",
                 Map.of("en", "second"),
                 Map.of(dim(Dimension.Time.KEY), 1), 1, 1);
@@ -131,6 +138,7 @@ public class Unit extends Item {
     @ItemSeed(key = Millisecond.KEY)
     public static class Millisecond {
         public static final String KEY = "cg.unit:millisecond";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "ms",
                 Map.of("en", "millisecond"),
                 Map.of(dim(Dimension.Time.KEY), 1), 1, 1000);
@@ -138,6 +146,7 @@ public class Unit extends Item {
     @ItemSeed(key = Minute.KEY)
     public static class Minute {
         public static final String KEY = "cg.unit:minute";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "min",
                 Map.of("en", "minute"),
                 Map.of(dim(Dimension.Time.KEY), 1), 60, 1);
@@ -145,6 +154,7 @@ public class Unit extends Item {
     @ItemSeed(key = Hour.KEY)
     public static class Hour {
         public static final String KEY = "cg.unit:hour";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "h",
                 Map.of("en", "hour"),
                 Map.of(dim(Dimension.Time.KEY), 1), 3600, 1);
@@ -157,6 +167,7 @@ public class Unit extends Item {
     @ItemSeed(key = Kilogram.KEY)
     public static class Kilogram {
         public static final String KEY = "cg.unit:kilogram";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "kg",
                 Map.of("en", "kilogram"),
                 Map.of(dim(Dimension.Mass.KEY), 1), 1, 1);
@@ -164,6 +175,7 @@ public class Unit extends Item {
     @ItemSeed(key = Gram.KEY)
     public static class Gram {
         public static final String KEY = "cg.unit:gram";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "g",
                 Map.of("en", "gram"),
                 Map.of(dim(Dimension.Mass.KEY), 1), 1, 1000);
@@ -171,6 +183,7 @@ public class Unit extends Item {
     @ItemSeed(key = Pound.KEY)
     public static class Pound {
         public static final String KEY = "cg.unit:pound";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "lb",
                 Map.of("en", "pound"),
                 Map.of(dim(Dimension.Mass.KEY), 1), 45359237, 100000000);
@@ -183,6 +196,7 @@ public class Unit extends Item {
     @ItemSeed(key = MeterPerSecond.KEY)
     public static class MeterPerSecond {
         public static final String KEY = "cg.unit:meter-per-second";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "m/s",
                 Map.of("en", "meter per second"),
                 Map.of(dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -1), 1, 1);
@@ -190,6 +204,7 @@ public class Unit extends Item {
     @ItemSeed(key = Newton.KEY)
     public static class Newton {
         public static final String KEY = "cg.unit:newton";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "N",
                 Map.of("en", "newton"),
                 Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -2), 1, 1);
@@ -197,6 +212,7 @@ public class Unit extends Item {
     @ItemSeed(key = Joule.KEY)
     public static class Joule {
         public static final String KEY = "cg.unit:joule";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "J",
                 Map.of("en", "joule"),
                 Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -2), 1, 1);
@@ -204,6 +220,7 @@ public class Unit extends Item {
     @ItemSeed(key = Watt.KEY)
     public static class Watt {
         public static final String KEY = "cg.unit:watt";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "W",
                 Map.of("en", "watt"),
                 Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -3), 1, 1);
@@ -216,6 +233,7 @@ public class Unit extends Item {
     @ItemSeed(key = CharacterWidth.KEY)
     public static class CharacterWidth {
         public static final String KEY = "cg.unit:ch";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "ch",
                 Map.of("en", "character width", "en-alt", "ch"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
@@ -223,6 +241,7 @@ public class Unit extends Item {
     @ItemSeed(key = LineHeight.KEY)
     public static class LineHeight {
         public static final String KEY = "cg.unit:ln";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "ln",
                 Map.of("en", "line height", "en-alt", "line"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
@@ -230,6 +249,7 @@ public class Unit extends Item {
     @ItemSeed(key = Pixel.KEY)
     public static class Pixel {
         public static final String KEY = "cg.unit:px";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "px",
                 Map.of("en", "pixel"),
                 Map.of(dim(Dimension.Length.KEY), 1), 127, 4838400);
@@ -237,6 +257,7 @@ public class Unit extends Item {
     @ItemSeed(key = Percent.KEY)
     public static class Percent {
         public static final String KEY = "cg.unit:percent";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "%",
                 Map.of("en", "percent"),
                 Map.of(), 1, 100);
@@ -244,6 +265,7 @@ public class Unit extends Item {
     @ItemSeed(key = Fraction.KEY)
     public static class Fraction {
         public static final String KEY = "cg.unit:fr";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "fr",
                 Map.of("en", "fraction", "en-alt", "flex fraction"),
                 Map.of(), 1, 1);
@@ -251,6 +273,7 @@ public class Unit extends Item {
     @ItemSeed(key = Em.KEY)
     public static class Em {
         public static final String KEY = "cg.unit:em";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "em",
                 Map.of("en", "em"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
@@ -258,6 +281,7 @@ public class Unit extends Item {
     @ItemSeed(key = Rem.KEY)
     public static class Rem {
         public static final String KEY = "cg.unit:rem";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Unit SEED = new Unit(KEY, "rem",
                 Map.of("en", "root em"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);

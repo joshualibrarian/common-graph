@@ -57,7 +57,7 @@ public class ChessItem extends Item {
         public static final String KEY = "cg.sememe:chess";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "the game of chess")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "chess");
+                .word(PartOfSpeech.NOUN, new Sememe(GrammaticalFeature.Lemma.KEY), "en", "chess");
     }
 
     // ==================================================================================
@@ -235,7 +235,7 @@ public class ChessItem extends Item {
             }
 
             // Persist as a relation frame
-            relate(GameVocabulary.Move.SEED.iid(), Literal.ofText(normalized));
+            relate(GameVocabulary.Move.IID, Literal.ofText(normalized));
 
             updateResult();
             clearSelection();

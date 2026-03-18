@@ -51,7 +51,7 @@ class SeedVocabularyTest {
 
     private boolean hasImplementedByRelation(ItemID typeId) {
         return store.frameBodies()
-                .filter(r -> r.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
+                .filter(r -> r.predicate().equals(CoreVocabulary.ImplementedBy.IID))
                 .anyMatch(r -> typeId.equals(r.bindingId(ItemID.fromString("cg.role:theme"))));
     }
 
@@ -85,9 +85,9 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(Dimension.KEY))).isTrue();
 
         // Dimension seed instances should have manifests
-        assertThat(hasManifest(Dimension.Length.SEED.iid())).isTrue();
-        assertThat(hasManifest(Dimension.Time.SEED.iid())).isTrue();
-        assertThat(hasManifest(Dimension.Mass.SEED.iid())).isTrue();
+        assertThat(hasManifest(Dimension.Length.IID)).isTrue();
+        assertThat(hasManifest(Dimension.Time.IID)).isTrue();
+        assertThat(hasManifest(Dimension.Mass.IID)).isTrue();
     }
 
     @Test
@@ -96,9 +96,9 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(Sememe.KEY))).isTrue();
 
         // Core vocabulary seeds should have manifests
-        assertThat(hasManifest(CoreVocabulary.Author.SEED.iid())).isTrue();
-        assertThat(hasManifest(CoreVocabulary.Title.SEED.iid())).isTrue();
-        assertThat(hasManifest(CoreVocabulary.Description.SEED.iid())).isTrue();
+        assertThat(hasManifest(CoreVocabulary.Author.IID)).isTrue();
+        assertThat(hasManifest(CoreVocabulary.Title.IID)).isTrue();
+        assertThat(hasManifest(CoreVocabulary.Description.IID)).isTrue();
     }
 
     @Test
@@ -118,14 +118,14 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(Unit.KEY))).isTrue();
 
         // Core units should have manifests
-        assertThat(hasManifest(Unit.Meter.SEED.iid())).isTrue();
-        assertThat(hasManifest(Unit.Second.SEED.iid())).isTrue();
-        assertThat(hasManifest(Unit.Kilogram.SEED.iid())).isTrue();
-        assertThat(hasManifest(Unit.Inch.SEED.iid())).isTrue();
+        assertThat(hasManifest(Unit.Meter.IID)).isTrue();
+        assertThat(hasManifest(Unit.Second.IID)).isTrue();
+        assertThat(hasManifest(Unit.Kilogram.IID)).isTrue();
+        assertThat(hasManifest(Unit.Inch.IID)).isTrue();
 
         // Derived units
-        assertThat(hasManifest(Unit.Newton.SEED.iid())).isTrue();
-        assertThat(hasManifest(Unit.Joule.SEED.iid())).isTrue();
+        assertThat(hasManifest(Unit.Newton.IID)).isTrue();
+        assertThat(hasManifest(Unit.Joule.IID)).isTrue();
     }
 
     @Test
@@ -168,15 +168,15 @@ class SeedVocabularyTest {
         assertThat(hasImplementedByRelation(ItemID.fromString(ValueType.KEY))).isTrue();
 
         // Core value types should have manifests
-        assertThat(hasManifest(ValueType.BooleanType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.TextType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.DecimalType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.RationalType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.CountType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.IntegerType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.EndpointType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.IpType.SEED.iid())).isTrue();
-        assertThat(hasManifest(ValueType.QuantityType.SEED.iid())).isTrue();
+        assertThat(hasManifest(ValueType.BooleanType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.TextType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.DecimalType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.RationalType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.CountType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.IntegerType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.EndpointType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.IpType.IID)).isTrue();
+        assertThat(hasManifest(ValueType.QuantityType.IID)).isTrue();
     }
 
     @Test
@@ -188,10 +188,10 @@ class SeedVocabularyTest {
     @Test
     void literalTypeConstantsMatchValueTypeSeeds() {
         // Verify that Literal.TYPE_* constants resolve to actual ValueType seeds
-        assertThat(Literal.TYPE_TEXT).isEqualTo(ValueType.TextType.SEED.iid());
-        assertThat(Literal.TYPE_BOOLEAN).isEqualTo(ValueType.BooleanType.SEED.iid());
-        assertThat(Literal.TYPE_INTEGER).isEqualTo(ValueType.IntegerType.SEED.iid());
-        assertThat(Literal.TYPE_INSTANT).isEqualTo(ValueType.InstantType.SEED.iid());
+        assertThat(Literal.TYPE_TEXT).isEqualTo(ValueType.TextType.IID);
+        assertThat(Literal.TYPE_BOOLEAN).isEqualTo(ValueType.BooleanType.IID);
+        assertThat(Literal.TYPE_INTEGER).isEqualTo(ValueType.IntegerType.IID);
+        assertThat(Literal.TYPE_INSTANT).isEqualTo(ValueType.InstantType.IID);
 
         // Verify these seeds have manifests in the store
         assertThat(hasManifest(Literal.TYPE_TEXT)).isTrue();

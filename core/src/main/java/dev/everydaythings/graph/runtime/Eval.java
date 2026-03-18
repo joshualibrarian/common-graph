@@ -486,11 +486,11 @@ public class Eval {
                     // Legacy: check known pronoun IIDs for seeds without POS on posting
                     if (isPronoun) {
                         ItemID iid = link.iid();
-                        isPronoun = iid.equals(Sememe.It.SEED.iid())
-                                || iid.equals(Sememe.This.SEED.iid())
-                                || iid.equals(Sememe.Last.SEED.iid())
-                                || iid.equals(Sememe.Any.SEED.iid())
-                                || iid.equals(Sememe.What.SEED.iid());
+                        isPronoun = iid.equals(Sememe.It.IID)
+                                || iid.equals(Sememe.This.IID)
+                                || iid.equals(Sememe.Last.IID)
+                                || iid.equals(Sememe.Any.IID)
+                                || iid.equals(Sememe.What.IID);
                     }
                 }
                 if (isPronoun) {
@@ -749,7 +749,7 @@ public class Eval {
         // 2. Bound items from the frame (explicit user intent)
         if (target == null) {
             for (var entry : frame.bindings().entrySet()) {
-                if (entry.getKey().equals(ThematicRole.Goal.SEED.iid())) continue;
+                if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
                 if (!(entry.getValue() instanceof Item item)) continue;
                 if (item.vocabulary().lookup(verbId).isPresent()) {
                     target = item;
@@ -797,7 +797,7 @@ public class Eval {
         EvalResult result = dispatchVerbForResult(target, verbId, frame);
 
         // 3. Wrap with TARGET if present (only for Item targets)
-        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.Goal.SEED.iid());
+        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.Goal.IID);
         if (prepTarget.isPresent() && result instanceof EvalResult.Value(Object value)) {
             return EvalResult.valueWithTarget(value, prepTarget.get());
         }
@@ -1072,7 +1072,7 @@ public class Eval {
         // Build bindings: exclude TARGET role and the dispatch target itself
         Map<ItemID, Object> bindings = new LinkedHashMap<>();
         for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey().equals(ThematicRole.Goal.SEED.iid())) continue;
+            if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
             Object value = entry.getValue();
             if (value instanceof Item item && item.iid().equals(target.iid())) continue;
             bindings.put(entry.getKey(), value);
@@ -1138,7 +1138,7 @@ public class Eval {
             if (param.role() == null) continue;
             ItemID roleId;
             try {
-                roleId = ThematicRole.fromName(param.role()).iid();
+                roleId = ThematicRole.fromName(param.role());
             } catch (IllegalArgumentException e) {
                 continue;
             }

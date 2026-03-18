@@ -195,9 +195,9 @@ public final class FrameBody implements Canonical {
      * (events/computations).
      */
     public Binding home() {
-        Binding theme = getBinding(ThematicRole.Theme.SEED.iid());
+        Binding theme = getBinding(ThematicRole.Theme.IID);
         if (theme != null) return theme;
-        return getBinding(ThematicRole.Location.SEED.iid());
+        return getBinding(ThematicRole.Location.IID);
     }
 
     /**
@@ -212,7 +212,7 @@ public final class FrameBody implements Canonical {
      * Create a home binding for the given item (THEME role, identity=true).
      */
     public static Binding homeBinding(ItemID itemId) {
-        return new Binding(ThematicRole.Theme.SEED.iid(), BindingTarget.iid(itemId));
+        return new Binding(ThematicRole.Theme.IID, BindingTarget.iid(itemId));
     }
 
     /**
@@ -445,7 +445,7 @@ public final class FrameBody implements Canonical {
      * Equivalent to the legacy {@code EntryPayload.snapshotCid()}.
      */
     public ContentID contentCid() {
-        return extractCid(ThematicRole.Topic.SEED.iid());
+        return extractCid(ThematicRole.Topic.IID);
     }
 
     /**
@@ -454,7 +454,7 @@ public final class FrameBody implements Canonical {
      * <p>Equivalent to the legacy {@code EntryPayload.encryptedCid()}.
      */
     public ContentID encryptedCid() {
-        Binding b = getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Encrypted.SEED.iid());
+        Binding b = getCompoundBinding(ThematicRole.Topic.IID, CoreVocabulary.Encrypted.IID);
         if (b == null) return null;
         return extractCidFromTarget(b.target());
     }
@@ -466,7 +466,7 @@ public final class FrameBody implements Canonical {
      * Equivalent to the legacy {@code EntryPayload.referenceTarget()}.
      */
     public ItemID referenceTargetId() {
-        return bindingId(ThematicRole.Goal.SEED.iid());
+        return bindingId(ThematicRole.Goal.IID);
     }
 
     /**
@@ -476,21 +476,21 @@ public final class FrameBody implements Canonical {
      * (TOPIC, STREAM) or (TOPIC, EXTERNAL) are different content modes.
      */
     public boolean hasContent() {
-        return binding(ThematicRole.Topic.SEED.iid()) != null;
+        return binding(ThematicRole.Topic.IID) != null;
     }
 
     /**
      * Whether this frame is a reference to another item (Goal binding is present).
      */
     public boolean isReference() {
-        return binding(ThematicRole.Goal.SEED.iid()) != null;
+        return binding(ThematicRole.Goal.IID) != null;
     }
 
     /**
      * Whether this frame has encrypted content — (TOPIC, ENCRYPTED) compound binding is present.
      */
     public boolean isEncrypted() {
-        return getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Encrypted.SEED.iid()) != null;
+        return getCompoundBinding(ThematicRole.Topic.IID, CoreVocabulary.Encrypted.IID) != null;
     }
 
     /**
@@ -503,12 +503,12 @@ public final class FrameBody implements Canonical {
      */
     public byte[] configPayload() {
         // Config map path (new)
-        Binding cb = configBinding(ThematicRole.Config.SEED.iid());
+        Binding cb = configBinding(ThematicRole.Config.IID);
         if (cb != null && cb.target() instanceof Literal lit) {
             return lit.payload();
         }
         // Body binding path (backward compat)
-        BindingTarget target = binding(ThematicRole.Config.SEED.iid());
+        BindingTarget target = binding(ThematicRole.Config.IID);
         if (target instanceof Literal lit) {
             return lit.payload();
         }
@@ -525,13 +525,13 @@ public final class FrameBody implements Canonical {
      */
     public byte[] configPresentationPayload() {
         // Config map path (new) — direct PRESENTATION key
-        Binding cb = configBinding(ThematicRole.Presentation.SEED.iid());
+        Binding cb = configBinding(ThematicRole.Presentation.IID);
         if (cb != null && cb.target() instanceof Literal lit) {
             return lit.payload();
         }
         // Body binding path (backward compat) — compound (CONFIG, PRESENTATION)
-        Binding b = getCompoundBinding(ThematicRole.Config.SEED.iid(),
-                ThematicRole.Presentation.SEED.iid());
+        Binding b = getCompoundBinding(ThematicRole.Config.IID,
+                ThematicRole.Presentation.IID);
         if (b != null && b.target() instanceof Literal lit) {
             return lit.payload();
         }
@@ -548,13 +548,13 @@ public final class FrameBody implements Canonical {
      */
     public byte[] configVocabularyPayload() {
         // Config map path (new) — direct VOCABULARY key
-        Binding cb = configBinding(ThematicRole.Vocabulary.SEED.iid());
+        Binding cb = configBinding(ThematicRole.Vocabulary.IID);
         if (cb != null && cb.target() instanceof Literal lit) {
             return lit.payload();
         }
         // Body binding path (backward compat) — compound (CONFIG, VOCABULARY)
-        Binding b = getCompoundBinding(ThematicRole.Config.SEED.iid(),
-                ThematicRole.Vocabulary.SEED.iid());
+        Binding b = getCompoundBinding(ThematicRole.Config.IID,
+                ThematicRole.Vocabulary.IID);
         if (b != null && b.target() instanceof Literal lit) {
             return lit.payload();
         }
@@ -569,14 +569,14 @@ public final class FrameBody implements Canonical {
      * Whether this frame carries stream-mode content — a (TOPIC, STREAM) compound binding.
      */
     public boolean isStream() {
-        return getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Stream.SEED.iid()) != null;
+        return getCompoundBinding(ThematicRole.Topic.IID, CoreVocabulary.Stream.IID) != null;
     }
 
     /**
      * Whether this frame carries external data — a (TOPIC, EXTERNAL) compound binding.
      */
     public boolean isExternal() {
-        return getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.External.SEED.iid()) != null;
+        return getCompoundBinding(ThematicRole.Topic.IID, CoreVocabulary.External.IID) != null;
     }
 
     /**
@@ -586,7 +586,7 @@ public final class FrameBody implements Canonical {
      * if this frame is not stream-based.
      */
     public ContentID streamHeadCid() {
-        Binding b = getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.Stream.SEED.iid());
+        Binding b = getCompoundBinding(ThematicRole.Topic.IID, CoreVocabulary.Stream.IID);
         if (b == null) return null;
         return extractCidFromTarget(b.target());
     }
@@ -598,7 +598,7 @@ public final class FrameBody implements Canonical {
      * Literal target, or null if this frame is not external.
      */
     public String externalPath() {
-        Binding b = getCompoundBinding(ThematicRole.Topic.SEED.iid(), CoreVocabulary.External.SEED.iid());
+        Binding b = getCompoundBinding(ThematicRole.Topic.IID, CoreVocabulary.External.IID);
         if (b == null) return null;
         if (b.target() instanceof Literal lit) {
             try { return lit.asText(); } catch (Exception e) { return null; }

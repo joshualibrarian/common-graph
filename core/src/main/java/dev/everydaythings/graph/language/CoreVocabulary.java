@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.id.ItemID;
 
 /**
  * Core vocabulary seeds — the fundamental predicates and actions CG needs to function.
@@ -28,11 +28,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = ImplementedBy.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class ImplementedBy {
         public static final String KEY = "cg.type:implemented-by";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "is implemented by; has its design applied by")
-                .cili("i33787")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is implemented by; has its design applied by";
 
@@ -53,10 +49,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Expects.KEY, slots = {ThematicRole.Topic.KEY})
     public static class Expects {
         public static final String KEY = "cg.type:expects";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "declares a frame structure expected on instances of this type")
-                .slot(ThematicRole.Topic.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "declares a frame structure expected on instances of this type";
     }
@@ -68,13 +61,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Create.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY, ThematicRole.Name.KEY, ThematicRole.Partner.KEY, ThematicRole.Source.KEY})
     public static class Create {
         public static final String KEY = "cg.verb:create";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "make or cause to be or to become").cili("i29849")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "create").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "new").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "make")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .slot(ThematicRole.Name.KEY).slot(ThematicRole.Partner.KEY)
-                .slot(ThematicRole.Source.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "make or cause to be or to become";
 
@@ -94,12 +81,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Get.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Get {
         public static final String KEY = "cg.verb:get";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "go or come after and bring or take back").cili("i28895")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "get").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "retrieve")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "fetch").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "lookup")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "go or come after and bring or take back";
 
@@ -122,12 +104,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Put.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Put {
         public static final String KEY = "cg.verb:put";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "find a place for and put away for storage").cili("i33146")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "put").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "store")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "add").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "insert")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "find a place for and put away for storage";
 
@@ -150,11 +127,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Remove.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Remove {
         public static final String KEY = "cg.verb:remove";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "remove something concrete, as by lifting, pushing, or taking off").cili("i22577")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "remove").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "delete").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "drop")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "remove something concrete, as by lifting, pushing, or taking off";
 
@@ -174,12 +147,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = ListVerb.KEY, slots = {ThematicRole.Theme.KEY})
     public static class ListVerb {
         public static final String KEY = "cg.verb:list";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "enumerate; list").cili("i26334")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "list").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "enumerate")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "all").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "tail").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "latest")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "enumerate; list";
 
@@ -205,11 +173,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Import.KEY, slots = {ThematicRole.Source.KEY})
     public static class Import {
         public static final String KEY = "cg.verb:import";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "transfer electronic data into a database or document").cili("i32905")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "import").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "ingest").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "load")
-                .slot(ThematicRole.Source.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "transfer electronic data into a database or document";
 
@@ -229,11 +193,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Query.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Query {
         public static final String KEY = "cg.verb:query";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "pose a question").cili("i25610")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "query").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "search")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "pose a question";
 
@@ -250,12 +210,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Find.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Recipient.KEY, ThematicRole.Source.KEY})
     public static class Find {
         public static final String KEY = "cg.verb:find";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "find items related by a predicate").cili("i33164")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "find").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "lookup")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Recipient.KEY)
-                .slot(ThematicRole.Source.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "find items related by a predicate";
 
@@ -272,11 +227,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Show.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Show {
         public static final String KEY = "cg.verb:show";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "make visible or apparent").cili("i32454")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "show").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "display")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "make visible or apparent";
 
@@ -293,11 +244,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Help.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Help {
         public static final String KEY = "cg.verb:help";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "give help or assistance; be of service").cili("i34433")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "help").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "assist").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "commands")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "give help or assistance; be of service";
 
@@ -317,11 +264,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Edit.KEY, slots = {ThematicRole.Patient.KEY})
     public static class Edit {
         public static final String KEY = "cg.verb:edit";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "prepare for publication or presentation by correcting, revising, or adapting").cili("i22726")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "edit").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "modify").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "change")
-                .slot(ThematicRole.Patient.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "prepare for publication or presentation by correcting, revising, or adapting";
 
@@ -341,11 +284,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Count.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Count {
         public static final String KEY = "cg.verb:count";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "determine the number or amount of").cili("i26340")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "count").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "size")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "determine the number or amount of";
 
@@ -362,11 +301,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Describe.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Describe {
         public static final String KEY = "cg.verb:describe";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "give an account or representation of in words").cili("i26422")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "describe").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "status").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "info")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "give an account or representation of in words";
 
@@ -386,11 +321,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Inspect.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Inspect {
         public static final String KEY = "cg.verb:inspect";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "look over carefully").cili("i32580")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "inspect").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "examine")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "look over carefully";
 
@@ -407,11 +338,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Cd.KEY, slots = {ThematicRole.Goal.KEY})
     public static class Cd {
         public static final String KEY = "cg.verb:cd";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "change directory; navigate to")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "cd").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "go").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "enter")
-                .slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "change directory; navigate to";
 
@@ -428,10 +355,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Exit.KEY)
     public static class Exit {
         public static final String KEY = "cg.session:exit";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "exit the session").cili("i31816")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "exit").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "quit").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "q");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "exit the session";
 
@@ -451,10 +375,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Back.KEY)
     public static class Back {
         public static final String KEY = "cg.session:back";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "go back to previous item")
-                .symbol("..").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "back").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "pop");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "go back to previous item";
 
@@ -471,11 +392,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Serve.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Serve {
         public static final String KEY = "cg.verb:serve";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "work for or be a servant to").cili("i96785")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "serve").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "use")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "work for or be a servant to";
 
@@ -492,11 +409,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Invite.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Invite {
         public static final String KEY = "cg.verb:invite";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "request someone's participation").cili("i32987")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "invite")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "request someone's participation";
 
@@ -510,11 +423,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Authenticate.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Authenticate {
         public static final String KEY = "cg.session:authenticate";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "prove identity by demonstrating possession of private key").cili("i25047")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "authenticate").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "auth").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "login")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "prove identity by demonstrating possession of private key";
 
@@ -534,11 +443,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Switch.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Switch {
         public static final String KEY = "cg.session:switch";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "change the active user for the current view").cili("i22420")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "switch").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "as")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "change the active user for the current view";
 
@@ -555,11 +460,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Rename.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Rename {
         public static final String KEY = "cg.verb:rename";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "assign a new name to").cili("i25424")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "rename").word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "name")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "assign a new name to";
 
@@ -580,11 +481,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Author.KEY, slots = {ThematicRole.Agent.KEY})
     public static class Author {
         public static final String KEY = "cg.core:author";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the creator or originator of a work")
-                .cili("i90183")
-                .slot(ThematicRole.Agent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the creator or originator of a work";
 
@@ -595,11 +492,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = CreatedAt.KEY, slots = {ThematicRole.Time.KEY})
     public static class CreatedAt {
         public static final String KEY = "cg.core:created-at";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the time at which something was created")
-                .cili("i36666")
-                .slot(ThematicRole.Time.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the time at which something was created";
 
@@ -610,11 +503,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = ModifiedAt.KEY, slots = {ThematicRole.Time.KEY})
     public static class ModifiedAt {
         public static final String KEY = "cg.core:modified-at";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the time at which something was last modified")
-                .cili("i22389")
-                .slot(ThematicRole.Time.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the time at which something was last modified";
 
@@ -625,12 +514,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Title.KEY, slots = {ThematicRole.Referent.KEY})
     public static class Title {
         public static final String KEY = "cg.core:title";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the name or title of something")
-                .cili("i69816")
-                .indexWeight(1000)
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the name or title of something";
 
@@ -644,12 +528,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Description.KEY, slots = {ThematicRole.Topic.KEY})
     public static class Description {
         public static final String KEY = "cg.core:description";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a textual description of something")
-                .cili("i71841")
-                .indexWeight(500)
-                .slot(ThematicRole.Topic.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a textual description of something";
 
@@ -663,12 +542,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Slot.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Slot {
         public static final String KEY = "cg.core:slot";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a position in a frame that expects a particular role")
-                .cili("i69534")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "slot")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a position in a frame that expects a particular role";
 
@@ -682,12 +556,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = LexemeSeed.KEY, slots = {ThematicRole.Referent.KEY})
     public static class LexemeSeed {
         public static final String KEY = "cg.core:lexeme";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word-meaning mapping in a language's lexicon")
-                .cili("i69622")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "lexeme")
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word-meaning mapping in a language's lexicon";
 
@@ -701,12 +570,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Frequency.KEY, slots = {ThematicRole.Topic.KEY})
     public static class Frequency {
         public static final String KEY = "cg.core:frequency";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "how often something occurs")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "frequency")
-                .cili("i73785")
-                .slot(ThematicRole.Topic.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "how often something occurs";
 
@@ -720,12 +584,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Provenance.KEY, slots = {ThematicRole.Source.KEY})
     public static class Provenance {
         public static final String KEY = "cg.core:provenance";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the origin or source of information")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "provenance")
-                .cili("i77490")
-                .slot(ThematicRole.Source.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the origin or source of information";
 
@@ -739,13 +598,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Activity.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Topic.KEY})
     public static class Activity {
         public static final String KEY = "cg.core:activity";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a record of actions or events")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "activity")
-                .slot(ThematicRole.Theme.KEY)
-                .slot(ThematicRole.Topic.KEY)
-                .cili("i30955");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a record of actions or events";
 
@@ -763,11 +616,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Library.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Library {
         public static final String KEY = "cg.core:library";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a collection of stored items; local persistent storage")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "library")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a collection of stored items; local persistent storage";
 
@@ -778,11 +627,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Vault.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Vault {
         public static final String KEY = "cg.core:vault";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a secure store for private keys and secrets")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "vault")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a secure store for private keys and secrets";
 
@@ -793,12 +638,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = KeyHistory.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Topic.KEY})
     public static class KeyHistory {
         public static final String KEY = "cg.core:key-history";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a public key history stream recording key lifecycle events")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "key history")
-                .slot(ThematicRole.Theme.KEY)
-                .slot(ThematicRole.Topic.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a public key history stream recording key lifecycle events";
 
@@ -809,12 +649,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = CertHistory.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Topic.KEY})
     public static class CertHistory {
         public static final String KEY = "cg.core:cert-history";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a certificate log tracking issued attestations")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "cert history")
-                .slot(ThematicRole.Theme.KEY)
-                .slot(ThematicRole.Topic.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a certificate log tracking issued attestations";
 
@@ -825,11 +660,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = HashKey.KEY, slots = {ThematicRole.Referent.KEY})
     public static class HashKey {
         public static final String KEY = "cg.core:hash-key";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the preimage string that was hashed to produce a deterministic identifier")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "hash key")
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the preimage string that was hashed to produce a deterministic identifier";
 
@@ -840,11 +671,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = LanguageCode.KEY, slots = {ThematicRole.Referent.KEY})
     public static class LanguageCode {
         public static final String KEY = "cg.core:language-code";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "an ISO 639 code identifying a language")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "language code")
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "an ISO 639 code identifying a language";
 
@@ -855,11 +682,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Canonicalization.KEY, slots = {ThematicRole.Topic.KEY})
     public static class Canonicalization {
         public static final String KEY = "cg.core:canonicalization";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "rules for normalizing and encoding values of a type")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "canonicalization")
-                .slot(ThematicRole.Topic.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "rules for normalizing and encoding values of a type";
 
@@ -870,11 +693,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Monitor.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Monitor {
         public static final String KEY = "cg.core:monitor";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "an observer of system health and resource usage")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "monitor")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "an observer of system health and resource usage";
 
@@ -889,11 +708,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Symbol.KEY, slots = {ThematicRole.Referent.KEY})
     public static class Symbol {
         public static final String KEY = "cg.core:symbol";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a language-neutral symbol representing a concept")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "symbol")
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a language-neutral symbol representing a concept";
 
@@ -905,10 +720,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = IndexWeight.KEY, slots = {ThematicRole.Extent.KEY})
     public static class IndexWeight {
         public static final String KEY = "cg.core:index-weight";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "how heavily to index relation targets using this predicate")
-                .slot(ThematicRole.Extent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "how heavily to index relation targets using this predicate";
     }
@@ -916,10 +728,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = AssignedRole.KEY, slots = {ThematicRole.Referent.KEY})
     public static class AssignedRole {
         public static final String KEY = "cg.core:assigned-role";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the thematic role a function word assigns to its object")
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the thematic role a function word assigns to its object";
     }
@@ -927,11 +736,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Facet.KEY, slots = {ThematicRole.Topic.KEY})
     public static class Facet {
         public static final String KEY = "cg.core:facet";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a domain, range, or cardinality constraint on a predicate")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "facet")
-                .slot(ThematicRole.Topic.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a domain, range, or cardinality constraint on a predicate";
 
@@ -952,10 +757,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Stream.KEY)
     public static class Stream {
         public static final String KEY = "cg.core:stream";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "qualifier indicating append-only stream access mode")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "stream");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "qualifier indicating append-only stream access mode";
 
@@ -967,10 +769,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = External.KEY)
     public static class External {
         public static final String KEY = "cg.core:external";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "qualifier indicating content stored externally at a filesystem path")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "external");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "qualifier indicating content stored externally at a filesystem path";
 
@@ -982,10 +781,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Encrypted.KEY)
     public static class Encrypted {
         public static final String KEY = "cg.core:encrypted";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "qualifier indicating content is encrypted")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "encrypted");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "qualifier indicating content is encrypted";
 
@@ -1000,11 +796,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = CiliId.KEY, slots = {ThematicRole.Referent.KEY})
     public static class CiliId {
         public static final String KEY = "cg.core:cili-id";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a Collaborative Interlingual Index identifier anchoring a concept across languages")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "CILI")
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a Collaborative Interlingual Index identifier anchoring a concept across languages";
 
@@ -1019,9 +811,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Arity.KEY)
     public static class Arity {
         public static final String KEY = "cg.core:arity";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "number of operands or arguments");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "number of operands or arguments";
     }
@@ -1029,9 +819,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Precedence.KEY)
     public static class Precedence {
         public static final String KEY = "cg.core:precedence";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "parsing priority of an operator");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "parsing priority of an operator";
     }
@@ -1039,9 +827,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Associativity.KEY)
     public static class Associativity {
         public static final String KEY = "cg.core:associativity";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "left or right grouping direction of an operator");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "left or right grouping direction of an operator";
     }
@@ -1049,9 +835,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Fixity.KEY)
     public static class Fixity {
         public static final String KEY = "cg.core:fixity";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "position of an operator relative to its operands");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "position of an operator relative to its operands";
     }
@@ -1059,9 +843,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Category.KEY)
     public static class Category {
         public static final String KEY = "cg.core:category";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "classification or grouping");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "classification or grouping";
     }
@@ -1069,9 +851,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Bounds.KEY)
     public static class Bounds {
         public static final String KEY = "cg.core:bounds";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "value range constraints");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "value range constraints";
     }
@@ -1079,9 +859,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = UnitRules.KEY)
     public static class UnitRules {
         public static final String KEY = "cg.core:unit-rules";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "rules governing units for a value type");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "rules governing units for a value type";
     }
@@ -1089,9 +867,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = DimensionFormula.KEY)
     public static class DimensionFormula {
         public static final String KEY = "cg.core:dimension-formula";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "dimensional analysis formula mapping dimensions to exponents");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "dimensional analysis formula mapping dimensions to exponents";
     }
@@ -1099,9 +875,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = ScaleNumerator.KEY)
     public static class ScaleNumerator {
         public static final String KEY = "cg.core:scale-numerator";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "numerator of a unit's scale factor relative to SI base");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "numerator of a unit's scale factor relative to SI base";
     }
@@ -1109,9 +883,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = ScaleDenominator.KEY)
     public static class ScaleDenominator {
         public static final String KEY = "cg.core:scale-denominator";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "denominator of a unit's scale factor relative to SI base");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "denominator of a unit's scale factor relative to SI base";
     }
@@ -1119,9 +891,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Lexicon.KEY)
     public static class Lexicon {
         public static final String KEY = "cg.core:lexicon";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a language's word inventory");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a language's word inventory";
     }
@@ -1129,9 +899,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Lexeme.KEY)
     public static class Lexeme {
         public static final String KEY = "cg.core:lexeme";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word form realizing a sememe in a specific language");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word form realizing a sememe in a specific language";
     }
@@ -1139,9 +907,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = DialectOf.KEY)
     public static class DialectOf {
         public static final String KEY = "cg.core:dialect-of";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "regional or dialectal variant of a parent language");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "regional or dialectal variant of a parent language";
     }
@@ -1149,9 +915,7 @@ public final class CoreVocabulary {
     @ItemSeed(key = Names.KEY)
     public static class Names {
         public static final String KEY = "cg.core:names";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "language-tagged display names");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "language-tagged display names";
     }

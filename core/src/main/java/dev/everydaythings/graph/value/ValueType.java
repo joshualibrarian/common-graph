@@ -60,42 +60,49 @@ public class ValueType extends Item {
     @ItemSeed(key = BooleanType.KEY)
     public static class BooleanType {
         public static final String KEY = "cg.value:boolean";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Boolean", null, null, null);
     }
 
     @ItemSeed(key = TextType.KEY)
     public static class TextType {
         public static final String KEY = "cg.value:text";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Text", null, null, null);
     }
 
     @ItemSeed(key = BytesType.KEY)
     public static class BytesType {
         public static final String KEY = "cg.value:bytes";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Bytes", null, null, null);
     }
 
     @ItemSeed(key = IpType.KEY)
     public static class IpType {
         public static final String KEY = "cg.value:ip";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "IP Address", null, null, null);
     }
 
     @ItemSeed(key = EndpointType.KEY)
     public static class EndpointType {
         public static final String KEY = "cg.value:endpoint";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Endpoint", null, null, null);
     }
 
     @ItemSeed(key = InstantType.KEY)
     public static class InstantType {
         public static final String KEY = "cg.value:instant";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Instant", null, null, null);
     }
 
     @ItemSeed(key = QuantityType.KEY)
     public static class QuantityType {
         public static final String KEY = "cg.value:quantity";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Quantity", null, null,
                 new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
     }
@@ -107,6 +114,7 @@ public class ValueType extends Item {
     @ItemSeed(key = DecimalType.KEY)
     public static class DecimalType {
         public static final String KEY = "cg.value:decimal";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Decimal",
                 new CanonRules(CanonRules.Rounding.HALF_EVEN, null, true), null,
                 new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
@@ -115,6 +123,7 @@ public class ValueType extends Item {
     @ItemSeed(key = RationalType.KEY)
     public static class RationalType {
         public static final String KEY = "cg.value:rational";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Rational", null, null,
                 new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
     }
@@ -122,6 +131,7 @@ public class ValueType extends Item {
     @ItemSeed(key = CountType.KEY)
     public static class CountType {
         public static final String KEY = "cg.value:count";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Count", null, null,
                 new UnitRules(UnitRules.AllowedDimsKind.DIMENSIONLESS, null, false, false));
     }
@@ -129,6 +139,7 @@ public class ValueType extends Item {
     @ItemSeed(key = Float64Type.KEY)
     public static class Float64Type {
         public static final String KEY = "cg.value:float64";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Float64", null, null, null);
     }
 
@@ -144,6 +155,7 @@ public class ValueType extends Item {
     @ItemSeed(key = IntegerType.KEY)
     public static class IntegerType {
         public static final String KEY = "cg.value:integer";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final ValueType SEED = new ValueType(KEY, "Integer", null, null,
                 new UnitRules(UnitRules.AllowedDimsKind.ANY, null, false, false));
     }

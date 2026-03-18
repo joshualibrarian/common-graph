@@ -86,18 +86,18 @@ class FrameChainTest {
 
             // Append 3 moves
             FrameBody move1 = chain.append(List.of(
-                    Binding.ref(ThematicRole.Agent.SEED.iid(), WHITE),
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)
+                    Binding.ref(ThematicRole.Agent.IID, WHITE),
+                    Binding.ref(ThematicRole.Theme.IID, PAWN)
             ), lib);
 
             FrameBody move2 = chain.append(List.of(
-                    Binding.ref(ThematicRole.Agent.SEED.iid(), BLACK),
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), KNIGHT)
+                    Binding.ref(ThematicRole.Agent.IID, BLACK),
+                    Binding.ref(ThematicRole.Theme.IID, KNIGHT)
             ), lib);
 
             FrameBody move3 = chain.append(List.of(
-                    Binding.ref(ThematicRole.Agent.SEED.iid(), WHITE),
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)
+                    Binding.ref(ThematicRole.Agent.IID, WHITE),
+                    Binding.ref(ThematicRole.Theme.IID, PAWN)
             ), lib);
 
             // Stream should contain all 3 in order
@@ -125,11 +125,11 @@ class FrameChainTest {
             FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
 
             chain.append(List.of(
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)
+                    Binding.ref(ThematicRole.Theme.IID, PAWN)
             ), lib);
 
             chain.append(List.of(
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), KNIGHT)
+                    Binding.ref(ThematicRole.Theme.IID, KNIGHT)
             ), lib);
 
             assertThat(chain.heads()).hasSize(1);
@@ -166,7 +166,7 @@ class FrameChainTest {
 
             // First move (root)
             FrameBody root = chain.append(List.of(
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)
+                    Binding.ref(ThematicRole.Theme.IID, PAWN)
             ), lib1);
 
             // Now create two branches from the same root.
@@ -176,15 +176,15 @@ class FrameChainTest {
 
             // Branch A: lib1 appends normally (will follow root)
             FrameBody branchA = chain.append(List.of(
-                    Binding.ref(ThematicRole.Agent.SEED.iid(), WHITE)
+                    Binding.ref(ThematicRole.Agent.IID, WHITE)
             ), lib1);
 
             // Branch B: store a frame that also follows only the root
             List<Binding> branchBBindings = List.of(
-                    new Binding(ThematicRole.Location.SEED.iid(), BindingTarget.iid(gameId)),
+                    new Binding(ThematicRole.Location.IID, BindingTarget.iid(gameId)),
                     new Binding(ItemID.fromString(ThematicRole.Follows.KEY),
                             BindingTarget.ref(rootHash)),
-                    Binding.ref(ThematicRole.Agent.SEED.iid(), BLACK)
+                    Binding.ref(ThematicRole.Agent.IID, BLACK)
             );
             FrameBody branchBBody = new FrameBody(MOVE, branchBBindings);
             FrameRecord branchBRecord = FrameRecord.create(branchBBody, lib2);
@@ -213,21 +213,21 @@ class FrameChainTest {
 
             // Root
             FrameBody root = chain.append(List.of(
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)
+                    Binding.ref(ThematicRole.Theme.IID, PAWN)
             ), lib1);
 
             // Branch A: normal append (follows root)
             FrameBody branchA = chain.append(List.of(
-                    Binding.ref(ThematicRole.Agent.SEED.iid(), WHITE)
+                    Binding.ref(ThematicRole.Agent.IID, WHITE)
             ), lib1);
 
             // Branch B: store a frame that also follows only the root (not branchA)
             ContentID rootHash = root.hash();
             List<Binding> branchBBindings = List.of(
-                    new Binding(ThematicRole.Location.SEED.iid(), BindingTarget.iid(gameId)),
+                    new Binding(ThematicRole.Location.IID, BindingTarget.iid(gameId)),
                     new Binding(ItemID.fromString(ThematicRole.Follows.KEY),
                             BindingTarget.ref(rootHash)),
-                    Binding.ref(ThematicRole.Agent.SEED.iid(), BLACK)
+                    Binding.ref(ThematicRole.Agent.IID, BLACK)
             );
             FrameBody branchB = new FrameBody(MOVE, branchBBindings);
             lib1.library().storeFrame(branchB, FrameRecord.create(branchB, lib2));
@@ -237,7 +237,7 @@ class FrameChainTest {
 
             // Now append — this will automatically follow both heads (merge)
             FrameBody merged = chain.append(List.of(
-                    Binding.ref(ThematicRole.Theme.SEED.iid(), KNIGHT)
+                    Binding.ref(ThematicRole.Theme.IID, KNIGHT)
             ), lib1);
 
             // Should now have single head
@@ -261,9 +261,9 @@ class FrameChainTest {
             ItemID gameId = ItemID.fromString("cg:item/fold-test");
             FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
 
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)), lib);
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.SEED.iid(), KNIGHT)), lib);
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)), lib);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), lib);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, KNIGHT)), lib);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), lib);
 
             // Count how many frames
             int count = chain.fold(0, (state, body) -> state + 1);
@@ -277,8 +277,8 @@ class FrameChainTest {
             ItemID gameId = ItemID.fromString("cg:item/fold-order-test");
             FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
 
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.SEED.iid(), PAWN)), lib);
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.SEED.iid(), KNIGHT)), lib);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), lib);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, KNIGHT)), lib);
 
             // Verify order: first frame has no FOLLOWS, second has one
             AtomicInteger idx = new AtomicInteger();

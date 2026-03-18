@@ -57,7 +57,7 @@ class FrameCacheTest {
 
         // Store an unendorsed "like" frame on this item
         FrameBody likeBody = FrameBody.of(LIKE, item.iid(),
-                Map.of(ThematicRole.Agent.SEED.iid(),
+                Map.of(ThematicRole.Agent.IID,
                         BindingTarget.iid(librarian.iid())));
 
         ContentID bodyCid = librarian.library().storeFrameBody(likeBody);
@@ -87,7 +87,7 @@ class FrameCacheTest {
 
         // Store an unendorsed frame
         FrameBody annotationBody = FrameBody.of(ANNOTATION, item.iid(),
-                Map.of(ThematicRole.Agent.SEED.iid(),
+                Map.of(ThematicRole.Agent.IID,
                         BindingTarget.iid(librarian.iid())));
         librarian.library().storeFrameBody(annotationBody);
 
@@ -123,13 +123,13 @@ class FrameCacheTest {
 
         // Store a frame on itemA
         FrameBody bodyA = FrameBody.of(LIKE, itemA.iid(),
-                Map.of(ThematicRole.Agent.SEED.iid(),
+                Map.of(ThematicRole.Agent.IID,
                         BindingTarget.iid(librarian.iid())));
         librarian.library().storeFrameBody(bodyA);
 
         // Store a frame on itemB that references itemA in a binding
         FrameBody bodyB = FrameBody.of(ANNOTATION, itemB.iid(),
-                Map.of(ThematicRole.Goal.SEED.iid(),
+                Map.of(ThematicRole.Goal.IID,
                         BindingTarget.iid(itemA.iid())));
         librarian.library().storeFrameBody(bodyB);
 
@@ -180,7 +180,7 @@ class FrameCacheTest {
         Item item = new Item(librarian);
 
         FrameBody body = FrameBody.of(LIKE, item.iid(),
-                Map.of(ThematicRole.Agent.SEED.iid(),
+                Map.of(ThematicRole.Agent.IID,
                         BindingTarget.iid(librarian.iid())));
 
         // Store with a signed record

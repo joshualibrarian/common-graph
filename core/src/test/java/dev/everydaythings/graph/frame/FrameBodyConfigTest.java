@@ -34,12 +34,12 @@ class FrameBodyConfigTest {
         void explicitConfig() {
             Literal lit = Literal.ofText("my-style");
             Binding configBinding = Binding.nonIdentity(
-                    ThematicRole.Presentation.SEED.iid(), lit);
+                    ThematicRole.Presentation.IID, lit);
 
             FrameBody body = new FrameBody(PRED, List.of(), List.of(configBinding));
             assertThat(body.config()).hasSize(1);
-            assertThat(body.configBinding(ThematicRole.Presentation.SEED.iid())).isNotNull();
-            assertThat(body.configBinding(ThematicRole.Vocabulary.SEED.iid())).isNull();
+            assertThat(body.configBinding(ThematicRole.Presentation.IID)).isNotNull();
+            assertThat(body.configBinding(ThematicRole.Vocabulary.IID)).isNull();
         }
 
         @Test
@@ -62,11 +62,11 @@ class FrameBodyConfigTest {
             Literal lit = Literal.ofText("gold-border");
 
             FrameBody updated = original.withConfig(
-                    ThematicRole.Presentation.SEED.iid(), lit);
+                    ThematicRole.Presentation.IID, lit);
 
             assertThat(original.config()).isEmpty();
             assertThat(updated.config()).hasSize(1);
-            assertThat(updated.configBinding(ThematicRole.Presentation.SEED.iid()))
+            assertThat(updated.configBinding(ThematicRole.Presentation.IID))
                     .isNotNull();
         }
 
@@ -77,11 +77,11 @@ class FrameBodyConfigTest {
             Literal second = Literal.ofText("second");
 
             FrameBody body = new FrameBody(PRED, List.of())
-                    .withConfig(ThematicRole.Presentation.SEED.iid(), first)
-                    .withConfig(ThematicRole.Presentation.SEED.iid(), second);
+                    .withConfig(ThematicRole.Presentation.IID, first)
+                    .withConfig(ThematicRole.Presentation.IID, second);
 
             assertThat(body.config()).hasSize(1);
-            Binding b = body.configBinding(ThematicRole.Presentation.SEED.iid());
+            Binding b = body.configBinding(ThematicRole.Presentation.IID);
             assertThat(b.target()).isEqualTo(second);
         }
 
@@ -92,7 +92,7 @@ class FrameBodyConfigTest {
             FrameBody original = new FrameBody(PRED, List.of(themeBinding));
 
             FrameBody updated = original.withConfig(
-                    ThematicRole.Presentation.SEED.iid(), Literal.ofText("style"));
+                    ThematicRole.Presentation.IID, Literal.ofText("style"));
 
             assertThat(updated.hash()).isEqualTo(original.hash());
             assertThat(updated.frameBindings()).isEqualTo(original.frameBindings());
@@ -108,7 +108,7 @@ class FrameBodyConfigTest {
         void presentationFromConfigMap() {
             Literal lit = Literal.ofText("new-style");
             FrameBody body = new FrameBody(PRED, List.of(),
-                    List.of(Binding.nonIdentity(ThematicRole.Presentation.SEED.iid(), lit)));
+                    List.of(Binding.nonIdentity(ThematicRole.Presentation.IID, lit)));
 
             assertThat(body.configPresentationPayload()).isEqualTo(lit.payload());
         }
@@ -119,8 +119,8 @@ class FrameBodyConfigTest {
             Literal lit = Literal.ofText("old-style");
             FrameBody body = new FrameBody(PRED, List.of(
                     Binding.compound(
-                            List.of(ThematicRole.Config.SEED.iid(),
-                                    ThematicRole.Presentation.SEED.iid()),
+                            List.of(ThematicRole.Config.IID,
+                                    ThematicRole.Presentation.IID),
                             lit, false, false)));
 
             assertThat(body.configPresentationPayload()).isEqualTo(lit.payload());
@@ -134,10 +134,10 @@ class FrameBodyConfigTest {
 
             FrameBody body = new FrameBody(PRED, List.of(
                     Binding.compound(
-                            List.of(ThematicRole.Config.SEED.iid(),
-                                    ThematicRole.Presentation.SEED.iid()),
+                            List.of(ThematicRole.Config.IID,
+                                    ThematicRole.Presentation.IID),
                             oldLit, false, false)),
-                    List.of(Binding.nonIdentity(ThematicRole.Presentation.SEED.iid(), newLit)));
+                    List.of(Binding.nonIdentity(ThematicRole.Presentation.IID, newLit)));
 
             assertThat(body.configPresentationPayload()).isEqualTo(newLit.payload());
         }
@@ -147,7 +147,7 @@ class FrameBodyConfigTest {
         void vocabularyFromConfigMap() {
             Literal lit = Literal.ofText("vocab-tokens");
             FrameBody body = new FrameBody(PRED, List.of(),
-                    List.of(Binding.nonIdentity(ThematicRole.Vocabulary.SEED.iid(), lit)));
+                    List.of(Binding.nonIdentity(ThematicRole.Vocabulary.IID, lit)));
 
             assertThat(body.configVocabularyPayload()).isEqualTo(lit.payload());
         }
@@ -157,7 +157,7 @@ class FrameBodyConfigTest {
         void generalConfigFromConfigMap() {
             Literal lit = Literal.ofText("general-config");
             FrameBody body = new FrameBody(PRED, List.of(),
-                    List.of(Binding.nonIdentity(ThematicRole.Config.SEED.iid(), lit)));
+                    List.of(Binding.nonIdentity(ThematicRole.Config.IID, lit)));
 
             assertThat(body.configPayload()).isEqualTo(lit.payload());
         }
@@ -186,8 +186,8 @@ class FrameBodyConfigTest {
             Literal vocabLit = Literal.ofText("vocab-data");
 
             FrameBody original = new FrameBody(PRED, THEME, List.of())
-                    .withConfig(ThematicRole.Presentation.SEED.iid(), presLit)
-                    .withConfig(ThematicRole.Vocabulary.SEED.iid(), vocabLit);
+                    .withConfig(ThematicRole.Presentation.IID, presLit)
+                    .withConfig(ThematicRole.Vocabulary.IID, vocabLit);
 
             byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
             FrameBody decoded = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD);
@@ -202,7 +202,7 @@ class FrameBodyConfigTest {
         void configNotInBodyScope() {
             FrameBody withoutConfig = new FrameBody(PRED, THEME, List.of());
             FrameBody withConfig = withoutConfig.withConfig(
-                    ThematicRole.Presentation.SEED.iid(), Literal.ofText("style"));
+                    ThematicRole.Presentation.IID, Literal.ofText("style"));
 
             assertThat(withConfig.bodyBytes()).isEqualTo(withoutConfig.bodyBytes());
             assertThat(withConfig.hash()).isEqualTo(withoutConfig.hash());

@@ -361,7 +361,7 @@ public interface ItemStore extends Service {
      */
     default Optional<Class<?>> findImplementation(ItemID typeId) {
         return frameBodies()
-                .filter(rel -> rel.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
+                .filter(rel -> rel.predicate().equals(CoreVocabulary.ImplementedBy.IID))
                 .filter(rel -> typeId.equals(rel.bindingId(ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .map(rel -> {

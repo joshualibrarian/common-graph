@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.id.ItemID;
 
 /**
  * Seed vocabulary for programming language runtimes.
@@ -20,15 +20,11 @@ public final class RuntimeVocabulary {
 
     private RuntimeVocabulary() {}
 
-    private static final Sememe LEMMA = GrammaticalFeature.Lemma.SEED;
 
     @ItemSeed(key = Java.KEY)
     public static class Java {
         public static final String KEY = "cg.language:java";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "Java programming language runtime")
-                .word(PartOfSpeech.NOUN, LEMMA, Sememe.ENG, "java");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "Java programming language runtime";
 
@@ -39,10 +35,7 @@ public final class RuntimeVocabulary {
     @ItemSeed(key = Python.KEY)
     public static class Python {
         public static final String KEY = "cg.language:python";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "Python programming language runtime")
-                .word(PartOfSpeech.NOUN, LEMMA, Sememe.ENG, "python");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "Python programming language runtime";
 
@@ -53,10 +46,7 @@ public final class RuntimeVocabulary {
     @ItemSeed(key = JavaScript.KEY)
     public static class JavaScript {
         public static final String KEY = "cg.language:javascript";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "JavaScript programming language runtime")
-                .word(PartOfSpeech.NOUN, LEMMA, Sememe.ENG, "javascript");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "JavaScript programming language runtime";
 
@@ -67,10 +57,7 @@ public final class RuntimeVocabulary {
     @ItemSeed(key = Rust.KEY)
     public static class Rust {
         public static final String KEY = "cg.language:rust";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "Rust programming language runtime")
-                .word(PartOfSpeech.NOUN, LEMMA, Sememe.ENG, "rust");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "Rust programming language runtime";
 

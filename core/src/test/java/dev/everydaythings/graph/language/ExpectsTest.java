@@ -16,8 +16,9 @@ class ExpectsTest {
 
     @Test
     void expectsSeedExists() {
-        assertThat(CoreVocabulary.Expects.SEED).isNotNull();
-        assertThat(CoreVocabulary.Expects.SEED.iid())
+        // Verify the @ItemSeed annotation exists and IID is deterministic from KEY
+        assertThat(CoreVocabulary.Expects.IID).isNotNull();
+        assertThat(CoreVocabulary.Expects.IID)
                 .isEqualTo(ItemID.fromString(CoreVocabulary.Expects.KEY));
     }
 

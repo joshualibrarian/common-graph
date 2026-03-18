@@ -313,7 +313,7 @@ public abstract class LanguageImporter {
             FrameBody body = FrameBody.of(
                     predicate,
                     source.iid(),
-                    Map.of(ThematicRole.Goal.SEED.iid(), BindingTarget.iid(target.iid())));
+                    Map.of(ThematicRole.Goal.IID, BindingTarget.iid(target.iid())));
             FrameRecord record = FrameRecord.create(body, signer);
 
             if (librarian != null) {
@@ -419,17 +419,17 @@ public abstract class LanguageImporter {
      */
     protected static ItemID mapRelationType(String relType) {
         return switch (relType) {
-            case "hypernym", "instance_hypernym" -> LexicalVocabulary.Hypernym.SEED.iid();
-            case "hyponym", "instance_hyponym" -> LexicalVocabulary.Hyponym.SEED.iid();
-            case "holo_part", "holo_member", "holo_substance" -> LexicalVocabulary.Holonym.SEED.iid();
-            case "mero_part", "mero_member", "mero_substance" -> LexicalVocabulary.Meronym.SEED.iid();
-            case "antonym" -> LexicalVocabulary.Antonym.SEED.iid();
-            case "similar" -> LexicalVocabulary.SimilarTo.SEED.iid();
-            case "derivation" -> LexicalVocabulary.Derivation.SEED.iid();
-            case "domain_topic", "domain_region", "domain_usage" -> LexicalVocabulary.Domain.SEED.iid();
-            case "entails" -> LexicalVocabulary.Entails.SEED.iid();
-            case "causes" -> LexicalVocabulary.Causes.SEED.iid();
-            case "also" -> LexicalVocabulary.SeeAlso.SEED.iid();
+            case "hypernym", "instance_hypernym" -> LexicalVocabulary.Hypernym.IID;
+            case "hyponym", "instance_hyponym" -> LexicalVocabulary.Hyponym.IID;
+            case "holo_part", "holo_member", "holo_substance" -> LexicalVocabulary.Holonym.IID;
+            case "mero_part", "mero_member", "mero_substance" -> LexicalVocabulary.Meronym.IID;
+            case "antonym" -> LexicalVocabulary.Antonym.IID;
+            case "similar" -> LexicalVocabulary.SimilarTo.IID;
+            case "derivation" -> LexicalVocabulary.Derivation.IID;
+            case "domain_topic", "domain_region", "domain_usage" -> LexicalVocabulary.Domain.IID;
+            case "entails" -> LexicalVocabulary.Entails.IID;
+            case "causes" -> LexicalVocabulary.Causes.IID;
+            case "also" -> LexicalVocabulary.SeeAlso.IID;
             default -> null;
         };
     }

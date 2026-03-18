@@ -25,26 +25,26 @@ class PresentationConfigTest {
             PresentationConfig cfg = PresentationConfig.empty();
             assertThat(cfg.palette()).isEmpty();
             assertThat(cfg.rules()).isEmpty();
-            assertThat(cfg.paletteColor(PresentationVocabulary.Primary.SEED.iid())).isEqualTo(-1);
+            assertThat(cfg.paletteColor(PresentationVocabulary.Primary.IID)).isEqualTo(-1);
         }
 
         @Test
         @DisplayName("palette lookup by token")
         void paletteLookup() {
-            ItemID primaryId = PresentationVocabulary.Primary.SEED.iid();
+            ItemID primaryId = PresentationVocabulary.Primary.IID;
             PresentationConfig cfg = new PresentationConfig(
                     List.of(new PresentationConfig.PaletteEntry(primaryId, 0x336699)),
                     List.of());
 
             assertThat(cfg.paletteColor(primaryId)).isEqualTo(0x336699);
-            assertThat(cfg.paletteColor(PresentationVocabulary.Accent.SEED.iid())).isEqualTo(-1);
+            assertThat(cfg.paletteColor(PresentationVocabulary.Accent.IID)).isEqualTo(-1);
         }
 
         @Test
         @DisplayName("palette map view")
         void paletteMap() {
-            ItemID primary = PresentationVocabulary.Primary.SEED.iid();
-            ItemID accent = PresentationVocabulary.Accent.SEED.iid();
+            ItemID primary = PresentationVocabulary.Primary.IID;
+            ItemID accent = PresentationVocabulary.Accent.IID;
             PresentationConfig cfg = new PresentationConfig(
                     List.of(
                             new PresentationConfig.PaletteEntry(primary, 0xFF0000),
@@ -77,8 +77,8 @@ class PresentationConfigTest {
         @Test
         @DisplayName("palette entries round-trip")
         void paletteRoundTrip() {
-            ItemID primary = PresentationVocabulary.Primary.SEED.iid();
-            ItemID surface = PresentationVocabulary.Surface.SEED.iid();
+            ItemID primary = PresentationVocabulary.Primary.IID;
+            ItemID surface = PresentationVocabulary.Surface.IID;
 
             PresentationConfig original = new PresentationConfig(
                     List.of(
@@ -119,7 +119,7 @@ class PresentationConfigTest {
         void fullRoundTrip() {
             PresentationConfig original = new PresentationConfig(
                     List.of(new PresentationConfig.PaletteEntry(
-                            PresentationVocabulary.Primary.SEED.iid(), 0xABCDEF)),
+                            PresentationVocabulary.Primary.IID, 0xABCDEF)),
                     List.of(new PresentationConfig.Rule(
                             ".handle",
                             List.of(new PresentationConfig.Property("opacity", "dim")))));
@@ -140,8 +140,8 @@ class PresentationConfigTest {
         @Test
         @DisplayName("override palette tokens take precedence")
         void paletteMerge() {
-            ItemID primary = PresentationVocabulary.Primary.SEED.iid();
-            ItemID accent = PresentationVocabulary.Accent.SEED.iid();
+            ItemID primary = PresentationVocabulary.Primary.IID;
+            ItemID accent = PresentationVocabulary.Accent.IID;
 
             PresentationConfig base = new PresentationConfig(
                     List.of(
@@ -178,7 +178,7 @@ class PresentationConfigTest {
         void mergeNull() {
             PresentationConfig cfg = new PresentationConfig(
                     List.of(new PresentationConfig.PaletteEntry(
-                            PresentationVocabulary.Primary.SEED.iid(), 0xFF0000)),
+                            PresentationVocabulary.Primary.IID, 0xFF0000)),
                     List.of());
 
             assertThat(cfg.merge(null)).isSameAs(cfg);

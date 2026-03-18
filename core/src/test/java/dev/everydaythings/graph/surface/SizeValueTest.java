@@ -452,7 +452,7 @@ class SizeValueTest {
         @DisplayName("custom column scale changes conversion result")
         void customColumnScale() {
             RenderMetrics custom = RenderMetrics.builder()
-                    .column(Unit.CharacterWidth.SEED, 2.0)  // 1ch = 2 columns (double-wide)
+                    .column(Unit.CharacterWidth.IID, 2.0)  // 1ch = 2 columns (double-wide)
                     .build();
             RenderContext ctx = RenderContext.builder()
                     .librarian(LIB)
@@ -466,8 +466,8 @@ class SizeValueTest {
         @DisplayName("custom pixel scale changes weight mapping")
         void customPixelScale() {
             RenderMetrics custom = RenderMetrics.builder()
-                    .pixel(Unit.Pixel.SEED, 1.0)
-                    .pixel(Unit.CharacterWidth.SEED, 4.0)  // 1ch = 4px instead of 8px
+                    .pixel(Unit.Pixel.IID, 1.0)
+                    .pixel(Unit.CharacterWidth.IID, 4.0)  // 1ch = 4px instead of 8px
                     .build();
             RenderContext ctx = RenderContext.builder()
                     .librarian(LIB)

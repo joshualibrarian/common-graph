@@ -53,10 +53,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Agent.KEY)
     public static class Agent {
         public static final String KEY = "cg.role:agent";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant who initiates and carries out an event intentionally")
-                .word(LEMMA, ENG, "agent");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant who initiates and carries out an event intentionally";
 
@@ -69,10 +66,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Patient.KEY)
     public static class Patient {
         public static final String KEY = "cg.role:patient";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant that is affected, changed, or consumed by the event")
-                .word(LEMMA, ENG, "patient");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that is affected, changed, or consumed by the event";
 
@@ -85,10 +79,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Theme.KEY)
     public static class Theme {
         public static final String KEY = "cg.role:theme";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant that is located, moved, or exists in a state without being changed")
-                .word(LEMMA, ENG, "theme");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that is located, moved, or exists in a state without being changed";
 
@@ -101,10 +92,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Experiencer.KEY)
     public static class Experiencer {
         public static final String KEY = "cg.role:experiencer";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant who perceives, feels, or undergoes a mental or emotional state")
-                .word(LEMMA, ENG, "experiencer");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant who perceives, feels, or undergoes a mental or emotional state";
 
@@ -117,10 +105,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Stimulus.KEY)
     public static class Stimulus {
         public static final String KEY = "cg.role:stimulus";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant that unintentionally arouses a mental or emotional response")
-                .word(LEMMA, ENG, "stimulus");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that unintentionally arouses a mental or emotional response";
 
@@ -133,10 +118,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Pivot.KEY)
     public static class Pivot {
         public static final String KEY = "cg.role:pivot";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the central participant in a state, in a fixed position or condition throughout")
-                .word(LEMMA, ENG, "pivot");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the central participant in a state, in a fixed position or condition throughout";
 
@@ -149,10 +131,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Cause.KEY)
     public static class Cause {
         public static final String KEY = "cg.role:cause";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant that initiates an event without intentionality or consciousness")
-                .word(LEMMA, ENG, "cause");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that initiates an event without intentionality or consciousness";
 
@@ -169,10 +148,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Goal.KEY)
     public static class Goal {
         public static final String KEY = "cg.role:goal";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the abstract end-point or target of an action")
-                .word(LEMMA, ENG, "goal");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the abstract end-point or target of an action";
 
@@ -185,10 +161,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Destination.KEY)
     public static class Destination {
         public static final String KEY = "cg.role:destination";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the physical place where a motion event ends")
-                .word(LEMMA, ENG, "destination");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the physical place where a motion event ends";
 
@@ -201,10 +174,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Source.KEY)
     public static class Source {
         public static final String KEY = "cg.role:source";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the origin or starting point of an action or motion")
-                .word(LEMMA, ENG, "source");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the origin or starting point of an action or motion";
 
@@ -217,10 +187,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Path.KEY)
     public static class Path {
         public static final String KEY = "cg.role:path";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the route or trajectory between origin and endpoint")
-                .word(LEMMA, ENG, "path");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the route or trajectory between origin and endpoint";
 
@@ -233,10 +200,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Result.KEY)
     public static class Result {
         public static final String KEY = "cg.role:result";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant that comes into existence through the event")
-                .word(LEMMA, ENG, "result");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that comes into existence through the event";
 
@@ -253,10 +217,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Recipient.KEY)
     public static class Recipient {
         public static final String KEY = "cg.role:recipient";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the animate entity that receives something transferred")
-                .word(LEMMA, ENG, "recipient");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the animate entity that receives something transferred";
 
@@ -269,10 +230,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Beneficiary.KEY)
     public static class Beneficiary {
         public static final String KEY = "cg.role:beneficiary";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant who benefits from or is advantaged by the event")
-                .word(LEMMA, ENG, "beneficiary");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant who benefits from or is advantaged by the event";
 
@@ -285,10 +243,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Partner.KEY)
     public static class Partner {
         public static final String KEY = "cg.role:partner";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a participant intentionally co-involved in the event but not the principal agent")
-                .word(LEMMA, ENG, "partner");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant intentionally co-involved in the event but not the principal agent";
 
@@ -305,10 +260,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Instrument.KEY)
     public static class Instrument {
         public static final String KEY = "cg.role:instrument";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a tool or means manipulated by an agent to perform an action")
-                .word(LEMMA, ENG, "instrument");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a tool or means manipulated by an agent to perform an action";
 
@@ -321,10 +273,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Manner.KEY)
     public static class Manner {
         public static final String KEY = "cg.role:manner";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the way or style in which an action is performed")
-                .word(LEMMA, ENG, "manner");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the way or style in which an action is performed";
 
@@ -337,10 +286,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Extent.KEY)
     public static class Extent {
         public static final String KEY = "cg.role:extent";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the degree, amount, or measure of change in an event")
-                .word(LEMMA, ENG, "extent");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the degree, amount, or measure of change in an event";
 
@@ -353,10 +299,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Attribute.KEY)
     public static class Attribute {
         public static final String KEY = "cg.role:attribute";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a property that an event or state associates with a participant")
-                .word(LEMMA, ENG, "attribute");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a property that an event or state associates with a participant";
 
@@ -369,10 +312,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Purpose.KEY)
     public static class Purpose {
         public static final String KEY = "cg.role:purpose";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the intended outcome that motivates an intentional action")
-                .word(LEMMA, ENG, "purpose");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the intended outcome that motivates an intentional action";
 
@@ -389,10 +329,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Location.KEY)
     public static class Location {
         public static final String KEY = "cg.role:location";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the place where an event occurs or a state holds")
-                .word(LEMMA, ENG, "location");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the place where an event occurs or a state holds";
 
@@ -405,10 +342,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Time.KEY)
     public static class Time {
         public static final String KEY = "cg.role:time";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the instant or interval during which an event occurs or state holds")
-                .word(LEMMA, ENG, "time");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the instant or interval during which an event occurs or state holds";
 
@@ -425,10 +359,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Topic.KEY)
     public static class Topic {
         public static final String KEY = "cg.role:topic";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the subject of communication, information transfer, or recorded content")
-                .word(LEMMA, ENG, "topic");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the subject of communication, information transfer, or recorded content";
 
@@ -441,10 +372,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Name.KEY)
     public static class Name {
         public static final String KEY = "cg.role:name";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "a name, label, or designation being assigned")
-                .word(LEMMA, ENG, "name");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a name, label, or designation being assigned";
 
@@ -457,10 +385,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Referent.KEY)
     public static class Referent {
         public static final String KEY = "cg.role:referent";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "the concept being referred to or expressed")
-                .word(LEMMA, ENG, "referent");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the concept being referred to or expressed";
 
@@ -477,10 +402,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Config.KEY)
     public static class Config {
         public static final String KEY = "cg.role:config";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "configuration governing a frame's behavior — policy, scene, settings")
-                .word(LEMMA, ENG, "config");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "configuration governing a frame's behavior — policy, scene, settings";
 
@@ -493,10 +415,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Presentation.KEY)
     public static class Presentation {
         public static final String KEY = "cg.role:presentation";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "rendering configuration — scene, skin, style overrides")
-                .word(LEMMA, ENG, "presentation");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "rendering configuration — scene, skin, style overrides";
 
@@ -509,10 +428,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Vocabulary.KEY)
     public static class Vocabulary {
         public static final String KEY = "cg.role:vocabulary";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "vocabulary configuration — token declarations, aliases, proper nouns")
-                .word(LEMMA, ENG, "vocabulary");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "vocabulary configuration — token declarations, aliases, proper nouns";
 
@@ -529,10 +445,7 @@ public class ThematicRole extends Sememe {
     @ItemSeed(key = Follows.KEY)
     public static class Follows {
         public static final String KEY = "cg.role:follows";
-        @Seed public static final ThematicRole SEED = new ThematicRole(KEY)
-                .gloss(ENG, "causal predecessor — this frame follows/is-caused-by the target frame")
-                .word(LEMMA, ENG, "follows");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "causal predecessor — this frame follows/is-caused-by the target frame";
 
@@ -600,39 +513,39 @@ public class ThematicRole extends Sememe {
      * resolve string role names to ThematicRole seed instances.
      *
      * @param name The uppercase constant name
-     * @return The ThematicRole seed, or null if not found
+     * @return The ThematicRole IID, or null if not found
      */
-    public static ThematicRole fromName(String name) {
+    public static ItemID fromName(String name) {
         return switch (name) {
-            case "AGENT" -> Agent.SEED;
-            case "PATIENT" -> Patient.SEED;
-            case "THEME" -> Theme.SEED;
-            case "EXPERIENCER" -> Experiencer.SEED;
-            case "STIMULUS" -> Stimulus.SEED;
-            case "PIVOT" -> Pivot.SEED;
-            case "CAUSE" -> Cause.SEED;
-            case "GOAL" -> Goal.SEED;
-            case "DESTINATION" -> Destination.SEED;
-            case "SOURCE" -> Source.SEED;
-            case "PATH" -> Path.SEED;
-            case "RESULT" -> Result.SEED;
-            case "RECIPIENT" -> Recipient.SEED;
-            case "BENEFICIARY" -> Beneficiary.SEED;
-            case "PARTNER" -> Partner.SEED;
-            case "INSTRUMENT" -> Instrument.SEED;
-            case "MANNER" -> Manner.SEED;
-            case "EXTENT" -> Extent.SEED;
-            case "ATTRIBUTE" -> Attribute.SEED;
-            case "PURPOSE" -> Purpose.SEED;
-            case "LOCATION" -> Location.SEED;
-            case "TIME" -> Time.SEED;
-            case "TOPIC" -> Topic.SEED;
-            case "NAME" -> Name.SEED;
-            case "REFERENT" -> Referent.SEED;
-            case "CONFIG" -> Config.SEED;
-            case "PRESENTATION" -> Presentation.SEED;
-            case "VOCABULARY" -> Vocabulary.SEED;
-            case "FOLLOWS" -> Follows.SEED;
+            case "AGENT" -> Agent.IID;
+            case "PATIENT" -> Patient.IID;
+            case "THEME" -> Theme.IID;
+            case "EXPERIENCER" -> Experiencer.IID;
+            case "STIMULUS" -> Stimulus.IID;
+            case "PIVOT" -> Pivot.IID;
+            case "CAUSE" -> Cause.IID;
+            case "GOAL" -> Goal.IID;
+            case "DESTINATION" -> Destination.IID;
+            case "SOURCE" -> Source.IID;
+            case "PATH" -> Path.IID;
+            case "RESULT" -> Result.IID;
+            case "RECIPIENT" -> Recipient.IID;
+            case "BENEFICIARY" -> Beneficiary.IID;
+            case "PARTNER" -> Partner.IID;
+            case "INSTRUMENT" -> Instrument.IID;
+            case "MANNER" -> Manner.IID;
+            case "EXTENT" -> Extent.IID;
+            case "ATTRIBUTE" -> Attribute.IID;
+            case "PURPOSE" -> Purpose.IID;
+            case "LOCATION" -> Location.IID;
+            case "TIME" -> Time.IID;
+            case "TOPIC" -> Topic.IID;
+            case "NAME" -> Name.IID;
+            case "REFERENT" -> Referent.IID;
+            case "CONFIG" -> Config.IID;
+            case "PRESENTATION" -> Presentation.IID;
+            case "VOCABULARY" -> Vocabulary.IID;
+            case "FOLLOWS" -> Follows.IID;
             default -> null;
         };
     }

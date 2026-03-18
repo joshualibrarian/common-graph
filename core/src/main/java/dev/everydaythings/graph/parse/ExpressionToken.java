@@ -157,14 +157,14 @@ public sealed interface ExpressionToken {
          * Create an AND operator token.
          */
         public static OpToken and() {
-            return new OpToken(Operator.And.SEED.iid());
+            return new OpToken(Operator.And.IID);
         }
 
         /**
          * Create an OR operator token.
          */
         public static OpToken or() {
-            return new OpToken(Operator.Or.SEED.iid());
+            return new OpToken(Operator.Or.IID);
         }
 
         @Override

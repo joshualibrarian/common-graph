@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,44 +16,44 @@ class VocabularySeedTest {
     class Runtime {
 
         @Test
-        @DisplayName("Java seed has deterministic IID")
+        @DisplayName("Java seed has deterministic IID and @ItemSeed annotation")
         void javaSeed() {
-            assertThat(RuntimeVocabulary.Java.SEED).isNotNull();
-            assertThat(RuntimeVocabulary.Java.SEED.iid())
+            assertThat(RuntimeVocabulary.Java.class).hasAnnotation(ItemSeed.class);
+            assertThat(RuntimeVocabulary.Java.IID)
                     .isEqualTo(ItemID.fromString(RuntimeVocabulary.Java.KEY));
         }
 
         @Test
-        @DisplayName("Python seed has deterministic IID")
+        @DisplayName("Python seed has deterministic IID and @ItemSeed annotation")
         void pythonSeed() {
-            assertThat(RuntimeVocabulary.Python.SEED).isNotNull();
-            assertThat(RuntimeVocabulary.Python.SEED.iid())
+            assertThat(RuntimeVocabulary.Python.class).hasAnnotation(ItemSeed.class);
+            assertThat(RuntimeVocabulary.Python.IID)
                     .isEqualTo(ItemID.fromString(RuntimeVocabulary.Python.KEY));
         }
 
         @Test
-        @DisplayName("JavaScript seed has deterministic IID")
+        @DisplayName("JavaScript seed has deterministic IID and @ItemSeed annotation")
         void jsSeed() {
-            assertThat(RuntimeVocabulary.JavaScript.SEED).isNotNull();
-            assertThat(RuntimeVocabulary.JavaScript.SEED.iid())
+            assertThat(RuntimeVocabulary.JavaScript.class).hasAnnotation(ItemSeed.class);
+            assertThat(RuntimeVocabulary.JavaScript.IID)
                     .isEqualTo(ItemID.fromString(RuntimeVocabulary.JavaScript.KEY));
         }
 
         @Test
-        @DisplayName("Rust seed has deterministic IID")
+        @DisplayName("Rust seed has deterministic IID and @ItemSeed annotation")
         void rustSeed() {
-            assertThat(RuntimeVocabulary.Rust.SEED).isNotNull();
-            assertThat(RuntimeVocabulary.Rust.SEED.iid())
+            assertThat(RuntimeVocabulary.Rust.class).hasAnnotation(ItemSeed.class);
+            assertThat(RuntimeVocabulary.Rust.IID)
                     .isEqualTo(ItemID.fromString(RuntimeVocabulary.Rust.KEY));
         }
 
         @Test
         @DisplayName("all language seeds have distinct IIDs")
         void allDistinct() {
-            assertThat(RuntimeVocabulary.Java.SEED.iid())
-                    .isNotEqualTo(RuntimeVocabulary.Python.SEED.iid())
-                    .isNotEqualTo(RuntimeVocabulary.JavaScript.SEED.iid())
-                    .isNotEqualTo(RuntimeVocabulary.Rust.SEED.iid());
+            assertThat(RuntimeVocabulary.Java.IID)
+                    .isNotEqualTo(RuntimeVocabulary.Python.IID)
+                    .isNotEqualTo(RuntimeVocabulary.JavaScript.IID)
+                    .isNotEqualTo(RuntimeVocabulary.Rust.IID);
         }
     }
 
@@ -61,10 +62,10 @@ class VocabularySeedTest {
     class Presentation {
 
         @Test
-        @DisplayName("Primary seed has deterministic IID")
+        @DisplayName("Primary seed has deterministic IID and @ItemSeed annotation")
         void primarySeed() {
-            assertThat(PresentationVocabulary.Primary.SEED).isNotNull();
-            assertThat(PresentationVocabulary.Primary.SEED.iid())
+            assertThat(PresentationVocabulary.Primary.class).hasAnnotation(ItemSeed.class);
+            assertThat(PresentationVocabulary.Primary.IID)
                     .isEqualTo(ItemID.fromString(PresentationVocabulary.Primary.KEY));
         }
 
@@ -72,15 +73,15 @@ class VocabularySeedTest {
         @DisplayName("all palette seeds are non-null and distinct")
         void allPaletteSeedsDistinct() {
             ItemID[] ids = {
-                    PresentationVocabulary.Primary.SEED.iid(),
-                    PresentationVocabulary.Secondary.SEED.iid(),
-                    PresentationVocabulary.Accent.SEED.iid(),
-                    PresentationVocabulary.Surface.SEED.iid(),
-                    PresentationVocabulary.OnPrimary.SEED.iid(),
-                    PresentationVocabulary.OnSurface.SEED.iid(),
-                    PresentationVocabulary.Error.SEED.iid(),
-                    PresentationVocabulary.Outline.SEED.iid(),
-                    PresentationVocabulary.Muted.SEED.iid()
+                    PresentationVocabulary.Primary.IID,
+                    PresentationVocabulary.Secondary.IID,
+                    PresentationVocabulary.Accent.IID,
+                    PresentationVocabulary.Surface.IID,
+                    PresentationVocabulary.OnPrimary.IID,
+                    PresentationVocabulary.OnSurface.IID,
+                    PresentationVocabulary.Error.IID,
+                    PresentationVocabulary.Outline.IID,
+                    PresentationVocabulary.Muted.IID
             };
 
             for (ItemID id : ids) {

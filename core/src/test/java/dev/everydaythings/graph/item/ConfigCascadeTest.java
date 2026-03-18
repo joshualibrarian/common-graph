@@ -35,24 +35,22 @@ class ConfigCascadeTest {
         @Test
         @DisplayName("Presentation role is seeded")
         void presentationSeeded() {
-            assertThat(ThematicRole.Presentation.SEED).isNotNull();
-            assertThat(ThematicRole.Presentation.SEED.iid()).isNotNull();
-            assertThat(ThematicRole.fromName("PRESENTATION")).isSameAs(ThematicRole.Presentation.SEED);
+            assertThat(ThematicRole.Presentation.IID).isNotNull();
+            assertThat(ThematicRole.fromName("PRESENTATION")).isEqualTo(ThematicRole.Presentation.IID);
         }
 
         @Test
         @DisplayName("Vocabulary role is seeded")
         void vocabularySeeded() {
-            assertThat(ThematicRole.Vocabulary.SEED).isNotNull();
-            assertThat(ThematicRole.Vocabulary.SEED.iid()).isNotNull();
-            assertThat(ThematicRole.fromName("VOCABULARY")).isSameAs(ThematicRole.Vocabulary.SEED);
+            assertThat(ThematicRole.Vocabulary.IID).isNotNull();
+            assertThat(ThematicRole.fromName("VOCABULARY")).isEqualTo(ThematicRole.Vocabulary.IID);
         }
 
         @Test
         @DisplayName("Config role still works")
         void configSeeded() {
-            assertThat(ThematicRole.Config.SEED).isNotNull();
-            assertThat(ThematicRole.fromName("CONFIG")).isSameAs(ThematicRole.Config.SEED);
+            assertThat(ThematicRole.Config.IID).isNotNull();
+            assertThat(ThematicRole.fromName("CONFIG")).isEqualTo(ThematicRole.Config.IID);
         }
     }
 
@@ -67,8 +65,8 @@ class ConfigCascadeTest {
 
             FrameBody body = new FrameBody(AUTHOR_PRED, ItemID.random(), List.of(
                     Binding.compound(
-                            List.of(ThematicRole.Config.SEED.iid(),
-                                    ThematicRole.Presentation.SEED.iid()),
+                            List.of(ThematicRole.Config.IID,
+                                    ThematicRole.Presentation.IID),
                             presentationLit, false, false)
             ));
 
@@ -83,8 +81,8 @@ class ConfigCascadeTest {
 
             FrameBody body = new FrameBody(AUTHOR_PRED, ItemID.random(), List.of(
                     Binding.compound(
-                            List.of(ThematicRole.Config.SEED.iid(),
-                                    ThematicRole.Vocabulary.SEED.iid()),
+                            List.of(ThematicRole.Config.IID,
+                                    ThematicRole.Vocabulary.IID),
                             vocabLit, false, false)
             ));
 
@@ -106,8 +104,8 @@ class ConfigCascadeTest {
 
             FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
                     Binding.compound(
-                            List.of(ThematicRole.Config.SEED.iid(),
-                                    ThematicRole.Presentation.SEED.iid()),
+                            List.of(ThematicRole.Config.IID,
+                                    ThematicRole.Presentation.IID),
                             lit, false, false)
             ));
 
@@ -127,12 +125,12 @@ class ConfigCascadeTest {
             // Add a (PRESENTATION) frame on the item with a TOPIC binding
             Literal topicLit = Literal.ofText("item-level-theme");
 
-            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
             FrameBody presBody = new FrameBody(
-                    ThematicRole.Presentation.SEED.iid(), item.iid(),
-                    List.of(new Binding(ThematicRole.Topic.SEED.iid(), topicLit)));
+                    ThematicRole.Presentation.IID, item.iid(),
+                    List.of(new Binding(ThematicRole.Topic.IID, topicLit)));
             Frame presFrame = new Frame(presKey,
-                    ThematicRole.Presentation.SEED.iid(), presBody, presBody.hash(), false);
+                    ThematicRole.Presentation.IID, presBody, presBody.hash(), false);
             item.frames().add(presFrame);
 
             // Query frame has NO config binding — should cascade to item
@@ -152,19 +150,19 @@ class ConfigCascadeTest {
 
             // Add item-level (PRESENTATION)
             Literal itemLit = Literal.ofText("item-level");
-            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
             FrameBody presBody = new FrameBody(
-                    ThematicRole.Presentation.SEED.iid(), item.iid(),
-                    List.of(new Binding(ThematicRole.Topic.SEED.iid(), itemLit)));
+                    ThematicRole.Presentation.IID, item.iid(),
+                    List.of(new Binding(ThematicRole.Topic.IID, itemLit)));
             item.frames().add(new Frame(presKey,
-                    ThematicRole.Presentation.SEED.iid(), presBody, presBody.hash(), false));
+                    ThematicRole.Presentation.IID, presBody, presBody.hash(), false));
 
             // Frame with its own (CONFIG, PRESENTATION) — should win
             Literal frameLit = Literal.ofText("per-frame-override");
             FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
                     Binding.compound(
-                            List.of(ThematicRole.Config.SEED.iid(),
-                                    ThematicRole.Presentation.SEED.iid()),
+                            List.of(ThematicRole.Config.IID,
+                                    ThematicRole.Presentation.IID),
                             frameLit, false, false)
             ));
             Frame authorFrame = new Frame(
@@ -198,7 +196,7 @@ class ConfigCascadeTest {
             Literal lit = Literal.ofText("general-settings");
 
             FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
-                    Binding.nonIdentity(ThematicRole.Config.SEED.iid(), lit)
+                    Binding.nonIdentity(ThematicRole.Config.IID, lit)
             ));
             Frame frame = new Frame(
                     FrameKey.literal("author"),
@@ -217,7 +215,7 @@ class ConfigCascadeTest {
 
             // Use the new config map path — direct PRESENTATION key
             FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of())
-                    .withConfig(ThematicRole.Presentation.SEED.iid(), lit);
+                    .withConfig(ThematicRole.Presentation.IID, lit);
 
             Frame frame = new Frame(
                     FrameKey.literal("author"),
@@ -238,10 +236,10 @@ class ConfigCascadeTest {
             // Build body with both old compound binding AND new config map entry
             FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
                     Binding.compound(
-                            List.of(ThematicRole.Config.SEED.iid(),
-                                    ThematicRole.Presentation.SEED.iid()),
+                            List.of(ThematicRole.Config.IID,
+                                    ThematicRole.Presentation.IID),
                             compoundLit, false, false)))
-                    .withConfig(ThematicRole.Presentation.SEED.iid(), configMapLit);
+                    .withConfig(ThematicRole.Presentation.IID, configMapLit);
 
             Frame frame = new Frame(
                     FrameKey.literal("author"),
@@ -259,12 +257,12 @@ class ConfigCascadeTest {
 
             // Add item-level (VOCABULARY) frame
             Literal vocabLit = Literal.ofText("item-vocab-tokens");
-            FrameKey vocabKey = FrameKey.of(ThematicRole.Vocabulary.SEED.iid());
+            FrameKey vocabKey = FrameKey.of(ThematicRole.Vocabulary.IID);
             FrameBody vocabBody = new FrameBody(
-                    ThematicRole.Vocabulary.SEED.iid(), item.iid(),
-                    List.of(new Binding(ThematicRole.Topic.SEED.iid(), vocabLit)));
+                    ThematicRole.Vocabulary.IID, item.iid(),
+                    List.of(new Binding(ThematicRole.Topic.IID, vocabLit)));
             item.frames().add(new Frame(vocabKey,
-                    ThematicRole.Vocabulary.SEED.iid(), vocabBody, vocabBody.hash(), false));
+                    ThematicRole.Vocabulary.IID, vocabBody, vocabBody.hash(), false));
 
             // Frame has no vocab config
             FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of());
@@ -287,19 +285,19 @@ class ConfigCascadeTest {
             Manifest manifest = Manifest.builder()
                     .iid(item.iid())
                     .configEntry(Binding.nonIdentity(
-                            ThematicRole.Presentation.SEED.iid(), manifestLit))
+                            ThematicRole.Presentation.IID, manifestLit))
                     .build();
             // Inject manifest via reflection (normally set during commit/hydrate)
             item.current = manifest;
 
             // Also add item-level (PRESENTATION) frame — should lose to manifest config
             Literal frameLit = Literal.ofText("frame-level-theme");
-            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
             FrameBody presBody = new FrameBody(
-                    ThematicRole.Presentation.SEED.iid(), item.iid(),
-                    List.of(new Binding(ThematicRole.Topic.SEED.iid(), frameLit)));
+                    ThematicRole.Presentation.IID, item.iid(),
+                    List.of(new Binding(ThematicRole.Topic.IID, frameLit)));
             item.frames().add(new Frame(presKey,
-                    ThematicRole.Presentation.SEED.iid(), presBody, presBody.hash(), false));
+                    ThematicRole.Presentation.IID, presBody, presBody.hash(), false));
 
             // Query frame has NO config binding — should cascade to manifest config
             FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of());

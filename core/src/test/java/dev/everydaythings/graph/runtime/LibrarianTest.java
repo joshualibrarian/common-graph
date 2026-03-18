@@ -136,7 +136,7 @@ class LibrarianTest extends SignerTest {
             // Library owns the index internally; we verify via query API
             // Query for implemented-by relations (should return types)
             var results = librarian.library().byPredicate(
-                    dev.everydaythings.graph.language.CoreVocabulary.ImplementedBy.SEED.iid()).toList();
+                    dev.everydaythings.graph.language.CoreVocabulary.ImplementedBy.IID).toList();
             assertThat(results)
                     .as("Library should have indexed implementedBy relations")
                     .isNotEmpty();

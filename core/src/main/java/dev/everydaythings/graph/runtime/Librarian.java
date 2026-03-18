@@ -188,7 +188,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
     // Expression: ? → implemented-by → * (all types - subjects of implemented-by relations)
     @Frame(key = {CoreVocabulary.ImplementedBy.KEY})
-    ExpressionComponent typesExpr = ExpressionComponent.subjects(CoreVocabulary.ImplementedBy.SEED.iid());
+    ExpressionComponent typesExpr = ExpressionComponent.subjects(CoreVocabulary.ImplementedBy.IID);
 
     // Infrastructure activity log — in-memory, doesn't churn VID
     @Frame(key = {CoreVocabulary.Activity.KEY}, identity = false)
@@ -1776,7 +1776,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     @Verb(value = CoreVocabulary.ListVerb.KEY, doc = "List all known item types")
     public Stream<ItemID> types() {
-        return library().byPredicate(CoreVocabulary.ImplementedBy.SEED.iid())
+        return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
                 .map(FrameBody::theme);
     }
 
@@ -1869,7 +1869,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @return Stream of TypeEntry for each Item type
      */
     public Stream<TypeEntry> itemTypes() {
-        return library().byPredicate(CoreVocabulary.ImplementedBy.SEED.iid())
+        return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
                 .filter(body -> {
                     BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof Literal lit) {
@@ -1893,7 +1893,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @return Stream of TypeEntry for each component type
      */
     public Stream<TypeEntry> componentTypes() {
-        return library().byPredicate(CoreVocabulary.ImplementedBy.SEED.iid())
+        return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
                 .filter(body -> {
                     BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof Literal lit) {
@@ -1912,27 +1912,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * Get all registered ValueType seed items.
      *
      * <p>ValueTypes are Items that define value semantics (Decimal, Text, etc).
-     * Returns the known seed value types directly since they are static.
-     *
-     * @return Stream of ValueType items
+     * @deprecated Dead code — will be removed.
      */
-    public Stream<ValueType> valueTypes() {
-        // Return known seed value types directly
-        return Stream.of(
-                ValueType.BooleanType.SEED,
-                ValueType.TextType.SEED,
-                ValueType.BytesType.SEED,
-                ValueType.IpType.SEED,
-                ValueType.EndpointType.SEED,
-                ValueType.InstantType.SEED,
-                ValueType.QuantityType.SEED,
-                ValueType.DecimalType.SEED,
-                ValueType.RationalType.SEED,
-                ValueType.CountType.SEED,
-                ValueType.Float64Type.SEED,
-                ValueType.IntegerType.SEED
-        );
-    }
 
     // ==================================================================================
     // Info
@@ -2186,7 +2167,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         Item newItem = Item.create(this);
         if (name != null && !name.isBlank()) {
             newItem.relate(
-                    CoreVocabulary.Title.SEED.iid(),
+                    CoreVocabulary.Title.IID,
                     Literal.ofText(name));
         }
         return newItem;

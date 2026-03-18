@@ -61,13 +61,13 @@ class ExpressionContextTest {
         @Test
         void verbTokenSetsVerb() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create")
+                    RefToken.of(CoreVocabulary.Create.IID, "create")
             );
 
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             assertThat(ctx.verb()).isNotNull();
-            assertThat(ctx.verb().iid()).isEqualTo(CoreVocabulary.Create.SEED.iid());
+            assertThat(ctx.verb().iid()).isEqualTo(CoreVocabulary.Create.IID);
             assertThat(ctx.filledRoles()).isEmpty();
         }
 
@@ -75,38 +75,38 @@ class ExpressionContextTest {
         void verbPlusNounFillsThemeRole() {
             // Use TITLE (a CoreVocabulary seed) as the argument item
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create"),
-                    RefToken.of(CoreVocabulary.Title.SEED.iid(), "title")
+                    RefToken.of(CoreVocabulary.Create.IID, "create"),
+                    RefToken.of(CoreVocabulary.Title.IID, "title")
             );
 
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             assertThat(ctx.verb()).isNotNull();
-            assertThat(ctx.filledRoles()).containsExactly(ThematicRole.Theme.SEED.iid());
+            assertThat(ctx.filledRoles()).containsExactly(ThematicRole.Theme.IID);
             assertThat(ctx.unfilledRoles()).hasSize(4); // TARGET, NAME, COMITATIVE, SOURCE
-            assertThat(ctx.unfilledRoles().get(0)).isEqualTo(ThematicRole.Goal.SEED.iid());
+            assertThat(ctx.unfilledRoles().get(0)).isEqualTo(ThematicRole.Goal.IID);
         }
 
         @Test
         void verbPlusPrepositionPlusNounFillsRole() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create"),
-                    RefToken.of(PrepositionVocabulary.On.SEED.iid(), "on"),
-                    RefToken.of(CoreVocabulary.Title.SEED.iid(), "title")
+                    RefToken.of(CoreVocabulary.Create.IID, "create"),
+                    RefToken.of(PrepositionVocabulary.On.IID, "on"),
+                    RefToken.of(CoreVocabulary.Title.IID, "title")
             );
 
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             assertThat(ctx.verb()).isNotNull();
-            assertThat(ctx.filledRoles()).contains(ThematicRole.Goal.SEED.iid());
+            assertThat(ctx.filledRoles()).contains(ThematicRole.Goal.IID);
             assertThat(ctx.lastTokenIsPreposition()).isFalse();
         }
 
         @Test
         void trailingPrepositionDetected() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create"),
-                    RefToken.of(PrepositionVocabulary.On.SEED.iid(), "on")
+                    RefToken.of(CoreVocabulary.Create.IID, "create"),
+                    RefToken.of(PrepositionVocabulary.On.IID, "on")
             );
 
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
@@ -118,23 +118,23 @@ class ExpressionContextTest {
         @Test
         void verbWithAllRolesFilledShowsNoUnfilled() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create"),
-                    RefToken.of(CoreVocabulary.Title.SEED.iid(), "title"),
-                    RefToken.of(PrepositionVocabulary.On.SEED.iid(), "on"),
-                    RefToken.of(CoreVocabulary.Author.SEED.iid(), "author")
+                    RefToken.of(CoreVocabulary.Create.IID, "create"),
+                    RefToken.of(CoreVocabulary.Title.IID, "title"),
+                    RefToken.of(PrepositionVocabulary.On.IID, "on"),
+                    RefToken.of(CoreVocabulary.Author.IID, "author")
             );
 
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             assertThat(ctx.verb()).isNotNull();
-            assertThat(ctx.filledRoles()).contains(ThematicRole.Theme.SEED.iid(), ThematicRole.Goal.SEED.iid());
+            assertThat(ctx.filledRoles()).contains(ThematicRole.Theme.IID, ThematicRole.Goal.IID);
             assertThat(ctx.unfilledRoles()).hasSize(3); // NAME, COMITATIVE, SOURCE
         }
 
         @Test
         void nonRefTokensIgnored() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create"),
+                    RefToken.of(CoreVocabulary.Create.IID, "create"),
                     ExpressionToken.LiteralToken.ofString("hello")
             );
 
@@ -148,7 +148,7 @@ class ExpressionContextTest {
         @Test
         void noVerbReturnsEmpty() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Title.SEED.iid(), "title")
+                    RefToken.of(CoreVocabulary.Title.IID, "title")
             );
 
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
@@ -170,9 +170,9 @@ class ExpressionContextTest {
             ExpressionContext ctx = ExpressionContext.EMPTY;
 
             List<Posting> postings = List.of(
-                    Posting.universal("create", CoreVocabulary.Create.SEED.iid()),
-                    Posting.universal("on", PrepositionVocabulary.On.SEED.iid()),
-                    Posting.universal("title", CoreVocabulary.Title.SEED.iid())
+                    Posting.universal("create", CoreVocabulary.Create.IID),
+                    Posting.universal("on", PrepositionVocabulary.On.IID),
+                    Posting.universal("title", CoreVocabulary.Title.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);
@@ -182,14 +182,14 @@ class ExpressionContextTest {
         @Test
         void verbPresentExcludesOtherVerbs() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create")
+                    RefToken.of(CoreVocabulary.Create.IID, "create")
             );
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             List<Posting> postings = List.of(
-                    Posting.universal("get", CoreVocabulary.Get.SEED.iid()),
-                    Posting.universal("on", PrepositionVocabulary.On.SEED.iid()),
-                    Posting.universal("title", CoreVocabulary.Title.SEED.iid())
+                    Posting.universal("get", CoreVocabulary.Get.IID),
+                    Posting.universal("on", PrepositionVocabulary.On.IID),
+                    Posting.universal("title", CoreVocabulary.Title.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);
@@ -201,16 +201,16 @@ class ExpressionContextTest {
         @Test
         void openPrepositionExcludesVerbsAndPrepositions() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create"),
-                    RefToken.of(PrepositionVocabulary.On.SEED.iid(), "on")
+                    RefToken.of(CoreVocabulary.Create.IID, "create"),
+                    RefToken.of(PrepositionVocabulary.On.IID, "on")
             );
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
             assertThat(ctx.lastTokenIsPreposition()).isTrue();
 
             List<Posting> postings = List.of(
-                    Posting.universal("get", CoreVocabulary.Get.SEED.iid()),
-                    Posting.universal("on", PrepositionVocabulary.On.SEED.iid()),
-                    Posting.universal("title", CoreVocabulary.Title.SEED.iid())
+                    Posting.universal("get", CoreVocabulary.Get.IID),
+                    Posting.universal("on", PrepositionVocabulary.On.IID),
+                    Posting.universal("title", CoreVocabulary.Title.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);
@@ -223,7 +223,7 @@ class ExpressionContextTest {
         @Test
         void unresolvablePostingsKept() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create")
+                    RefToken.of(CoreVocabulary.Create.IID, "create")
             );
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
@@ -239,13 +239,13 @@ class ExpressionContextTest {
         @Test
         void nounSememesAlwaysPass() {
             List<ExpressionToken> tokens = List.of(
-                    RefToken.of(CoreVocabulary.Create.SEED.iid(), "create")
+                    RefToken.of(CoreVocabulary.Create.IID, "create")
             );
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             List<Posting> postings = List.of(
-                    Posting.universal("title", CoreVocabulary.Title.SEED.iid()),
-                    Posting.universal("author", CoreVocabulary.Author.SEED.iid())
+                    Posting.universal("title", CoreVocabulary.Title.IID),
+                    Posting.universal("author", CoreVocabulary.Author.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);

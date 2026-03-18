@@ -95,10 +95,10 @@ class PresentationCascadeTest {
             byte[] pcBytes = pc.encodeBinary(Canonical.Scope.RECORD);
             Literal lit = new Literal(Literal.TYPE_CBOR, pcBytes);
 
-            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
-            FrameBody presBody = new FrameBody(ThematicRole.Presentation.SEED.iid(),
-                    List.of(new Binding(ThematicRole.Topic.SEED.iid(), lit)));
-            Frame presFrame = new Frame(presKey, ThematicRole.Presentation.SEED.iid(),
+            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
+            FrameBody presBody = new FrameBody(ThematicRole.Presentation.IID,
+                    List.of(new Binding(ThematicRole.Topic.IID, lit)));
+            Frame presFrame = new Frame(presKey, ThematicRole.Presentation.IID,
                     presBody, presBody.hash(), false);
             item.frames().add(presFrame);
 
@@ -122,7 +122,7 @@ class PresentationCascadeTest {
                     .iid(item.iid())
                     .implementation(Manifest.javaImplementation(Item.class))
                     .configEntry(Binding.nonIdentity(
-                            ThematicRole.Presentation.SEED.iid(), lit))
+                            ThematicRole.Presentation.IID, lit))
                     .build();
             item.current = manifest;
 
@@ -147,10 +147,10 @@ class PresentationCascadeTest {
             byte[] pcBytes = pc.encodeBinary(Canonical.Scope.RECORD);
             Literal lit = new Literal(Literal.TYPE_CBOR, pcBytes);
 
-            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
-            FrameBody presBody = new FrameBody(ThematicRole.Presentation.SEED.iid(),
-                    List.of(new Binding(ThematicRole.Topic.SEED.iid(), lit)));
-            Frame presFrame = new Frame(presKey, ThematicRole.Presentation.SEED.iid(),
+            FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
+            FrameBody presBody = new FrameBody(ThematicRole.Presentation.IID,
+                    List.of(new Binding(ThematicRole.Topic.IID, lit)));
+            Frame presFrame = new Frame(presKey, ThematicRole.Presentation.IID,
                     presBody, presBody.hash(), false);
             item.frames().add(presFrame);
 
@@ -186,7 +186,7 @@ class PresentationCascadeTest {
 
             if (typeItemOpt.isPresent()) {
                 Item typeItem = typeItemOpt.get();
-                FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+                FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
                 var presFrame = typeItem.frames().getFrame(presKey);
                 assertThat(presFrame).as("type item should have PRESENTATION frame").isPresent();
             }

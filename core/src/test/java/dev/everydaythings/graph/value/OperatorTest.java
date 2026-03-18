@@ -21,7 +21,7 @@ class OperatorTest {
 
     private boolean hasImplementedByRelation(ItemStore store, dev.everydaythings.graph.item.id.ItemID typeId) {
         return store.frameBodies()
-                .filter(r -> r.predicate().equals(CoreVocabulary.ImplementedBy.SEED.iid()))
+                .filter(r -> r.predicate().equals(CoreVocabulary.ImplementedBy.IID))
                 .filter(r -> typeId.equals(r.bindingId(dev.everydaythings.graph.item.id.ItemID.fromString("cg.role:theme"))))
                 .findFirst()
                 .isPresent();
@@ -44,11 +44,11 @@ class OperatorTest {
     @Test
     void seedInstancesHaveDeterministicIids() {
         // IIDs derived from canonical key should be stable
-        assertThat(Operator.And.SEED.iid()).isEqualTo(Operator.And.SEED.iid());
-        assertThat(Operator.Or.SEED.iid()).isEqualTo(Operator.Or.SEED.iid());
+        assertThat(Operator.And.IID).isEqualTo(Operator.And.IID);
+        assertThat(Operator.Or.IID).isEqualTo(Operator.Or.IID);
 
         // Different operators have different IIDs
-        assertThat(Operator.And.SEED.iid()).isNotEqualTo(Operator.Or.SEED.iid());
+        assertThat(Operator.And.IID).isNotEqualTo(Operator.Or.IID);
     }
 
     @Test
@@ -87,8 +87,8 @@ class OperatorTest {
         assertThat(hasImplementedByRelation(store, ItemID.fromString(Operator.KEY))).isTrue();
 
         // Operator seeds should have manifests
-        assertThat(hasManifest(store, Operator.And.SEED.iid())).isTrue();
-        assertThat(hasManifest(store, Operator.Or.SEED.iid())).isTrue();
+        assertThat(hasManifest(store, Operator.And.IID)).isTrue();
+        assertThat(hasManifest(store, Operator.Or.IID)).isTrue();
     }
 
     @org.junit.jupiter.api.Disabled("Slow — SeedVocabulary.bootstrap per test")
@@ -144,8 +144,8 @@ class OperatorTest {
 
     @Test
     void lookupFindsSeeds() {
-        assertThat(Operator.lookup(Operator.And.SEED.iid(), null)).isEqualTo(Operator.And.SEED);
-        assertThat(Operator.lookup(Operator.Or.SEED.iid(), null)).isEqualTo(Operator.Or.SEED);
+        assertThat(Operator.lookup(Operator.And.IID, null)).isEqualTo(Operator.And.SEED);
+        assertThat(Operator.lookup(Operator.Or.IID, null)).isEqualTo(Operator.Or.SEED);
     }
 
     // ==================================================================================

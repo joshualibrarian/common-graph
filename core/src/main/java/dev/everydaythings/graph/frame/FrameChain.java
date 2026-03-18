@@ -188,7 +188,7 @@ public class FrameChain {
 
         // LOCATION → item (home binding for event frames)
         allBindings.add(new Binding(
-                ThematicRole.Location.SEED.iid(),
+                ThematicRole.Location.IID,
                 BindingTarget.iid(item)));
 
         // FOLLOWS → each current head's body hash (identity — causal position IS part of event identity)

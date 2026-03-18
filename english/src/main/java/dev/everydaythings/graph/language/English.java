@@ -125,14 +125,14 @@ public class English extends Language {
     // MORPHOLOGY — Regular English inflection rules
     // ==================================================================================
 
-    private static final ItemID PAST = GrammaticalFeature.Past.SEED.iid();
-    private static final ItemID PRESENT = GrammaticalFeature.Present.SEED.iid();
-    private static final ItemID PLURAL = GrammaticalFeature.Plural.SEED.iid();
-    private static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.SEED.iid();
-    private static final ItemID SINGULAR = GrammaticalFeature.Singular.SEED.iid();
-    private static final ItemID PARTICIPLE = GrammaticalFeature.Participle.SEED.iid();
-    private static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.SEED.iid();
-    private static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.SEED.iid();
+    private static final ItemID PAST = GrammaticalFeature.Past.IID;
+    private static final ItemID PRESENT = GrammaticalFeature.Present.IID;
+    private static final ItemID PLURAL = GrammaticalFeature.Plural.IID;
+    private static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.IID;
+    private static final ItemID SINGULAR = GrammaticalFeature.Singular.IID;
+    private static final ItemID PARTICIPLE = GrammaticalFeature.Participle.IID;
+    private static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.IID;
+    private static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.IID;
 
     // Feature sets that English morphology distinguishes, per POS
     private static final List<Set<ItemID>> VERB_FEATURES = List.of(

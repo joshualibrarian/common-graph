@@ -30,7 +30,7 @@ class ManifestConfigTest {
                     .build();
 
             assertThat(m.config()).isEmpty();
-            assertThat(m.configBinding(ThematicRole.Presentation.SEED.iid())).isNull();
+            assertThat(m.configBinding(ThematicRole.Presentation.IID)).isNull();
         }
 
         @Test
@@ -38,7 +38,7 @@ class ManifestConfigTest {
         void withConfig() {
             Literal presLit = Literal.ofText("item-theme");
             Binding presBinding = Binding.nonIdentity(
-                    ThematicRole.Presentation.SEED.iid(), presLit);
+                    ThematicRole.Presentation.IID, presLit);
 
             Manifest m = Manifest.builder()
                     .iid(ItemID.random())
@@ -47,8 +47,8 @@ class ManifestConfigTest {
                     .build();
 
             assertThat(m.config()).hasSize(1);
-            assertThat(m.configBinding(ThematicRole.Presentation.SEED.iid())).isNotNull();
-            assertThat(m.configBinding(ThematicRole.Vocabulary.SEED.iid())).isNull();
+            assertThat(m.configBinding(ThematicRole.Presentation.IID)).isNotNull();
+            assertThat(m.configBinding(ThematicRole.Vocabulary.IID)).isNull();
         }
 
         @Test
@@ -61,14 +61,14 @@ class ManifestConfigTest {
                     .iid(ItemID.random())
                     .implementation(TEST_IMPL)
                     .configEntry(Binding.nonIdentity(
-                            ThematicRole.Presentation.SEED.iid(), presLit))
+                            ThematicRole.Presentation.IID, presLit))
                     .configEntry(Binding.nonIdentity(
-                            ThematicRole.Vocabulary.SEED.iid(), vocabLit))
+                            ThematicRole.Vocabulary.IID, vocabLit))
                     .build();
 
             assertThat(m.config()).hasSize(2);
-            assertThat(m.configBinding(ThematicRole.Presentation.SEED.iid())).isNotNull();
-            assertThat(m.configBinding(ThematicRole.Vocabulary.SEED.iid())).isNotNull();
+            assertThat(m.configBinding(ThematicRole.Presentation.IID)).isNotNull();
+            assertThat(m.configBinding(ThematicRole.Vocabulary.IID)).isNotNull();
         }
 
         @Test
@@ -80,7 +80,7 @@ class ManifestConfigTest {
                     .iid(ItemID.random())
                     .implementation(TEST_IMPL)
                     .config(List.of(
-                            Binding.nonIdentity(ThematicRole.Presentation.SEED.iid(), lit)))
+                            Binding.nonIdentity(ThematicRole.Presentation.IID, lit)))
                     .build();
 
             assertThat(m.config()).hasSize(1);
@@ -105,7 +105,7 @@ class ManifestConfigTest {
                     .iid(iid)
                     .implementation(TEST_IMPL)
                     .configEntry(Binding.nonIdentity(
-                            ThematicRole.Presentation.SEED.iid(),
+                            ThematicRole.Presentation.IID,
                             Literal.ofText("theme-data")))
                     .build();
 
@@ -143,9 +143,9 @@ class ManifestConfigTest {
                     .iid(ItemID.random())
                     .implementation(TEST_IMPL)
                     .configEntry(Binding.nonIdentity(
-                            ThematicRole.Presentation.SEED.iid(), presLit))
+                            ThematicRole.Presentation.IID, presLit))
                     .configEntry(Binding.nonIdentity(
-                            ThematicRole.Vocabulary.SEED.iid(), vocabLit))
+                            ThematicRole.Vocabulary.IID, vocabLit))
                     .build();
 
             byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
@@ -155,12 +155,12 @@ class ManifestConfigTest {
             assertThat(decoded.vid()).isEqualTo(original.vid());
             assertThat(decoded.config()).hasSize(2);
 
-            Binding pres = decoded.configBinding(ThematicRole.Presentation.SEED.iid());
+            Binding pres = decoded.configBinding(ThematicRole.Presentation.IID);
             assertThat(pres).isNotNull();
             assertThat(pres.target()).isInstanceOf(Literal.class);
             assertThat(((Literal) pres.target()).payload()).isEqualTo(presLit.payload());
 
-            Binding vocab = decoded.configBinding(ThematicRole.Vocabulary.SEED.iid());
+            Binding vocab = decoded.configBinding(ThematicRole.Vocabulary.IID);
             assertThat(vocab).isNotNull();
         }
 

@@ -1,12 +1,10 @@
 package dev.everydaythings.graph.network;
 
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 
@@ -38,10 +36,7 @@ public final class BridgeVocabulary {
     @ItemSeed(key = Bridge.KEY)
     public static class Bridge {
         public static final String KEY = "cg.sememe:bridge";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a service that translates between CG and a foreign protocol")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "bridge");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a service that translates between CG and a foreign protocol";
 
@@ -60,11 +55,7 @@ public final class BridgeVocabulary {
     @ItemSeed(key = Bridges.KEY, slots = {ThematicRole.Instrument.KEY, ThematicRole.Goal.KEY})
     public static class Bridges {
         public static final String KEY = "cg.core:bridges";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "provides bridge service to a foreign protocol")
-                .slot(ThematicRole.Instrument.KEY)
-                .slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "provides bridge service to a foreign protocol";
     }
@@ -79,10 +70,7 @@ public final class BridgeVocabulary {
     @ItemSeed(key = EmailBridge.KEY)
     public static class EmailBridge {
         public static final String KEY = "cg.sememe:bridge/email";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a bridge translating between CG and email via SMTP/IMAP")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "email bridge");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a bridge translating between CG and email via SMTP/IMAP";
 
@@ -96,10 +84,7 @@ public final class BridgeVocabulary {
     @ItemSeed(key = ActivityPubBridge.KEY)
     public static class ActivityPubBridge {
         public static final String KEY = "cg.sememe:bridge/activitypub";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a bridge translating between CG and the ActivityPub federation protocol")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "activitypub bridge");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a bridge translating between CG and the ActivityPub federation protocol";
 
@@ -113,10 +98,7 @@ public final class BridgeVocabulary {
     @ItemSeed(key = HttpBridge.KEY)
     public static class HttpBridge {
         public static final String KEY = "cg.sememe:bridge/http";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a bridge providing HTTP and WebSocket access to CG")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "web gateway");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a bridge providing HTTP and WebSocket access to CG";
 
@@ -135,11 +117,7 @@ public final class BridgeVocabulary {
     @ItemSeed(key = IdentifiesAs.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class IdentifiesAs {
         public static final String KEY = "cg.bridge:identifies-as";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "asserts that this identity corresponds to another; merges a phantom with a real principal")
-                .slot(ThematicRole.Theme.KEY)
-                .slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "asserts that this identity corresponds to another; merges a phantom with a real principal";
     }
@@ -151,11 +129,7 @@ public final class BridgeVocabulary {
     @ItemSeed(key = ReceivedVia.KEY, slots = {ThematicRole.Instrument.KEY, ThematicRole.Source.KEY})
     public static class ReceivedVia {
         public static final String KEY = "cg.bridge:received-via";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "records that content was received through a foreign protocol bridge")
-                .slot(ThematicRole.Instrument.KEY)
-                .slot(ThematicRole.Source.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "records that content was received through a foreign protocol bridge";
     }

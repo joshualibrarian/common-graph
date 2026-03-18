@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 
@@ -45,10 +44,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Predicate.KEY)
     public static class Predicate {
         public static final String KEY = "cg.core:part-of-speech";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "the grammatical category of a word")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "part-of-speech");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the grammatical category of a word";
 
@@ -63,10 +59,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Noun.KEY)
     public static class Noun {
         public static final String KEY = "cg.pos:noun";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word that names a person, place, thing, or idea")
-                .cili("i73935").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "noun");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that names a person, place, thing, or idea";
 
@@ -80,10 +73,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Verb.KEY)
     public static class Verb {
         public static final String KEY = "cg.pos:verb";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word that expresses an action or state")
-                .cili("i73936").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "verb");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that expresses an action or state";
 
@@ -97,10 +87,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Adjective.KEY)
     public static class Adjective {
         public static final String KEY = "cg.pos:adjective";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word that modifies a noun")
-                .cili("i73937").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "adjective");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that modifies a noun";
 
@@ -114,10 +101,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Adverb.KEY)
     public static class Adverb {
         public static final String KEY = "cg.pos:adverb";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word that modifies a verb, adjective, or other adverb")
-                .cili("i73938").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "adverb");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that modifies a verb, adjective, or other adverb";
 
@@ -131,10 +115,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Pronoun.KEY)
     public static class Pronoun {
         public static final String KEY = "cg.pos:pronoun";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word that substitutes for a noun")
-                .cili("i73939").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "pronoun");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that substitutes for a noun";
 
@@ -148,10 +129,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Conjunction.KEY)
     public static class Conjunction {
         public static final String KEY = "cg.pos:conjunction";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word that connects clauses or sentences")
-                .cili("i73940").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "conjunction");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that connects clauses or sentences";
 
@@ -165,10 +143,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Interjection.KEY)
     public static class Interjection {
         public static final String KEY = "cg.pos:interjection";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word expressing sudden feeling")
-                .cili("i73941").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "interjection");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word expressing sudden feeling";
 
@@ -182,10 +157,7 @@ public final class PartOfSpeech {
     @ItemSeed(key = Preposition.KEY)
     public static class Preposition {
         public static final String KEY = "cg.pos:preposition";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a word governing a noun or pronoun to express a relation")
-                .cili("i73942").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "preposition");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word governing a noun or pronoun to express a relation";
 

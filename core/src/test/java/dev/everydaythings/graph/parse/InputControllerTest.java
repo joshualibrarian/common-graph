@@ -417,7 +417,7 @@ class InputControllerTest {
 
             assertThat(input.tokens()).hasSize(1);
             OpToken op = (OpToken) input.tokens().get(0);
-            assertThat(op.operatorId()).isEqualTo(Operator.Or.SEED.iid());
+            assertThat(op.operatorId()).isEqualTo(Operator.Or.IID);
         }
 
         @Test

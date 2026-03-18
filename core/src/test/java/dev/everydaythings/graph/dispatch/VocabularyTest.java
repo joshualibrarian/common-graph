@@ -49,15 +49,31 @@ class VocabularyTest {
     }
 
     @Test
-    void verbSememeHasTokens() {
-        // The CREATE Sememe should have tokens like "create", "new", "make"
-        assertThat(CoreVocabulary.Create.SEED.tokens())
-                .as("CREATE Sememe should have token aliases")
-                .contains("create", "new", "make");
+    void verbSememeHasTokens(@TempDir Path testDir) {
+        // Verify word forms are declared on the seed classes via @ItemSeed.Word annotations.
+        // After SEED removal, token aliases live in @ItemSeed.Word fields, not on live Sememe instances.
+        // We verify the annotations exist and carry the expected surface forms.
+        try (Librarian lib = Librarian.open(testDir)) {
+            var tokenDict = lib.tokenIndex();
 
-        assertThat(CoreVocabulary.Get.SEED.tokens())
-                .as("GET Sememe should have token aliases")
-                .contains("get", "retrieve", "fetch", "lookup");
+            // CREATE should have tokens: "create", "new", "make"
+            ItemID createIid = CoreVocabulary.Create.IID;
+            for (String token : List.of("create", "new", "make")) {
+                boolean found = tokenDict.lookup(token).anyMatch(p -> p.target().equals(createIid));
+                assertThat(found)
+                        .as("Token '%s' should resolve to CREATE Sememe", token)
+                        .isTrue();
+            }
+
+            // GET should have tokens: "get", "retrieve", "fetch", "lookup"
+            ItemID getIid = CoreVocabulary.Get.IID;
+            for (String token : List.of("get", "retrieve", "fetch", "lookup")) {
+                boolean found = tokenDict.lookup(token).anyMatch(p -> p.target().equals(getIid));
+                assertThat(found)
+                        .as("Token '%s' should resolve to GET Sememe", token)
+                        .isTrue();
+            }
+        }
     }
 
     @Test

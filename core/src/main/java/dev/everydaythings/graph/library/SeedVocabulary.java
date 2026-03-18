@@ -149,7 +149,7 @@ public final class SeedVocabulary {
                         String name = extractReadableName(key);
                         Sememe ns = new Sememe(key)
                                 .gloss("en", name)
-                                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                                .word(PartOfSpeech.NOUN, new Sememe(GrammaticalFeature.Lemma.KEY), "en", name.toLowerCase());
                         if (ns.extractTokens().findAny().isPresent()) {
                             result.add(ns);
                         }
@@ -180,7 +180,7 @@ public final class SeedVocabulary {
                 String name = extractReadableName(key);
                 Sememe ns = new Sememe(key)
                         .gloss("en", name)
-                        .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", name.toLowerCase());
+                        .word(PartOfSpeech.NOUN, new Sememe(GrammaticalFeature.Lemma.KEY), "en", name.toLowerCase());
                 if (ns.extractTokens().findAny().isPresent()) {
                     result.add(ns);
                 }
@@ -380,7 +380,7 @@ public final class SeedVocabulary {
         ContentID cid = ContentID.of(encoded);
         Literal literal = new Literal(Literal.TYPE_CBOR, encoded);
         FrameBody body = new FrameBody(head,
-                List.of(new Binding(ThematicRole.Topic.SEED.iid(), literal)));
+                List.of(new Binding(ThematicRole.Topic.IID, literal)));
 
         Frame frame = new Frame(key, head, body, body.hash(), false);
         seedItem.frames().add(frame);
@@ -447,7 +447,7 @@ public final class SeedVocabulary {
                 byte[] surfaceBytes = com.upokecenter.cbor.CBORObject.FromString(surface).EncodeToBytes();
                 Literal surfaceLiteral = new Literal(Literal.TYPE_TEXT, surfaceBytes);
                 FrameBody body = new FrameBody(lexemePredicate,
-                        List.of(new Binding(ThematicRole.Theme.SEED.iid(), surfaceLiteral)));
+                        List.of(new Binding(ThematicRole.Theme.IID, surfaceLiteral)));
 
                 Frame frame = new Frame(key, lexemePredicate, body, body.hash(), false);
                 langItem.frames().add(frame);
@@ -506,7 +506,7 @@ public final class SeedVocabulary {
                 byte[] surfaceBytes = com.upokecenter.cbor.CBORObject.FromString(decl.surface()).EncodeToBytes();
                 Literal surfaceLiteral = new Literal(Literal.TYPE_TEXT, surfaceBytes);
                 FrameBody body = new FrameBody(lexemePredicate,
-                        List.of(new Binding(ThematicRole.Theme.SEED.iid(), surfaceLiteral)));
+                        List.of(new Binding(ThematicRole.Theme.IID, surfaceLiteral)));
 
                 // Create and add frame to the Language item
                 Frame frame = new Frame(key, lexemePredicate, body, body.hash(), false);
@@ -618,9 +618,9 @@ public final class SeedVocabulary {
 
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
         storeFrameBody(FrameBody.of(
-                CoreVocabulary.ImplementedBy.SEED.iid(),
+                CoreVocabulary.ImplementedBy.IID,
                 typeId,
-                Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofJavaClass(type))));
+                Map.of(ThematicRole.Goal.IID, Literal.ofJavaClass(type))));
     }
 
     // ==================================================================================
@@ -698,10 +698,10 @@ public final class SeedVocabulary {
         byte[] presBytes = presConfig.encodeBinary(Canonical.Scope.RECORD);
         Literal presLiteral = new Literal(Literal.TYPE_CBOR, presBytes);
 
-        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
-        FrameBody presBody = new FrameBody(ThematicRole.Presentation.SEED.iid(),
-                List.of(new Binding(ThematicRole.Topic.SEED.iid(), presLiteral)));
-        Frame presFrame = new Frame(presKey, ThematicRole.Presentation.SEED.iid(),
+        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
+        FrameBody presBody = new FrameBody(ThematicRole.Presentation.IID,
+                List.of(new Binding(ThematicRole.Topic.IID, presLiteral)));
+        Frame presFrame = new Frame(presKey, ThematicRole.Presentation.IID,
                 presBody, presBody.hash(), false);
         typeItem.frames().add(presFrame);
     }
@@ -767,9 +767,9 @@ public final class SeedVocabulary {
 
     private FrameBody createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
         FrameBody body = FrameBody.of(
-                CoreVocabulary.ImplementedBy.SEED.iid(),
+                CoreVocabulary.ImplementedBy.IID,
                 typeId,
-                Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofJavaClass(implementingClass)));
+                Map.of(ThematicRole.Goal.IID, Literal.ofJavaClass(implementingClass)));
 
         // Add to item's endorsements table as a bare frame
         if (item != null) {
@@ -785,9 +785,9 @@ public final class SeedVocabulary {
 
     private FrameBody createTitleRelation(ItemID itemId, String key) {
         return FrameBody.of(
-                CoreVocabulary.Title.SEED.iid(),
+                CoreVocabulary.Title.IID,
                 itemId,
-                Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofText(key)));
+                Map.of(ThematicRole.Goal.IID, Literal.ofText(key)));
     }
 
     private FrameBody createInstanceOfRelation(Item item) {
@@ -801,9 +801,9 @@ public final class SeedVocabulary {
         if (instanceId.equals(typeId)) return null;
 
         return FrameBody.of(
-                LexicalVocabulary.InstanceOf.SEED.iid(),
+                LexicalVocabulary.InstanceOf.IID,
                 instanceId,
-                Map.of(ThematicRole.Goal.SEED.iid(), BindingTarget.iid(typeId)));
+                Map.of(ThematicRole.Goal.IID, BindingTarget.iid(typeId)));
     }
 
     // ==================================================================================

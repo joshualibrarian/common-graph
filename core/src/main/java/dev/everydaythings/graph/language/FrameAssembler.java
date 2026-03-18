@@ -545,14 +545,14 @@ public class FrameAssembler {
 
         // Known conjunctions
         ItemID iid = sememe.iid();
-        if (Sememe.And.SEED.iid().equals(iid) || Sememe.Or.SEED.iid().equals(iid)) {
+        if (Sememe.And.IID.equals(iid) || Sememe.Or.IID.equals(iid)) {
             return Set.of(PartOfSpeech.CONJUNCTION);
         }
 
         // Known pronouns
-        if (Sememe.It.SEED.iid().equals(iid) || Sememe.This.SEED.iid().equals(iid)
-                || Sememe.Last.SEED.iid().equals(iid) || Sememe.Any.SEED.iid().equals(iid)
-                || Sememe.What.SEED.iid().equals(iid)) {
+        if (Sememe.It.IID.equals(iid) || Sememe.This.IID.equals(iid)
+                || Sememe.Last.IID.equals(iid) || Sememe.Any.IID.equals(iid)
+                || Sememe.What.IID.equals(iid)) {
             return Set.of(PartOfSpeech.PRONOUN);
         }
 

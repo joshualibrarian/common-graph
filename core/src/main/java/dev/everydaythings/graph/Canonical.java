@@ -135,48 +135,43 @@ public interface Canonical {
      */
     enum CborType {
         /** CBOR text string → cg.value:text */
-        TEXT(ValueType.TextType.SEED, CBORType.TextString, -1),
+        TEXT(ValueType.TextType.IID, CBORType.TextString, -1),
 
         /** CBOR integer → cg.value:integer */
-        INTEGER(ValueType.IntegerType.SEED, CBORType.Integer, -1),
+        INTEGER(ValueType.IntegerType.IID, CBORType.Integer, -1),
 
         /** CBOR boolean → cg.value:boolean */
-        BOOLEAN(ValueType.BooleanType.SEED, CBORType.Boolean, -1),
+        BOOLEAN(ValueType.BooleanType.IID, CBORType.Boolean, -1),
 
         /** CBOR byte string → cg.value:bytes */
-        BYTES(ValueType.BytesType.SEED, CBORType.ByteString, -1),
+        BYTES(ValueType.BytesType.IID, CBORType.ByteString, -1),
 
         /** CBOR Tag 4 [mantissa, exponent] → cg.value:decimal */
-        DECIMAL(ValueType.DecimalType.SEED, null, 4),
+        DECIMAL(ValueType.DecimalType.IID, null, 4),
 
         /** CBOR Tag 1 (epoch seconds/millis) → cg.value:instant */
-        INSTANT(ValueType.InstantType.SEED, null, 1),
+        INSTANT(ValueType.InstantType.IID, null, 1),
 
         /** [numerator, denominator] array → cg.value:rational */
-        RATIONAL(ValueType.RationalType.SEED, CBORType.Array, -1),
+        RATIONAL(ValueType.RationalType.IID, CBORType.Array, -1),
 
         /** CG Tag 9 [magnitude, unit-iid] → cg.value:quantity */
-        QUANTITY(ValueType.QuantityType.SEED, null, CgTag.QTY),
+        QUANTITY(ValueType.QuantityType.IID, null, CgTag.QTY),
         ;
 
-        private final ValueType valueType;
+        private final ItemID valueTypeId;
         private final CBORType cborType;  // null if detected by tag
         private final int tag;            // -1 if detected by CBORType
 
-        CborType(ValueType valueType, CBORType cborType, int tag) {
-            this.valueType = valueType;
+        CborType(ItemID valueTypeId, CBORType cborType, int tag) {
+            this.valueTypeId = valueTypeId;
             this.cborType = cborType;
             this.tag = tag;
         }
 
-        /** The CG ValueType this CBOR form represents. */
-        public ValueType valueType() {
-            return valueType;
-        }
-
-        /** The ItemID of the CG ValueType. */
+        /** The ItemID of the CG ValueType this CBOR form represents. */
         public ItemID valueTypeId() {
-            return valueType.iid();
+            return valueTypeId;
         }
 
         /** The CBOR primitive type, or null if detected by tag. */
@@ -222,22 +217,22 @@ public interface Canonical {
          * @param type the ValueType to check
          * @return true if the type needs Tag 7 (CG-VALUE) wrapping
          */
-        public static boolean needsExplicitType(ValueType type) {
+        public static boolean needsExplicitType(ItemID typeId) {
             for (CborType ct : values()) {
-                if (ct.valueType == type) return false;
+                if (ct.valueTypeId.equals(typeId)) return false;
             }
             return true;
         }
 
         /**
-         * Find the CborType for a given ValueType.
+         * Find the CborType for a given value type ID.
          *
-         * @param type the ValueType to look up
+         * @param typeId the value type ItemID to look up
          * @return the CborType, or empty if no shorthand exists
          */
-        public static Optional<CborType> forValueType(ValueType type) {
+        public static Optional<CborType> forValueType(ItemID typeId) {
             for (CborType ct : values()) {
-                if (ct.valueType == type) return Optional.of(ct);
+                if (ct.valueTypeId.equals(typeId)) return Optional.of(ct);
             }
             return Optional.empty();
         }

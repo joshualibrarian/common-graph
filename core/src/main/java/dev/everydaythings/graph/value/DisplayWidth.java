@@ -143,16 +143,16 @@ public record DisplayWidth(
     }
 
     private static double toPixels(double value, Unit unit, double charWidthPx, double lineHeightPx) {
-        if (unit == Unit.CharacterWidth.SEED) {
+        if (unit.iid().equals(Unit.CharacterWidth.IID)) {
             return value * charWidthPx;
-        } else if (unit == Unit.LineHeight.SEED) {
+        } else if (unit.iid().equals(Unit.LineHeight.IID)) {
             return value * lineHeightPx;
-        } else if (unit == Unit.Pixel.SEED) {
+        } else if (unit.iid().equals(Unit.Pixel.IID)) {
             return value;
-        } else if (unit == Unit.Percent.SEED) {
+        } else if (unit.iid().equals(Unit.Percent.IID)) {
             // Percent needs a reference - return as-is, caller handles
             return value;
-        } else if (unit == Unit.Em.SEED || unit == Unit.Rem.SEED) {
+        } else if (unit.iid().equals(Unit.Em.IID) || unit.iid().equals(Unit.Rem.IID)) {
             // Approximate: 1em ≈ charWidth * 1.6 (assumes average char is 0.6em)
             return value * charWidthPx * 1.6;
         } else {
@@ -175,15 +175,15 @@ public record DisplayWidth(
     }
 
     private static int toCells(double value, Unit unit) {
-        if (unit == Unit.CharacterWidth.SEED) {
+        if (unit.iid().equals(Unit.CharacterWidth.IID)) {
             return (int) Math.ceil(value);
-        } else if (unit == Unit.LineHeight.SEED) {
+        } else if (unit.iid().equals(Unit.LineHeight.IID)) {
             // Line height doesn't apply to width - treat as 1
             return 1;
-        } else if (unit == Unit.Pixel.SEED) {
+        } else if (unit.iid().equals(Unit.Pixel.IID)) {
             // Approximate: 8px per cell
             return (int) Math.ceil(value / 8.0);
-        } else if (unit == Unit.Em.SEED || unit == Unit.Rem.SEED) {
+        } else if (unit.iid().equals(Unit.Em.IID) || unit.iid().equals(Unit.Rem.IID)) {
             // 1em ≈ 1.6 cells
             return (int) Math.ceil(value * 1.6);
         } else {

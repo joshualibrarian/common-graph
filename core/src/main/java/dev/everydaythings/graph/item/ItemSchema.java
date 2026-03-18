@@ -240,7 +240,7 @@ public class ItemSchema {
         return FrameBody.of(
                 spec.predicate(),
                 item.iid(),
-                Map.of(ThematicRole.Goal.SEED.iid(), targetValue));
+                Map.of(ThematicRole.Goal.IID, targetValue));
     }
 
     // ==================================================================================
@@ -533,7 +533,7 @@ public class ItemSchema {
                                             Consumer<FrameBody> storeFrameBody) {
         java.util.List<dev.everydaythings.graph.frame.Binding> bindings = new java.util.ArrayList<>();
 
-        ItemID topicId = ThematicRole.Topic.SEED.iid();
+        ItemID topicId = ThematicRole.Topic.IID;
 
         // Content — Topic role (identity binding)
         if (snapshotCid != null) {
@@ -544,7 +544,7 @@ public class ItemSchema {
         // Encrypted envelope — compound key (TOPIC, ENCRYPTED)
         if (encryptedCid != null) {
             bindings.add(dev.everydaythings.graph.frame.Binding.compound(
-                    java.util.List.of(topicId, CoreVocabulary.Encrypted.SEED.iid()),
+                    java.util.List.of(topicId, CoreVocabulary.Encrypted.IID),
                     BindingTarget.ref(encryptedCid), false, false));
         }
 
@@ -552,7 +552,7 @@ public class ItemSchema {
         if (existingConfig != null && existingConfig.policy() != null) {
             byte[] configBytes = existingConfig.encodeBinary(Canonical.Scope.RECORD);
             bindings.add(dev.everydaythings.graph.frame.Binding.nonIdentity(
-                    ThematicRole.Config.SEED.iid(),
+                    ThematicRole.Config.IID,
                     new Literal(Literal.TYPE_CBOR, configBytes)));
         }
 

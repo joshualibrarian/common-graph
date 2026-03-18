@@ -18,13 +18,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("UniMorph Reader")
 class UniMorphReaderTest {
 
-    static final ItemID PAST = GrammaticalFeature.Past.SEED.iid();
-    static final ItemID PRESENT = GrammaticalFeature.Present.SEED.iid();
-    static final ItemID PARTICIPLE = GrammaticalFeature.Participle.SEED.iid();
-    static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.SEED.iid();
-    static final ItemID PLURAL = GrammaticalFeature.Plural.SEED.iid();
-    static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.SEED.iid();
-    static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.SEED.iid();
+    static final ItemID PAST = GrammaticalFeature.Past.IID;
+    static final ItemID PRESENT = GrammaticalFeature.Present.IID;
+    static final ItemID PARTICIPLE = GrammaticalFeature.Participle.IID;
+    static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.IID;
+    static final ItemID PLURAL = GrammaticalFeature.Plural.IID;
+    static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.IID;
+    static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.IID;
 
     // English instance for simplification tests
     static final Language english = new English(ItemID.fromString(English.KEY));
@@ -131,7 +131,7 @@ class UniMorphReaderTest {
         @DisplayName("verb: {THIRD_PERSON, SINGULAR, PRESENT} → {THIRD_PERSON}")
         void verbThirdPerson() {
             Set<ItemID> result = english.simplifyFeatures(
-                    Set.of(THIRD_PERSON, GrammaticalFeature.Singular.SEED.iid(), PRESENT),
+                    Set.of(THIRD_PERSON, GrammaticalFeature.Singular.IID, PRESENT),
                     PartOfSpeech.VERB);
             assertThat(result).isEqualTo(Set.of(THIRD_PERSON));
         }
@@ -186,7 +186,7 @@ class UniMorphReaderTest {
         @DisplayName("unrecognized feature combo yields empty set")
         void unknownFeatures() {
             Set<ItemID> result = english.simplifyFeatures(
-                    Set.of(GrammaticalFeature.FirstPerson.SEED.iid(), PRESENT),
+                    Set.of(GrammaticalFeature.FirstPerson.IID, PRESENT),
                     PartOfSpeech.VERB);
             assertThat(result).isEmpty();
         }

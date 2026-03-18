@@ -144,7 +144,7 @@ public class VerbInvoker {
                 if (param.role() != null) {
                     ItemID roleId = null;
                     try {
-                        roleId = ThematicRole.fromName(param.role()).iid();
+                        roleId = ThematicRole.fromName(param.role());
                     } catch (IllegalArgumentException e) {
                         // unknown role string — ignore
                     }

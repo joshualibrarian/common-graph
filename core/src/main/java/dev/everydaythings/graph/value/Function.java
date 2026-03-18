@@ -73,6 +73,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Abs.KEY)
     public static class Abs {
         public static final String KEY = "cg.fn:abs";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "abs", "compute the absolute value of a number", 1, 1, MATH);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -87,6 +88,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Ceil.KEY)
     public static class Ceil {
         public static final String KEY = "cg.fn:ceil";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "ceil", "round up to the nearest integer", 1, 1, MATH);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -101,6 +103,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Floor.KEY)
     public static class Floor {
         public static final String KEY = "cg.fn:floor";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "floor", "round down to the nearest integer", 1, 1, MATH);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -115,6 +118,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Round.KEY)
     public static class Round {
         public static final String KEY = "cg.fn:round";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "round", "round to the nearest integer", 1, 1, MATH);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -129,6 +133,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Sqrt.KEY)
     public static class Sqrt {
         public static final String KEY = "cg.fn:sqrt";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "sqrt", "compute the positive square root", 1, 1, MATH, "square root");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -146,6 +151,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Pow.KEY)
     public static class Pow {
         public static final String KEY = "cg.fn:pow";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "pow", "raise to a power", 2, 2, MATH, "power", "exponent");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -166,6 +172,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Log.KEY)
     public static class Log {
         public static final String KEY = "cg.fn:log";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "log", "compute the natural logarithm", 1, 1, MATH, "logarithm");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -183,6 +190,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Sin.KEY)
     public static class Sin {
         public static final String KEY = "cg.fn:sin";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "sin", "compute the sine", 1, 1, MATH, "sine");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -200,6 +208,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Cos.KEY)
     public static class Cos {
         public static final String KEY = "cg.fn:cos";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "cos", "compute the cosine", 1, 1, MATH, "cosine");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -217,6 +226,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Tan.KEY)
     public static class Tan {
         public static final String KEY = "cg.fn:tan";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "tan", "compute the tangent", 1, 1, MATH, "tangent");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -234,6 +244,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Random.KEY)
     public static class Random {
         public static final String KEY = "cg.fn:random";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "random", "generate a random number between 0 and 1", 0, 0, MATH, "rand");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -256,6 +267,7 @@ public class Function extends Sememe {
     @ItemSeed(key = ToString.KEY)
     public static class ToString {
         public static final String KEY = "cg.fn:tostring";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "toString", "convert a value to its string representation", 1, 1, COERCION, "str");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -273,6 +285,7 @@ public class Function extends Sememe {
     @ItemSeed(key = ToNumber.KEY)
     public static class ToNumber {
         public static final String KEY = "cg.fn:tonumber";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "toNumber", "convert a value to a number", 1, 1, COERCION, "num");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -290,6 +303,7 @@ public class Function extends Sememe {
     @ItemSeed(key = ToBool.KEY)
     public static class ToBool {
         public static final String KEY = "cg.fn:tobool";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "toBool", "convert a value to a boolean", 1, 1, COERCION, "bool");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -312,6 +326,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Upper.KEY)
     public static class Upper {
         public static final String KEY = "cg.fn:upper";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "upper", "convert to uppercase", 1, 1, STRING, "uppercase");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -329,6 +344,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Lower.KEY)
     public static class Lower {
         public static final String KEY = "cg.fn:lower";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "lower", "convert to lowercase", 1, 1, STRING, "lowercase");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -346,6 +362,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Trim.KEY)
     public static class Trim {
         public static final String KEY = "cg.fn:trim";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "trim", "remove leading and trailing whitespace", 1, 1, STRING);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -360,6 +377,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Length.KEY)
     public static class Length {
         public static final String KEY = "cg.fn:length";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "length", "get the length of a string or collection", 1, 1, STRING, "len");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -377,6 +395,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Substring.KEY)
     public static class Substring {
         public static final String KEY = "cg.fn:substring";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "substring", "extract a portion of a string", 2, 3, STRING, "substr");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -394,6 +413,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Split.KEY)
     public static class Split {
         public static final String KEY = "cg.fn:split";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "split", "split a string by delimiter", 2, 2, STRING);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -408,6 +428,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Join.KEY)
     public static class Join {
         public static final String KEY = "cg.fn:join";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "join", "join a list into a string with delimiter", 2, 2, STRING);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -422,6 +443,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Format.KEY)
     public static class Format {
         public static final String KEY = "cg.fn:format";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "format", "format a string with arguments", 1, -1, STRING);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -441,6 +463,7 @@ public class Function extends Sememe {
     @ItemSeed(key = MapFn.KEY)
     public static class MapFn {
         public static final String KEY = "cg.fn:map";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "map", "apply a function to each element", 2, 2, COLLECTION);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -455,6 +478,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Filter.KEY)
     public static class Filter {
         public static final String KEY = "cg.fn:filter";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "filter", "keep elements matching a predicate", 2, 2, COLLECTION);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -469,6 +493,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Reduce.KEY)
     public static class Reduce {
         public static final String KEY = "cg.fn:reduce";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "reduce", "fold a collection into a single value", 3, 3, COLLECTION, "fold");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -486,6 +511,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Range.KEY)
     public static class Range {
         public static final String KEY = "cg.fn:range";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "range", "generate a sequence of integers", 1, 3, COLLECTION);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -500,6 +526,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Reverse.KEY)
     public static class Reverse {
         public static final String KEY = "cg.fn:reverse";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "reverse", "reverse a list or string", 1, 1, COLLECTION);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -514,6 +541,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Sort.KEY)
     public static class Sort {
         public static final String KEY = "cg.fn:sort";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "sort", "sort a list", 1, 1, COLLECTION);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -528,6 +556,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Unique.KEY)
     public static class Unique {
         public static final String KEY = "cg.fn:unique";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "unique", "remove duplicates from a list", 1, 1, COLLECTION, "distinct");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -545,6 +574,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Flatten.KEY)
     public static class Flatten {
         public static final String KEY = "cg.fn:flatten";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "flatten", "flatten nested lists into a single list", 1, 1, COLLECTION);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -564,6 +594,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Typeof.KEY)
     public static class Typeof {
         public static final String KEY = "cg.fn:typeof";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "typeof", "get the type name of a value", 1, 1, UTILITY, "type");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -581,6 +612,7 @@ public class Function extends Sememe {
     @ItemSeed(key = IsNull.KEY)
     public static class IsNull {
         public static final String KEY = "cg.fn:isnull";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "isNull", "check whether a value is null", 1, 1, UTILITY, "null?");
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -598,6 +630,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Coalesce.KEY)
     public static class Coalesce {
         public static final String KEY = "cg.fn:coalesce";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "coalesce", "return the first non-null argument", 1, -1, UTILITY);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -612,6 +645,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Default.KEY)
     public static class Default {
         public static final String KEY = "cg.fn:default";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "default", "return a default value if the first is null", 2, 2, UTILITY);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -631,6 +665,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Now.KEY)
     public static class Now {
         public static final String KEY = "cg.fn:now";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "now", "current time in milliseconds", 0, 0, TIME);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -645,6 +680,7 @@ public class Function extends Sememe {
     @ItemSeed(key = Timestamp.KEY)
     public static class Timestamp {
         public static final String KEY = "cg.fn:timestamp";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Function SEED = fn(KEY, "timestamp", "current time in seconds since epoch", 0, 0, TIME);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})

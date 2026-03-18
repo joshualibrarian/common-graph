@@ -57,6 +57,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = And.KEY)
     public static class And {
         public static final String KEY = "cg.op:and";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "&&", "and", 2, 1, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -71,6 +72,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Or.KEY)
     public static class Or {
         public static final String KEY = "cg.op:or";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "||", "or", 2, 0, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -85,6 +87,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Not.KEY)
     public static class Not {
         public static final String KEY = "cg.op:not";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "!", "not", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -101,6 +104,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Add.KEY)
     public static class Add {
         public static final String KEY = "cg.op:add";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "+", "add", 2, 10, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -115,6 +119,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Subtract.KEY)
     public static class Subtract {
         public static final String KEY = "cg.op:sub";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "-", "subtract", 2, 10, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -129,6 +134,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Multiply.KEY)
     public static class Multiply {
         public static final String KEY = "cg.op:mul";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "*", "multiply", 2, 20, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -143,6 +149,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Divide.KEY)
     public static class Divide {
         public static final String KEY = "cg.op:div";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "/", "divide", 2, 20, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -157,6 +164,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Modulo.KEY)
     public static class Modulo {
         public static final String KEY = "cg.op:mod";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "%", "modulo", 2, 20, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -171,6 +179,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Power.KEY)
     public static class Power {
         public static final String KEY = "cg.op:pow";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "^", "power", 2, 30, Associativity.RIGHT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -185,6 +194,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Negate.KEY)
     public static class Negate {
         public static final String KEY = "cg.op:neg";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "-", "negate", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -201,6 +211,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Equal.KEY)
     public static class Equal {
         public static final String KEY = "cg.op:eq";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "==", "equal", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -215,6 +226,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = NotEqual.KEY)
     public static class NotEqual {
         public static final String KEY = "cg.op:ne";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "!=", "not equal", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -229,6 +241,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = LessThan.KEY)
     public static class LessThan {
         public static final String KEY = "cg.op:lt";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "<", "less than", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -243,6 +256,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = GreaterThan.KEY)
     public static class GreaterThan {
         public static final String KEY = "cg.op:gt";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, ">", "greater than", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -257,6 +271,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = LessOrEqual.KEY)
     public static class LessOrEqual {
         public static final String KEY = "cg.op:le";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "<=", "less or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -271,6 +286,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = GreaterOrEqual.KEY)
     public static class GreaterOrEqual {
         public static final String KEY = "cg.op:ge";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, ">=", "greater or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -287,6 +303,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Concat.KEY)
     public static class Concat {
         public static final String KEY = "cg.op:concat";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "++", "concat", 2, 10, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -303,6 +320,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = In.KEY)
     public static class In {
         public static final String KEY = "cg.op:in";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "in", "in", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -317,6 +335,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Contains.KEY)
     public static class Contains {
         public static final String KEY = "cg.op:contains";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "contains", "contains", 2, 5, Associativity.NONE, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -333,6 +352,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Assign.KEY)
     public static class Assign {
         public static final String KEY = "cg.op:assign";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -347,6 +367,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = IsOp.KEY)
     public static class IsOp {
         public static final String KEY = "cg.op:is";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "is", "is", 2, -5, Associativity.RIGHT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
@@ -361,6 +382,7 @@ public class Operator extends Sememe {
     @ItemSeed(key = Pipe.KEY)
     public static class Pipe {
         public static final String KEY = "cg.op:pipe";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Operator SEED = new Operator(KEY, "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX);
 
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})

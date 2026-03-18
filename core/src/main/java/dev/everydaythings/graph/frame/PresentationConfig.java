@@ -68,7 +68,7 @@ public final class PresentationConfig implements Canonical {
      * The primary color from the palette, or -1 if not set.
      */
     public int primaryColor() {
-        return paletteColor(PresentationVocabulary.Primary.SEED.iid());
+        return paletteColor(PresentationVocabulary.Primary.IID);
     }
 
     /**
@@ -135,7 +135,7 @@ public final class PresentationConfig implements Canonical {
      */
     public static PresentationConfig of(String glyph, int color, String shape) {
         List<PaletteEntry> palette = List.of(
-                new PaletteEntry(PresentationVocabulary.Primary.SEED.iid(), color));
+                new PaletteEntry(PresentationVocabulary.Primary.IID, color));
         return new PresentationConfig(palette, List.of(), glyph, shape);
     }
 

@@ -220,7 +220,7 @@ public final class Manifest implements Signing.Target {
      */
     public static Binding javaImplementation(Class<?> clazz) {
         return new Binding(
-                RuntimeVocabulary.Java.SEED.iid(),
+                RuntimeVocabulary.Java.IID,
                 Literal.ofText(clazz.getName()));
     }
 

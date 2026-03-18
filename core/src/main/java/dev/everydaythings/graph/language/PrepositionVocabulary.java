@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.id.ItemID;
 
 /**
  * Preposition vocabulary — function words that assign thematic roles.
@@ -20,11 +20,7 @@ public final class PrepositionVocabulary {
     @ItemSeed(key = On.KEY)
     public static class On {
         public static final String KEY = "cg.prep:on";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "indicating target or destination")
-                .word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "on").word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "to").word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "into")
-                .role(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "indicating target or destination";
 
@@ -44,11 +40,7 @@ public final class PrepositionVocabulary {
     @ItemSeed(key = With.KEY)
     public static class With {
         public static final String KEY = "cg.prep:with";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "indicating tool or means")
-                .word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "with").word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "using")
-                .role(ThematicRole.Instrument.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "indicating tool or means";
 
@@ -65,11 +57,7 @@ public final class PrepositionVocabulary {
     @ItemSeed(key = From.KEY)
     public static class From {
         public static final String KEY = "cg.prep:from";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "indicating origin or source")
-                .word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "from")
-                .role(ThematicRole.Source.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "indicating origin or source";
 
@@ -83,11 +71,7 @@ public final class PrepositionVocabulary {
     @ItemSeed(key = For.KEY)
     public static class For {
         public static final String KEY = "cg.prep:for";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "indicating beneficiary or recipient")
-                .word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "for")
-                .role(ThematicRole.Recipient.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "indicating beneficiary or recipient";
 
@@ -101,11 +85,7 @@ public final class PrepositionVocabulary {
     @ItemSeed(key = Between.KEY)
     public static class Between {
         public static final String KEY = "cg.prep:between";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "indicating companions or participants")
-                .word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "between")
-                .role(ThematicRole.Partner.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "indicating companions or participants";
 
@@ -119,11 +99,7 @@ public final class PrepositionVocabulary {
     @ItemSeed(key = Named.KEY)
     public static class Named {
         public static final String KEY = "cg.prep:named";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "indicating designation or label")
-                .word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "named").word(PartOfSpeech.PREPOSITION, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "called")
-                .role(ThematicRole.Name.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "indicating designation or label";
 

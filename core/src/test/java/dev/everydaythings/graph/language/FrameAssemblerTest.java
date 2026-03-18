@@ -13,19 +13,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link FrameAssembler} — order-agnostic semantic frame assembly.
  *
- * <p>Uses seed Sememes (which are Items) directly as resolved references.
- * A mock item stands in for non-sememe nouns like "chess" or "librarian".
+ * <p>Constructs test Sememe instances matching the old seed definitions from
+ * CoreVocabulary and PrepositionVocabulary. These carry the slot roles and
+ * assigned roles that FrameAssembler needs for dispatch.
  */
 class FrameAssemblerTest {
 
-    // Use real seed sememes as verb/preposition items
-    private static final Sememe CREATE = CoreVocabulary.Create.SEED;
-    private static final Sememe SHOW = CoreVocabulary.Show.SEED;
-    private static final Sememe EDIT = CoreVocabulary.Edit.SEED;
-    private static final Sememe ON = PrepositionVocabulary.On.SEED;
-    private static final Sememe BETWEEN = PrepositionVocabulary.Between.SEED;
-    private static final Sememe NAMED = PrepositionVocabulary.Named.SEED;
-    private static final Sememe FROM = PrepositionVocabulary.From.SEED;
+    // Construct verb sememes with slot roles (matching the old SEED definitions)
+    private static final Sememe CREATE = new Sememe(CoreVocabulary.Create.KEY)
+            .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
+            .slot(ThematicRole.Name.KEY).slot(ThematicRole.Partner.KEY)
+            .slot(ThematicRole.Source.KEY);
+    private static final Sememe SHOW = new Sememe(CoreVocabulary.Show.KEY)
+            .slot(ThematicRole.Theme.KEY);
+    private static final Sememe EDIT = new Sememe(CoreVocabulary.Edit.KEY)
+            .slot(ThematicRole.Patient.KEY);
+
+    // Construct preposition sememes with assigned roles
+    private static final Sememe ON = new Sememe(PrepositionVocabulary.On.KEY)
+            .role(ThematicRole.Goal.KEY);
+    private static final Sememe BETWEEN = new Sememe(PrepositionVocabulary.Between.KEY)
+            .role(ThematicRole.Partner.KEY);
+    private static final Sememe NAMED = new Sememe(PrepositionVocabulary.Named.KEY)
+            .role(ThematicRole.Name.KEY);
+    private static final Sememe FROM = new Sememe(PrepositionVocabulary.From.KEY)
+            .role(ThematicRole.Source.KEY);
+
+    // Conjunction — Sememe.And still has a SEED field
     private static final Sememe AND = Sememe.And.SEED;
 
     // Test modifier sememes
@@ -53,7 +67,7 @@ class FrameAssemblerTest {
             .gloss("en", "jane");
 
     /**
-     * Resolver that knows about our seed sememes and mock items.
+     * Resolver that knows about our test sememes and mock items.
      */
     private final Function<ItemID, Optional<Item>> resolver = iid -> {
         if (iid.equals(CREATE.iid())) return Optional.of(CREATE);
@@ -102,7 +116,7 @@ class FrameAssemblerTest {
 
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
         // CREATE has 5 slots; only THEME filled → 4 unbound
         assertThat(frame.get().unboundRoles()).hasSize(4);
@@ -124,8 +138,8 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
-                .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Goal.SEED.iid(), LIBRARIAN_ITEM);
+                .containsEntry(ThematicRole.Theme.IID, CHESS_ITEM)
+                .containsEntry(ThematicRole.Goal.IID, LIBRARIAN_ITEM);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
         // CREATE has 5 slots; THEME+TARGET filled → 3 unbound
         assertThat(frame.get().unboundRoles()).hasSize(3);
@@ -147,8 +161,8 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
-                .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Goal.SEED.iid(), LIBRARIAN_ITEM);
+                .containsEntry(ThematicRole.Theme.IID, CHESS_ITEM)
+                .containsEntry(ThematicRole.Goal.IID, LIBRARIAN_ITEM);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -168,8 +182,8 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
-                .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Goal.SEED.iid(), LIBRARIAN_ITEM);
+                .containsEntry(ThematicRole.Theme.IID, CHESS_ITEM)
+                .containsEntry(ThematicRole.Goal.IID, LIBRARIAN_ITEM);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -241,7 +255,7 @@ class FrameAssemblerTest {
 
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
         // ON is unmatched because it has no object
         assertThat(frame.get().unmatchedArgs()).hasSize(1);
     }
@@ -281,7 +295,8 @@ class FrameAssemblerTest {
     @Test
     void requiredSlotsTracked() {
         // GET has a required THEME slot
-        var getVerb = CoreVocabulary.Get.SEED;
+        var getVerb = new Sememe(CoreVocabulary.Get.KEY)
+                .slot(ThematicRole.Theme.KEY);
         Function<ItemID, Optional<Item>> r = iid -> {
             if (iid.equals(getVerb.iid())) return Optional.of(getVerb);
             return Optional.empty();
@@ -294,7 +309,7 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().isComplete()).isFalse();
         assertThat(frame.get().unboundRoles()).hasSize(1);
-        assertThat(frame.get().unboundRoles().get(0)).isEqualTo(ThematicRole.Theme.SEED.iid());
+        assertThat(frame.get().unboundRoles().get(0)).isEqualTo(ThematicRole.Theme.IID);
     }
 
     // ==================================================================================
@@ -314,10 +329,10 @@ class FrameAssemblerTest {
 
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
 
         // COMITATIVE should be a List of [bob, jane]
-        Object comitative = frame.get().bindings().get(ThematicRole.Partner.SEED.iid());
+        Object comitative = frame.get().bindings().get(ThematicRole.Partner.IID);
         assertThat(comitative).isInstanceOf(List.class);
         List<Object> players = (List<Object>) comitative;
         assertThat(players).hasSize(2);
@@ -343,8 +358,8 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
-                .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Name.SEED.iid(), "its-on!");
+                .containsEntry(ThematicRole.Theme.IID, CHESS_ITEM)
+                .containsEntry(ThematicRole.Name.IID, "its-on!");
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -364,8 +379,8 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
-                .containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM)
-                .containsEntry(ThematicRole.Source.SEED.iid(), "/path/to/game.pgn");
+                .containsEntry(ThematicRole.Theme.IID, CHESS_ITEM)
+                .containsEntry(ThematicRole.Source.IID, "/path/to/game.pgn");
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -387,10 +402,10 @@ class FrameAssemblerTest {
 
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Name.SEED.iid(), "its-on!");
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Name.IID, "its-on!");
 
-        List<Object> players = (List<Object>) frame.get().bindings().get(ThematicRole.Partner.SEED.iid());
+        List<Object> players = (List<Object>) frame.get().bindings().get(ThematicRole.Partner.IID);
         assertThat(players).containsExactly(BOB_ITEM, JANE_ITEM);
 
         assertThat(frame.get().unmatchedArgs()).isEmpty();
@@ -410,7 +425,7 @@ class FrameAssemblerTest {
         var frame = FrameAssembler.assemble(tokens, resolver);
 
         assertThat(frame).isPresent();
-        assertThat(frame.get().bindings().get(ThematicRole.Partner.SEED.iid())).isSameAs(BOB_ITEM);
+        assertThat(frame.get().bindings().get(ThematicRole.Partner.IID)).isSameAs(BOB_ITEM);
     }
 
     // ==================================================================================
@@ -426,7 +441,7 @@ class FrameAssemblerTest {
 
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
         assertThat(frame.get().verbModifiers()).containsExactly(QUIETLY);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
@@ -444,9 +459,9 @@ class FrameAssemblerTest {
 
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
         // Adjective should be keyed by role since chess was bound to THEME
-        assertThat(frame.get().modifiersFor(ThematicRole.Theme.SEED.iid())).containsExactly(PUBLIC_ADJ);
+        assertThat(frame.get().modifiersFor(ThematicRole.Theme.IID)).containsExactly(PUBLIC_ADJ);
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -464,7 +479,7 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().verbModifiers()).containsExactly(QUIETLY);
-        assertThat(frame.get().modifiersFor(ThematicRole.Theme.SEED.iid())).containsExactly(PUBLIC_ADJ);
+        assertThat(frame.get().modifiersFor(ThematicRole.Theme.IID)).containsExactly(PUBLIC_ADJ);
     }
 
     // ==================================================================================
@@ -484,11 +499,11 @@ class FrameAssemblerTest {
 
         // First frame: create chess
         assertThat(frames.get(0).verb()).isSameAs(CREATE);
-        assertThat(frames.get(0).bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), CHESS_ITEM);
+        assertThat(frames.get(0).bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
 
         // Second frame: show librarian
         assertThat(frames.get(1).verb()).isSameAs(SHOW);
-        assertThat(frames.get(1).bindings()).containsEntry(ThematicRole.Theme.SEED.iid(), LIBRARIAN_ITEM);
+        assertThat(frames.get(1).bindings()).containsEntry(ThematicRole.Theme.IID, LIBRARIAN_ITEM);
     }
 
     // ==================================================================================

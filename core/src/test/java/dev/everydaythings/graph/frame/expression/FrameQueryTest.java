@@ -17,8 +17,8 @@ class FrameQueryTest {
     static final ItemID THE_HOBBIT = ItemID.fromString("cg:book/the-hobbit");
     static final ItemID TOLKIEN = ItemID.fromString("cg:person/tolkien");
     static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
-    static final ItemID ANY = Sememe.Any.SEED.iid();
-    static final ItemID WHAT = Sememe.What.SEED.iid();
+    static final ItemID ANY = Sememe.Any.IID;
+    static final ItemID WHAT = Sememe.What.IID;
 
     @Test
     @DisplayName("of(predicate, theme) creates query with known predicate and theme")

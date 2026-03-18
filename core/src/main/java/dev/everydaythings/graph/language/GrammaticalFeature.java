@@ -40,10 +40,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Lemma.KEY)
     public static class Lemma {
         public static final String KEY = "cg.feat:lemma";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "the base or dictionary form of a word")
-                .cili("i71975").word(LEMMA, ENG, "lemma");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the base or dictionary form of a word";
 
@@ -62,10 +59,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Past.KEY)
     public static class Past {
         public static final String KEY = "cg.feat:past";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "past tense")
-                .cili("i69743").word(LEMMA, ENG, "past");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "past tense";
 
@@ -80,10 +74,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Present.KEY)
     public static class Present {
         public static final String KEY = "cg.feat:present";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "present tense")
-                .cili("i69740").word(LEMMA, ENG, "present");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "present tense";
 
@@ -98,10 +89,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Future.KEY)
     public static class Future {
         public static final String KEY = "cg.feat:future";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "future tense")
-                .cili("i69744").word(LEMMA, ENG, "future");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "future tense";
 
@@ -120,10 +108,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Singular.KEY)
     public static class Singular {
         public static final String KEY = "cg.feat:singular";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "singular number")
-                .cili("i69586").word(LEMMA, ENG, "singular");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "singular number";
 
@@ -138,10 +123,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Plural.KEY)
     public static class Plural {
         public static final String KEY = "cg.feat:plural";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "plural number")
-                .cili("i69585").word(LEMMA, ENG, "plural");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "plural number";
 
@@ -160,10 +142,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = FirstPerson.KEY)
     public static class FirstPerson {
         public static final String KEY = "cg.feat:first-person";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "first person")
-                .cili("i69730").word(LEMMA, ENG, "first-person");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "first person";
 
@@ -178,10 +157,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = SecondPerson.KEY)
     public static class SecondPerson {
         public static final String KEY = "cg.feat:second-person";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "second person")
-                .cili("i69731").word(LEMMA, ENG, "second-person");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "second person";
 
@@ -196,10 +172,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = ThirdPerson.KEY)
     public static class ThirdPerson {
         public static final String KEY = "cg.feat:third-person";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "third person")
-                .cili("i69732").word(LEMMA, ENG, "third-person");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "third person";
 
@@ -218,10 +191,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Participle.KEY)
     public static class Participle {
         public static final String KEY = "cg.feat:participle";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "participle form")
-                .cili("i69745").word(LEMMA, ENG, "participle");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "participle form";
 
@@ -236,10 +206,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Progressive.KEY)
     public static class Progressive {
         public static final String KEY = "cg.feat:progressive";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "progressive aspect")
-                .cili("i109457").word(LEMMA, ENG, "progressive");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "progressive aspect";
 
@@ -254,10 +221,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Perfect.KEY)
     public static class Perfect {
         public static final String KEY = "cg.feat:perfect";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "perfect aspect")
-                .cili("i109459").word(LEMMA, ENG, "perfect");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "perfect aspect";
 
@@ -276,10 +240,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Imperative.KEY)
     public static class Imperative {
         public static final String KEY = "cg.feat:imperative";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "imperative mood")
-                .cili("i109438").word(LEMMA, ENG, "imperative");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "imperative mood";
 
@@ -294,10 +255,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Subjunctive.KEY)
     public static class Subjunctive {
         public static final String KEY = "cg.feat:subjunctive";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "subjunctive mood")
-                .cili("i109436").word(LEMMA, ENG, "subjunctive");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "subjunctive mood";
 
@@ -312,10 +270,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Infinitive.KEY)
     public static class Infinitive {
         public static final String KEY = "cg.feat:infinitive";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "infinitive form")
-                .cili("i69687").word(LEMMA, ENG, "infinitive");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "infinitive form";
 
@@ -334,10 +289,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Comparative.KEY)
     public static class Comparative {
         public static final String KEY = "cg.feat:comparative";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "comparative degree")
-                .cili("i69707").word(LEMMA, ENG, "comparative");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "comparative degree";
 
@@ -352,10 +304,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Superlative.KEY)
     public static class Superlative {
         public static final String KEY = "cg.feat:superlative";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "superlative degree")
-                .cili("i69708").word(LEMMA, ENG, "superlative");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "superlative degree";
 
@@ -374,10 +323,7 @@ public class GrammaticalFeature extends Sememe {
     @ItemSeed(key = Passive.KEY)
     public static class Passive {
         public static final String KEY = "cg.feat:passive";
-        @Seed public static final GrammaticalFeature SEED = new GrammaticalFeature(KEY)
-                .gloss(ENG, "passive voice")
-                .cili("i109444").word(LEMMA, ENG, "passive");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "passive voice";
 

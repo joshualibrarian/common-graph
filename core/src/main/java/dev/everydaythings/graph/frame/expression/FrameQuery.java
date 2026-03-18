@@ -52,8 +52,8 @@ public record FrameQuery(
 
     private static final Logger log = LogManager.getLogger(FrameQuery.class);
 
-    private static final ItemID ANY = Sememe.Any.SEED.iid();
-    private static final ItemID WHAT = Sememe.What.SEED.iid();
+    private static final ItemID ANY = Sememe.Any.IID;
+    private static final ItemID WHAT = Sememe.What.IID;
     private static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
 
     // ==================================================================================

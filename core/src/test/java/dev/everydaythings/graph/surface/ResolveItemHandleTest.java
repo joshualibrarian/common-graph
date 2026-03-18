@@ -28,7 +28,7 @@ class ResolveItemHandleTest {
         Librarian lib = Librarian.createInMemory();
 
         // Get the TITLE sememe IID
-        ItemID titleIid = CoreVocabulary.Title.SEED.iid();
+        ItemID titleIid = CoreVocabulary.Title.IID;
         System.out.println("TITLE sememe IID: " + titleIid.encodeText());
 
         // Try to resolve TITLE
@@ -67,7 +67,7 @@ class ResolveItemHandleTest {
 
         // Compile a frame body WITH resolver
         FrameBody body = FrameBody.of(titleIid, libIid,
-                java.util.Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofText("joshua")));
+                java.util.Map.of(ThematicRole.Goal.IID, Literal.ofText("joshua")));
 
         System.out.println("\n=== Compiling FrameBody with resolver ===");
         View view = SceneCompiler.compile(body, SceneMode.FULL,

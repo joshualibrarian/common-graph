@@ -67,6 +67,7 @@ public class Dimension extends Item {
     @ItemSeed(key = Length.KEY)
     public static class Length {
         public static final String KEY = "cg.dim:length";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Dimension SEED = new Dimension(
                 KEY, "L", "length", Map.of("en", "spatial extent in one direction"));
     }
@@ -75,6 +76,7 @@ public class Dimension extends Item {
     @ItemSeed(key = Time.KEY)
     public static class Time {
         public static final String KEY = "cg.dim:time";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Dimension SEED = new Dimension(
                 KEY, "T", "time", Map.of("en", "duration of events"));
     }
@@ -83,6 +85,7 @@ public class Dimension extends Item {
     @ItemSeed(key = Mass.KEY)
     public static class Mass {
         public static final String KEY = "cg.dim:mass";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Dimension SEED = new Dimension(
                 KEY, "M", "mass", Map.of("en", "quantity of matter"));
     }
@@ -91,6 +94,7 @@ public class Dimension extends Item {
     @ItemSeed(key = ElectricCurrent.KEY)
     public static class ElectricCurrent {
         public static final String KEY = "cg.dim:electric-current";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Dimension SEED = new Dimension(
                 KEY, "I", "electric current", Map.of("en", "flow of electric charge"));
     }
@@ -99,6 +103,7 @@ public class Dimension extends Item {
     @ItemSeed(key = Temperature.KEY)
     public static class Temperature {
         public static final String KEY = "cg.dim:temperature";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Dimension SEED = new Dimension(
                 KEY, "Θ", "temperature", Map.of("en", "average kinetic energy of particles"));
     }
@@ -107,6 +112,7 @@ public class Dimension extends Item {
     @ItemSeed(key = Amount.KEY)
     public static class Amount {
         public static final String KEY = "cg.dim:amount";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Dimension SEED = new Dimension(
                 KEY, "N", "amount of substance", Map.of("en", "number of elementary entities"));
     }
@@ -115,6 +121,7 @@ public class Dimension extends Item {
     @ItemSeed(key = LuminousIntensity.KEY)
     public static class LuminousIntensity {
         public static final String KEY = "cg.dim:luminous-intensity";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Dimension SEED = new Dimension(
                 KEY, "J", "luminous intensity", Map.of("en", "luminous power per solid angle"));
     }

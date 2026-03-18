@@ -68,8 +68,8 @@ public class Sememe extends Item {
     /** English language code for gloss/word declarations. */
     protected static final String ENG = "en";
 
-    /** Convenience alias for lemma form declarations. */
-    protected static final GrammaticalFeature LEMMA = GrammaticalFeature.Lemma.SEED;
+    /** Convenience alias for lemma form declarations in inner-class seed builders. */
+    protected static final Sememe LEMMA = new Sememe(GrammaticalFeature.Lemma.KEY);
 
     // ==================================================================================
     // INSTANCE FIELDS (value object role)
@@ -422,50 +422,6 @@ public class Sememe extends Item {
     // CONVENIENCE METHODS
     // ==================================================================================
 
-    /**
-     * Get all verb Sememes (for vocabulary indexing).
-     *
-     * <p>Returns the verb primitives used in the vocabulary system.
-     *
-     * @return List of verb Sememes
-     */
-    public static List<Sememe> verbSememes() {
-        return List.of(
-                CoreVocabulary.Create.SEED, CoreVocabulary.Get.SEED, CoreVocabulary.Put.SEED,
-                CoreVocabulary.Remove.SEED, CoreVocabulary.ListVerb.SEED, CoreVocabulary.Import.SEED,
-                CoreVocabulary.Query.SEED, CoreVocabulary.Find.SEED,
-                CoreVocabulary.Show.SEED, CoreVocabulary.Help.SEED, CoreVocabulary.Edit.SEED,
-                CoreVocabulary.Count.SEED, CoreVocabulary.Describe.SEED, CoreVocabulary.Inspect.SEED,
-                CoreVocabulary.Rename.SEED, CoreVocabulary.Invite.SEED, CoreVocabulary.Serve.SEED);
-    }
-
-    /** TODO: this is not a sustainable pattern, we need to refactor this out.  ALL sememes which get imported are scanned for tokens.
-     * Get all seed Sememes that have tokens (for indexing).
-     *
-     * <p>Returns all Sememes that have explicit token aliases defined.
-     * This includes verb Sememes and query pattern Sememes (ANY, WHAT).
-     *
-     * @return List of Sememes with tokens
-     */
-    public static List<Sememe> sememesWithTokens() {
-        return List.of(
-                // Verbs
-                CoreVocabulary.Create.SEED, CoreVocabulary.Get.SEED, CoreVocabulary.Put.SEED,
-                CoreVocabulary.Remove.SEED, CoreVocabulary.ListVerb.SEED, CoreVocabulary.Import.SEED,
-                CoreVocabulary.Query.SEED, CoreVocabulary.Find.SEED,
-                CoreVocabulary.Show.SEED, CoreVocabulary.Help.SEED, CoreVocabulary.Edit.SEED,
-                CoreVocabulary.Count.SEED, CoreVocabulary.Describe.SEED, CoreVocabulary.Inspect.SEED,
-                CoreVocabulary.Rename.SEED, CoreVocabulary.Invite.SEED, CoreVocabulary.Serve.SEED,
-                // Prepositions
-                PrepositionVocabulary.On.SEED, PrepositionVocabulary.With.SEED,
-                PrepositionVocabulary.From.SEED, PrepositionVocabulary.For.SEED,
-                PrepositionVocabulary.Between.SEED, PrepositionVocabulary.Named.SEED,
-                // Conjunctions
-                Sememe.And.SEED, Sememe.Or.SEED,
-                // Query patterns
-                Sememe.Any.SEED, Sememe.What.SEED
-        );
-    }
 
     /**
      * Get gloss for a specific language.
@@ -588,6 +544,7 @@ public class Sememe extends Item {
     @ItemSeed(key = Any.KEY)
     public static class Any {
         public static final String KEY = "cg.query:any";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "matches anything; wildcard; any value")
                 .cili("i61150")
@@ -613,6 +570,7 @@ public class Sememe extends Item {
     @ItemSeed(key = What.KEY)
     public static class What {
         public static final String KEY = "cg.query:what";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the result being queried for; variable; unknown")
                 .cili("i74896")
@@ -638,6 +596,7 @@ public class Sememe extends Item {
     @ItemSeed(key = It.KEY)
     public static class It {
         public static final String KEY = "cg.pronoun:it";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the most recently mentioned or created item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "it").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "that");
@@ -655,6 +614,7 @@ public class Sememe extends Item {
     @ItemSeed(key = This.KEY)
     public static class This {
         public static final String KEY = "cg.pronoun:this";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the currently focused item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "this");
@@ -669,6 +629,7 @@ public class Sememe extends Item {
     @ItemSeed(key = Last.KEY)
     public static class Last {
         public static final String KEY = "cg.pronoun:last";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the previously mentioned item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "last").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "previous");
@@ -690,6 +651,7 @@ public class Sememe extends Item {
     @ItemSeed(key = And.KEY)
     public static class And {
         public static final String KEY = "cg.conj:and";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "coordinating conjunction; connects elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "and");
@@ -704,6 +666,7 @@ public class Sememe extends Item {
     @ItemSeed(key = Or.KEY)
     public static class Or {
         public static final String KEY = "cg.conj:or";
+        public static final ItemID IID = ItemID.fromString(KEY);
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "coordinating disjunction; alternative elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "or");
@@ -749,14 +712,14 @@ public class Sememe extends Item {
         Item newItem = instantiateItem(implClass, lib);
 
         // 2. INSTANCE_OF relation: link instance to this sememe
-        newItem.relate(LexicalVocabulary.InstanceOf.SEED.iid(), this);
+        newItem.relate(LexicalVocabulary.InstanceOf.IID, this);
 
         // 3. Optional name — Signers get setName(), others get a TITLE relation
         if (name != null && !name.isBlank()) {
             if (newItem instanceof Signer signer) {
                 signer.setName(name);
             } else {
-                newItem.relate(CoreVocabulary.Title.SEED.iid(), Literal.ofText(name));
+                newItem.relate(CoreVocabulary.Title.IID, Literal.ofText(name));
             }
         }
 
@@ -805,14 +768,14 @@ public class Sememe extends Item {
      */
     public Optional<Class<?>> resolveImplementingClass() {
         if (frames() != null) {
-            ItemID implPredicate = CoreVocabulary.ImplementedBy.SEED.iid();
+            ItemID implPredicate = CoreVocabulary.ImplementedBy.IID;
             var it = frames().bareFrames().iterator();
             while (it.hasNext()) {
                 var frame = it.next();
                 Optional<Object> live = frames().getLive(frame.frameKey());
                 if (live.isPresent() && live.get() instanceof FrameBody body) {
                     if (implPredicate.equals(body.predicate())) {
-                        BindingTarget target = body.bindings().get(ThematicRole.Goal.SEED.iid());
+                        BindingTarget target = body.bindings().get(ThematicRole.Goal.IID);
                         if (target instanceof Literal lit) {
                             String className = lit.asText();
                             if (className != null) {

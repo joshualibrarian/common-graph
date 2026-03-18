@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.id.ItemID;
 
 /**
  * Lexical relation vocabulary — semantic relationships between concepts.
@@ -19,12 +19,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Hypernym.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Hypernym {
         public static final String KEY = "cg.rel:hypernym";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "is a kind of; is a type of; is a subclass of")
-                .cili("i69569")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "hypernym");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is a kind of; is a type of; is a subclass of";
 
@@ -38,12 +33,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Hyponym.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Hyponym {
         public static final String KEY = "cg.rel:hyponym";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "has subtype; has kind; is a superclass of")
-                .cili("i69570")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "hyponym");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "has subtype; has kind; is a superclass of";
 
@@ -57,12 +47,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = InstanceOf.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class InstanceOf {
         public static final String KEY = "cg.rel:instance-of";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "is an instance of; has type; is a member of class")
-                .cili("i35284")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "instance-of");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is an instance of; has type; is a member of class";
 
@@ -76,12 +61,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Holonym.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Holonym {
         public static final String KEY = "cg.rel:holonym";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "is a part of; is contained in")
-                .cili("i69567")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "holonym");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is a part of; is contained in";
 
@@ -95,12 +75,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Meronym.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Meronym {
         public static final String KEY = "cg.rel:meronym";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "has as a part; contains")
-                .cili("i69575")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "meronym");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "has as a part; contains";
 
@@ -114,12 +89,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Antonym.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Antonym {
         public static final String KEY = "cg.rel:antonym";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "is the opposite of; contrasts with")
-                .cili("i69547")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "antonym");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is the opposite of; contrasts with";
 
@@ -133,12 +103,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = SimilarTo.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class SimilarTo {
         public static final String KEY = "cg.rel:similar-to";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "is similar to; resembles in meaning")
-                .cili("i34992")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "similar-to");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is similar to; resembles in meaning";
 
@@ -152,12 +117,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Derivation.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Derivation {
         public static final String KEY = "cg.rel:derivation";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "is derivationally related to")
-                .cili("i37467")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "derivation");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is derivationally related to";
 
@@ -171,12 +131,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Domain.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Domain {
         public static final String KEY = "cg.rel:domain";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "belongs to domain; is in the category of")
-                .cili("i68336")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "domain");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "belongs to domain; is in the category of";
 
@@ -190,12 +145,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Entails.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Entails {
         public static final String KEY = "cg.rel:entails";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "entails; necessarily implies")
-                .cili("i34848")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "entails");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "entails; necessarily implies";
 
@@ -209,12 +159,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = Causes.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class Causes {
         public static final String KEY = "cg.rel:causes";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "causes; brings about")
-                .cili("i29966")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "causes");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "causes; brings about";
 
@@ -228,12 +173,7 @@ public final class LexicalVocabulary {
     @ItemSeed(key = SeeAlso.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class SeeAlso {
         public static final String KEY = "cg.rel:see-also";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "see also; is related to")
-                .cili("i25271")
-                .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "see-also");
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "see also; is related to";
 

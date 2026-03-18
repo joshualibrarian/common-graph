@@ -18,14 +18,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EnglishMorphologyTest {
 
     // Feature IIDs
-    static final ItemID PAST = GrammaticalFeature.Past.SEED.iid();
-    static final ItemID PRESENT = GrammaticalFeature.Present.SEED.iid();
-    static final ItemID PLURAL = GrammaticalFeature.Plural.SEED.iid();
-    static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.SEED.iid();
-    static final ItemID SINGULAR = GrammaticalFeature.Singular.SEED.iid();
-    static final ItemID PARTICIPLE = GrammaticalFeature.Participle.SEED.iid();
-    static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.SEED.iid();
-    static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.SEED.iid();
+    static final ItemID PAST = GrammaticalFeature.Past.IID;
+    static final ItemID PRESENT = GrammaticalFeature.Present.IID;
+    static final ItemID PLURAL = GrammaticalFeature.Plural.IID;
+    static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.IID;
+    static final ItemID SINGULAR = GrammaticalFeature.Singular.IID;
+    static final ItemID PARTICIPLE = GrammaticalFeature.Participle.IID;
+    static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.IID;
+    static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.IID;
 
     // Use English as a seed (no librarian needed for morphology)
     static final English english = new English(ItemID.fromString(English.KEY));

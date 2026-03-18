@@ -674,7 +674,7 @@ public final class Library implements Canonical, AutoCloseable {
         //    IMPLEMENTED_BY frames first (needed for type hydration during token indexing)
         List<FrameBody> allBodies = source.frameBodies().toList();
         logger.info("importFrom: {} frame bodies to import", allBodies.size());
-        ItemID implByPred = CoreVocabulary.ImplementedBy.SEED.iid();
+        ItemID implByPred = CoreVocabulary.ImplementedBy.IID;
         List<FrameBody> deferredBodies = new ArrayList<>();
         for (FrameBody body : allBodies) {
             if (body.predicate().equals(implByPred)) {
@@ -692,22 +692,7 @@ public final class Library implements Canonical, AutoCloseable {
             });
         }
 
-        // 4. Index seed Sememe tokens (for vocabulary lookups)
-        // Seed tokens are English lexemes, scoped to the English Language Item.
-        // This enables verb dispatch: "create"/"new"/"make" → CREATE Sememe
-        tokenDictionary().ifPresent(tokenDict -> {
-            tokenDict.runInWriteTransaction(tx -> {
-                for (Sememe sememe : Sememe.sememesWithTokens()) {
-                    List<Posting> postings = TokenExtractor.fromSememe(sememe, Language.ENGLISH);
-                    for (Posting p : postings) {
-                        tokenDict.index(p, tx);
-                    }
-                }
-            });
-            logger.debug("importFrom: indexed tokens for {} seed Sememes", Sememe.sememesWithTokens().size());
-        });
-
-        // 5. Index seed Item tokens (for unit resolution, type lookups, etc.)
+        // 4. Index seed Item tokens (for unit resolution, type lookups, etc.)
         // Most are English names/labels, scoped to the English Language Item.
         // Language items get special handling: 3-letter codes are universal postings.
         tokenDictionary().ifPresent(tokenDict -> {
@@ -987,7 +972,7 @@ public final class Library implements Canonical, AutoCloseable {
      * @return The implementing Java class, or empty if not found
      */
     public Optional<Class<?>> findImplementation(ItemID typeId) {
-        return byItemPredicate(typeId, CoreVocabulary.ImplementedBy.SEED.iid())
+        return byItemPredicate(typeId, CoreVocabulary.ImplementedBy.IID)
                 .findFirst()
                 .map(body -> {
                     BindingTarget target = body.binding(ItemID.fromString("cg.role:goal"));

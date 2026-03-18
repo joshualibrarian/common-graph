@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.id.ItemID;
 
 /**
  * View vocabulary seeds — predicates and verbs for the ITEM_VIEW lifecycle.
@@ -29,12 +29,7 @@ public final class ViewVocabulary {
     @ItemSeed(key = ItemView.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Location.KEY})
     public static class ItemView {
         public static final String KEY = "cg.sememe:item-view";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a persistent view of an item within a session")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "item-view")
-                .slot(ThematicRole.Theme.KEY)
-                .slot(ThematicRole.Location.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a persistent view of an item within a session";
 
@@ -51,11 +46,7 @@ public final class ViewVocabulary {
     @ItemSeed(key = Display.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Display {
         public static final String KEY = "cg.sememe:display";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "a physical display device attached to a host")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "display")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a physical display device attached to a host";
 
@@ -73,12 +64,7 @@ public final class ViewVocabulary {
     @ItemSeed(key = DisplayLayout.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Location.KEY})
     public static class DisplayLayout {
         public static final String KEY = "cg.sememe:display-layout";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "placement of a display within a session's coordinate space")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "display-layout")
-                .slot(ThematicRole.Theme.KEY)
-                .slot(ThematicRole.Location.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "placement of a display within a session's coordinate space";
 
@@ -99,12 +85,7 @@ public final class ViewVocabulary {
     @ItemSeed(key = View.KEY, slots = {ThematicRole.Theme.KEY})
     public static class View {
         public static final String KEY = "cg.verb:view";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "open a persistent view of an item")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "view")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "open")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "open a persistent view of an item";
 
@@ -123,11 +104,7 @@ public final class ViewVocabulary {
     @ItemSeed(key = Close.KEY, slots = {ThematicRole.Theme.KEY})
     public static class Close {
         public static final String KEY = "cg.verb:close";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(Sememe.ENG, "close an open view of an item")
-                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "close")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "close an open view of an item";
 

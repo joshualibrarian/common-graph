@@ -550,7 +550,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         FrameKey key = FrameKey.mixed(ITEM_VIEW_SEMEME_ID, target.encodeText());
 
         FrameBody body = new FrameBody(ITEM_VIEW_SEMEME_ID, List.of(
-                Binding.ref(ThematicRole.Theme.SEED.iid(), target)
+                Binding.ref(ThematicRole.Theme.IID, target)
         ));
         dev.everydaythings.graph.frame.Frame frame =
                 new dev.everydaythings.graph.frame.Frame(key, ITEM_VIEW_SEMEME_ID, body, null, false);

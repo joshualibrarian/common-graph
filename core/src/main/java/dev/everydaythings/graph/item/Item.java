@@ -1142,7 +1142,7 @@ public class Item {
      * relation is about, and the target is what it points to.
      * <pre>{@code
      * // This animal IS-A mammal
-     * animal.relate(LexicalVocabulary.Hypernym.SEED.iid(), mammal.iid());
+     * animal.relate(LexicalVocabulary.Hypernym.IID, mammal.iid());
      *
      * // With a literal target
      * item.relate(predicateId, Literal.ofText("some value"));
@@ -1157,7 +1157,7 @@ public class Item {
         Objects.requireNonNull(target, "target");
 
         FrameBody body = FrameBody.of(predicate, iid,
-                Map.of(ThematicRole.Goal.SEED.iid(), target));
+                Map.of(ThematicRole.Goal.IID, target));
 
         // Sign if we have a signer
         if (this instanceof dev.everydaythings.graph.item.user.Signer signer) {
@@ -1177,7 +1177,7 @@ public class Item {
      *
      * <p>Convenience overload for item-to-item relations:
      * <pre>{@code
-     * animal.relate(LexicalVocabulary.Hypernym.SEED.iid(), mammal);
+     * animal.relate(LexicalVocabulary.Hypernym.IID, mammal);
      * }</pre>
      *
      * @param predicate The predicate (relationship type)
@@ -1336,7 +1336,7 @@ public class Item {
             }
             // Backward compat: compound (CONFIG, qualifier) in body bindings
             Binding binding = frame.body().getCompoundBinding(
-                    ThematicRole.Config.SEED.iid(), qualifier);
+                    ThematicRole.Config.IID, qualifier);
             if (binding != null && binding.target() instanceof Literal lit) {
                 return lit.payload();
             }
@@ -1357,7 +1357,7 @@ public class Item {
             dev.everydaythings.graph.frame.Frame f = itemFrame.get();
             if (f.body() != null) {
                 // The frame's content IS the config
-                BindingTarget topic = f.body().binding(ThematicRole.Topic.SEED.iid());
+                BindingTarget topic = f.body().binding(ThematicRole.Topic.IID);
                 if (topic instanceof Literal lit) return lit.payload();
                 // Or the whole body may encode the config
                 return f.body().encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
@@ -1372,7 +1372,7 @@ public class Item {
                         predicateItem.get().frames().getFrame(itemKey);
                 if (predFrame.isPresent() && predFrame.get().body() != null) {
                     BindingTarget topic = predFrame.get().body()
-                            .binding(ThematicRole.Topic.SEED.iid());
+                            .binding(ThematicRole.Topic.IID);
                     if (topic instanceof Literal lit) return lit.payload();
                     return predFrame.get().body()
                             .encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
@@ -1390,7 +1390,7 @@ public class Item {
      * @return raw presentation payload bytes, or null if none found at any level
      */
     public byte[] resolvePresentation(dev.everydaythings.graph.frame.Frame frame) {
-        return resolveConfig(frame, ThematicRole.Presentation.SEED.iid());
+        return resolveConfig(frame, ThematicRole.Presentation.IID);
     }
 
     /**
@@ -1400,7 +1400,7 @@ public class Item {
      * @return raw vocabulary payload bytes, or null if none found at any level
      */
     public byte[] resolveVocabulary(dev.everydaythings.graph.frame.Frame frame) {
-        return resolveConfig(frame, ThematicRole.Vocabulary.SEED.iid());
+        return resolveConfig(frame, ThematicRole.Vocabulary.IID);
     }
 
     /**
@@ -1420,7 +1420,7 @@ public class Item {
         }
 
         // Steps 2-3: (CONFIG) frame on this item, then on predicate
-        return resolveConfig(frame, ThematicRole.Config.SEED.iid());
+        return resolveConfig(frame, ThematicRole.Config.IID);
     }
 
     // ==================================================================================
@@ -2300,7 +2300,7 @@ public class Item {
         // Apply title if a name was provided
         if (name != null && !name.isBlank()) {
             newItem.relate(
-                    dev.everydaythings.graph.language.CoreVocabulary.Title.SEED.iid(),
+                    dev.everydaythings.graph.language.CoreVocabulary.Title.IID,
                     Literal.ofText(name));
         }
 

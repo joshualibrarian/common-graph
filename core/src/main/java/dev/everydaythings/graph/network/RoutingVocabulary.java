@@ -1,12 +1,9 @@
 package dev.everydaythings.graph.network;
 
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 
@@ -32,11 +29,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = ReachableAt.KEY, slots = {ThematicRole.Goal.KEY})
     public static class ReachableAt {
         public static final String KEY = "cg.core:reachable-at";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "be in or establish communication with")
-                .cili("i25412")
-                .slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "be in or establish communication with";
 
@@ -47,11 +40,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = AvailableAt.KEY, slots = {ThematicRole.Goal.KEY})
     public static class AvailableAt {
         public static final String KEY = "cg.core:available-at";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "be located or situated somewhere; occupy a certain position")
-                .cili("i35108")
-                .slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "be located or situated somewhere; occupy a certain position";
 
@@ -66,11 +55,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = PeersWith.KEY, slots = {ThematicRole.Goal.KEY})
     public static class PeersWith {
         public static final String KEY = "cg.core:peers-with";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "be connected to as a network peer")
-                .cili("i34787")
-                .slot(ThematicRole.Goal.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "be connected to as a network peer";
 
@@ -85,12 +70,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = Name.KEY, slots = {ThematicRole.Referent.KEY})
     public static class Name {
         public static final String KEY = "cg.core:name";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a word or phrase that identifies something")
-                .cili("i69761")
-                .indexWeight(1000)
-                .slot(ThematicRole.Referent.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word or phrase that identifies something";
 
@@ -108,11 +88,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = AcknowledgesDelivery.KEY, slots = {ThematicRole.Theme.KEY})
     public static class AcknowledgesDelivery {
         public static final String KEY = "cg.trust:acknowledges-delivery";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "acknowledge receipt of a successful delivery")
-                .cili("i26081")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "acknowledge receipt of a successful delivery";
 
@@ -123,11 +99,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = AcknowledgesRelay.KEY, slots = {ThematicRole.Theme.KEY})
     public static class AcknowledgesRelay {
         public static final String KEY = "cg.trust:acknowledges-relay";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "pass along; relay a message through an intermediary")
-                .cili("i25411")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "pass along; relay a message through an intermediary";
 
@@ -138,11 +110,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = RequestId.KEY, slots = {ThematicRole.Theme.KEY})
     public static class RequestId {
         public static final String KEY = "cg.trust:request-id";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "identifier of the request being acknowledged")
-                .cili("i74891")
-                .slot(ThematicRole.Theme.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "identifier of the request being acknowledged";
 
@@ -157,10 +125,7 @@ public final class RoutingVocabulary {
     @ItemSeed(key = Serves.KEY, slots = {ThematicRole.Recipient.KEY})
     public static class Serves {
         public static final String KEY = "cg.core:serves";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "acts on behalf of; provides services to a principal")
-                .slot(ThematicRole.Recipient.KEY);
-
+        public static final ItemID IID = ItemID.fromString(KEY);
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "acts on behalf of; provides services to a principal";
     }

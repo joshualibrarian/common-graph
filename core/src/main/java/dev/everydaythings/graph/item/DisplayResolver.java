@@ -346,18 +346,18 @@ public final class DisplayResolver {
         // Check manifest config first
         Manifest mf = item.current();
         if (mf != null) {
-            Binding mb = mf.configBinding(ThematicRole.Presentation.SEED.iid());
+            Binding mb = mf.configBinding(ThematicRole.Presentation.IID);
             if (mb != null && mb.target() instanceof Literal lit) {
                 return decodePresentationConfig(lit.payload());
             }
         }
 
         // Check PRESENTATION frame on the item
-        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.SEED.iid());
+        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
         var presFrame = item.frames().getFrame(presKey);
         if (presFrame.isPresent() && presFrame.get().body() != null) {
             BindingTarget topic = presFrame.get().body()
-                    .binding(ThematicRole.Topic.SEED.iid());
+                    .binding(ThematicRole.Topic.IID);
             if (topic instanceof Literal lit) {
                 return decodePresentationConfig(lit.payload());
             }

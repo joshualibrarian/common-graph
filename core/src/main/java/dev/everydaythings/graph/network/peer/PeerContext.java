@@ -129,9 +129,9 @@ public class PeerContext {
 
         // Create peers-with relation: local --peers-with--> remote
         FrameBody peersWithBody = FrameBody.of(
-                RoutingVocabulary.PeersWith.SEED.iid(),
+                RoutingVocabulary.PeersWith.IID,
                 localId,
-                Map.of(ThematicRole.Goal.SEED.iid(), BindingTarget.iid(remoteId)));
+                Map.of(ThematicRole.Goal.IID, BindingTarget.iid(remoteId)));
         FrameRecord peersWithRecord = FrameRecord.create(peersWithBody, librarian);
         librarian.library().storeFrame(peersWithBody, peersWithRecord);
         log.info("Created peers-with frame: {} -> {}", localId.encodeText(), remoteId.encodeText());
@@ -142,9 +142,9 @@ public class PeerContext {
                 remoteAddress.getPort()
         );
         FrameBody reachableAtBody = FrameBody.of(
-                RoutingVocabulary.ReachableAt.SEED.iid(),
+                RoutingVocabulary.ReachableAt.IID,
                 remoteId,
-                Map.of(ThematicRole.Goal.SEED.iid(), Literal.of(endpoint)));
+                Map.of(ThematicRole.Goal.IID, Literal.of(endpoint)));
         FrameRecord reachableAtRecord = FrameRecord.create(reachableAtBody, librarian);
         librarian.library().storeFrame(reachableAtBody, reachableAtRecord);
         log.info("Created reachable-at frame: {} -> {}", remoteId.encodeText(), endpoint);
@@ -175,9 +175,9 @@ public class PeerContext {
         if (fromPeer == null || toPeer == null) return;
 
         FrameBody relayBody = FrameBody.of(
-                RoutingVocabulary.AcknowledgesRelay.SEED.iid(),
+                RoutingVocabulary.AcknowledgesRelay.IID,
                 librarian.iid(),
-                Map.of(ThematicRole.Goal.SEED.iid(), BindingTarget.iid(fromPeer)));
+                Map.of(ThematicRole.Goal.IID, BindingTarget.iid(fromPeer)));
         FrameRecord relayRecord = FrameRecord.create(relayBody, librarian);
         librarian.library().storeFrame(relayBody, relayRecord);
         log.info("Relay forwarded: {} -> {}", fromPeer.encodeText(), toPeer.encodeText());
@@ -187,11 +187,11 @@ public class PeerContext {
         ItemID localId = librarian.iid();
 
         FrameBody ackBody = FrameBody.of(
-                RoutingVocabulary.AcknowledgesDelivery.SEED.iid(),
+                RoutingVocabulary.AcknowledgesDelivery.IID,
                 localId,
                 Map.of(
-                        ThematicRole.Goal.SEED.iid(), BindingTarget.iid(remoteLibrarianIid),
-                        RoutingVocabulary.RequestId.SEED.iid(), Literal.ofInteger(requestId)));
+                        ThematicRole.Goal.IID, BindingTarget.iid(remoteLibrarianIid),
+                        RoutingVocabulary.RequestId.IID, Literal.ofInteger(requestId)));
         FrameRecord ackRecord = FrameRecord.create(ackBody, librarian);
         librarian.library().storeFrame(ackBody, ackRecord);
         log.info("Acknowledged delivery from {} (request {})",

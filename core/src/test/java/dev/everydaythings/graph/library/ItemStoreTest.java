@@ -90,7 +90,7 @@ public abstract class ItemStoreTest {
      * Another test implementation binding (for different versions).
      */
     protected static final Binding TEST_IMPL_2 = new Binding(
-            RuntimeVocabulary.Java.SEED.iid(), Literal.ofText("cg.test.Type2"));
+            RuntimeVocabulary.Java.IID, Literal.ofText("cg.test.Type2"));
 
     /**
      * Create a simple test manifest.
@@ -107,7 +107,7 @@ public abstract class ItemStoreTest {
      */
     protected FrameBody testFrameBody(ItemID subject, ItemID predicate, String literalValue) {
         return FrameBody.of(predicate, subject,
-                java.util.Map.of(ThematicRole.Goal.SEED.iid(), Literal.ofText(literalValue)));
+                java.util.Map.of(ThematicRole.Goal.IID, Literal.ofText(literalValue)));
     }
 
     /**
@@ -115,7 +115,7 @@ public abstract class ItemStoreTest {
      */
     protected FrameBody testFrameBody(ItemID subject, ItemID predicate, ItemID object) {
         return FrameBody.of(predicate, subject,
-                java.util.Map.of(ThematicRole.Goal.SEED.iid(), BindingTarget.iid(object)));
+                java.util.Map.of(ThematicRole.Goal.IID, BindingTarget.iid(object)));
     }
 
     // ==================================================================================
@@ -243,7 +243,7 @@ public abstract class ItemStoreTest {
         @DisplayName("persist and retrieve frame body")
         void persistAndRetrieveFrameBody() {
             ItemID subject = testItemID("subject");
-            FrameBody body = testFrameBody(subject, CoreVocabulary.Title.SEED.iid(), "Test Title");
+            FrameBody body = testFrameBody(subject, CoreVocabulary.Title.IID, "Test Title");
 
             // Persist
             ContentID cid = store.storeFrameBody(body);
@@ -281,8 +281,8 @@ public abstract class ItemStoreTest {
         void persistMultipleFrameBodiesForTheme() {
             ItemID subject = testItemID("multi-relation");
 
-            FrameBody b1 = testFrameBody(subject, CoreVocabulary.Title.SEED.iid(), "Title");
-            FrameBody b2 = testFrameBody(subject, CoreVocabulary.Description.SEED.iid(), "Description");
+            FrameBody b1 = testFrameBody(subject, CoreVocabulary.Title.IID, "Title");
+            FrameBody b2 = testFrameBody(subject, CoreVocabulary.Description.IID, "Description");
 
             ContentID cid1 = store.storeFrameBody(b1);
             ContentID cid2 = store.storeFrameBody(b2);
@@ -302,8 +302,8 @@ public abstract class ItemStoreTest {
         void iterateFrameBodiesForTheme() {
             ItemID subject = testItemID("iterate-rels");
 
-            store.storeFrameBody(testFrameBody(subject, CoreVocabulary.Title.SEED.iid(), "Title"));
-            store.storeFrameBody(testFrameBody(subject, CoreVocabulary.Description.SEED.iid(), "Desc"));
+            store.storeFrameBody(testFrameBody(subject, CoreVocabulary.Title.IID, "Title"));
+            store.storeFrameBody(testFrameBody(subject, CoreVocabulary.Description.IID, "Desc"));
 
             var frameBodies = store.frameBodies()
                     .filter(r -> subject.equals(r.homeId()))
@@ -318,9 +318,9 @@ public abstract class ItemStoreTest {
         @DisplayName("iterate all frame bodies")
         void iterateAllFrameBodies() {
             // Store frame bodies for different themes
-            store.storeFrameBody(testFrameBody(testItemID("s1"), CoreVocabulary.Title.SEED.iid(), "T1"));
-            store.storeFrameBody(testFrameBody(testItemID("s2"), CoreVocabulary.Title.SEED.iid(), "T2"));
-            store.storeFrameBody(testFrameBody(testItemID("s3"), CoreVocabulary.Title.SEED.iid(), "T3"));
+            store.storeFrameBody(testFrameBody(testItemID("s1"), CoreVocabulary.Title.IID, "T1"));
+            store.storeFrameBody(testFrameBody(testItemID("s2"), CoreVocabulary.Title.IID, "T2"));
+            store.storeFrameBody(testFrameBody(testItemID("s3"), CoreVocabulary.Title.IID, "T3"));
 
             var frameBodies = store.frameBodies().toList();
 
@@ -492,7 +492,7 @@ public abstract class ItemStoreTest {
                 store.persistManifest(iid, m1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Frame body
-                FrameBody b1 = testFrameBody(iid, CoreVocabulary.Title.SEED.iid(), "Title");
+                FrameBody b1 = testFrameBody(iid, CoreVocabulary.Title.IID, "Title");
                 store.persistContent(b1.encodeBinary(Canonical.Scope.RECORD), tx);
 
                 // Content
