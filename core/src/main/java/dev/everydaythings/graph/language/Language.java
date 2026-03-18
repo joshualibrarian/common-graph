@@ -41,8 +41,9 @@ public class Language extends Item {
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "language");
     }
 
-    /** The English Language Item IID — used to scope seed English lexemes. */
-    public static final ItemID ENGLISH = ItemID.fromString("cg:language/eng");
+    /** The English Language KEY and IID — used to scope seed English lexemes. */
+    public static final String ENGLISH_KEY = "cg:language/eng";
+    public static final ItemID ENGLISH = ItemID.fromString(ENGLISH_KEY);
 
     // ==================================================================================
     // FIELDS

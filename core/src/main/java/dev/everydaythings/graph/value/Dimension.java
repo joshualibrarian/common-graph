@@ -2,11 +2,14 @@ package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -56,11 +59,18 @@ public class Dimension extends Item {
 
     public static final String KEY = TypeSeed.KEY;
 
+    @ItemSeed(key = TypeSeed.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:dimension";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "a physical dimension for quantities")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "dimension");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a physical dimension for quantities";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun = "dimension";
     }
 
 
@@ -69,6 +79,7 @@ public class Dimension extends Item {
     // ==================================================================================
 
     /** Length dimension (L) - SI base: meter */
+    @ItemSeed(key = Length.KEY)
     public static class Length {
         public static final String KEY = "cg.dim:length";
         @Seed public static final Dimension SEED = new Dimension(
@@ -76,6 +87,7 @@ public class Dimension extends Item {
     }
 
     /** Time dimension (T) - SI base: second */
+    @ItemSeed(key = Time.KEY)
     public static class Time {
         public static final String KEY = "cg.dim:time";
         @Seed public static final Dimension SEED = new Dimension(
@@ -83,6 +95,7 @@ public class Dimension extends Item {
     }
 
     /** Mass dimension (M) - SI base: kilogram */
+    @ItemSeed(key = Mass.KEY)
     public static class Mass {
         public static final String KEY = "cg.dim:mass";
         @Seed public static final Dimension SEED = new Dimension(
@@ -90,6 +103,7 @@ public class Dimension extends Item {
     }
 
     /** Electric current dimension (I) - SI base: ampere */
+    @ItemSeed(key = ElectricCurrent.KEY)
     public static class ElectricCurrent {
         public static final String KEY = "cg.dim:electric-current";
         @Seed public static final Dimension SEED = new Dimension(
@@ -97,6 +111,7 @@ public class Dimension extends Item {
     }
 
     /** Thermodynamic temperature dimension (Θ) - SI base: kelvin */
+    @ItemSeed(key = Temperature.KEY)
     public static class Temperature {
         public static final String KEY = "cg.dim:temperature";
         @Seed public static final Dimension SEED = new Dimension(
@@ -104,6 +119,7 @@ public class Dimension extends Item {
     }
 
     /** Amount of substance dimension (N) - SI base: mole */
+    @ItemSeed(key = Amount.KEY)
     public static class Amount {
         public static final String KEY = "cg.dim:amount";
         @Seed public static final Dimension SEED = new Dimension(
@@ -111,6 +127,7 @@ public class Dimension extends Item {
     }
 
     /** Luminous intensity dimension (J) - SI base: candela */
+    @ItemSeed(key = LuminousIntensity.KEY)
     public static class LuminousIntensity {
         public static final String KEY = "cg.dim:luminous-intensity";
         @Seed public static final Dimension SEED = new Dimension(

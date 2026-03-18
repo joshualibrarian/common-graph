@@ -6,6 +6,7 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Param;
@@ -60,11 +61,18 @@ public class Sememe extends Item {
 
     public static final String KEY = TypeSeed.KEY;
 
+    @ItemSeed(key = TypeSeed.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:sememe";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "a unit of meaning")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "sememe");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a unit of meaning";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "sememe";
     }
 
 
@@ -592,6 +600,7 @@ public class Sememe extends Item {
     // SEED INSTANCES — Pronouns (query patterns and discourse references)
     // ==================================================================================
 
+    @ItemSeed(key = Any.KEY)
     public static class Any {
         public static final String KEY = "cg.query:any";
         @Seed public static final Sememe SEED = new Sememe(KEY)
@@ -599,8 +608,24 @@ public class Sememe extends Item {
                 .cili("i61150")
                 .symbol("*")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "wildcard").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "anything");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "matches anything; wildcard; any value";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i61150";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "*";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "wildcard";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "anything";
     }
 
+    @ItemSeed(key = What.KEY)
     public static class What {
         public static final String KEY = "cg.query:what";
         @Seed public static final Sememe SEED = new Sememe(KEY)
@@ -608,45 +633,101 @@ public class Sememe extends Item {
                 .cili("i74896")
                 .symbol("?")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "variable").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "result");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "the result being queried for; variable; unknown";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i74896";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "?";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "variable";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "result";
     }
 
+    @ItemSeed(key = It.KEY)
     public static class It {
         public static final String KEY = "cg.pronoun:it";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the most recently mentioned or created item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "it").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "that");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "the most recently mentioned or created item";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "it";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "that";
     }
 
+    @ItemSeed(key = This.KEY)
     public static class This {
         public static final String KEY = "cg.pronoun:this";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the currently focused item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "this");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "the currently focused item";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "this";
     }
 
+    @ItemSeed(key = Last.KEY)
     public static class Last {
         public static final String KEY = "cg.pronoun:last";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "the previously mentioned item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "last").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "previous");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "the previously mentioned item";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "last";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "previous";
     }
 
     // ==================================================================================
     // SEED INSTANCES — Conjunctions
     // ==================================================================================
 
+    @ItemSeed(key = And.KEY)
     public static class And {
         public static final String KEY = "cg.conj:and";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "coordinating conjunction; connects elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "and");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "coordinating conjunction; connects elements";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Conjunction.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "and";
     }
 
+    @ItemSeed(key = Or.KEY)
     public static class Or {
         public static final String KEY = "cg.conj:or";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(ENG, "coordinating disjunction; alternative elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "or");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "coordinating disjunction; alternative elements";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Conjunction.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "or";
     }
 
     // ==================================================================================

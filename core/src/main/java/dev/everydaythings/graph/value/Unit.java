@@ -3,11 +3,14 @@ package dev.everydaythings.graph.value;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Item.Seed;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -64,11 +67,18 @@ public class Unit extends Item {
 
     public static final String KEY = TypeSeed.KEY;
 
+    @ItemSeed(key = TypeSeed.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:unit";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "a unit of measure")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "unit");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a unit of measure";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun = "unit";
     }
 
     /** Helper: deterministic IID from canonical key (avoids triggering class init on Dimension). */
@@ -78,36 +88,42 @@ public class Unit extends Item {
     // SEED INSTANCES - Length
     // ==================================================================================
 
+    @ItemSeed(key = Meter.KEY)
     public static class Meter {
         public static final String KEY = "cg.unit:meter";
         @Seed public static final Unit SEED = new Unit(KEY, "m",
                 Map.of("en", "meter", "en-GB", "metre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
     }
+    @ItemSeed(key = Millimeter.KEY)
     public static class Millimeter {
         public static final String KEY = "cg.unit:millimeter";
         @Seed public static final Unit SEED = new Unit(KEY, "mm",
                 Map.of("en", "millimeter", "en-GB", "millimetre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1000);
     }
+    @ItemSeed(key = Centimeter.KEY)
     public static class Centimeter {
         public static final String KEY = "cg.unit:centimeter";
         @Seed public static final Unit SEED = new Unit(KEY, "cm",
                 Map.of("en", "centimeter", "en-GB", "centimetre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 100);
     }
+    @ItemSeed(key = Kilometer.KEY)
     public static class Kilometer {
         public static final String KEY = "cg.unit:kilometer";
         @Seed public static final Unit SEED = new Unit(KEY, "km",
                 Map.of("en", "kilometer", "en-GB", "kilometre"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1000, 1);
     }
+    @ItemSeed(key = Inch.KEY)
     public static class Inch {
         public static final String KEY = "cg.unit:inch";
         @Seed public static final Unit SEED = new Unit(KEY, "in",
                 Map.of("en", "inch"),
                 Map.of(dim(Dimension.Length.KEY), 1), 127, 5000);
     }
+    @ItemSeed(key = Foot.KEY)
     public static class Foot {
         public static final String KEY = "cg.unit:foot";
         @Seed public static final Unit SEED = new Unit(KEY, "ft",
@@ -119,24 +135,28 @@ public class Unit extends Item {
     // SEED INSTANCES - Time
     // ==================================================================================
 
+    @ItemSeed(key = Second.KEY)
     public static class Second {
         public static final String KEY = "cg.unit:second";
         @Seed public static final Unit SEED = new Unit(KEY, "s",
                 Map.of("en", "second"),
                 Map.of(dim(Dimension.Time.KEY), 1), 1, 1);
     }
+    @ItemSeed(key = Millisecond.KEY)
     public static class Millisecond {
         public static final String KEY = "cg.unit:millisecond";
         @Seed public static final Unit SEED = new Unit(KEY, "ms",
                 Map.of("en", "millisecond"),
                 Map.of(dim(Dimension.Time.KEY), 1), 1, 1000);
     }
+    @ItemSeed(key = Minute.KEY)
     public static class Minute {
         public static final String KEY = "cg.unit:minute";
         @Seed public static final Unit SEED = new Unit(KEY, "min",
                 Map.of("en", "minute"),
                 Map.of(dim(Dimension.Time.KEY), 1), 60, 1);
     }
+    @ItemSeed(key = Hour.KEY)
     public static class Hour {
         public static final String KEY = "cg.unit:hour";
         @Seed public static final Unit SEED = new Unit(KEY, "h",
@@ -148,18 +168,21 @@ public class Unit extends Item {
     // SEED INSTANCES - Mass
     // ==================================================================================
 
+    @ItemSeed(key = Kilogram.KEY)
     public static class Kilogram {
         public static final String KEY = "cg.unit:kilogram";
         @Seed public static final Unit SEED = new Unit(KEY, "kg",
                 Map.of("en", "kilogram"),
                 Map.of(dim(Dimension.Mass.KEY), 1), 1, 1);
     }
+    @ItemSeed(key = Gram.KEY)
     public static class Gram {
         public static final String KEY = "cg.unit:gram";
         @Seed public static final Unit SEED = new Unit(KEY, "g",
                 Map.of("en", "gram"),
                 Map.of(dim(Dimension.Mass.KEY), 1), 1, 1000);
     }
+    @ItemSeed(key = Pound.KEY)
     public static class Pound {
         public static final String KEY = "cg.unit:pound";
         @Seed public static final Unit SEED = new Unit(KEY, "lb",
@@ -171,24 +194,28 @@ public class Unit extends Item {
     // SEED INSTANCES - Derived/Compound
     // ==================================================================================
 
+    @ItemSeed(key = MeterPerSecond.KEY)
     public static class MeterPerSecond {
         public static final String KEY = "cg.unit:meter-per-second";
         @Seed public static final Unit SEED = new Unit(KEY, "m/s",
                 Map.of("en", "meter per second"),
                 Map.of(dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -1), 1, 1);
     }
+    @ItemSeed(key = Newton.KEY)
     public static class Newton {
         public static final String KEY = "cg.unit:newton";
         @Seed public static final Unit SEED = new Unit(KEY, "N",
                 Map.of("en", "newton"),
                 Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -2), 1, 1);
     }
+    @ItemSeed(key = Joule.KEY)
     public static class Joule {
         public static final String KEY = "cg.unit:joule";
         @Seed public static final Unit SEED = new Unit(KEY, "J",
                 Map.of("en", "joule"),
                 Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -2), 1, 1);
     }
+    @ItemSeed(key = Watt.KEY)
     public static class Watt {
         public static final String KEY = "cg.unit:watt";
         @Seed public static final Unit SEED = new Unit(KEY, "W",
@@ -200,42 +227,49 @@ public class Unit extends Item {
     // SEED INSTANCES - UI/Layout Units (contextual lengths and ratios)
     // ==================================================================================
 
+    @ItemSeed(key = CharacterWidth.KEY)
     public static class CharacterWidth {
         public static final String KEY = "cg.unit:ch";
         @Seed public static final Unit SEED = new Unit(KEY, "ch",
                 Map.of("en", "character width", "en-alt", "ch"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
     }
+    @ItemSeed(key = LineHeight.KEY)
     public static class LineHeight {
         public static final String KEY = "cg.unit:ln";
         @Seed public static final Unit SEED = new Unit(KEY, "ln",
                 Map.of("en", "line height", "en-alt", "line"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
     }
+    @ItemSeed(key = Pixel.KEY)
     public static class Pixel {
         public static final String KEY = "cg.unit:px";
         @Seed public static final Unit SEED = new Unit(KEY, "px",
                 Map.of("en", "pixel"),
                 Map.of(dim(Dimension.Length.KEY), 1), 127, 4838400);
     }
+    @ItemSeed(key = Percent.KEY)
     public static class Percent {
         public static final String KEY = "cg.unit:percent";
         @Seed public static final Unit SEED = new Unit(KEY, "%",
                 Map.of("en", "percent"),
                 Map.of(), 1, 100);
     }
+    @ItemSeed(key = Fraction.KEY)
     public static class Fraction {
         public static final String KEY = "cg.unit:fr";
         @Seed public static final Unit SEED = new Unit(KEY, "fr",
                 Map.of("en", "fraction", "en-alt", "flex fraction"),
                 Map.of(), 1, 1);
     }
+    @ItemSeed(key = Em.KEY)
     public static class Em {
         public static final String KEY = "cg.unit:em";
         @Seed public static final Unit SEED = new Unit(KEY, "em",
                 Map.of("en", "em"),
                 Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
     }
+    @ItemSeed(key = Rem.KEY)
     public static class Rem {
         public static final String KEY = "cg.unit:rem";
         @Seed public static final Unit SEED = new Unit(KEY, "rem",

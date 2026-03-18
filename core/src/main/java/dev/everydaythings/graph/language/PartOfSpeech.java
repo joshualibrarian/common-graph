@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -41,70 +42,157 @@ public final class PartOfSpeech {
      * The predicate "part-of-speech" — every sememe has a frame keyed by this
      * predicate, with one of the POS value seeds as its target.
      */
+    @ItemSeed(key = Predicate.KEY)
     public static class Predicate {
         public static final String KEY = "cg.core:part-of-speech";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "the grammatical category of a word")
-                .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "part-of-speech");
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "part-of-speech");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "the grammatical category of a word";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "part-of-speech";
     }
 
     // ==================================================================================
     // POS VALUE SEEDS — all are nouns (the word "verb" is a noun)
     // ==================================================================================
 
+    @ItemSeed(key = Noun.KEY)
     public static class Noun {
         public static final String KEY = "cg.pos:noun";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that names a person, place, thing, or idea")
-                .cili("i73935").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "noun");
+                .cili("i73935").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "noun");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word that names a person, place, thing, or idea";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73935";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "noun";
     }
 
+    @ItemSeed(key = Verb.KEY)
     public static class Verb {
         public static final String KEY = "cg.pos:verb";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that expresses an action or state")
-                .cili("i73936").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "verb");
+                .cili("i73936").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "verb");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word that expresses an action or state";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73936";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "verb";
     }
 
+    @ItemSeed(key = Adjective.KEY)
     public static class Adjective {
         public static final String KEY = "cg.pos:adjective";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that modifies a noun")
-                .cili("i73937").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "adjective");
+                .cili("i73937").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "adjective");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word that modifies a noun";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73937";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "adjective";
     }
 
+    @ItemSeed(key = Adverb.KEY)
     public static class Adverb {
         public static final String KEY = "cg.pos:adverb";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that modifies a verb, adjective, or other adverb")
-                .cili("i73938").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "adverb");
+                .cili("i73938").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "adverb");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word that modifies a verb, adjective, or other adverb";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73938";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "adverb";
     }
 
+    @ItemSeed(key = Pronoun.KEY)
     public static class Pronoun {
         public static final String KEY = "cg.pos:pronoun";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that substitutes for a noun")
-                .cili("i73939").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "pronoun");
+                .cili("i73939").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "pronoun");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word that substitutes for a noun";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73939";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "pronoun";
     }
 
+    @ItemSeed(key = Conjunction.KEY)
     public static class Conjunction {
         public static final String KEY = "cg.pos:conjunction";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word that connects clauses or sentences")
-                .cili("i73940").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "conjunction");
+                .cili("i73940").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "conjunction");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word that connects clauses or sentences";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73940";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "conjunction";
     }
 
+    @ItemSeed(key = Interjection.KEY)
     public static class Interjection {
         public static final String KEY = "cg.pos:interjection";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word expressing sudden feeling")
-                .cili("i73941").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "interjection");
+                .cili("i73941").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "interjection");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word expressing sudden feeling";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73941";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "interjection";
     }
 
+    @ItemSeed(key = Preposition.KEY)
     public static class Preposition {
         public static final String KEY = "cg.pos:preposition";
         @Item.Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a word governing a noun or pronoun to express a relation")
-                .cili("i73942").word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "preposition");
+                .cili("i73942").word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "preposition");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a word governing a noun or pronoun to express a relation";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        static final String cili = "i73942";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun1 = "preposition";
     }
 }

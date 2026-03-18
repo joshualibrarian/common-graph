@@ -29,7 +29,7 @@ public final class ViewVocabulary {
         public static final String KEY = "cg.sememe:item-view";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a persistent view of an item within a session")
-                .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "item-view")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "item-view")
                 .slot(ThematicRole.Theme.KEY)
                 .slot(ThematicRole.Location.KEY);
     }
@@ -44,7 +44,7 @@ public final class ViewVocabulary {
         public static final String KEY = "cg.sememe:display";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "a physical display device attached to a host")
-                .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "display")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "display")
                 .slot(ThematicRole.Theme.KEY);
     }
 
@@ -59,7 +59,7 @@ public final class ViewVocabulary {
         public static final String KEY = "cg.sememe:display-layout";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "placement of a display within a session's coordinate space")
-                .word(PartOfSpeech.NOUN, Sememe.LEMMA, Sememe.ENG, "display-layout")
+                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "display-layout")
                 .slot(ThematicRole.Theme.KEY)
                 .slot(ThematicRole.Location.KEY);
     }
@@ -78,8 +78,8 @@ public final class ViewVocabulary {
         public static final String KEY = "cg.verb:view";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "open a persistent view of an item")
-                .word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "view")
-                .word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "open")
+                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "view")
+                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "open")
                 .slot(ThematicRole.Theme.KEY);
     }
 
@@ -92,7 +92,7 @@ public final class ViewVocabulary {
         public static final String KEY = "cg.verb:close";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss(Sememe.ENG, "close an open view of an item")
-                .word(PartOfSpeech.VERB, Sememe.LEMMA, Sememe.ENG, "close")
+                .word(PartOfSpeech.VERB, GrammaticalFeature.Lemma.SEED, Sememe.ENG, "close")
                 .slot(ThematicRole.Theme.KEY);
     }
 }

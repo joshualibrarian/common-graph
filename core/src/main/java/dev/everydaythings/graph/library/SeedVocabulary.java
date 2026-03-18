@@ -2,6 +2,7 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
@@ -16,7 +17,6 @@ import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneSchema;
 import dev.everydaythings.graph.ui.scene.ViewNode;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
@@ -37,7 +37,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -201,7 +200,9 @@ public final class SeedVocabulary {
                 .enableClassInfo()
                 .enableAnnotationInfo()
                 .enableFieldInfo()
+                .enableMethodInfo()
                 .ignoreFieldVisibility()
+                .ignoreMethodVisibility()
                 .scan()) {
 
             // 1. ALL @Item.Seed fields across the full classpath — these define concepts
@@ -224,10 +225,240 @@ public final class SeedVocabulary {
                     registerValueType((Class<? extends dev.everydaythings.graph.value.Value>) clazz);
                 }
             }
+
+            // 4. Create LEXEME frames on Language items from seed word declarations
+            createLexemeFrames();
+
+            // 5. NEW: Scan @Seed-annotated classes (runs alongside old @Item.Seed system)
+            scanSeedAnnotations(scanResult);
+        }
+    }
+
+    /**
+     * Scan for classes annotated with {@link ItemSeed @Seed}
+     * and create Sememe items with frames from annotated fields and methods.
+     *
+     * <p>This is the NEW bootstrap system that replaces @Item.Seed static fields.
+     * During the migration period, both systems run — @Seed classes that already
+     * have @Item.Seed fields will be skipped (the old system handles them).
+     */
+    private void scanSeedAnnotations(ScanResult scanResult) {
+        ItemID lexemePredicate = ItemID.fromString(CoreVocabulary.Lexeme.KEY);
+        int seedCount = 0;
+        int frameCount = 0;
+        int wordCount = 0;
+
+        for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(
+                ItemSeed.class)) {
+            Class<?> clazz = classInfo.loadClass();
+            ItemSeed seedAnn = clazz.getAnnotation(
+                    ItemSeed.class);
+            if (seedAnn == null) continue;
+
+            String key = seedAnn.key();
+            if (key == null || key.isBlank()) continue;
+
+            ItemID seedId = ItemID.fromString(key);
+
+            // Skip if already handled by the old @Item.Seed system
+            if (seedItems.stream().anyMatch(i -> seedId.equals(i.iid()))) {
+                // But still process @Seed.Frame and @Seed.Word fields
+                Item existing = seedItems.stream()
+                        .filter(i -> seedId.equals(i.iid()))
+                        .findFirst().orElse(null);
+                if (existing != null) {
+                    frameCount += processSeedFrameFields(clazz, existing);
+                    wordCount += processSeedWordFields(clazz, seedId, lexemePredicate);
+                }
+                continue;
+            }
+
+            // Create new Sememe from @Seed annotation
+            Sememe sememe = new Sememe(key);
+
+            // Process slots
+            for (String slotKey : seedAnn.slots()) {
+                sememe.slot(slotKey);
+            }
+
+            // Process @Seed.Frame fields and methods
+            frameCount += processSeedFrameFields(clazz, sememe);
+
+            // Store the sememe
+            if (storeItem(sememe)) {
+                seedItems.add(sememe);
+                seedCount++;
+            }
+
+            // Process @Seed.Word fields (LEXEME frames on Language items)
+            wordCount += processSeedWordFields(clazz, seedId, lexemePredicate);
         }
 
-        // 4. Create LEXEME frames on Language items from seed word declarations
-        createLexemeFrames();
+        if (seedCount > 0 || frameCount > 0 || wordCount > 0) {
+            logger.info("@Seed scanner: {} new seeds, {} frames, {} words", seedCount, frameCount, wordCount);
+        }
+    }
+
+    /**
+     * Process @Seed.Frame annotated fields and methods on a seed class.
+     * Creates frames on the seed item.
+     */
+    private int processSeedFrameFields(Class<?> clazz, Item seedItem) {
+        int count = 0;
+
+        // Fields
+        for (Field field : clazz.getDeclaredFields()) {
+            ItemSeed.Frame frameAnn = field.getAnnotation(
+                    ItemSeed.Frame.class);
+            if (frameAnn == null) continue;
+
+            try {
+                field.setAccessible(true);
+                Object value = field.get(null);
+                if (value != null) {
+                    addSeedFrame(seedItem, frameAnn.key(), value);
+                    count++;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to read @Seed.Frame field {}.{}: {}",
+                        clazz.getSimpleName(), field.getName(), e.getMessage());
+            }
+        }
+
+        // Methods
+        for (java.lang.reflect.Method method : clazz.getDeclaredMethods()) {
+            ItemSeed.Frame frameAnn = method.getAnnotation(
+                    ItemSeed.Frame.class);
+            if (frameAnn == null) continue;
+            if (!Modifier.isStatic(method.getModifiers())) continue;
+
+            try {
+                method.setAccessible(true);
+                Object value = method.invoke(null);
+                if (value != null) {
+                    addSeedFrame(seedItem, frameAnn.key(), value);
+                    count++;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to call @Seed.Frame method {}.{}(): {}",
+                        clazz.getSimpleName(), method.getName(), e.getMessage());
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Add a frame to a seed item from annotation data.
+     */
+    private void addSeedFrame(Item seedItem, String[] keyParts, Object value) {
+        if (keyParts == null || keyParts.length == 0) return;
+
+        // Build FrameKey from key parts
+        ItemID head = ItemID.fromString(keyParts[0]);
+        Object[] qualifiers = new Object[keyParts.length - 1];
+        for (int i = 1; i < keyParts.length; i++) {
+            qualifiers[i - 1] = ItemID.fromString(keyParts[i]);
+        }
+        FrameKey key = FrameKey.of(head, qualifiers);
+
+        // Encode value to CBOR
+        byte[] encoded;
+        if (value instanceof String s) {
+            encoded = com.upokecenter.cbor.CBORObject.FromString(s).EncodeToBytes();
+        } else if (value instanceof Long l) {
+            encoded = com.upokecenter.cbor.CBORObject.FromObject(l).EncodeToBytes();
+        } else if (value instanceof Integer i) {
+            encoded = com.upokecenter.cbor.CBORObject.FromObject(i).EncodeToBytes();
+        } else if (value instanceof Canonical c) {
+            encoded = c.encodeBinary(Canonical.Scope.RECORD);
+        } else {
+            logger.warn("Unsupported @Seed.Frame value type: {}", value.getClass().getSimpleName());
+            return;
+        }
+
+        ContentID cid = ContentID.of(encoded);
+        Literal literal = new Literal(Literal.TYPE_CBOR, encoded);
+        FrameBody body = new FrameBody(head,
+                List.of(new Binding(ThematicRole.Topic.SEED.iid(), literal)));
+
+        Frame frame = new Frame(key, head, body, body.hash(), false);
+        seedItem.frames().add(frame);
+    }
+
+    /**
+     * Process @Seed.Word annotated fields. Creates LEXEME frames on Language items.
+     */
+    private int processSeedWordFields(Class<?> clazz, ItemID sememeId, ItemID lexemePredicate) {
+        int count = 0;
+
+        // Group Language items by key for lookup
+        Map<String, Item> languageItems = new HashMap<>();
+        for (Item seed : seedItems) {
+            if (seed instanceof Language lang && lang.languageCode() != null) {
+                languageItems.put(lang.languageCode(), lang);
+                // Map common 2-letter codes
+                if ("eng".equals(lang.languageCode())) {
+                    languageItems.put("en", lang);
+                }
+            }
+        }
+
+        for (Field field : clazz.getDeclaredFields()) {
+            ItemSeed.Word wordAnn = field.getAnnotation(
+                    ItemSeed.Word.class);
+            if (wordAnn == null) continue;
+            if (field.getType() != String.class) continue;
+
+            try {
+                field.setAccessible(true);
+                String surface = (String) field.get(null);
+                if (surface == null || surface.isBlank()) continue;
+
+                // Resolve language from KEY
+                String langKey = wordAnn.lang();
+                // Try to find Language item by KEY match
+                Item langItem = null;
+                for (Item seed : seedItems) {
+                    if (seed instanceof Language lang) {
+                        String langItemKey = "cg:language/" + lang.languageCode();
+                        if (langKey.equals(langItemKey) || langKey.equals(lang.languageCode())) {
+                            langItem = seed;
+                            break;
+                        }
+                    }
+                }
+                if (langItem == null) {
+                    logger.debug("No Language item for key '{}', skipping word '{}'", langKey, surface);
+                    continue;
+                }
+
+                // Build compound FrameKey: (LEXEME, sememeId, POS, features...)
+                ItemID posId = ItemID.fromString(wordAnn.pos());
+                Object[] qualifiers = new Object[2 + wordAnn.features().length];
+                qualifiers[0] = sememeId;
+                qualifiers[1] = posId;
+                for (int i = 0; i < wordAnn.features().length; i++) {
+                    qualifiers[i + 2] = ItemID.fromString(wordAnn.features()[i]);
+                }
+                FrameKey key = FrameKey.of(lexemePredicate, qualifiers);
+
+                // Build frame body with THEME → surface form
+                byte[] surfaceBytes = com.upokecenter.cbor.CBORObject.FromString(surface).EncodeToBytes();
+                Literal surfaceLiteral = new Literal(Literal.TYPE_TEXT, surfaceBytes);
+                FrameBody body = new FrameBody(lexemePredicate,
+                        List.of(new Binding(ThematicRole.Theme.SEED.iid(), surfaceLiteral)));
+
+                Frame frame = new Frame(key, lexemePredicate, body, body.hash(), false);
+                langItem.frames().add(frame);
+                count++;
+            } catch (Exception e) {
+                logger.warn("Failed to process @Seed.Word field {}.{}: {}",
+                        clazz.getSimpleName(), field.getName(), e.getMessage());
+            }
+        }
+
+        return count;
     }
 
     /**

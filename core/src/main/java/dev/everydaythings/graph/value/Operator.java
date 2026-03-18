@@ -2,9 +2,12 @@ package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.frame.expression.Expression;
 import dev.everydaythings.graph.frame.expression.FunctionExpression;
@@ -43,11 +46,18 @@ public class Operator extends Sememe {
 
     public static final String KEY = TypeSeed.KEY;
 
+    @ItemSeed(key = TypeSeed.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:operator";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "a mathematical operator")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "operator");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a mathematical operator";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun = "operator";
     }
 
     public enum Associativity { LEFT, RIGHT, NONE }
@@ -58,103 +68,323 @@ public class Operator extends Sememe {
     // ==================================================================================
 
     // --- Logical ---
+    @ItemSeed(key = And.KEY)
     public static class And {
         public static final String KEY = "cg.op:and";
         @Seed public static final Operator SEED = new Operator(KEY, "&&", "and", 2, 1, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "and";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "&&";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "and";
     }
+    @ItemSeed(key = Or.KEY)
     public static class Or {
         public static final String KEY = "cg.op:or";
         @Seed public static final Operator SEED = new Operator(KEY, "||", "or", 2, 0, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "or";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "||";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "or";
     }
+    @ItemSeed(key = Not.KEY)
     public static class Not {
         public static final String KEY = "cg.op:not";
         @Seed public static final Operator SEED = new Operator(KEY, "!", "not", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "not";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "!";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "not";
     }
 
     // --- Arithmetic ---
+    @ItemSeed(key = Add.KEY)
     public static class Add {
         public static final String KEY = "cg.op:add";
         @Seed public static final Operator SEED = new Operator(KEY, "+", "add", 2, 10, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "add";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "+";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "add";
     }
+    @ItemSeed(key = Subtract.KEY)
     public static class Subtract {
         public static final String KEY = "cg.op:sub";
         @Seed public static final Operator SEED = new Operator(KEY, "-", "subtract", 2, 10, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "subtract";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "-";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "subtract";
     }
+    @ItemSeed(key = Multiply.KEY)
     public static class Multiply {
         public static final String KEY = "cg.op:mul";
         @Seed public static final Operator SEED = new Operator(KEY, "*", "multiply", 2, 20, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "multiply";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "*";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "multiply";
     }
+    @ItemSeed(key = Divide.KEY)
     public static class Divide {
         public static final String KEY = "cg.op:div";
         @Seed public static final Operator SEED = new Operator(KEY, "/", "divide", 2, 20, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "divide";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "/";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "divide";
     }
+    @ItemSeed(key = Modulo.KEY)
     public static class Modulo {
         public static final String KEY = "cg.op:mod";
         @Seed public static final Operator SEED = new Operator(KEY, "%", "modulo", 2, 20, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "modulo";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "%";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "modulo";
     }
+    @ItemSeed(key = Power.KEY)
     public static class Power {
         public static final String KEY = "cg.op:pow";
         @Seed public static final Operator SEED = new Operator(KEY, "^", "power", 2, 30, Associativity.RIGHT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "power";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "^";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "power";
     }
+    @ItemSeed(key = Negate.KEY)
     public static class Negate {
         public static final String KEY = "cg.op:neg";
         @Seed public static final Operator SEED = new Operator(KEY, "-", "negate", 1, 25, Associativity.RIGHT, Fixity.PREFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "negate";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "-";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "negate";
     }
 
     // --- Comparison ---
+    @ItemSeed(key = Equal.KEY)
     public static class Equal {
         public static final String KEY = "cg.op:eq";
         @Seed public static final Operator SEED = new Operator(KEY, "==", "equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "equal";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "==";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "equal";
     }
+    @ItemSeed(key = NotEqual.KEY)
     public static class NotEqual {
         public static final String KEY = "cg.op:ne";
         @Seed public static final Operator SEED = new Operator(KEY, "!=", "not equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "not equal";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "!=";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "not equal";
     }
+    @ItemSeed(key = LessThan.KEY)
     public static class LessThan {
         public static final String KEY = "cg.op:lt";
         @Seed public static final Operator SEED = new Operator(KEY, "<", "less than", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "less than";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "<";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "less than";
     }
+    @ItemSeed(key = GreaterThan.KEY)
     public static class GreaterThan {
         public static final String KEY = "cg.op:gt";
         @Seed public static final Operator SEED = new Operator(KEY, ">", "greater than", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "greater than";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = ">";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "greater than";
     }
+    @ItemSeed(key = LessOrEqual.KEY)
     public static class LessOrEqual {
         public static final String KEY = "cg.op:le";
         @Seed public static final Operator SEED = new Operator(KEY, "<=", "less or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "less or equal";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "<=";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "less or equal";
     }
+    @ItemSeed(key = GreaterOrEqual.KEY)
     public static class GreaterOrEqual {
         public static final String KEY = "cg.op:ge";
         @Seed public static final Operator SEED = new Operator(KEY, ">=", "greater or equal", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "greater or equal";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = ">=";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "greater or equal";
     }
 
     // --- String ---
+    @ItemSeed(key = Concat.KEY)
     public static class Concat {
         public static final String KEY = "cg.op:concat";
         @Seed public static final Operator SEED = new Operator(KEY, "++", "concat", 2, 10, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "concat";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "++";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "concat";
     }
 
     // --- Collection ---
+    @ItemSeed(key = In.KEY)
     public static class In {
         public static final String KEY = "cg.op:in";
         @Seed public static final Operator SEED = new Operator(KEY, "in", "in", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "in";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "in";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "in";
     }
+    @ItemSeed(key = Contains.KEY)
     public static class Contains {
         public static final String KEY = "cg.op:contains";
         @Seed public static final Operator SEED = new Operator(KEY, "contains", "contains", 2, 5, Associativity.NONE, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "contains";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "contains";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "contains";
     }
 
     // --- Structural ---
+    @ItemSeed(key = Assign.KEY)
     public static class Assign {
         public static final String KEY = "cg.op:assign";
         @Seed public static final Operator SEED = new Operator(KEY, "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "assign";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "=";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "assign";
     }
+    @ItemSeed(key = IsOp.KEY)
     public static class IsOp {
         public static final String KEY = "cg.op:is";
         @Seed public static final Operator SEED = new Operator(KEY, "is", "is", 2, -5, Associativity.RIGHT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "is";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "is";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "is";
     }
+    @ItemSeed(key = Pipe.KEY)
     public static class Pipe {
         public static final String KEY = "cg.op:pipe";
         @Seed public static final Operator SEED = new Operator(KEY, "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "pipe";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "|>";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "pipe";
     }
 
     // ==================================================================================

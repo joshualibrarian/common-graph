@@ -1,12 +1,15 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
@@ -39,11 +42,18 @@ public class Function extends Sememe {
 
     public static final String KEY = TypeSeed.KEY;
 
+    @ItemSeed(key = TypeSeed.KEY)
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:function";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "a mathematical function")
                 .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "function");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "a mathematical function";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String noun = "function";
     }
 
     // ==================================================================================
@@ -74,174 +84,591 @@ public class Function extends Sememe {
     // SEED INSTANCES — Math
     // ==================================================================================
 
+    @ItemSeed(key = Abs.KEY)
     public static class Abs {
         public static final String KEY = "cg.fn:abs";
         @Seed public static final Function SEED = fn(KEY, "abs", "compute the absolute value of a number", 1, 1, MATH);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "compute the absolute value of a number";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "abs";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "abs";
     }
+    @ItemSeed(key = Ceil.KEY)
     public static class Ceil {
         public static final String KEY = "cg.fn:ceil";
         @Seed public static final Function SEED = fn(KEY, "ceil", "round up to the nearest integer", 1, 1, MATH);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "round up to the nearest integer";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "ceil";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "ceil";
     }
+    @ItemSeed(key = Floor.KEY)
     public static class Floor {
         public static final String KEY = "cg.fn:floor";
         @Seed public static final Function SEED = fn(KEY, "floor", "round down to the nearest integer", 1, 1, MATH);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "round down to the nearest integer";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "floor";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "floor";
     }
+    @ItemSeed(key = Round.KEY)
     public static class Round {
         public static final String KEY = "cg.fn:round";
         @Seed public static final Function SEED = fn(KEY, "round", "round to the nearest integer", 1, 1, MATH);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "round to the nearest integer";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "round";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "round";
     }
+    @ItemSeed(key = Sqrt.KEY)
     public static class Sqrt {
         public static final String KEY = "cg.fn:sqrt";
         @Seed public static final Function SEED = fn(KEY, "sqrt", "compute the positive square root", 1, 1, MATH, "square root");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "compute the positive square root";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "sqrt";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "sqrt";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "square root";
     }
+    @ItemSeed(key = Pow.KEY)
     public static class Pow {
         public static final String KEY = "cg.fn:pow";
         @Seed public static final Function SEED = fn(KEY, "pow", "raise to a power", 2, 2, MATH, "power", "exponent");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "raise to a power";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "pow";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "pow";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "power";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word3 = "exponent";
     }
+    @ItemSeed(key = Log.KEY)
     public static class Log {
         public static final String KEY = "cg.fn:log";
         @Seed public static final Function SEED = fn(KEY, "log", "compute the natural logarithm", 1, 1, MATH, "logarithm");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "compute the natural logarithm";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "log";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "log";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "logarithm";
     }
+    @ItemSeed(key = Sin.KEY)
     public static class Sin {
         public static final String KEY = "cg.fn:sin";
         @Seed public static final Function SEED = fn(KEY, "sin", "compute the sine", 1, 1, MATH, "sine");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "compute the sine";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "sin";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "sin";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "sine";
     }
+    @ItemSeed(key = Cos.KEY)
     public static class Cos {
         public static final String KEY = "cg.fn:cos";
         @Seed public static final Function SEED = fn(KEY, "cos", "compute the cosine", 1, 1, MATH, "cosine");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "compute the cosine";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "cos";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "cos";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "cosine";
     }
+    @ItemSeed(key = Tan.KEY)
     public static class Tan {
         public static final String KEY = "cg.fn:tan";
         @Seed public static final Function SEED = fn(KEY, "tan", "compute the tangent", 1, 1, MATH, "tangent");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "compute the tangent";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "tan";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "tan";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "tangent";
     }
+    @ItemSeed(key = Random.KEY)
     public static class Random {
         public static final String KEY = "cg.fn:random";
         @Seed public static final Function SEED = fn(KEY, "random", "generate a random number between 0 and 1", 0, 0, MATH, "rand");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "generate a random number between 0 and 1";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "random";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "random";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "rand";
     }
 
     // ==================================================================================
     // SEED INSTANCES — Type Coercion
     // ==================================================================================
 
+    @ItemSeed(key = ToString.KEY)
     public static class ToString {
         public static final String KEY = "cg.fn:tostring";
         @Seed public static final Function SEED = fn(KEY, "toString", "convert a value to its string representation", 1, 1, COERCION, "str");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "convert a value to its string representation";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "toString";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "toString";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "str";
     }
+    @ItemSeed(key = ToNumber.KEY)
     public static class ToNumber {
         public static final String KEY = "cg.fn:tonumber";
         @Seed public static final Function SEED = fn(KEY, "toNumber", "convert a value to a number", 1, 1, COERCION, "num");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "convert a value to a number";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "toNumber";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "toNumber";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "num";
     }
+    @ItemSeed(key = ToBool.KEY)
     public static class ToBool {
         public static final String KEY = "cg.fn:tobool";
         @Seed public static final Function SEED = fn(KEY, "toBool", "convert a value to a boolean", 1, 1, COERCION, "bool");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "convert a value to a boolean";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "toBool";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "toBool";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "bool";
     }
 
     // ==================================================================================
     // SEED INSTANCES — String
     // ==================================================================================
 
+    @ItemSeed(key = Upper.KEY)
     public static class Upper {
         public static final String KEY = "cg.fn:upper";
         @Seed public static final Function SEED = fn(KEY, "upper", "convert to uppercase", 1, 1, STRING, "uppercase");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "convert to uppercase";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "upper";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "upper";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "uppercase";
     }
+    @ItemSeed(key = Lower.KEY)
     public static class Lower {
         public static final String KEY = "cg.fn:lower";
         @Seed public static final Function SEED = fn(KEY, "lower", "convert to lowercase", 1, 1, STRING, "lowercase");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "convert to lowercase";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "lower";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "lower";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "lowercase";
     }
+    @ItemSeed(key = Trim.KEY)
     public static class Trim {
         public static final String KEY = "cg.fn:trim";
         @Seed public static final Function SEED = fn(KEY, "trim", "remove leading and trailing whitespace", 1, 1, STRING);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "remove leading and trailing whitespace";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "trim";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "trim";
     }
+    @ItemSeed(key = Length.KEY)
     public static class Length {
         public static final String KEY = "cg.fn:length";
         @Seed public static final Function SEED = fn(KEY, "length", "get the length of a string or collection", 1, 1, STRING, "len");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "get the length of a string or collection";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "length";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "length";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "len";
     }
+    @ItemSeed(key = Substring.KEY)
     public static class Substring {
         public static final String KEY = "cg.fn:substring";
         @Seed public static final Function SEED = fn(KEY, "substring", "extract a portion of a string", 2, 3, STRING, "substr");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "extract a portion of a string";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "substring";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "substring";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "substr";
     }
+    @ItemSeed(key = Split.KEY)
     public static class Split {
         public static final String KEY = "cg.fn:split";
         @Seed public static final Function SEED = fn(KEY, "split", "split a string by delimiter", 2, 2, STRING);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "split a string by delimiter";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "split";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "split";
     }
+    @ItemSeed(key = Join.KEY)
     public static class Join {
         public static final String KEY = "cg.fn:join";
         @Seed public static final Function SEED = fn(KEY, "join", "join a list into a string with delimiter", 2, 2, STRING);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "join a list into a string with delimiter";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "join";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "join";
     }
+    @ItemSeed(key = Format.KEY)
     public static class Format {
         public static final String KEY = "cg.fn:format";
         @Seed public static final Function SEED = fn(KEY, "format", "format a string with arguments", 1, -1, STRING);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "format a string with arguments";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "format";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "format";
     }
 
     // ==================================================================================
     // SEED INSTANCES — Collection
     // ==================================================================================
 
+    @ItemSeed(key = MapFn.KEY)
     public static class MapFn {
         public static final String KEY = "cg.fn:map";
         @Seed public static final Function SEED = fn(KEY, "map", "apply a function to each element", 2, 2, COLLECTION);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "apply a function to each element";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "map";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "map";
     }
+    @ItemSeed(key = Filter.KEY)
     public static class Filter {
         public static final String KEY = "cg.fn:filter";
         @Seed public static final Function SEED = fn(KEY, "filter", "keep elements matching a predicate", 2, 2, COLLECTION);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "keep elements matching a predicate";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "filter";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "filter";
     }
+    @ItemSeed(key = Reduce.KEY)
     public static class Reduce {
         public static final String KEY = "cg.fn:reduce";
         @Seed public static final Function SEED = fn(KEY, "reduce", "fold a collection into a single value", 3, 3, COLLECTION, "fold");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "fold a collection into a single value";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "reduce";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "reduce";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "fold";
     }
+    @ItemSeed(key = Range.KEY)
     public static class Range {
         public static final String KEY = "cg.fn:range";
         @Seed public static final Function SEED = fn(KEY, "range", "generate a sequence of integers", 1, 3, COLLECTION);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "generate a sequence of integers";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "range";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "range";
     }
+    @ItemSeed(key = Reverse.KEY)
     public static class Reverse {
         public static final String KEY = "cg.fn:reverse";
         @Seed public static final Function SEED = fn(KEY, "reverse", "reverse a list or string", 1, 1, COLLECTION);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "reverse a list or string";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "reverse";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "reverse";
     }
+    @ItemSeed(key = Sort.KEY)
     public static class Sort {
         public static final String KEY = "cg.fn:sort";
         @Seed public static final Function SEED = fn(KEY, "sort", "sort a list", 1, 1, COLLECTION);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "sort a list";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "sort";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "sort";
     }
+    @ItemSeed(key = Unique.KEY)
     public static class Unique {
         public static final String KEY = "cg.fn:unique";
         @Seed public static final Function SEED = fn(KEY, "unique", "remove duplicates from a list", 1, 1, COLLECTION, "distinct");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "remove duplicates from a list";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "unique";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "unique";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "distinct";
     }
+    @ItemSeed(key = Flatten.KEY)
     public static class Flatten {
         public static final String KEY = "cg.fn:flatten";
         @Seed public static final Function SEED = fn(KEY, "flatten", "flatten nested lists into a single list", 1, 1, COLLECTION);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "flatten nested lists into a single list";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "flatten";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "flatten";
     }
 
     // ==================================================================================
     // SEED INSTANCES — Utility
     // ==================================================================================
 
+    @ItemSeed(key = Typeof.KEY)
     public static class Typeof {
         public static final String KEY = "cg.fn:typeof";
         @Seed public static final Function SEED = fn(KEY, "typeof", "get the type name of a value", 1, 1, UTILITY, "type");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "get the type name of a value";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "typeof";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "typeof";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "type";
     }
+    @ItemSeed(key = IsNull.KEY)
     public static class IsNull {
         public static final String KEY = "cg.fn:isnull";
         @Seed public static final Function SEED = fn(KEY, "isNull", "check whether a value is null", 1, 1, UTILITY, "null?");
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "check whether a value is null";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "isNull";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "isNull";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word2 = "null?";
     }
+    @ItemSeed(key = Coalesce.KEY)
     public static class Coalesce {
         public static final String KEY = "cg.fn:coalesce";
         @Seed public static final Function SEED = fn(KEY, "coalesce", "return the first non-null argument", 1, -1, UTILITY);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "return the first non-null argument";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "coalesce";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "coalesce";
     }
+    @ItemSeed(key = Default.KEY)
     public static class Default {
         public static final String KEY = "cg.fn:default";
         @Seed public static final Function SEED = fn(KEY, "default", "return a default value if the first is null", 2, 2, UTILITY);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "return a default value if the first is null";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "default";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "default";
     }
 
     // ==================================================================================
     // SEED INSTANCES — Time
     // ==================================================================================
 
+    @ItemSeed(key = Now.KEY)
     public static class Now {
         public static final String KEY = "cg.fn:now";
         @Seed public static final Function SEED = fn(KEY, "now", "current time in milliseconds", 0, 0, TIME);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "current time in milliseconds";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "now";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "now";
     }
+    @ItemSeed(key = Timestamp.KEY)
     public static class Timestamp {
         public static final String KEY = "cg.fn:timestamp";
         @Seed public static final Function SEED = fn(KEY, "timestamp", "current time in seconds since epoch", 0, 0, TIME);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "current time in seconds since epoch";
+
+        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        static final String symbol = "timestamp";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word = "timestamp";
     }
 
     // ==================================================================================
