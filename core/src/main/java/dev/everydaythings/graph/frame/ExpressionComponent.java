@@ -2,6 +2,7 @@ package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
@@ -12,8 +13,10 @@ import dev.everydaythings.graph.frame.expression.Expression;
 import dev.everydaythings.graph.frame.expression.LiteralExpression;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Value;
 import lombok.Getter;
@@ -55,10 +58,18 @@ import java.util.stream.Stream;
  * @see Value
  */
 @Log4j2
-@Implements(ExpressionComponent.TypeSeed.KEY)
+@Implements(ExpressionComponent.KEY)
+@ItemSeed(key = ExpressionComponent.KEY)
 public class ExpressionComponent implements Canonical {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:expression";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "a computed expression component";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "expression";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:expression";

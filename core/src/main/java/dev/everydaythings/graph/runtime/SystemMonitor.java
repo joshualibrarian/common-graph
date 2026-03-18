@@ -4,10 +4,13 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Tick;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.surface.primitive.ProgressBarSurface;
@@ -39,12 +42,20 @@ import java.nio.file.FileSystems;
 @Getter
 @NoArgsConstructor
 @Canonical.Canonization
-@Implements(SystemMonitor.TypeSeed.KEY)
+@Implements(SystemMonitor.KEY)
+@ItemSeed(key = SystemMonitor.KEY)
 @Scene.Container(direction = Direction.VERTICAL, gap = "0.75em",
         padding = "0.75em", width = "100%")
 public class SystemMonitor implements Canonical {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:system-monitor";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "system health monitoring";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "system-monitor";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:system-monitor";

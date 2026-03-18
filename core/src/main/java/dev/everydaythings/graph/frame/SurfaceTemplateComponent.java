@@ -3,6 +3,7 @@ package dev.everydaythings.graph.frame;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 
 
 import com.upokecenter.cbor.CBORObject;
@@ -11,8 +12,10 @@ import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.value.Color;
@@ -37,10 +40,18 @@ import dev.everydaythings.graph.value.Color;
  * @see SceneCompiler
  * @see ViewNode
  */
-@Implements(SurfaceTemplateComponent.TypeSeed.KEY)
+@Implements(SurfaceTemplateComponent.KEY)
+@ItemSeed(key = SurfaceTemplateComponent.KEY)
 public class SurfaceTemplateComponent implements Canonical {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:surface-template";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "display template for an item type";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "surface-template";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:surface-template";

@@ -4,10 +4,13 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Tick;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.ui.scene.Transition;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
@@ -36,12 +39,20 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @Canonical.Canonization
-@Implements(ClockFace.TypeSeed.KEY)
+@Implements(ClockFace.KEY)
+@ItemSeed(key = ClockFace.KEY)
 @Scene.Container(direction = Direction.STACK, style = "clock", width = "100%", height = "100%")
 @Scene.Shape(type = "circle", fill = "#1E1E2E", stroke = "#CDD6F4", strokeWidth = "1%")
 public class ClockFace implements Canonical {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:clock";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "analog clock display";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "clock";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:clock";

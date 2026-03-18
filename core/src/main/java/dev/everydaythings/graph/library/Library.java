@@ -7,6 +7,7 @@ import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Picker;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
@@ -17,6 +18,7 @@ import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.dictionary.TokenExtractor;
@@ -73,10 +75,18 @@ import java.util.stream.Stream;
  * }</pre>
  */
 @Log4j2
-@Implements(Library.TypeSeed.KEY)
+@Implements(Library.KEY)
+@ItemSeed(key = Library.KEY)
 public final class Library implements Canonical, AutoCloseable {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:library";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "local storage for items";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "library";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:library";

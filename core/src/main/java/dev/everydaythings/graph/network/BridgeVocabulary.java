@@ -132,23 +132,31 @@ public final class BridgeVocabulary {
      * Asserts that a CG identity corresponds to a foreign identity.
      * Used when a phantom item is merged with a real principal.
      */
+    @ItemSeed(key = IdentifiesAs.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
     public static class IdentifiesAs {
         public static final String KEY = "cg.bridge:identifies-as";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "asserts that this identity corresponds to another; merges a phantom with a real principal")
                 .slot(ThematicRole.Theme.KEY)
                 .slot(ThematicRole.Goal.KEY);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "asserts that this identity corresponds to another; merges a phantom with a real principal";
     }
 
     /**
      * Records that content was received via a specific bridge protocol.
      * Used on frames created from inbound foreign messages.
      */
+    @ItemSeed(key = ReceivedVia.KEY, slots = {ThematicRole.Instrument.KEY, ThematicRole.Source.KEY})
     public static class ReceivedVia {
         public static final String KEY = "cg.bridge:received-via";
         @Seed public static final Sememe SEED = new Sememe(KEY)
                 .gloss("en", "records that content was received through a foreign protocol bridge")
                 .slot(ThematicRole.Instrument.KEY)
                 .slot(ThematicRole.Source.KEY);
+
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "records that content was received through a foreign protocol bridge";
     }
 }

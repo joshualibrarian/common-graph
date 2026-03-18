@@ -11,9 +11,11 @@ import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
@@ -77,12 +79,20 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 @Scene.Rule(match = ".selected", background = "#313244")
 @Scene.Rule(match = ":selected", background = "reverse")
 @Scene.Rule(match = ":hover", opacity = "bright")
-@Implements(Item.TypeSeed.KEY)
+@Implements(Item.KEY)
+@ItemSeed(key = Item.KEY)
 @Scene(as = ItemSurface.class)
 public class Item {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:item";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "the fundamental unit of Common Graph";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "item";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:item";

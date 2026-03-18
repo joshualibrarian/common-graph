@@ -3,10 +3,13 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.frame.DisplayConfig;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ViewVocabulary;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
@@ -32,14 +35,22 @@ import java.util.List;
  *   <li>reachable-at: IP addresses where it can be reached</li>
  * </ul>
  */
-@Implements(Host.TypeSeed.KEY)
+@Implements(Host.KEY)
+@ItemSeed(key = Host.KEY)
 public class Host extends Signer {
 
     // ==================================================================================
     // TYPE DEFINITION
     // ==================================================================================
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:host";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "a network host device";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "host";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:host";

@@ -2,12 +2,15 @@ package dev.everydaythings.graph.item.user;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.crypt.Vault;
 import dev.everydaythings.graph.item.id.HashID;
@@ -61,11 +64,19 @@ import java.util.Objects;
  * }
  * }</pre>
  */
-@Implements(Signer.TypeSeed.KEY)
+@Implements(Signer.KEY)
+@ItemSeed(key = Signer.KEY)
 public abstract class Signer extends Item implements Signing.Signer {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:signer";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "an item that can cryptographically sign other items";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "signer";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:signer";

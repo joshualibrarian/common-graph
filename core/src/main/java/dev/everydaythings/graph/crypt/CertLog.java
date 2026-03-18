@@ -7,9 +7,12 @@ import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 
 import java.io.ByteArrayInputStream;
 import java.security.MessageDigest;
@@ -37,11 +40,19 @@ import java.util.*;
  * <p>Operations are applied in-memory via {@link #apply(Op)}. When a
  * Library is available, operations can be persisted as frames via FrameChain.
  */
-@Implements(CertLog.TypeSeed.KEY)
+@Implements(CertLog.KEY)
+@ItemSeed(key = CertLog.KEY)
 public class CertLog implements Canonical, Inspectable {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:certlog";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "append-only certificate history";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "certlog";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:certlog";

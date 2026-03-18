@@ -2,13 +2,16 @@ package dev.everydaythings.graph.item.user;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -32,10 +35,18 @@ import java.nio.file.Path;
  *   <li>{@code serve alice} — tells the Librarian to serve this user as principal</li>
  * </ul>
  */
-@Implements(User.TypeSeed.KEY)
+@Implements(User.KEY)
+@ItemSeed(key = User.KEY)
 public class User extends Signer {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:user";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "a signer representing a human identity";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "user";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:user";

@@ -3,12 +3,15 @@ package dev.everydaythings.graph.frame;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 
 /**
  * 3D object representation of an item (the "holdable" form).
@@ -43,10 +46,18 @@ import dev.everydaythings.graph.language.Sememe;
  *   <li>A person might have an avatar model</li>
  * </ul>
  */
-@Implements(Model.TypeSeed.KEY)
+@Implements(Model.KEY)
+@ItemSeed(key = Model.KEY)
 public final class Model {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:model";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "3D object representation of an item";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "model";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:model";

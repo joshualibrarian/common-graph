@@ -3,6 +3,7 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.Verb;
@@ -33,8 +34,10 @@ import dev.everydaythings.graph.library.SeedVocabulary;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.network.peer.PeerProtocol;
@@ -119,7 +122,8 @@ import picocli.CommandLine.Mixin;
  * }</pre>
  */
 @Log4j2
-@Implements(Librarian.TypeSeed.KEY)
+@Implements(Librarian.KEY)
+@ItemSeed(key = Librarian.KEY)
 @Command(
     name = "librarian",
     mixinStandardHelpOptions = true,
@@ -128,7 +132,14 @@ import picocli.CommandLine.Mixin;
 public final class Librarian extends Signer implements AutoCloseable, Daemon, Callable<Integer> {
 
     // === TYPE DEFINITION ===
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:librarian";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "the local runtime bootstrap item";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "librarian";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:librarian";

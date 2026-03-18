@@ -3,10 +3,13 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
@@ -32,10 +35,18 @@ import java.util.Optional;
  *
  * @see ActivityEntry
  */
-@Implements(ActivityLog.TypeSeed.KEY)
+@Implements(ActivityLog.KEY)
+@ItemSeed(key = ActivityLog.KEY)
 public class ActivityLog implements Canonical, Inspectable {
 
-    public static final String KEY = TypeSeed.KEY;
+    public static final String KEY = "cg.sememe:activity-log";
+
+    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    static final String seedGloss = "audit trail of item operations";
+
+    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
+                   features = {GrammaticalFeature.Lemma.KEY})
+    static final String seedNoun = "activity-log";
 
     public static class TypeSeed {
         public static final String KEY = "cg.sememe:activity-log";
