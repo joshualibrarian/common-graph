@@ -53,21 +53,6 @@ public class ValueType extends Item {
 
     public static final String KEY = "cg.sememe:value-type";
 
-    @ItemSeed(key = ValueType.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:value-type";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a primitive value type")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "value-type");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "a primitive value type";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun = "value-type";
-    }
-
-
     // ==================================================================================
     // SEED INSTANCES - Basic types
     // ==================================================================================

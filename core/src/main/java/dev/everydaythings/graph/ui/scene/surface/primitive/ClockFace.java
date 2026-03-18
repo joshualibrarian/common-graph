@@ -54,13 +54,6 @@ public class ClockFace implements Canonical {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "clock";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:clock";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "analog clock display")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "clock");
-    }
-
     // --- Canonical: visual definition ---
 
     @Canon(order = 0)

@@ -47,13 +47,6 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
 
     public static final String KEY = "cg.sememe:minesweeper";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:minesweeper";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the minesweeper grid game")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "minesweeper");
-    }
-
     private static final String CONFIG_SCOPE_ROOT = "/";
     private static final String CONFIG_DIFFICULTY = "difficulty";
     private static final String CONFIG_COLS = "cols";

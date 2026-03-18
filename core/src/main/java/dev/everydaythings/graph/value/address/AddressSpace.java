@@ -54,14 +54,6 @@ public abstract class AddressSpace extends ValueType {
 
     public static final String KEY = "cg.sememe:address-space";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:address-space";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a namespace for external addresses")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "address-space");
-    }
-
-
     // ==================================================================================
     // CONSTRUCTOR
     // ==================================================================================

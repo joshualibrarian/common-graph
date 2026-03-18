@@ -78,13 +78,6 @@ public abstract class Signer extends Item implements Signing.Signer {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "signer";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:signer";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "an item that can cryptographically sign other items")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "signer");
-    }
-
     public static final Algorithm.Sign ALGORITHM = Algorithm.Sign.ED25519;
 
     // ==================================================================================

@@ -38,13 +38,6 @@ public class PolicySet implements Canonical {
 
     public static final String KEY = "cg.sememe:policy";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:policy";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "per-item trust policies")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "policy");
-    }
-
     // ==================================================================================
     // Component Display
     // ==================================================================================

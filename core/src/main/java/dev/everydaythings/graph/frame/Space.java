@@ -44,13 +44,6 @@ public final class Space {
 
     public static final String KEY = "cg.sememe:space";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:space";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "3D environment for items")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "space");
-    }
-
     /** Items placed in this space */
     private final Map<ItemID, Placement> placements;
 

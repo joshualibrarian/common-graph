@@ -44,13 +44,6 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
 
     public static final String KEY = "cg.sememe:dominoes";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:dominoes";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the game of dominoes")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "dominoes");
-    }
-
     // ==================================================================================
     // Operations
     // ==================================================================================

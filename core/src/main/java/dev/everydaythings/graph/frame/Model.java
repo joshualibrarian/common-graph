@@ -59,13 +59,6 @@ public final class Model {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "model";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:model";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "3D object representation of an item")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "model");
-    }
-
     /** The type of model */
     private ModelType type;
 

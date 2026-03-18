@@ -48,13 +48,6 @@ public class User extends Signer {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "user";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:user";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a signer representing a human identity")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "user");
-    }
-
     // ==================================================================================
     // Constructors
     // ==================================================================================

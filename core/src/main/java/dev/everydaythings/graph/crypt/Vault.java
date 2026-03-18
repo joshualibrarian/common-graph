@@ -64,13 +64,6 @@ public abstract class Vault {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "vault";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:vault";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "secure storage for cryptographic keys")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "vault");
-    }
-
     /** Default alias for the primary signing key */
     public static final String SIGNING_KEY_ALIAS = "signing";
 

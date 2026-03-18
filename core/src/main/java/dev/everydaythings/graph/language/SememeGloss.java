@@ -4,7 +4,9 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * A per-language gloss (definition) for a Sememe.
@@ -29,13 +31,6 @@ public class SememeGloss implements Canonical {
 
     public static final String KEY = "cg.sememe:sememe-gloss";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:sememe-gloss";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a per-language definition of a sememe")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "gloss");
-    }
-
     /** The language this gloss is in (e.g., Language.ENGLISH). */
     @Canon(order = 0)
     private final ItemID language;
@@ -54,17 +49,5 @@ public class SememeGloss implements Canonical {
     private SememeGloss() {
         this.language = null;
         this.text = null;
-    }
-
-    /**
-     * Compute the component handle key for a gloss in the given language.
-     *
-     * <p>Uses "gloss/" + language code to ensure one gloss per language per sememe.
-     *
-     * @param languageCode ISO 639-3 code (e.g., "eng")
-     * @return handle key (e.g., "gloss/eng")
-     */
-    public static String handleKeyFor(String languageCode) {
-        return "gloss/" + languageCode;
     }
 }

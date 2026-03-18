@@ -34,13 +34,6 @@ public class Language extends Item {
 
     public static final String KEY = "cg.sememe:language";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:language";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a natural language with its lexicon")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "language");
-    }
-
     /** The English Language KEY and IID — used to scope seed English lexemes. */
     public static final String ENGLISH_KEY = "cg:language/eng";
     public static final ItemID ENGLISH = ItemID.fromString(ENGLISH_KEY);

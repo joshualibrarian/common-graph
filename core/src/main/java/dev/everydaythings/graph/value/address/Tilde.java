@@ -45,14 +45,6 @@ public class Tilde extends AddressSpace {
 
     public static final String KEY = "cg.address:tilde";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.address:tilde";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "tilde-based user addressing")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "tilde");
-    }
-
-
     /** The address space item - use for predicates and type references. */
     public static final Tilde ITEM = new Tilde(KEY, "Tilde Address");
 

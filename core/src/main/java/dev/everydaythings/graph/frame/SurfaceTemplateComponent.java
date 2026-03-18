@@ -53,12 +53,6 @@ public class SurfaceTemplateComponent implements Canonical {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "surface-template";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:surface-template";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "display template for an item type")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "surface-template");
-    }
     public static final FrameKey HANDLE = FrameKey.of(ItemID.fromString(KEY));
 
     // ==================================================================================

@@ -41,13 +41,6 @@ public class PokerGame extends GameComponent<PokerGame.Op>
 
     public static final String KEY = "cg.sememe:poker";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:poker";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the game of poker")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "poker");
-    }
-
     // ==================================================================================
     // Constants
     // ==================================================================================

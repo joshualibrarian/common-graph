@@ -57,13 +57,6 @@ public class SystemMonitor implements Canonical {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "system-monitor";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:system-monitor";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "system health monitoring")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "system-monitor");
-    }
-
     // --- Canonical: configuration ---
 
     @Canon(order = 0)

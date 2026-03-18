@@ -573,7 +573,7 @@ public final class SeedVocabulary {
      * Register a class as an implementation of a concept.
      *
      * <p>Creates IMPLEMENTED_BY relation and attaches display metadata from @Type.
-     * Does NOT create Sememe seeds — those come from @Item.Seed fields in TypeSeed
+     * Does NOT create Sememe seeds — those come from @Item.Seed fields in @ItemSeed
      * inner classes, scanned independently by scanForSeedItems().
      */
     private void registerImplementation(Class<?> clazz) {

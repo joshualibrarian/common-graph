@@ -94,13 +94,6 @@ public class Item {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "item";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:item";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the fundamental unit of Common Graph")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "item");
-    }
-
     // === WELL-KNOWN FRAME KEYS ===
     // Lazy-initialized via holder class to break circular clinit.
     private static class BuiltinKeys {

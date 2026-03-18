@@ -61,21 +61,6 @@ public class Sememe extends Item {
 
     public static final String KEY = "cg.sememe:sememe";
 
-    @ItemSeed(key = Sememe.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:sememe";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a unit of meaning")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "sememe");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "a unit of meaning";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun1 = "sememe";
-    }
-
-
     // ==================================================================================
     // LANGUAGE CONSTANTS (for fluent seed declarations)
     // ==================================================================================

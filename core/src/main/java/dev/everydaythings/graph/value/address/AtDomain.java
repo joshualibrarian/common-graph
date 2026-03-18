@@ -42,14 +42,6 @@ public class AtDomain extends AddressSpace {
 
     public static final String KEY = "cg.address:at-domain";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.address:at-domain";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "email-style at-domain addressing")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "at-domain");
-    }
-
-
     /** The address space item - use for predicates and type references. */
     public static final AtDomain ITEM = new AtDomain(KEY, "Email Address");
 

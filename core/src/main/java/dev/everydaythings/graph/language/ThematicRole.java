@@ -42,21 +42,6 @@ public class ThematicRole extends Sememe {
 
     public static final String KEY = "cg.sememe:role";
 
-    @ItemSeed(key = ThematicRole.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:role";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a semantic role that a participant fills in a frame")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "role");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "a semantic role that a participant fills in a frame";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun = "role";
-    }
-
     // ==================================================================================
     // SEED INSTANCES — core participant roles
     //

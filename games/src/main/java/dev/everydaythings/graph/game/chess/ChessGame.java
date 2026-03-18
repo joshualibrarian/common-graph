@@ -54,14 +54,6 @@ public class ChessGame extends GameComponent<ChessGame.Op> implements Spatial<Ch
 
     public static final String KEY = "cg.sememe:chess";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:chess";
-        // @Item.Seed removed — ChessItem.TypeSeed now owns the seed for "cg.sememe:chess"
-        public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the game of chess")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "chess");
-    }
-
     private static final String SIDE_PANEL_WIDTH = "25%";
     private static final String HANDLE_ROW_HEIGHT = "5.1em";
     private static final String HANDLE_ROW_PADDING = "0 25% 0 0";

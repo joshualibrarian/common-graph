@@ -33,21 +33,6 @@ public class GrammaticalFeature extends Sememe {
 
     public static final String KEY = "cg.sememe:grammatical-feature";
 
-    @ItemSeed(key = GrammaticalFeature.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:grammatical-feature";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "an inflectional property of a word form")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "feature");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "an inflectional property of a word form";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun = "feature";
-    }
-
     // ==================================================================================
     // BASE FORM
     // ==================================================================================

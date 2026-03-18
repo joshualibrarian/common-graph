@@ -54,13 +54,6 @@ public class CertLog implements Canonical, Inspectable {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "certlog";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:certlog";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "append-only certificate history")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "certlog");
-    }
-
     /**
      * Create a new empty CertLog.
      */

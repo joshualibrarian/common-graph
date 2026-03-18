@@ -42,14 +42,6 @@ public class JavaClass extends AddressSpace {
 
     public static final String KEY = "cg.address:java-class";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.address:java-class";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "Java class fully-qualified name addressing")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "java-class");
-    }
-
-
     /** The address space item - use for predicates and type references. */
     public static final JavaClass ITEM = new JavaClass(KEY, "Java Class");
 

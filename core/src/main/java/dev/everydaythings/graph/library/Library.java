@@ -88,13 +88,6 @@ public final class Library implements Canonical, AutoCloseable {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "library";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:library";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "local storage for items")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "library");
-    }
-
     // ==================================================================================
     // Backend Selection
     // ==================================================================================

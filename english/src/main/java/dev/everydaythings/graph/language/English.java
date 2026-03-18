@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
@@ -37,14 +36,6 @@ public class English extends Language {
     // ==================================================================================
 
     public static final String KEY = "cg:language/eng";
-
-    public static class TypeSeed {
-        public static final String KEY = "cg:language/eng";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the English language")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "english");
-    }
-
 
     // ==================================================================================
     // STATISTICS (populated by generate)

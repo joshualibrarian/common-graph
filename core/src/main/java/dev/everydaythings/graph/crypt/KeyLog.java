@@ -49,13 +49,6 @@ public class KeyLog implements Canonical, Inspectable {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "keylog";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:keylog";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "append-only public key history")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "keylog");
-    }
-
     /**
      * Create a new empty KeyLog.
      */

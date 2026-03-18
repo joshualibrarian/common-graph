@@ -39,13 +39,6 @@ public class Roster {
 
     public static final String KEY = "cg.sememe:roster";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:roster";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "tracks principals present in an item")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "roster");
-    }
-
     /** Members with their membership info */
     private final Map<ItemID, Membership> members;
 

@@ -67,20 +67,6 @@ public class Unit extends Item {
 
     public static final String KEY = "cg.sememe:unit";
 
-    @ItemSeed(key = Unit.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:unit";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a unit of measure")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "unit");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "a unit of measure";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun = "unit";
-    }
-
     /** Helper: deterministic IID from canonical key (avoids triggering class init on Dimension). */
     private static ItemID dim(String key) { return ItemID.fromString(key); }
 

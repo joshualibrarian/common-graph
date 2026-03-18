@@ -50,13 +50,6 @@ public class Vocabulary implements Canonical, Iterable<VerbEntry> {
 
     public static final String KEY = "cg.sememe:vocabulary";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:vocabulary";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "verb index for an item")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "vocabulary");
-    }
-
     // ==================================================================================
     // Component Display
     // ==================================================================================

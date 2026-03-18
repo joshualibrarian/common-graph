@@ -45,14 +45,6 @@ public class SetGame extends GameComponent<SetGame.Op>
 
     public static final String KEY = "cg.sememe:set-game";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:set-game";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the Set card game")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "set-game");
-    }
-
-
     // ==================================================================================
     // Operations
     // ==================================================================================

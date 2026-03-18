@@ -42,20 +42,6 @@ public class Function extends Sememe {
 
     public static final String KEY = "cg.sememe:function";
 
-    @ItemSeed(key = Function.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:function";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a mathematical function")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "function");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "a mathematical function";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun = "function";
-    }
-
     // ==================================================================================
     // INSTANCE FIELDS (function-specific; canonicalKey, glosses, symbols inherited)
     // ==================================================================================

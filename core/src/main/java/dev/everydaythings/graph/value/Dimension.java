@@ -59,21 +59,6 @@ public class Dimension extends Item {
 
     public static final String KEY = "cg.sememe:dimension";
 
-    @ItemSeed(key = Dimension.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:dimension";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a physical dimension for quantities")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "dimension");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "a physical dimension for quantities";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun = "dimension";
-    }
-
-
     // ==================================================================================
     // SEED INSTANCES (SI base dimensions)
     // ==================================================================================

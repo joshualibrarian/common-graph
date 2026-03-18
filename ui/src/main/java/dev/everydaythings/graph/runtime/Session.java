@@ -4,7 +4,6 @@ import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -108,13 +107,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "session";
-
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:session";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "UI session for item interaction")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "session");
-    }
 
     // ==================================================================================
     // UI Mode

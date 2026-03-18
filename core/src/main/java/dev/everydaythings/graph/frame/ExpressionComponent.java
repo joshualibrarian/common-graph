@@ -71,13 +71,6 @@ public class ExpressionComponent implements Canonical {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "expression";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:expression";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a computed expression component")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "expression");
-    }
-
     // ==================================================================================
     // Canonical Fields
     // ==================================================================================

@@ -46,13 +46,6 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
 
     public static final String KEY = "cg.sememe:yahtzee";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:yahtzee";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the game of yahtzee")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "yahtzee");
-    }
-
     // ==================================================================================
     // Constants
     // ==================================================================================

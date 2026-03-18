@@ -52,14 +52,6 @@ public class Host extends Signer {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "host";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:host";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a network host device")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "host");
-    }
-
-
     // ==================================================================================
     // INSTANCE FIELDS
     // ==================================================================================

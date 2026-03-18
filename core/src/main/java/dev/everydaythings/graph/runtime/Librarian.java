@@ -141,13 +141,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "librarian";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:librarian";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the local runtime bootstrap item")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "librarian");
-    }
-
     /** Default port for Common Graph protocol. */
     public static final int DEFAULT_PORT = 7432;
 

@@ -48,12 +48,6 @@ public class ActivityLog implements Canonical, Inspectable {
                    features = {GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "activity-log";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:activity-log";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "audit trail of item operations")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "activity-log");
-    }
     public static final String HANDLE = "activity";
 
     /** In-memory index: context IID → most recent entry for that context. */

@@ -49,13 +49,6 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
 
     public static final String KEY = "cg.sememe:spades";
 
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:spades";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the game of spades")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "spades");
-    }
-
     // ==================================================================================
     // Constants
     // ==================================================================================

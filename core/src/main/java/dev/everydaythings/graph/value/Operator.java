@@ -46,20 +46,6 @@ public class Operator extends Sememe {
 
     public static final String KEY = "cg.sememe:operator";
 
-    @ItemSeed(key = Operator.KEY)
-    public static class TypeSeed {
-        public static final String KEY = "cg.sememe:operator";
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "a mathematical operator")
-                .word(PartOfSpeech.NOUN, GrammaticalFeature.Lemma.SEED, "en", "operator");
-
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
-        static final String gloss = "a mathematical operator";
-
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
-        static final String noun = "operator";
-    }
-
     public enum Associativity { LEFT, RIGHT, NONE }
     public enum Fixity { PREFIX, INFIX, POSTFIX }
 
