@@ -7,7 +7,6 @@ import dev.everydaythings.graph.dispatch.VerbSpec;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -959,26 +958,27 @@ public class Item {
      * @param predicateId the semantic predicate (Sememe IID) for the frame key
      * @param component   the component instance
      */
-    public void addFrame(ItemID predicateId, Object component) {
-        addFrame(predicateId, null, component);
+    public void endorse(ItemID predicateId, Object component) {
+        endorse(predicateId, null, component);
     }
 
     /**
-     * Dynamically add a component with a semantic predicate key and optional qualifier.
+     * Endorse a frame on this item — adds it to the endorsements table.
      *
-     * <p>This is the preferred way to attach components to items.
-     * The component's verbs are scanned and added to this item's vocabulary.
+     * <p>An endorsed frame is part of this item's identity. When the item
+     * commits, endorsed frames affect the manifest hash. The component's
+     * verbs are scanned and added to this item's vocabulary.
      *
      * @param predicateId the semantic predicate (Sememe IID) for the frame key
      * @param qualifier   optional qualifier for multiple instances (null for first/only)
      * @param component   the component instance
      */
-    public void addFrame(ItemID predicateId, String qualifier, Object component) {
+    public void endorse(ItemID predicateId, String qualifier, Object component) {
         Objects.requireNonNull(predicateId, "predicateId");
         Objects.requireNonNull(component, "component");
 
         FrameKey key = qualifier != null
-                ? FrameKey.mixed(predicateId, qualifier)
+                ? FrameKey.of(predicateId, qualifier)
                 : FrameKey.of(predicateId);
         ItemID typeId = Item.idOf(component.getClass());
         String handle = resolveDisplayToken(predicateId);
@@ -999,10 +999,7 @@ public class Item {
         // 2. Register live instance
         frames().setLive(key, component);
 
-        // 3. Invalidate expression caches
-        frames().forEachLive(ExpressionComponent.class, ExpressionComponent::invalidate);
-
-        // 4. Call lifecycle hooks
+        // 3. Call lifecycle hooks
         if (component instanceof FrameAware fa) {
             fa.onFramePlaced(new FrameContext(this, key, frame));
         }
@@ -2451,33 +2448,36 @@ public class Item {
     /**
      * Declares a frame field on this Item.
      *
-     * <p>Frames are the universal primitive in Common Graph. Endorsed frames
-     * (default) are stored in the manifest. Unendorsed frames are stored as
-     * FrameRecord envelopes and indexed for cross-item queries.
+     * <p>By default, {@code @Frame} fields are <b>endorsed</b> — they are
+     * part of the item's manifest and contribute to its version identity.
+     * Endorsement means the item's owner asserts this frame as part of their
+     * item's definition. Set {@code endorsed=false} for frames that are
+     * independently signed assertions (stored as FrameRecords, indexed for
+     * cross-item queries, but not in the manifest).
      *
-     * <p>The {@code key} attribute provides semantic FrameKey tokens (ItemID strings).
-     * The {@code handle} attribute provides a literal key. If both are specified,
-     * {@code key} takes precedence.
+     * <p>The {@code key} attribute is <b>required</b> and provides semantic
+     * FrameKey tokens as ItemID canonical strings. All frame keys must be
+     * semantic — no literal string keys.
      *
      * <p>Usage:
      * <pre>{@code
-     * // Endorsed frame (in manifest)
-     * @Item.Frame(handle = "vault", path = ".vault", localOnly = true)
+     * // Endorsed frame (in manifest, contributes to VID)
+     * @Item.Frame(key = {"cg.core:vault"}, path = ".vault", localOnly = true)
      * private Vault vault;
      *
      * // Endorsed frame with semantic key
-     * @Item.Frame(key = {"cg:pred/title"})
+     * @Item.Frame(key = {"cg.core:title"})
      * private String title;
      *
-     * // Unendorsed frame (indexed, not in manifest)
-     * @Item.Frame(key = {"cg:pred/author"}, endorsed = false)
+     * // Unendorsed frame (independently signed, not in manifest)
+     * @Item.Frame(key = {"cg.core:author"}, endorsed = false)
      * private ItemID author;
      * }</pre>
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface Frame {
-        /** Semantic FrameKey tokens (ItemID canonical strings). Empty = use field name as literal key. */
+        /** Semantic FrameKey tokens (ItemID canonical strings). Required. */
         String[] key() default {};
 
         /** Mount path relative to item root. Required for localOnly. */

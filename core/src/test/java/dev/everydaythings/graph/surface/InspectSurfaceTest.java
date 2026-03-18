@@ -4,6 +4,7 @@ import dev.everydaythings.graph.frame.ViewConfig;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.surface.item.InspectSurface;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,11 +13,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("InspectSurface")
 class InspectSurfaceTest {
 
+    private static Librarian librarian;
+
+    @BeforeAll
+    static void setup() {
+        librarian = Librarian.createInMemory();
+    }
+
     @Test
     @DisplayName("FRAMES mode lists frames")
     void framesModeLists() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
 
@@ -28,8 +35,7 @@ class InspectSurfaceTest {
     @Test
     @DisplayName("VERSIONS mode shows version info")
     void versionsMode() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.VERSIONS);
 
@@ -40,8 +46,7 @@ class InspectSurfaceTest {
     @Test
     @DisplayName("handles empty item")
     void handlesEmptyItem() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
         assertThat(surface.frames()).isNotNull();
@@ -50,8 +55,7 @@ class InspectSurfaceTest {
     @Test
     @DisplayName("null inspect mode defaults to FRAMES")
     void nullModeDefaults() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         InspectSurface surface = InspectSurface.of(item, null);
         assertThat(surface.inspectMode()).isEqualTo(ViewConfig.InspectMode.FRAMES);
@@ -60,8 +64,7 @@ class InspectSurfaceTest {
     @Test
     @DisplayName("dirty flag reflects item state")
     void dirtyFlag() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
         assertThat(surface.dirty()).isTrue();
@@ -70,8 +73,7 @@ class InspectSurfaceTest {
     @Test
     @DisplayName("frames have resolved names, not hashes")
     void framesHaveResolvedNames() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
 
@@ -86,8 +88,7 @@ class InspectSurfaceTest {
     @Test
     @DisplayName("frame info has name and qualifier fields")
     void frameInfoShape() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         InspectSurface surface = InspectSurface.of(item, ViewConfig.InspectMode.FRAMES);
 

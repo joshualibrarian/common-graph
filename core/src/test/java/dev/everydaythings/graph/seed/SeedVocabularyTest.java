@@ -219,7 +219,7 @@ class SeedVocabularyTest {
                 .as("Surface template content should be stored").isPresent();
 
         // Should NOT have a separate "display" handle
-        FrameKey displayKey = FrameKey.literal("display");
+        FrameKey displayKey = FrameKey.of(ItemID.fromString("cg.test:display"));
         boolean hasDisplay = manifest.components().stream()
                 .anyMatch(e -> e.frameKey().equals(displayKey));
         assertThat(hasDisplay).as("Should not have a separate display component").isFalse();

@@ -6,8 +6,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -16,7 +14,6 @@ class FrameKeyTest {
     static final ItemID TITLE = ItemID.fromString("cg:pred/title");
     static final ItemID GLOSS = ItemID.fromString("cg:pred/gloss");
     static final ItemID ENG = ItemID.fromString("cg:language/eng");
-    static final ItemID CHAT = ItemID.fromString("cg:pred/chat");
     static final ItemID CONTENT = ItemID.fromString("cg:pred/content");
 
     @Nested
@@ -30,7 +27,6 @@ class FrameKeyTest {
 
             assertThat(key.size()).isEqualTo(1);
             assertThat(key.isSemantic()).isTrue();
-            assertThat(key.isLiteral()).isFalse();
             assertThat(key.headSememe()).isEqualTo(TITLE);
             assertThat(key.qualifiers()).isEmpty();
         }
@@ -47,54 +43,17 @@ class FrameKeyTest {
         }
 
         @Test
-        @DisplayName("single literal key")
-        void singleLiteral() {
-            FrameKey key = FrameKey.literal("vault");
-
-            assertThat(key.size()).isEqualTo(1);
-            assertThat(key.isLiteral()).isTrue();
-            assertThat(key.isSemantic()).isFalse();
-            assertThat(key.literalValue()).isEqualTo("vault");
-            assertThat(key.headSememe()).isNull();
-        }
-
-        @Test
-        @DisplayName("mixed key — sememe head with literal qualifier")
-        void mixedKey() {
-            FrameKey key = FrameKey.mixed(CHAT, "tavern");
-
-            assertThat(key.size()).isEqualTo(2);
-            assertThat(key.isSemantic()).isFalse();
-            assertThat(key.isLiteral()).isFalse();
-            assertThat(key.headSememe()).isEqualTo(CHAT);
-            assertThat(key.qualifiers()).hasSize(1);
-            assertThat(key.qualifiers().getFirst()).isInstanceOf(FrameKey.Literal.class);
-        }
-
-        @Test
         @DisplayName("rejects null head")
         void rejectsNullHead() {
             assertThatThrownBy(() -> FrameKey.of(null))
                     .isInstanceOf(NullPointerException.class);
         }
 
-        @Test
-        @DisplayName("rejects blank literal")
-        void rejectsBlankLiteral() {
-            assertThatThrownBy(() -> FrameKey.literal("  "))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
     }
 
     @Nested
     @DisplayName("Canonical string")
     class CanonicalString {
-
-        @Test
-        @DisplayName("toCanonicalString returns literal value for literal keys")
-        void canonicalStringForLiteral() {
-            assertThat(FrameKey.literal("vault").toCanonicalString()).isEqualTo("vault");
-        }
 
         @Test
         @DisplayName("toCanonicalString is deterministic for semantic keys")
@@ -121,13 +80,6 @@ class FrameKeyTest {
         }
 
         @Test
-        @DisplayName("literal key displays quoted")
-        void literalDisplay() {
-            FrameKey key = FrameKey.literal("x");
-            assertThat(key.displayText()).isEqualTo("(\"x\")");
-        }
-
-        @Test
         @DisplayName("compound key shows comma-separated tokens")
         void compoundDisplay() {
             FrameKey key = FrameKey.of(GLOSS, ENG);
@@ -137,13 +89,6 @@ class FrameKeyTest {
             assertThat(display).contains(", ");
         }
 
-        @Test
-        @DisplayName("mixed key shows literal quoted")
-        void mixedDisplay() {
-            FrameKey key = FrameKey.mixed(CHAT, "tavern");
-            String display = key.displayText();
-            assertThat(display).contains("\"tavern\"");
-        }
     }
 
     @Nested
@@ -170,27 +115,6 @@ class FrameKeyTest {
 
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.size()).isEqualTo(2);
-        }
-
-        @Test
-        @DisplayName("literal key survives encode/decode")
-        void literal() {
-            FrameKey original = FrameKey.literal("vault");
-            CBORObject cbor = original.toCborTree(Canonical.Scope.BODY);
-            FrameKey decoded = FrameKey.fromCborTree(cbor);
-
-            assertThat(decoded).isEqualTo(original);
-            assertThat(decoded.literalValue()).isEqualTo("vault");
-        }
-
-        @Test
-        @DisplayName("mixed key survives encode/decode")
-        void mixed() {
-            FrameKey original = FrameKey.mixed(CHAT, "tavern");
-            CBORObject cbor = original.toCborTree(Canonical.Scope.BODY);
-            FrameKey decoded = FrameKey.fromCborTree(cbor);
-
-            assertThat(decoded).isEqualTo(original);
         }
 
         @Test
@@ -225,15 +149,6 @@ class FrameKeyTest {
             FrameKey b = FrameKey.of(CONTENT);
 
             assertThat(a).isNotEqualTo(b);
-        }
-
-        @Test
-        @DisplayName("sememe key not equal to literal key")
-        void sememeNotEqualToLiteral() {
-            FrameKey sememe = FrameKey.of(TITLE);
-            FrameKey literal = FrameKey.literal("title");
-
-            assertThat(sememe).isNotEqualTo(literal);
         }
 
         @Test
@@ -273,17 +188,5 @@ class FrameKeyTest {
             assertThat(frame.frameKey().headSememe()).isEqualTo(TITLE);
         }
 
-        @Test
-        @DisplayName("frame with explicit literal frameKey returns it")
-        void explicitLiteralFrameKey() {
-            FrameKey key = FrameKey.literal("vault");
-            dev.everydaythings.graph.frame.Frame frame =
-                    dev.everydaythings.graph.frame.Frame.snapshot(
-                            key, ItemID.fromString("cg.sememe:vault"), null, true);
-
-            assertThat(frame.frameKey()).isEqualTo(key);
-            assertThat(frame.frameKey().isLiteral()).isTrue();
-            assertThat(frame.frameKey().literalValue()).isEqualTo("vault");
-        }
     }
 }

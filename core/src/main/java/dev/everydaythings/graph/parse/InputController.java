@@ -4,7 +4,6 @@ import dev.everydaythings.graph.parse.ExpressionToken.*;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.frame.expression.EvaluationContext;
 import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import lombok.extern.log4j.Log4j2;

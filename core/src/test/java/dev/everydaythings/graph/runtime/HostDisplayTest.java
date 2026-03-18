@@ -2,6 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.DisplayConfig;
 import dev.everydaythings.graph.item.id.FrameKey;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,13 +15,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Host DISPLAY frame management")
 class HostDisplayTest {
 
-    private Librarian librarian;
+    private static Librarian librarian;
     private Host host;
+
+    @BeforeAll
+    static void setupLibrarian() {
+        librarian = Librarian.createInMemory();
+    }
 
     @BeforeEach
     void setUp() {
-        librarian = Librarian.createInMemory();
         host = librarian.host();
+        host.clearDisplays();
         assertThat(host).isNotNull();
     }
 

@@ -27,10 +27,12 @@ class FrameRecordTest {
     static final ItemID GOAL_ROLE = ItemID.fromString("cg.role:goal");
 
     static Librarian signer;
+    static Librarian signer2;
 
     @BeforeAll
     static void setup() {
         signer = Librarian.createInMemory();
+        signer2 = Librarian.createInMemory();
     }
 
     @Nested
@@ -97,7 +99,6 @@ class FrameRecordTest {
         @DisplayName("same body, different signers = different record CIDs")
         void differentSigners() {
             FrameBody body = FrameBody.of(TITLE, THE_HOBBIT);
-            Librarian signer2 = Librarian.createInMemory();
             Instant now = Instant.now();
 
             FrameRecord a = new FrameRecord(body.hash(), signer.publicKey(), now);
@@ -153,15 +154,12 @@ class FrameRecordTest {
         @Test
         @DisplayName("same assertion from different signers shares body hash")
         void sharedBodyHash() {
-            Librarian alice = Librarian.createInMemory();
-            Librarian bob = Librarian.createInMemory();
-
-            // Both assert the same fact
+            // Both signers assert the same fact
             FrameBody body = FrameBody.of(AUTHOR, THE_HOBBIT,
                     Map.of(GOAL_ROLE, BindingTarget.iid(TOLKIEN)));
 
-            FrameRecord aliceRecord = FrameRecord.create(body, alice);
-            FrameRecord bobRecord = FrameRecord.create(body, bob);
+            FrameRecord aliceRecord = FrameRecord.create(body, signer);
+            FrameRecord bobRecord = FrameRecord.create(body, signer2);
 
             // Same body hash
             assertThat(aliceRecord.bodyHash()).isEqualTo(bobRecord.bodyHash());
@@ -186,7 +184,7 @@ class FrameRecordTest {
             ContentID hash = body.hash();
 
             Frame frame = new Frame(
-                    dev.everydaythings.graph.item.id.FrameKey.literal("title"),
+                    dev.everydaythings.graph.item.id.FrameKey.of(ItemID.fromString("cg.test:title")),
                     ItemID.fromString("cg.sememe:text"),
                     body, hash, true);
 
@@ -197,7 +195,7 @@ class FrameRecordTest {
         @DisplayName("body hash null when not set")
         void bodyHashNull() {
             Frame frame = Frame.snapshot(
-                    dev.everydaythings.graph.item.id.FrameKey.literal("vault"),
+                    dev.everydaythings.graph.item.id.FrameKey.of(ItemID.fromString("cg.test:vault")),
                     ItemID.fromString("cg.sememe:vault"), null, false);
 
             assertThat(frame.bodyHash()).isNull();

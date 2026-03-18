@@ -153,17 +153,16 @@ public final class ItemScanner {
         FrameKey frameKey;
 
         if (ann.key().length == 0) {
-            // Legacy: bare @Frame without key={} — uses field name as literal key.
-            // These should be migrated to semantic keys.
-            frameKey = FrameKey.literal(field.getName());
-        } else {
-            ItemID head = ItemID.fromString(ann.key()[0]);
-            Object[] qualifiers = new Object[ann.key().length - 1];
-            for (int i = 1; i < ann.key().length; i++) {
-                qualifiers[i - 1] = ItemID.fromString(ann.key()[i]);
-            }
-            frameKey = FrameKey.of(head, qualifiers);
+            throw new IllegalStateException(
+                    "@Frame on " + field.getDeclaringClass().getSimpleName() + "." + field.getName()
+                    + " must have key={} with at least one semantic key");
         }
+        ItemID head = ItemID.fromString(ann.key()[0]);
+        Object[] qualifiers = new Object[ann.key().length - 1];
+        for (int i = 1; i < ann.key().length; i++) {
+            qualifiers[i - 1] = ItemID.fromString(ann.key()[i]);
+        }
+        frameKey = FrameKey.of(head, qualifiers);
 
         // Determine type
         Class<?> fieldType = field.getType();

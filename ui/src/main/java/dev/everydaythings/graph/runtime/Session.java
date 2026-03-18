@@ -251,7 +251,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         }
 
         // Add activity log with semantic key
-        addFrame(ItemID.fromString(ActivityLog.KEY), activityLog);
+        endorse(ItemID.fromString(ActivityLog.KEY), activityLog);
 
         autoAuthenticate();
     }
@@ -547,7 +547,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (existing != null) return existing.frameKey();
 
         // Create a new ITEM_VIEW frame
-        FrameKey key = FrameKey.mixed(ITEM_VIEW_SEMEME_ID, target.encodeText());
+        FrameKey key = FrameKey.of(ITEM_VIEW_SEMEME_ID, target.encodeText());
 
         FrameBody body = new FrameBody(ITEM_VIEW_SEMEME_ID, List.of(
                 Binding.ref(ThematicRole.Theme.IID, target)
@@ -659,7 +659,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     public FrameKey registerDisplayLayout(DisplayLayoutConfig config) {
         String qualifier = config.hostId().encodeText() + ":" + config.displayId();
-        FrameKey key = FrameKey.mixed(DISPLAY_LAYOUT_SEMEME_ID, qualifier);
+        FrameKey key = FrameKey.of(DISPLAY_LAYOUT_SEMEME_ID, qualifier);
 
         // Remove existing frame for this display if present
         frames().removeByKey(key);
@@ -1353,7 +1353,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                             + " must have @Implements annotation");
         }
         String qualifier = deriveUniqueQualifier(actual, predicateId);
-        actual.addFrame(predicateId, qualifier, component);
+        actual.endorse(predicateId, qualifier, component);
 
         // Refresh tree to pick up the new component, then select it
         if (itemModel != null) {
@@ -1401,7 +1401,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         }
         // Subsequent: find next available number
         int n = 2;
-        while (item.frames().containsKey(FrameKey.mixed(predicateId, String.valueOf(n)))) {
+        while (item.frames().containsKey(FrameKey.of(predicateId, String.valueOf(n)))) {
             n++;
         }
         return String.valueOf(n);

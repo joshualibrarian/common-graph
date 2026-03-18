@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.surface.item.ViewSurface;
 import dev.everydaythings.graph.ui.scene.surface.primitive.TextSurface;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -13,11 +14,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ViewSurface")
 class ViewSurfaceTest {
 
+    private static Librarian librarian;
+
+    @BeforeAll
+    static void setup() {
+        librarian = Librarian.createInMemory();
+    }
+
     @Test
     @DisplayName("factory creates surface with handle and mode")
     void factoryCreatesWithHandle() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         ViewConfig config = ViewConfig.defaults();
         ViewSurface view = ViewSurface.of(item, TextSurface.of("content"), TextSurface.of("prompt"), config);
@@ -31,8 +38,7 @@ class ViewSurfaceTest {
     @Test
     @DisplayName("mode reflects config")
     void modeReflectsConfig() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         ViewConfig config = ViewConfig.builder()
                 .mode(ViewConfig.ViewMode.INSPECT)
@@ -46,8 +52,7 @@ class ViewSurfaceTest {
     @Test
     @DisplayName("null config defaults to PRESENTATION")
     void nullConfigDefaults() {
-        Librarian lib = Librarian.createInMemory();
-        Item item = Item.create(lib);
+        Item item = Item.create(librarian);
 
         ViewSurface view = ViewSurface.of(item, null, null, null);
         assertThat(view.mode()).isEqualTo(ViewConfig.ViewMode.PRESENTATION);

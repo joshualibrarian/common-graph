@@ -919,4 +919,68 @@ public final class CoreVocabulary {
         @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "language-tagged display names";
     }
+
+    // ==================================================================================
+    // EVALUATION PREDICATES (control flow for frame evaluation)
+    // ==================================================================================
+
+    /** Conditional branching: THEME=condition, RESULT=then-branch, GOAL=else-branch. */
+    @ItemSeed(key = Conditional.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Result.KEY, ThematicRole.Goal.KEY})
+    public static class Conditional {
+        public static final String KEY = "cg.eval:conditional";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "conditional evaluation; if-then-else branching";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "if";
+    }
+
+    /** Sequential evaluation: multiple THEME bindings evaluated in order, returns last. */
+    @ItemSeed(key = Sequence.KEY, slots = {ThematicRole.Theme.KEY})
+    public static class Sequence {
+        public static final String KEY = "cg.eval:sequence";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "sequential evaluation; evaluates steps in order";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "sequence";
+    }
+
+    /** Let binding: GOAL=name, THEME=value, RESULT=body evaluated in child scope. */
+    @ItemSeed(key = Let.KEY, slots = {ThematicRole.Goal.KEY, ThematicRole.Theme.KEY, ThematicRole.Result.KEY})
+    public static class Let {
+        public static final String KEY = "cg.eval:let";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "scoped variable binding; let-in expression";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "let";
+    }
+
+    /** Variable resolution: THEME=name to look up in scope chain. */
+    @ItemSeed(key = Resolve.KEY, slots = {ThematicRole.Theme.KEY})
+    public static class Resolve {
+        public static final String KEY = "cg.eval:resolve";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "resolve a variable name from the scope chain";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "resolve";
+    }
+
+    /** Property access: THEME=object, GOAL=property to access. */
+    @ItemSeed(key = Access.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
+    public static class Access {
+        public static final String KEY = "cg.eval:access";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "access a property on an object";
+
+        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        static final String word1 = "access";
+    }
 }

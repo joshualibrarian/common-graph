@@ -26,10 +26,12 @@ class FrameChainTest {
     static final ItemID PAWN = ItemID.fromString("cg:piece/pawn");
 
     static Librarian signer;
+    static Librarian signer2;
 
     @BeforeAll
     static void setup() {
         signer = Librarian.createInMemory();
+        signer2 = Librarian.createInMemory();
     }
 
     @Nested
@@ -80,25 +82,24 @@ class FrameChainTest {
         @Test
         @DisplayName("append 3 events, verify stream order")
         void linearOrder() {
-            Librarian lib = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/linear-test");
-            FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
+            FrameChain chain = new FrameChain(signer.library(), gameId, MOVE);
 
             // Append 3 moves
             FrameBody move1 = chain.append(List.of(
                     Binding.ref(ThematicRole.Agent.IID, WHITE),
                     Binding.ref(ThematicRole.Theme.IID, PAWN)
-            ), lib);
+            ), signer);
 
             FrameBody move2 = chain.append(List.of(
                     Binding.ref(ThematicRole.Agent.IID, BLACK),
                     Binding.ref(ThematicRole.Theme.IID, KNIGHT)
-            ), lib);
+            ), signer);
 
             FrameBody move3 = chain.append(List.of(
                     Binding.ref(ThematicRole.Agent.IID, WHITE),
                     Binding.ref(ThematicRole.Theme.IID, PAWN)
-            ), lib);
+            ), signer);
 
             // Stream should contain all 3 in order
             List<FrameBody> bodies = chain.stream().toList();
@@ -120,17 +121,16 @@ class FrameChainTest {
         @Test
         @DisplayName("single head after linear appends")
         void singleHead() {
-            Librarian lib = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/head-test");
-            FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
+            FrameChain chain = new FrameChain(signer.library(), gameId, MOVE);
 
             chain.append(List.of(
                     Binding.ref(ThematicRole.Theme.IID, PAWN)
-            ), lib);
+            ), signer);
 
             chain.append(List.of(
                     Binding.ref(ThematicRole.Theme.IID, KNIGHT)
-            ), lib);
+            ), signer);
 
             assertThat(chain.heads()).hasSize(1);
         }
@@ -138,13 +138,12 @@ class FrameChainTest {
         @Test
         @DisplayName("count matches number of appends")
         void countMatches() {
-            Librarian lib = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/count-test");
-            FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
+            FrameChain chain = new FrameChain(signer.library(), gameId, MOVE);
 
-            chain.append(List.of(), lib);
-            chain.append(List.of(), lib);
-            chain.append(List.of(), lib);
+            chain.append(List.of(), signer);
+            chain.append(List.of(), signer);
+            chain.append(List.of(), signer);
 
             assertThat(chain.count()).isEqualTo(3);
         }
@@ -157,27 +156,25 @@ class FrameChainTest {
         @Test
         @DisplayName("two appenders create two heads")
         void twoHeads() {
-            Librarian lib1 = Librarian.createInMemory();
-            Librarian lib2 = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/branch-test");
 
             // Both appenders use the same library to store
-            FrameChain chain = new FrameChain(lib1.library(), gameId, MOVE);
+            FrameChain chain = new FrameChain(signer.library(), gameId, MOVE);
 
             // First move (root)
             FrameBody root = chain.append(List.of(
                     Binding.ref(ThematicRole.Theme.IID, PAWN)
-            ), lib1);
+            ), signer);
 
             // Now create two branches from the same root.
             // We need to manually create frames that both follow the root.
-            // The second appender stores directly into lib1's library.
+            // The second appender stores directly into signer's library.
             ContentID rootHash = root.hash();
 
-            // Branch A: lib1 appends normally (will follow root)
+            // Branch A: signer appends normally (will follow root)
             FrameBody branchA = chain.append(List.of(
                     Binding.ref(ThematicRole.Agent.IID, WHITE)
-            ), lib1);
+            ), signer);
 
             // Branch B: store a frame that also follows only the root
             List<Binding> branchBBindings = List.of(
@@ -187,8 +184,8 @@ class FrameChainTest {
                     Binding.ref(ThematicRole.Agent.IID, BLACK)
             );
             FrameBody branchBBody = new FrameBody(MOVE, branchBBindings);
-            FrameRecord branchBRecord = FrameRecord.create(branchBBody, lib2);
-            lib1.library().storeFrame(branchBBody, branchBRecord);
+            FrameRecord branchBRecord = FrameRecord.create(branchBBody, signer2);
+            signer.library().storeFrame(branchBBody, branchBRecord);
 
             // Now there should be 2 heads (branchA and branchB)
             assertThat(chain.heads()).hasSize(2);
@@ -205,21 +202,19 @@ class FrameChainTest {
         @Test
         @DisplayName("append after two heads produces single new head")
         void mergeHeads() {
-            Librarian lib1 = Librarian.createInMemory();
-            Librarian lib2 = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/merge-test");
 
-            FrameChain chain = new FrameChain(lib1.library(), gameId, MOVE);
+            FrameChain chain = new FrameChain(signer.library(), gameId, MOVE);
 
             // Root
             FrameBody root = chain.append(List.of(
                     Binding.ref(ThematicRole.Theme.IID, PAWN)
-            ), lib1);
+            ), signer);
 
             // Branch A: normal append (follows root)
             FrameBody branchA = chain.append(List.of(
                     Binding.ref(ThematicRole.Agent.IID, WHITE)
-            ), lib1);
+            ), signer);
 
             // Branch B: store a frame that also follows only the root (not branchA)
             ContentID rootHash = root.hash();
@@ -230,7 +225,7 @@ class FrameChainTest {
                     Binding.ref(ThematicRole.Agent.IID, BLACK)
             );
             FrameBody branchB = new FrameBody(MOVE, branchBBindings);
-            lib1.library().storeFrame(branchB, FrameRecord.create(branchB, lib2));
+            signer.library().storeFrame(branchB, FrameRecord.create(branchB, signer2));
 
             // Verify we have 2 heads (branchA and branchB)
             assertThat(chain.heads()).hasSize(2);
@@ -238,7 +233,7 @@ class FrameChainTest {
             // Now append — this will automatically follow both heads (merge)
             FrameBody merged = chain.append(List.of(
                     Binding.ref(ThematicRole.Theme.IID, KNIGHT)
-            ), lib1);
+            ), signer);
 
             // Should now have single head
             assertThat(chain.heads()).hasSize(1);
@@ -257,13 +252,12 @@ class FrameChainTest {
         @Test
         @DisplayName("fold accumulates state over chain")
         void foldAccumulates() {
-            Librarian lib = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/fold-test");
-            FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
+            FrameChain chain = new FrameChain(signer.library(), gameId, MOVE);
 
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), lib);
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, KNIGHT)), lib);
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), lib);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), signer);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, KNIGHT)), signer);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), signer);
 
             // Count how many frames
             int count = chain.fold(0, (state, body) -> state + 1);
@@ -273,12 +267,11 @@ class FrameChainTest {
         @Test
         @DisplayName("fold sees frames in causal order")
         void foldOrdering() {
-            Librarian lib = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/fold-order-test");
-            FrameChain chain = new FrameChain(lib.library(), gameId, MOVE);
+            FrameChain chain = new FrameChain(signer.library(), gameId, MOVE);
 
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), lib);
-            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, KNIGHT)), lib);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, PAWN)), signer);
+            chain.append(List.of(Binding.ref(ThematicRole.Theme.IID, KNIGHT)), signer);
 
             // Verify order: first frame has no FOLLOWS, second has one
             AtomicInteger idx = new AtomicInteger();
@@ -303,16 +296,15 @@ class FrameChainTest {
         @Test
         @DisplayName("different predicates don't interfere")
         void differentPredicates() {
-            Librarian lib = Librarian.createInMemory();
             ItemID gameId = ItemID.fromString("cg:item/isolation-test");
             ItemID CHAT = ItemID.fromString("cg:pred/chat");
 
-            FrameChain moves = new FrameChain(lib.library(), gameId, MOVE);
-            FrameChain chats = new FrameChain(lib.library(), gameId, CHAT);
+            FrameChain moves = new FrameChain(signer.library(), gameId, MOVE);
+            FrameChain chats = new FrameChain(signer.library(), gameId, CHAT);
 
-            moves.append(List.of(), lib);
-            moves.append(List.of(), lib);
-            chats.append(List.of(), lib);
+            moves.append(List.of(), signer);
+            moves.append(List.of(), signer);
+            chats.append(List.of(), signer);
 
             assertThat(moves.count()).isEqualTo(2);
             assertThat(chats.count()).isEqualTo(1);
@@ -321,16 +313,15 @@ class FrameChainTest {
         @Test
         @DisplayName("different items don't interfere")
         void differentItems() {
-            Librarian lib = Librarian.createInMemory();
             ItemID game1 = ItemID.fromString("cg:item/game-1");
             ItemID game2 = ItemID.fromString("cg:item/game-2");
 
-            FrameChain chain1 = new FrameChain(lib.library(), game1, MOVE);
-            FrameChain chain2 = new FrameChain(lib.library(), game2, MOVE);
+            FrameChain chain1 = new FrameChain(signer.library(), game1, MOVE);
+            FrameChain chain2 = new FrameChain(signer.library(), game2, MOVE);
 
-            chain1.append(List.of(), lib);
-            chain1.append(List.of(), lib);
-            chain2.append(List.of(), lib);
+            chain1.append(List.of(), signer);
+            chain1.append(List.of(), signer);
+            chain2.append(List.of(), signer);
 
             assertThat(chain1.count()).isEqualTo(2);
             assertThat(chain2.count()).isEqualTo(1);

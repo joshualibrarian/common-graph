@@ -9,7 +9,8 @@ import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -30,20 +31,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Disabled("Slow integration test — TLS handshake + full librarian bootstrap")
 class PeerProtocolTest {
 
-    private Librarian lib1;
-    private Librarian lib2;
+    private static Librarian lib1;
+    private static Librarian lib2;
 
-    @AfterEach
-    void tearDown() {
+    @BeforeAll
+    static void setUp() {
+        lib1 = Librarian.createInMemory();
+        lib2 = Librarian.createInMemory();
+    }
+
+    @AfterAll
+    static void tearDown() {
         if (lib2 != null) lib2.close();
         if (lib1 != null) lib1.close();
     }
 
     @Test
     void handshakeCreatesPeerRelationsOverTls() throws Exception {
-        // Given: two in-memory librarians with TLS-enabled networking
-        lib1 = Librarian.createInMemory();
-        lib2 = Librarian.createInMemory();
 
         lib1.startNetwork(0).get(5, TimeUnit.SECONDS);
         lib2.startNetwork(0).get(5, TimeUnit.SECONDS);

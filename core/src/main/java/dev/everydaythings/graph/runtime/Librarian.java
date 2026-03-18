@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.ExpressionComponent;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Param;
@@ -186,9 +185,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     @Frame(key = {CoreVocabulary.Library.KEY}, path = "library", localOnly = true)
     private Library library;
 
-    // Expression: ? → implemented-by → * (all types - subjects of implemented-by relations)
-    @Frame(key = {CoreVocabulary.ImplementedBy.KEY})
-    ExpressionComponent typesExpr = ExpressionComponent.subjects(CoreVocabulary.ImplementedBy.IID);
+    // Types query removed — use library index to find IMPLEMENTED_BY subjects directly
 
     // Infrastructure activity log — in-memory, doesn't churn VID
     @Frame(key = {CoreVocabulary.Activity.KEY}, identity = false)
@@ -334,8 +331,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     protected Librarian(ItemID iid) {
         super(iid);
         this.rootPath = null;
-        // Type seeds don't need content - null out the field initializer
-        this.typesExpr = null;
+        // Type seeds don't need content
     }
 
     /**
@@ -368,13 +364,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // NOTE: Library is created in onFullyInitialized() because
         // super() triggers onFullyInitialized() before we get here.
 
-        // Sync pre-initialized field values that were set AFTER super() returned
-        // (Field initializers like typesExpr run after super constructor completes)
-        if (freshBoot) {
-            frames().setLive(
-                    FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
-                    typesExpr);
-        }
+        // Fresh boot initialization completed
     }
 
     /**
@@ -394,12 +384,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // NOTE: Library is created in onFullyInitialized() because
         // super() triggers onFullyInitialized() before we get here.
 
-        // Sync pre-initialized field values
-        if (freshBoot) {
-            frames().setLive(
-                    FrameKey.of(ItemID.fromString(CoreVocabulary.ImplementedBy.KEY)),
-                    typesExpr);
-        }
+        // In-memory boot initialization completed
     }
 
     /**
@@ -412,7 +397,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     public Librarian() {
         super(CLI_SHELL_IID);  // Use sentinel IID - this is NOT a functional Librarian
         this.rootPath = null;
-        this.typesExpr = null;
     }
 
     /**
@@ -451,20 +435,20 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     this.library);
         }
 
-        // On fresh boot, import seed data
+        // On fresh boot, import seed data into Library and release the seed store
         if (freshBoot && library != null) {
             if (store instanceof WorkingTreeStore wts) {
-                // File-based: import from seed store and swap fallback
+                // File-based: import from seed store, swap fallback to Library
                 ItemStore seedStore = wts.fallback();
                 if (seedStore != null) {
                     library.importFrom(seedStore, this::predicateIndexWeight);
                     wts.setFallback(library.store());
                 }
             } else {
-                // In-memory: import seeds directly into library
-                ItemStore seeds = SkipListItemStore.create();
-                SeedVocabulary.bootstrap(seeds);
-                library.importFrom(seeds, this::predicateIndexWeight);
+                // In-memory: the constructor's seed store IS this.store —
+                // import it into Library, then replace the reference so it can be GC'd
+                library.importFrom(this.store, this::predicateIndexWeight);
+                this.store = library.store();
             }
         }
 

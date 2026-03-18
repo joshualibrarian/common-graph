@@ -252,7 +252,7 @@ class FrameIndexTest {
         void literalKeyNotIndexed() {
             ContentID snapshotCid = ContentID.of(new byte[]{42});
 
-            Frame frame = Frame.snapshot(FrameKey.literal("vault"),
+            Frame frame = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:vault")),
                     ItemID.fromString("cg.sememe:vault"), snapshotCid, false);
 
             index.runInWriteTransaction(tx ->
@@ -265,7 +265,7 @@ class FrameIndexTest {
         @Test
         @DisplayName("endorsed frame with no content is not indexed")
         void noContentNotIndexed() {
-            Frame frame = Frame.snapshot(FrameKey.literal("vault"),
+            Frame frame = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:vault")),
                     ItemID.fromString("cg.sememe:vault"), null, false);
 
             index.runInWriteTransaction(tx ->

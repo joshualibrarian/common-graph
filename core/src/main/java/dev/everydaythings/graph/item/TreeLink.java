@@ -171,7 +171,7 @@ public class TreeLink {
                 cachedChildren = resolveInspectable(fk)
                         .map(cc -> cc.inspectEntries().stream()
                                 .map(e -> {
-                                    Ref entryRef = Ref.of(target.target(), FrameKey.literal(fk.toCanonicalString() + "#" + e.id()));
+                                    Ref entryRef = Ref.of(target.target(), FrameKey.of(fk.headSememe(), e.id()));
                                     return new TreeLink(entryRef, mode, resolver);
                                 })
                                 .toList())
@@ -360,7 +360,7 @@ public class TreeLink {
         String compPath = parts[0];
         String entryId = parts[1];
         String handle = compPath.startsWith("/") ? compPath.substring(1) : compPath;
-        FrameKey key = FrameKey.literal(handle);
+        FrameKey key = FrameKey.fromCanonicalString(handle);
         return resolveInspectable(key)
                 .flatMap(cc -> cc.inspectEntries().stream()
                         .filter(e -> e.id().equals(entryId))

@@ -6,6 +6,7 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.policy.PolicySet.AccessPolicy;
 import dev.everydaythings.graph.policy.PolicySet.AccessPolicy.*;
 import dev.everydaythings.graph.runtime.Librarian;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
@@ -18,16 +19,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("slow")
 class ItemPolicyResolverTest {
 
-    private Librarian lib;
+    private static Librarian lib;
     private Item item;
     private ItemID ownerId;
     private ItemID memberId;
     private ItemID strangerId;
     private ItemID hostId;
 
+    @BeforeAll
+    static void setupLibrarian() {
+        lib = Librarian.createInMemory();
+    }
+
     @BeforeEach
     void setUp() {
-        lib = Librarian.createInMemory();
         item = Item.create(lib);
 
         ownerId = ItemID.random();
@@ -443,7 +448,7 @@ class ItemPolicyResolverTest {
     private void addRosterWithMember(ItemID member) {
         Roster roster = new Roster();
         roster.add(member);
-        item.addFrame(dev.everydaythings.graph.item.id.ItemID.fromString(Roster.KEY), roster);
+        item.endorse(dev.everydaythings.graph.item.id.ItemID.fromString(Roster.KEY), roster);
     }
 
     private Roster findRoster() {

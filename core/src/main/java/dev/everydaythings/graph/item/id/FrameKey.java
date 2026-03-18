@@ -5,6 +5,7 @@ import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Factory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -161,23 +162,26 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
     }
 
     /**
-     * Create a single-literal FrameKey.
+     * Parse a canonical string (produced by {@link #toCanonicalString()}) back to a FrameKey.
      *
-     * @deprecated Literal-headed keys have no semantic meaning. Use
-     * {@link #of(ItemID, Object...)} with a semantic head instead.
+     * <p>Canonical strings are slash-separated tokens. Each token that looks like
+     * an encoded ItemID is parsed as a Sememe; otherwise it's treated as a Literal qualifier.
+     * The head token must be a valid ItemID.
      */
-    @Deprecated
-    public static FrameKey literal(String value) {
-        logger.warn("FrameKey.literal('{}') used — migrate to semantic key", value);
-        return new FrameKey(List.of(new Literal(value)));
-    }
-
-    /**
-     * @deprecated Use {@link #of(ItemID, Object...)} instead.
-     */
-    @Deprecated
-    public static FrameKey mixed(ItemID head, String qualifier) {
-        return of(head, qualifier);
+    public static FrameKey fromCanonicalString(String canonical) {
+        if (canonical == null || canonical.isBlank()) {
+            throw new IllegalArgumentException("Cannot parse empty canonical string");
+        }
+        String[] parts = canonical.split("/");
+        List<FrameToken> tokens = new ArrayList<>();
+        for (String part : parts) {
+            try {
+                tokens.add(new Sememe(ItemID.parse(part)));
+            } catch (Exception e) {
+                tokens.add(new Literal(part));
+            }
+        }
+        return new FrameKey(tokens);
     }
 
     /**
@@ -212,27 +216,10 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
     }
 
     /**
-     * True if this key is a single literal token.
-     */
-    public boolean isLiteral() {
-        return tokens.size() == 1 && tokens.getFirst() instanceof Literal;
-    }
-
-    /**
      * True if every token is a sememe (fully semantic key).
      */
     public boolean isSemantic() {
         return tokens.stream().allMatch(t -> t instanceof Sememe);
-    }
-
-    /**
-     * Get the literal value if this is a single-literal key, or null.
-     */
-    public String literalValue() {
-        if (isLiteral()) {
-            return ((Literal) tokens.getFirst()).value();
-        }
-        return null;
     }
 
     /**
@@ -257,9 +244,6 @@ public final class FrameKey implements Canonical, Comparable<FrameKey> {
      * Used for filesystem paths, display, and debugging.
      */
     public String toCanonicalString() {
-        if (isLiteral()) {
-            return ((Literal) tokens.getFirst()).value();
-        }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < tokens.size(); i++) {
             if (i > 0) sb.append('/');

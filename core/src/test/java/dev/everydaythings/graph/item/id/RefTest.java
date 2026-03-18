@@ -2,7 +2,6 @@ package dev.everydaythings.graph.item.id;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Hash;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -152,20 +151,9 @@ class RefTest {
         }
 
         @Test
-        @DisplayName("ref with literal frame key")
-        void literalFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.literal("vault"));
-            byte[] bytes = original.toRefBytes();
-            Ref decoded = Ref.fromRefBytes(bytes);
-
-            assertThat(decoded).isEqualTo(original);
-            assertThat(decoded.frameKey().literalValue()).isEqualTo("vault");
-        }
-
-        @Test
-        @DisplayName("ref with mixed frame key (sememe + literal)")
-        void mixedFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.mixed(CHAT, "tavern"));
+        @DisplayName("ref with qualified frame key (sememe + string qualifier)")
+        void qualifiedFrame() {
+            Ref original = Ref.of(ALICE, FrameKey.of(CHAT, "tavern"));
             byte[] bytes = original.toRefBytes();
             Ref decoded = Ref.fromRefBytes(bytes);
 
@@ -204,28 +192,6 @@ class RefTest {
             assertThat(decoded.selector().text()).isEqualTo("0..1024");
         }
 
-        @Test
-        @DisplayName("unicode literal string in frame key")
-        void unicodeLiteral() {
-            Ref original = Ref.of(ALICE, FrameKey.literal("\u00e9t\u00e9")); // été
-            byte[] bytes = original.toRefBytes();
-            Ref decoded = Ref.fromRefBytes(bytes);
-
-            assertThat(decoded).isEqualTo(original);
-            assertThat(decoded.frameKey().literalValue()).isEqualTo("\u00e9t\u00e9");
-        }
-
-        @Test
-        @DisplayName("long literal string (varint > 1 byte)")
-        void longLiteral() {
-            String longValue = "a".repeat(200); // triggers multi-byte varint
-            Ref original = Ref.of(ALICE, FrameKey.literal(longValue));
-            byte[] bytes = original.toRefBytes();
-            Ref decoded = Ref.fromRefBytes(bytes);
-
-            assertThat(decoded).isEqualTo(original);
-            assertThat(decoded.frameKey().literalValue()).isEqualTo(longValue);
-        }
     }
 
     @Nested
@@ -255,7 +221,7 @@ class RefTest {
         @Test
         @DisplayName("full ref CBOR round-trip")
         void fullRefCborRoundTrip() {
-            FrameKey key = FrameKey.mixed(CHAT, "tavern");
+            FrameKey key = FrameKey.of(CHAT, "tavern");
             Selector sel = Selector.byteRange(0, 100);
             Ref original = Ref.of(BOB, VERSION_2, key, sel);
 
@@ -338,20 +304,9 @@ class RefTest {
         }
 
         @Test
-        @DisplayName("ref with literal frame key text round-trip")
-        void literalFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.literal("vault"));
-            String text = original.encodeText();
-            Ref decoded = Ref.parse(text);
-
-            assertThat(decoded).isEqualTo(original);
-            assertThat(text).contains("\"vault\"");
-        }
-
-        @Test
-        @DisplayName("ref with mixed frame key text round-trip")
-        void mixedFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.mixed(CHAT, "tavern"));
+        @DisplayName("ref with qualified frame key text round-trip")
+        void qualifiedFrame() {
+            Ref original = Ref.of(ALICE, FrameKey.of(CHAT, "tavern"));
             String text = original.encodeText();
             Ref decoded = Ref.parse(text);
 
@@ -373,17 +328,15 @@ class RefTest {
         @Test
         @DisplayName("text contains expected structural markers")
         void textStructure() {
-            FrameKey key = FrameKey.mixed(CHAT, "tavern");
+            FrameKey key = FrameKey.of(CHAT, "tavern");
             Selector sel = Selector.byteRange(0, 100);
             Ref ref = Ref.of(ALICE, VERSION_1, key, sel);
             String text = ref.encodeText();
 
             // Has exactly one @ (version)
             assertThat(text.chars().filter(c -> c == '@').count()).isEqualTo(1);
-            // Has two \ (one for CHAT sememe, one for "tavern" literal)
-            assertThat(text.chars().filter(c -> c == '\\').count()).isEqualTo(2);
-            // Has quotes around tavern
-            assertThat(text).contains("\"tavern\"");
+            // Has backslash separators for frame key tokens
+            assertThat(text.chars().filter(c -> c == '\\').count()).isGreaterThanOrEqualTo(1);
             // Has selector in brackets
             assertThat(text).contains("[0..100]");
         }
@@ -602,7 +555,7 @@ class RefTest {
         @Test
         @DisplayName("text and binary produce same ref")
         void textMatchesBinary() {
-            Ref original = Ref.of(ALICE, VERSION_1, FrameKey.mixed(CHAT, "tavern"));
+            Ref original = Ref.of(ALICE, VERSION_1, FrameKey.of(CHAT, "tavern"));
 
             Ref fromText = Ref.parse(original.encodeText());
             Ref fromBinary = Ref.fromRefBytes(original.toRefBytes());

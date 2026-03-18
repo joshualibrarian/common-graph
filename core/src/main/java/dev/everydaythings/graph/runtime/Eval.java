@@ -1,10 +1,14 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.parse.ExpressionParser;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.eval.FrameEvaluator;
+import dev.everydaythings.graph.frame.eval.Scope;
 import dev.everydaythings.graph.parse.ExpressionToken;
-import dev.everydaythings.graph.frame.expression.EvaluationContext;
-import dev.everydaythings.graph.frame.expression.Expression;
+import dev.everydaythings.graph.parse.FrameBodyParser;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.dispatch.VerbEntry;
@@ -77,13 +81,12 @@ public class Eval {
     private final boolean interactive;
     private final boolean jsonOutput;
     private final int depth;
-    /** Evaluation context for expression evaluation (created lazily from context item). */
-    private final EvaluationContext evaluationContext;
+    /** Unified frame evaluator for expression evaluation via FrameBody trees. */
+    private final FrameEvaluator frameEvaluator;
 
     private Eval(LibrarianHandle librarianHandle, Item context, String focusedComponent,
                  Item session, DiscourseHistory discourseHistory,
-                 boolean interactive, boolean jsonOutput, int depth,
-                 EvaluationContext evaluationContext) {
+                 boolean interactive, boolean jsonOutput, int depth) {
         this.librarianHandle = librarianHandle;
         this.context = context;
         this.focusedComponent = focusedComponent;
@@ -92,7 +95,7 @@ public class Eval {
         this.interactive = interactive;
         this.jsonOutput = jsonOutput;
         this.depth = depth;
-        this.evaluationContext = evaluationContext;
+        this.frameEvaluator = new FrameEvaluator();
     }
 
     // ==================================================================================
@@ -111,7 +114,6 @@ public class Eval {
         private DiscourseHistory discourseHistory;
         private boolean interactive = true;
         private boolean jsonOutput = false;
-        private EvaluationContext evaluationContext;
 
         public Builder librarian(LibrarianHandle ref) {
             this.librarianHandle = ref;
@@ -156,18 +158,12 @@ public class Eval {
             return this;
         }
 
-        /** Set an evaluation context for expression evaluation. */
-        public Builder evaluationContext(EvaluationContext evalCtx) {
-            this.evaluationContext = evalCtx;
-            return this;
-        }
-
         public Eval build() {
             if (librarianHandle == null) {
                 throw new IllegalStateException("LibrarianHandle is required");
             }
             return new Eval(librarianHandle, context, focusedComponent, session,
-                    discourseHistory, interactive, jsonOutput, 0, evaluationContext);
+                    discourseHistory, interactive, jsonOutput, 0);
         }
     }
 
@@ -592,7 +588,7 @@ public class Eval {
                 expanded.addAll(args.subList(1, args.size()));
             }
             Eval child = new Eval(librarianHandle, context, focusedComponent, session,
-                    discourseHistory, interactive, jsonOutput, depth + 1, evaluationContext);
+                    discourseHistory, interactive, jsonOutput, depth + 1);
             return child.evaluateCommand(expanded);
         }
 
@@ -710,9 +706,14 @@ public class Eval {
     }
 
     /**
-     * Dispatch using an assembled semantic frame.
+     * Evaluate a semantic frame through the unified FrameEvaluator.
      *
-     * <p>Inner-to-outer dispatch order:
+     * <p>Converts the SemanticFrame to a FrameBody, finds the dispatch target
+     * via inner-to-outer scope search (which becomes the Scope's owner),
+     * and evaluates through FrameEvaluator. Same path as expressions —
+     * a frame is a frame.
+     *
+     * <p>Inner-to-outer scope search for dispatch target:
      * <ol>
      *   <li>Focused component's verbs (if a component is focused)</li>
      *   <li>Bound items from input (explicit user intent: "create CHESS")</li>
@@ -720,9 +721,6 @@ public class Eval {
      *   <li>Session item's vocabulary (outermost scope)</li>
      *   <li>Librarian's vocabulary (system-level)</li>
      * </ol>
-     *
-     * <p>First match wins. Wraps the result with TARGET if a prepositional
-     * phrase bound to TARGET was present.
      */
     private EvalResult evaluateFrame(SemanticFrame frame) {
         ItemID verbId = frame.verb().iid();
@@ -730,61 +728,8 @@ public class Eval {
                 frame.verb().displayToken(), verbId.encodeText(),
                 frame.bindings().keySet(), frame.unmatchedArgs());
 
-        // Inner-to-outer dispatch with explicit-intent priority:
-        //   1. Focused component (innermost scope)
-        //   2. Bound items from input (explicit user intent: "create CHESS")
-        //   3. Context item
-        //   4. Session item (outermost scope)
-        //   5. Librarian (system-level)
-        Item target = null;
-
-        // 1. Focused component's verbs (innermost scope)
-        if (focusedComponent != null && context != null) {
-            if (context.vocabulary().verbsFor(focusedComponent)
-                    .anyMatch(v -> v.sememeId().equals(verbId))) {
-                target = context;
-            }
-        }
-
-        // 2. Bound items from the frame (explicit user intent)
-        if (target == null) {
-            for (var entry : frame.bindings().entrySet()) {
-                if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
-                if (!(entry.getValue() instanceof Item item)) continue;
-                if (item.vocabulary().lookup(verbId).isPresent()) {
-                    target = item;
-                    break;
-                }
-            }
-        }
-
-        // 3. Context item's vocabulary
-        if (target == null && context != null
-                && context.vocabulary().lookup(verbId).isPresent()) {
-            target = context;
-        }
-
-        // 4. Session item's vocabulary (outermost scope)
-        if (target == null && session != null
-                && session.vocabulary().lookup(verbId).isPresent()) {
-            target = session;
-        }
-
-        // 5. Librarian's vocabulary (system-level)
-        if (target == null) {
-            Vocabulary lv = librarianHandle.vocabulary();
-            if (lv != null && lv.lookup(verbId).isPresent()) {
-                target = librarianHandle.get(librarianHandle.iid()).orElse(null);
-            }
-        }
-
-        // Last resort: first bound Item (dispatch even if it may not have the verb)
-        if (target == null) {
-            target = frame.bindings().values().stream()
-                    .filter(v -> v instanceof Item)
-                    .map(v -> (Item) v)
-                    .findFirst().orElse(null);
-        }
+        // Find the dispatch target via inner-to-outer scope search
+        Item target = findDispatchTarget(verbId, frame);
 
         // Verb alone with no bindings and no context → navigate to verb sememe
         if (target == null) {
@@ -793,16 +738,146 @@ public class Eval {
 
         logger.debug("evaluateFrame: dispatch target={}", target.displayToken());
 
-        // 2. Dispatch with typed bindings
-        EvalResult result = dispatchVerbForResult(target, verbId, frame);
+        // Convert SemanticFrame → FrameBody
+        FrameBody frameBody = toFrameBody(frame);
 
-        // 3. Wrap with TARGET if present (only for Item targets)
+        // Build scope with the dispatch target as owner
+        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                ? local.librarian() : null;
+        Scope evalScope = librarian != null
+                ? Scope.of(librarian, target)
+                : Scope.of(null, target);
+
+        // Evaluate through the unified path — same as expressions
+        try {
+            Object value = frameEvaluator.evaluate(frameBody, evalScope);
+            return mapResultToEvalResult(value, frame);
+        } catch (Exception e) {
+            logger.debug("Frame evaluation failed: {}", e.getMessage());
+            return EvalResult.error(e.getMessage());
+        }
+    }
+
+    /**
+     * Find the dispatch target for a verb via inner-to-outer scope search.
+     */
+    private Item findDispatchTarget(ItemID verbId, SemanticFrame frame) {
+        // 1. Focused component's verbs (innermost scope)
+        if (focusedComponent != null && context != null) {
+            if (context.vocabulary().verbsFor(focusedComponent)
+                    .anyMatch(v -> v.sememeId().equals(verbId))) {
+                return context;
+            }
+        }
+
+        // 2. Bound items from the frame (explicit user intent)
+        for (var entry : frame.bindings().entrySet()) {
+            if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
+            if (!(entry.getValue() instanceof Item item)) continue;
+            if (item.vocabulary().lookup(verbId).isPresent()) {
+                return item;
+            }
+        }
+
+        // 3. Context item's vocabulary
+        if (context != null && context.vocabulary().lookup(verbId).isPresent()) {
+            return context;
+        }
+
+        // 4. Session item's vocabulary (outermost scope)
+        if (session != null && session.vocabulary().lookup(verbId).isPresent()) {
+            return session;
+        }
+
+        // 5. Librarian's vocabulary (system-level)
+        Vocabulary lv = librarianHandle.vocabulary();
+        if (lv != null && lv.lookup(verbId).isPresent()) {
+            return librarianHandle.get(librarianHandle.iid()).orElse(null);
+        }
+
+        // Last resort: first bound Item
+        return frame.bindings().values().stream()
+                .filter(v -> v instanceof Item)
+                .map(v -> (Item) v)
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * Convert a SemanticFrame to a FrameBody for unified evaluation.
+     *
+     * <p>The verb becomes the predicate. Bindings are converted from
+     * Java objects (Item, String, Number, etc.) to BindingTargets.
+     * Unmatched args become additional THEME bindings.
+     */
+    private FrameBody toFrameBody(SemanticFrame frame) {
+        List<Binding> bindings = new ArrayList<>();
+
+        for (var entry : frame.bindings().entrySet()) {
+            ItemID role = entry.getKey();
+            Object value = entry.getValue();
+            BindingTarget target = toBindingTarget(value);
+            if (target != null) {
+                bindings.add(new Binding(role, target));
+            }
+        }
+
+        // Unmatched args → additional THEME bindings
+        for (ResolvedToken token : frame.unmatchedArgs()) {
+            BindingTarget target = resolvedTokenToTarget(token);
+            if (target != null) {
+                bindings.add(new Binding(ThematicRole.Theme.IID, target));
+            }
+        }
+
+        return new FrameBody(frame.verb().iid(), bindings);
+    }
+
+    /**
+     * Convert a Java value to a BindingTarget.
+     */
+    private static BindingTarget toBindingTarget(Object value) {
+        if (value instanceof Item item) return BindingTarget.iid(item.iid());
+        if (value instanceof ItemID iid) return BindingTarget.iid(iid);
+        if (value instanceof String s) return Literal.ofText(s);
+        if (value instanceof Long l) return Literal.ofInteger(l);
+        if (value instanceof Integer i) return Literal.ofInteger(i);
+        if (value instanceof Boolean b) return Literal.ofBoolean(b);
+        if (value instanceof Number n) return Literal.ofInteger(n.longValue());
+        if (value != null) return Literal.ofText(String.valueOf(value));
+        return null;
+    }
+
+    /**
+     * Convert a ResolvedToken to a BindingTarget.
+     */
+    private static BindingTarget resolvedTokenToTarget(ResolvedToken token) {
+        return switch (token) {
+            case ResolvedToken.Link ref -> BindingTarget.iid(ref.iid());
+            case ResolvedToken.Literal lit -> toBindingTarget(lit.value());
+            case ResolvedToken.Unresolved u -> Literal.ofText(u.token());
+        };
+    }
+
+    /**
+     * Map a raw evaluation result to an EvalResult for UI consumption.
+     */
+    private EvalResult mapResultToEvalResult(Object value, SemanticFrame frame) {
+        if (value instanceof Created created) {
+            pushToHistory(created.item());
+            return EvalResult.created(created.item(), created.type());
+        }
+        if (value instanceof Item item) {
+            pushToHistory(item);
+            return EvalResult.item(item);
+        }
+
+        // Wrap with TARGET if a prepositional phrase bound to GOAL was present
         Optional<Item> prepTarget = frame.itemBinding(ThematicRole.Goal.IID);
-        if (prepTarget.isPresent() && result instanceof EvalResult.Value(Object value)) {
+        if (prepTarget.isPresent()) {
             return EvalResult.valueWithTarget(value, prepTarget.get());
         }
 
-        return result;
+        return EvalResult.value(value);
     }
 
     /**
@@ -947,23 +1022,24 @@ public class Eval {
                 expanded.add(tokens.get(i).displayText());
             }
             Eval child = new Eval(librarianHandle, context, focusedComponent, session,
-                    discourseHistory, interactive, jsonOutput, depth + 1, evaluationContext);
+                    discourseHistory, interactive, jsonOutput, depth + 1);
             return child.evaluateCommand(expanded);
         }
 
         // If the tokens look like a mathematical expression (contain operators,
-        // parentheses, or are bare numerics), try the expression parser first.
-        if (ExpressionParser.looksLikeExpression(tokens)) {
-            var exprResult = ExpressionParser.tryParse(tokens);
-            if (exprResult.isPresent()) {
-                Expression expr = exprResult.get();
-                EvaluationContext evalCtx = getOrCreateEvalContext();
+        // parentheses, or are bare numerics), try the frame body parser first.
+        // This is the unified evaluation path: tokens → FrameBody → FrameEvaluator → result.
+        if (FrameBodyParser.looksLikeExpression(tokens)) {
+            var frameResult = FrameBodyParser.tryParse(tokens);
+            if (frameResult.isPresent()) {
+                FrameBody frame = frameResult.get();
+                Scope evalScope = getOrCreateScope();
                 try {
-                    Object value = expr.evaluate(evalCtx);
-                    logger.debug("Expression evaluated: {} → {}", expr.toExpressionString(), value);
+                    Object value = frameEvaluator.evaluate(frame, evalScope);
+                    logger.debug("Frame expression evaluated: {} → {}", frame.predicate(), value);
                     return EvalResult.value(value);
                 } catch (Exception e) {
-                    logger.debug("Expression evaluation failed: {}", e.getMessage());
+                    logger.debug("Frame expression evaluation failed: {}", e.getMessage());
                     // Expression parsed successfully but evaluation failed —
                     // report the error rather than falling through to verb dispatch
                     // (which would misinterpret operands as navigation targets).
@@ -1001,23 +1077,20 @@ public class Eval {
     }
 
     /**
-     * Get or create an evaluation context for expression evaluation.
+     * Get or create a Scope for the unified FrameEvaluator path.
      *
-     * <p>Persistent state (variables, functions) lives on the focused item
-     * as ExpressionComponents. The context itself is ephemeral.
+     * <p>The Scope provides the librarian (graph access) and owner item
+     * (focused context) to the evaluator. Created fresh for each evaluation.
      */
-    private EvaluationContext getOrCreateEvalContext() {
-        if (evaluationContext != null) {
-            return evaluationContext;
-        }
+    private Scope getOrCreateScope() {
         Librarian librarian = librarianHandle instanceof LocalLibrarian local
                 ? local.librarian() : null;
         if (librarian != null && context != null) {
-            return EvaluationContext.forItem(librarian, context);
+            return Scope.of(librarian, context);
         } else if (librarian != null) {
-            return EvaluationContext.forLibrarian(librarian);
+            return Scope.of(librarian);
         }
-        return new EvaluationContext(null, null);
+        return Scope.of(null, null);
     }
 
     /**
@@ -1043,110 +1116,6 @@ public class Eval {
                     // Parens, commas — structural tokens treated as literals
                     new ResolvedToken.Literal(token.displayText(), token.displayText());
         };
-    }
-
-    /**
-     * Dispatch a verb using typed bindings from a SemanticFrame.
-     *
-     * <p>Builds a {@code Map<ItemID, Object>} of bindings (excluding
-     * the TARGET role and dispatch target item) and a positional overflow
-     * list from unmatched tokens, then delegates to
-     * {@link VerbInvoker#invokeWithBindings}.
-     *
-     * <p>Also performs a second pass ({@link #bindLiteralsToParams}) that
-     * matches unmatched literals to verb parameters by role using ParamSpec
-     * metadata — e.g., "Josh" in "create user Josh" gets matched to the
-     * {@code @Param(role="THEME")} parameter.
-     */
-    private EvalResult dispatchVerbForResult(Item target, ItemID verbId, SemanticFrame frame) {
-        var vocab = target.vocabulary();
-        var verbEntry = vocab.lookup(verbId);
-
-        if (verbEntry.isEmpty()) {
-            return EvalResult.error("Verb not available on " + target.displayToken());
-        }
-
-        VerbEntry verb = verbEntry.get();
-        logger.debug("Dispatching verb {} on {}", verb.methodName(), target.iid());
-
-        // Build bindings: exclude TARGET role and the dispatch target itself
-        Map<ItemID, Object> bindings = new LinkedHashMap<>();
-        for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
-            Object value = entry.getValue();
-            if (value instanceof Item item && item.iid().equals(target.iid())) continue;
-            bindings.put(entry.getKey(), value);
-        }
-
-        // Collect overflow: unmatched tokens as raw values
-        List<Object> overflow = new ArrayList<>();
-        for (ResolvedToken token : frame.unmatchedArgs()) {
-            overflow.add(switch (token) {
-                case ResolvedToken.Link ref -> ref.iid().encodeText();
-                case ResolvedToken.Literal lit -> lit.value();
-                case ResolvedToken.Unresolved u -> u.token();
-            });
-        }
-
-        // Second pass: match unmatched literals to verb params by role
-        bindLiteralsToParams(verb, bindings, overflow);
-
-        Item principalItem = librarianHandle.principal().orElse(null);
-        Signer principal = principalItem instanceof Signer s ? s : null;
-        ItemID callerId = principalItem != null ? principalItem.iid() : null;
-        Librarian librarian = librarianHandle instanceof LocalLibrarian local
-                ? local.librarian() : null;
-        ActionContext ctx = ActionContext.of(callerId, principal, target, librarian);
-
-        VerbInvoker invoker = new VerbInvoker();
-        var result = invoker.invokeWithBindings(verb, ctx, bindings, overflow);
-
-        if (result.success()) {
-            Object value = result.value();
-            if (value instanceof Created created) {
-                pushToHistory(created.item());
-                return EvalResult.created(created.item(), created.type());
-            } else if (value instanceof Item item) {
-                pushToHistory(item);
-                return EvalResult.item(item);
-            } else {
-                return EvalResult.value(value);
-            }
-        } else {
-            Throwable error = result.error();
-            return EvalResult.error(error != null ? error.getMessage() : "unknown error");
-        }
-    }
-
-
-    /**
-     * Match overflow literals to verb parameters by role.
-     *
-     * <p>For each ParamSpec with a role that isn't already in bindings,
-     * if there's an overflow value available, move it into bindings
-     * under that role. This allows positional literals like "Josh" in
-     * "create user Josh" to be matched to {@code @Param(role="THEME")}.
-     */
-    private void bindLiteralsToParams(
-            VerbEntry verb,
-            Map<ItemID, Object> bindings,
-            List<Object> overflow) {
-
-        if (overflow.isEmpty()) return;
-
-        for (ParamSpec param : verb.params()) {
-            if (param.role() == null) continue;
-            ItemID roleId;
-            try {
-                roleId = ThematicRole.fromName(param.role());
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-            if (bindings.containsKey(roleId)) continue;
-            if (overflow.isEmpty()) break;
-
-            bindings.put(roleId, overflow.remove(0));
-        }
     }
 
     /**

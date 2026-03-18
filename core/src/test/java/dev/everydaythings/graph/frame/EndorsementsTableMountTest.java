@@ -27,7 +27,7 @@ class EndorsementsTableMountTest {
     }
 
     private Frame addFrameWithMount(String handleName, String path) {
-        FrameKey key = FrameKey.literal(handleName);
+        FrameKey key = FrameKey.of(ItemID.fromString("cg.test:" + handleName));
         Frame frame = Frame.snapshot(key, docType, null, true);
         table.add(frame, List.of(new Mount.PathMount(path)));
         return frame;
@@ -98,7 +98,7 @@ class EndorsementsTableMountTest {
         addFrameWithMount("docs", "/documents");
 
         // Frame without mount
-        Frame unmounted = Frame.snapshot(FrameKey.literal("internal"), docType, null, true);
+        Frame unmounted = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:internal")), docType, null, true);
         table.add(unmounted);
 
         assertThat(table.mounted().count()).isEqualTo(1);
@@ -108,7 +108,7 @@ class EndorsementsTableMountTest {
     @Test
     @DisplayName("frame with multiple mounts appears in multiple lookups")
     void multiplePathMounts() {
-        Frame frame = Frame.snapshot(FrameKey.literal("shared"), docType, null, true);
+        Frame frame = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:shared")), docType, null, true);
         table.add(frame, List.of(
                 new Mount.PathMount("/primary"),
                 new Mount.PathMount("/alias")));
@@ -123,17 +123,17 @@ class EndorsementsTableMountTest {
     void pathForKeyReturnsPrimaryPath() {
         addFrameWithMount("docs", "/documents");
 
-        assertThat(table.pathForKey(FrameKey.literal("docs"))).hasValue("/documents");
-        assertThat(table.pathForKey(FrameKey.literal("nonexistent"))).isEmpty();
+        assertThat(table.pathForKey(FrameKey.of(ItemID.fromString("cg.test:docs")))).hasValue("/documents");
+        assertThat(table.pathForKey(FrameKey.of(ItemID.fromString("cg.test:nonexistent")))).isEmpty();
     }
 
     @Test
     @DisplayName("pathForKey returns empty for unmounted frame")
     void pathForKeyEmptyWhenNoMount() {
-        Frame unmounted = Frame.snapshot(FrameKey.literal("internal"), docType, null, true);
+        Frame unmounted = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:internal")), docType, null, true);
         table.add(unmounted);
 
-        assertThat(table.pathForKey(FrameKey.literal("internal"))).isEmpty();
+        assertThat(table.pathForKey(FrameKey.of(ItemID.fromString("cg.test:internal")))).isEmpty();
     }
 
     // ==================================================================================

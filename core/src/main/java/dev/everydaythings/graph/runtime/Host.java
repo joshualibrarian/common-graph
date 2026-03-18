@@ -201,7 +201,7 @@ public class Host extends Signer {
      * @return the FrameKey of the new DISPLAY frame
      */
     public FrameKey registerDisplay(String displayId, DisplayConfig config) {
-        FrameKey key = FrameKey.mixed(DISPLAY_SEMEME_ID, displayId);
+        FrameKey key = FrameKey.of(DISPLAY_SEMEME_ID, displayId);
 
         // Remove existing frame for this display if present
         frames().removeByKey(key);

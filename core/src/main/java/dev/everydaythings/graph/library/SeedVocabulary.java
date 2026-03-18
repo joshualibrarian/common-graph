@@ -168,7 +168,29 @@ public final class SeedVocabulary {
                 }
             }
 
-            // 4. @Implements/@Type non-Item classes → sememe seed items
+            // 4. @ItemSeed classes that are Item subclasses — instantiate for token extraction
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(ItemSeed.class)) {
+                Class<?> clazz = classInfo.loadClass();
+                if (!Item.class.isAssignableFrom(clazz)) continue;
+                // Skip if already collected (from @Item.Seed fields or @Implements)
+                ItemSeed seedAnn = clazz.getAnnotation(ItemSeed.class);
+                if (seedAnn == null) continue;
+                ItemID seedId = ItemID.fromString(seedAnn.key());
+                if (result.stream().anyMatch(i -> seedId.equals(i.iid()))) continue;
+
+                try {
+                    var ctor = clazz.getDeclaredConstructor();
+                    ctor.setAccessible(true);
+                    Item item = (Item) ctor.newInstance();
+                    if (item.extractTokens().findAny().isPresent()) {
+                        result.add(item);
+                    }
+                } catch (Exception e) {
+                    // Skip classes without no-arg constructor
+                }
+            }
+
+            // 5. @Implements/@Type non-Item classes → sememe seed items
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (Item.class.isAssignableFrom(clazz)) continue;
@@ -206,18 +228,23 @@ public final class SeedVocabulary {
                 .scan()) {
 
             // 1. ALL @Item.Seed fields across the full classpath — these define concepts
+            //    (Legacy path — will be removed as classes migrate to @ItemSeed)
             for (ClassInfo classInfo : scanResult.getClassesWithFieldAnnotation(Item.Seed.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 scanForSeedItems(clazz);
             }
 
-            // 2. @Implements classes → IMPLEMENTED_BY + display (no Sememe creation)
+            // 2. @ItemSeed-annotated classes — the new bootstrap system
+            //    Creates proper typed instances (Operator.Add, Function.Sqrt, etc.)
+            scanSeedAnnotations(scanResult);
+
+            // 3. @Implements classes → IMPLEMENTED_BY + display
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 registerImplementation(clazz);
             }
 
-            // 3. @Implements on Value classes — register IMPLEMENTED_BY for value types
+            // 4. @Implements on Value classes — register IMPLEMENTED_BY for value types
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (dev.everydaythings.graph.value.Value.class.isAssignableFrom(clazz)
@@ -226,11 +253,8 @@ public final class SeedVocabulary {
                 }
             }
 
-            // 4. Create LEXEME frames on Language items from seed word declarations
+            // 5. Create LEXEME frames on Language items from seed word declarations
             createLexemeFrames();
-
-            // 5. NEW: Scan @Seed-annotated classes (runs alongside old @Item.Seed system)
-            scanSeedAnnotations(scanResult);
         }
     }
 
@@ -260,9 +284,8 @@ public final class SeedVocabulary {
 
             ItemID seedId = ItemID.fromString(key);
 
-            // Skip if already handled by the old @Item.Seed system
+            // Skip if already created (e.g., by the old @Item.Seed system or a prior scan)
             if (seedItems.stream().anyMatch(i -> seedId.equals(i.iid()))) {
-                // But still process @Seed.Frame and @Seed.Word fields
                 Item existing = seedItems.stream()
                         .filter(i -> seedId.equals(i.iid()))
                         .findFirst().orElse(null);
@@ -273,8 +296,20 @@ public final class SeedVocabulary {
                 continue;
             }
 
-            // Create new Sememe from @Seed annotation
-            Sememe sememe = new Sememe(key);
+            // Instantiate the seed — use the class itself if it's an Item subclass
+            Sememe sememe;
+            if (Sememe.class.isAssignableFrom(clazz) && clazz != Sememe.class) {
+                try {
+                    var ctor = clazz.getDeclaredConstructor();
+                    ctor.setAccessible(true);
+                    sememe = (Sememe) ctor.newInstance();
+                } catch (Exception e) {
+                    logger.debug("Could not instantiate {}, falling back to Sememe: {}", clazz.getSimpleName(), e.getMessage());
+                    sememe = new Sememe(key);
+                }
+            } else {
+                sememe = new Sememe(key);
+            }
 
             // Process slots
             for (String slotKey : seedAnn.slots()) {

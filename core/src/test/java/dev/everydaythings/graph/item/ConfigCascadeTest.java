@@ -110,7 +110,7 @@ class ConfigCascadeTest {
             ));
 
             Frame frame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, body, body.hash(), false);
 
             byte[] resolved = item.resolvePresentation(frame);
@@ -136,7 +136,7 @@ class ConfigCascadeTest {
             // Query frame has NO config binding — should cascade to item
             FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of());
             Frame authorFrame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, authorBody, authorBody.hash(), false);
 
             byte[] resolved = item.resolvePresentation(authorFrame);
@@ -166,7 +166,7 @@ class ConfigCascadeTest {
                             frameLit, false, false)
             ));
             Frame authorFrame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, authorBody, authorBody.hash(), false);
 
             byte[] resolved = item.resolvePresentation(authorFrame);
@@ -181,7 +181,7 @@ class ConfigCascadeTest {
 
             FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of());
             Frame frame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, body, body.hash(), false);
 
             assertThat(item.resolvePresentation(frame)).isNull();
@@ -199,7 +199,7 @@ class ConfigCascadeTest {
                     Binding.nonIdentity(ThematicRole.Config.IID, lit)
             ));
             Frame frame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, body, body.hash(), false);
 
             byte[] resolved = item.resolveGeneralConfig(frame);
@@ -218,7 +218,7 @@ class ConfigCascadeTest {
                     .withConfig(ThematicRole.Presentation.IID, lit);
 
             Frame frame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, body, body.hash(), false);
 
             byte[] resolved = item.resolvePresentation(frame);
@@ -242,7 +242,7 @@ class ConfigCascadeTest {
                     .withConfig(ThematicRole.Presentation.IID, configMapLit);
 
             Frame frame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, body, body.hash(), false);
 
             byte[] resolved = item.resolvePresentation(frame);
@@ -267,7 +267,7 @@ class ConfigCascadeTest {
             // Frame has no vocab config
             FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of());
             Frame authorFrame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, authorBody, authorBody.hash(), false);
 
             // Vocabulary should cascade to item, presentation should be null
@@ -302,7 +302,7 @@ class ConfigCascadeTest {
             // Query frame has NO config binding — should cascade to manifest config
             FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of());
             Frame authorFrame = new Frame(
-                    FrameKey.literal("author"),
+                    FrameKey.of(ItemID.fromString("cg.test:author")),
                     AUTHOR_PRED, authorBody, authorBody.hash(), false);
 
             byte[] resolved = item.resolvePresentation(authorFrame);

@@ -12,7 +12,7 @@ import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.crypt.EncryptionPublicKey;
 import dev.everydaythings.graph.crypt.InMemoryVault;
 import dev.everydaythings.graph.crypt.Vault;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
@@ -36,11 +36,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("slow")
 class FrameEncryptionTest {
 
-    private Librarian librarian;
-    private EncryptionPublicKey libEncKey;
+    private static Librarian librarian;
+    private static EncryptionPublicKey libEncKey;
 
-    @BeforeEach
-    void setUp() {
+    @BeforeAll
+    static void setUp() {
         librarian = Librarian.createInMemory();
         // Librarian generates encryption keys on boot
         libEncKey = librarian.encryptionPublicKey();

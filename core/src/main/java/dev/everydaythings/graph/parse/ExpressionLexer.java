@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.parse;
 
-import dev.everydaythings.graph.value.Operator;
+import dev.everydaythings.graph.item.id.ItemID;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,13 +8,11 @@ import java.util.List;
 /**
  * Tokenizes raw expression strings into {@link ExpressionToken} lists.
  *
- * <p>TODO: Unify with {@link InputController#resolveOrCommit} — both produce
- * {@link ExpressionToken}s but this lexer works from raw strings (no dictionary),
- * while InputController resolves interactively with vocabulary lookup. They should share
- * a common tokenization core, with dictionary resolution as an optional layer.
+ * <p>Requires a {@link SymbolResolver} to map operator symbols to ItemIDs.
+ * The resolver is typically backed by the TokenDictionary, which knows that
+ * "+" resolves to {@code cg.op:add}, "&&" to {@code cg.op:and}, etc.
  *
- * <p>This is the bridge between text (bind paths, user input, stored expressions)
- * and the {@link ExpressionParser}. The lexer handles:
+ * <p>The lexer handles:
  * <ul>
  *   <li>Identifiers: {@code session}, {@code x}, {@code resultText}</li>
  *   <li>Numbers: {@code 42}, {@code 3.14}</li>
@@ -25,35 +23,41 @@ import java.util.List;
  *   <li>Dot: {@code .} (property access)</li>
  *   <li>Comma: {@code ,} (function argument separator)</li>
  * </ul>
- *
- * <p>Usage:
- * <pre>{@code
- * List<ExpressionToken> tokens = ExpressionLexer.tokenize("session.activity.resultText");
- * Expression expr = ExpressionParser.parse(tokens);
- * }</pre>
  */
 public class ExpressionLexer {
 
+    /**
+     * Resolves an operator symbol to its ItemID.
+     * Returns null if the symbol is not a known operator.
+     */
+    @FunctionalInterface
+    public interface SymbolResolver {
+        ItemID resolve(String symbol);
+    }
+
     private final String input;
+    private final SymbolResolver resolver;
     private int pos;
 
-    private ExpressionLexer(String input) {
+    private ExpressionLexer(String input, SymbolResolver resolver) {
         this.input = input;
+        this.resolver = resolver;
         this.pos = 0;
     }
 
     /**
-     * Tokenize an expression string.
+     * Tokenize an expression string using the given symbol resolver.
      *
-     * @param input The expression string to tokenize
+     * @param input    The expression string to tokenize
+     * @param resolver Maps operator symbols to ItemIDs (from TokenDictionary)
      * @return List of expression tokens
      * @throws LexException if the input contains invalid characters
      */
-    public static List<ExpressionToken> tokenize(String input) {
+    public static List<ExpressionToken> tokenize(String input, SymbolResolver resolver) {
         if (input == null || input.isBlank()) {
             return List.of();
         }
-        return new ExpressionLexer(input).lex();
+        return new ExpressionLexer(input, resolver).lex();
     }
 
     private List<ExpressionToken> lex() {
@@ -205,39 +209,29 @@ public class ExpressionLexer {
     }
 
     /**
-     * Try to lex an operator symbol. Multi-character operators are tried first.
+     * Try to lex an operator symbol via the resolver.
+     * Multi-character operators are tried first.
      */
     private ExpressionToken lexOperator() {
         // Try 2-char operators first
         if (pos + 1 < input.length()) {
             String two = input.substring(pos, pos + 2);
-            Operator op = tryOperatorSymbol(two);
-            if (op != null) {
+            ItemID iid = resolver.resolve(two);
+            if (iid != null) {
                 pos += 2;
-                return new ExpressionToken.OpToken(op.iid());
+                return new ExpressionToken.OpToken(iid);
             }
         }
 
         // Single-char operators
         String one = input.substring(pos, pos + 1);
-        Operator op = tryOperatorSymbol(one);
-        if (op != null) {
+        ItemID iid = resolver.resolve(one);
+        if (iid != null) {
             pos += 1;
-            return new ExpressionToken.OpToken(op.iid());
+            return new ExpressionToken.OpToken(iid);
         }
 
         return null;
-    }
-
-    /**
-     * Try to resolve a symbol as an operator.
-     *
-     * <p>Checks both infix and prefix operator tables.
-     */
-    private Operator tryOperatorSymbol(String symbol) {
-        Operator op = Operator.infixFromSymbol(symbol);
-        if (op != null) return op;
-        return Operator.prefixFromSymbol(symbol);
     }
 
     // ==================================================================================
