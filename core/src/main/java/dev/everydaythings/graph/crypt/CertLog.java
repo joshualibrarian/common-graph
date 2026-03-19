@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.crypt;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.InspectEntry;
@@ -19,6 +20,7 @@ import java.security.MessageDigest;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Append-only log for certificates issued by this signer.
@@ -47,11 +49,10 @@ public class CertLog implements Canonical, Inspectable {
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:certlog";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "append-only certificate history";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "certlog";
 
     /**

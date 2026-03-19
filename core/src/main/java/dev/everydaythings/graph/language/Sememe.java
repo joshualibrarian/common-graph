@@ -4,6 +4,7 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
@@ -77,7 +78,7 @@ public class Sememe extends Item {
 
     /** The canonical key (e.g., "cg.core:author") */
     @Getter
-    @Frame(key = {CoreVocabulary.HashKey.KEY})
+    @ItemFrame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
 
     /**
@@ -103,12 +104,12 @@ public class Sememe extends Item {
     private transient Map<String, String> sources;
 
     /** Predicate facets (for complex predicates) */
-    @Frame(key = {CoreVocabulary.Facet.KEY})
+    @ItemFrame(key = {CoreVocabulary.Facet.KEY})
     private List<PredicateFacet> facets;
 
     /** Language-neutral symbols for universal lookup (e.g., "*", "?", "+", "m", "kg"). */
     @Getter
-    @Frame(key = {CoreVocabulary.Symbol.KEY})
+    @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
     private List<String> symbols;
 
     /**
@@ -133,7 +134,7 @@ public class Sememe extends Item {
      * <p>Examples: TITLE = 1000 (1.0), DESCRIPTION = 500 (0.5), NAME = 1000 (1.0).
      */
     @Getter
-    @Frame(key = {CoreVocabulary.IndexWeight.KEY})
+    @ItemFrame(key = {CoreVocabulary.IndexWeight.KEY})
     private int indexWeight;
 
     /**
@@ -144,7 +145,7 @@ public class Sememe extends Item {
      * Null for non-preposition sememes.
      */
     @Getter
-    @Frame(key = {CoreVocabulary.AssignedRole.KEY})
+    @ItemFrame(key = {CoreVocabulary.AssignedRole.KEY})
     private ItemID assignedRole;
 
     /**
@@ -551,19 +552,19 @@ public class Sememe extends Item {
                 .symbol("*")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "wildcard").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "anything");
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "matches anything; wildcard; any value";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i61150";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "*";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word1 = "wildcard";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word2 = "anything";
     }
 
@@ -577,19 +578,19 @@ public class Sememe extends Item {
                 .symbol("?")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "variable").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "result");
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the result being queried for; variable; unknown";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i74896";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "?";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word1 = "variable";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word2 = "result";
     }
 
@@ -601,13 +602,13 @@ public class Sememe extends Item {
                 .gloss(ENG, "the most recently mentioned or created item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "it").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "that");
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the most recently mentioned or created item";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word1 = "it";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word2 = "that";
     }
 
@@ -619,10 +620,10 @@ public class Sememe extends Item {
                 .gloss(ENG, "the currently focused item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "this");
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the currently focused item";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word1 = "this";
     }
 
@@ -634,13 +635,13 @@ public class Sememe extends Item {
                 .gloss(ENG, "the previously mentioned item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "last").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "previous");
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the previously mentioned item";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word1 = "last";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Pronoun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word2 = "previous";
     }
 
@@ -656,10 +657,10 @@ public class Sememe extends Item {
                 .gloss(ENG, "coordinating conjunction; connects elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "and");
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "coordinating conjunction; connects elements";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Conjunction.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word1 = "and";
     }
 
@@ -671,10 +672,10 @@ public class Sememe extends Item {
                 .gloss(ENG, "coordinating disjunction; alternative elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "or");
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "coordinating disjunction; alternative elements";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Conjunction.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word1 = "or";
     }
 

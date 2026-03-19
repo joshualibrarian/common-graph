@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Seed vocabulary for colors — universal concepts with actual color values.
@@ -29,13 +31,13 @@ public final class ColorVocabulary {
     public static class White {
         public static final String KEY = "cg:color/white";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0xFFFFFF;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0xFFFFFF;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color white; achromatic color of maximum lightness";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "white";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#FFFFFF";
     }
 
@@ -43,13 +45,13 @@ public final class ColorVocabulary {
     public static class Black {
         public static final String KEY = "cg:color/black";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0x000000;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0x000000;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color black; achromatic color of minimum lightness";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "black";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#000000";
     }
 
@@ -57,16 +59,16 @@ public final class ColorVocabulary {
     public static class Gray {
         public static final String KEY = "cg:color/gray";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0x808080;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0x808080;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color gray; neutral midtone between black and white";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "gray";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun2 = "grey";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#808080";
     }
 
@@ -78,13 +80,13 @@ public final class ColorVocabulary {
     public static class Red {
         public static final String KEY = "cg:color/red";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0xFF0000;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0xFF0000;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color red";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "red";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#FF0000";
     }
 
@@ -92,13 +94,13 @@ public final class ColorVocabulary {
     public static class Green {
         public static final String KEY = "cg:color/green";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0x00FF00;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0x00FF00;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color green";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "green";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#00FF00";
     }
 
@@ -106,13 +108,13 @@ public final class ColorVocabulary {
     public static class Blue {
         public static final String KEY = "cg:color/blue";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0x0000FF;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0x0000FF;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color blue";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "blue";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#0000FF";
     }
 
@@ -124,13 +126,13 @@ public final class ColorVocabulary {
     public static class Yellow {
         public static final String KEY = "cg:color/yellow";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0xFFFF00;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0xFFFF00;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color yellow";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "yellow";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#FFFF00";
     }
 
@@ -138,16 +140,16 @@ public final class ColorVocabulary {
     public static class Cyan {
         public static final String KEY = "cg:color/cyan";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0x00FFFF;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0x00FFFF;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color cyan";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "cyan";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun2 = "aqua";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#00FFFF";
     }
 
@@ -155,16 +157,16 @@ public final class ColorVocabulary {
     public static class Magenta {
         public static final String KEY = "cg:color/magenta";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0xFF00FF;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0xFF00FF;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color magenta";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "magenta";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun2 = "fuchsia";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#FF00FF";
     }
 
@@ -176,13 +178,13 @@ public final class ColorVocabulary {
     public static class Orange {
         public static final String KEY = "cg:color/orange";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0xFF8000;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0xFF8000;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color orange";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "orange";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#FF8000";
     }
 
@@ -190,16 +192,16 @@ public final class ColorVocabulary {
     public static class Purple {
         public static final String KEY = "cg:color/purple";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0x800080;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0x800080;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color purple";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "purple";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun2 = "violet";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#800080";
     }
 
@@ -207,13 +209,13 @@ public final class ColorVocabulary {
     public static class Pink {
         public static final String KEY = "cg:color/pink";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0xFFC0CB;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0xFFC0CB;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color pink";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "pink";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#FFC0CB";
     }
 
@@ -221,13 +223,13 @@ public final class ColorVocabulary {
     public static class Brown {
         public static final String KEY = "cg:color/brown";
         public static final ItemID IID = ItemID.fromString(KEY);
-        public static final int VALUE = 0x8B4513;        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        public static final int VALUE = 0x8B4513;        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the color brown";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "brown";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "#8B4513";
     }
 

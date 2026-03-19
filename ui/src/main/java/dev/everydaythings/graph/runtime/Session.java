@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.item.Implements;
@@ -101,11 +102,10 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
     public static final String KEY = "cg.sememe:session";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "UI session for item interaction";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "session";
 
     // ==================================================================================

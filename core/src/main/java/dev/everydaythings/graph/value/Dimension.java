@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
@@ -133,22 +134,22 @@ public class Dimension extends Item {
 
     /** The canonical key (e.g., "cg.dim:length") */
     @Getter
-    @Frame(key = {CoreVocabulary.HashKey.KEY})
+    @ItemFrame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
 
     /** Symbol used in dimensional formulas (e.g., "L", "T", "M") */
     @Getter
-    @Frame(key = {CoreVocabulary.Symbol.KEY})
+    @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
     private String symbol;
 
     /** Human-readable name (e.g., "length", "time") */
     @Getter
-    @Frame(key = {RoutingVocabulary.Name.KEY})
+    @ItemFrame(key = {RoutingVocabulary.Name.KEY})
     private String name;
 
     /** Descriptions by language */
     @Getter
-    @Frame(key = {CoreVocabulary.Description.KEY})
+    @ItemFrame(key = {CoreVocabulary.Description.KEY})
     private Map<String, String> descriptions;
 
     // ==================================================================================

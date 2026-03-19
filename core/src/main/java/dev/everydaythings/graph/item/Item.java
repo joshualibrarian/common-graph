@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.VerbInvoker;
@@ -16,8 +17,6 @@ import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.FrameRecord;
 import lombok.extern.log4j.Log4j2;
@@ -86,11 +85,10 @@ public class Item {
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:item";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "the fundamental unit of Common Graph";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "item";
 
     // === WELL-KNOWN FRAME KEYS ===
@@ -452,33 +450,6 @@ public class Item {
      */
     public Stream<TokenEntry> extractTokens() {
         return TokenExtractor.extractTokens(this);
-    }
-
-    // ==================================================================================
-    // Property Implementation
-    // ==================================================================================
-
-    /**
-     * Item's top-level properties: components, actions, relations, policy.
-     */
-    private static final List<String> TOP_LEVEL_PROPERTIES = List.of(
-            "components"
-    );
-
-    public Object property(String name) {
-        return switch (name) {
-            case "components" -> frames();
-            case "vocabulary" -> vocabulary();
-            default -> {
-                // Resolve via component lookup (scans by sememe short name)
-                Object comp = component(name);
-                yield comp;
-            }
-        };
-    }
-
-    public Stream<String> properties() {
-        return TOP_LEVEL_PROPERTIES.stream();
     }
 
     // ==================================================================================
@@ -1935,7 +1906,7 @@ public class Item {
         }
 
         FrameBody body = FrameBody.fromCborTree(
-                com.upokecenter.cbor.CBORObject.DecodeFromBytes(bodyBytes.get()));
+                CBORObject.DecodeFromBytes(bodyBytes.get()));
         if (body == null) {
             logger.warn("Failed to decode FrameBody for endorsement {}", endorsement.key());
             return null;
@@ -2100,7 +2071,7 @@ public class Item {
         // Try to decrypt if the librarian has an encryption key
         if (librarian != null && librarian.encryptionPublicKey() != null) {
             try {
-                com.upokecenter.cbor.CBORObject cbor = com.upokecenter.cbor.CBORObject.DecodeFromBytes(envelopeBytes.get());
+                CBORObject cbor = CBORObject.DecodeFromBytes(envelopeBytes.get());
                 dev.everydaythings.graph.crypt.EncryptedEnvelope envelope =
                         dev.everydaythings.graph.crypt.EncryptedEnvelope.fromCborTree(cbor);
                 byte[] myKeyId = librarian.encryptionPublicKey().keyId();
@@ -2441,61 +2412,4 @@ public class Item {
     @Target(ElementType.FIELD)
     public @interface Seed {}
 
-    // ==================================================================================
-    // Frame Annotation
-    // ==================================================================================
-
-    /**
-     * Declares a frame field on this Item.
-     *
-     * <p>By default, {@code @Frame} fields are <b>endorsed</b> — they are
-     * part of the item's manifest and contribute to its version identity.
-     * Endorsement means the item's owner asserts this frame as part of their
-     * item's definition. Set {@code endorsed=false} for frames that are
-     * independently signed assertions (stored as FrameRecords, indexed for
-     * cross-item queries, but not in the manifest).
-     *
-     * <p>The {@code key} attribute is <b>required</b> and provides semantic
-     * FrameKey tokens as ItemID canonical strings. All frame keys must be
-     * semantic — no literal string keys.
-     *
-     * <p>Usage:
-     * <pre>{@code
-     * // Endorsed frame (in manifest, contributes to VID)
-     * @Item.Frame(key = {"cg.core:vault"}, path = ".vault", localOnly = true)
-     * private Vault vault;
-     *
-     * // Endorsed frame with semantic key
-     * @Item.Frame(key = {"cg.core:title"})
-     * private String title;
-     *
-     * // Unendorsed frame (independently signed, not in manifest)
-     * @Item.Frame(key = {"cg.core:author"}, endorsed = false)
-     * private ItemID author;
-     * }</pre>
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.FIELD)
-    public @interface Frame {
-        /** Semantic FrameKey tokens (ItemID canonical strings). Required. */
-        String[] key() default {};
-
-        /** Mount path relative to item root. Required for localOnly. */
-        String path() default EMPTY;
-
-        /** Store as snapshot content. Default true. */
-        boolean snapshot() default true;
-
-        /** Store as stream content. Default false. */
-        boolean stream() default false;
-
-        /** Local-only (no sync). Default false. */
-        boolean localOnly() default false;
-
-        /** Contributes to version identity (VID). Default true. */
-        boolean identity() default true;
-
-        /** Endorsed = in manifest. False = unendorsed (relation-style). Default true. */
-        boolean endorsed() default true;
-    }
 }

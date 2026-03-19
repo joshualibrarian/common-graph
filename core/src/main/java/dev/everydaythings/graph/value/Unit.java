@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Item.Seed;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -59,7 +59,7 @@ import java.util.stream.Stream;
  * }</pre>
  */
 @Implements(Unit.KEY)
-public class Unit extends Item {
+public class Unit extends Sememe {
 
     // ==================================================================================
     // TYPE DEFINITION
@@ -74,217 +74,241 @@ public class Unit extends Item {
     // SEED INSTANCES - Length
     // ==================================================================================
 
-    @ItemSeed(key = Meter.KEY)
-    public static class Meter {
+    @Implements(Meter.KEY) @ItemSeed(key = Meter.KEY)
+    public static class Meter extends Unit {
         public static final String KEY = "cg.unit:meter";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "m",
-                Map.of("en", "meter", "en-GB", "metre"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+        Meter() { super(KEY, "m", Map.of("en", "meter", "en-GB", "metre"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "meter";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "m";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "meter";
     }
-    @ItemSeed(key = Millimeter.KEY)
-    public static class Millimeter {
+    @Implements(Millimeter.KEY) @ItemSeed(key = Millimeter.KEY)
+    public static class Millimeter extends Unit {
         public static final String KEY = "cg.unit:millimeter";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "mm",
-                Map.of("en", "millimeter", "en-GB", "millimetre"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1, 1000);
+        Millimeter() { super(KEY, "mm", Map.of("en", "millimeter", "en-GB", "millimetre"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1000); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "millimeter";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "mm";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "millimeter";
     }
-    @ItemSeed(key = Centimeter.KEY)
-    public static class Centimeter {
+    @Implements(Centimeter.KEY) @ItemSeed(key = Centimeter.KEY)
+    public static class Centimeter extends Unit {
         public static final String KEY = "cg.unit:centimeter";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "cm",
-                Map.of("en", "centimeter", "en-GB", "centimetre"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1, 100);
+        Centimeter() { super(KEY, "cm", Map.of("en", "centimeter", "en-GB", "centimetre"), Map.of(dim(Dimension.Length.KEY), 1), 1, 100); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "centimeter";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "cm";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "centimeter";
     }
-    @ItemSeed(key = Kilometer.KEY)
-    public static class Kilometer {
+    @Implements(Kilometer.KEY) @ItemSeed(key = Kilometer.KEY)
+    public static class Kilometer extends Unit {
         public static final String KEY = "cg.unit:kilometer";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "km",
-                Map.of("en", "kilometer", "en-GB", "kilometre"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1000, 1);
+        Kilometer() { super(KEY, "km", Map.of("en", "kilometer", "en-GB", "kilometre"), Map.of(dim(Dimension.Length.KEY), 1), 1000, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "kilometer";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "km";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "kilometer";
     }
-    @ItemSeed(key = Inch.KEY)
-    public static class Inch {
+    @Implements(Inch.KEY) @ItemSeed(key = Inch.KEY)
+    public static class Inch extends Unit {
         public static final String KEY = "cg.unit:inch";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "in",
-                Map.of("en", "inch"),
-                Map.of(dim(Dimension.Length.KEY), 1), 127, 5000);
+        Inch() { super(KEY, "in", Map.of("en", "inch"), Map.of(dim(Dimension.Length.KEY), 1), 127, 5000); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "inch";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "in";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "inch";
     }
-    @ItemSeed(key = Foot.KEY)
-    public static class Foot {
+    @Implements(Foot.KEY) @ItemSeed(key = Foot.KEY)
+    public static class Foot extends Unit {
         public static final String KEY = "cg.unit:foot";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "ft",
-                Map.of("en", "foot"),
-                Map.of(dim(Dimension.Length.KEY), 1), 381, 1250);
+        Foot() { super(KEY, "ft", Map.of("en", "foot"), Map.of(dim(Dimension.Length.KEY), 1), 381, 1250); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "foot";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "ft";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "foot";
     }
 
     // ==================================================================================
     // SEED INSTANCES - Time
     // ==================================================================================
 
-    @ItemSeed(key = Second.KEY)
-    public static class Second {
+    @Implements(Second.KEY) @ItemSeed(key = Second.KEY)
+    public static class Second extends Unit {
         public static final String KEY = "cg.unit:second";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "s",
-                Map.of("en", "second"),
-                Map.of(dim(Dimension.Time.KEY), 1), 1, 1);
+        Second() { super(KEY, "s", Map.of("en", "second"), Map.of(dim(Dimension.Time.KEY), 1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "second";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "s";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "second";
     }
-    @ItemSeed(key = Millisecond.KEY)
-    public static class Millisecond {
+    @Implements(Millisecond.KEY) @ItemSeed(key = Millisecond.KEY)
+    public static class Millisecond extends Unit {
         public static final String KEY = "cg.unit:millisecond";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "ms",
-                Map.of("en", "millisecond"),
-                Map.of(dim(Dimension.Time.KEY), 1), 1, 1000);
+        Millisecond() { super(KEY, "ms", Map.of("en", "millisecond"), Map.of(dim(Dimension.Time.KEY), 1), 1, 1000); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "millisecond";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "ms";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "millisecond";
     }
-    @ItemSeed(key = Minute.KEY)
-    public static class Minute {
+    @Implements(Minute.KEY) @ItemSeed(key = Minute.KEY)
+    public static class Minute extends Unit {
         public static final String KEY = "cg.unit:minute";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "min",
-                Map.of("en", "minute"),
-                Map.of(dim(Dimension.Time.KEY), 1), 60, 1);
+        Minute() { super(KEY, "min", Map.of("en", "minute"), Map.of(dim(Dimension.Time.KEY), 1), 60, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "minute";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "min";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "minute";
     }
-    @ItemSeed(key = Hour.KEY)
-    public static class Hour {
+    @Implements(Hour.KEY) @ItemSeed(key = Hour.KEY)
+    public static class Hour extends Unit {
         public static final String KEY = "cg.unit:hour";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "h",
-                Map.of("en", "hour"),
-                Map.of(dim(Dimension.Time.KEY), 1), 3600, 1);
+        Hour() { super(KEY, "h", Map.of("en", "hour"), Map.of(dim(Dimension.Time.KEY), 1), 3600, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "hour";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "h";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "hour";
     }
 
     // ==================================================================================
     // SEED INSTANCES - Mass
     // ==================================================================================
 
-    @ItemSeed(key = Kilogram.KEY)
-    public static class Kilogram {
+    @Implements(Kilogram.KEY) @ItemSeed(key = Kilogram.KEY)
+    public static class Kilogram extends Unit {
         public static final String KEY = "cg.unit:kilogram";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "kg",
-                Map.of("en", "kilogram"),
-                Map.of(dim(Dimension.Mass.KEY), 1), 1, 1);
+        Kilogram() { super(KEY, "kg", Map.of("en", "kilogram"), Map.of(dim(Dimension.Mass.KEY), 1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "kilogram";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "kg";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "kilogram";
     }
-    @ItemSeed(key = Gram.KEY)
-    public static class Gram {
+    @Implements(Gram.KEY) @ItemSeed(key = Gram.KEY)
+    public static class Gram extends Unit {
         public static final String KEY = "cg.unit:gram";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "g",
-                Map.of("en", "gram"),
-                Map.of(dim(Dimension.Mass.KEY), 1), 1, 1000);
+        Gram() { super(KEY, "g", Map.of("en", "gram"), Map.of(dim(Dimension.Mass.KEY), 1), 1, 1000); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "gram";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "g";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "gram";
     }
-    @ItemSeed(key = Pound.KEY)
-    public static class Pound {
+    @Implements(Pound.KEY) @ItemSeed(key = Pound.KEY)
+    public static class Pound extends Unit {
         public static final String KEY = "cg.unit:pound";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "lb",
-                Map.of("en", "pound"),
-                Map.of(dim(Dimension.Mass.KEY), 1), 45359237, 100000000);
+        Pound() { super(KEY, "lb", Map.of("en", "pound"), Map.of(dim(Dimension.Mass.KEY), 1), 45359237, 100000000); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "pound";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "lb";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "pound";
     }
 
     // ==================================================================================
     // SEED INSTANCES - Derived/Compound
     // ==================================================================================
 
-    @ItemSeed(key = MeterPerSecond.KEY)
-    public static class MeterPerSecond {
+    @Implements(MeterPerSecond.KEY) @ItemSeed(key = MeterPerSecond.KEY)
+    public static class MeterPerSecond extends Unit {
         public static final String KEY = "cg.unit:meter-per-second";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "m/s",
-                Map.of("en", "meter per second"),
-                Map.of(dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -1), 1, 1);
+        MeterPerSecond() { super(KEY, "m/s", Map.of("en", "meter per second"), Map.of(dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "meter per second";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "m/s";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "velocity";
     }
-    @ItemSeed(key = Newton.KEY)
-    public static class Newton {
+    @Implements(Newton.KEY) @ItemSeed(key = Newton.KEY)
+    public static class Newton extends Unit {
         public static final String KEY = "cg.unit:newton";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "N",
-                Map.of("en", "newton"),
-                Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -2), 1, 1);
+        Newton() { super(KEY, "N", Map.of("en", "newton"), Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -2), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "newton";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "N";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "newton";
     }
-    @ItemSeed(key = Joule.KEY)
-    public static class Joule {
+    @Implements(Joule.KEY) @ItemSeed(key = Joule.KEY)
+    public static class Joule extends Unit {
         public static final String KEY = "cg.unit:joule";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "J",
-                Map.of("en", "joule"),
-                Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -2), 1, 1);
+        Joule() { super(KEY, "J", Map.of("en", "joule"), Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -2), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "joule";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "J";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "joule";
     }
-    @ItemSeed(key = Watt.KEY)
-    public static class Watt {
+    @Implements(Watt.KEY) @ItemSeed(key = Watt.KEY)
+    public static class Watt extends Unit {
         public static final String KEY = "cg.unit:watt";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "W",
-                Map.of("en", "watt"),
-                Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -3), 1, 1);
+        Watt() { super(KEY, "W", Map.of("en", "watt"), Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -3), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "watt";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "W";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "watt";
     }
 
     // ==================================================================================
     // SEED INSTANCES - UI/Layout Units (contextual lengths and ratios)
     // ==================================================================================
 
-    @ItemSeed(key = CharacterWidth.KEY)
-    public static class CharacterWidth {
+    @Implements(CharacterWidth.KEY) @ItemSeed(key = CharacterWidth.KEY)
+    public static class CharacterWidth extends Unit {
         public static final String KEY = "cg.unit:ch";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "ch",
-                Map.of("en", "character width", "en-alt", "ch"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+        CharacterWidth() { super(KEY, "ch", Map.of("en", "character width"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "character width";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "ch";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "character width";
     }
-    @ItemSeed(key = LineHeight.KEY)
-    public static class LineHeight {
+    @Implements(LineHeight.KEY) @ItemSeed(key = LineHeight.KEY)
+    public static class LineHeight extends Unit {
         public static final String KEY = "cg.unit:ln";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "ln",
-                Map.of("en", "line height", "en-alt", "line"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+        LineHeight() { super(KEY, "ln", Map.of("en", "line height"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "line height";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "ln";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "line height";
     }
-    @ItemSeed(key = Pixel.KEY)
-    public static class Pixel {
+    @Implements(Pixel.KEY) @ItemSeed(key = Pixel.KEY)
+    public static class Pixel extends Unit {
         public static final String KEY = "cg.unit:px";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "px",
-                Map.of("en", "pixel"),
-                Map.of(dim(Dimension.Length.KEY), 1), 127, 4838400);
+        Pixel() { super(KEY, "px", Map.of("en", "pixel"), Map.of(dim(Dimension.Length.KEY), 1), 127, 4838400); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "pixel";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "px";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "pixel";
     }
-    @ItemSeed(key = Percent.KEY)
-    public static class Percent {
+    @Implements(Percent.KEY) @ItemSeed(key = Percent.KEY)
+    public static class Percent extends Unit {
         public static final String KEY = "cg.unit:percent";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "%",
-                Map.of("en", "percent"),
-                Map.of(), 1, 100);
+        Percent() { super(KEY, "%", Map.of("en", "percent"), Map.of(), 1, 100); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "percent";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "%";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "percent";
     }
-    @ItemSeed(key = Fraction.KEY)
-    public static class Fraction {
+    @Implements(Fraction.KEY) @ItemSeed(key = Fraction.KEY)
+    public static class Fraction extends Unit {
         public static final String KEY = "cg.unit:fr";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "fr",
-                Map.of("en", "fraction", "en-alt", "flex fraction"),
-                Map.of(), 1, 1);
+        Fraction() { super(KEY, "fr", Map.of("en", "fraction"), Map.of(), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "fraction";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "fr";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "fraction";
     }
-    @ItemSeed(key = Em.KEY)
-    public static class Em {
+    @Implements(Em.KEY) @ItemSeed(key = Em.KEY)
+    public static class Em extends Unit {
         public static final String KEY = "cg.unit:em";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "em",
-                Map.of("en", "em"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+        Em() { super(KEY, "em", Map.of("en", "em"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "em";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "em";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "em";
     }
-    @ItemSeed(key = Rem.KEY)
-    public static class Rem {
+    @Implements(Rem.KEY) @ItemSeed(key = Rem.KEY)
+    public static class Rem extends Unit {
         public static final String KEY = "cg.unit:rem";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Unit SEED = new Unit(KEY, "rem",
-                Map.of("en", "root em"),
-                Map.of(dim(Dimension.Length.KEY), 1), 1, 1);
+        Rem() { super(KEY, "rem", Map.of("en", "root em"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "root em";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String sym = "rem";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "rem";
     }
 
     // ==================================================================================
@@ -294,11 +318,11 @@ public class Unit extends Item {
     // Lazy holder to avoid circular static init (HashID -> Unit.CharacterWidth -> Unit.<clinit>)
     private static class Seeds {
         static final List<Unit> ALL = List.of(
-                Meter.SEED, Millimeter.SEED, Centimeter.SEED, Kilometer.SEED, Inch.SEED, Foot.SEED,
-                Second.SEED, Millisecond.SEED, Minute.SEED, Hour.SEED,
-                Kilogram.SEED, Gram.SEED, Pound.SEED,
-                MeterPerSecond.SEED, Newton.SEED, Joule.SEED, Watt.SEED,
-                CharacterWidth.SEED, LineHeight.SEED, Pixel.SEED, Percent.SEED, Fraction.SEED, Em.SEED, Rem.SEED
+                new Meter(), new Millimeter(), new Centimeter(), new Kilometer(), new Inch(), new Foot(),
+                new Second(), new Millisecond(), new Minute(), new Hour(),
+                new Kilogram(), new Gram(), new Pound(),
+                new MeterPerSecond(), new Newton(), new Joule(), new Watt(),
+                new CharacterWidth(), new LineHeight(), new Pixel(), new Percent(), new Fraction(), new Em(), new Rem()
         );
         static final Map<ItemID, Unit> BY_ID = buildById();
         private static Map<ItemID, Unit> buildById() {
@@ -313,6 +337,15 @@ public class Unit extends Item {
         return iid != null ? Seeds.BY_ID.get(iid) : null;
     }
 
+    /** Look up a seed unit by symbol (e.g., "em", "px", "m"). */
+    public static Unit lookupBySymbol(String symbol) {
+        if (symbol == null) return null;
+        for (Unit u : Seeds.ALL) {
+            if (symbol.equals(u.symbol())) return u;
+        }
+        return null;
+    }
+
     /** Get all seed units. */
     public static List<Unit> seeds() {
         return Seeds.ALL;
@@ -323,19 +356,13 @@ public class Unit extends Item {
     // INSTANCE FIELDS
     // ==================================================================================
 
-    /** The canonical key (e.g., "cg.unit:meter") */
-    @Getter
-    @Frame(key = {CoreVocabulary.HashKey.KEY})
-    private String canonicalKey;
-
     /** Short symbol (e.g., "m", "mm", "in") */
     @Getter
-    @Frame(key = {CoreVocabulary.Symbol.KEY})
     private String symbol;
 
     /** Language-tagged display names */
     @Getter
-    @Frame(key = {CoreVocabulary.Names.KEY})
+    @ItemFrame(key = {CoreVocabulary.Names.KEY})
     private Map<String, String> names;
 
     /**
@@ -343,7 +370,7 @@ public class Unit extends Item {
      * e.g., velocity = {LENGTH: 1, TIME: -1}
      */
     @Getter
-    @Frame(key = {CoreVocabulary.DimensionFormula.KEY})
+    @ItemFrame(key = {CoreVocabulary.DimensionFormula.KEY})
     private Map<ItemID, Integer> dimensions;
 
     /**
@@ -351,14 +378,14 @@ public class Unit extends Item {
      * value_in_base = value_in_this * (scaleP / scaleQ)
      */
     @Getter
-    @Frame(key = {CoreVocabulary.ScaleNumerator.KEY})
+    @ItemFrame(key = {CoreVocabulary.ScaleNumerator.KEY})
     private long scaleP;
 
     /**
      * Rational scale denominator for conversion to base unit.
      */
     @Getter
-    @Frame(key = {CoreVocabulary.ScaleDenominator.KEY})
+    @ItemFrame(key = {CoreVocabulary.ScaleDenominator.KEY})
     private long scaleQ;
 
     // ==================================================================================
@@ -368,10 +395,9 @@ public class Unit extends Item {
     /**
      * Create a seed unit (no librarian, deterministic IID from key).
      */
-    public Unit(String canonicalKey, String symbol, Map<String, String> names,
-                Map<ItemID, Integer> dimensions, long scaleP, long scaleQ) {
-        super(ItemID.fromString(canonicalKey));
-        this.canonicalKey = canonicalKey;
+    protected Unit(String canonicalKey, String symbol, Map<String, String> names,
+                   Map<ItemID, Integer> dimensions, long scaleP, long scaleQ) {
+        super(canonicalKey);
         this.symbol = symbol;
         this.names = Map.copyOf(names);
         this.dimensions = Map.copyOf(dimensions);
@@ -381,54 +407,20 @@ public class Unit extends Item {
     }
 
     /**
-     * Create a unit with a librarian (for runtime creation).
+     * Type seed constructor.
      */
-    public Unit(Librarian librarian, String canonicalKey, String symbol,
-                Map<String, String> names, Map<ItemID, Integer> dimensions,
-                long scaleP, long scaleQ) {
-        super(librarian, ItemID.fromString(canonicalKey));
-        this.canonicalKey = canonicalKey;
-        this.symbol = symbol;
-        this.names = Map.copyOf(names);
-        this.dimensions = Map.copyOf(dimensions);
-        this.scaleP = scaleP;
-        this.scaleQ = scaleQ;
-        normalizeScale();
-    }
-
-    /**
-     * Type seed constructor - creates a minimal Unit for use as type seed.
-     *
-     * <p>Used by SeedStore to create the "cg.sememe:unit" type item.
-     */
-    @SuppressWarnings("unused")  // Used via reflection by SeedStore
     protected Unit(ItemID typeId) {
         super(typeId);
     }
 
     /**
-     * Hydration constructor - reconstructs a Unit from a stored manifest.
-     *
-     * <p>Fields are bound via reflection in the base class hydrate() method.
+     * Hydration constructor.
      */
-    @SuppressWarnings("unused")  // Used via reflection for hydration
-    private Unit(Librarian librarian, Manifest manifest) {
+    @SuppressWarnings("unused")
+    protected Unit(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
-        // Fields are set by bindFieldsFromTable() via reflection during super() call
-        // Do NOT assign values here - it would overwrite what hydration set!
     }
 
-    /**
-     * Create and commit a unit.
-     */
-    public static Unit create(Librarian librarian, Signer signer,
-                              String canonicalKey, String symbol,
-                              Map<String, String> names, Map<ItemID, Integer> dimensions,
-                              long scaleP, long scaleQ) {
-        Unit unit = new Unit(librarian, canonicalKey, symbol, names, dimensions, scaleP, scaleQ);
-        unit.commit(signer);
-        return unit;
-    }
 
     // ==================================================================================
     // SCALE NORMALIZATION

@@ -131,28 +131,33 @@ class SeedVocabularyTest {
     @Test
     void unitsHaveCorrectDimensions() {
         // Length units should have LENGTH dimension
-        assertThat(Unit.Meter.SEED.hasDimension(Dimension.Length.SEED)).isTrue();
-        assertThat(Unit.Meter.SEED.hasDimension(Dimension.Time.SEED)).isFalse();
+        Unit meter = Unit.lookupSeed(Unit.Meter.IID);
+        Unit second = Unit.lookupSeed(Unit.Second.IID);
+        Unit mps = Unit.lookupSeed(Unit.MeterPerSecond.IID);
+
+        assertThat(meter.hasDimension(Dimension.Length.SEED)).isTrue();
+        assertThat(meter.hasDimension(Dimension.Time.SEED)).isFalse();
 
         // Time units should have TIME dimension
-        assertThat(Unit.Second.SEED.hasDimension(Dimension.Time.SEED)).isTrue();
-        assertThat(Unit.Second.SEED.hasDimension(Dimension.Length.SEED)).isFalse();
+        assertThat(second.hasDimension(Dimension.Time.SEED)).isTrue();
+        assertThat(second.hasDimension(Dimension.Length.SEED)).isFalse();
 
         // Velocity has both LENGTH and TIME
-        assertThat(Unit.MeterPerSecond.SEED.hasDimension(Dimension.Length.SEED)).isTrue();
-        assertThat(Unit.MeterPerSecond.SEED.hasDimension(Dimension.Time.SEED)).isTrue();
-        assertThat(Unit.MeterPerSecond.SEED.exponent(Dimension.Length.SEED)).isEqualTo(1);
-        assertThat(Unit.MeterPerSecond.SEED.exponent(Dimension.Time.SEED)).isEqualTo(-1);
+        assertThat(mps.hasDimension(Dimension.Length.SEED)).isTrue();
+        assertThat(mps.hasDimension(Dimension.Time.SEED)).isTrue();
+        assertThat(mps.exponent(Dimension.Length.SEED)).isEqualTo(1);
+        assertThat(mps.exponent(Dimension.Time.SEED)).isEqualTo(-1);
     }
 
     @Test
     void unitsCanBeConverted() {
         // 1000 mm = 1 m
-        double meters = Unit.Millimeter.SEED.convert(1000, Unit.Meter.SEED);
+        Unit mm = Unit.lookupSeed(Unit.Millimeter.IID);
+        double meters = mm.convert(1000, Unit.lookupSeed(Unit.Meter.IID));
         assertThat(meters).isEqualTo(1.0);
 
         // 3600 seconds = 1 hour
-        double hours = Unit.Second.SEED.convert(3600, Unit.Hour.SEED);
+        double hours = Unit.lookupSeed(Unit.Second.IID).convert(3600, Unit.lookupSeed(Unit.Hour.IID));
         assertThat(hours).isEqualTo(1.0);
     }
 

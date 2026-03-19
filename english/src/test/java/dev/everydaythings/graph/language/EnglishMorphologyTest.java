@@ -296,9 +296,9 @@ class EnglishMorphologyTest {
             Lexeme run = new Lexeme("run", Language.ENGLISH,
                     ItemID.fromString("cg.test:run-sememe"), PartOfSpeech.VERB, 1.0f,
                     List.of(
-                            FormEntry.of("ran", GrammaticalFeature.Past.SEED),
-                            FormEntry.of("run", GrammaticalFeature.Past.SEED, GrammaticalFeature.Participle.SEED),
-                            FormEntry.of("running", GrammaticalFeature.Present.SEED, GrammaticalFeature.Participle.SEED)
+                            FormEntry.of("ran", GrammaticalFeature.Past.IID),
+                            FormEntry.of("run", GrammaticalFeature.Past.IID, GrammaticalFeature.Participle.IID),
+                            FormEntry.of("running", GrammaticalFeature.Present.IID, GrammaticalFeature.Participle.IID)
                     ));
 
             // Irregular past: "ran" (not "runned")
@@ -319,7 +319,7 @@ class EnglishMorphologyTest {
         void irregularPluralOverrides() {
             Lexeme child = new Lexeme("child", Language.ENGLISH,
                     ItemID.fromString("cg.test:child-sememe"), PartOfSpeech.NOUN, 1.0f,
-                    List.of(FormEntry.of("children", GrammaticalFeature.Plural.SEED)));
+                    List.of(FormEntry.of("children", GrammaticalFeature.Plural.IID)));
 
             // Irregular plural: "children" (not "childs")
             assertThat(english.inflect(child, Set.of(PLURAL))).isEqualTo("children");
@@ -331,8 +331,8 @@ class EnglishMorphologyTest {
             Lexeme good = new Lexeme("good", Language.ENGLISH,
                     ItemID.fromString("cg.test:good-sememe"), PartOfSpeech.ADJECTIVE, 1.0f,
                     List.of(
-                            FormEntry.of("better", GrammaticalFeature.Comparative.SEED),
-                            FormEntry.of("best", GrammaticalFeature.Superlative.SEED)
+                            FormEntry.of("better", GrammaticalFeature.Comparative.IID),
+                            FormEntry.of("best", GrammaticalFeature.Superlative.IID)
                     ));
 
             assertThat(english.inflect(good, Set.of(COMPARATIVE))).isEqualTo("better");
@@ -344,7 +344,7 @@ class EnglishMorphologyTest {
         void emptyFeaturesReturnsLemma() {
             Lexeme run = new Lexeme("run", Language.ENGLISH,
                     ItemID.fromString("cg.test:run-sememe"), PartOfSpeech.VERB, 1.0f,
-                    List.of(FormEntry.of("ran", GrammaticalFeature.Past.SEED)));
+                    List.of(FormEntry.of("ran", GrammaticalFeature.Past.IID)));
 
             assertThat(english.inflect(run, Set.of())).isEqualTo("run");
             assertThat(english.inflect(run, null)).isEqualTo("run");

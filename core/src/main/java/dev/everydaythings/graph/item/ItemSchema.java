@@ -237,10 +237,9 @@ public class ItemSchema {
             targetValue = Literal.ofText(target.toString());
         }
 
-        return FrameBody.of(
-                spec.predicate(),
-                item.iid(),
-                Map.of(ThematicRole.Goal.IID, targetValue));
+        return new FrameBody(spec.predicate(), java.util.List.of(
+                new dev.everydaythings.graph.frame.Binding(spec.selfRole(), BindingTarget.iid(item.iid())),
+                new dev.everydaythings.graph.frame.Binding(spec.valueRole(), targetValue)));
     }
 
     // ==================================================================================
@@ -339,7 +338,7 @@ public class ItemSchema {
                         "Non-Canonical @Type class " + value.getClass().getName()
                         + " cannot be encoded — implement Canonical");
             }
-            return storeAndBuildFrame(item, key, alias, typeId, spec.identity(),
+            return storeAndBuildFrame(item, spec, key, alias, typeId, spec.identity(),
                     bytes, storePayload, effectiveContext, existingConfig, storeFrameBody);
         }
 
@@ -347,7 +346,7 @@ public class ItemSchema {
         if (value instanceof Canonical canonical) {
             byte[] bytes = canonical.encodeBinary(Canonical.Scope.RECORD);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return storeAndBuildFrame(item, key, alias, typeId, spec.identity(),
+            return storeAndBuildFrame(item, spec, key, alias, typeId, spec.identity(),
                     bytes, storePayload, effectiveContext, existingConfig, storeFrameBody);
         }
 
@@ -355,7 +354,7 @@ public class ItemSchema {
         if (isSimpleSerializableType(value)) {
             byte[] bytes = encodeSimpleValue(value);
             ItemID typeId = deriveTypeId(spec.fieldType());
-            return storeAndBuildFrame(item, key, alias, typeId, spec.identity(),
+            return storeAndBuildFrame(item, spec, key, alias, typeId, spec.identity(),
                     bytes, storePayload, effectiveContext, existingConfig, storeFrameBody);
         }
 
@@ -464,7 +463,7 @@ public class ItemSchema {
      * <p>If {@code existingConfig} is non-null, it is carried forward to the new frame
      * so that per-frame config (policy, settings) survives across commits.
      */
-    private Frame storeAndBuildFrame(Item item, FrameKey key, String alias, ItemID typeId, boolean identity,
+    private Frame storeAndBuildFrame(Item item, FrameFieldSpec spec, FrameKey key, String alias, ItemID typeId, boolean identity,
                                      byte[] plaintextBytes, Consumer<byte[]> storePayload,
                                      dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
                                      FrameConfig existingConfig,
@@ -507,7 +506,7 @@ public class ItemSchema {
         }
 
         // Build FrameBody for this component frame and set bodyHash
-        buildAndStoreComponentBody(item, null, typeId, alias, snapshotCid, encryptedCid, existingConfig, frame, storeFrameBody);
+        buildAndStoreComponentBody(item, spec, typeId, alias, snapshotCid, encryptedCid, existingConfig, frame, storeFrameBody);
 
         return frame;
     }
@@ -556,7 +555,12 @@ public class ItemSchema {
                     new Literal(Literal.TYPE_CBOR, configBytes)));
         }
 
-        FrameBody body = new FrameBody(typeId, item.iid(), bindings);
+        // Add self-binding: the owning item participates via the spec's selfRole (default THEME)
+        ItemID selfRole = (spec != null) ? spec.selfRole() : ThematicRole.Theme.IID;
+        java.util.List<dev.everydaythings.graph.frame.Binding> allBindings = new java.util.ArrayList<>();
+        allBindings.add(new dev.everydaythings.graph.frame.Binding(selfRole, BindingTarget.iid(item.iid())));
+        allBindings.addAll(bindings);
+        FrameBody body = new FrameBody(typeId, allBindings);
 
         // Use RECORD-scope CID as bodyHash (includes all bindings for reconstruction)
         byte[] recordBytes = body.encodeBinary(Canonical.Scope.RECORD);

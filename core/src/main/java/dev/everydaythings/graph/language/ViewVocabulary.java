@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * View vocabulary seeds — predicates and verbs for the ITEM_VIEW lifecycle.
@@ -30,10 +32,10 @@ public final class ViewVocabulary {
     public static class ItemView {
         public static final String KEY = "cg.sememe:item-view";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a persistent view of an item within a session";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "item-view";
     }
 
@@ -47,10 +49,10 @@ public final class ViewVocabulary {
     public static class Display {
         public static final String KEY = "cg.sememe:display";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a physical display device attached to a host";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "display";
     }
 
@@ -65,10 +67,10 @@ public final class ViewVocabulary {
     public static class DisplayLayout {
         public static final String KEY = "cg.sememe:display-layout";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "placement of a display within a session's coordinate space";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "display-layout";
     }
 
@@ -86,13 +88,13 @@ public final class ViewVocabulary {
     public static class View {
         public static final String KEY = "cg.verb:view";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "open a persistent view of an item";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Verb.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY})
         static final String verb1 = "view";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Verb.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY})
         static final String verb2 = "open";
     }
 
@@ -105,10 +107,10 @@ public final class ViewVocabulary {
     public static class Close {
         public static final String KEY = "cg.verb:close";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "close an open view of an item";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Verb.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY})
         static final String verb1 = "close";
     }
 }

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.crypt;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
@@ -17,6 +18,7 @@ import java.nio.file.Path;
 import java.security.PublicKey;
 import java.util.Optional;
 import java.util.Set;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * A Vault stores cryptographic keys securely with sign-in-place semantics.
@@ -57,11 +59,10 @@ public abstract class Vault {
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:vault";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "secure storage for cryptographic keys";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "vault";
 
     /** Default alias for the primary signing key */

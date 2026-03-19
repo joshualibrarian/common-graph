@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
@@ -44,13 +45,13 @@ public class Function extends Sememe {
     // INSTANCE FIELDS (shared by all functions)
     // ==================================================================================
 
-    @Getter @Frame(key = {CoreVocabulary.Arity.KEY})
+    @Getter @ItemFrame(key = {CoreVocabulary.Arity.KEY})
     private int minArity;
 
-    @Getter @Frame(key = {CoreVocabulary.Bounds.KEY})
+    @Getter @ItemFrame(key = {CoreVocabulary.Bounds.KEY})
     private int maxArity;  // -1 for variadic
 
-    @Getter @Frame(key = {CoreVocabulary.Category.KEY})
+    @Getter @ItemFrame(key = {CoreVocabulary.Category.KEY})
     private String category;
 
     // ==================================================================================
@@ -75,9 +76,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:abs";
         public static final ItemID IID = ItemID.fromString(KEY);
         Abs() { super(KEY, "abs", "compute the absolute value of a number", 1, 1, MATH); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the absolute value of a number";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "abs";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "abs";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the absolute value of a number";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "abs";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "abs";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.abs(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -86,9 +87,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:ceil";
         public static final ItemID IID = ItemID.fromString(KEY);
         Ceil() { super(KEY, "ceil", "round up to the nearest integer", 1, 1, MATH); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "round up to the nearest integer";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "ceil";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "ceil";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "round up to the nearest integer";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "ceil";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "ceil";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.ceil(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -97,9 +98,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:floor";
         public static final ItemID IID = ItemID.fromString(KEY);
         Floor() { super(KEY, "floor", "round down to the nearest integer", 1, 1, MATH); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "round down to the nearest integer";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "floor";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "floor";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "round down to the nearest integer";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "floor";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "floor";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.floor(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -108,9 +109,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:round";
         public static final ItemID IID = ItemID.fromString(KEY);
         Round() { super(KEY, "round", "round to the nearest integer", 1, 1, MATH); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "round to the nearest integer";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "round";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "round";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "round to the nearest integer";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "round";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "round";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.round(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -119,10 +120,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:sqrt";
         public static final ItemID IID = ItemID.fromString(KEY);
         Sqrt() { super(KEY, "sqrt", "compute the positive square root", 1, 1, MATH, "square root"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the positive square root";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "sqrt";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "sqrt";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "square root";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the positive square root";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "sqrt";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "sqrt";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "square root";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.sqrt(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -131,11 +132,11 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:pow";
         public static final ItemID IID = ItemID.fromString(KEY);
         Pow() { super(KEY, "pow", "raise to a power", 2, 2, MATH, "power", "exponent"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "raise to a power";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "pow";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "pow";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "power";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word3 = "exponent";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "raise to a power";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "pow";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "pow";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "power";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word3 = "exponent";
         @Override public Object apply(List<Object> args) { return args.size() < 2 ? 0 : Math.pow(((Number) args.get(0)).doubleValue(), ((Number) args.get(1)).doubleValue()); }
     }
 
@@ -144,10 +145,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:log";
         public static final ItemID IID = ItemID.fromString(KEY);
         Log() { super(KEY, "log", "compute the natural logarithm", 1, 1, MATH, "logarithm"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the natural logarithm";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "log";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "log";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "logarithm";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the natural logarithm";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "log";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "log";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "logarithm";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.log(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -156,10 +157,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:sin";
         public static final ItemID IID = ItemID.fromString(KEY);
         Sin() { super(KEY, "sin", "compute the sine", 1, 1, MATH, "sine"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the sine";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "sin";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "sin";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "sine";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the sine";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "sin";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "sin";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "sine";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.sin(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -168,10 +169,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:cos";
         public static final ItemID IID = ItemID.fromString(KEY);
         Cos() { super(KEY, "cos", "compute the cosine", 1, 1, MATH, "cosine"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the cosine";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "cos";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "cos";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "cosine";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the cosine";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "cos";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "cos";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "cosine";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.cos(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -180,10 +181,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:tan";
         public static final ItemID IID = ItemID.fromString(KEY);
         Tan() { super(KEY, "tan", "compute the tangent", 1, 1, MATH, "tangent"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the tangent";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "tan";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "tan";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "tangent";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "compute the tangent";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "tan";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "tan";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "tangent";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.tan(((Number) args.getFirst()).doubleValue()); }
     }
 
@@ -192,10 +193,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:random";
         public static final ItemID IID = ItemID.fromString(KEY);
         Random() { super(KEY, "random", "generate a random number between 0 and 1", 0, 0, MATH, "rand"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "generate a random number between 0 and 1";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "random";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "random";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "rand";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "generate a random number between 0 and 1";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "random";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "random";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "rand";
         @Override public Object apply(List<Object> args) { return Math.random(); }
     }
 
@@ -206,10 +207,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:tostring";
         public static final ItemID IID = ItemID.fromString(KEY);
         ToString() { super(KEY, "toString", "convert a value to its string representation", 1, 1, COERCION, "str"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert a value to its string representation";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "toString";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "toString";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "str";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert a value to its string representation";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "toString";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "toString";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "str";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()); }
     }
 
@@ -218,10 +219,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:tonumber";
         public static final ItemID IID = ItemID.fromString(KEY);
         ToNumber() { super(KEY, "toNumber", "convert a value to a number", 1, 1, COERCION, "num"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert a value to a number";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "toNumber";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "toNumber";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "num";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert a value to a number";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "toNumber";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "toNumber";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "num";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return 0.0;
             Object arg = args.getFirst();
@@ -235,10 +236,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:tobool";
         public static final ItemID IID = ItemID.fromString(KEY);
         ToBool() { super(KEY, "toBool", "convert a value to a boolean", 1, 1, COERCION, "bool"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert a value to a boolean";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "toBool";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "toBool";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "bool";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert a value to a boolean";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "toBool";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "toBool";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "bool";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return false;
             Object arg = args.getFirst();
@@ -256,10 +257,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:upper";
         public static final ItemID IID = ItemID.fromString(KEY);
         Upper() { super(KEY, "upper", "convert to uppercase", 1, 1, STRING, "uppercase"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert to uppercase";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "upper";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "upper";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "uppercase";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert to uppercase";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "upper";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "upper";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "uppercase";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()).toUpperCase(); }
     }
 
@@ -268,10 +269,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:lower";
         public static final ItemID IID = ItemID.fromString(KEY);
         Lower() { super(KEY, "lower", "convert to lowercase", 1, 1, STRING, "lowercase"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert to lowercase";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "lower";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "lower";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "lowercase";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "convert to lowercase";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "lower";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "lower";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "lowercase";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()).toLowerCase(); }
     }
 
@@ -280,9 +281,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:trim";
         public static final ItemID IID = ItemID.fromString(KEY);
         Trim() { super(KEY, "trim", "remove leading and trailing whitespace", 1, 1, STRING); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "remove leading and trailing whitespace";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "trim";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "trim";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "remove leading and trailing whitespace";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "trim";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "trim";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()).trim(); }
     }
 
@@ -291,10 +292,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:length";
         public static final ItemID IID = ItemID.fromString(KEY);
         Length() { super(KEY, "length", "get the length of a string or collection", 1, 1, STRING, "len"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "get the length of a string or collection";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "length";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "length";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "len";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "get the length of a string or collection";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "length";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "length";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "len";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return 0;
             Object arg = args.getFirst();
@@ -309,10 +310,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:substring";
         public static final ItemID IID = ItemID.fromString(KEY);
         Substring() { super(KEY, "substring", "extract a portion of a string", 2, 3, STRING, "substr"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "extract a portion of a string";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "substring";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "substring";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "substr";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "extract a portion of a string";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "substring";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "substring";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "substr";
         @Override public Object apply(List<Object> args) {
             if (args.size() < 2) return "";
             String s = String.valueOf(args.get(0));
@@ -330,9 +331,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:split";
         public static final ItemID IID = ItemID.fromString(KEY);
         Split() { super(KEY, "split", "split a string by delimiter", 2, 2, STRING); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "split a string by delimiter";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "split";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "split";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "split a string by delimiter";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "split";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "split";
         @Override public Object apply(List<Object> args) {
             if (args.size() < 2) return List.of();
             return List.of(String.valueOf(args.get(0)).split(String.valueOf(args.get(1))));
@@ -344,9 +345,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:join";
         public static final ItemID IID = ItemID.fromString(KEY);
         Join() { super(KEY, "join", "join a list into a string with delimiter", 2, 2, STRING); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "join a list into a string with delimiter";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "join";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "join";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "join a list into a string with delimiter";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "join";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "join";
         @Override public Object apply(List<Object> args) {
             if (args.size() < 2) return "";
             Object list = args.get(0);
@@ -361,9 +362,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:format";
         public static final ItemID IID = ItemID.fromString(KEY);
         Format() { super(KEY, "format", "format a string with arguments", 1, -1, STRING); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "format a string with arguments";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "format";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "format";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "format a string with arguments";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "format";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "format";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return "";
             return String.format(String.valueOf(args.getFirst()), args.subList(1, args.size()).toArray());
@@ -377,9 +378,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:map";
         public static final ItemID IID = ItemID.fromString(KEY);
         MapFn() { super(KEY, "map", "apply a function to each element", 2, 2, COLLECTION); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "apply a function to each element";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "map";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "map";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "apply a function to each element";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "map";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "map";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? List.of() : args.getFirst(); } // TODO: lambda support
     }
 
@@ -388,9 +389,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:filter";
         public static final ItemID IID = ItemID.fromString(KEY);
         Filter() { super(KEY, "filter", "keep elements matching a predicate", 2, 2, COLLECTION); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "keep elements matching a predicate";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "filter";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "filter";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "keep elements matching a predicate";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "filter";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "filter";
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? List.of() : args.getFirst(); } // TODO: lambda support
     }
 
@@ -399,10 +400,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:reduce";
         public static final ItemID IID = ItemID.fromString(KEY);
         Reduce() { super(KEY, "reduce", "fold a collection into a single value", 3, 3, COLLECTION, "fold"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "fold a collection into a single value";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "reduce";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "reduce";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "fold";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "fold a collection into a single value";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "reduce";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "reduce";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "fold";
         @Override public Object apply(List<Object> args) { return args.size() < 2 ? null : args.get(1); } // TODO: lambda support
     }
 
@@ -411,9 +412,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:range";
         public static final ItemID IID = ItemID.fromString(KEY);
         Range() { super(KEY, "range", "generate a sequence of integers", 1, 3, COLLECTION); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "generate a sequence of integers";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "range";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "range";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "generate a sequence of integers";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "range";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "range";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return List.of();
             int start = 0, end, step = 1;
@@ -430,9 +431,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:reverse";
         public static final ItemID IID = ItemID.fromString(KEY);
         Reverse() { super(KEY, "reverse", "reverse a list or string", 1, 1, COLLECTION); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "reverse a list or string";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "reverse";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "reverse";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "reverse a list or string";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "reverse";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "reverse";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return List.of();
             Object arg = args.getFirst();
@@ -447,9 +448,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:sort";
         public static final ItemID IID = ItemID.fromString(KEY);
         Sort() { super(KEY, "sort", "sort a list", 1, 1, COLLECTION); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "sort a list";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "sort";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "sort";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "sort a list";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "sort";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "sort";
         @Override @SuppressWarnings("unchecked") public Object apply(List<Object> args) {
             if (args.isEmpty()) return List.of();
             Object arg = args.getFirst();
@@ -463,10 +464,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:unique";
         public static final ItemID IID = ItemID.fromString(KEY);
         Unique() { super(KEY, "unique", "remove duplicates from a list", 1, 1, COLLECTION, "distinct"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "remove duplicates from a list";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "unique";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "unique";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "distinct";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "remove duplicates from a list";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "unique";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "unique";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "distinct";
         @Override public Object apply(List<Object> args) { if (args.isEmpty()) return List.of(); Object a = args.getFirst(); return a instanceof List<?> l ? l.stream().distinct().toList() : a; }
     }
 
@@ -475,9 +476,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:flatten";
         public static final ItemID IID = ItemID.fromString(KEY);
         Flatten() { super(KEY, "flatten", "flatten nested lists into a single list", 1, 1, COLLECTION); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "flatten nested lists into a single list";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "flatten";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "flatten";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "flatten nested lists into a single list";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "flatten";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "flatten";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return List.of();
             Object arg = args.getFirst();
@@ -493,10 +494,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:typeof";
         public static final ItemID IID = ItemID.fromString(KEY);
         Typeof() { super(KEY, "typeof", "get the type name of a value", 1, 1, UTILITY, "type"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "get the type name of a value";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "typeof";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "typeof";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "type";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "get the type name of a value";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "typeof";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "typeof";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "type";
         @Override public Object apply(List<Object> args) {
             if (args.isEmpty()) return "null";
             Object a = args.getFirst();
@@ -515,10 +516,10 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:isnull";
         public static final ItemID IID = ItemID.fromString(KEY);
         IsNull() { super(KEY, "isNull", "check whether a value is null", 1, 1, UTILITY, "null?"); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "check whether a value is null";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "isNull";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "isNull";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word2 = "null?";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "check whether a value is null";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "isNull";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "isNull";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word2 = "null?";
         @Override public Object apply(List<Object> args) { return args.isEmpty() || args.getFirst() == null; }
     }
 
@@ -527,9 +528,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:coalesce";
         public static final ItemID IID = ItemID.fromString(KEY);
         Coalesce() { super(KEY, "coalesce", "return the first non-null argument", 1, -1, UTILITY); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "return the first non-null argument";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "coalesce";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "coalesce";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "return the first non-null argument";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "coalesce";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "coalesce";
         @Override public Object apply(List<Object> args) { return args.stream().filter(a -> a != null).findFirst().orElse(null); }
     }
 
@@ -538,9 +539,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:default";
         public static final ItemID IID = ItemID.fromString(KEY);
         Default() { super(KEY, "default", "return a default value if the first is null", 2, 2, UTILITY); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "return a default value if the first is null";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "default";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "default";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "return a default value if the first is null";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "default";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "default";
         @Override public Object apply(List<Object> args) { if (args.size() < 2) return null; return args.get(0) != null ? args.get(0) : args.get(1); }
     }
 
@@ -551,9 +552,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:now";
         public static final ItemID IID = ItemID.fromString(KEY);
         Now() { super(KEY, "now", "current time in milliseconds", 0, 0, TIME); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "current time in milliseconds";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "now";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "now";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "current time in milliseconds";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "now";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "now";
         @Override public Object apply(List<Object> args) { return System.currentTimeMillis(); }
     }
 
@@ -562,9 +563,9 @@ public class Function extends Sememe {
         public static final String KEY = "cg.fn:timestamp";
         public static final ItemID IID = ItemID.fromString(KEY);
         Timestamp() { super(KEY, "timestamp", "current time in seconds since epoch", 0, 0, TIME); }
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "current time in seconds since epoch";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "timestamp";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY}) static final String word = "timestamp";
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY}) static final String gloss = "current time in seconds since epoch";
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY}) static final String symbol = "timestamp";
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}) static final String word = "timestamp";
         @Override public Object apply(List<Object> args) { return System.currentTimeMillis() / 1000; }
     }
 

@@ -7,6 +7,7 @@ import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -147,6 +148,33 @@ public final class FrameBody implements Canonical {
 
     /** The frame type — a sememe that names this kind of assertion. */
     public ItemID predicate() { return predicate; }
+
+    /**
+     * Derive the semantic selector for this frame body.
+     *
+     * <p>The selector is computed from the predicate (head) plus all qualifier
+     * IIDs from compound binding keys. A binding with key {@code [NAME, ENGLISH, VERB, LEMMA]}
+     * contributes qualifiers {@code ENGLISH, VERB, LEMMA}. Single-element keys
+     * like {@code [THEME]} contribute nothing.
+     *
+     * <p>This is the "address" of the frame — what you'd use to find it.
+     * For example, a LEXEME frame with {@code [NAME, ENGLISH, VERB, LEMMA] → "create"}
+     * produces selector {@code (LEXEME, ENGLISH, VERB, LEMMA)}.
+     */
+    public FrameKey selector() {
+        List<Object> qualifiers = new ArrayList<>();
+        if (frameBindings != null) {
+            for (Binding b : frameBindings) {
+                List<ItemID> key = b.key();
+                if (key != null && key.size() > 1) {
+                    for (int i = 1; i < key.size(); i++) {
+                        qualifiers.add(key.get(i));
+                    }
+                }
+            }
+        }
+        return FrameKey.of(predicate, qualifiers.toArray());
+    }
 
     /** Role bindings (semantic, with identity/index flags and live instances). */
     public List<Binding> frameBindings() { return frameBindings; }

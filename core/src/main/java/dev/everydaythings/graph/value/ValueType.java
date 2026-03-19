@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
@@ -168,27 +169,27 @@ public class ValueType extends Item {
 
     /** The canonical key (e.g., "cg.value:decimal") */
     @Getter
-    @Frame(key = {CoreVocabulary.HashKey.KEY})
+    @ItemFrame(key = {CoreVocabulary.HashKey.KEY})
     private String canonicalKey;
 
     /** Human-readable name */
     @Getter
-    @Frame(key = {RoutingVocabulary.Name.KEY})
+    @ItemFrame(key = {RoutingVocabulary.Name.KEY})
     private String name;
 
     /** Canonicalization rules (optional) */
     @Getter
-    @Frame(key = {CoreVocabulary.Canonicalization.KEY})
+    @ItemFrame(key = {CoreVocabulary.Canonicalization.KEY})
     private CanonRules canonRules;
 
     /** Value bounds (optional) */
     @Getter
-    @Frame(key = {CoreVocabulary.Bounds.KEY})
+    @ItemFrame(key = {CoreVocabulary.Bounds.KEY})
     private Bounds bounds;
 
     /** Unit rules for values of this type (optional) */
     @Getter
-    @Frame(key = {CoreVocabulary.UnitRules.KEY})
+    @ItemFrame(key = {CoreVocabulary.UnitRules.KEY})
     private UnitRules unitRules;
 
     // ==================================================================================

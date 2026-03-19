@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Factory;
@@ -81,11 +82,10 @@ public final class Library implements Canonical, AutoCloseable {
 
     public static final String KEY = "cg.sememe:library";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "local storage for items";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "library";
 
     // ==================================================================================
@@ -692,24 +692,33 @@ public final class Library implements Canonical, AutoCloseable {
             });
         }
 
-        // 4. Index seed Item tokens (for unit resolution, type lookups, etc.)
-        // Most are English names/labels, scoped to the English Language Item.
-        // Language items get special handling: 3-letter codes are universal postings.
+        // 4. Index tokens from cached items' frames (NAME bindings → Postings)
+        indexCachedItemFrames();
+    }
+
+    /**
+     * Index tokens from all cached items' frames.
+     *
+     * <p>Iterates all items in the cache, extracts NAME-binding postings
+     * from their live Frame objects, and indexes them in the TokenDictionary.
+     */
+    public void indexCachedItemFrames() {
         tokenDictionary().ifPresent(tokenDict -> {
-            List<Item> seedItems = SeedVocabulary.seedItemsWithTokens();
+            var cache = itemCache().orElse(null);
+            if (cache == null || cache.isEmpty()) return;
+
             tokenDict.runInWriteTransaction(tx -> {
-                for (Item item : seedItems) {
-                    if (item instanceof Language lang && lang.languageCode() != null) {
-                        // Language codes are universal (resolve for everyone)
-                        tokenDict.index(Posting.universal(lang.languageCode(), item.iid()), tx);
-                    }
-                    item.extractTokens().forEach(entry -> {
-                        Posting p = Posting.scoped(entry.token(), Language.ENGLISH, item.iid(), entry.weight());
+                int count = 0;
+                for (Item item : cache.values()) {
+                    for (Posting p : TokenExtractor.fromItemFrames(item)) {
                         tokenDict.index(p, tx);
-                    });
+                        count++;
+                    }
+                }
+                if (count > 0) {
+                    logger.info("Indexed {} token postings from cached item frames", count);
                 }
             });
-            logger.debug("importFrom: indexed tokens for {} seed Items", seedItems.size());
         });
     }
 

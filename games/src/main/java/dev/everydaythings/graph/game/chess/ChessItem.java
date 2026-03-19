@@ -10,7 +10,14 @@ import dev.everydaythings.graph.game.BoardState;
 import dev.everydaythings.graph.game.GameBoard;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.game.Piece;
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Param;
@@ -53,11 +60,15 @@ import java.util.stream.Collectors;
         padding = "0.6em", gap = "0.5em", style = "fill")
 public class ChessItem extends Item {
 
+    @ItemSeed(key = Chess.KEY)
     public static class Chess {
         public static final String KEY = "cg.sememe:chess";
-        @Item.Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss("en", "the game of chess")
-                .word(PartOfSpeech.NOUN, new Sememe(GrammaticalFeature.Lemma.KEY), "en", "chess");
+
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        static final String gloss = "the game of chess";
+
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+        static final String word = "chess";
     }
 
     // ==================================================================================
@@ -183,7 +194,6 @@ public class ChessItem extends Item {
     private transient Board board = new Board();
     private transient final List<String> moveHistory = new ArrayList<>();
     private transient GameResult result = GameResult.IN_PROGRESS;
-
     // Player seats: 0=white, 1=black
     private transient final List<ItemID> players = new ArrayList<>(Arrays.asList(null, null));
     private transient final Map<Integer, String> playerNames = new LinkedHashMap<>();

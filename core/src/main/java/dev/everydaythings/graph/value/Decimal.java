@@ -21,7 +21,7 @@ import lombok.Getter;
 public final class Decimal implements Numeric {
 
     /** Display width: decimal numbers are typically 4-12 characters */
-    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(3, 8, 20, Unit.CharacterWidth.SEED);
+    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(3, 8, 20, Unit.lookupSeed(Unit.CharacterWidth.IID));
 
     @Canon(order = 1)
     private final long unscaled;

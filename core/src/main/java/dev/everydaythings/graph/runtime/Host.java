@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.DisplayConfig;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
@@ -45,21 +46,20 @@ public class Host extends Signer {
 
     public static final String KEY = "cg.sememe:host";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "a network host device";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "host";
 
     // ==================================================================================
     // INSTANCE FIELDS
     // ==================================================================================
 
-    @Frame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
+    @ItemFrame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
     private List<InetAddress> ipAddresses;
 
-    @Frame(key = {CoreVocabulary.Monitor.KEY}, path = ".monitor")
+    @ItemFrame(key = {CoreVocabulary.Monitor.KEY}, path = ".monitor")
     private SystemMonitor systemMonitor;
 
     // ==================================================================================

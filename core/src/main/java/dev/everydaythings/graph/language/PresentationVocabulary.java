@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Seed vocabulary for semantic presentation tokens (palette slots).
@@ -23,10 +25,10 @@ public final class PresentationVocabulary {
     public static class Primary {
         public static final String KEY = "cg.presentation:primary";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "primary brand color for prominent UI elements";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "primary";
     }
 
@@ -34,10 +36,10 @@ public final class PresentationVocabulary {
     public static class Secondary {
         public static final String KEY = "cg.presentation:secondary";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "secondary brand color for supporting UI elements";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "secondary";
     }
 
@@ -45,10 +47,10 @@ public final class PresentationVocabulary {
     public static class Accent {
         public static final String KEY = "cg.presentation:accent";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "accent color for emphasis and call-to-action elements";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "accent";
     }
 
@@ -56,10 +58,10 @@ public final class PresentationVocabulary {
     public static class Surface {
         public static final String KEY = "cg.presentation:surface";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "background surface color for content areas";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "surface";
     }
 
@@ -67,10 +69,10 @@ public final class PresentationVocabulary {
     public static class OnPrimary {
         public static final String KEY = "cg.presentation:on-primary";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "text and icon color used on primary-colored backgrounds";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "on-primary";
     }
 
@@ -78,10 +80,10 @@ public final class PresentationVocabulary {
     public static class OnSurface {
         public static final String KEY = "cg.presentation:on-surface";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "text and icon color used on surface-colored backgrounds";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "on-surface";
     }
 
@@ -89,10 +91,10 @@ public final class PresentationVocabulary {
     public static class Error {
         public static final String KEY = "cg.presentation:error";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "color indicating error or destructive state";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "error";
     }
 
@@ -100,10 +102,10 @@ public final class PresentationVocabulary {
     public static class Outline {
         public static final String KEY = "cg.presentation:outline";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "color for borders, dividers, and outlines";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "outline";
     }
 
@@ -111,10 +113,10 @@ public final class PresentationVocabulary {
     public static class Muted {
         public static final String KEY = "cg.presentation:muted";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "subdued color for disabled or low-emphasis elements";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "muted";
     }
 }

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
@@ -55,11 +56,11 @@ public class Operator extends Sememe {
 
         And() { super(KEY, "&&", "and", 2, 1, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "and";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "&&";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "and";
 
         @Override public boolean isShortCircuit() { return true; }
@@ -73,11 +74,11 @@ public class Operator extends Sememe {
 
         Or() { super(KEY, "||", "or", 2, 0, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "or";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "||";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "or";
 
         @Override public boolean isShortCircuit() { return true; }
@@ -91,11 +92,11 @@ public class Operator extends Sememe {
 
         Not() { super(KEY, "!", "not", 1, 25, Associativity.RIGHT, Fixity.PREFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "not";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "!";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "not";
 
         @Override public Object applyUnary(Object operand) {
@@ -113,11 +114,11 @@ public class Operator extends Sememe {
 
         Add() { super(KEY, "+", "add", 2, 10, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "add";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "+";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "add";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -141,11 +142,11 @@ public class Operator extends Sememe {
 
         Subtract() { super(KEY, "-", "subtract", 2, 10, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "subtract";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "-";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "subtract";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -163,11 +164,11 @@ public class Operator extends Sememe {
 
         Multiply() { super(KEY, "*", "multiply", 2, 20, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "multiply";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "*";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "multiply";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -187,11 +188,11 @@ public class Operator extends Sememe {
 
         Divide() { super(KEY, "/", "divide", 2, 20, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "divide";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "/";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "divide";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -216,11 +217,11 @@ public class Operator extends Sememe {
 
         Modulo() { super(KEY, "%", "modulo", 2, 20, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "modulo";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "%";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "modulo";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -238,11 +239,11 @@ public class Operator extends Sememe {
 
         Power() { super(KEY, "^", "power", 2, 30, Associativity.RIGHT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "power";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "^";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "power";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -258,11 +259,11 @@ public class Operator extends Sememe {
 
         Negate() { super(KEY, "-", "negate", 1, 25, Associativity.RIGHT, Fixity.PREFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "negate";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "-";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "negate";
 
         @Override public Object applyUnary(Object operand) {
@@ -282,11 +283,11 @@ public class Operator extends Sememe {
 
         Equal() { super(KEY, "==", "equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "equal";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "==";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "equal";
 
         @Override public Object applyBinary(Object left, Object right) { return valueEquals(left, right); }
@@ -300,11 +301,11 @@ public class Operator extends Sememe {
 
         NotEqual() { super(KEY, "!=", "not equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "not equal";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "!=";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "not equal";
 
         @Override public Object applyBinary(Object left, Object right) { return !valueEquals(left, right); }
@@ -318,11 +319,11 @@ public class Operator extends Sememe {
 
         LessThan() { super(KEY, "<", "less than", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "less than";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "<";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "less than";
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) < 0; }
@@ -336,11 +337,11 @@ public class Operator extends Sememe {
 
         GreaterThan() { super(KEY, ">", "greater than", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "greater than";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = ">";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "greater than";
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) > 0; }
@@ -354,11 +355,11 @@ public class Operator extends Sememe {
 
         LessOrEqual() { super(KEY, "<=", "less or equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "less or equal";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "<=";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "less or equal";
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) <= 0; }
@@ -372,11 +373,11 @@ public class Operator extends Sememe {
 
         GreaterOrEqual() { super(KEY, ">=", "greater or equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "greater or equal";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = ">=";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "greater or equal";
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) >= 0; }
@@ -392,11 +393,11 @@ public class Operator extends Sememe {
 
         Concat() { super(KEY, "++", "concat", 2, 10, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "concat";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "++";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "concat";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -414,11 +415,11 @@ public class Operator extends Sememe {
 
         In() { super(KEY, "in", "in", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "in";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "in";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "in";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -435,11 +436,11 @@ public class Operator extends Sememe {
 
         Contains() { super(KEY, "contains", "contains", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "contains";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "contains";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "contains";
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -458,11 +459,11 @@ public class Operator extends Sememe {
 
         Assign() { super(KEY, "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "assign";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "=";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "assign";
     }
 
@@ -474,11 +475,11 @@ public class Operator extends Sememe {
 
         IsOp() { super(KEY, "is", "is", 2, -5, Associativity.RIGHT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "is";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "is";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "is";
     }
 
@@ -490,11 +491,11 @@ public class Operator extends Sememe {
 
         Pipe() { super(KEY, "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX); }
 
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "pipe";
-        @ItemSeed.Frame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
         static final String symbol = "|>";
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String word = "pipe";
     }
 
@@ -539,16 +540,16 @@ public class Operator extends Sememe {
     // INSTANCE FIELDS (shared by all operators)
     // ==================================================================================
 
-    @Getter @Frame(key = {CoreVocabulary.Arity.KEY})
+    @Getter @ItemFrame(key = {CoreVocabulary.Arity.KEY})
     private int arity;
 
-    @Getter @Frame(key = {CoreVocabulary.Precedence.KEY})
+    @Getter @ItemFrame(key = {CoreVocabulary.Precedence.KEY})
     private int precedence;
 
-    @Getter @Frame(key = {CoreVocabulary.Associativity.KEY})
+    @Getter @ItemFrame(key = {CoreVocabulary.Associativity.KEY})
     private Associativity associativity;
 
-    @Getter @Frame(key = {CoreVocabulary.Fixity.KEY})
+    @Getter @ItemFrame(key = {CoreVocabulary.Fixity.KEY})
     private Fixity fixity;
 
     // ==================================================================================

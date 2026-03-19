@@ -58,14 +58,10 @@ public class FormEntry implements Canonical {
     }
 
     /**
-     * Create from feature sememe instances.
+     * Create from feature IIDs.
      */
-    public static FormEntry of(String form, GrammaticalFeature... features) {
-        Set<ItemID> featureIds = new HashSet<>();
-        for (GrammaticalFeature f : features) {
-            featureIds.add(f.iid());
-        }
-        return of(featureIds, form);
+    public static FormEntry of(String form, ItemID... featureIds) {
+        return of(new HashSet<>(Arrays.asList(featureIds)), form);
     }
 
     /**

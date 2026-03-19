@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
@@ -25,6 +26,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystems;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Live system metrics — CPU, memory, disk, and uptime.
@@ -50,11 +52,10 @@ public class SystemMonitor implements Canonical {
 
     public static final String KEY = "cg.sememe:system-monitor";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "system health monitoring";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "system-monitor";
 
     // --- Canonical: configuration ---

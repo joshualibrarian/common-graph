@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class CreationScanner {
 
     /** Cache of scanned schemas by class. */
-    private static final java.util.Map<Class<?>, FactorySchema> cache = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, FactorySchema> cache = new ConcurrentHashMap<>();
 
     private CreationScanner() {} // Static utility class
 

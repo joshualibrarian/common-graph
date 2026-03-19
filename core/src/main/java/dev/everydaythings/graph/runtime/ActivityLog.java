@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
@@ -41,11 +42,10 @@ public class ActivityLog implements Canonical, Inspectable {
 
     public static final String KEY = "cg.sememe:activity-log";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "audit trail of item operations";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "activity-log";
 
     public static final String HANDLE = "activity";

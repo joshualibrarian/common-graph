@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
@@ -44,12 +45,12 @@ public class Language extends Item {
 
     /** ISO 639 language code (2 or 3 letter). */
     @Getter
-    @Frame(key = {CoreVocabulary.LanguageCode.KEY})
+    @ItemFrame(key = {CoreVocabulary.LanguageCode.KEY})
     protected String languageCode;
 
     /** The lexicon for this language. */
     @Getter
-    @Frame(key = {CoreVocabulary.Lexicon.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexicon.KEY})
     protected Lexicon lexicon;
 
     // ==================================================================================

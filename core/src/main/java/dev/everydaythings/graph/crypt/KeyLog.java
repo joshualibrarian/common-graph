@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.crypt;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
@@ -17,6 +18,7 @@ import lombok.AllArgsConstructor;
 
 import java.security.MessageDigest;
 import java.util.*;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Append-only log for keys (add, set-current, tombstone).
@@ -42,11 +44,10 @@ public class KeyLog implements Canonical, Inspectable {
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:keylog";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "append-only public key history";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "keylog";
 
     /**

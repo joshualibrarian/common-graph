@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
@@ -8,7 +9,11 @@ import lombok.NonNull;
 import java.lang.reflect.Field;
 
 /**
- * Specification for a field annotated with @Item.Frame.
+ * Specification for a field annotated with @ItemFrame.
+ *
+ * <p>Each frame binds the owning item via the {@code selfRole} (default THEME)
+ * and the field value via the {@code valueRole} (default NAME). These roles
+ * determine how the item and value participate semantically in the frame.
  *
  * <p>Endorsed frames (endorsed=true) are stored in the manifest and hydrated
  * as components. Unendorsed frames (endorsed=false) are stored as FrameRecord
@@ -17,14 +22,20 @@ import java.lang.reflect.Field;
 @Getter
 public class FrameFieldSpec {
 
-    /** The annotated field. */
-    @NonNull private final Field field;
+    /** The annotated field (null for synthesized specs like @Implements). */
+    private final Field field;
 
     /** The frame's semantic key — the primary address. */
     @NonNull private final FrameKey frameKey;
 
     /** The frame's type ID (from field type or derived). */
     @NonNull private final ItemID type;
+
+    /** The thematic role binding the owning item to this frame (default THEME). */
+    @NonNull private final ItemID selfRole;
+
+    /** The thematic role binding the field value to this frame (default NAME). */
+    @NonNull private final ItemID valueRole;
 
     /** Mount path relative to item root (empty if not mounted). */
     private final String path;
@@ -44,10 +55,15 @@ public class FrameFieldSpec {
     /** Whether this is an endorsed frame (in manifest). */
     private final boolean endorsed;
 
+    /** Whether this is a static field (seed data, not instance data). */
+    private final boolean staticField;
+
     public FrameFieldSpec(
-            @NonNull Field field,
+            Field field,
             @NonNull FrameKey frameKey,
             @NonNull ItemID type,
+            @NonNull ItemID selfRole,
+            @NonNull ItemID valueRole,
             String path,
             boolean snapshot,
             boolean stream,
@@ -57,12 +73,15 @@ public class FrameFieldSpec {
         this.field = field;
         this.frameKey = frameKey;
         this.type = type;
+        this.selfRole = selfRole;
+        this.valueRole = valueRole;
         this.path = path != null ? path : "";
         this.snapshot = snapshot;
         this.stream = stream;
         this.localOnly = localOnly;
         this.identity = identity;
         this.endorsed = endorsed;
+        this.staticField = field == null || java.lang.reflect.Modifier.isStatic(field.getModifiers());
     }
 
     /** Check if this frame has a mount path. */
@@ -105,7 +124,8 @@ public class FrameFieldSpec {
      * For example, {@code "cg.rel:hypernym"} → {@code "hypernym"}.
      */
     public String predicateDisplayName() {
-        Item.Frame ann = field.getAnnotation(Item.Frame.class);
+        if (field == null) return frameKey.toCanonicalString();
+        ItemFrame ann = field.getAnnotation(ItemFrame.class);
         if (ann != null && ann.key().length > 0) {
             String firstKey = ann.key()[0];
             int slash = firstKey.lastIndexOf('/');
@@ -124,6 +144,7 @@ public class FrameFieldSpec {
      * @return The field value, or null if not accessible
      */
     public Object getValue(Item item) {
+        if (field == null) return null;
         try {
             field.setAccessible(true);
             return field.get(item);
@@ -139,6 +160,7 @@ public class FrameFieldSpec {
      * @param value The value to set
      */
     public void setValue(Item item, Object value) {
+        if (field == null) return;
         try {
             field.setAccessible(true);
             field.set(item, value);
@@ -147,19 +169,24 @@ public class FrameFieldSpec {
         }
     }
 
+    /** Whether this is a synthesized spec (no backing field). */
+    public boolean isSynthesized() {
+        return field == null;
+    }
+
     /** Check if the field type has an @Implements annotation. */
     public boolean isAnnotatedType() {
-        return field.getType().isAnnotationPresent(Implements.class);
+        return field != null && field.getType().isAnnotationPresent(Implements.class);
     }
 
     /** Check if the field type is iterable (can hold multiple values). */
     public boolean isIterable() {
-        return Iterable.class.isAssignableFrom(field.getType());
+        return field != null && Iterable.class.isAssignableFrom(field.getType());
     }
 
     /** Get the field's declared type. */
     public Class<?> fieldType() {
-        return field.getType();
+        return field != null ? field.getType() : null;
     }
 
 }

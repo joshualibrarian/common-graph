@@ -1,5 +1,8 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.ParamSpec;
 import dev.everydaythings.graph.dispatch.VerbSpec;
@@ -97,11 +100,14 @@ public final class ItemScanner {
 
         // Walk class hierarchy (child first → parent)
         for (Class<?> c = itemClass; c != null && c != Object.class; c = c.getSuperclass()) {
-            // Scan fields for @Item.Frame
             for (Field field : c.getDeclaredFields()) {
-                Item.Frame frame = field.getAnnotation(Item.Frame.class);
-                if (frame != null) {
-                    FrameFieldSpec frameSpec = extractFrameField(field, frame);
+                // Skip static fields — type-level frames are handled by SeedVocabulary.
+                // TODO: Unify type-level and instance-level frame scanning (see design-seed-pipeline-simplification.md)
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+
+                ItemFrame itemFrame = field.getAnnotation(ItemFrame.class);
+                if (itemFrame != null) {
+                    FrameFieldSpec frameSpec = extractFrameField(field, itemFrame);
 
                     if (frameSpec.endorsed()) {
                         validateFrameField(frameSpec, frameKeys, paths);
@@ -141,20 +147,46 @@ public final class ItemScanner {
         );
     }
 
+    /**
+     * Synthesize a FrameFieldSpec for IMPLEMENTED_BY from an @Implements annotation.
+     *
+     * <p>This is shorthand: @Implements("cg.op:add") on a class is equivalent to
+     * having a static @ItemFrame field with key={ImplementedBy, JavaRuntime} and
+     * value=the class name. The scanner creates the spec as if the field existed.
+     */
+    private static FrameFieldSpec synthesizeImplementedBy(Class<?> clazz, Implements ann) {
+        String key = ann.value();
+        if (key == null || key.isBlank()) return null;
+
+        ItemID implPredicate = ItemID.fromString(CoreVocabulary.ImplementedBy.KEY);
+        FrameKey frameKey = FrameKey.of(implPredicate);
+
+        // The "type" of this frame is the ImplementedBy predicate itself
+        ItemID type = implPredicate;
+
+        // Self role = THEME (this item), value role = GOAL (the Java class name)
+        ItemID selfRole = ThematicRole.Theme.IID;
+        ItemID valueRole = ThematicRole.Goal.IID;
+
+        // Create a synthetic field-less spec
+        // We pass null for the field — the value is the class name, derived at commit time
+        return new FrameFieldSpec(
+                null, // no field — value is synthesized
+                frameKey, type, selfRole, valueRole,
+                "", true, false, false, true, true);
+    }
+
     // ==================================================================================
     // Field Extraction
     // ==================================================================================
 
     /**
-     * Extract a FrameFieldSpec from a field and @Frame annotation.
+     * Extract a FrameFieldSpec from a field and @ItemFrame annotation.
      */
-    private static FrameFieldSpec extractFrameField(Field field, Item.Frame ann) {
-        // Determine FrameKey
-        FrameKey frameKey;
-
+    private static FrameFieldSpec extractFrameField(Field field, ItemFrame ann) {
         if (ann.key().length == 0) {
             throw new IllegalStateException(
-                    "@Frame on " + field.getDeclaringClass().getSimpleName() + "." + field.getName()
+                    "@ItemFrame on " + field.getDeclaringClass().getSimpleName() + "." + field.getName()
                     + " must have key={} with at least one semantic key");
         }
         ItemID head = ItemID.fromString(ann.key()[0]);
@@ -162,9 +194,8 @@ public final class ItemScanner {
         for (int i = 1; i < ann.key().length; i++) {
             qualifiers[i - 1] = ItemID.fromString(ann.key()[i]);
         }
-        frameKey = FrameKey.of(head, qualifiers);
+        FrameKey frameKey = FrameKey.of(head, qualifiers);
 
-        // Determine type
         Class<?> fieldType = field.getType();
         ItemID type;
         if (fieldType.isAnnotationPresent(Implements.class)) {
@@ -172,6 +203,9 @@ public final class ItemScanner {
         } else {
             type = ItemID.fromString("cg.sememe:" + fieldType.getSimpleName().toLowerCase());
         }
+
+        ItemID selfRole = ItemID.fromString(ann.as());
+        ItemID valueRole = ItemID.fromString(ann.value());
 
         boolean localOnly = ann.localOnly();
         boolean stream = ann.stream();
@@ -181,10 +215,9 @@ public final class ItemScanner {
         field.setAccessible(true);
 
         return new FrameFieldSpec(
-                field, frameKey, type,
+                field, frameKey, type, selfRole, valueRole,
                 ann.path(), snapshot, stream, localOnly, identity, ann.endorsed());
     }
-
 
     // ==================================================================================
     // Verb Extraction

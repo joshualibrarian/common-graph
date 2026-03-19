@@ -50,8 +50,8 @@ class VocabularyTest {
 
     @Test
     void verbSememeHasTokens(@TempDir Path testDir) {
-        // Verify word forms are declared on the seed classes via @ItemSeed.Word annotations.
-        // After SEED removal, token aliases live in @ItemSeed.Word fields, not on live Sememe instances.
+        // Verify word forms are declared on the seed classes via @ItemFrame annotations.
+        // After SEED removal, token aliases live in @ItemFrame fields, not on live Sememe instances.
         // We verify the annotations exist and carry the expected surface forms.
         try (Librarian lib = Librarian.open(testDir)) {
             var tokenDict = lib.tokenIndex();

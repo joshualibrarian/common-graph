@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +18,7 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-endorsed")
     static class EndorsedFrameItem extends Item {
-        @Frame(key = {CoreVocabulary.Vault.KEY}, path = ".vault", localOnly = true)
+        @ItemFrame(key = {CoreVocabulary.Vault.KEY}, path = ".vault", localOnly = true)
         private String vault;
 
         EndorsedFrameItem() {
@@ -28,7 +28,7 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-semantic")
     static class SemanticFrameItem extends Item {
-        @Frame(key = {CoreVocabulary.Title.KEY})
+        @ItemFrame(key = {CoreVocabulary.Title.KEY})
         private String title;
 
         SemanticFrameItem() {
@@ -38,7 +38,7 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-unendorsed")
     static class UnendorsedFrameItem extends Item {
-        @Frame(key = {CoreVocabulary.Author.KEY}, endorsed = false)
+        @ItemFrame(key = {CoreVocabulary.Author.KEY}, endorsed = false)
         private ItemID author;
 
         UnendorsedFrameItem() {
@@ -48,10 +48,10 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-mixed")
     static class MixedFrameItem extends Item {
-        @Frame(key = {CoreVocabulary.Description.KEY})
+        @ItemFrame(key = {CoreVocabulary.Description.KEY})
         private String data;
 
-        @Frame(key = {CoreVocabulary.Activity.KEY}, endorsed = false)
+        @ItemFrame(key = {CoreVocabulary.Activity.KEY}, endorsed = false)
         private ItemID likes;
 
         MixedFrameItem() {

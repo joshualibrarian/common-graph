@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.network;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -30,10 +31,10 @@ public final class RoutingVocabulary {
     public static class ReachableAt {
         public static final String KEY = "cg.core:reachable-at";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "be in or establish communication with";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i25412";
     }
 
@@ -41,10 +42,10 @@ public final class RoutingVocabulary {
     public static class AvailableAt {
         public static final String KEY = "cg.core:available-at";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "be located or situated somewhere; occupy a certain position";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i35108";
     }
 
@@ -56,10 +57,10 @@ public final class RoutingVocabulary {
     public static class PeersWith {
         public static final String KEY = "cg.core:peers-with";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "be connected to as a network peer";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i34787";
     }
 
@@ -71,13 +72,13 @@ public final class RoutingVocabulary {
     public static class Name {
         public static final String KEY = "cg.core:name";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word or phrase that identifies something";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i69761";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.IndexWeight.KEY})
+        @ItemFrame(key = {CoreVocabulary.IndexWeight.KEY})
         static final String indexWeight = "1000";
     }
 
@@ -89,10 +90,10 @@ public final class RoutingVocabulary {
     public static class AcknowledgesDelivery {
         public static final String KEY = "cg.trust:acknowledges-delivery";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "acknowledge receipt of a successful delivery";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i26081";
     }
 
@@ -100,10 +101,10 @@ public final class RoutingVocabulary {
     public static class AcknowledgesRelay {
         public static final String KEY = "cg.trust:acknowledges-relay";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "pass along; relay a message through an intermediary";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i25411";
     }
 
@@ -111,10 +112,10 @@ public final class RoutingVocabulary {
     public static class RequestId {
         public static final String KEY = "cg.trust:request-id";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "identifier of the request being acknowledged";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i74891";
     }
 
@@ -126,7 +127,7 @@ public final class RoutingVocabulary {
     public static class Serves {
         public static final String KEY = "cg.core:serves";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "acts on behalf of; provides services to a principal";
     }
 }

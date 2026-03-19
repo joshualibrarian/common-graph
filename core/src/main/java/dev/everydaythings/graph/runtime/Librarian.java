@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
@@ -133,11 +134,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:librarian";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "the local runtime bootstrap item";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "librarian";
 
     /** Default port for Common Graph protocol. */
@@ -182,13 +182,13 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     // - LibraryIndex (relation queries, head tracking)
     // - ItemDirectory (which store has item X?)
     // - TokenDictionary (human text → item lookup)
-    @Frame(key = {CoreVocabulary.Library.KEY}, path = "library", localOnly = true)
+    @ItemFrame(key = {CoreVocabulary.Library.KEY}, path = "library", localOnly = true)
     private Library library;
 
     // Types query removed — use library index to find IMPLEMENTED_BY subjects directly
 
     // Infrastructure activity log — in-memory, doesn't churn VID
-    @Frame(key = {CoreVocabulary.Activity.KEY}, identity = false)
+    @ItemFrame(key = {CoreVocabulary.Activity.KEY}, identity = false)
     private ActivityLog activityLog = new ActivityLog();
 
     // --- Services ---
@@ -208,10 +208,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * <p>Principal is a role, not a type - any Signer can be a principal.
      */
-    @Frame(key = {RoutingVocabulary.Serves.KEY}, endorsed = false)
+    @ItemFrame(key = {RoutingVocabulary.Serves.KEY}, endorsed = false)
     private Signer principal;
 
-    @Frame(key = {RoutingVocabulary.AvailableAt.KEY}, endorsed = false)
+    @ItemFrame(key = {RoutingVocabulary.AvailableAt.KEY}, endorsed = false)
     private Host host;
 
     /**
@@ -234,7 +234,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     private ItemID fullscreenWorkspace;
 
     // --- Librarian's own relations ---
-    @Frame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
+    @ItemFrame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
     private List<Endpoint> endpoints;
 
     // ==================================================================================
@@ -276,6 +276,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             librarian.library().cache(seed);
         }
 
+        // Index seed item frames now that they're cached
+        librarian.library().indexCachedItemFrames();
+
         // Start Unix socket for local IPC (must happen after constructor completes)
         librarian.startUnixSocket().thenAccept(path ->
                 logger.info("Unix socket ready at {}", path));
@@ -315,6 +318,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             seed.setLibrarian(librarian);
             librarian.library().cache(seed);
         }
+
+        // Index seed item frames now that they're cached
+        librarian.library().indexCachedItemFrames();
 
         logger.info("In-memory Librarian ready: iid={}", librarian.iid());
         return librarian;

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
@@ -19,6 +20,7 @@ import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.value.Color;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Component that stores a compiled scene template (ViewNode tree) and display
@@ -46,11 +48,10 @@ public class SurfaceTemplateComponent implements Canonical {
 
     public static final String KEY = "cg.sememe:surface-template";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "display template for an item type";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "surface-template";
 
     public static final FrameKey HANDLE = FrameKey.of(ItemID.fromString(KEY));

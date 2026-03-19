@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Parts of speech as items — each is a seed Sememe with a deterministic IID.
@@ -45,10 +47,10 @@ public final class PartOfSpeech {
     public static class Predicate {
         public static final String KEY = "cg.core:part-of-speech";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the grammatical category of a word";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "part-of-speech";
     }
 
@@ -60,13 +62,13 @@ public final class PartOfSpeech {
     public static class Noun {
         public static final String KEY = "cg.pos:noun";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that names a person, place, thing, or idea";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73935";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "noun";
     }
 
@@ -74,13 +76,13 @@ public final class PartOfSpeech {
     public static class Verb {
         public static final String KEY = "cg.pos:verb";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that expresses an action or state";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73936";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "verb";
     }
 
@@ -88,13 +90,13 @@ public final class PartOfSpeech {
     public static class Adjective {
         public static final String KEY = "cg.pos:adjective";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that modifies a noun";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73937";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "adjective";
     }
 
@@ -102,13 +104,13 @@ public final class PartOfSpeech {
     public static class Adverb {
         public static final String KEY = "cg.pos:adverb";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that modifies a verb, adjective, or other adverb";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73938";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "adverb";
     }
 
@@ -116,13 +118,13 @@ public final class PartOfSpeech {
     public static class Pronoun {
         public static final String KEY = "cg.pos:pronoun";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that substitutes for a noun";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73939";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "pronoun";
     }
 
@@ -130,13 +132,13 @@ public final class PartOfSpeech {
     public static class Conjunction {
         public static final String KEY = "cg.pos:conjunction";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word that connects clauses or sentences";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73940";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "conjunction";
     }
 
@@ -144,13 +146,13 @@ public final class PartOfSpeech {
     public static class Interjection {
         public static final String KEY = "cg.pos:interjection";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word expressing sudden feeling";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73941";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "interjection";
     }
 
@@ -158,13 +160,13 @@ public final class PartOfSpeech {
     public static class Preposition {
         public static final String KEY = "cg.pos:preposition";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a word governing a noun or pronoun to express a relation";
 
-        @ItemSeed.Frame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
         static final String cili = "i73942";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun1 = "preposition";
     }
 }

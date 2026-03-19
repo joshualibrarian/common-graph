@@ -115,14 +115,12 @@ public class RenderContext {
      * @throws IllegalArgumentException if the symbol cannot be resolved
      */
     public Unit resolveUnit(String symbol) {
-        LibrarianHandle handle = librarian != null ? librarian : sharedLibrarian();
-        return unitCache.computeIfAbsent(symbol, sym ->
-            handle.lookup(sym)
-                .map(posting -> handle.get(posting.target(), Unit.class).orElse(null))
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown unit: " + sym))
-        );
+        return unitCache.computeIfAbsent(symbol, sym -> {
+            // Direct lookup from seed units — these are code-defined constants
+            Unit unit = Unit.lookupBySymbol(sym);
+            if (unit != null) return unit;
+            throw new IllegalArgumentException("Unknown unit: " + sym);
+        });
     }
 
     // ==================== Presets ====================

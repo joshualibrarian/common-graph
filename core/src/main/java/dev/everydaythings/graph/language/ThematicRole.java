@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
@@ -8,6 +9,7 @@ import dev.everydaythings.graph.runtime.Librarian;
 
 import java.util.List;
 import java.util.Map;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * A thematic role sememe — defines the semantic function of a participant in a frame.
@@ -54,11 +56,10 @@ public class ThematicRole extends Sememe {
     public static class Agent {
         public static final String KEY = "cg.role:agent";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant who initiates and carries out an event intentionally";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "agent";
     }
 
@@ -67,11 +68,10 @@ public class ThematicRole extends Sememe {
     public static class Patient {
         public static final String KEY = "cg.role:patient";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that is affected, changed, or consumed by the event";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "patient";
     }
 
@@ -80,11 +80,10 @@ public class ThematicRole extends Sememe {
     public static class Theme {
         public static final String KEY = "cg.role:theme";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that is located, moved, or exists in a state without being changed";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "theme";
     }
 
@@ -93,11 +92,10 @@ public class ThematicRole extends Sememe {
     public static class Experiencer {
         public static final String KEY = "cg.role:experiencer";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant who perceives, feels, or undergoes a mental or emotional state";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "experiencer";
     }
 
@@ -106,11 +104,10 @@ public class ThematicRole extends Sememe {
     public static class Stimulus {
         public static final String KEY = "cg.role:stimulus";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that unintentionally arouses a mental or emotional response";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "stimulus";
     }
 
@@ -119,11 +116,10 @@ public class ThematicRole extends Sememe {
     public static class Pivot {
         public static final String KEY = "cg.role:pivot";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the central participant in a state, in a fixed position or condition throughout";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "pivot";
     }
 
@@ -132,11 +128,10 @@ public class ThematicRole extends Sememe {
     public static class Cause {
         public static final String KEY = "cg.role:cause";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that initiates an event without intentionality or consciousness";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "cause";
     }
 
@@ -149,11 +144,10 @@ public class ThematicRole extends Sememe {
     public static class Goal {
         public static final String KEY = "cg.role:goal";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the abstract end-point or target of an action";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "goal";
     }
 
@@ -162,11 +156,10 @@ public class ThematicRole extends Sememe {
     public static class Destination {
         public static final String KEY = "cg.role:destination";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the physical place where a motion event ends";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "destination";
     }
 
@@ -175,11 +168,10 @@ public class ThematicRole extends Sememe {
     public static class Source {
         public static final String KEY = "cg.role:source";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the origin or starting point of an action or motion";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "source";
     }
 
@@ -188,11 +180,10 @@ public class ThematicRole extends Sememe {
     public static class Path {
         public static final String KEY = "cg.role:path";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the route or trajectory between origin and endpoint";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "path";
     }
 
@@ -201,11 +192,10 @@ public class ThematicRole extends Sememe {
     public static class Result {
         public static final String KEY = "cg.role:result";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant that comes into existence through the event";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "result";
     }
 
@@ -218,11 +208,10 @@ public class ThematicRole extends Sememe {
     public static class Recipient {
         public static final String KEY = "cg.role:recipient";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the animate entity that receives something transferred";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "recipient";
     }
 
@@ -231,11 +220,10 @@ public class ThematicRole extends Sememe {
     public static class Beneficiary {
         public static final String KEY = "cg.role:beneficiary";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant who benefits from or is advantaged by the event";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "beneficiary";
     }
 
@@ -244,11 +232,10 @@ public class ThematicRole extends Sememe {
     public static class Partner {
         public static final String KEY = "cg.role:partner";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a participant intentionally co-involved in the event but not the principal agent";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "partner";
     }
 
@@ -261,11 +248,10 @@ public class ThematicRole extends Sememe {
     public static class Instrument {
         public static final String KEY = "cg.role:instrument";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a tool or means manipulated by an agent to perform an action";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "instrument";
     }
 
@@ -274,11 +260,10 @@ public class ThematicRole extends Sememe {
     public static class Manner {
         public static final String KEY = "cg.role:manner";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the way or style in which an action is performed";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "manner";
     }
 
@@ -287,11 +272,10 @@ public class ThematicRole extends Sememe {
     public static class Extent {
         public static final String KEY = "cg.role:extent";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the degree, amount, or measure of change in an event";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "extent";
     }
 
@@ -300,11 +284,10 @@ public class ThematicRole extends Sememe {
     public static class Attribute {
         public static final String KEY = "cg.role:attribute";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a property that an event or state associates with a participant";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "attribute";
     }
 
@@ -313,11 +296,10 @@ public class ThematicRole extends Sememe {
     public static class Purpose {
         public static final String KEY = "cg.role:purpose";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the intended outcome that motivates an intentional action";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "purpose";
     }
 
@@ -330,11 +312,10 @@ public class ThematicRole extends Sememe {
     public static class Location {
         public static final String KEY = "cg.role:location";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the place where an event occurs or a state holds";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "location";
     }
 
@@ -343,11 +324,10 @@ public class ThematicRole extends Sememe {
     public static class Time {
         public static final String KEY = "cg.role:time";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the instant or interval during which an event occurs or state holds";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "time";
     }
 
@@ -360,11 +340,10 @@ public class ThematicRole extends Sememe {
     public static class Topic {
         public static final String KEY = "cg.role:topic";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the subject of communication, information transfer, or recorded content";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "topic";
     }
 
@@ -373,11 +352,10 @@ public class ThematicRole extends Sememe {
     public static class Name {
         public static final String KEY = "cg.role:name";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "a name, label, or designation being assigned";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "name";
     }
 
@@ -386,11 +364,10 @@ public class ThematicRole extends Sememe {
     public static class Referent {
         public static final String KEY = "cg.role:referent";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "the concept being referred to or expressed";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "referent";
     }
 
@@ -403,11 +380,10 @@ public class ThematicRole extends Sememe {
     public static class Config {
         public static final String KEY = "cg.role:config";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "configuration governing a frame's behavior — policy, scene, settings";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "config";
     }
 
@@ -416,11 +392,10 @@ public class ThematicRole extends Sememe {
     public static class Presentation {
         public static final String KEY = "cg.role:presentation";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "rendering configuration — scene, skin, style overrides";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "presentation";
     }
 
@@ -429,11 +404,10 @@ public class ThematicRole extends Sememe {
     public static class Vocabulary {
         public static final String KEY = "cg.role:vocabulary";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "vocabulary configuration — token declarations, aliases, proper nouns";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "vocabulary";
     }
 
@@ -446,11 +420,10 @@ public class ThematicRole extends Sememe {
     public static class Follows {
         public static final String KEY = "cg.role:follows";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
         static final String gloss = "causal predecessor — this frame follows/is-caused-by the target frame";
 
-        @ItemSeed.Word(lang = Language.ENGLISH_KEY,
-                pos = PartOfSpeech.Noun.KEY, features = {GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
         static final String noun = "follows";
     }
 

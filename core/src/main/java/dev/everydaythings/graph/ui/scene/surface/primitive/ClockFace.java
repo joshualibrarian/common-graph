@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.ui.scene.surface.primitive;
 
+import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
@@ -19,6 +20,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalTime;
 import java.util.List;
+import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * Clock widget — visual definition and ephemeral time display.
@@ -47,11 +49,10 @@ public class ClockFace implements Canonical {
 
     public static final String KEY = "cg.sememe:clock";
 
-    @ItemSeed.Frame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
     static final String seedGloss = "analog clock display";
 
-    @ItemSeed.Word(lang = Language.ENGLISH_KEY, pos = PartOfSpeech.Noun.KEY,
-                   features = {GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
     static final String seedNoun = "clock";
 
     // --- Canonical: visual definition ---

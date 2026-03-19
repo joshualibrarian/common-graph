@@ -1,15 +1,22 @@
 package dev.everydaythings.graph.library.dictionary;
 
 import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.value.address.AddressSpace;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -26,6 +33,95 @@ import java.util.function.Function;
 public final class TokenExtractor {
 
     private TokenExtractor() {}
+
+    /**
+     * Extract postings from a Frame's NAME binding, using the compound key
+     * to derive scope and features.
+     *
+     * <p>The mapping:
+     * <ul>
+     *   <li>NAME binding text → token</li>
+     *   <li>THEME binding IID → target</li>
+     *   <li>First key qualifier → scope (null if no qualifiers = universal)</li>
+     *   <li>Remaining key qualifiers → features</li>
+     * </ul>
+     *
+     * @param frame the Frame (must have a live body)
+     * @return a posting, or null if the frame has no NAME binding
+     */
+    public static Posting fromFrame(Frame frame) {
+        if (frame == null) return null;
+
+        FrameBody body = frame.body();
+        if (body == null) return null;
+
+        return fromBody(body);
+    }
+
+    /**
+     * Extract a posting from a FrameBody's NAME binding.
+     *
+     * <p>The compound binding key carries scope and features:
+     * {@code [NAME, ENGLISH, VERB, LEMMA] → "create"} produces a posting
+     * with scope=ENGLISH, features={VERB, LEMMA}.
+     *
+     * @param body the FrameBody (self-contained assertion)
+     * @return a posting, or null if the body has no NAME binding
+     */
+    public static Posting fromBody(FrameBody body) {
+        if (body == null) return null;
+
+        // Find the NAME binding — look for any binding whose key starts with NAME
+        Binding nameBinding = body.getBindingByRole(ThematicRole.Name.IID);
+        if (nameBinding == null) return null;
+        if (!(nameBinding.target() instanceof Literal nameLiteral)) return null;
+
+        String token = extractTextFromLiteral(nameLiteral);
+        if (token == null || token.isBlank()) return null;
+
+        // THEME binding → target item
+        ItemID target = body.homeId();
+        if (target == null) return null;
+
+        // Derive scope and features from the NAME binding's compound key
+        // Key: [NAME, ENGLISH, VERB, LEMMA] → scope=ENGLISH, features={VERB, LEMMA}
+        List<ItemID> bindingKey = nameBinding.key();
+        ItemID scope = null;
+        Set<ItemID> features = Set.of();
+
+        if (bindingKey.size() > 1) {
+            scope = bindingKey.get(1); // First qualifier = scope (Language)
+
+            if (bindingKey.size() > 2) {
+                Set<ItemID> featureSet = new HashSet<>();
+                for (int i = 2; i < bindingKey.size(); i++) {
+                    featureSet.add(bindingKey.get(i));
+                }
+                features = Set.copyOf(featureSet);
+            }
+        }
+
+        return new Posting(Posting.normalize(token), scope, target, 1.0f, features);
+    }
+
+    /**
+     * Extract all NAME-binding postings from an item's frames.
+     *
+     * @param item the item with live Frame objects
+     * @return list of postings (may be empty)
+     */
+    public static List<Posting> fromItemFrames(Item item) {
+        if (item == null || item.frames() == null) return List.of();
+
+        List<Posting> result = new ArrayList<>();
+        for (Frame frame : item.frames()) {
+            Posting p = fromFrame(frame);
+            if (p != null) {
+                result.add(p);
+            }
+        }
+        return result;
+    }
 
     /**
      * Extract postings from a frame body using data-driven predicate indexing.
