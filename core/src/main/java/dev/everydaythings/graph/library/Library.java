@@ -657,11 +657,7 @@ public final class Library implements Canonical, AutoCloseable {
                 dir.runInWriteTransaction(tx ->
                         dir.register(m.iid(), primaryStore, tx));
             });
-            // Index tokens from manifest (component handles)
-            tokenDictionary().ifPresent(tokenDict -> {
-                tokenDict.runInWriteTransaction(tx ->
-                        tokenDict.indexFromManifest(m, tx));
-            });
+            // Manifest token indexing handled by frame-backed indexing pipeline
         }
 
         // 2. Store all content (needed for item hydration during token indexing)
@@ -708,6 +704,17 @@ public final class Library implements Canonical, AutoCloseable {
             var cache = itemCache().orElse(null);
             if (cache == null || cache.isEmpty()) return;
 
+            // Ensure frame bodies are in the object store (needed for body-hash resolution)
+            for (Item item : cache.values()) {
+                if (item.frames() != null) {
+                    for (var frame : item.frames()) {
+                        if (frame.body() != null) {
+                            storeFrameBody(frame.body());
+                        }
+                    }
+                }
+            }
+
             tokenDict.runInWriteTransaction(tx -> {
                 int count = 0;
                 int totalFrames = 0;
@@ -716,9 +723,9 @@ public final class Library implements Canonical, AutoCloseable {
                     for (Posting p : TokenExtractor.fromItemFrames(item)) {
                         tokenDict.index(p, tx);
                         count++;
-                        logger.debug("Indexed token: '{}' scope={} target={}",
+                        logger.debug("Indexed token: '{}' scope={} target={} features={}",
                             p.token(), p.scope() != null ? p.scope().encodeText() : "universal",
-                            item.getClass().getSimpleName());
+                            item.getClass().getSimpleName(), p.features());
                     }
                     if (item.frames() != null) {
                         for (var frame : item.frames()) {

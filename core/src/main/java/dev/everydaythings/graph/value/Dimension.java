@@ -16,10 +16,8 @@ import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /**
  * A physical dimension (length, time, mass, etc.) as a first-class Item.
@@ -225,23 +223,6 @@ public class Dimension extends Item {
     @Override
     public String displayToken() {
         return name != null ? name : getClass().getSimpleName();
-    }
-
-    @Override
-    public Stream<TokenEntry> extractTokens() {
-        List<TokenEntry> tokens = new ArrayList<>();
-
-        // Primary: the human-readable name (e.g., "length")
-        if (name != null && !name.isBlank()) {
-            tokens.add(new TokenEntry(name, 1.0f));
-        }
-
-        // High priority: the symbol (e.g., "L")
-        if (symbol != null && !symbol.isBlank()) {
-            tokens.add(new TokenEntry(symbol, 1.0f));
-        }
-
-        return tokens.stream();
     }
 
     @Override

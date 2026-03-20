@@ -578,10 +578,7 @@ public sealed interface SessionMessage extends ProtocolMessage {
     private static CBORObject postingsToCbor(List<Posting> postings) {
         CBORObject arr = CBORObject.NewArray();
         for (Posting p : postings) {
-            CBORObject pObj = CBORObject.NewMap();
-            pObj.set("token", CBORObject.FromString(p.token()));
-            pObj.set("target", CBORObject.FromString(p.target().encodeText()));
-            arr.Add(pObj);
+            arr.Add(p.toCborTree(Canonical.Scope.RECORD));
         }
         return arr;
     }
@@ -589,14 +586,8 @@ public sealed interface SessionMessage extends ProtocolMessage {
     private static List<Posting> postingsFromCbor(CBORObject arr) {
         List<Posting> postings = new ArrayList<>();
         for (int i = 0; i < arr.size(); i++) {
-            CBORObject pObj = arr.get(i);
-            ItemID target = ItemID.fromString(pObj.get("target").AsString());
-            postings.add(new Posting(
-                    pObj.get("token").AsString(),
-                    null,
-                    target,
-                    1.0f
-            ));
+            Posting p = Posting.fromCborTree(arr.get(i));
+            if (p != null) postings.add(p);
         }
         return postings;
     }

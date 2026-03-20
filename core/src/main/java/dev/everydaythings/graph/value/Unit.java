@@ -17,11 +17,9 @@ import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /**
  * A Unit of measurement as a first-class Item.
@@ -526,27 +524,6 @@ public class Unit extends Sememe {
             return en + " (" + symbol + ")";
         }
         return en != null ? en : (symbol != null ? symbol : getClass().getSimpleName());
-    }
-
-    @Override
-    public Stream<TokenEntry> extractTokens() {
-        List<TokenEntry> tokens = new ArrayList<>();
-
-        // High priority: the symbol (e.g., "mm", "kg")
-        if (symbol != null && !symbol.isBlank()) {
-            tokens.add(new TokenEntry(symbol, 1.0f));
-        }
-
-        // All language-tagged names (e.g., "millimeter", "metre")
-        if (names != null) {
-            for (String name : names.values()) {
-                if (name != null && !name.isBlank()) {
-                    tokens.add(new TokenEntry(name, 0.9f));
-                }
-            }
-        }
-
-        return tokens.stream();
     }
 
     /** Greatest common divisor (non-negative inputs preferred). Returns >= 0. */

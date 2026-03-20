@@ -1393,20 +1393,19 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Store and index a frame body via the library.
      */
-    @Verb(value = CoreVocabulary.Put.KEY, doc = "Store and index a frame body")
     public void storeFrame(FrameBody body) {
         // Library handles both storage and indexing
         library().storeFrameBody(body);
 
-        // Also index in TokenDictionary (for title/name lookup)
+        // Also index in TokenDictionary (NAME bindings + GOAL bindings)
         TokenDictionary tokenDict = tokenIndex();
         if (tokenDict != null) {
-            List<Posting> postings = TokenExtractor.fromFrameBody(body, this::predicateIndexWeight);
-            if (!postings.isEmpty()) {
+            List<Posting> namePostings = TokenExtractor.fromBody(body);
+            List<Posting> goalPostings = TokenExtractor.fromFrameBody(body, this::predicateIndexWeight);
+            if (!namePostings.isEmpty() || !goalPostings.isEmpty()) {
                 tokenDict.runInWriteTransaction(tidxTx -> {
-                    for (Posting p : postings) {
-                        tokenDict.index(p, tidxTx);
-                    }
+                    for (Posting p : namePostings) tokenDict.index(p, tidxTx);
+                    for (Posting p : goalPostings) tokenDict.index(p, tidxTx);
                 });
             }
         }
@@ -1765,7 +1764,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * @return Stream of type ItemIDs
      */
-    @Verb(value = CoreVocabulary.ListVerb.KEY, doc = "List all known item types")
     public Stream<ItemID> types() {
         return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
                 .map(FrameBody::theme);
@@ -1969,96 +1967,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param iid The item ID
      * @return The item, or empty if not found
      */
-    @Verb(value = CoreVocabulary.Get.KEY, doc = "Fetch an item by ID")
     public Optional<Item> get(
             @Param(value = "iid", doc = "Item ID") ItemID iid) {
         return get(iid, Item.class);
-    }
-
-    /**
-     * Search for items by name/token.
-     *
-     * @param queryText The search query
-     * @param limit     Maximum results (default 20)
-     * @return Matching postings
-     */
-    @Verb(value = CoreVocabulary.Query.KEY, doc = "Search for items by name")
-    public List<Posting> query(
-            @Param(value = "query", doc = "Search query") String queryText,
-            @Param(value = "limit", doc = "Maximum results", required = false) Integer limit) {
-        int maxResults = limit != null ? limit : 20;
-        TokenDictionary dict = tokenIndex();
-        if (dict == null) {
-            return List.of();
-        }
-        return dict.lookup(queryText).limit(maxResults).toList();
-    }
-
-    /**
-     * Find items by relation predicate with optional subject/object constraints.
-     *
-     * <p>Thematic-role mapping:
-     * <ul>
-     *   <li>THEME      → predicate sememe/item ID (required)</li>
-     *   <li>RECIPIENT  → object constraint (e.g. "for chess")</li>
-     *   <li>SOURCE     → subject constraint (e.g. "from chess")</li>
-     * </ul>
-     *
-     * <p>Examples:
-     * <pre>{@code
-     * find implemented-by
-     * find implemented-by for chess
-     * find implemented-by from chess
-     * }</pre>
-     */
-    @Verb(value = CoreVocabulary.Find.KEY, doc = "Find items by relation predicate and optional role constraints")
-    public List<ItemID> find(
-            @Param(value = "predicate", role = "THEME", doc = "Frame predicate sememe/item ID")
-            ItemID predicate,
-            @Param(value = "object", role = "RECIPIENT", required = false,
-                    doc = "Object constraint (e.g. 'for chess')")
-            ItemID object,
-            @Param(value = "subject", role = "SOURCE", required = false,
-                    doc = "Subject constraint (e.g. 'from chess')")
-            ItemID subject) {
-        if (predicate == null) return List.of();
-
-        Stream<FrameBody> frames;
-        if (subject != null && object != null) {
-            // Both provided: query by one, filter by the other
-            frames = library().byItemPredicate(subject, predicate)
-                    .filter(body -> {
-                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
-                        return tgt instanceof BindingTarget.IidTarget iidTarget
-                                && object.equals(iidTarget.iid());
-                    });
-        } else if (subject != null) {
-            frames = library().byItemPredicate(subject, predicate);
-        } else if (object != null) {
-            frames = library().byItemPredicate(object, predicate);
-        } else {
-            frames = library().byPredicate(predicate);
-        }
-
-        if (subject != null && object == null) {
-            // from <subject>: return targets
-            return frames
-                    .flatMap(body -> {
-                        BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
-                        if (tgt instanceof BindingTarget.IidTarget iidTarget) {
-                            return Stream.of(iidTarget.iid());
-                        }
-                        return Stream.empty();
-                    })
-                    .distinct()
-                    .toList();
-        }
-
-        // default + "for <object>": return themes
-        return frames
-                .map(FrameBody::theme)
-                .distinct()
-                .toList();
     }
 
     /**

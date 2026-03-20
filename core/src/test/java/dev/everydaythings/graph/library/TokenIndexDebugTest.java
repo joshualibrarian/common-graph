@@ -3,7 +3,6 @@ package dev.everydaythings.graph.library;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.library.dictionary.TokenExtractor;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.Test;
@@ -27,12 +26,11 @@ class TokenIndexDebugTest {
                         System.out.println("    role=" + b.role().encodeText() + " quals=" + b.qualifiers().size());
                     }
                 }
-                var p = TokenExtractor.fromFrame(f);
-                if (p != null) System.out.println("  -> posting: '" + p.token() + "'");
             }
             var postings = TokenExtractor.fromItemFrames(item);
             System.out.println("Postings: " + postings.size());
-            postings.forEach(p -> System.out.println("  " + p.token()));
+            postings.forEach(p -> System.out.println("  " + p.token()
+                    + " features=" + p.features()));
         }
         assertThat(cached).isPresent();
     }

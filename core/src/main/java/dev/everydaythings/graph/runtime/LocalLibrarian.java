@@ -98,7 +98,7 @@ public final class LocalLibrarian implements LibrarianHandle {
         if (tokenDict == null) {
             return Stream.empty();
         }
-        return tokenDict.lookup(query);
+        return tokenDict.lookup(query, bodyResolver());
     }
 
     @Override
@@ -108,7 +108,7 @@ public final class LocalLibrarian implements LibrarianHandle {
         if (tokenDict == null) {
             return Stream.empty();
         }
-        return tokenDict.lookup(query, scopes);
+        return tokenDict.lookup(query, bodyResolver(), scopes);
     }
 
     @Override
@@ -116,7 +116,12 @@ public final class LocalLibrarian implements LibrarianHandle {
         checkOpen();
         var tokenDict = librarian.tokenIndex();
         if (tokenDict == null) return Stream.empty();
-        return tokenDict.prefix(text, limit);
+        return tokenDict.prefix(text, limit, bodyResolver());
+    }
+
+    private java.util.function.Function<dev.everydaythings.graph.item.id.ContentID,
+            Optional<dev.everydaythings.graph.frame.FrameBody>> bodyResolver() {
+        return bodyHash -> librarian.library().loadFrameBody(bodyHash);
     }
 
     @Override

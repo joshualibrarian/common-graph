@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.library.dictionary;
 
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.library.Service;
 import dev.everydaythings.graph.library.WriteTransaction;
@@ -14,24 +14,28 @@ import lombok.Getter;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
  * Index for mapping tokens to item references.
+ *
+ * <p>Storage format:
+ * <pre>
+ *   Key:   [token_utf8][0x00][body_hash_34bytes][binding_index_2bytes]
+ *   Value: [weight_4bytes]
+ * </pre>
+ *
+ * <p>The body hash is the {@link ContentID} of the source {@link FrameBody}.
+ * The binding index identifies which binding within the body produced this token.
+ * At query time, a body resolver reconstructs the full {@link Posting} — scope,
+ * target, and features are all derived from the resolved body + binding.
  *
  * <p>Implementations must also implement a ByteStore with {@link Column}.
  * All operations are provided as default methods.
  *
  * <p>TokenDictionary extends {@link Service} for lifecycle management and UI presentation.
  * Service methods are provided by the underlying ByteStore implementation.
- *
- * <p>Example implementation:
- * <pre>{@code
- * public class SkipListTokenDictionary implements TokenDictionary, SkipListStore<TokenDictionary.Column> {
- *     @Getter private final SkipListStore.Opened<Column> opened;
- *     // That's it!
- * }
- * }</pre>
  */
 public interface TokenDictionary extends Service {
 
@@ -40,9 +44,8 @@ public interface TokenDictionary extends Service {
     // ==================================================================================
 
     byte NULL_TERMINATOR = 0x00;
-    byte SCOPE_GLOBAL = 0x00;
-    byte SCOPE_ITEM = 0x01;
-    int IID_SIZE = 34;
+    int CID_SIZE = 34;  // SHA2-256 multihash: varint(0x12) + varint(32) + 32 bytes
+    int BINDING_INDEX_SIZE = 2;
     int WEIGHT_SCALE = 1000;
 
     // ==================================================================================
@@ -59,66 +62,87 @@ public interface TokenDictionary extends Service {
     // ==================================================================================
 
     /**
-     * Look up a token. When scopes are provided, returns postings matching those
-     * scopes. When no scopes are provided, returns ALL postings for that token
-     * regardless of scope (universal + every language + every item).
+     * Look up a token, resolving frame bodies to produce full postings.
+     *
+     * <p>When scopes are provided, only postings matching those scopes are returned.
+     * When no scopes are provided, returns ALL postings for that token.
+     *
+     * @param token        the token to look up
+     * @param bodyResolver resolves body hash → FrameBody (entries skip when unresolvable)
+     * @param scopes       scope filter (empty = all scopes)
      */
-    default Stream<Posting> lookup(String token, ItemID... scopes) {
+    default Stream<Posting> lookup(String token,
+                                   Function<ContentID, Optional<FrameBody>> bodyResolver,
+                                   ItemID... scopes) {
         String normalized = Posting.normalize(token);
+        byte[] prefix = tokenOnlyPrefix(normalized);
 
-        if (scopes == null || scopes.length == 0) {
-            // No scope filter — return all postings for this token
-            byte[] prefix = tokenOnlyPrefix(normalized);
-            return streamPostingsWithPrefix(prefix)
-                    .filter(p -> p.token().equals(normalized))
-                    .sorted(Comparator.comparing(Posting::weight).reversed());
+        Stream<Posting> results = streamPostingsWithPrefix(prefix, bodyResolver)
+                .filter(p -> p.token().equals(normalized));
+
+        if (scopes != null && scopes.length > 0) {
+            if (scopes.length == 1) {
+                ItemID scope = scopes[0];
+                results = results.filter(p -> scopeMatches(p.scope(), scope));
+            } else {
+                Set<ItemID> scopeSet = new HashSet<>(Arrays.asList(scopes));
+                results = results.filter(p -> {
+                    if (p.scope() == null) return scopeSet.contains(null);
+                    return scopeSet.contains(p.scope());
+                });
+            }
         }
 
-        if (scopes.length == 1) {
-            return lookupInScope(normalized, scopes[0])
-                    .sorted(Comparator.comparing(Posting::weight).reversed());
-        }
-
-        Stream<Posting> result = Stream.empty();
-        for (ItemID scope : scopes) {
-            result = Stream.concat(result, lookupInScope(normalized, scope));
-        }
-        return result.sorted(Comparator.comparing(Posting::weight).reversed());
-    }
-
-    private Stream<Posting> lookupInScope(String normalizedToken, ItemID scope) {
-        byte[] prefix = tokenScopePrefix(normalizedToken, scope);
-        return streamPostingsWithPrefix(prefix);
+        return results.sorted(Comparator.comparing(Posting::weight).reversed());
     }
 
     /**
-     * Prefix search for autocomplete. When scopes are provided, filters to those
-     * scopes. When no scopes are provided, returns all matching postings.
+     * Look up without body resolution — returns postings with token and weight only.
+     * Scope filtering and features are unavailable in this mode.
      */
-    default Stream<Posting> prefix(String tokenPrefix, int limit, ItemID... scopes) {
+    default Stream<Posting> lookup(String token, ItemID... scopes) {
+        return lookup(token, cid -> Optional.empty(), scopes);
+    }
+
+    /**
+     * Prefix search for autocomplete.
+     *
+     * @param tokenPrefix  the prefix to search for
+     * @param limit        maximum results
+     * @param bodyResolver resolves body hash → FrameBody
+     * @param scopes       scope filter (empty = all scopes)
+     */
+    default Stream<Posting> prefix(String tokenPrefix, int limit,
+                                   Function<ContentID, Optional<FrameBody>> bodyResolver,
+                                   ItemID... scopes) {
         String normalized = Posting.normalize(tokenPrefix);
         byte[] prefix = tokenOnlyPrefix(normalized);
 
-        if (scopes == null || scopes.length == 0) {
-            // No scope filter — return all postings matching the prefix
-            return streamPostingsWithPrefix(prefix)
-                    .sorted(Comparator.comparing(Posting::weight).reversed())
-                    .limit(limit);
+        Stream<Posting> results = streamPostingsWithPrefix(prefix, bodyResolver);
+
+        if (scopes != null && scopes.length > 0) {
+            if (scopes.length == 1) {
+                ItemID scope = scopes[0];
+                results = results.filter(p -> scopeMatches(p.scope(), scope));
+            } else {
+                Set<ItemID> scopeSet = new HashSet<>(Arrays.asList(scopes));
+                results = results.filter(p -> {
+                    if (p.scope() == null) return scopeSet.contains(null);
+                    return scopeSet.contains(p.scope());
+                });
+            }
         }
 
-        if (scopes.length == 1) {
-            ItemID scope = scopes[0];
-            return streamPostingsWithPrefix(prefix)
-                    .filter(p -> scopeMatches(p.scope(), scope))
-                    .sorted(Comparator.comparing(Posting::weight).reversed())
-                    .limit(limit);
-        }
-
-        Set<ItemID> scopeSet = new HashSet<>(Arrays.asList(scopes));
-        return streamPostingsWithPrefix(prefix)
-                .filter(p -> scopeSet.contains(p.scope()))
+        return results
                 .sorted(Comparator.comparing(Posting::weight).reversed())
                 .limit(limit);
+    }
+
+    /**
+     * Prefix search without body resolution.
+     */
+    default Stream<Posting> prefix(String tokenPrefix, int limit, ItemID... scopes) {
+        return prefix(tokenPrefix, limit, cid -> Optional.empty(), scopes);
     }
 
     // ==================================================================================
@@ -126,7 +150,10 @@ public interface TokenDictionary extends Service {
     // ==================================================================================
 
     /**
-     * Index a posting.
+     * Index a frame-backed posting.
+     *
+     * <p>The posting must be frame-backed ({@link Posting#isFrameBacked()} = true).
+     * The key is constructed from the body hash and binding index.
      */
     default void index(Posting posting, WriteTransaction tx) {
         Objects.requireNonNull(posting, "posting");
@@ -183,16 +210,6 @@ public interface TokenDictionary extends Service {
         }
     }
 
-    /**
-     * Extract and index postings from a manifest.
-     */
-    default void indexFromManifest(Manifest manifest, WriteTransaction tx) {
-        List<Posting> postings = TokenExtractor.fromManifest(manifest);
-        for (Posting p : postings) {
-            index(p, tx);
-        }
-    }
-
     // ==================================================================================
     // Transactions & Lifecycle
     // ==================================================================================
@@ -218,43 +235,22 @@ public interface TokenDictionary extends Service {
     // Key Encoding
     // ==================================================================================
 
+    /**
+     * Build the storage key for a posting.
+     *
+     * <p>Frame-backed: {@code [token_utf8][0x00][body_hash_34bytes][binding_index_2bytes]}
+     * <p>Direct (fallback): {@code [token_utf8][0x00][target_34bytes]}
+     */
     private byte[] postingKey(Posting posting) {
         byte[] tokenBytes = posting.token().getBytes(StandardCharsets.UTF_8);
-        byte[] targetBytes = KeyEncoder.ID.bytes(posting.target());
-
-        if (posting.scope() != null) {
-            byte[] scopeBytes = KeyEncoder.ID.bytes(posting.scope());
-            return KeyEncoder.cat(
-                    tokenBytes,
-                    new byte[]{NULL_TERMINATOR, SCOPE_ITEM},
-                    scopeBytes,
-                    targetBytes
-            );
-        } else {
-            return KeyEncoder.cat(
-                    tokenBytes,
-                    new byte[]{NULL_TERMINATOR, SCOPE_GLOBAL},
-                    targetBytes
-            );
-        }
-    }
-
-    private byte[] tokenScopePrefix(String token, ItemID scope) {
-        byte[] tokenBytes = token.getBytes(StandardCharsets.UTF_8);
-
-        if (scope != null) {
-            byte[] scopeBytes = KeyEncoder.ID.bytes(scope);
-            return KeyEncoder.cat(
-                    tokenBytes,
-                    new byte[]{NULL_TERMINATOR, SCOPE_ITEM},
-                    scopeBytes
-            );
-        } else {
-            return KeyEncoder.cat(
-                    tokenBytes,
-                    new byte[]{NULL_TERMINATOR, SCOPE_GLOBAL}
-            );
-        }
+        byte[] bodyHash = posting.bodyHash().encodeBinary();
+        int idx = posting.bindingIndex();
+        return KeyEncoder.cat(
+                tokenBytes,
+                new byte[]{NULL_TERMINATOR},
+                bodyHash,
+                new byte[]{(byte) (idx >> 8), (byte) idx}
+        );
     }
 
     private byte[] tokenOnlyPrefix(String tokenPrefix) {
@@ -278,41 +274,23 @@ public interface TokenDictionary extends Service {
         }
 
         String token = new String(key, 0, nullPos, StandardCharsets.UTF_8);
+        int remaining = key.length - nullPos - 1;
 
-        int scopeTypePos = nullPos + 1;
-        if (scopeTypePos >= key.length) {
-            throw new IllegalArgumentException("Invalid posting key: missing scope type");
-        }
-        byte scopeType = key[scopeTypePos];
-
-        ItemID scope;
-        int targetStart;
-
-        if (scopeType == SCOPE_GLOBAL) {
-            scope = null;
-            targetStart = scopeTypePos + 1;
-        } else if (scopeType == SCOPE_ITEM) {
-            int scopeStart = scopeTypePos + 1;
-            if (scopeStart + IID_SIZE > key.length) {
-                throw new IllegalArgumentException("Invalid posting key: scope truncated");
-            }
-            byte[] scopeBytes = Arrays.copyOfRange(key, scopeStart, scopeStart + IID_SIZE);
-            scope = new ItemID(scopeBytes);
-            targetStart = scopeStart + IID_SIZE;
-        } else {
-            throw new IllegalArgumentException("Invalid posting key: unknown scope type " + scopeType);
+        if (remaining == CID_SIZE + BINDING_INDEX_SIZE) {
+            // Frame-backed format: [body_hash_34][binding_index_2]
+            int hashStart = nullPos + 1;
+            byte[] bodyHashBytes = Arrays.copyOfRange(key, hashStart, hashStart + CID_SIZE);
+            ContentID bodyHash = new ContentID(bodyHashBytes);
+            int bindingIndex = ((key[hashStart + CID_SIZE] & 0xFF) << 8)
+                             | (key[hashStart + CID_SIZE + 1] & 0xFF);
+            return new ParsedKey(token, bodyHash, bindingIndex);
         }
 
-        if (targetStart + IID_SIZE != key.length) {
-            throw new IllegalArgumentException("Invalid posting key: unexpected length");
-        }
-        byte[] targetBytes = Arrays.copyOfRange(key, targetStart, targetStart + IID_SIZE);
-        ItemID target = new ItemID(targetBytes);
-
-        return new ParsedKey(token, scope, target);
+        // Unrecognized format — return token-only
+        return new ParsedKey(token, null, -1);
     }
 
-    record ParsedKey(String token, ItemID scope, ItemID target) {}
+    record ParsedKey(String token, ContentID bodyHash, int bindingIndex) {}
 
     // ==================================================================================
     // Value Encoding
@@ -341,7 +319,14 @@ public interface TokenDictionary extends Service {
     // Iteration
     // ==================================================================================
 
-    private Stream<Posting> streamPostingsWithPrefix(byte[] prefix) {
+    /**
+     * Stream postings matching a key prefix, resolving bodies on the fly.
+     *
+     * <p>Entries whose body cannot be resolved are silently skipped.
+     */
+    private Stream<Posting> streamPostingsWithPrefix(
+            byte[] prefix,
+            Function<ContentID, Optional<FrameBody>> bodyResolver) {
         List<Posting> results = new ArrayList<>();
 
         try (var it = store().iterate(Column.BY_TOKEN, prefix)) {
@@ -350,7 +335,19 @@ public interface TokenDictionary extends Service {
                 try {
                     ParsedKey parsed = parseKey(kv.key());
                     float weight = decodeWeight(kv.value());
-                    results.add(new Posting(parsed.token(), parsed.scope(), parsed.target(), weight));
+
+                    if (parsed.bodyHash() != null && bodyResolver != null) {
+                        Optional<FrameBody> bodyOpt = bodyResolver.apply(parsed.bodyHash());
+                        if (bodyOpt.isPresent()) {
+                            FrameBody body = bodyOpt.get();
+                            if (parsed.bindingIndex() >= 0
+                                    && parsed.bindingIndex() < body.frameBindings().size()) {
+                                results.add(Posting.fromFrame(body, parsed.bindingIndex(), weight));
+                            }
+                        }
+                        // If body not found, skip this entry
+                    }
+                    // No body resolver or body not found — skip entry
                 } catch (Exception ignored) {}
             }
         }

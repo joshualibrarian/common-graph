@@ -18,9 +18,7 @@ import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * A ValueType defines a type of {@link Value} that can appear in relations.
@@ -286,31 +284,6 @@ public class ValueType extends Item {
     @Override
     public String displaySubtitle() {
         return canonicalKey;
-    }
-
-    @Override
-    public Stream<TokenEntry> extractTokens() {
-        List<TokenEntry> tokens = new ArrayList<>();
-
-        // Primary: the human-readable name (e.g., "Decimal", "Boolean")
-        if (name != null && !name.isBlank()) {
-            tokens.add(new TokenEntry(name, 1.0f));
-        }
-
-        // Also index the canonical key (e.g., "cg.value:decimal")
-        if (canonicalKey != null && !canonicalKey.isBlank()) {
-            tokens.add(new TokenEntry(canonicalKey, 0.9f));
-            // And the short name part
-            int colonIdx = canonicalKey.lastIndexOf(':');
-            if (colonIdx >= 0 && colonIdx < canonicalKey.length() - 1) {
-                String shortName = canonicalKey.substring(colonIdx + 1);
-                if (!shortName.equalsIgnoreCase(name)) {
-                    tokens.add(new TokenEntry(shortName, 0.8f));
-                }
-            }
-        }
-
-        return tokens.stream();
     }
 
     @Override

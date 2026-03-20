@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * A Sememe is a unit of meaning, like "meters" are a unit of measure.
@@ -120,7 +119,7 @@ public class Sememe extends Item {
      *
      * <p>Transient — NOT persisted as a component. These are English lexemes,
      * not intrinsic to the sememe's meaning. They are indexed as English-scoped
-     * postings during bootstrap via {@link TokenExtractor#fromSememe}, then
+     * postings during bootstrap via frame-backed token indexing, then
      * discarded. The canonical source of English words will be the English
      * Language Item's Lexicon (populated during the English import).
      */
@@ -479,50 +478,6 @@ public class Sememe extends Item {
             }
         }
         return canonicalKey != null ? canonicalKey : getClass().getSimpleName();
-    }
-
-    @Override
-    public Stream<TokenEntry> extractTokens() {
-        List<TokenEntry> allTokens = new ArrayList<>();
-
-        // Primary: the canonical key (e.g., "cg.core:author")
-        if (canonicalKey != null && !canonicalKey.isBlank()) {
-            allTokens.add(new TokenEntry(canonicalKey, 1.0f));
-            // Also index the short name part
-            int colonIdx = canonicalKey.lastIndexOf(':');
-            if (colonIdx >= 0 && colonIdx < canonicalKey.length() - 1) {
-                allTokens.add(new TokenEntry(canonicalKey.substring(colonIdx + 1), 1.0f));
-            }
-        }
-
-        // Symbols (language-neutral, universal)
-        if (symbols != null) {
-            for (String symbol : symbols) {
-                if (symbol != null && !symbol.isBlank()) {
-                    allTokens.add(new TokenEntry(symbol, 1.0f));
-                }
-            }
-        }
-
-        // Tokens (English words)
-        if (tokens != null) {
-            for (String token : tokens) {
-                if (token != null && !token.isBlank()) {
-                    allTokens.add(new TokenEntry(token, 1.0f));
-                }
-            }
-        }
-
-        // Glosses (lower weight since they're descriptions)
-        if (glosses != null) {
-            for (String gloss : glosses.values()) {
-                if (gloss != null && !gloss.isBlank() && gloss.length() <= 50) {
-                    allTokens.add(new TokenEntry(gloss, 0.5f));
-                }
-            }
-        }
-
-        return allTokens.stream();
     }
 
     // ==================================================================================

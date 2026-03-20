@@ -434,30 +434,6 @@ public class Item {
     }
 
     // ==================================================================================
-    // Token Extraction (for indexing) — delegated to TokenExtractor
-    // ==================================================================================
-
-    /**
-     * A token entry for indexing this item.
-     *
-     * @param token the token string (will be normalized by the index)
-     * @param weight relevance weight (1.0 = primary name, 0.9 = alias, etc.)
-     */
-    public record TokenEntry(String token, float weight) {}
-
-    /**
-     * Extract tokens for indexing this item.
-     *
-     * <p>Delegates to {@link TokenExtractor#extractTokens(Item)}.
-     * Subclasses may override for type-specific token extraction.
-     *
-     * @return stream of tokens for this item
-     */
-    public Stream<TokenEntry> extractTokens() {
-        return TokenExtractor.extractTokens(this);
-    }
-
-    // ==================================================================================
     // Constructors
     // ==================================================================================
 
@@ -986,13 +962,7 @@ public class Item {
             vocabulary().add(VerbEntry.componentVerb(spec, handle, component));
         }
 
-        // 6. Register handle as local vocabulary posting
-        vocabulary().addLocalPosting(Posting.builder()
-                .token(handle)
-                .scope(iid())
-                .target(iid())
-                .weight(1.0f)
-                .build());
+        // Local vocabulary registration will be handled by Vocabulary frame scanning
     }
 
 

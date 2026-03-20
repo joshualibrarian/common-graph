@@ -1078,12 +1078,8 @@ public class InputController {
                     Map<ItemID, Posting> merged = new LinkedHashMap<>();
                     for (Posting p : completions) {
                         merged.merge(p.target(), p, (existing, extra) ->
-                                Posting.builder()
-                                        .token(existing.token())
-                                        .scope(existing.scope())
-                                        .target(existing.target())
-                                        .weight(Math.min(1.0f, existing.weight() + extra.weight()))
-                                        .build());
+                                Posting.withWeight(existing,
+                                        Math.min(1.0f, existing.weight() + extra.weight())));
                     }
                     completions = merged.values().stream()
                             .sorted(Comparator.comparing(Posting::weight).reversed())

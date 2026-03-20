@@ -450,26 +450,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         return ActionResult.success("exit");
     }
 
-    @Verb(value = CoreVocabulary.Back.KEY, doc = "Go back to previous item")
-    public ActionResult back() {
-        if (onBack != null) {
-            onBack.run();
-        }
-        return ActionResult.success("back");
-    }
-
     @Verb(value = CoreVocabulary.Authenticate.KEY, doc = "Authenticate as a user")
     public ActionResult actionAuthenticate(
             @Param(value = "user", doc = "The user to authenticate as") ItemID userId) {
         Signer user = authenticate(userId);
         return ActionResult.success(user.displayToken() + " authenticated");
-    }
-
-    @Verb(value = CoreVocabulary.Switch.KEY, doc = "Switch active user")
-    public ActionResult actionSwitch(
-            @Param(value = "user", doc = "The user to switch to") ItemID userId) {
-        Signer user = switchActor(userId);
-        return ActionResult.success("Now acting as " + user.displayToken());
     }
 
     // ==================================================================================

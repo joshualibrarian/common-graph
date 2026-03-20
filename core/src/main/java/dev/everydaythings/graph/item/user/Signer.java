@@ -501,27 +501,6 @@ public abstract class Signer extends Item implements Signing.Signer {
     }
 
     /**
-     * Rename this signer via verb dispatch.
-     *
-     * @param ctx  the action context
-     * @param name the new name
-     * @return status message describing the rename
-     */
-    @Verb(value = CoreVocabulary.Rename.KEY, doc = "Rename this signer")
-    public String rename(ActionContext ctx,
-                         @Param(value = "name", doc = "New name") String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name cannot be blank");
-        }
-        String oldName = this.name;
-        setName(name);
-        if (canSign()) commit(this);
-        return oldName != null
-                ? "Renamed '" + oldName + "' → '" + name + "'"
-                : "Named '" + name + "'";
-    }
-
-    /**
      * Get the vault (for subclasses).
      */
     protected Vault vault() {

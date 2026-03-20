@@ -118,18 +118,6 @@ public final class Lexeme implements Canonical {
         return null;
     }
 
-    /**
-     * Convert this Lexeme to a Posting for token indexing.
-     *
-     * <p>The posting enables word→sememe lookup in the token index.
-     * Lexemes are scoped to their Language Item.
-     *
-     * @return A posting that maps this word to its sememe, scoped to the language
-     */
-    public Posting toPosting() {
-        return new Posting(Posting.normalize(word), language, sememe, frequency, Set.of(partOfSpeech));
-    }
-
     // No-arg constructor for Canonical decoding
     @SuppressWarnings("unused")
     private Lexeme() {
