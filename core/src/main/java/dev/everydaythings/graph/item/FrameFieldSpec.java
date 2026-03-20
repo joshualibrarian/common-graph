@@ -126,8 +126,8 @@ public class FrameFieldSpec {
     public String predicateDisplayName() {
         if (field == null) return frameKey.toCanonicalString();
         ItemFrame ann = field.getAnnotation(ItemFrame.class);
-        if (ann != null && ann.key().length > 0) {
-            String firstKey = ann.key()[0];
+        if (ann != null && !ann.predicate().isEmpty()) {
+            String firstKey = ann.predicate();
             int slash = firstKey.lastIndexOf('/');
             if (slash >= 0) return firstKey.substring(slash + 1);
             int colon = firstKey.lastIndexOf(':');

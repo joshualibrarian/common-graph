@@ -46,9 +46,10 @@ public @interface Param {
 
     /**
      * The thematic role this parameter fills in the verb's semantic frame.
+     * A canonical key (e.g., ThematicRole.Theme.KEY).
      * Defaults to THEME (the primary entity affected by the action).
      */
-    String role() default "THEME";
+    String role() default dev.everydaythings.graph.language.ThematicRole.Theme.KEY;
 
     /**
      * Condition for when to show this parameter (factory UI).

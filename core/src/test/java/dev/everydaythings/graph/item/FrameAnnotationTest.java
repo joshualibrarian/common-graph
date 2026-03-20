@@ -18,7 +18,8 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-endorsed")
     static class EndorsedFrameItem extends Item {
-        @ItemFrame(key = {CoreVocabulary.Vault.KEY}, path = ".vault", localOnly = true)
+        @ItemFrame(predicate = CoreVocabulary.Vault.KEY,
+                   endorsement = @ItemFrame.Endorsed(mounts = {".vault"}), localOnly = true)
         private String vault;
 
         EndorsedFrameItem() {
@@ -28,7 +29,7 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-semantic")
     static class SemanticFrameItem extends Item {
-        @ItemFrame(key = {CoreVocabulary.Title.KEY})
+        @ItemFrame(predicate = CoreVocabulary.Title.KEY)
         private String title;
 
         SemanticFrameItem() {
@@ -38,7 +39,8 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-unendorsed")
     static class UnendorsedFrameItem extends Item {
-        @ItemFrame(key = {CoreVocabulary.Author.KEY}, endorsed = false)
+        @ItemFrame(predicate = CoreVocabulary.Author.KEY,
+                   endorsement = @ItemFrame.Endorsed(false))
         private ItemID author;
 
         UnendorsedFrameItem() {
@@ -48,10 +50,11 @@ class FrameAnnotationTest {
 
     @Implements("cg:test/frame-mixed")
     static class MixedFrameItem extends Item {
-        @ItemFrame(key = {CoreVocabulary.Description.KEY})
+        @ItemFrame(predicate = CoreVocabulary.Description.KEY)
         private String data;
 
-        @ItemFrame(key = {CoreVocabulary.Activity.KEY}, endorsed = false)
+        @ItemFrame(predicate = CoreVocabulary.Activity.KEY,
+                   endorsement = @ItemFrame.Endorsed(false))
         private ItemID likes;
 
         MixedFrameItem() {
@@ -139,7 +142,6 @@ class FrameAnnotationTest {
             ItemSchema schema = ItemScanner.schemaFor(SemanticFrameItem.class);
             FrameFieldSpec frame = schema.frameFields().getFirst();
 
-            // Semantic FrameKey's canonical string is the encoded ItemID
             assertThat(frame.canonicalKeyString())
                     .isEqualTo(ItemID.fromString(CoreVocabulary.Title.KEY).encodeText());
         }

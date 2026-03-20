@@ -18,6 +18,7 @@ import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.SememeGloss;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Param;
@@ -64,10 +65,10 @@ public class ChessItem extends Item {
     public static class Chess {
         public static final String KEY = "cg.sememe:chess";
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the game of chess";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String word = "chess";
     }
 

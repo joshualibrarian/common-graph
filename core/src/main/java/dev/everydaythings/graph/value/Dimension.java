@@ -134,22 +134,22 @@ public class Dimension extends Item {
 
     /** The canonical key (e.g., "cg.dim:length") */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.HashKey.KEY})
+    @ItemFrame(predicate = CoreVocabulary.HashKey.KEY)
     private String canonicalKey;
 
     /** Symbol used in dimensional formulas (e.g., "L", "T", "M") */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
     private String symbol;
 
     /** Human-readable name (e.g., "length", "time") */
     @Getter
-    @ItemFrame(key = {RoutingVocabulary.Name.KEY})
+    @ItemFrame(predicate = RoutingVocabulary.Name.KEY)
     private String name;
 
     /** Descriptions by language */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.Description.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Description.KEY)
     private Map<String, String> descriptions;
 
     // ==================================================================================

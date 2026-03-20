@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
@@ -45,12 +46,12 @@ public class Language extends Item {
 
     /** ISO 639 language code (2 or 3 letter). */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.LanguageCode.KEY})
+    @ItemFrame(predicate = CoreVocabulary.LanguageCode.KEY)
     protected String languageCode;
 
     /** The lexicon for this language. */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.Lexicon.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexicon.KEY)
     protected Lexicon lexicon;
 
     // ==================================================================================
@@ -217,6 +218,37 @@ public class Language extends Item {
      */
     public List<Set<ItemID>> inflectionFeatures(ItemID pos) {
         return List.of();
+    }
+
+    // ==================================================================================
+    // Parsing — language-specific token interpretation
+    // ==================================================================================
+
+    /**
+     * Parse resolved tokens into a list of semantic frames for execution.
+     *
+     * <p>The base implementation delegates to {@link FrameAssembler} for
+     * language-agnostic parsing. Language subclasses (e.g., English) override
+     * to add language-specific grammar rules: word order, auxiliary predicates
+     * ("named", "as"), clause patterns, etc.
+     *
+     * <p>The parser receives BOTH the resolved token list AND the raw text,
+     * so it can use positional cues, punctuation, or grammar that token
+     * resolution strips away.
+     *
+     * @param tokens   ordered list of resolved/unresolved/ambiguous tokens
+     * @param rawText  the original text as typed by the user
+     * @param resolver resolves ItemIDs to Items
+     * @param headVerbScorer scores verbs by context relevance
+     * @return list of semantic frames to execute (may be empty)
+     */
+    public List<SemanticFrame> parse(
+            List<Eval.ResolvedToken> tokens,
+            String rawText,
+            java.util.function.Function<ItemID, java.util.Optional<Item>> resolver,
+            java.util.function.ToIntFunction<Sememe> headVerbScorer) {
+        // Default: delegate to language-agnostic FrameAssembler
+        return FrameAssembler.assembleAll(tokens, resolver, headVerbScorer);
     }
 
     /**

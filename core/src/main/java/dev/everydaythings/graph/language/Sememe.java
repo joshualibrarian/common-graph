@@ -5,6 +5,7 @@ import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
@@ -78,7 +79,7 @@ public class Sememe extends Item {
 
     /** The canonical key (e.g., "cg.core:author") */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.HashKey.KEY})
+    @ItemFrame(predicate = CoreVocabulary.HashKey.KEY, fieldAs = @Bind(role = ThematicRole.Topic.KEY))
     private String canonicalKey;
 
     /**
@@ -104,12 +105,12 @@ public class Sememe extends Item {
     private transient Map<String, String> sources;
 
     /** Predicate facets (for complex predicates) */
-    @ItemFrame(key = {CoreVocabulary.Facet.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Facet.KEY)
     private List<PredicateFacet> facets;
 
     /** Language-neutral symbols for universal lookup (e.g., "*", "?", "+", "m", "kg"). */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
     private List<String> symbols;
 
     /**
@@ -134,7 +135,7 @@ public class Sememe extends Item {
      * <p>Examples: TITLE = 1000 (1.0), DESCRIPTION = 500 (0.5), NAME = 1000 (1.0).
      */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.IndexWeight.KEY})
+    @ItemFrame(predicate = CoreVocabulary.IndexWeight.KEY)
     private int indexWeight;
 
     /**
@@ -145,7 +146,7 @@ public class Sememe extends Item {
      * Null for non-preposition sememes.
      */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.AssignedRole.KEY})
+    @ItemFrame(predicate = CoreVocabulary.AssignedRole.KEY)
     private ItemID assignedRole;
 
     /**
@@ -546,26 +547,21 @@ public class Sememe extends Item {
     public static class Any {
         public static final String KEY = "cg.query:any";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(ENG, "matches anything; wildcard; any value")
-                .cili("i61150")
-                .symbol("*")
-                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "wildcard").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "anything");
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "matches anything; wildcard; any value";
 
-        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i61150";
 
-        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "*";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word1 = "wildcard";
-
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word2 = "anything";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"wildcard", "anything"};
     }
 
     @ItemSeed(key = What.KEY)
@@ -578,20 +574,20 @@ public class Sememe extends Item {
                 .symbol("?")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "variable").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "result");
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the result being queried for; variable; unknown";
 
-        @ItemFrame(key = {CoreVocabulary.CiliId.KEY})
+        @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i74896";
 
-        @ItemFrame(key = {CoreVocabulary.Symbol.KEY})
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "?";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word1 = "variable";
-
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word2 = "result";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"variable", "result"};
     }
 
     @ItemSeed(key = It.KEY)
@@ -602,14 +598,14 @@ public class Sememe extends Item {
                 .gloss(ENG, "the most recently mentioned or created item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "it").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "that");
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the most recently mentioned or created item";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word1 = "it";
-
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word2 = "that";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"it", "that"};
     }
 
     @ItemSeed(key = This.KEY)
@@ -620,29 +616,29 @@ public class Sememe extends Item {
                 .gloss(ENG, "the currently focused item")
                 .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "this");
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the currently focused item";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word1 = "this";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"this"};
     }
 
     @ItemSeed(key = Last.KEY)
     public static class Last {
         public static final String KEY = "cg.pronoun:last";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(ENG, "the previously mentioned item")
-                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "last").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "previous");
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the previously mentioned item";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word1 = "last";
-
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word2 = "previous";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"last", "previous"};
     }
 
     // ==================================================================================
@@ -657,11 +653,14 @@ public class Sememe extends Item {
                 .gloss(ENG, "coordinating conjunction; connects elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "and");
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "coordinating conjunction; connects elements";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word1 = "and";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"and"};
     }
 
     @ItemSeed(key = Or.KEY)
@@ -672,11 +671,14 @@ public class Sememe extends Item {
                 .gloss(ENG, "coordinating disjunction; alternative elements")
                 .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "or");
 
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "coordinating disjunction; alternative elements";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String word1 = "or";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"or"};
     }
 
     // ==================================================================================

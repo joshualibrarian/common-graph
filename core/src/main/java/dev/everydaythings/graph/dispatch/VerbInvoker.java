@@ -138,16 +138,14 @@ public class VerbInvoker {
             for (int i = 0; i < params.size(); i++) {
                 ParamSpec param = params.get(i);
 
-                // 1. Role match — convert param role name to ItemID via ThematicRole bridge
+                // 1. Role match — param.role() is a canonical key (e.g., "cg.role:theme")
+                //    or legacy bare name (e.g., "THEME")
                 Object matched = null;
                 boolean found = false;
-                if (param.role() != null) {
-                    ItemID roleId = null;
-                    try {
-                        roleId = ThematicRole.fromName(param.role());
-                    } catch (IllegalArgumentException e) {
-                        // unknown role string — ignore
-                    }
+                if (param.role() != null && !param.role().isEmpty()) {
+                    ItemID roleId = param.role().contains(":")
+                            ? ItemID.fromString(param.role())
+                            : ThematicRole.fromName(param.role());
                     if (roleId != null && bindings.containsKey(roleId)) {
                         matched = bindings.get(roleId);
                         found = true;

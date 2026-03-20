@@ -8,34 +8,45 @@ import java.lang.annotation.Target;
 /**
  * Declares a verb (semantic action) on an Item or component class.
  *
- * <p>Verbs are actions identified by Sememe references rather than string handles.
- * This enables language-agnostic dispatch: the same verb can be invoked via
- * any token that maps to the referenced Sememe (e.g., "create", "crear", "新建").
+ * <p>Verbs are actions identified by Sememe predicates. This enables
+ * language-agnostic dispatch: the same verb can be invoked via any token
+ * that maps to the referenced Sememe (e.g., "create", "crear", "新建").
+ *
+ * <p>The predicate connects to the verb's semantic definition — an
+ * {@code @ItemSeed} with {@code slots} declaring the expected thematic roles.
+ * Method parameters annotated with {@code @Param(role = ...)} map to those slots.
  *
  * <p>Usage:
  * <pre>{@code
- * @Verb("cg.verb:create")
- * public Item create(ActionContext ctx) { ... }
- *
- * @Verb(value = "cg.verb:move", doc = "Make a chess move")
- * public void move(ActionContext ctx, String notation) { ... }
+ * @Verb(predicate = ViewVocabulary.View.KEY, doc = "Open a view of an item")
+ * public ActionResult actionView(
+ *         @Param(role = ThematicRole.Theme.KEY, doc = "item to view") ItemID target) {
+ *     // ...
+ * }
  * }</pre>
  *
+ * @see Param
  * @see dev.everydaythings.graph.language.Sememe
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface Verb {
     /**
-     * Reference to the Sememe that defines this verb.
-     * Must be a canonical key like "cg.verb:create" that resolves
-     * to a Sememe in the vocabulary.
+     * The predicate sememe that defines this verb's meaning.
+     * A canonical key (e.g., "cg.verb:create") that resolves to a Sememe.
      */
-    String value();
+    String predicate() default "";
 
     /**
      * Implementation-specific documentation.
      * The Sememe provides universal meaning; this describes this specific implementation.
      */
     String doc() default "";
+
+    /**
+     * Legacy alias for predicate.
+     * @deprecated Use {@code predicate} instead.
+     */
+    @Deprecated
+    String value() default "";
 }

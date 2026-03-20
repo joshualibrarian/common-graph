@@ -12,6 +12,7 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ui.scene.Transition;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
@@ -49,10 +50,10 @@ public class ClockFace implements Canonical {
 
     public static final String KEY = "cg.sememe:clock";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "analog clock display";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "clock";
 
     // --- Canonical: visual definition ---

@@ -71,7 +71,6 @@ public final class SeedItemFactory {
 
         // 3. Scan static @ItemFrame fields → create frames
         scanStaticFrameFields(clazz, item);
-
         // 4. Scan @Implements → create IMPLEMENTED_BY frame
         scanImplements(clazz, item);
 
@@ -115,7 +114,7 @@ public final class SeedItemFactory {
 
             ItemFrame ann = field.getAnnotation(ItemFrame.class);
             if (ann == null) continue;
-            if (ann.key().length == 0) continue;
+            if (ann.predicate().isEmpty()) continue;
 
             try {
                 field.setAccessible(true);
@@ -124,7 +123,7 @@ public final class SeedItemFactory {
 
                 createFrame(item, ann, value);
             } catch (Exception e) {
-                logger.debug("Failed to process @ItemFrame field {}.{}: {}",
+                logger.warn("Failed to process @ItemFrame field {}.{}: {}",
                         clazz.getSimpleName(), field.getName(), e.getMessage());
             }
         }
@@ -134,34 +133,34 @@ public final class SeedItemFactory {
      * Create a frame on the item from an @ItemFrame annotation and field value.
      */
     private static void createFrame(Item item, ItemFrame ann, Object value) {
-        // Parse annotation key: head + qualifiers
-        ItemID head = ItemID.fromString(ann.key()[0]);
-        List<ItemID> qualifierIds = new ArrayList<>();
-        for (int i = 1; i < ann.key().length; i++) {
-            qualifierIds.add(ItemID.fromString(ann.key()[i]));
+        ItemID head = ItemID.fromString(ann.predicate());
+
+        // Resolve bindings from classAs / fieldAs
+        ItemID selfRole = ItemID.fromString(ann.classAs().role());
+        ItemID valueRole = ItemID.fromString(ann.fieldAs().role());
+
+        List<FrameKey.FrameToken> qualifiers = new ArrayList<>();
+        for (String q : ann.fieldAs().qualifiers()) {
+            qualifiers.add(new FrameKey.Sememe(ItemID.fromString(q)));
         }
 
-        // Resolve roles
-        ItemID selfRole = ItemID.fromString(ann.as());
-        ItemID valueRole = ItemID.fromString(ann.value());
+        // Build bindings: self binding + one or more value bindings
+        List<Binding> bindings = new ArrayList<>();
+        bindings.add(new Binding(selfRole, BindingTarget.iid(item.iid())));
 
-        // Encode the value as a BindingTarget
-        BindingTarget valueTarget = encodeValue(value);
-        if (valueTarget == null) return;
+        // Handle array/list values → multiple bindings with the same key
+        List<Object> values = flattenValue(value);
+        for (Object v : values) {
+            BindingTarget target = encodeValue(v);
+            if (target != null) {
+                bindings.add(Binding.qualified(valueRole, qualifiers, target, true, false));
+            }
+        }
+        if (bindings.size() < 2) return; // no value bindings created
 
-        // Build compound binding key: [valueRole, qualifier1, qualifier2, ...]
-        List<ItemID> valueKey = new ArrayList<>();
-        valueKey.add(valueRole);
-        valueKey.addAll(qualifierIds);
-
-        // Build FrameBody with compound-keyed bindings
-        List<Binding> bindings = List.of(
-                new Binding(selfRole, BindingTarget.iid(item.iid())),
-                new Binding(valueKey, valueTarget, true, false));
         FrameBody body = new FrameBody(head, bindings);
-
         // Derive FrameKey from body for lookup
-        FrameKey frameKey = FrameKey.of(head, qualifierIds.toArray());
+        FrameKey frameKey = body.selector();
 
         // Create Frame and add to item
         byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
@@ -202,8 +201,22 @@ public final class SeedItemFactory {
     }
 
     // ==================================================================================
-    // Value encoding
+    // Value handling
     // ==================================================================================
+
+    /**
+     * Flatten a field value into a list of individual values.
+     * Arrays and Lists produce multiple elements; scalars produce a singleton.
+     */
+    private static List<Object> flattenValue(Object value) {
+        if (value instanceof Object[] arr) {
+            return List.of(arr);
+        }
+        if (value instanceof java.util.Collection<?> coll) {
+            return new ArrayList<>(coll);
+        }
+        return List.of(value);
+    }
 
     /**
      * Encode a field value as a BindingTarget for frame storage.

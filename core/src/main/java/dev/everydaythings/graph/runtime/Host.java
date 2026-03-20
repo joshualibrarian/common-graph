@@ -11,6 +11,7 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.ViewVocabulary;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
@@ -46,20 +47,20 @@ public class Host extends Signer {
 
     public static final String KEY = "cg.sememe:host";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "a network host device";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "host";
 
     // ==================================================================================
     // INSTANCE FIELDS
     // ==================================================================================
 
-    @ItemFrame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
+    @ItemFrame(predicate = RoutingVocabulary.ReachableAt.KEY, endorsement = @ItemFrame.Endorsed(false))
     private List<InetAddress> ipAddresses;
 
-    @ItemFrame(key = {CoreVocabulary.Monitor.KEY}, path = ".monitor")
+    @ItemFrame(predicate = CoreVocabulary.Monitor.KEY, endorsement = @ItemFrame.Endorsed(mounts = {".monitor"}))
     private SystemMonitor systemMonitor;
 
     // ==================================================================================

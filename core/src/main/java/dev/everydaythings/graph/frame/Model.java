@@ -14,6 +14,7 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /**
  * 3D object representation of an item (the "holdable" form).
@@ -54,10 +55,10 @@ public final class Model {
 
     public static final String KEY = "cg.sememe:model";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "3D object representation of an item";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "model";
 
     /** The type of model */

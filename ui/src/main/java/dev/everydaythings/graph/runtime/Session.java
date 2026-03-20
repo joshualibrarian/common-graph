@@ -102,10 +102,10 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
     public static final String KEY = "cg.sememe:session";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "UI session for item interaction";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "session";
 
     // ==================================================================================
@@ -476,9 +476,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // View Management (ITEM_VIEW frames on this session)
     // ==================================================================================
 
-    @Verb(value = ViewVocabulary.View.KEY, doc = "Open a persistent view of an item")
+    @Verb(predicate = ViewVocabulary.View.KEY, doc = "Open a persistent view of an item")
     public ActionResult actionView(
-            @Param(value = "item", doc = "The item to view") ItemID targetId) {
+            @Param(role = ThematicRole.Theme.KEY, doc = "The item to view") ItemID targetId) {
         if (targetId == null) return ActionResult.failure(new IllegalArgumentException("No target item specified"));
         FrameKey key = openView(targetId);
         navigateInto(Ref.of(targetId));
@@ -497,9 +497,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         return ActionResult.success("Viewing " + targetId.displayAtWidth(12));
     }
 
-    @Verb(value = ViewVocabulary.Close.KEY, doc = "Close an open view")
+    @Verb(predicate = ViewVocabulary.Close.KEY, doc = "Close an open view")
     public ActionResult actionClose(
-            @Param(value = "item", doc = "The item whose view to close", required = false) ItemID targetId) {
+            @Param(role = ThematicRole.Theme.KEY, doc = "The item whose view to close", required = false) ItemID targetId) {
         ItemID actualTarget = targetId;
         if (actualTarget == null) {
             Optional<Item> ctx = contextItem();

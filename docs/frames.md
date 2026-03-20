@@ -2,7 +2,7 @@
 
 The fundamental primitive in Common Graph is the **semantic frame** — a predicate with role-keyed bindings, grounded in a shared vocabulary of meanings. Everything is a frame. A title, a gloss, a chess move, a vault, a video, a like, a harvest record, a sensor reading — all frames. The difference between "Tolkien authored The Hobbit" and "Alice harvested 5kg of tomatoes from bed 3" is only which predicate and which bindings — structurally they are the same thing.
 
-**Frames are semantic keys, not annotations.** Every concept a frame touches — its predicate, every binding role, every qualifier, every target — is a globally-anchored semantic reference resolved at write time. The person or code creating the frame performs disambiguation at creation, when intent is unambiguous. What gets stored is a structure of semantic references, not text to be interpreted later. The data is pre-indexed by meaning at the moment of creation.
+**Frames are structured assertions, not annotations.** Every element of a frame — its predicate, every binding role, every qualifier, every target — is a globally-anchored semantic reference resolved at write time. The person or code creating the frame performs disambiguation at creation, when intent is unambiguous. What gets stored is a structure of grounded meanings, not text to be interpreted later. The data is pre-indexed by meaning at the moment of creation.
 
 ## The Frame Primitive
 
@@ -19,17 +19,40 @@ Each binding has three parts:
 
 ```
 Binding {
-    role:        ItemID         // semantic function (NAME, THEME, AGENT, RESULT, ...)
-    qualifiers:  [ItemID...]   // narrowing + constraints (ENGLISH, VERB, LEMMA, QUANTITY, WEIGHT, ...)
-    target:      BindingTarget  // the bound value (item ref, literal, content CID)
+    role:        ItemID              // semantic function (NAME, THEME, AGENT, RESULT, ...)
+    qualifiers:  [ItemID|Literal]    // narrowing + constraints (sememes or literal values)
+    target:      BindingTarget       // the bound value (item ref, literal, content CID)
 }
 ```
 
-- **Role**: what KIND of binding — the semantic function this value plays
-- **Qualifiers**: WHICH variant of that role — narrows the binding and constrains valid inputs
+- **Role**: what KIND of binding — the semantic function this value plays (always a sememe)
+- **Qualifiers**: WHICH variant of that role — narrows the binding and constrains valid inputs. Can be sememes (ENGLISH, VERB, QUANTITY) or literals ("x", "tavern") for developer/math identifiers.
 - **Target**: what's actually bound — the data
 
 The compound key `[role, qualifier₁, qualifier₂, ...]` is the binding's **key**. The target is the binding's **value**. Every binding is a key→value pair.
+
+Qualifiers are sememes in the vast majority of cases — queryable by meaning, resolvable across languages. Literal qualifiers are the escape hatch for math variables (`NAME:["x"]→5`), developer identifiers, and cases where a concept doesn't need a vocabulary entry. The choice is meaningful: `NAME:[TAVERN]` is discoverable across languages; `NAME:["tavern"]` is an opaque string.
+
+### Extending the Vocabulary
+
+If a concept doesn't exist in the shared vocabulary, create it. The vocabulary is an open commons:
+
+1. Create a sememe item (e.g., `cg.sememe:acme-product-id`)
+2. Add glosses: "Acme Inc.'s internal product identifier"
+3. Add lexemes to relevant languages
+4. Use it immediately in frames
+
+Now it's a real sememe — queryable, discoverable, cross-lingual. Publish your vocabulary additions for others to use. The system grows from the edges, not the center.
+
+This handles the universal integration problem: every company has their own ID system. Instead of mapping between opaque string keys, you create a sememe for each external ID scheme and use it as a predicate:
+
+```
+ACME_PRODUCT_ID  { THEME:[]→our_widget,   NAME:[]→"ACM-7742" }
+SAP_MATERIAL_ID  { THEME:[]→our_widget,   NAME:[]→"MAT-001-A" }
+CILI_ID          { THEME:[]→dog_sememe,    NAME:[]→"i77065" }
+```
+
+Same pattern for enterprise integrations, scientific identifiers, government codes — any external ID system becomes a sememe, and the mapping is a frame. Queryable in both directions: "what's the Acme ID for this widget?" and "what item has Acme ID ACM-7742?"
 
 ## Predicates as Schemas
 
@@ -365,7 +388,7 @@ Token indexing: NAME bindings are indexed with scope and features derived from t
 - **One primitive**: Frame = predicate + role-keyed bindings. That's the entire data model.
 - **Predicates are schemas**: Designing a predicate IS designing a database, a form, a spreadsheet. Roles are columns. Qualifiers constrain and distinguish.
 - **Everything is a binding**: Content, references, local paths, config — all role-keyed bindings with compound keys.
-- **Three parts per binding**: Role (semantic function), qualifiers (narrowing + constraints), target (the value).
+- **Three parts per binding**: Role (always a sememe), qualifiers (sememes or literals — narrowing + constraints), target (the value).
 - **Identity per binding**: Each binding chooses whether it affects the body hash. Non-identity bindings ride on the FrameRecord.
 - **Body is pure assertion**: FrameBody = identity bindings only. Content-addressed. Immutable.
 - **Record is attestation + choices**: FrameRecord = signature + non-identity bindings (config, presentation).

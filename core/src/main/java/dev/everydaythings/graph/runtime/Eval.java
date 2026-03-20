@@ -618,9 +618,11 @@ public class Eval {
             return EvalResult.empty();
         }
 
-        // Check for multi-verb conjunction ("create X and place in Y")
-        List<SemanticFrame> frames = FrameAssembler.assembleAll(
-                resolved, iid -> librarianHandle.get(iid), this::headVerbScore);
+        // Parse via the active language (delegates to FrameAssembler by default)
+        Language activeLanguage = librarianHandle.activeLanguage();
+        List<SemanticFrame> frames = (activeLanguage != null)
+                ? activeLanguage.parse(resolved, null, iid -> librarianHandle.get(iid), this::headVerbScore)
+                : FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore);
 
         if (frames.isEmpty()) {
             // No verb found — fall back to navigation/literal handling

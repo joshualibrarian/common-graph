@@ -169,27 +169,27 @@ public class ValueType extends Item {
 
     /** The canonical key (e.g., "cg.value:decimal") */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.HashKey.KEY})
+    @ItemFrame(predicate = CoreVocabulary.HashKey.KEY)
     private String canonicalKey;
 
     /** Human-readable name */
     @Getter
-    @ItemFrame(key = {RoutingVocabulary.Name.KEY})
+    @ItemFrame(predicate = RoutingVocabulary.Name.KEY)
     private String name;
 
     /** Canonicalization rules (optional) */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.Canonicalization.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Canonicalization.KEY)
     private CanonRules canonRules;
 
     /** Value bounds (optional) */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.Bounds.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Bounds.KEY)
     private Bounds bounds;
 
     /** Unit rules for values of this type (optional) */
     @Getter
-    @ItemFrame(key = {CoreVocabulary.UnitRules.KEY})
+    @ItemFrame(predicate = CoreVocabulary.UnitRules.KEY)
     private UnitRules unitRules;
 
     // ==================================================================================

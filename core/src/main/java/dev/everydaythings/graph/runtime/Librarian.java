@@ -39,6 +39,7 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.network.peer.PeerProtocol;
 import dev.everydaythings.graph.network.NetworkManager;
@@ -134,10 +135,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:librarian";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "the local runtime bootstrap item";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "librarian";
 
     /** Default port for Common Graph protocol. */
@@ -182,13 +183,13 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     // - LibraryIndex (relation queries, head tracking)
     // - ItemDirectory (which store has item X?)
     // - TokenDictionary (human text → item lookup)
-    @ItemFrame(key = {CoreVocabulary.Library.KEY}, path = "library", localOnly = true)
+    @ItemFrame(predicate = CoreVocabulary.Library.KEY, endorsement = @ItemFrame.Endorsed(mounts = {"library"}), localOnly = true)
     private Library library;
 
     // Types query removed — use library index to find IMPLEMENTED_BY subjects directly
 
     // Infrastructure activity log — in-memory, doesn't churn VID
-    @ItemFrame(key = {CoreVocabulary.Activity.KEY}, identity = false)
+    @ItemFrame(predicate = CoreVocabulary.Activity.KEY, identity = false)
     private ActivityLog activityLog = new ActivityLog();
 
     // --- Services ---
@@ -208,10 +209,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      *
      * <p>Principal is a role, not a type - any Signer can be a principal.
      */
-    @ItemFrame(key = {RoutingVocabulary.Serves.KEY}, endorsed = false)
+    @ItemFrame(predicate = RoutingVocabulary.Serves.KEY, endorsement = @ItemFrame.Endorsed(false))
     private Signer principal;
 
-    @ItemFrame(key = {RoutingVocabulary.AvailableAt.KEY}, endorsed = false)
+    @ItemFrame(predicate = RoutingVocabulary.AvailableAt.KEY, endorsement = @ItemFrame.Endorsed(false))
     private Host host;
 
     /**
@@ -234,7 +235,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     private ItemID fullscreenWorkspace;
 
     // --- Librarian's own relations ---
-    @ItemFrame(key = {RoutingVocabulary.ReachableAt.KEY}, endorsed = false)
+    @ItemFrame(predicate = RoutingVocabulary.ReachableAt.KEY, endorsement = @ItemFrame.Endorsed(false))
     private List<Endpoint> endpoints;
 
     // ==================================================================================

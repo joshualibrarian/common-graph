@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -39,11 +40,14 @@ public final class BridgeVocabulary {
     public static class Bridge {
         public static final String KEY = "cg.sememe:bridge";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a service that translates between CG and a foreign protocol";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String noun1 = "bridge";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"bridge"};
     }
 
     // ==================================================================================
@@ -58,7 +62,8 @@ public final class BridgeVocabulary {
     public static class Bridges {
         public static final String KEY = "cg.core:bridges";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "provides bridge service to a foreign protocol";
     }
 
@@ -73,11 +78,14 @@ public final class BridgeVocabulary {
     public static class EmailBridge {
         public static final String KEY = "cg.sememe:bridge/email";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a bridge translating between CG and email via SMTP/IMAP";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String noun1 = "email bridge";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"email bridge"};
     }
 
     /**
@@ -87,11 +95,14 @@ public final class BridgeVocabulary {
     public static class ActivityPubBridge {
         public static final String KEY = "cg.sememe:bridge/activitypub";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a bridge translating between CG and the ActivityPub federation protocol";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String noun1 = "activitypub bridge";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"activitypub bridge"};
     }
 
     /**
@@ -101,11 +112,14 @@ public final class BridgeVocabulary {
     public static class HttpBridge {
         public static final String KEY = "cg.sememe:bridge/http";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a bridge providing HTTP and WebSocket access to CG";
 
-        @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
-        static final String noun1 = "web gateway";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"web gateway"};
     }
 
     // ==================================================================================
@@ -120,7 +134,8 @@ public final class BridgeVocabulary {
     public static class IdentifiesAs {
         public static final String KEY = "cg.bridge:identifies-as";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "asserts that this identity corresponds to another; merges a phantom with a real principal";
     }
 
@@ -132,7 +147,8 @@ public final class BridgeVocabulary {
     public static class ReceivedVia {
         public static final String KEY = "cg.bridge:received-via";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "records that content was received through a foreign protocol bridge";
     }
 }

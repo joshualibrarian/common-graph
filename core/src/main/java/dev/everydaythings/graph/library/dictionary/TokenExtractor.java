@@ -4,6 +4,7 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Manifest;
@@ -51,57 +52,56 @@ public final class TokenExtractor {
      */
     public static Posting fromFrame(Frame frame) {
         if (frame == null) return null;
-
-        FrameBody body = frame.body();
-        if (body == null) return null;
-
-        return fromBody(body);
+        List<Posting> postings = fromBody(frame.body());
+        return postings.isEmpty() ? null : postings.getFirst();
     }
 
     /**
-     * Extract a posting from a FrameBody's NAME binding.
+     * Extract postings from ALL NAME bindings in a FrameBody.
      *
-     * <p>The compound binding key carries scope and features:
-     * {@code [NAME, ENGLISH, VERB, LEMMA] → "create"} produces a posting
-     * with scope=ENGLISH, features={VERB, LEMMA}.
+     * <p>A frame may have multiple NAME bindings with the same compound key
+     * (synonyms). Each produces a separate posting. The compound binding key
+     * carries scope and features: {@code NAME:[ENGLISH, VERB, LEMMA] → "create"}
+     * produces a posting with scope=ENGLISH, features={VERB, LEMMA}.
      *
      * @param body the FrameBody (self-contained assertion)
-     * @return a posting, or null if the body has no NAME binding
+     * @return list of postings (may be empty)
      */
-    public static Posting fromBody(FrameBody body) {
-        if (body == null) return null;
-
-        // Find the NAME binding — look for any binding whose key starts with NAME
-        Binding nameBinding = body.getBindingByRole(ThematicRole.Name.IID);
-        if (nameBinding == null) return null;
-        if (!(nameBinding.target() instanceof Literal nameLiteral)) return null;
-
-        String token = extractTextFromLiteral(nameLiteral);
-        if (token == null || token.isBlank()) return null;
+    public static List<Posting> fromBody(FrameBody body) {
+        if (body == null) return List.of();
 
         // THEME binding → target item
         ItemID target = body.homeId();
-        if (target == null) return null;
+        if (target == null) return List.of();
 
-        // Derive scope and features from the NAME binding's compound key
-        // Key: [NAME, ENGLISH, VERB, LEMMA] → scope=ENGLISH, features={VERB, LEMMA}
-        List<ItemID> bindingKey = nameBinding.key();
-        ItemID scope = null;
-        Set<ItemID> features = Set.of();
+        // Find ALL NAME bindings — each produces a posting
+        List<Posting> result = new ArrayList<>();
+        for (Binding b : body.frameBindings()) {
+            if (!ThematicRole.Name.IID.equals(b.role())) continue;
+            if (!(b.target() instanceof Literal lit)) continue;
 
-        if (bindingKey.size() > 1) {
-            scope = bindingKey.get(1); // First qualifier = scope (Language)
+            String token = extractTextFromLiteral(lit);
+            if (token == null || token.isBlank()) continue;
 
-            if (bindingKey.size() > 2) {
-                Set<ItemID> featureSet = new HashSet<>();
-                for (int i = 2; i < bindingKey.size(); i++) {
-                    featureSet.add(bindingKey.get(i));
+            // Derive scope and features from this binding's qualifiers
+            List<FrameKey.FrameToken> quals = b.qualifiers();
+            ItemID scope = null;
+            Set<ItemID> features = Set.of();
+
+            if (!quals.isEmpty()) {
+                if (quals.getFirst() instanceof FrameKey.Sememe s) scope = s.id();
+                if (quals.size() > 1) {
+                    Set<ItemID> featureSet = new HashSet<>();
+                    for (int i = 1; i < quals.size(); i++) {
+                        if (quals.get(i) instanceof FrameKey.Sememe s) featureSet.add(s.id());
+                    }
+                    features = Set.copyOf(featureSet);
                 }
-                features = Set.copyOf(featureSet);
             }
-        }
 
-        return new Posting(Posting.normalize(token), scope, target, 1.0f, features);
+            result.add(new Posting(Posting.normalize(token), scope, target, 1.0f, features));
+        }
+        return result;
     }
 
     /**
@@ -115,9 +115,8 @@ public final class TokenExtractor {
 
         List<Posting> result = new ArrayList<>();
         for (Frame frame : item.frames()) {
-            Posting p = fromFrame(frame);
-            if (p != null) {
-                result.add(p);
+            if (frame.body() != null) {
+                result.addAll(fromBody(frame.body()));
             }
         }
         return result;

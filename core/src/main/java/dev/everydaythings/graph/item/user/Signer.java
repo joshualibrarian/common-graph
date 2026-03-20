@@ -12,6 +12,7 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.crypt.Vault;
 import dev.everydaythings.graph.item.id.HashID;
@@ -72,10 +73,10 @@ public abstract class Signer extends Item implements Signing.Signer {
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:signer";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "an item that can cryptographically sign other items";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "signer";
 
     public static final Algorithm.Sign ALGORITHM = Algorithm.Sign.ED25519;
@@ -90,7 +91,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Local-only component - never synced. Contains private keys.
      * For referenced Signers (others' identities), this is null.
      */
-    @ItemFrame(key = {CoreVocabulary.Vault.KEY}, path = ".vault", localOnly = true)
+    @ItemFrame(predicate = CoreVocabulary.Vault.KEY, endorsement = @ItemFrame.Endorsed(mounts = {".vault"}), localOnly = true)
     private transient Vault vault;
 
     /**
@@ -99,7 +100,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Syncable stream component. Tracks all public keys this signer has used,
      * which keys are current for which purposes, and tombstoned keys.
      */
-    @ItemFrame(key = {CoreVocabulary.KeyHistory.KEY}, path = ".keys")
+    @ItemFrame(predicate = CoreVocabulary.KeyHistory.KEY, endorsement = @ItemFrame.Endorsed(mounts = {".keys"}))
     private KeyLog keyLog;
 
     /**
@@ -108,7 +109,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * <p>Syncable component. Tracks certificates issued by this signer
      * to attest to other identities, grant trust, etc.
      */
-    @ItemFrame(key = {CoreVocabulary.CertHistory.KEY}, path = ".certs")
+    @ItemFrame(predicate = CoreVocabulary.CertHistory.KEY, endorsement = @ItemFrame.Endorsed(mounts = {".certs"}))
     private CertLog certLog;
 
     /**
@@ -118,7 +119,7 @@ public abstract class Signer extends Item implements Signing.Signer {
      * For Hosts this defaults to the hostname; for Librarians it can be
      * set by the user (e.g. "dax", "riker-lib").
      */
-    @ItemFrame(key = {RoutingVocabulary.Name.KEY}, endorsed = false)
+    @ItemFrame(predicate = RoutingVocabulary.Name.KEY, endorsement = @ItemFrame.Endorsed(false))
     private String name;
 
     /**

@@ -85,10 +85,15 @@ public class Item {
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:item";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                                         qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "the fundamental unit of Common Graph";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                                         qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY,
+                                                       GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "item";
 
     // === WELL-KNOWN FRAME KEYS ===
@@ -1692,10 +1697,11 @@ public class Item {
             edit();
         }
 
-        // Populate state tables from annotated fields (no encryption for save)
-        scanAndBindFields(null);
+        // Do NOT call scanAndBindFields() — seed manifests are for TYPE items,
+        // built from static @ItemFrame fields by SeedItemFactory.
+        // Instance @ItemFrame fields belong on instance items, not the type.
 
-        // Build endorsements from EndorsementsTable for manifest serialization
+        // Build endorsements from whatever frames SeedItemFactory already added
         state.buildEndorsements();
 
         // Build without signature (seed items are code-defined, deterministic)

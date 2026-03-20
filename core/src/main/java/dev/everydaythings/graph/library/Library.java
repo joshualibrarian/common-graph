@@ -21,6 +21,7 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.library.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library.dictionary.TokenExtractor;
 import dev.everydaythings.graph.library.directory.ItemDirectory;
@@ -82,10 +83,10 @@ public final class Library implements Canonical, AutoCloseable {
 
     public static final String KEY = "cg.sememe:library";
 
-    @ItemFrame(key = {SememeGloss.KEY, Language.ENGLISH_KEY})
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "local storage for items";
 
-    @ItemFrame(key = {CoreVocabulary.Lexeme.KEY, Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "library";
 
     // ==================================================================================
@@ -709,15 +710,25 @@ public final class Library implements Canonical, AutoCloseable {
 
             tokenDict.runInWriteTransaction(tx -> {
                 int count = 0;
+                int totalFrames = 0;
+                int framesWithBody = 0;
                 for (Item item : cache.values()) {
                     for (Posting p : TokenExtractor.fromItemFrames(item)) {
                         tokenDict.index(p, tx);
                         count++;
+                        logger.debug("Indexed token: '{}' scope={} target={}",
+                            p.token(), p.scope() != null ? p.scope().encodeText() : "universal",
+                            item.getClass().getSimpleName());
+                    }
+                    if (item.frames() != null) {
+                        for (var frame : item.frames()) {
+                            totalFrames++;
+                            if (frame.body() != null) framesWithBody++;
+                        }
                     }
                 }
-                if (count > 0) {
-                    logger.info("Indexed {} token postings from cached item frames", count);
-                }
+                logger.info("Indexed {} token postings from {} cached items ({} frames, {} with body)",
+                    count, cache.size(), totalFrames, framesWithBody);
             });
         });
     }

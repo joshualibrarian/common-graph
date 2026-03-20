@@ -5,6 +5,7 @@ import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
 
 import java.io.Closeable;
@@ -222,6 +223,16 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * Get the vocabulary for the Librarian.
      */
     Vocabulary vocabulary();
+
+    /**
+     * Get the active language for parsing.
+     *
+     * <p>Returns the Language item to use for expression parsing.
+     * Default implementation looks up English from the cache.
+     */
+    default Language activeLanguage() {
+        return get(Language.ENGLISH, Language.class).orElse(null);
+    }
 
     /**
      * Get the principal (user) as an Item.

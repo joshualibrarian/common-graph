@@ -184,15 +184,17 @@ public final class ItemScanner {
      * Extract a FrameFieldSpec from a field and @ItemFrame annotation.
      */
     private static FrameFieldSpec extractFrameField(Field field, ItemFrame ann) {
-        if (ann.key().length == 0) {
+        if (ann.predicate().isEmpty()) {
             throw new IllegalStateException(
                     "@ItemFrame on " + field.getDeclaringClass().getSimpleName() + "." + field.getName()
-                    + " must have key={} with at least one semantic key");
+                    + " must have a predicate");
         }
-        ItemID head = ItemID.fromString(ann.key()[0]);
-        Object[] qualifiers = new Object[ann.key().length - 1];
-        for (int i = 1; i < ann.key().length; i++) {
-            qualifiers[i - 1] = ItemID.fromString(ann.key()[i]);
+
+        ItemID head = ItemID.fromString(ann.predicate());
+        ItemFrame.Bind fieldBind = ann.fieldAs();
+        Object[] qualifiers = new Object[fieldBind.qualifiers().length];
+        for (int i = 0; i < fieldBind.qualifiers().length; i++) {
+            qualifiers[i] = ItemID.fromString(fieldBind.qualifiers()[i]);
         }
         FrameKey frameKey = FrameKey.of(head, qualifiers);
 
@@ -204,19 +206,22 @@ public final class ItemScanner {
             type = ItemID.fromString("cg.sememe:" + fieldType.getSimpleName().toLowerCase());
         }
 
-        ItemID selfRole = ItemID.fromString(ann.as());
-        ItemID valueRole = ItemID.fromString(ann.value());
+        ItemID selfRole = ItemID.fromString(ann.classAs().role());
+        ItemID valueRole = ItemID.fromString(ann.fieldAs().role());
 
         boolean localOnly = ann.localOnly();
         boolean stream = ann.stream();
         boolean snapshot = ann.snapshot() && !localOnly;
         boolean identity = ann.identity() && !localOnly;
 
+        String mountPath = ann.endorsement().mounts().length > 0 ? ann.endorsement().mounts()[0] : "";
+        boolean endorsed = ann.endorsement().value();
+
         field.setAccessible(true);
 
         return new FrameFieldSpec(
                 field, frameKey, type, selfRole, valueRole,
-                ann.path(), snapshot, stream, localOnly, identity, ann.endorsed());
+                mountPath, snapshot, stream, localOnly, identity, endorsed);
     }
 
     // ==================================================================================
@@ -229,7 +234,7 @@ public final class ItemScanner {
     private static VerbSpec extractMethodVerb(Method method, Verb ann) {
         method.setAccessible(true);
 
-        ItemID sememeId = ItemID.fromString(ann.value());
+        ItemID sememeId = ItemID.fromString(verbPredicate(ann));
         String doc = ann.doc();
         List<ParamSpec> params = extractParameters(method);
 
@@ -260,7 +265,7 @@ public final class ItemScanner {
                 Verb ann = method.getAnnotation(Verb.class);
                 if (ann != null) {
                     method.setAccessible(true);
-                    ItemID sememeId = ItemID.fromString(ann.value());
+                    ItemID sememeId = ItemID.fromString(verbPredicate(ann));
                     String doc = ann.doc();
                     List<ParamSpec> params = extractParameters(method);
                     results.add(VerbSpec.componentVerb(sememeId, method, doc, params));
@@ -320,6 +325,11 @@ public final class ItemScanner {
         }
 
         return new ParamSpec(name, param.getType(), doc, required, defaultValue, role);
+    }
+
+    /** Resolve verb predicate — new style (predicate) or legacy (value). */
+    private static String verbPredicate(Verb ann) {
+        return !ann.predicate().isEmpty() ? ann.predicate() : ann.value();
     }
 
     // ==================================================================================

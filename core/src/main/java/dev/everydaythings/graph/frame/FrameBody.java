@@ -162,18 +162,16 @@ public final class FrameBody implements Canonical {
      * produces selector {@code (LEXEME, ENGLISH, VERB, LEMMA)}.
      */
     public FrameKey selector() {
-        List<Object> qualifiers = new ArrayList<>();
+        List<Object> quals = new ArrayList<>();
         if (frameBindings != null) {
             for (Binding b : frameBindings) {
-                List<ItemID> key = b.key();
-                if (key != null && key.size() > 1) {
-                    for (int i = 1; i < key.size(); i++) {
-                        qualifiers.add(key.get(i));
-                    }
+                for (FrameKey.FrameToken q : b.qualifiers()) {
+                    if (q instanceof FrameKey.Sememe s) quals.add(s.id());
+                    else if (q instanceof FrameKey.Literal l) quals.add(l.value());
                 }
             }
         }
-        return FrameKey.of(predicate, qualifiers.toArray());
+        return FrameKey.of(predicate, quals.toArray());
     }
 
     /** Role bindings (semantic, with identity/index flags and live instances). */
