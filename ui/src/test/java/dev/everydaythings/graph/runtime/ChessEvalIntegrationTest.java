@@ -119,6 +119,9 @@ class ChessEvalIntegrationTest {
         Eval.EvalResult showResult = evalOnItem.evaluateCommand(List.of("show"));
         assertThat(showResult.isSuccess()).isTrue();
 
+
+
+
         // Step 3: "move e2e4"
         Eval.EvalResult moveResult = evalOnItem.evaluateCommand(List.of("move", "e2e4"));
         assertThat(moveResult.isSuccess()).isTrue();
