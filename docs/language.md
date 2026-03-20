@@ -61,34 +61,61 @@ At bootstrap, only English is seeded as a full Language Item. Other languages ar
 
 `English` (in `:english`) is the concrete subclass. It implements English morphology rules: verb inflection (-ed, -ing, -s), noun pluralization (-s/-es/-ies), adjective comparison (-er/-est). Other languages will follow the same pattern — `Spanish extends Language`, `Japanese extends Language`, etc.
 
+### Language.parse() — The Parsing Hook
+
+Every Language has a `parse()` method — the hook where language-specific grammar rules are applied:
+
+```java
+public List<SemanticFrame> parse(
+    List<ResolvedToken> tokens,
+    String rawText,
+    Function<ItemID, Optional<Item>> resolver,
+    ToIntFunction<Sememe> headVerbScorer)
+```
+
+The base implementation delegates to `FrameAssembler` (order-agnostic, language-neutral). Subclasses override to add language-specific parsing:
+
+- **English**: Wraps FrameAssembler with auxiliary predicate chaining. When the primary verb doesn't consume all prepositions (e.g., "named rematch"), English detects this via `contribute()` on the unmatched preposition sememe and chains additional frames.
+- **ChessNotation** (planned): Parses algebraic notation ("e4", "Nf3", "O-O") into MOVE frames.
+- **ExpressionLanguage** (planned): Handles mathematical and logical expressions with precedence climbing.
+
+The evaluator does **not** assume English. It **infers** the active language from the posting scopes of resolved tokens. If most tokens resolved via English-scoped postings, English's parser is used. If they resolved via math-language-scoped postings, the expression parser handles them. Mixed input triggers language switching within a single expression.
+
+Languages are Items — they can be created, imported, extended, and referenced by IID. A chess game can register ChessNotation as a language, and when the user types in a chess game prompt, chess notation tokens resolve with chess-language scope, triggering the chess notation parser.
+
 ## Sememes: The Meaning Layer
 
-A **sememe** is an Item that represents a specific, language-agnostic meaning. Sememes carry no words — they carry identity (IID), part of speech, and structural metadata (symbols, thematic roles, dimensional data).
+A **sememe** is an Item that represents a specific, language-agnostic meaning. Sememes carry no words and no part of speech — they carry identity (IID), symbols, thematic role expectations, and behavior.
 
 > Full detail on sememes in [Sememes](sememes.md). This section covers the parts relevant to the language system.
 
 ### The Sememe Hierarchy
 
-`Sememe` extends `Item` directly — it is not sealed. Every sememe has a **part of speech** field (`PartOfSpeech`), which is itself a seed sememe (NOUN, VERB, ADJECTIVE, etc.). Parts of speech are not separate subclasses — they're data on the sememe.
+`Sememe` extends `Item` directly — it is not sealed. **Part of speech is NOT on the sememe** — it belongs on lexemes (language-specific words). A sememe is language-agnostic; its grammatical category is expressed through the lexemes that reference it.
 
 Seed constants are organized by domain into vocabulary classes:
 
 | Vocabulary Class | Contains |
 |-----------------|----------|
-| `CoreVocabulary` | Verbs (create, move, edit, exit) and nouns (author, title, item) |
-| `PrepositionVocabulary` | Prepositions (to, from, with, in, for, as) |
-| `LexicalVocabulary` | Lexeme-related predicates (LEXEME, GLOSS, etc.) |
+| `CoreVocabulary` | Action verbs (create, view, help), metadata predicates (title, author) |
+| `PrepositionVocabulary` | Prepositions with assigned roles (on→GOAL, from→SOURCE) |
+| `LexicalVocabulary` | Semantic relations (hypernym, antonym, instance-of) |
+| `StructuralVocabulary` | Syntax symbols — (, ), comma, semicolon, pipe, dot |
 
-Domain-specific subclasses extend `Sememe` for types that carry specialized metadata:
+Domain-specific subclasses extend `Sememe` and carry **behavior** via the `PredicateBehavior` pattern (the class IS the behavior):
 
-| Subclass | What It Adds |
-|-----------|-------------|
-| `ThematicRole` | Semantic role identity (AGENT, THEME, GOAL, ...) |
-| `GrammaticalFeature` | Inflectional property identity (PAST, PLURAL, LEMMA, ...) |
-| `Operator` | Symbol, precedence, associativity, evaluation |
-| `Function` | Arity, category, evaluation |
+| Subclass | What It Adds | `contribute()` Returns |
+|-----------|-------------|----------------------|
+| `Operator` | Precedence, associativity, evaluation logic | `infix(precedence, associativity)` |
+| `Function` | Arity, category, evaluation logic | `prefix, grouped=true` |
+| `StructuralVocabulary` | Structural role (grouping, separation) | `structural(OPEN_GROUP)` etc. |
+| `ThematicRole` | Semantic role identity (AGENT, THEME, GOAL) | — |
+| `GrammaticalFeature` | Inflectional property (PAST, PLURAL, LEMMA) | — |
+| `Unit` | Dimensional metadata, conversion factors | — |
+| Pronouns (`It`, `This`, etc.) | Reference resolution | `structural(PRONOUN)` |
+| Conjunctions (`And`, `Or`) | Expression grouping | `structural(CONJUNCTION)` |
 
-All of these inherit glosses, tokens, symbols, and dictionary registration from `Sememe`, making them discoverable through the same vocabulary pipeline as any other sememe.
+All of these inherit glosses, tokens, symbols, and dictionary registration from `Sememe`.
 
 ### Seed Declaration Pattern
 

@@ -22,23 +22,36 @@ All of these resolve through the same pipeline: token to sememe to action or val
 ## The Resolution Pipeline
 
 ```
-Token (any language)
+Raw text
+    |
+TokenLattice (multi-strategy tokenization)
+    |  — whitespace boundaries, character-class boundaries,
+    |    multi-word windows, structural isolation, literal detection
+    |  — Viterbi scoring selects the best path through candidates
     |
 TokenDictionary (scoped lexicon)
+    |  — each candidate span resolved against the dictionary
+    |  — postings carry scope (language, item, universal) + POS features + weight
     |
-Sememe (universal meaning unit)
+Language inference
+    |  — inferred from posting scopes on the best path
+    |  — e.g., English tokens → English parser; math symbols → expression parser
     |
-What kind of expression?
+Language.parse() + PredicateBehavior.contribute()
+    |  — language-specific grammar rules (word order, auxiliary predicates)
+    |  — each predicate declares its parsing behavior via contribute()
+    |  — predicates can delegate to sub-languages (chess notation, expression syntax)
     |
-    +-- Command frame  --> verb + roles --> dispatch to method
-    +-- Math/logic     --> operators + operands --> evaluate via Pratt parser
-    +-- Function call  --> function + arguments --> apply function
-    +-- Quantity       --> numeral + unit --> construct Quantity value
-    +-- Navigation     --> bare noun/proper noun --> resolve and navigate
-    +-- Query          --> modifier + noun --> filter and list
+SemanticFrame(s)
+    |  — verb + role bindings, ready for dispatch
+    |
+PredicateBehavior.evaluate()
+    |  — unified evaluation: verbs, operators, functions, control flow
+    |
+Result
 ```
 
-The expression input handles all of these uniformly. Whether you type `create document`, `5 + 3`, `sqrt(144)`, or `notes`, the same token resolution pipeline processes your input — it just routes to different evaluation paths based on what the tokens resolve to.
+Whether you type `create chess`, `5+3`, `sqrt(144)`, or `e4 Nf3`, the same `TokenLattice` tokenizes your input, the same dictionary resolves it, and each predicate declares its own parsing and evaluation behavior. Natural language, math expressions, function calls, and domain-specific notation (chess, regex) all flow through ONE pipeline. The language is inferred from the tokens themselves — the evaluator doesn't assume English.
 
 ### Example: Command Frame
 
@@ -64,16 +77,16 @@ alice@project> (3 + 4) * 2
 The tokens resolve:
 
 ```
-"("  --> structural (open paren)
+"("  --> Sememe(cg.syntax:open-group)     — contribute() → OPEN_GROUP
 "3"  --> literal number
-"+"  --> Sememe(cg:operator/add, OPERATOR)
+"+"  --> Sememe(cg.op:add)                — contribute() → infix(10, LEFT)
 "4"  --> literal number
-")"  --> structural (close paren)
-"*"  --> Sememe(cg:operator/multiply, OPERATOR)
+")"  --> Sememe(cg.syntax:close-group)    — contribute() → CLOSE_GROUP
+"*"  --> Sememe(cg.op:mul)                — contribute() → infix(20, LEFT)
 "2"  --> literal number
 ```
 
-The presence of operators and literals triggers the Pratt parser, which builds an AST respecting precedence and associativity. The result evaluates to `14`. No verb, no dispatch — just evaluation.
+Everything — including parentheses — resolves through the dictionary as sememes. The expression parser reads each operator's `contribute()` for precedence and associativity. Result: `14`.
 
 ### Example: Function Application
 
@@ -82,13 +95,13 @@ alice@project> sqrt(144)
 ```
 
 ```
-"sqrt" --> Sememe(cg:function/sqrt, FUNCTION)
-"("    --> structural
+"sqrt" --> Sememe(cg.fn:sqrt)              — contribute() → prefix, grouped
+"("    --> Sememe(cg.syntax:open-group)    — contribute() → OPEN_GROUP
 "144"  --> literal number
-")"    --> structural
+")"    --> Sememe(cg.syntax:close-group)   — contribute() → CLOSE_GROUP
 ```
 
-The parser recognizes function call syntax: an identifier followed by parenthesized arguments. The function sememe carries its evaluation logic. Result: `12`.
+The function's `contribute()` declares `grouped=true` (expects parenthesized arguments). The parser reads this and handles the grouping. Result: `12`.
 
 ### Example: Mixed
 
@@ -165,43 +178,53 @@ Postings come from:
 
 ## Operators and Functions
 
-Operators and functions are first-class vocabulary — they resolve through the same TokenDictionary and are represented as sememes. Their precedence, associativity, and behavior are data-driven (carried by the Operator or Function item), not hardcoded syntax.
+Operators, functions, and structural symbols are all first-class vocabulary — sememes that resolve through the TokenDictionary and carry their own behavior via the `PredicateBehavior` pattern (`contribute()` + `evaluate()`).
 
 ### Operators
 
-Operator sememes carry metadata: precedence level, associativity (left/right), fixity (prefix/infix/postfix). The ExpressionParser reads this metadata to build correct ASTs without hardcoding any operator.
+Operator sememes (`Operator extends Sememe`) carry both parsing metadata AND evaluation logic on the same class. The `contribute()` method declares precedence, associativity, and fixity. The parser reads this — no hardcoded operator tables.
 
-```
-Operator {
-    symbol:        "+"           # Universal token (null scope)
-    precedence:    6             # Higher binds tighter
-    associativity: LEFT          # Left-to-right grouping
-    fixity:        INFIX         # Between operands
+```java
+// The class IS the behavior
+public static class Add extends Operator {
+    Add() { super("cg.op:add", "+", "add", 2, 10, LEFT, INFIX); }
+
+    @Override public ParseContribution contribute(ParseContext ctx) {
+        return ParseContribution.infix(precedence(), associativity());
+    }
+
+    @Override public Object applyBinary(Object left, Object right) { ... }
 }
 ```
 
-Standard arithmetic (`+`, `-`, `*`, `/`, `^`), comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`), logical (`&&`, `||`, `!`), and composition (`|>`) operators are seed vocabulary. Users and items can define additional operators.
+Standard arithmetic (`+`, `-`, `*`, `/`), comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`), logical (`&&`, `||`, `!`) operators are seed vocabulary. New operators can be defined the same way.
 
 ### Functions
 
-Functions are sememes with evaluation semantics — pure computation applied to arguments. Like operators, they resolve through the TokenDictionary:
+Functions (`Function extends Sememe`) carry evaluation logic via `apply()` and declare parsing behavior via `contribute()` (`prefix`, `grouped=true`):
 
 ```
 alice@project> sqrt(144)        # Built-in function
 alice@project> max(a, b, c)     # Multi-argument
-alice@project> f(x) = x^2 + 1  # User-defined function (assignment)
-alice@project> data |> filter(active) |> sort(name)  # Pipe composition
+alice@project> sin(pi / 4)     # Nested expression
 ```
 
-Function definition (`f(x) = expr`) creates a VocabularyContribution: the function name becomes a scoped posting, and the body is stored as an Expression. Subsequent calls to `f(5)` evaluate the stored expression with `x` bound to `5`.
+### Everything Is Vocabulary
 
-### Parentheses
+There is **no reserved syntax** — not even parentheses. `(`, `)`, `,`, `;`, `|`, `.` are all **sememes** (`StructuralVocabulary extends Sememe`) that resolve through the TokenDictionary and declare structural roles via `contribute()`:
 
-Parentheses are the **only structural syntax** — they're the sole reserved characters. Everything else (operators, functions, verbs, nouns) is vocabulary that resolves through the TokenDictionary. This means:
+```
+"("  → Sememe(cg.syntax:open-group)   → contribute() → OPEN_GROUP
+")"  → Sememe(cg.syntax:close-group)  → contribute() → CLOSE_GROUP
+","  → Sememe(cg.syntax:separator)    → contribute() → SEPARATOR
+"|"  → Sememe(cg.syntax:pipe)         → contribute() → PIPE
+```
 
+This means:
 - No reserved words. "exit" is vocabulary, not syntax.
-- No escape characters. Quoting uses matched delimiters.
-- Operator precedence is data, not grammar rules.
+- No reserved characters. Even `(` resolves through the dictionary.
+- Operator precedence is data on the sememe, not grammar rules.
+- A domain-specific syntax (chess notation, regex) is just another set of sememes with their own `contribute()` behavior.
 
 ## Item Vocabulary
 
@@ -294,7 +317,7 @@ No special cases. Just more language. Automatically multilingual — "salir de s
 ## Session as an Item
 
 A Session is an Item. It has:
-- A type (`cg:type/session`) with verb definitions (`exit`, `back`, `switch`, `authenticate`)
+- A type (`cg:type/session`) with verb definitions (`exit`, `view`, `close`, `authenticate`)
 - Frames (activity log, preferences, authenticated users)
 - Assertion frames (session to current user, session to focused item)
 
@@ -397,12 +420,11 @@ As the user types, input is progressively resolved:
 
 | Token Type | Description | Visual | Example |
 |------------|-------------|--------|---------|
-| **Ref** | Resolved item reference | `[create]` | Verb, noun, function, or proper noun resolved from token |
+| **Ref** | Resolved item reference | `[create]` | Verb, noun, function, operator, structural symbol — anything resolved from the dictionary |
 | **Literal** | Typed value | `42`, `"hello"`, `true` | Numbers, booleans, quoted strings |
-| **Operator** | Infix/prefix operator | `+`, `*`, `\|>` | Arithmetic, logic, comparison, pipe |
-| **Paren** | Grouping | `(`, `)` | Expression structure |
+| **Unresolved** | Not yet resolved | `xyzzy` | Unknown words, partial input |
 
-Ref tokens are the key — they're resolved references to sememes or items in the graph. When you type "move" and press Tab, it resolves to the `cg.verb:move` sememe. When you type "sqrt" and it's followed by `(`, it resolves to the `cg:function/sqrt` sememe. The expression is a sequence of graph references, not text to be parsed.
+Everything resolves through the dictionary — verbs, nouns, operators (`+`), functions (`sqrt`), structural symbols (`(`), prepositions (`to`). They're all Ref tokens pointing to sememes. The expression is a sequence of graph references, not text to be parsed.
 
 ### Expression Routing
 
@@ -422,8 +444,8 @@ Pressing Tab triggers lookup via the TokenDictionary with the current scope chai
 
 The **ExpressionContext** analyzes the current token list:
 
-1. Find the verb (if any) — the first token whose sememe has part-of-speech VERB
-2. Identify prepositional phrases — a preposition followed by an object fills a thematic role
+1. Find the verb (if any) — the token whose Posting carries VERB in its POS features
+2. Identify prepositional phrases — a preposition (with `assignedRole` via `contribute()`) followed by an object fills a thematic role
 3. Match bare nouns to unfilled argument slots
 4. Detect operator context — after an operator, complete with operands
 5. Compute which roles are still unfilled
@@ -469,11 +491,11 @@ Frame:   verb=move, THEME=pawn, GOAL=e4
 
 The assembly process:
 
-1. Find the verb (first token with VERB part-of-speech)
-2. Scan for prepositional phrases: `preposition + object` fills the role that preposition implies
-3. Match remaining bare items to argument slots by first-fit
-4. Evaluate any sub-expressions (parenthesized math, function calls)
-5. Build the frame
+1. Find the verb (token with VERB POS features, scored by context relevance)
+2. Scan for prepositional phrases: each preposition's `contribute()` declares which role its object fills
+3. Match remaining bare items to argument slots by first-fit against the verb's `slotRoles()`
+4. Collect modifiers (adjectives → nouns, adverbs → verb)
+5. Build the frame — unmatched tokens go to `unmatchedArgs` for English's auxiliary predicate chaining
 
 **Word order doesn't matter** (within limits):
 
@@ -521,10 +543,9 @@ alice@project> 5 meters + 3 kg         # --> error: incompatible dimensions
 
 Space is a **token boundary**, not just whitespace. When you press Space:
 
-1. If the pending text matches a known operator (AND, OR) --> commit as operator token
-2. If it's a recognized literal (number, boolean, quoted string) --> commit as literal token
-3. If it's a parenthesis --> commit as structural token
-4. Otherwise --> insert a space (for multi-word lookups)
+1. If the pending text resolves in the TokenDictionary → commit as resolved token
+2. If it's a recognized literal (number, boolean, quoted string) → commit as literal token
+3. Otherwise → insert a space (for multi-word lookups via the lattice's multi-word windows)
 
 ### Dispatch
 
@@ -764,19 +785,17 @@ This isn't trying to understand arbitrary natural language. It's a **structured-
 
 | Sememe ID | Description |
 |-----------|-------------|
-| `cg.verb:create` | Create a new instance |
-| `cg.verb:edit` | Begin editing |
+| `cg.verb:create` | Create a new instance of a type |
+| `cg.verb:view` | Open or create a view of an item |
+| `cg.verb:help` | Show help for an item or verb |
+| `cg.verb:describe` | Show details about an item |
+| `cg.verb:cd` | Navigate into an item (change context) |
 | `cg.verb:commit` | Commit changes |
-| `cg.verb:delete` | Delete an item |
-| `cg.verb:describe` | Show details |
-| `cg.verb:open` | Open / navigate into |
-| `cg.verb:search` | Search / query |
-| `cg.verb:import` | Import data |
-| `cg.verb:export` | Export data |
 | `cg.verb:exit` | Exit current context |
-| `cg.verb:back` | Navigate back |
-| `cg.verb:view` | Focus or create a view of an item |
-| `cg.verb:place` | Mount an item in a region |
+| `cg.session:close` | Close a view |
+| `cg.verb:serve` | Set the active principal |
+| `cg.verb:authenticate` | Authenticate a user |
+| `cg.verb:invite` | Invite a peer |
 
 ### Operators
 

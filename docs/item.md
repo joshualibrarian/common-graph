@@ -138,7 +138,7 @@ The type defines:
 |--------|-----|
 | **Identity** | `@Type(value = "cg:type/...")` — deterministic IID for the type item |
 | **Display** | `glyph`, `color`, `shape` — visual identity |
-| **Frames** | `@Item.Frame` on fields — what frames this type includes |
+| **Frames** | `@ItemFrame` on fields — what frames this type includes |
 | **Verbs** | `@Verb` on methods — what actions this type supports |
 | **Scene** | `@Scene.*` annotations — unified 2D + 3D rendering |
 
@@ -204,7 +204,7 @@ new Item(librarian)
  → random IID generated
  → ItemState created with empty EndorsementsTable
  → initializeFreshComponents():
-     for each @Item.Frame field:
+     for each @ItemFrame field:
        1. Create default instance via Components.createDefault()
        2. Build Frame (snapshot/stream/local-only) with FrameBody
        3. Add frame to EndorsementsTable
@@ -223,7 +223,7 @@ Item loaded from Manifest
        1. Fetch content by CID from the store
        2. Decode via Components.decode() or Canonical.decodeBinary()
        3. Store live instance on Frame
-     Phase 2: Bind @Item.Frame fields from table
+     Phase 2: Bind @ItemFrame fields from table
      Phase 3: Invoke initComponent() on all Component instances
  → onFullyInitialized()
 ```
@@ -243,7 +243,7 @@ Edit mode is a flag — it doesn't create a copy. You mutate the item's state di
 ```
 item.commit(signer)
  → scanAndBindFields():
-     For each @Item.Frame field: encode value → CID → update Frame bodyHash
+     For each @ItemFrame field: encode value → CID → update Frame bodyHash
  → Build Manifest (iid, type, parents, state)
  → manifest.sign(signer) — sign BODY bytes with signer's key
  → storeManifest() — serialize and store via librarian
@@ -298,34 +298,34 @@ See [Vocabulary](vocabulary.md) for the full vocabulary system.
 
 ## Field Annotations
 
-### @Item.Frame
+### @ItemFrame
 
-Declares a frame field on an Item type:
+Declares a frame on an Item type. The annotation specifies:
+- **`predicate`** — the frame's predicate (canonical key string)
+- **`classAs`** / **`fieldAs`** — bindings that describe the owning item's role and the field value's role (via `@Bind` sub-annotation with `role` and `qualifiers`)
+- **`bindings`** — explicit binding specifications for complex cases
 
 ```java
-@Frame(key = {TITLE})
+// Simple: field value is bound to the frame
+@ItemFrame(predicate = CoreVocabulary.Title.KEY)
 private String title;
 
-@Frame(key = {"cg.pred:chat"}, stream = true)
-private Log chatLog;
+// With binding metadata: field value bound with role + qualifiers
+@ItemFrame(predicate = SememeGloss.KEY,
+           fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                           qualifiers = {Language.ENGLISH_KEY}))
+private String gloss;
 
-@Frame(key = {"cg.pred:author"}, endorsed = false)
-private ItemID author;
+// Multiple values via String array
+@ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+           fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                           qualifiers = {Language.ENGLISH_KEY,
+                                         PartOfSpeech.Verb.KEY,
+                                         GrammaticalFeature.Lemma.KEY}))
+private String[] words;
 ```
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `key` | `{}` (derived from field name) | Semantic FrameKey tokens (sememe canonical keys) |
-| `path` | `""` | Mount path for presentation |
-| `snapshot` | `true` | Store as immutable snapshot? |
-| `stream` | `false` | Store as append-only stream? |
-| `localOnly` | `false` | Path-based, never synced? |
-| `identity` | `true` | Contributes to version hash? |
-| `endorsed` | `true` | Include in manifest? (false = independently signed) |
-
-The `key` array elements are canonical key strings that resolve to ItemIDs, forming the FrameKey. A single-element key like `{TITLE}` produces `FrameKey.of(titleItemID)`. A multi-element key like `{"cg.pred:gloss", "cg.lang:eng"}` produces a compound key `(GLOSS, ENG)`.
-
-When `key` is empty, the field name is used as a literal key: `FrameKey.literal(fieldName)`.
+The `predicate` identifies what kind of frame this is. The `@Bind` sub-annotation provides the role and qualifiers that form the binding's compound key. The field's value becomes the binding's target.
 
 ### @Item.Seed
 

@@ -30,15 +30,27 @@ Sememes are resolved at **write time**, not read time. When data is created or r
 ```
 Sememe extends Item {
     iid:            ItemID          # Stable identity
-    partOfSpeech:   PartOfSpeech    # VERB, NOUN, ADJECTIVE, etc. (itself a sememe)
-    slots:          [ThematicRole]  # For verbs/predicates: expected argument roles
-    symbols:        [string]        # Language-neutral symbols ("m", "kg", "+")
-    tokens:         [string]        # Transient bootstrap tokens (English words)
+    canonicalKey:   String          # Deterministic key (e.g., "cg.verb:create")
+    slots:          [ItemID]        # For predicates: expected argument roles
+    assignedRole:   ItemID          # For prepositions: role assigned to object
+    symbols:        [String]        # Language-neutral symbols ("m", "kg", "+")
     glosses:        Map             # Transient bootstrap glosses (per language)
 }
 ```
 
-Domain-specific subclasses add specialized metadata: `ThematicRole` adds role identity, `GrammaticalFeature` adds inflectional identity, `Operator` adds precedence/associativity, `Function` adds arity/category.
+Crucially, sememes carry **no part of speech**. POS is a grammatical category that belongs on **lexemes** — the language-specific words that express the sememe. The English word "create" is a verb; the sememe `cg.verb:create` is the language-agnostic concept of bringing into existence. Different languages might categorize the same concept differently.
+
+Domain-specific subclasses carry specialized behavior — the **class IS the behavior**:
+- `Operator` — precedence, associativity, fixity, and arithmetic evaluation (`applyBinary`)
+- `Function` — arity, category, and function application (`apply`)
+- `StructuralVocabulary` — structural role (grouping, separation, access) for syntax symbols
+- `ThematicRole` — role identity for frame bindings
+- `GrammaticalFeature` — inflectional identity for morphology
+- `Unit` — dimensional metadata and conversion factors
+- Pronouns (`It`, `This`, `What`, etc.) — reference resolution behavior
+- Conjunctions (`And`, `Or`) — expression grouping behavior
+
+Each subclass carries both metadata (as frames on the item) AND behavior (as Java methods on the class). This is the `PredicateBehavior` pattern: every predicate can declare how it participates in **parsing** (via `contribute()`) and how it **evaluates** (via `evaluate()`).
 
 The IID stays stable forever. Words in any language can be added, changed, or extended without touching the sememe itself.
 
@@ -99,119 +111,142 @@ These are not lexemes — they're part of the sememe itself, because they transc
 
 Symbols are indexed in the TokenDictionary as **universal postings** (scope = null) — they resolve for all users regardless of language preferences. They flow through the same resolution pipeline as lexemes and proper nouns; there is no separate path for symbols.
 
+## Parsing Behavior: The Class IS the Behavior
+
+Sememes don't just carry metadata — they carry **behavior**. Every sememe subclass can declare how it participates in parsing and evaluation through two methods:
+
+- **`contribute(ParseContext)`** → `ParseContribution` — how this sememe influences parsing. Returns metadata (precedence, fixity, expected roles, structural role) and/or active behavior (delegate to a sub-language, chain additional frames).
+- **`evaluate(bindings, evaluator, scope)`** → result — how this sememe evaluates with filled bindings.
+
+This is the `PredicateBehavior` interface — the ONE abstraction that unifies parsing and evaluation. It replaces separate handling for operators, functions, verbs, prepositions, and structural symbols. Examples:
+
+| Sememe type | `contribute()` returns | Effect |
+|-------------|----------------------|--------|
+| Operator (+) | `infix(precedence=10, LEFT)` | Expression parser handles precedence climbing |
+| Function (sqrt) | `prefix, grouped=true` | Parser expects parenthesized arguments |
+| Preposition (on) | `assignedRole=GOAL` | Next token fills the GOAL role |
+| Conjunction (and) | `structural(CONJUNCTION)` | Parser splits/groups at this point |
+| Pronoun (it) | `structural(PRONOUN)` | Resolver replaces with referent from context |
+| Structural (() | `structural(OPEN_GROUP)` | Parser opens a grouping scope |
+
+The parser doesn't hardcode behavior for specific sememes. It calls `contribute()` on whatever sememe it encounters and reads the result. This means new sememes — a chess notation parser, a regex syntax, a domain-specific operator — participate in parsing by declaring their behavior on the class.
+
 ## Parts of Speech
 
-Every sememe has a **part of speech** — its grammatical category. This is metadata on the sememe itself, aligned with WordNet's linguistic classification.
+Part of speech is **not a property of the sememe** — it is a grammatical category that belongs on **lexemes** (language-specific words). The English word "create" has POS=VERB. The Spanish word "crear" has POS=VERB. The sememe `cg.verb:create` carries no POS — it is language-agnostic.
 
-| Part of Speech | Role in Common Graph | Examples |
-|----------------|---------------------|----------|
-| **Verb** | Dispatchable action | create, move, edit, exit, search |
-| **Noun** | Type reference, navigation target, argument | item, document, log, roster |
-| **Adjective** | Modifier, query filter | recent, unread, active, public |
-| **Adverb** | Verb modifier | recursively, quietly, forcefully |
-| **Preposition** | Thematic role filler, structures expressions | to, from, with, in, for |
-| **Conjunction** | Coordinates clauses and expressions | and, or, then |
+POS flows through the system via lexeme features on **Postings** in the TokenDictionary. When "create" resolves, its Posting carries `features={VERB}`. The parser reads these features to know the token's grammatical role.
 
-The part of speech tells the expression parser what role each token plays in an expression. See [Vocabulary](vocabulary.md) for how the parser uses this information.
+| Part of Speech | Role in Parsing | Examples |
+|----------------|----------------|----------|
+| **Verb** | Dispatchable action, becomes the frame predicate | create, move, describe, view |
+| **Noun** | Type reference, fills argument slots | item, chess, user |
+| **Adjective** | Modifier, attaches to nearest noun | recent, public |
+| **Adverb** | Modifier, attaches to verb | recursively, quietly |
+| **Preposition** | Assigns a thematic role to the following token | to, from, with, named |
+| **Conjunction** | Splits or groups expressions | and, or |
+| **Pronoun** | Reference to context (focused item, recent item) | it, this, last |
 
 ### Verbs
 
-Verb sememes define:
-- What the action means (via glosses in each language's lexicon)
-- What arguments it takes (thematic roles: THEME, GOAL, SOURCE, etc.)
+Verb sememes declare what arguments they expect via **slots** (thematic roles). The `contribute()` method surfaces these as `expectedRoles`:
 
 ```
 create (verb sememe) {
-    iid: cg.verb:create
-    partOfSpeech: VERB
-    thematicRoles: [
-        { role: THEME, doc: "what to create" }
-    ]
+    iid:   cg.verb:create
+    slots: [THEME]          # expects one argument: what to create
 }
+
+# Lexemes (in language lexicons):
+#   English: "create" (VERB, LEMMA), "created" (VERB, PAST), ...
+#   Spanish: "crear" (VERB, LEMMA), "creó" (VERB, PAST), ...
 ```
 
-The words "create" (English), "crear" (Spanish), etc. live in their respective language lexicons, not here.
-
-Items respond to verb sememes by registering VerbEntries in their vocabulary. See [Vocabulary](vocabulary.md) for the dispatch mechanism.
+Items respond to verb sememes by declaring `@Verb` methods. See [Vocabulary](vocabulary.md).
 
 ### Nouns
 
-Noun sememes represent things and concepts. Type definitions are noun sememes:
+Noun sememes represent things and concepts. In expressions, nouns serve as arguments to verbs ("create **chess**"), navigation targets ("**notes**"), and query subjects.
 
 ```
-document (noun sememe) {
-    iid: cg:type/document
-    partOfSpeech: NOUN
-    broader: [artifact]
+chess (noun sememe) {
+    iid: cg.sememe:chess
+    broader: [game]
+    # No POS here — "chess" is a noun in English, but that's on the lexeme
 }
 ```
 
-In expressions, nouns serve as arguments to verbs ("create **document**"), navigation targets ("open **notes**"), and query subjects ("search **documents**").
+### Units
 
-### Units Are Nouns
-
-Units of measurement are **noun sememes** with dimensional metadata and language-neutral symbols. They are units of meaning that happen to describe measurement — which is exactly the project's thesis.
+Units of measurement are **sememes** (`Unit extends Sememe`) with dimensional metadata and language-neutral symbols. They are units of meaning that happen to describe measurement — which is exactly the project's thesis.
 
 ```
-meter (noun sememe) {
-    iid: cg:unit/meter
-    partOfSpeech: NOUN
-    symbols: ["m"]
-    broader: [lengthUnit]
+meter (unit sememe) {
+    iid:       cg:unit/meter
+    symbols:   ["m"]
     dimension: LENGTH
-    conversions: [
-        { to: foot, factor: 3.28084 },
-        { to: centimeter, factor: 100 }
-    ]
+    scale:     1.0  (base unit)
 }
 ```
 
 The symbol "m" is on the sememe because it's universal. The words "meter" (English), "metre" (British English, French), "metro" (Spanish) live in their language lexicons.
 
-In the expression parser, when a numeral precedes a unit noun, they combine into a **Quantity**:
+When a numeral precedes a unit, they combine into a **Quantity**:
 
 ```
 "5 meters"    --> Quantity(5, meter-sememe)
 "3 kg"        --> Quantity(3, kilogram-sememe)
-"72.5 F"      --> Quantity(72.5, fahrenheit-sememe)
 ```
-
-The parser recognizes the pattern because the noun-sememe carries dimensional metadata. The same resolution mechanism that handles "create document" handles "5 meters": token to sememe, then the sememe's metadata drives interpretation.
 
 ### Prepositions
 
-Preposition sememes structure expressions by filling thematic roles:
+Prepositions carry an `assignedRole` — the thematic role they assign to their object. This is declared as a frame on the sememe and surfaced through `contribute()`:
 
 ```
-to (preposition sememe) {
-    iid: cg:preposition/to
-    partOfSpeech: PREPOSITION
-    impliedRole: GOAL
+on (preposition sememe) {
+    iid:          cg.prep:on
+    assignedRole: GOAL          # "on" assigns GOAL to the next token
 }
 ```
 
-When the expression parser encounters `[verb] [noun] [preposition] [noun]`, the preposition determines which thematic role the following noun fills:
+The parser calls `contribute()` on the preposition sememe, reads `assignedRole`, and binds the following token to that role:
 
 ```
 "move pawn to e4"
-    --> move(THEME=pawn, GOAL=e4)    # "to" implies GOAL role
+    --> MOVE { THEME=pawn, GOAL=e4 }       # "to" has assignedRole=GOAL
 
 "copy document from archive"
-    --> copy(THEME=document, SOURCE=archive)    # "from" implies SOURCE role
+    --> COPY { THEME=document, SOURCE=archive }  # "from" has assignedRole=SOURCE
 ```
 
-### Modifiers
+No hardcoded preposition logic — the parser reads the metadata from `contribute()`.
 
-Adjective and adverb sememes qualify other sememes:
+### Structural Symbols
+
+Parentheses, commas, pipes, and other syntax symbols are sememes too (`StructuralVocabulary extends Sememe`). Their `contribute()` returns a structural role:
 
 ```
-recent (adjective sememe) {
-    iid: cg:adjective/recent
-    partOfSpeech: ADJECTIVE
+( (structural sememe) {
+    iid:    cg.syntax:open-group
+    symbol: "("
+    contribute() → structural(OPEN_GROUP)
 }
 ```
 
-In queries: "search recent documents" — "recent" narrows the results. In future expression parsing, modifiers attach to the nearest compatible noun or verb.
+These resolve through the TokenDictionary like any other symbol. The parser reads their structural role from `contribute()`. They are scoped to the expression language (`cg:language/expr`) — when `(` resolves, the language inference detects "we're in expression mode."
+
+### Conjunctions and Pronouns
+
+Conjunctions (`And`, `Or`) and pronouns (`It`, `This`, `What`, `Any`, `Last`) are proper Sememe subclasses with parsing behavior:
+
+- **Conjunctions**: `contribute()` returns `CONJUNCTION` — the parser splits or groups at this point
+- **Pronouns**: `contribute()` returns `PRONOUN` — the resolver replaces them with referents from discourse history ("it" → most recently created item, "this" → focused item)
+
+No hardcoded IID checks. The parser calls `contribute()` and reads the structural role.
+
+### Modifiers
+
+Adjective and adverb sememes qualify other sememes. In expressions, adjectives attach to the nearest noun and adverbs attach to the verb. The FrameAssembler handles this via POS features from the token's Posting.
 
 ## Using Sememes as Predicates
 
@@ -268,14 +303,15 @@ Sememes are extensible:
 Medical, legal, engineering, or any specialized domain can define sememes:
 
 ```
-hypertension (noun sememe) {
-    iid: med:concept/hypertension
-    partOfSpeech: NOUN
+hypertension (sememe) {
+    iid:     med:concept/hypertension
     broader: [medicalCondition]
 }
 
 # English lexicon adds:
 hypertension --> ["hypertension", "high blood pressure"]
+# Spanish lexicon adds:
+hypertension --> ["hipertensión"]
 ```
 
 ### Project-Specific Sememes
@@ -283,9 +319,8 @@ hypertension --> ["hypertension", "high blood pressure"]
 Organizations can define their own concepts:
 
 ```
-sprintReview (noun sememe) {
-    iid: org:concept/sprintReview
-    partOfSpeech: NOUN
+sprintReview (sememe) {
+    iid:     org:concept/sprintReview
     broader: [meeting]
 }
 ```
@@ -378,20 +413,20 @@ Thematic roles enable:
 - Semantic validation (does this argument fit this role?)
 - **Import of role expectations from VerbNet**: each verb class declares which roles it expects, and VerbNet entries include WordNet sense keys — giving Common Graph a direct bridge from synset to slot declarations
 
-## Constraints on Predicates
+## Predicates as Schemas
 
-Sememe predicates can declare domain and range constraints:
+A predicate sememe declares what bindings (roles) its frames expect — this is equivalent to a database schema. The `expects()` declarations on the sememe define the template:
 
 ```
-author (predicate sememe) {
-    iid: cg:predicate/author
-    partOfSpeech: VERB
-    domain: [writtenWork]       # Subject must be a written work
-    range: [person]             # Object must be a person
-}
+HARVEST_RECORD expects:
+    LOCATION:[]                → which garden
+    AGENT:[]                   → who harvested
+    THEME:[]                   → what crop
+    TIME:[]                    → when
+    RESULT:[QUANTITY, WEIGHT]  → how much
 ```
 
-The runtime can validate relations against these constraints.
+See [Frames](frames.md) for the full predicates-as-schemas design.
 
 ## Multilingual Support
 
@@ -417,18 +452,18 @@ Common Graph defines essential sememes for its own operation:
 
 | Category | Examples |
 |----------|----------|
-| **Verbs** | create, edit, commit, delete, describe, open, search, exit |
-| **Types** | item, signer, host, sememe, document, log, roster |
-| **Predicates** | title, author, created, modified, describes |
-| **Trust** | trusts, disavows, endorses, vouches |
-| **Structure** | contains, partOf, references, replaces |
-| **Time** | before, after, during, overlaps |
-| **Space** | locatedAt, near, inside |
-| **Roles** | hypernym, hyponym, instanceOf, holonym, meronym, antonym |
-| **Prepositions** | to, from, with, in, for, as |
-| **Dimensions** | length, mass, time, temperature, currency |
-| **Units** | meter, kilogram, second, kelvin, dollar, euro |
-| **Modifiers** | all, recent, unread, active |
+| **Verbs** | create, view, help, describe, cd, commit, exit, serve, authenticate |
+| **Types** | item, signer, host, sememe, language, user |
+| **Predicates** | title, author, created, modified, instance-of |
+| **Lexical** | hypernym, hyponym, holonym, meronym, antonym |
+| **Prepositions** | on, from, with, for, between, named |
+| **Operators** | +, -, *, /, ==, !=, <, >, &&, \|\|, ! |
+| **Functions** | sqrt, abs, sin, cos, length, upper, lower, range |
+| **Structural** | (, ), comma, semicolon, pipe, dot |
+| **Conjunctions** | and, or |
+| **Pronouns** | it, this, last, what, any |
+| **Dimensions** | length, mass, time, temperature, current, luminosity |
+| **Units** | meter, kilogram, second, kelvin, and 20+ more |
 
 These sememes are seeded at bootstrap with deterministic IIDs. Their lexemes (English words) are seeded in the English language item's lexicon. Both are available to all Items from first boot.
 

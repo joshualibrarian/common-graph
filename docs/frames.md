@@ -15,19 +15,23 @@ FrameBody {
 }
 ```
 
-Each binding has three parts:
+Each binding has five parts:
 
 ```
 Binding {
     role:        ItemID              // semantic function (NAME, THEME, AGENT, RESULT, ...)
-    qualifiers:  [ItemID|Literal]    // narrowing + constraints (sememes or literal values)
+    qualifiers:  [FrameToken]       // narrowing + constraints (sememes or literal values)
     target:      BindingTarget       // the bound value (item ref, literal, content CID)
+    identity:    boolean             // does this binding affect the body hash?
+    index:       boolean             // should this binding be indexed for reverse lookup?
 }
 ```
 
 - **Role**: what KIND of binding — the semantic function this value plays (always a sememe)
 - **Qualifiers**: WHICH variant of that role — narrows the binding and constrains valid inputs. Can be sememes (ENGLISH, VERB, QUANTITY) or literals ("x", "tavern") for developer/math identifiers.
 - **Target**: what's actually bound — the data
+- **Identity**: whether this binding contributes to the FrameBody's content hash. Identity bindings define WHAT the frame IS. Non-identity bindings (config, presentation) can change without creating a new frame.
+- **Index**: whether this binding creates a reverse-lookup entry. The index behavior depends on the target type: string targets → TokenDictionary posting; ItemID targets → FRAME_BY_ITEM entry. These are mutually exclusive by target type.
 
 The compound key `[role, qualifier₁, qualifier₂, ...]` is the binding's **key**. The target is the binding's **value**. Every binding is a key→value pair.
 
