@@ -26,7 +26,7 @@ import java.util.Optional;
  * <p>Handles two kinds of Java code references from IMPLEMENTED_BY frames:
  * <ul>
  *   <li><b>Java class names</b> — {@link Literal} with {@code TYPE_JAVA_CLASS}.
- *       The class is loaded and checked for {@link FrameImplementation}. If it
+ *       The class is loaded and checked for {@link PredicateBehavior}. If it
  *       implements the interface directly, it's used as-is. Otherwise, verb
  *       dispatch is attempted via the class's vocabulary.</li>
  *   <li><b>Verb dispatch</b> — when the predicate matches a {@code @Verb}
@@ -50,7 +50,7 @@ public final class JavaRuntime implements LanguageRuntime {
     }
 
     @Override
-    public FrameImplementation resolve(BindingTarget codeReference, ItemID predicate, Scope scope) {
+    public PredicateBehavior resolve(BindingTarget codeReference, ItemID predicate, Scope scope) {
         // Java class reference from IMPLEMENTED_BY frame
         if (codeReference instanceof Literal lit
                 && Literal.TYPE_JAVA_CLASS.equals(lit.valueType())) {
@@ -64,13 +64,13 @@ public final class JavaRuntime implements LanguageRuntime {
      *
      * <p>This is the Java runtime's verb dispatch path. It searches the
      * scope's vocabulary chain (owner → librarian) for a matching @Verb
-     * method and wraps it as a FrameImplementation.
+     * method and wraps it as a PredicateBehavior.
      *
      * @param predicate the verb sememe IID
      * @param scope     the evaluation scope (carries owner and librarian)
-     * @return a FrameImplementation wrapping the verb, or null if not found
+     * @return a PredicateBehavior wrapping the verb, or null if not found
      */
-    public FrameImplementation resolveVerb(ItemID predicate, Scope scope) {
+    public PredicateBehavior resolveVerb(ItemID predicate, Scope scope) {
         // Check owner item's vocabulary
         if (scope.owner() != null) {
             Vocabulary vocab = scope.owner().vocabulary();
@@ -100,7 +100,7 @@ public final class JavaRuntime implements LanguageRuntime {
     // Java Class Resolution
     // ==================================================================================
 
-    private FrameImplementation resolveJavaClass(Literal classLit, ItemID predicate, Scope scope) {
+    private PredicateBehavior resolveJavaClass(Literal classLit, ItemID predicate, Scope scope) {
         String className = classLit.asText();
         if (className == null) return null;
 
@@ -117,9 +117,9 @@ public final class JavaRuntime implements LanguageRuntime {
                 return resolveFunction(predicate, scope);
             }
 
-            // If the class directly implements FrameImplementation, use it
-            if (FrameImplementation.class.isAssignableFrom(clazz)) {
-                return (FrameImplementation) clazz.getDeclaredConstructor().newInstance();
+            // If the class directly implements PredicateBehavior, use it
+            if (PredicateBehavior.class.isAssignableFrom(clazz)) {
+                return (PredicateBehavior) clazz.getDeclaredConstructor().newInstance();
             }
 
             // Item subclass — verb dispatch via vocabulary
@@ -136,12 +136,12 @@ public final class JavaRuntime implements LanguageRuntime {
     }
 
     /**
-     * Wrap an Operator into a FrameImplementation.
+     * Wrap an Operator into a PredicateBehavior.
      *
      * <p>Gets the hydrated Operator instance from the graph via the librarian,
-     * then wraps its applyBinary/applyUnary into a FrameImplementation.
+     * then wraps its applyBinary/applyUnary into a PredicateBehavior.
      */
-    private FrameImplementation resolveOperator(ItemID predicate, Scope scope) {
+    private PredicateBehavior resolveOperator(ItemID predicate, Scope scope) {
         if (scope.librarian() == null) return null;
         Optional<Operator> opt = scope.librarian().get(predicate, Operator.class);
         if (opt.isEmpty()) return null;
@@ -183,12 +183,12 @@ public final class JavaRuntime implements LanguageRuntime {
     }
 
     /**
-     * Wrap a Function into a FrameImplementation.
+     * Wrap a Function into a PredicateBehavior.
      *
      * <p>Gets the hydrated Function instance from the graph via the librarian,
-     * then wraps its apply() into a FrameImplementation.
+     * then wraps its apply() into a PredicateBehavior.
      */
-    private FrameImplementation resolveFunction(ItemID predicate, Scope scope) {
+    private PredicateBehavior resolveFunction(ItemID predicate, Scope scope) {
         if (scope.librarian() == null) return null;
         Optional<Function> opt = scope.librarian().get(predicate, Function.class);
         if (opt.isEmpty()) return null;
@@ -212,7 +212,7 @@ public final class JavaRuntime implements LanguageRuntime {
     // Verb Wrapping
     // ==================================================================================
 
-    private FrameImplementation wrapVerb(VerbEntry verb) {
+    private PredicateBehavior wrapVerb(VerbEntry verb) {
         return (bindings, evaluator, evalScope) -> {
             // Eagerly resolve all bindings to values
             Map<ItemID, Object> roleValues = new LinkedHashMap<>();

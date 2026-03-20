@@ -4,13 +4,13 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
- * Adapts a code reference into a {@link FrameImplementation}.
+ * Adapts a code reference into a {@link PredicateBehavior}.
  *
  * <p>A LanguageRuntime knows how to load and execute implementations written
  * in its language. The evaluator discovers implementations through
  * IMPLEMENTED_BY frames on predicate sememes — each frame's GOAL binding
  * is a code reference (Java class name, WASM CID, formula FrameBody, etc.).
- * The matching runtime turns that reference into a callable FrameImplementation.
+ * The matching runtime turns that reference into a callable PredicateBehavior.
  *
  * <p>Language runtimes are conceptually Items in the graph ({@code cg.language:java},
  * {@code cg.language:formula}, {@code cg.language:wasm}). On the Java host,
@@ -29,7 +29,7 @@ public interface LanguageRuntime {
     ItemID languageId();
 
     /**
-     * Resolve a code reference to a FrameImplementation.
+     * Resolve a code reference to a PredicateBehavior.
      *
      * <p>The code reference comes from the GOAL binding of an IMPLEMENTED_BY
      * frame on a predicate sememe. Its type identifies the language:
@@ -44,7 +44,7 @@ public interface LanguageRuntime {
      * @param codeReference the code reference from the IMPLEMENTED_BY frame
      * @param predicate     the predicate being implemented (for context)
      * @param scope         the evaluation scope
-     * @return a FrameImplementation, or null if this runtime cannot handle it
+     * @return a PredicateBehavior, or null if this runtime cannot handle it
      */
-    FrameImplementation resolve(BindingTarget codeReference, ItemID predicate, Scope scope);
+    PredicateBehavior resolve(BindingTarget codeReference, ItemID predicate, Scope scope);
 }

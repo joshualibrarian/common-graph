@@ -25,7 +25,7 @@ import java.util.Optional;
  *
  * <p>Implementation resolution goes through the graph: predicate sememe →
  * IMPLEMENTED_BY frames → (language, code-reference) → matching
- * {@link LanguageRuntime} → {@link FrameImplementation}.
+ * {@link LanguageRuntime} → {@link PredicateBehavior}.
  *
  * <p>Registered runtimes handle different code formats:
  * <ul>
@@ -71,7 +71,7 @@ public final class FrameEvaluator {
      * Evaluate a FrameBody in the given scope.
      *
      * <p>This is the main entry point. Resolves the predicate to a
-     * FrameImplementation and delegates.
+     * PredicateBehavior and delegates.
      */
     public Object evaluate(FrameBody frame, Scope scope) {
         Objects.requireNonNull(frame, "frame");
@@ -83,7 +83,7 @@ public final class FrameEvaluator {
         }
 
         try {
-            FrameImplementation impl = resolveImplementation(frame.predicate(), scope);
+            PredicateBehavior impl = resolveImplementation(frame.predicate(), scope);
             if (impl == null) {
                 throw new IllegalArgumentException(
                         "No implementation for predicate: " + frame.predicate());
@@ -174,7 +174,7 @@ public final class FrameEvaluator {
     // ==================================================================================
 
     /**
-     * Resolve a predicate ItemID to a FrameImplementation.
+     * Resolve a predicate ItemID to a PredicateBehavior.
      *
      * <p>Resolution order:
      * <ol>
@@ -185,18 +185,18 @@ public final class FrameEvaluator {
      *       until all seeds carry proper IMPLEMENTED_BY frames)</li>
      * </ol>
      */
-    FrameImplementation resolveImplementation(ItemID predicate, Scope scope) {
+    PredicateBehavior resolveImplementation(ItemID predicate, Scope scope) {
         if (predicate == null) return null;
 
         // 1. Control flow primitives (evaluator built-ins — like CPU instructions)
-        FrameImplementation controlFlow = controlFlowImpl(predicate);
+        PredicateBehavior controlFlow = controlFlowImpl(predicate);
         if (controlFlow != null) return controlFlow;
 
         // 2. IMPLEMENTED_BY frame on the predicate sememe → ask runtimes
         BindingTarget codeRef = lookupImplementedBy(predicate, scope);
         if (codeRef != null) {
             for (LanguageRuntime runtime : runtimes) {
-                FrameImplementation impl = runtime.resolve(codeRef, predicate, scope);
+                PredicateBehavior impl = runtime.resolve(codeRef, predicate, scope);
                 if (impl != null) return impl;
             }
         }
@@ -238,7 +238,7 @@ public final class FrameEvaluator {
     // Control Flow Implementations (evaluator primitives)
     // ==================================================================================
 
-    private FrameImplementation controlFlowImpl(ItemID predicate) {
+    private PredicateBehavior controlFlowImpl(ItemID predicate) {
         if (CoreVocabulary.Conditional.IID.equals(predicate)) return conditionalImpl();
         if (CoreVocabulary.Sequence.IID.equals(predicate)) return sequenceImpl();
         if (CoreVocabulary.Let.IID.equals(predicate)) return letImpl();
@@ -250,7 +250,7 @@ public final class FrameEvaluator {
     /**
      * CONDITIONAL: if THEME then RESULT else GOAL.
      */
-    private FrameImplementation conditionalImpl() {
+    private PredicateBehavior conditionalImpl() {
         return (bindings, evaluator, scope) -> {
             Binding condition = findBinding(bindings, ThematicRole.Theme.IID);
             Object condValue = condition != null ? evaluator.resolve(condition.target(), scope) : null;
@@ -268,7 +268,7 @@ public final class FrameEvaluator {
     /**
      * SEQUENCE: evaluate each THEME binding in order, return last.
      */
-    private FrameImplementation sequenceImpl() {
+    private PredicateBehavior sequenceImpl() {
         return (bindings, evaluator, scope) -> {
             List<Binding> steps = findAllBindings(bindings, ThematicRole.Theme.IID);
             Object result = null;
@@ -282,7 +282,7 @@ public final class FrameEvaluator {
     /**
      * LET: bind GOAL (name) = THEME (value), evaluate RESULT in child scope.
      */
-    private FrameImplementation letImpl() {
+    private PredicateBehavior letImpl() {
         return (bindings, evaluator, scope) -> {
             Binding nameBinding = findBinding(bindings, ThematicRole.Goal.IID);
             Object value = evaluator.resolveRole(bindings, ThematicRole.Theme.IID, scope);
@@ -304,7 +304,7 @@ public final class FrameEvaluator {
     /**
      * RESOLVE: look up a variable name from the scope chain.
      */
-    private FrameImplementation resolveImpl() {
+    private PredicateBehavior resolveImpl() {
         return (bindings, evaluator, scope) -> {
             Binding nameBinding = findBinding(bindings, ThematicRole.Theme.IID);
             if (nameBinding == null) return null;
@@ -320,7 +320,7 @@ public final class FrameEvaluator {
     /**
      * ACCESS: property access — resolve THEME (object), access GOAL (property).
      */
-    private FrameImplementation accessImpl() {
+    private PredicateBehavior accessImpl() {
         return (bindings, evaluator, scope) -> {
             Object target = evaluator.resolveRole(bindings, ThematicRole.Theme.IID, scope);
             Binding propBinding = findBinding(bindings, ThematicRole.Goal.IID);

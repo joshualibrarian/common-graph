@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.frame.eval.ParseContext;
+import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
@@ -966,6 +968,23 @@ public class Function extends Sememe {
     @SuppressWarnings("unused")
     protected Function(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
+    }
+
+    // ==================================================================================
+    // PARSING CONTRIBUTION — declares how this function participates in parsing
+    // ==================================================================================
+
+    /**
+     * Declare this function's parsing metadata: prefix, grouped (parenthesized args).
+     *
+     * <p>The expression language parser reads this to handle function call syntax.
+     */
+    public ParseContribution contribute(ParseContext context) {
+        return ParseContribution.builder()
+                .fixity(ParseContribution.Fixity.PREFIX)
+                .grouped(true)
+                .expectedRoles(List.of(ThematicRole.Theme.IID))
+                .build();
     }
 
     // ==================================================================================

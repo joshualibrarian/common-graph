@@ -28,7 +28,7 @@ public final class FormulaRuntime implements LanguageRuntime {
     }
 
     @Override
-    public FrameImplementation resolve(BindingTarget codeReference, ItemID predicate, Scope scope) {
+    public PredicateBehavior resolve(BindingTarget codeReference, ItemID predicate, Scope scope) {
         if (!(codeReference instanceof BindingTarget.FrameTarget ft)) return null;
         return (bindings, evaluator, evalScope) ->
                 evaluator.evaluate(ft.body(), evalScope);

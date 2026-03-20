@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.frame.eval.ParseContext;
+import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
@@ -714,6 +716,43 @@ public class Operator extends Sememe {
     @SuppressWarnings("unused")
     protected Operator(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
+    }
+
+    // ==================================================================================
+    // PARSING CONTRIBUTION — declares how this operator participates in parsing
+    // ==================================================================================
+
+    /**
+     * Declare this operator's parsing metadata: fixity, precedence, associativity.
+     *
+     * <p>The expression language parser reads this to handle precedence climbing.
+     * This replaces JavaRuntime's need to introspect operator fields directly —
+     * the operator self-declares how it should be parsed.
+     */
+    public ParseContribution contribute(ParseContext context) {
+        return ParseContribution.builder()
+                .fixity(mapFixity(fixity))
+                .precedence(precedence)
+                .associativity(mapAssociativity(associativity))
+                .build();
+    }
+
+    private static ParseContribution.Fixity mapFixity(Fixity f) {
+        if (f == null) return ParseContribution.Fixity.INFIX;
+        return switch (f) {
+            case PREFIX -> ParseContribution.Fixity.PREFIX;
+            case INFIX -> ParseContribution.Fixity.INFIX;
+            case POSTFIX -> ParseContribution.Fixity.POSTFIX;
+        };
+    }
+
+    private static ParseContribution.Associativity mapAssociativity(Associativity a) {
+        if (a == null) return ParseContribution.Associativity.LEFT;
+        return switch (a) {
+            case LEFT -> ParseContribution.Associativity.LEFT;
+            case RIGHT -> ParseContribution.Associativity.RIGHT;
+            case NONE -> ParseContribution.Associativity.NONE;
+        };
     }
 
     // ==================================================================================

@@ -3,6 +3,8 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.eval.ParseContext;
+import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
@@ -521,6 +523,37 @@ public class Sememe extends Item {
         }
 
         return allTokens.stream();
+    }
+
+    // ==================================================================================
+    // PARSING CONTRIBUTION — declares how this sememe participates in parsing
+    // ==================================================================================
+
+    /**
+     * Declare this sememe's parsing metadata from its existing frame data.
+     *
+     * <p>Surfaces {@link #assignedRole()} (for prepositions) and
+     * {@link #slotRoles()} (for predicates with expected arguments)
+     * through the unified {@link ParseContribution} interface.
+     *
+     * <p>Subclasses ({@link dev.everydaythings.graph.value.Operator},
+     * {@link dev.everydaythings.graph.value.Function}) override this with
+     * richer metadata (precedence, fixity, grouping).
+     *
+     * @param context the parsing context (may be null during early bootstrap)
+     * @return parsing contribution, never null
+     */
+    public ParseContribution contribute(ParseContext context) {
+        if (assignedRole != null) {
+            return ParseContribution.assignRole(assignedRole);
+        }
+        List<ItemID> roles = slotRoles();
+        if (!roles.isEmpty()) {
+            return ParseContribution.builder()
+                    .expectedRoles(roles)
+                    .build();
+        }
+        return ParseContribution.NONE;
     }
 
     // ==================================================================================
