@@ -57,6 +57,9 @@ public class ParseContribution {
     /** Whether this predicate expects grouped (parenthesized) arguments. */
     private final boolean grouped;
 
+    /** Structural role for syntax symbols (parens, commas, pipe, etc.). */
+    private final StructuralRole structuralRole;
+
     // ==================================================================================
     // Active behavior
     // ==================================================================================
@@ -85,6 +88,26 @@ public class ParseContribution {
         INFIX,
         /** After arguments: {@code x!} */
         POSTFIX
+    }
+
+    /** Structural role for syntax symbols and parsing primitives. */
+    public enum StructuralRole {
+        /** Opens a group: {@code (} */
+        OPEN_GROUP,
+        /** Closes a group: {@code )} */
+        CLOSE_GROUP,
+        /** Separates arguments or list elements: {@code ,} */
+        SEPARATOR,
+        /** Separates sequential expressions: {@code ;} */
+        SEQUENCE,
+        /** Chains predicate applications: {@code |} */
+        PIPE,
+        /** Property/member access: {@code .} */
+        ACCESS,
+        /** Coordinating conjunction: {@code and} */
+        CONJUNCTION,
+        /** Pronoun / reference: resolves to a referent from context. */
+        PRONOUN
     }
 
     /** Operator associativity for same-precedence grouping. */
@@ -137,6 +160,13 @@ public class ParseContribution {
         return builder()
                 .tokensConsumed(tokenCount)
                 .producedFrames(frames)
+                .build();
+    }
+
+    /** Structural symbol with a specific parsing role. */
+    public static ParseContribution structural(StructuralRole role) {
+        return builder()
+                .structuralRole(role)
                 .build();
     }
 

@@ -39,8 +39,8 @@ class FrameAssemblerTest {
     private static final Sememe FROM = new Sememe(PrepositionVocabulary.From.KEY)
             .role(ThematicRole.Source.KEY);
 
-    // Conjunction — Sememe.And still has a SEED field
-    private static final Sememe AND = Sememe.And.SEED;
+    // Conjunction — proper subclass
+    private static final Sememe AND = new Sememe.And();
 
     // Test modifier sememes
     private static final Sememe PUBLIC_ADJ = new Sememe("cg:test/public")

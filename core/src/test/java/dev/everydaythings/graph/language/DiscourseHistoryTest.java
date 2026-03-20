@@ -58,14 +58,14 @@ class DiscourseHistoryTest {
     void resolveIt() {
         var history = new DiscourseHistory();
         history.push(ALICE);
-        assertThat(history.resolve(Sememe.It.SEED, null)).contains(ALICE);
+        assertThat(history.resolve(new Sememe.It(), null)).contains(ALICE);
     }
 
     @Test
     void resolveThis() {
         var history = new DiscourseHistory();
         history.push(ALICE); // shouldn't matter
-        assertThat(history.resolve(Sememe.This.SEED, BOB)).contains(BOB);
+        assertThat(history.resolve(new Sememe.This(), BOB)).contains(BOB);
     }
 
 //    @Test

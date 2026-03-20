@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
@@ -540,23 +541,31 @@ public class FrameAssembler {
     public static Set<ItemID> inferPOSFromItem(Item item) {
         if (!(item instanceof Sememe sememe)) return Set.of();
 
-        // Prepositions have an assigned thematic role
-        if (sememe.assignedRole() != null) return Set.of(PartOfSpeech.PREPOSITION);
+        // Ask the sememe for its parsing contribution — no hardcoded IID checks
+        ParseContribution contribution = sememe.contribute(null);
+        if (contribution.isPresent()) {
+            // Prepositions assign a role
+            if (contribution.assignedRole() != null) return Set.of(PartOfSpeech.PREPOSITION);
 
-        // Known conjunctions
-        ItemID iid = sememe.iid();
-        if (Sememe.And.IID.equals(iid) || Sememe.Or.IID.equals(iid)) {
-            return Set.of(PartOfSpeech.CONJUNCTION);
+            // Structural roles map to POS
+            if (contribution.structuralRole() != null) {
+                return switch (contribution.structuralRole()) {
+                    case CONJUNCTION -> Set.of(PartOfSpeech.CONJUNCTION);
+                    case PRONOUN -> Set.of(PartOfSpeech.PRONOUN);
+                    default -> Set.of();
+                };
+            }
+
+            // Operators/functions with fixity
+            if (contribution.fixity() != null) return Set.of(PartOfSpeech.VERB);
+
+            // Predicates with expected roles
+            if (contribution.expectedRoles() != null && !contribution.expectedRoles().isEmpty()) {
+                return Set.of(PartOfSpeech.VERB);
+            }
         }
 
-        // Known pronouns
-        if (Sememe.It.IID.equals(iid) || Sememe.This.IID.equals(iid)
-                || Sememe.Last.IID.equals(iid) || Sememe.Any.IID.equals(iid)
-                || Sememe.What.IID.equals(iid)) {
-            return Set.of(PartOfSpeech.PRONOUN);
-        }
-
-        // Sememes with argument slots are verbs
+        // Sememes with argument slots are verbs (fallback for seeds without contribute())
         if (!sememe.slotRoles().isEmpty()) return Set.of(PartOfSpeech.VERB);
 
         return Set.of();

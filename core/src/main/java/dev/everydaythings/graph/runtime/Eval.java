@@ -4,6 +4,7 @@ import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.eval.FrameEvaluator;
+import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.eval.Scope;
 import dev.everydaythings.graph.parse.ExpressionToken;
 import dev.everydaythings.graph.parse.FrameBodyParser;
@@ -21,6 +22,7 @@ import dev.everydaythings.graph.language.DiscourseHistory;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.parse.TokenLattice;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -474,21 +476,18 @@ public class Eval {
 
         for (ResolvedToken token : tokens) {
             if (token instanceof ResolvedToken.Link link) {
-                // Check POS from the link first (fast path); fall back to hydration
+                // Check POS from the link first (fast path)
                 boolean isPronoun = link.features().contains(PartOfSpeech.PRONOUN);
+
+                // Fall back to checking the sememe's contribute() — no hardcoded IID checks
                 if (!isPronoun) {
                     Optional<Item> item = librarianHandle.get(link.iid());
-                    isPronoun = item.isPresent() && item.get() instanceof Sememe;
-                    // Legacy: check known pronoun IIDs for seeds without POS on posting
-                    if (isPronoun) {
-                        ItemID iid = link.iid();
-                        isPronoun = iid.equals(Sememe.It.IID)
-                                || iid.equals(Sememe.This.IID)
-                                || iid.equals(Sememe.Last.IID)
-                                || iid.equals(Sememe.Any.IID)
-                                || iid.equals(Sememe.What.IID);
+                    if (item.isPresent() && item.get() instanceof Sememe sememe) {
+                        ParseContribution contribution = sememe.contribute(null);
+                        isPronoun = contribution.structuralRole() == ParseContribution.StructuralRole.PRONOUN;
                     }
                 }
+
                 if (isPronoun) {
                     Optional<Item> item = librarianHandle.get(link.iid());
                     if (item.isPresent() && item.get() instanceof Sememe pronoun) {
@@ -600,6 +599,176 @@ public class Eval {
         resolved = resolvePronouns(resolved);
 
         return evaluateResolved(resolved);
+    }
+
+    // ==================================================================================
+    // Lattice-based Evaluation (unified pipeline)
+    // ==================================================================================
+
+    /**
+     * Evaluate raw text using the unified TokenLattice pipeline.
+     *
+     * <p>This is the ONE pipeline for both interactive and one-shot modes.
+     * It tokenizes via the lattice (handling character-class boundaries,
+     * multi-word tokens, operator splitting), resolves against the
+     * TokenDictionary, infers the active language from posting scopes,
+     * and dispatches through the language's parser.
+     *
+     * <p>For one-shot mode: ambiguous spans become errors.
+     *
+     * @param input the raw text to evaluate
+     * @return the evaluation result
+     */
+    public EvalResult evaluateRaw(String input) {
+        if (input == null || input.isBlank()) {
+            return EvalResult.empty();
+        }
+
+        // Check for expression macro expansion
+        String trimmed = input.trim();
+        String firstWord = trimmed.contains(" ") ? trimmed.substring(0, trimmed.indexOf(' ')) : trimmed;
+        Optional<String> expression = lookupExpressionInChain(firstWord);
+        if (expression.isPresent()) {
+            if (depth >= MAX_EXPRESSION_DEPTH) {
+                return EvalResult.error("Expression recursion depth exceeded (max " + MAX_EXPRESSION_DEPTH + ")");
+            }
+            String expanded = expression.get();
+            if (trimmed.contains(" ")) {
+                expanded += " " + trimmed.substring(trimmed.indexOf(' ') + 1);
+            }
+            Eval child = new Eval(librarianHandle, context, focusedComponent, session,
+                    discourseHistory, interactive, jsonOutput, depth + 1);
+            return child.evaluateRaw(expanded);
+        }
+
+        // Build lattice — tokenize + resolve in one pass
+        TokenLattice lattice = TokenLattice.build(trimmed, this::latticeLookup);
+
+        // Check for ambiguity (one-shot mode = error)
+        if (lattice.hasAmbiguity()) {
+            List<TokenLattice.Span> ambiguous = lattice.ambiguousSpans();
+            StringBuilder msg = new StringBuilder("Ambiguous input — select a meaning for: ");
+            for (TokenLattice.Span span : ambiguous) {
+                msg.append("\"").append(span.text()).append("\" (");
+                for (int i = 0; i < Math.min(span.postings().size(), 3); i++) {
+                    if (i > 0) msg.append(" or ");
+                    msg.append(span.postings().get(i).target().encodeText());
+                }
+                msg.append(") ");
+            }
+            return EvalResult.error(msg.toString().trim());
+        }
+
+        // Convert lattice spans to ResolvedTokens
+        List<ResolvedToken> resolved = convertSpansToTokens(lattice.bestPath());
+
+        // Resolve pronouns
+        resolved = resolvePronouns(resolved);
+
+        // Evaluate — with inferred language if available
+        return evaluateResolvedWithLanguage(resolved, lattice.inferLanguage());
+    }
+
+    /**
+     * Lookup function for the TokenLattice — wraps the librarian's scoped lookup.
+     */
+    private List<Posting> latticeLookup(String token) {
+        ItemID[] scopes = buildScopeChain();
+        return librarianHandle.lookup(token, scopes).limit(10).toList();
+    }
+
+    /**
+     * Convert lattice spans to ResolvedTokens for the semantic pipeline.
+     */
+    private List<ResolvedToken> convertSpansToTokens(List<TokenLattice.Span> spans) {
+        List<ResolvedToken> tokens = new ArrayList<>();
+        for (TokenLattice.Span span : spans) {
+            tokens.add(convertSpan(span));
+        }
+        return tokens;
+    }
+
+    /**
+     * Convert a single lattice span to a ResolvedToken.
+     */
+    private ResolvedToken convertSpan(TokenLattice.Span span) {
+        switch (span.type()) {
+            case WORD -> {
+                Posting best = span.bestPosting();
+                if (best != null) {
+                    return new ResolvedToken.Link(best.target(), span.text(), best.features());
+                }
+                return new ResolvedToken.Unresolved(span.text());
+            }
+            case LITERAL -> {
+                ExpressionToken.LiteralToken lit = ExpressionToken.LiteralToken.tryParse(span.text());
+                if (lit != null) {
+                    return new ResolvedToken.Literal(lit.value(), span.text());
+                }
+                return new ResolvedToken.Literal(span.text(), span.text());
+            }
+            case UNRESOLVED -> {
+                // Try IID and handle formats before giving up
+                String text = span.text();
+                if (text.startsWith("iid:")) {
+                    return new ResolvedToken.Link(ItemID.fromString(text), text);
+                }
+                if (text.startsWith("@")) {
+                    String handleText = text.substring(1);
+                    List<Posting> handlePostings = librarianHandle.lookup(handleText).limit(1).toList();
+                    if (!handlePostings.isEmpty()) {
+                        Posting hp = handlePostings.getFirst();
+                        return new ResolvedToken.Link(hp.target(), text, hp.features());
+                    }
+                }
+                // Treat as literal string
+                return new ResolvedToken.Literal(text, text);
+            }
+        }
+        return new ResolvedToken.Unresolved(span.text());
+    }
+
+    /**
+     * Evaluate resolved tokens with an inferred language (may be null).
+     *
+     * <p>If a language is inferred from posting scopes, use it instead of
+     * the hardcoded active language. This enables true multilingual dispatch.
+     */
+    private EvalResult evaluateResolvedWithLanguage(List<ResolvedToken> resolved, ItemID inferredLanguageId) {
+        if (resolved.isEmpty()) {
+            return EvalResult.empty();
+        }
+
+        // Resolve the inferred language to a Language item, fall back to active
+        Language language = null;
+        if (inferredLanguageId != null) {
+            language = librarianHandle.get(inferredLanguageId, Language.class).orElse(null);
+        }
+        if (language == null) {
+            language = librarianHandle.activeLanguage();
+        }
+
+        List<SemanticFrame> frames = (language != null)
+                ? language.parse(resolved, null, iid -> librarianHandle.get(iid), this::headVerbScore)
+                : FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore);
+
+        if (frames.isEmpty()) {
+            return evaluateWithoutVerb(resolved);
+        }
+
+        if (frames.size() == 1) {
+            return evaluateFrame(frames.getFirst());
+        }
+
+        // Multi-verb: execute sequentially
+        EvalResult lastResult = EvalResult.empty();
+        for (SemanticFrame frame : frames) {
+            lastResult = evaluateFrame(frame);
+            if (!lastResult.isSuccess()) {
+                return lastResult;
+            }
+        }
+        return lastResult;
     }
 
     /**

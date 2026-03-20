@@ -544,9 +544,12 @@ public class Sememe extends Item {
      * @return parsing contribution, never null
      */
     public ParseContribution contribute(ParseContext context) {
+        // Prepositions assign a role to their object
         if (assignedRole != null) {
             return ParseContribution.assignRole(assignedRole);
         }
+
+        // Predicates with expected argument slots
         List<ItemID> roles = slotRoles();
         if (!roles.isEmpty()) {
             return ParseContribution.builder()
@@ -573,145 +576,145 @@ public class Sememe extends Item {
     }
 
     // ==================================================================================
-    // SEED INSTANCES — Pronouns (query patterns and discourse references)
+    // SEED INSTANCES — Pronouns (proper subclasses with parsing behavior)
     // ==================================================================================
 
+    @Implements(Any.KEY)
     @ItemSeed(key = Any.KEY)
-    public static class Any {
+    public static class Any extends Sememe {
         public static final String KEY = "cg.query:any";
         public static final ItemID IID = ItemID.fromString(KEY);
 
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "matches anything; wildcard; any value";
+        Any() {
+            super(KEY);
+            gloss(ENG, "matches anything; wildcard; any value");
+            cili("i61150");
+            symbol("*");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "wildcard");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "anything");
+        }
 
-        @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
-        static final String cili = "i61150";
-
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
-        static final String symbol = "*";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"wildcard", "anything"};
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.PRONOUN);
+        }
     }
 
+    @Implements(What.KEY)
     @ItemSeed(key = What.KEY)
-    public static class What {
+    public static class What extends Sememe {
         public static final String KEY = "cg.query:what";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(ENG, "the result being queried for; variable; unknown")
-                .cili("i74896")
-                .symbol("?")
-                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "variable").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "result");
 
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "the result being queried for; variable; unknown";
+        What() {
+            super(KEY);
+            gloss(ENG, "the result being queried for; variable; unknown");
+            cili("i74896");
+            symbol("?");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "variable");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "result");
+        }
 
-        @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
-        static final String cili = "i74896";
-
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
-        static final String symbol = "?";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"variable", "result"};
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.PRONOUN);
+        }
     }
 
+    @Implements(It.KEY)
     @ItemSeed(key = It.KEY)
-    public static class It {
+    public static class It extends Sememe {
         public static final String KEY = "cg.pronoun:it";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(ENG, "the most recently mentioned or created item")
-                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "it").word(PartOfSpeech.PRONOUN, LEMMA, ENG, "that");
 
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "the most recently mentioned or created item";
+        It() {
+            super(KEY);
+            gloss(ENG, "the most recently mentioned or created item");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "it");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "that");
+        }
 
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"it", "that"};
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.PRONOUN);
+        }
     }
 
+    @Implements(This.KEY)
     @ItemSeed(key = This.KEY)
-    public static class This {
+    public static class This extends Sememe {
         public static final String KEY = "cg.pronoun:this";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(ENG, "the currently focused item")
-                .word(PartOfSpeech.PRONOUN, LEMMA, ENG, "this");
 
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "the currently focused item";
+        This() {
+            super(KEY);
+            gloss(ENG, "the currently focused item");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "this");
+        }
 
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"this"};
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.PRONOUN);
+        }
     }
 
+    @Implements(Last.KEY)
     @ItemSeed(key = Last.KEY)
-    public static class Last {
+    public static class Last extends Sememe {
         public static final String KEY = "cg.pronoun:last";
         public static final ItemID IID = ItemID.fromString(KEY);
 
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "the previously mentioned item";
+        Last() {
+            super(KEY);
+            gloss(ENG, "the previously mentioned item");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "last");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "previous");
+        }
 
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Pronoun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"last", "previous"};
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.PRONOUN);
+        }
     }
 
     // ==================================================================================
-    // SEED INSTANCES — Conjunctions
+    // SEED INSTANCES — Conjunctions (proper subclasses with parsing behavior)
     // ==================================================================================
 
+    @Implements(And.KEY)
     @ItemSeed(key = And.KEY)
-    public static class And {
+    public static class And extends Sememe {
         public static final String KEY = "cg.conj:and";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(ENG, "coordinating conjunction; connects elements")
-                .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "and");
 
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "coordinating conjunction; connects elements";
+        And() {
+            super(KEY);
+            gloss(ENG, "coordinating conjunction; connects elements");
+            word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "and");
+        }
 
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"and"};
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.CONJUNCTION);
+        }
     }
 
+    @Implements(Or.KEY)
     @ItemSeed(key = Or.KEY)
-    public static class Or {
+    public static class Or extends Sememe {
         public static final String KEY = "cg.conj:or";
         public static final ItemID IID = ItemID.fromString(KEY);
-        @Seed public static final Sememe SEED = new Sememe(KEY)
-                .gloss(ENG, "coordinating disjunction; alternative elements")
-                .word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "or");
 
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "coordinating disjunction; alternative elements";
+        Or() {
+            super(KEY);
+            gloss(ENG, "coordinating disjunction; alternative elements");
+            word(PartOfSpeech.CONJUNCTION, LEMMA, ENG, "or");
+        }
 
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"or"};
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.CONJUNCTION);
+        }
     }
 
     // ==================================================================================

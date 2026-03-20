@@ -1,16 +1,25 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.importer.EnglishImporter;
 import dev.everydaythings.graph.language.importer.LanguageImporter;
+import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.Librarian;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.ToIntFunction;
 
 /**
  * The English language item, bootstrapped from Open English WordNet.
@@ -119,6 +128,142 @@ public class English extends Language {
      */
     public LanguageImporter.ImportStats stats() {
         return stats;
+    }
+
+    // ==================================================================================
+    // PARSING — English-specific grammar rules
+    // ==================================================================================
+
+    /**
+     * Parse resolved tokens using English grammar rules.
+     *
+     * <p>Wraps the base {@link FrameAssembler} with English-specific logic:
+     * <ol>
+     *   <li>Run FrameAssembler to get the core frame (verb + slots + prepositions)</li>
+     *   <li>Scan unmatched tokens for auxiliary predicates whose role was NOT consumed
+     *       by the primary verb — these become chained frames (e.g., "named rematch"
+     *       chains a TITLE frame if CREATE didn't consume the NAME role)</li>
+     *   <li>Check each predicate's {@code contribute()} for active parsing
+     *       behavior (sub-language delegation, frame chaining)</li>
+     * </ol>
+     *
+     * <p>Auxiliary predicate chaining works because FrameAssembler treats "named"
+     * as a preposition with assignedRole=NAME. If the primary verb has a NAME slot,
+     * FrameAssembler fills it directly. If not, "named" and its object end up in
+     * unmatchedArgs — English's parser detects this and chains a TITLE frame.
+     */
+    @Override
+    public List<SemanticFrame> parse(
+            List<Eval.ResolvedToken> tokens,
+            String rawText,
+            Function<ItemID, Optional<Item>> resolver,
+            ToIntFunction<Sememe> headVerbScorer) {
+
+        // Step 1: Run the language-agnostic assembler
+        List<SemanticFrame> baseFrames = FrameAssembler.assembleAll(
+                tokens, resolver, headVerbScorer);
+
+        if (baseFrames.isEmpty()) {
+            return baseFrames; // No verb found — let evaluator handle (bare noun → FOCUS)
+        }
+
+        // Step 2: Check for auxiliary predicates in the last frame's unmatched tokens.
+        // If the primary verb consumed all prepositions, there's nothing to chain.
+        SemanticFrame lastFrame = baseFrames.getLast();
+        if (lastFrame.unmatchedArgs().isEmpty()) {
+            return baseFrames;
+        }
+
+        // Scan unmatched tokens for preposition-like sememes with assignedRole
+        List<SemanticFrame> result = new ArrayList<>(baseFrames.subList(0, baseFrames.size() - 1));
+        SemanticFrame currentFrame = lastFrame;
+        List<AuxiliaryChain> chains = findAuxiliaryChains(currentFrame.unmatchedArgs(), resolver);
+
+        if (chains.isEmpty()) {
+            result.add(currentFrame);
+            return result;
+        }
+
+        // Remove chained tokens from the current frame's unmatched list
+        List<Eval.ResolvedToken> stillUnmatched = new ArrayList<>(currentFrame.unmatchedArgs());
+        for (AuxiliaryChain chain : chains) {
+            stillUnmatched.remove(chain.prepToken);
+            stillUnmatched.remove(chain.objectToken);
+        }
+
+        // Rebuild the primary frame without the consumed auxiliary tokens
+        result.add(new SemanticFrame(
+                currentFrame.verb(),
+                currentFrame.bindings(),
+                currentFrame.modifiers(),
+                stillUnmatched,
+                currentFrame.unboundRoles()));
+
+        // Add chained frames
+        for (AuxiliaryChain chain : chains) {
+            Map<ItemID, Object> chainBindings = new LinkedHashMap<>();
+            chainBindings.put(chain.role, chain.objectValue);
+            // THEME will be filled by the evaluator with the result of the primary frame
+            result.add(new SemanticFrame(
+                    chain.prepSememe, chainBindings,
+                    Map.of(), List.of(), List.of()));
+        }
+
+        return result;
+    }
+
+    /**
+     * A detected auxiliary predicate chain: a preposition + object that should
+     * become a separate chained frame.
+     */
+    private record AuxiliaryChain(
+            Sememe prepSememe,
+            ItemID role,
+            Eval.ResolvedToken prepToken,
+            Eval.ResolvedToken objectToken,
+            Object objectValue
+    ) {}
+
+    /**
+     * Scan unmatched tokens for auxiliary predicate chains.
+     *
+     * <p>An auxiliary chain is a preposition-like sememe followed by its object,
+     * where the preposition assigns a role via {@code assignedRole}. These are
+     * tokens that FrameAssembler couldn't consume because the primary verb
+     * doesn't have matching slots.
+     */
+    private List<AuxiliaryChain> findAuxiliaryChains(
+            List<Eval.ResolvedToken> unmatched,
+            Function<ItemID, Optional<Item>> resolver) {
+
+        List<AuxiliaryChain> chains = new ArrayList<>();
+
+        for (int i = 0; i < unmatched.size() - 1; i++) {
+            if (!(unmatched.get(i) instanceof Eval.ResolvedToken.Link prepLink)) continue;
+
+            Optional<Item> prepItem = resolver.apply(prepLink.iid());
+            if (prepItem.isEmpty() || !(prepItem.get() instanceof Sememe prepSememe)) continue;
+
+            ParseContribution contribution = prepSememe.contribute(null);
+            if (contribution.assignedRole() == null) continue;
+
+            // Found a preposition with an assigned role — the next token is its object
+            Eval.ResolvedToken objectToken = unmatched.get(i + 1);
+            Object objectValue = switch (objectToken) {
+                case Eval.ResolvedToken.Link link -> resolver.apply(link.iid()).orElse(null);
+                case Eval.ResolvedToken.Literal lit -> lit.value();
+                case Eval.ResolvedToken.Unresolved u -> u.token();
+            };
+
+            if (objectValue != null) {
+                chains.add(new AuxiliaryChain(
+                        prepSememe, contribution.assignedRole(),
+                        unmatched.get(i), objectToken, objectValue));
+                i++; // Skip the object token
+            }
+        }
+
+        return chains;
     }
 
     // ==================================================================================
