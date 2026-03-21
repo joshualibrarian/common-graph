@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.network.session;
 
 import com.upokecenter.cbor.CBORObject;
+import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.CgTag;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;

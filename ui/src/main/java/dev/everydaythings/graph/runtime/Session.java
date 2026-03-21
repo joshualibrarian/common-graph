@@ -1205,8 +1205,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 // Cache it and refresh the tree so it's visible.
                 liveItemCache.put(item.iid(), item);
 
-                // Register session-scoped token postings for discoverability
-                registerInstanceTokens(item, type);
+                // Instances are discoverable via frame queries from their type sememe
 
                 if (itemModel != null) {
                     itemModel.refresh();
@@ -1234,35 +1233,10 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 // Ambiguity is shown in the input field via InputController's error state.
                 logger.debug("Ambiguous input: {} unresolved tokens", ambiguous.tokens().size());
             }
-        }
-    }
-
-    /**
-     * Register session-scoped token postings for a newly created item.
-     *
-     * <p>Uses the Sememe type directly (passed through the Created marker)
-     * to register its tokens as session-scoped postings pointing to the
-     * new instance. This makes the instance discoverable by typing the
-     * type name (e.g., "chess" finds the chess game instance).
-     */
-    private void registerInstanceTokens(Item item, Sememe type) {
-        if (type == null) return;
-        if (librarian == null) return;
-        if (!(librarian instanceof LocalLibrarian local)) return;
-
-        Librarian lib = local.librarian();
-        var dictOpt = lib.library().tokenDictionary();
-        if (dictOpt.isEmpty()) return;
-
-        var dict = dictOpt.get();
-
-        List<String> tokens = type.tokens();
-        if (tokens == null || tokens.isEmpty()) return;
-        for (String token : tokens) {
-            // Session-scoped: scope = this session's IID
-            // Weight slightly above default (1.1) so instances shadow the concept
-            Posting posting = Posting.scoped(token, iid(), item.iid(), 1.1f);
-            dict.index(posting, null);
+            case Eval.EvalResult.QueryResult(var items, var pattern) -> {
+                logger.info("Query returned {} results", items.size());
+                // TODO: present query results in the UI
+            }
         }
     }
 

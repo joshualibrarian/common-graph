@@ -115,7 +115,7 @@ public class English extends Language {
     @Deprecated
     public English generate(Signer signer, int maxSynsets) {
         EnglishImporter importer = new EnglishImporter(librarian);
-        this.stats = importer.importInto(lexicon, this, signer, maxSynsets);
+        this.stats = importer.importLanguage(this, signer, maxSynsets);
         return this;
     }
 
@@ -153,7 +153,7 @@ public class English extends Language {
      * unmatchedArgs — English's parser detects this and chains a TITLE frame.
      */
     @Override
-    public List<SemanticFrame> parse(
+    public ParseResult parse(
             List<Eval.ResolvedToken> tokens,
             String rawText,
             Function<ItemID, Optional<Item>> resolver,
@@ -164,14 +164,15 @@ public class English extends Language {
                 tokens, resolver, headVerbScorer);
 
         if (baseFrames.isEmpty()) {
-            return baseFrames; // No verb found — let evaluator handle (bare noun → FOCUS)
+            // No verb found — all tokens are unbound (query pattern)
+            return ParseResult.unbound(tokens);
         }
 
         // Step 2: Check for auxiliary predicates in the last frame's unmatched tokens.
         // If the primary verb consumed all prepositions, there's nothing to chain.
         SemanticFrame lastFrame = baseFrames.getLast();
         if (lastFrame.unmatchedArgs().isEmpty()) {
-            return baseFrames;
+            return ParseResult.frames(baseFrames);
         }
 
         // Scan unmatched tokens for preposition-like sememes with assignedRole
@@ -181,7 +182,11 @@ public class English extends Language {
 
         if (chains.isEmpty()) {
             result.add(currentFrame);
-            return result;
+            // Unmatched args on the frame that aren't auxiliary chains — ambiguous
+            if (!currentFrame.unmatchedArgs().isEmpty()) {
+                return new ParseResult(result, currentFrame.unmatchedArgs());
+            }
+            return ParseResult.frames(result);
         }
 
         // Remove chained tokens from the current frame's unmatched list
@@ -209,7 +214,10 @@ public class English extends Language {
                     Map.of(), List.of(), List.of()));
         }
 
-        return result;
+        if (!stillUnmatched.isEmpty()) {
+            return new ParseResult(result, stillUnmatched);
+        }
+        return ParseResult.frames(result);
     }
 
     /**

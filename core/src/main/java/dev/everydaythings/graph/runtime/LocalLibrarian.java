@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -122,6 +123,12 @@ public final class LocalLibrarian implements LibrarianHandle {
     private java.util.function.Function<dev.everydaythings.graph.item.id.ContentID,
             Optional<dev.everydaythings.graph.frame.FrameBody>> bodyResolver() {
         return bodyHash -> librarian.library().loadFrameBody(bodyHash);
+    }
+
+    @Override
+    public Set<ItemID> queryItems(Set<ItemID> pattern) {
+        checkOpen();
+        return librarian.library().queryItems(pattern);
     }
 
     @Override

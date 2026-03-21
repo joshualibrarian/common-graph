@@ -117,16 +117,13 @@ public class EnglishTest extends LanguageTest {
         }
 
         @Test
-        @DisplayName("generate populates lexicon")
-        void generatePopulatesLexicon() {
+        @DisplayName("generate creates LEXEME frames")
+        void generateCreatesLexemeFrames() {
             english().generate(librarian, 100);
 
-            assertThat(english().lexicon())
-                    .as("Lexicon")
-                    .isNotNull();
-
-            assertThat(english().lexicon().size())
-                    .as("Lexicon size")
+            LanguageImporter.ImportStats stats = english().stats();
+            assertThat(stats.lexemeCount())
+                    .as("Lexeme frame count")
                     .isGreaterThan(0);
         }
 
@@ -154,44 +151,8 @@ public class EnglishTest extends LanguageTest {
         }
     }
 
-    // ==================================================================================
-    // Lexicon Lookup Tests
-    // ==================================================================================
-
-    @Nested
-    @DisplayName("Lexicon Lookup")
-    class LexiconLookup {
-
-        @Test
-        @DisplayName("can lookup word after generation")
-        void canLookupWordAfterGeneration() {
-            english().generate(librarian, 500);  // Need more synsets to find common words
-
-            // Try to look up a common word
-            // "entity" is the root of the noun hierarchy and should be in first 500
-            var entityResults = english().lexicon().lookup("entity").toList();
-
-            System.out.println("Lookup 'entity': " + entityResults.size() + " senses");
-            for (Lexeme lexeme : entityResults) {
-                System.out.println("  - " + lexeme.word() + " (" + lexeme.partOfSpeech() + ") -> " + lexeme.sememe());
-            }
-
-            // entity should have at least one sense
-            // (might be 0 if it's not in first 500 synsets)
-        }
-
-        @Test
-        @DisplayName("lookup returns empty for word not in lexicon")
-        void lookupReturnsEmptyForUnknownWord() {
-            english().generate(librarian, 100);
-
-            var results = english().lexicon().lookup("supercalifragilisticexpialidocious").toList();
-
-            assertThat(results)
-                    .as("Unknown word lookup")
-                    .isEmpty();
-        }
-    }
+    // Lexicon lookup tests removed — lexicon is now just LEXEME frames in the store.
+    // Word lookup goes through the TokenDictionary via frame-backed postings.
 
 //     ==================================================================================
 //     SLOW TESTS (full generation) - uncomment to run

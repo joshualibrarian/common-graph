@@ -6,6 +6,7 @@ import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.user.SignerTest;
 import dev.everydaythings.graph.library.Library;
 import org.junit.jupiter.api.*;
@@ -280,13 +281,17 @@ class LibrarianTest extends SignerTest {
     class RelationsViaLibrarian {
 
         @Test
-        @DisplayName("items can create relations")
-        void itemsCanCreateRelations() {
+        @DisplayName("items can create frames via builder")
+        void itemsCanCreateFrames() {
             Item author = Item.create(librarian);
             Item book = Item.create(librarian);
             ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
 
-            FrameBody body = author.relate(wroteId, book);
+            FrameBody body = FrameBody.builder(wroteId)
+                    .bind(ThematicRole.Theme.IID, author.iid())
+                    .bind(ThematicRole.Goal.IID, book.iid())
+                    .build();
+            librarian.storeFrame(body);
 
             assertThat(body)
                     .as("Created frame body")
@@ -298,13 +303,16 @@ class LibrarianTest extends SignerTest {
         }
 
         @Test
-        @DisplayName("relations are queryable from subject")
-        void relationsQueryableFromSubject() {
+        @DisplayName("frames are queryable from subject")
+        void framesQueryableFromSubject() {
             Item author = Item.create(librarian);
             Item book = Item.create(librarian);
             ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
 
-            author.relate(wroteId, book);
+            librarian.storeFrame(FrameBody.builder(wroteId)
+                    .bind(ThematicRole.Theme.IID, author.iid())
+                    .bind(ThematicRole.Goal.IID, book.iid())
+                    .build());
 
             List<FrameBody> relations = author.relations().toList();
 
@@ -314,13 +322,16 @@ class LibrarianTest extends SignerTest {
         }
 
         @Test
-        @DisplayName("relations are queryable to object")
-        void relationsQueryableToObject() {
+        @DisplayName("frames are queryable to object")
+        void framesQueryableToObject() {
             Item author = Item.create(librarian);
             Item book = Item.create(librarian);
             ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
 
-            author.relate(wroteId, book);
+            librarian.storeFrame(FrameBody.builder(wroteId)
+                    .bind(ThematicRole.Theme.IID, author.iid())
+                    .bind(ThematicRole.Goal.IID, book.iid())
+                    .build());
 
             List<FrameBody> relations = book.relations().toList();
 
@@ -330,15 +341,21 @@ class LibrarianTest extends SignerTest {
         }
 
         @Test
-        @DisplayName("multiple relations can be created")
-        void multipleRelationsCanBeCreated() {
+        @DisplayName("multiple frames can be created")
+        void multipleFramesCanBeCreated() {
             Item author = Item.create(librarian);
             Item book1 = Item.create(librarian);
             Item book2 = Item.create(librarian);
             ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
 
-            author.relate(wroteId, book1);
-            author.relate(wroteId, book2);
+            librarian.storeFrame(FrameBody.builder(wroteId)
+                    .bind(ThematicRole.Theme.IID, author.iid())
+                    .bind(ThematicRole.Goal.IID, book1.iid())
+                    .build());
+            librarian.storeFrame(FrameBody.builder(wroteId)
+                    .bind(ThematicRole.Theme.IID, author.iid())
+                    .bind(ThematicRole.Goal.IID, book2.iid())
+                    .build());
 
             List<FrameBody> relations = author.relations(wroteId).toList();
 

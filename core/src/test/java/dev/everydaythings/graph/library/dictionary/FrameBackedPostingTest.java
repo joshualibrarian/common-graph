@@ -5,6 +5,7 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.library.Library;
@@ -19,6 +20,20 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FrameBackedPostingTest {
+
+    private static Posting testPosting(String token, ItemID target) {
+        return testPosting(token, null, target, 1.0f);
+    }
+
+    private static Posting testPosting(String token, ItemID scope, ItemID target, float weight) {
+        List<FrameToken> quals = scope != null
+                ? List.of(new FrameKey.Sememe(scope)) : List.of();
+        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBody.homeBinding(target),
+                new Binding(ThematicRole.Name.IID, quals, Literal.ofText(token), true, true)
+        ));
+        return Posting.fromFrame(body, 1, weight);
+    }
 
     @Test
     void fromBody_producesFrameBackedPostingWithFeatures() {
@@ -52,7 +67,6 @@ class FrameBackedPostingTest {
                 PartOfSpeech.Verb.IID,
                 GrammaticalFeature.Lemma.IID
         );
-        assertThat(p.isFrameBacked()).isTrue();
         assertThat(p.body()).isSameAs(body);
         assertThat(p.bindingIndex()).isEqualTo(1);
     }
@@ -103,24 +117,14 @@ class FrameBackedPostingTest {
         assertThat(result.target()).isEqualTo(sememeId);
         assertThat(result.scope()).isEqualTo(Language.ENGLISH);
         assertThat(result.features()).contains(PartOfSpeech.Verb.IID);
-        assertThat(result.isFrameBacked()).isTrue();
 
         lib.close();
     }
 
     @Test
-    void directPosting_isNotFrameBacked() {
-        Posting p = Posting.universal("symbol", ItemID.random());
-        assertThat(p.isFrameBacked()).isFalse();
-        assertThat(p.body()).isNull();
-        assertThat(p.bindingIndex()).isEqualTo(-1);
-    }
-
-    @Test
     void withWeight_preservesAllFields() {
         ItemID target = ItemID.random();
-        Posting original = Posting.scoped("test", Language.ENGLISH, target,
-                0.5f, Set.of(PartOfSpeech.Verb.IID));
+        Posting original = testPosting("test", Language.ENGLISH, target, 0.5f);
         Posting merged = Posting.withWeight(original, 0.9f);
 
         assertThat(merged.token()).isEqualTo(original.token());

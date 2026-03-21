@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -195,6 +196,14 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     public Stream<Posting> prefix(String text, int limit) {
         // Prefix search reuses lookup with a limit
         return lookup(text);
+    }
+
+    @Override
+    public Set<ItemID> queryItems(Set<ItemID> pattern) {
+        checkOpen();
+        // TODO: implement via session protocol
+        log.warn("queryItems() called on RemoteLibrarian - not yet implemented");
+        return Set.of();
     }
 
     @Override

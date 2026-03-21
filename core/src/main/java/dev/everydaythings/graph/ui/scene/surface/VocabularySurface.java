@@ -52,22 +52,6 @@ public class VocabularySurface extends SurfaceSchema<Vocabulary> {
             renderVerbGroup(out, entry.getKey(), entry.getValue());
         }
 
-        // Aliases
-        List<VerbAlias> aliases = vocab.aliases();
-        if (!aliases.isEmpty()) {
-            out.beginBox(Scene.Direction.VERTICAL, List.of("vocabulary-section"));
-            out.gap("0.125em");
-            out.text("Aliases", List.of("subheading", "small"));
-            for (VerbAlias alias : aliases) {
-                out.richText(List.of(
-                        new TextSpan(alias.token(), List.of("bold", "monospace")),
-                        new TextSpan(" → ", List.of("muted")),
-                        new TextSpan(alias.sememeId().encodeText(), List.of("monospace"))
-                ), List.of("vocabulary-alias"));
-            }
-            out.endBox();
-        }
-
         out.endBox();
     }
 

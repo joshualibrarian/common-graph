@@ -49,11 +49,6 @@ public class Language extends Item {
     @ItemFrame(predicate = CoreVocabulary.LanguageCode.KEY)
     protected String languageCode;
 
-    /** The lexicon for this language. */
-    @Getter
-    @ItemFrame(predicate = CoreVocabulary.Lexicon.KEY)
-    protected Lexicon lexicon;
-
     // ==================================================================================
     // CONSTRUCTORS
     // ==================================================================================
@@ -67,7 +62,6 @@ public class Language extends Item {
     public Language(Librarian librarian, Locale locale) {
         super(librarian);
         this.languageCode = locale.getISO3Language();  // Use ISO 639-3 (3-letter)
-        this.lexicon = Lexicon.forLanguage(this.iid());
     }
 
     /**
@@ -109,7 +103,6 @@ public class Language extends Item {
     public Language(ItemID iid, Locale locale) {
         super(iid);
         this.languageCode = locale.getISO3Language();
-        this.lexicon = Lexicon.forLanguage(iid);
     }
 
     /**
@@ -225,7 +218,36 @@ public class Language extends Item {
     // ==================================================================================
 
     /**
-     * Parse resolved tokens into a list of semantic frames for execution.
+     * Result of language parsing — complete frames and unbound tokens.
+     *
+     * <p>Three meaningful states:
+     * <ul>
+     *   <li><b>Frames only</b> — executable commands</li>
+     *   <li><b>Unbound only</b> — query pattern (bare nouns, literals)</li>
+     *   <li><b>Both</b> — ambiguous input, should error</li>
+     * </ul>
+     *
+     * @param frames  complete semantic frames (predicate + filled bindings)
+     * @param unbound tokens the Language couldn't place into any frame
+     */
+    public record ParseResult(List<SemanticFrame> frames, List<Eval.ResolvedToken> unbound) {
+        public boolean hasFrames() { return frames != null && !frames.isEmpty(); }
+        public boolean hasUnbound() { return unbound != null && !unbound.isEmpty(); }
+        public boolean isAmbiguous() { return hasFrames() && hasUnbound(); }
+
+        public static ParseResult frames(List<SemanticFrame> frames) {
+            return new ParseResult(frames, List.of());
+        }
+        public static ParseResult unbound(List<Eval.ResolvedToken> tokens) {
+            return new ParseResult(List.of(), tokens);
+        }
+        public static ParseResult empty() {
+            return new ParseResult(List.of(), List.of());
+        }
+    }
+
+    /**
+     * Parse resolved tokens into frames and unbound tokens.
      *
      * <p>The base implementation delegates to {@link FrameAssembler} for
      * language-agnostic parsing. Language subclasses (e.g., English) override
@@ -240,15 +262,19 @@ public class Language extends Item {
      * @param rawText  the original text as typed by the user
      * @param resolver resolves ItemIDs to Items
      * @param headVerbScorer scores verbs by context relevance
-     * @return list of semantic frames to execute (may be empty)
+     * @return parse result with frames and/or unbound tokens
      */
-    public List<SemanticFrame> parse(
+    public ParseResult parse(
             List<Eval.ResolvedToken> tokens,
             String rawText,
             java.util.function.Function<ItemID, java.util.Optional<Item>> resolver,
             java.util.function.ToIntFunction<Sememe> headVerbScorer) {
-        // Default: delegate to language-agnostic FrameAssembler
-        return FrameAssembler.assembleAll(tokens, resolver, headVerbScorer);
+        List<SemanticFrame> frames = FrameAssembler.assembleAll(tokens, resolver, headVerbScorer);
+        if (!frames.isEmpty()) {
+            return ParseResult.frames(frames);
+        }
+        // No predicate found — all tokens are unbound (query pattern)
+        return ParseResult.unbound(tokens);
     }
 
     /**

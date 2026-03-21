@@ -12,6 +12,7 @@ import java.io.Closeable;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -218,6 +219,18 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * @return Stream of matching postings
      */
     Stream<Posting> prefix(String text, int limit);
+
+    /**
+     * Query items by frame co-occurrence.
+     *
+     * <p>Finds items that appear as the subject of frames involving ALL
+     * the given pattern items. "chess alice" finds items that have frames
+     * involving the chess sememe AND frames involving Alice.
+     *
+     * @param pattern the set of ItemIDs to match against
+     * @return IDs of items whose frames involve all pattern terms
+     */
+    Set<ItemID> queryItems(Set<ItemID> pattern);
 
     /**
      * Get the vocabulary for the Librarian.

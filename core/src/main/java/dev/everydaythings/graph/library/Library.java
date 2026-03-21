@@ -40,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -802,6 +803,52 @@ public final class Library implements Canonical, AutoCloseable {
      */
     public Stream<FrameBody> byPredicate(ItemID predicate) {
         return framesByPredicate(predicate).map(this::hydrateFrameRef).flatMap(Optional::stream);
+    }
+
+    /**
+     * Find items that co-occur with ALL the given items in the frame index.
+     *
+     * <p>For each pattern term, collects the home items from frames involving
+     * that term. Returns the intersection — items that appear as the subject
+     * of frames involving EVERY pattern term. Pattern items themselves are
+     * excluded from results.
+     *
+     * <p>Example: {@code queryItems(chessIID, aliceIID)} finds items that have
+     * frames involving the chess sememe AND frames involving Alice — e.g.,
+     * chess games where Alice is a player.
+     *
+     * @param pattern the set of ItemIDs to match against
+     * @return items whose frames involve all pattern terms
+     */
+    public Set<ItemID> queryItems(Set<ItemID> pattern) {
+        if (pattern == null || pattern.isEmpty()) return Set.of();
+
+        Set<ItemID> result = null;
+        for (ItemID term : pattern) {
+            Set<ItemID> homes = byItem(term)
+                    .map(FrameBody::homeId)
+                    .filter(Objects::nonNull)
+                    .filter(id -> !pattern.contains(id))
+                    .collect(Collectors.toSet());
+
+            if (result == null) {
+                result = homes;
+            } else {
+                result.retainAll(homes);
+            }
+
+            if (result.isEmpty()) return Set.of();
+        }
+        return result != null ? result : Set.of();
+    }
+
+    /**
+     * Find items that co-occur with ALL the given items in the frame index.
+     *
+     * <p>Varargs convenience for {@link #queryItems(Set)}.
+     */
+    public Set<ItemID> queryItems(ItemID... pattern) {
+        return queryItems(new LinkedHashSet<>(Arrays.asList(pattern)));
     }
 
     /**

@@ -10,6 +10,7 @@ import dev.everydaythings.graph.game.BoardState;
 import dev.everydaythings.graph.game.GameBoard;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.game.Piece;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
@@ -245,8 +246,13 @@ public class ChessItem extends Item {
                 if (moveHistory.size() == 1) clock.start();
             }
 
-            // Persist as a relation frame
-            relate(GameVocabulary.Move.IID, Literal.ofText(normalized));
+            // Persist as a frame
+            if (librarian != null) {
+                librarian.storeFrame(FrameBody.builder(GameVocabulary.Move.IID)
+                        .bind(dev.everydaythings.graph.language.ThematicRole.Theme.IID, iid())
+                        .bind(dev.everydaythings.graph.language.ThematicRole.Goal.IID, Literal.ofText(normalized))
+                        .build());
+            }
 
             updateResult();
             clearSelection();

@@ -777,14 +777,14 @@ public class Item {
      * Other item types should call this explicitly if they need verb dispatch.
      */
     protected void populateVocabulary() {
-        // Clear any existing verbs (in case called multiple times)
+        // Clear any existing entries (in case called multiple times)
         vocabulary().clear();
 
         // Code layer: @Verb annotations from class hierarchy
         schema().populateVocabulary(vocabulary(), this);
 
-        // User/data layer: EntryVocabulary contributions from frames
-        // TODO: vocabulary contributions will move to CONFIG binding on FrameBody (separate track)
+        // Data layer: scan frames for indexed string bindings
+        vocabulary().scanFrames(frames());
     }
 
     /**
@@ -999,14 +999,8 @@ public class Item {
         }
         ActionContext ctx = ActionContext.of(caller, callerSigner, this, librarian);
 
-        // Vocabulary dispatch (language-agnostic via TokenDictionary)
-        Optional<VerbEntry> verbOpt;
-        if (librarian != null) {
-            verbOpt = vocabulary().lookupToken(command, librarian);
-        } else {
-            // Without librarian (seed items), try direct sememe ID lookup
-            verbOpt = vocabulary().lookup(ItemID.fromString(command));
-        }
+        // Vocabulary dispatch — command is a sememe ID or canonical key
+        Optional<VerbEntry> verbOpt = vocabulary().lookup(ItemID.fromString(command));
 
         if (verbOpt.isEmpty()) {
             return ActionResult.failure(
@@ -1076,70 +1070,6 @@ public class Item {
             return Stream.empty();
         }
         return librarian.library().byItemPredicate(this.iid(), predicate);
-    }
-
-    /**
-     * Create a relation with this item as THEME and another as TARGET.
-     *
-     * <p>This is the most common relation pattern: this item is what the
-     * relation is about, and the target is what it points to.
-     * <pre>{@code
-     * // This animal IS-A mammal
-     * animal.relate(LexicalVocabulary.Hypernym.IID, mammal.iid());
-     *
-     * // With a literal target
-     * item.relate(predicateId, Literal.ofText("some value"));
-     * }</pre>
-     *
-     * @param predicate The predicate (relationship type)
-     * @param target The target (value bound to TARGET role)
-     * @return The created frame body
-     */
-    public FrameBody relate(ItemID predicate, BindingTarget target) {
-        Objects.requireNonNull(predicate, "predicate");
-        Objects.requireNonNull(target, "target");
-
-        FrameBody body = FrameBody.of(predicate, iid,
-                Map.of(ThematicRole.Goal.IID, target));
-
-        // Sign if we have a signer
-        if (this instanceof dev.everydaythings.graph.item.user.Signer signer) {
-            FrameRecord.create(body, signer);
-        }
-
-        // Store if we have a librarian
-        if (librarian != null) {
-            librarian.storeFrame(body);
-        }
-
-        return body;
-    }
-
-    /**
-     * Create a relation with this item as THEME and another item as TARGET.
-     *
-     * <p>Convenience overload for item-to-item relations:
-     * <pre>{@code
-     * animal.relate(LexicalVocabulary.Hypernym.IID, mammal);
-     * }</pre>
-     *
-     * @param predicate The predicate (relationship type)
-     * @param target The target item
-     * @return The created frame body
-     */
-    public FrameBody relate(ItemID predicate, Item target) {
-        return relate(predicate, BindingTarget.iid(target.iid()));
-    }
-
-    /**
-     * Create a relation with this item as THEME and another item (by ID) as TARGET.
-     *
-     * @param predicate The predicate (relationship type)
-     * @param targetId The target item ID
-     * @return The created frame body
-     */
-    public FrameBody relate(ItemID predicate, ItemID targetId) {
-        return relate(predicate, BindingTarget.iid(targetId));
     }
 
     // ==================================================================================
@@ -2242,10 +2172,12 @@ public class Item {
         }
 
         // Apply title if a name was provided
-        if (name != null && !name.isBlank()) {
-            newItem.relate(
-                    dev.everydaythings.graph.language.CoreVocabulary.Title.IID,
-                    Literal.ofText(name));
+        if (name != null && !name.isBlank() && newItem.librarian != null) {
+            newItem.librarian.storeFrame(FrameBody.builder(
+                    dev.everydaythings.graph.language.CoreVocabulary.Title.IID)
+                    .bind(dev.everydaythings.graph.language.ThematicRole.Theme.IID, newItem.iid())
+                    .bind(dev.everydaythings.graph.language.ThematicRole.Name.IID, name)
+                    .build());
         }
 
         return newItem;

@@ -132,6 +132,10 @@ public class ActivityEntry implements Canonical {
             case Eval.EvalResult.Ambiguous ambiguous ->
                     new ActivityEntry(input, contextIid, Kind.ERROR,
                             "Ambiguous: " + ambiguous.tokens().size() + " unresolved tokens", null, Source.SESSION);
+
+            case Eval.EvalResult.QueryResult(var items, var pattern) ->
+                    new ActivityEntry(input, contextIid, Kind.ITEM,
+                            items.size() + " results", null, Source.SESSION);
         };
     }
 

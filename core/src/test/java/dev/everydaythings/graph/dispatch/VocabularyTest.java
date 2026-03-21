@@ -194,26 +194,4 @@ class VocabularyTest {
         }
     }
 
-    @Test
-    void vocabularyLookupTokenResolvesVerb(@TempDir Path testDir) {
-        try (Librarian lib = Librarian.open(testDir)) {
-            Vocabulary vocab = lib.vocabulary();
-
-            // The vocabulary's lookupToken should resolve "create" to the CREATE verb
-            // (This tests the full flow: token → TokenDictionary → Sememe → Vocabulary)
-            Optional<VerbEntry> createVerb = vocab.lookupToken("create", lib);
-
-            assertThat(createVerb)
-                    .as("Vocabulary.lookupToken('create') should find the CREATE verb")
-                    .isPresent();
-
-            assertThat(createVerb.get().sememeId())
-                    .as("Looked up verb should be the CREATE Sememe")
-                    .isEqualTo(ItemID.fromString(CoreVocabulary.Create.KEY));
-
-            assertThat(createVerb.get().methodName())
-                    .as("CREATE verb should map to actionNew method")
-                    .isEqualTo("actionNew");
-        }
-    }
 }

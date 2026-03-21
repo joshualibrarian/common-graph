@@ -4,6 +4,7 @@ import dev.everydaythings.graph.item.ItemTest;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.FrameRecord;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.crypt.SigningPublicKey;
 import org.junit.jupiter.api.*;
 
@@ -173,7 +174,10 @@ public abstract class SignerTest extends ItemTest {
             // Create a frame body from signer to itself (valid for testing)
             ItemID predicateId = ItemID.fromString("cg.predicate:self-reference");
 
-            FrameBody body = signer().relate(predicateId, signer().iid());
+            FrameBody body = FrameBody.builder(predicateId)
+                    .bind(ThematicRole.Theme.IID, signer().iid())
+                    .bind(ThematicRole.Goal.IID, signer().iid())
+                    .build();
 
             // Sign the body by creating a FrameRecord
             FrameRecord record = FrameRecord.create(body, signer());

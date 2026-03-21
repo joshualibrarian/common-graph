@@ -726,4 +726,162 @@ public final class FrameBody implements Canonical {
     public int hashCode() {
         return Objects.hash(predicate, frameBindings, config());
     }
+
+    // ==================================================================================
+    // Builder
+    // ==================================================================================
+
+    /**
+     * Create a builder for a FrameBody with the given predicate.
+     */
+    public static Builder builder(ItemID predicate) {
+        return new Builder(predicate);
+    }
+
+    /**
+     * Fluent builder for FrameBody.
+     *
+     * <p>Two forms for adding bindings:
+     * <ul>
+     *   <li><b>Short form</b>: {@code .bind(role, itemId)} — defaults to identity=true, index=true</li>
+     *   <li><b>Long form</b>: {@code .bind(role).qualified(...).to(target).identity(false).index(false)} — full control</li>
+     * </ul>
+     *
+     * <p>Example:
+     * <pre>{@code
+     * FrameBody.builder(CoreVocabulary.Lexeme.IID)
+     *     .bind(ThematicRole.Theme.IID, sememe.iid())
+     *     .bind(ThematicRole.Name.IID)
+     *         .qualified(Language.ENGLISH, PartOfSpeech.Verb.IID, GrammaticalFeature.Lemma.IID)
+     *         .to("create")
+     *         .identity(true).index(true)
+     *     .build();
+     * }</pre>
+     */
+    public static final class Builder {
+        private final ItemID predicate;
+        private final List<Binding> bindings = new ArrayList<>();
+
+        private Builder(ItemID predicate) {
+            this.predicate = Objects.requireNonNull(predicate, "predicate");
+        }
+
+        /** Short form — item ref, identity=true, index=true, no qualifiers. */
+        public Builder bind(ItemID role, ItemID target) {
+            bindings.add(new Binding(role, BindingTarget.iid(target), true, true));
+            return this;
+        }
+
+        /** Short form — text literal, identity=true, index=true, no qualifiers. */
+        public Builder bind(ItemID role, String text) {
+            bindings.add(new Binding(role, Literal.ofText(text), true, true));
+            return this;
+        }
+
+        /** Short form — explicit BindingTarget, identity=true, index=true, no qualifiers. */
+        public Builder bind(ItemID role, BindingTarget target) {
+            bindings.add(new Binding(role, target, true, true));
+            return this;
+        }
+
+        /** Long form — opens a BindingBuilder for qualifiers, target, and flags. */
+        public BindingBuilder bind(ItemID role) {
+            return new BindingBuilder(this, role);
+        }
+
+        /** Build the FrameBody. */
+        public FrameBody build() {
+            return new FrameBody(predicate, List.copyOf(bindings));
+        }
+
+        // Used by BindingBuilder to add the completed binding
+        private Builder addBinding(Binding binding) {
+            bindings.add(binding);
+            return this;
+        }
+    }
+
+    /**
+     * Sub-builder for a single binding with qualifiers and flags.
+     */
+    public static final class BindingBuilder {
+        private final Builder parent;
+        private final ItemID role;
+        private final List<FrameKey.FrameToken> qualifiers = new ArrayList<>();
+        private BindingTarget target;
+        private boolean identity = true;
+        private boolean index = true;
+
+        private BindingBuilder(Builder parent, ItemID role) {
+            this.parent = parent;
+            this.role = role;
+        }
+
+        /** Add qualifiers (sememe IDs). */
+        public BindingBuilder qualified(ItemID... qualifierIds) {
+            for (ItemID q : qualifierIds) {
+                qualifiers.add(new FrameKey.Sememe(q));
+            }
+            return this;
+        }
+
+        /** Set target to an item reference. */
+        public BindingBuilder to(ItemID target) {
+            this.target = BindingTarget.iid(target);
+            return this;
+        }
+
+        /** Set target to a text literal. */
+        public BindingBuilder to(String text) {
+            this.target = Literal.ofText(text);
+            return this;
+        }
+
+        /** Set target to an explicit BindingTarget. */
+        public BindingBuilder to(BindingTarget target) {
+            this.target = target;
+            return this;
+        }
+
+        /** Set identity flag (default true). */
+        public BindingBuilder identity(boolean identity) {
+            this.identity = identity;
+            return this;
+        }
+
+        /** Set index flag (default true). */
+        public BindingBuilder index(boolean index) {
+            this.index = index;
+            return this;
+        }
+
+        /** Complete this binding and return to the parent builder. */
+        public Builder bind(ItemID nextRole, ItemID nextTarget) {
+            finish();
+            return parent.bind(nextRole, nextTarget);
+        }
+
+        /** Complete this binding and return to the parent builder. */
+        public Builder bind(ItemID nextRole, String nextText) {
+            finish();
+            return parent.bind(nextRole, nextText);
+        }
+
+        /** Complete this binding and open another long-form binding. */
+        public BindingBuilder bind(ItemID nextRole) {
+            finish();
+            return parent.bind(nextRole);
+        }
+
+        /** Complete this binding and build the FrameBody. */
+        public FrameBody build() {
+            finish();
+            return parent.build();
+        }
+
+        private void finish() {
+            Objects.requireNonNull(target, "binding target must be set via to()");
+            parent.addBinding(new Binding(role, qualifiers, target, identity, index));
+        }
+    }
 }

@@ -1,8 +1,15 @@
 package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.parse.ExpressionToken.*;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.value.Operator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -28,10 +35,24 @@ class InputControllerTest {
     private static final ItemID BOB_IID = ItemID.random();
     private static final ItemID CREATE_IID = ItemID.random();
 
+    private static Posting testPosting(String token, ItemID target) {
+        return testPosting(token, null, target, 1.0f);
+    }
+
+    private static Posting testPosting(String token, ItemID scope, ItemID target, float weight) {
+        List<FrameToken> quals = scope != null
+                ? List.of(new FrameKey.Sememe(scope)) : List.of();
+        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBody.homeBinding(target),
+                new Binding(ThematicRole.Name.IID, quals, Literal.ofText(token), true, true)
+        ));
+        return Posting.fromFrame(body, 1, weight);
+    }
+
     /** Test postings returned by the mock lookup. */
-    private static final Posting ALICE_POSTING = Posting.universal("alice", ALICE_IID);
-    private static final Posting BOB_POSTING = Posting.universal("bob", BOB_IID);
-    private static final Posting CREATE_POSTING = Posting.universal("create", CREATE_IID);
+    private static final Posting ALICE_POSTING = testPosting("alice", ALICE_IID);
+    private static final Posting BOB_POSTING = testPosting("bob", BOB_IID);
+    private static final Posting CREATE_POSTING = testPosting("create", CREATE_IID);
 
     /** Captured snapshots from onChange. */
     private final List<InputSnapshot> snapshots = new ArrayList<>();
@@ -999,9 +1020,9 @@ class InputControllerTest {
         private static final ItemID PYTHON_LANG_IID = ItemID.random();
         private static final ItemID PYTHON_ANIMAL_IID = ItemID.random();
         private static final Posting PYTHON_LANG_POSTING =
-                Posting.universal("python", PYTHON_LANG_IID);
+                testPosting("python", PYTHON_LANG_IID);
         private static final Posting PYTHON_ANIMAL_POSTING =
-                Posting.universal("python", PYTHON_ANIMAL_IID);
+                testPosting("python", PYTHON_ANIMAL_IID);
 
         private InputController ambiguousInput;
 
@@ -1096,8 +1117,7 @@ class InputControllerTest {
         @Test
         void sameTargetDeduplicated() {
             // Two postings for the same target (different scopes) → should dedup
-            var scopedPosting = Posting.scoped("python",
-                    ItemID.random(), PYTHON_LANG_IID);
+            var scopedPosting = testPosting("python", ItemID.random(), PYTHON_LANG_IID, 1.0f);
 
             InputController dedup = InputController.builder()
                     .lookup(text -> {

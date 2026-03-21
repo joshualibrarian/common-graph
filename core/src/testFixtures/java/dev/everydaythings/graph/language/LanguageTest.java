@@ -72,42 +72,4 @@ public abstract class LanguageTest extends ItemTest {
     // Lexicon Tests
     // ==================================================================================
 
-    @Nested
-    @DisplayName("Lexicon")
-    class LexiconTests {
-
-        @Test
-        @DisplayName("has a lexicon")
-        void hasLexicon() {
-            assertThat(language().lexicon())
-                    .as("Lexicon")
-                    .isNotNull();
-        }
-
-        @Test
-        @DisplayName("lexicon is associated with this language")
-        void lexiconIsAssociatedWithLanguage() {
-            Lexicon lex = language().lexicon();
-
-            // The lexicon should be for this language's IID
-            assertThat(lex.languageId())
-                    .as("Lexicon language ID")
-                    .isEqualTo(language().iid());
-        }
-
-        @Test
-        @DisplayName("lexicon lookup returns stream for unknown word")
-        void lexiconLookupReturnsStreamForUnknown() {
-            var results = language().lexicon().lookup("xyznonexistentword123");
-
-            assertThat(results)
-                    .as("Lookup stream")
-                    .isNotNull();
-
-            // Unknown word should have no results
-            assertThat(results.toList())
-                    .as("Unknown word results")
-                    .isEmpty();
-        }
-    }
 }

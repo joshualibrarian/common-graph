@@ -1,7 +1,12 @@
 package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.parse.ExpressionToken.RefToken;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -28,6 +33,20 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @Tag("slow")
 class ExpressionContextTest {
+
+    private static Posting testPosting(String token, ItemID target) {
+        return testPosting(token, null, target, 1.0f);
+    }
+
+    private static Posting testPosting(String token, ItemID scope, ItemID target, float weight) {
+        List<FrameToken> quals = scope != null
+                ? List.of(new FrameKey.Sememe(scope)) : List.of();
+        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBody.homeBinding(target),
+                new Binding(ThematicRole.Name.IID, quals, Literal.ofText(token), true, true)
+        ));
+        return Posting.fromFrame(body, 1, weight);
+    }
 
     private Librarian lib;
     private Function<ItemID, Optional<Item>> resolver;
@@ -170,9 +189,9 @@ class ExpressionContextTest {
             ExpressionContext ctx = ExpressionContext.EMPTY;
 
             List<Posting> postings = List.of(
-                    Posting.universal("create", CoreVocabulary.Create.IID),
-                    Posting.universal("on", PrepositionVocabulary.On.IID),
-                    Posting.universal("title", CoreVocabulary.Title.IID)
+                    testPosting("create", CoreVocabulary.Create.IID),
+                    testPosting("on", PrepositionVocabulary.On.IID),
+                    testPosting("title", CoreVocabulary.Title.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);
@@ -187,9 +206,9 @@ class ExpressionContextTest {
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             List<Posting> postings = List.of(
-                    Posting.universal("get", CoreVocabulary.Get.IID),
-                    Posting.universal("on", PrepositionVocabulary.On.IID),
-                    Posting.universal("title", CoreVocabulary.Title.IID)
+                    testPosting("get", CoreVocabulary.Get.IID),
+                    testPosting("on", PrepositionVocabulary.On.IID),
+                    testPosting("title", CoreVocabulary.Title.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);
@@ -208,9 +227,9 @@ class ExpressionContextTest {
             assertThat(ctx.lastTokenIsPreposition()).isTrue();
 
             List<Posting> postings = List.of(
-                    Posting.universal("get", CoreVocabulary.Get.IID),
-                    Posting.universal("on", PrepositionVocabulary.On.IID),
-                    Posting.universal("title", CoreVocabulary.Title.IID)
+                    testPosting("get", CoreVocabulary.Get.IID),
+                    testPosting("on", PrepositionVocabulary.On.IID),
+                    testPosting("title", CoreVocabulary.Title.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);
@@ -229,7 +248,7 @@ class ExpressionContextTest {
 
             ItemID unknown = ItemID.random();
             List<Posting> postings = List.of(
-                    Posting.universal("unknown", unknown)
+                    testPosting("unknown", unknown)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);
@@ -244,8 +263,8 @@ class ExpressionContextTest {
             ExpressionContext ctx = ExpressionContext.analyze(tokens, resolver);
 
             List<Posting> postings = List.of(
-                    Posting.universal("title", CoreVocabulary.Title.IID),
-                    Posting.universal("author", CoreVocabulary.Author.IID)
+                    testPosting("title", CoreVocabulary.Title.IID),
+                    testPosting("author", CoreVocabulary.Author.IID)
             );
 
             List<Posting> filtered = ctx.filter(postings, resolver);

@@ -1,11 +1,19 @@
 package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.parse.ExpressionToken.*;
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +30,34 @@ import static org.assertj.core.api.Assertions.assertThat;
  * pruning converges to correct resolutions.
  */
 class ProgressiveDisambiguationTest {
+
+    private static Posting testPosting(String token, ItemID target) {
+        return testPosting(token, null, target, 1.0f);
+    }
+
+    private static Posting testPosting(String token, ItemID scope, ItemID target, float weight) {
+        List<FrameToken> quals = scope != null
+                ? List.of(new FrameKey.Sememe(scope)) : List.of();
+        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBody.homeBinding(target),
+                new Binding(ThematicRole.Name.IID, quals, Literal.ofText(token), true, true)
+        ));
+        return Posting.fromFrame(body, 1, weight);
+    }
+
+    /** Create a posting with a POS feature as a qualifier (scope + POS). */
+    private static Posting testPostingWithPOS(String token, ItemID target, ItemID posFeature) {
+        // POS goes at qualifier index 1+ so that features() returns it.
+        // Use a synthetic scope at index 0 so scope() doesn't swallow the POS.
+        List<FrameToken> quals = new ArrayList<>();
+        quals.add(new FrameKey.Sememe(Language.ENGLISH));
+        if (posFeature != null) quals.add(new FrameKey.Sememe(posFeature));
+        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBody.homeBinding(target),
+                new Binding(ThematicRole.Name.IID, quals, Literal.ofText(token), true, true)
+        ));
+        return Posting.fromFrame(body, 1, 1.0f);
+    }
 
     // ==================================================================================
     // Test IDs
@@ -50,8 +86,8 @@ class ProgressiveDisambiguationTest {
                     mockVerb(CREATE_IID), Set.of(), List.of(), false);
 
             List<Posting> candidates = List.of(
-                    Posting.universal("set", SET_VERB_IID, PartOfSpeech.VERB),
-                    Posting.universal("set", SET_NOUN_IID, PartOfSpeech.NOUN)
+                    testPostingWithPOS("set", SET_VERB_IID, PartOfSpeech.VERB),
+                    testPostingWithPOS("set", SET_NOUN_IID, PartOfSpeech.NOUN)
             );
 
             Function<ItemID, Optional<Item>> resolver = iid -> {
@@ -74,8 +110,8 @@ class ProgressiveDisambiguationTest {
                     mockVerb(CREATE_IID), Set.of(), List.of(), true);
 
             List<Posting> candidates = List.of(
-                    Posting.universal("on", ON_PREP_IID, PartOfSpeech.PREPOSITION),
-                    Posting.universal("on", NOUN_A_IID, PartOfSpeech.NOUN)
+                    testPostingWithPOS("on", ON_PREP_IID, PartOfSpeech.PREPOSITION),
+                    testPostingWithPOS("on", NOUN_A_IID, PartOfSpeech.NOUN)
             );
 
             Function<ItemID, Optional<Item>> resolver = iid -> {
@@ -99,18 +135,15 @@ class ProgressiveDisambiguationTest {
 
             ItemID forPrepIid = ItemID.random();
 
+            Posting forPrepPosting = testPostingWithPOS("for", forPrepIid, PartOfSpeech.PREPOSITION);
+            Posting forNounPosting = testPostingWithPOS("for", NOUN_A_IID, PartOfSpeech.NOUN);
+
             List<ExpressionToken> allTokens = List.of(
                     RefToken.of(ON_PREP_IID, "on"),
-                    new CandidateToken("for", List.of(
-                            Posting.universal("for", forPrepIid, PartOfSpeech.PREPOSITION),
-                            Posting.universal("for", NOUN_A_IID, PartOfSpeech.NOUN)
-                    ))
+                    new CandidateToken("for", List.of(forPrepPosting, forNounPosting))
             );
 
-            List<Posting> candidates = List.of(
-                    Posting.universal("for", forPrepIid, PartOfSpeech.PREPOSITION),
-                    Posting.universal("for", NOUN_A_IID, PartOfSpeech.NOUN)
-            );
+            List<Posting> candidates = List.of(forPrepPosting, forNounPosting);
 
             ItemID prepCandidateIid = candidates.get(0).target();
 
@@ -138,8 +171,8 @@ class ProgressiveDisambiguationTest {
                     false);
 
             List<Posting> candidates = List.of(
-                    Posting.universal("extra", NOUN_A_IID, PartOfSpeech.NOUN),
-                    Posting.universal("extra", NOUN_B_IID, PartOfSpeech.NOUN)
+                    testPostingWithPOS("extra", NOUN_A_IID, PartOfSpeech.NOUN),
+                    testPostingWithPOS("extra", NOUN_B_IID, PartOfSpeech.NOUN)
             );
 
             Function<ItemID, Optional<Item>> resolver = iid -> Optional.empty();
@@ -156,8 +189,8 @@ class ProgressiveDisambiguationTest {
             ExpressionContext ctx = ExpressionContext.EMPTY;
 
             List<Posting> candidates = List.of(
-                    Posting.universal("set", SET_VERB_IID),
-                    Posting.universal("set", SET_NOUN_IID)
+                    testPosting("set", SET_VERB_IID),
+                    testPosting("set", SET_NOUN_IID)
             );
 
             Function<ItemID, Optional<Item>> resolver = iid -> Optional.empty();
@@ -175,7 +208,7 @@ class ProgressiveDisambiguationTest {
                     mockVerb(CREATE_IID), Set.of(), List.of(), false);
 
             List<Posting> candidates = List.of(
-                    Posting.universal("unknown", ItemID.random())
+                    testPosting("unknown", ItemID.random())
             );
 
             // Resolver can't resolve
@@ -201,7 +234,7 @@ class ProgressiveDisambiguationTest {
             InputController input = InputController.builder()
                     .lookup(text -> {
                         if ("create".startsWith(text.toLowerCase())) {
-                            return List.of(Posting.universal("create", CREATE_IID));
+                            return List.of(testPosting("create", CREATE_IID));
                         }
                         return List.of();
                     })
@@ -223,8 +256,8 @@ class ProgressiveDisambiguationTest {
                     .lookup(text -> {
                         if ("set".startsWith(text.toLowerCase())) {
                             return List.of(
-                                    Posting.universal("set", SET_VERB_IID),
-                                    Posting.universal("set", SET_NOUN_IID)
+                                    testPosting("set", SET_VERB_IID),
+                                    testPosting("set", SET_NOUN_IID)
                             );
                         }
                         return List.of();
@@ -244,8 +277,8 @@ class ProgressiveDisambiguationTest {
         @Test
         void candidateTokenDisplayText() {
             CandidateToken candidate = new CandidateToken("set", List.of(
-                    Posting.universal("set", SET_VERB_IID),
-                    Posting.universal("set", SET_NOUN_IID)
+                    testPosting("set", SET_VERB_IID),
+                    testPosting("set", SET_NOUN_IID)
             ));
 
             assertThat(candidate.displayText()).isEqualTo("set");
@@ -265,8 +298,8 @@ class ProgressiveDisambiguationTest {
         void snapshotReportsUnresolvedCandidates() {
             InputSnapshot snap = new InputSnapshot(
                     List.of(new CandidateToken("set", List.of(
-                            Posting.universal("set", SET_VERB_IID),
-                            Posting.universal("set", SET_NOUN_IID)
+                            testPosting("set", SET_VERB_IID),
+                            testPosting("set", SET_NOUN_IID)
                     ))),
                     "", 0, List.of(), List.of(), -1, false,
                     "> ", "", null, -1

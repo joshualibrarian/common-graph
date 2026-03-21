@@ -1,16 +1,15 @@
 package dev.everydaythings.graph.dispatch;
 
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.EndorsementsTable;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Implements;
-
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.surface.VocabularySurface;
 
@@ -18,121 +17,74 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Collects and indexes available verbs for an item.
+ * An item's local vocabulary — derived from its frames at hydration time.
  *
- * <p>Vocabulary uses Sememe IDs for language-agnostic dispatch.
+ * <p>Two kinds of entries:
+ * <ul>
+ *   <li><b>Actions</b> — predicate dispatch entries from {@code @Verb} annotations.
+ *       Maps predicate IIDs to executable methods.</li>
+ *   <li><b>Local tokens</b> — indexed string bindings scanned from the item's
+ *       frames (endorsed + unendorsed). Bindings where {@code index == true}
+ *       and target is a string Literal.</li>
+ * </ul>
  *
- * <p>Lookup flow:
- * <pre>{@code
- * User types: "crear"  (Spanish for "create")
- *     ↓
- * TokenDictionary.lookup("crear")
- *     ↓
- * Returns: Posting(sememeId=cg.verb:create, ...)
- *     ↓
- * Vocabulary.lookup(cg.verb:create)
- *     ↓
- * Returns: VerbEntry(method=actionCreate, ...)
- *     ↓
- * Invoke: target.actionCreate(ctx)
- * }</pre>
+ * <p>Vocabulary is entirely <b>derived</b> — transient, rebuilt at hydration,
+ * not persisted. The frames are the source of truth.
  *
- * <p>Verbs are collected from two sources:
- * <ol>
- *   <li><b>Item verbs</b> - from {@code @Verb} on the item class</li>
- *   <li><b>Component verbs</b> - from {@code @Verb} on component classes</li>
- * </ol>
+ * <p>Drives the "help" command — shows what's available on this item.
  */
 @Implements(Vocabulary.KEY)
-@Canonical.Canonization
 @Scene(as = VocabularySurface.class)
-public class Vocabulary implements Canonical, Iterable<VerbEntry> {
+public class Vocabulary implements Iterable<VerbEntry> {
 
     public static final String KEY = "cg.sememe:vocabulary";
 
     // ==================================================================================
-    // Component Display
+    // Action Dispatch (from @Verb annotations)
     // ==================================================================================
 
-    public String emoji() {
-        return "📖";
-    }
+    /** Actions indexed by predicate Sememe ID. */
+    private transient final Map<ItemID, VerbEntry> actions = new LinkedHashMap<>();
 
-    public String displayToken() {
-        return "Vocabulary";
-    }
-
-    public boolean isExpandable() {
-        return !isEmpty();
-    }
-
-    public String colorCategory() {
-        return "vocabulary";
-    }
-
-    public String displaySubtitle() {
-        int count = size();
-        return count + " verb" + (count == 1 ? "" : "s");
-    }
-
-    // ==================================================================================
-    // Serialized Custom Layer
-    // ==================================================================================
-
-    /** Per-item verb aliases (e.g., "make" → CREATE). Serialized. */
-    @Canon(order = 0)
-    private List<VerbAlias> aliases = new ArrayList<>();
-
-    /** Per-item parameter presets. Serialized. */
-    @Canon(order = 1)
-    private List<VerbPreset> presets = new ArrayList<>();
-
-    // ==================================================================================
-    // Transient Runtime Index (rebuilt from annotations, NOT serialized)
-    // ==================================================================================
-
-    /** Verbs indexed by Sememe ID (primary index) */
-    private transient final Map<ItemID, VerbEntry> bySememeId = new LinkedHashMap<>();
-
-    /** Verbs indexed by component handle (for component verbs) */
+    /** Actions indexed by component handle (for component actions). */
     private transient final Map<String, List<VerbEntry>> byComponentHandle = new LinkedHashMap<>();
 
-    /** Expression macros: trigger token → expression string (rebuilt from EntryVocabulary). */
-    private transient final Map<String, String> expressions = new LinkedHashMap<>();
-
-    /** Local postings for component handles (transient, rebuilt from component entries). */
-    private transient final Map<String, Posting> localPostings = new LinkedHashMap<>();
-
     // ==================================================================================
-    // Add Methods
+    // Local Tokens (scanned from frames)
     // ==================================================================================
 
     /**
-     * Add a verb entry to the vocabulary.
+     * Local token index — normalized token text → frame-backed Posting.
      *
-     * @param entry The verb entry to add
-     * @throws IllegalArgumentException if a verb with the same Sememe ID already exists
+     * <p>Built by scanning all frames on the item for bindings where
+     * {@code index == true} and the target is a string Literal.
+     * When duplicate tokens exist, the latest (by insertion order) wins.
      */
+    private transient final Map<String, Posting> localTokens = new LinkedHashMap<>();
+
+    // ==================================================================================
+    // Action Registration
+    // ==================================================================================
+
     public void add(VerbEntry entry) {
         Objects.requireNonNull(entry, "entry");
         ItemID sememeId = entry.sememeId();
 
-        if (bySememeId.containsKey(sememeId)) {
-            VerbEntry existing = bySememeId.get(sememeId);
+        if (actions.containsKey(sememeId)) {
+            VerbEntry existing = actions.get(sememeId);
             if (existing.source() == entry.source()) {
-                // Same source — allow override (item can redefine a verb)
+                // Same source — allow override
             } else if (entry.source() == VerbSpec.VerbSource.COMPONENT) {
-                // Component verb overrides item verb — component specialization wins
+                // Component action overrides item action
             } else {
                 throw new IllegalArgumentException(
-                        "Duplicate verb sememe: " + sememeId + " (existing: " + existing.source() +
+                        "Duplicate action sememe: " + sememeId + " (existing: " + existing.source() +
                         ", new: " + entry.source() + ")");
             }
         }
 
-        bySememeId.put(sememeId, entry);
+        actions.put(sememeId, entry);
 
-        // Index by component handle if applicable
         if (entry.componentHandle() != null) {
             byComponentHandle
                     .computeIfAbsent(entry.componentHandle(), k -> new ArrayList<>())
@@ -140,9 +92,6 @@ public class Vocabulary implements Canonical, Iterable<VerbEntry> {
         }
     }
 
-    /**
-     * Add all verbs from a VerbSpec list (typically from ItemSchema).
-     */
     public void addAll(List<VerbSpec> specs, Item owner) {
         for (VerbSpec spec : specs) {
             add(VerbEntry.itemVerb(spec, owner));
@@ -150,273 +99,147 @@ public class Vocabulary implements Canonical, Iterable<VerbEntry> {
     }
 
     // ==================================================================================
-    // Lookup Methods
+    // Frame Scanning — builds local token index
     // ==================================================================================
 
     /**
-     * Look up a verb by its Sememe ID.
+     * Scan an item's frames and populate the local token index.
      *
-     * @param sememeId The Sememe ID to look up
-     * @return The verb entry, or empty if not found
+     * <p>Call this at hydration time after frames are decoded.
+     * Scans ALL frames (endorsed + unendorsed) for bindings where
+     * {@code index == true} and the target is a string Literal.
+     *
+     * @param frames the item's frames (endorsed + unendorsed)
      */
-    public Optional<VerbEntry> lookup(ItemID sememeId) {
-        return Optional.ofNullable(bySememeId.get(sememeId));
-    }
+    public void scanFrames(EndorsementsTable frames) {
+        localTokens.clear();
+        if (frames == null) return;
 
-    /**
-     * Look up a verb by a token (any language).
-     *
-     * <p>Resolution order:
-     * <ol>
-     *   <li>Local aliases (per-item custom mappings)</li>
-     *   <li>TokenDictionary (global sememe resolution)</li>
-     * </ol>
-     *
-     * @param token The token to look up (e.g., "create", "crear", "make")
-     * @param librarian The librarian providing TokenDictionary access
-     * @return The verb entry, or empty if not found
-     */
-    public Optional<VerbEntry> lookupToken(String token, Librarian librarian) {
-        if (token == null) {
-            return Optional.empty();
-        }
+        for (Frame frame : frames) {
+            FrameBody body = frame.body();
+            if (body == null) continue;
 
-        // 1. Check local aliases first
-        for (VerbAlias alias : aliases) {
-            if (alias.token().equalsIgnoreCase(token)) {
-                VerbEntry entry = bySememeId.get(alias.sememeId());
-                if (entry != null) return Optional.of(entry);
+            List<Binding> bindings = body.frameBindings();
+            for (int i = 0; i < bindings.size(); i++) {
+                Binding b = bindings.get(i);
+                if (!b.index()) continue;
+                if (!(b.target() instanceof Literal lit)) continue;
+                if (!Literal.TYPE_TEXT.equals(lit.valueType())) continue;
+
+                String text;
+                try {
+                    text = lit.asText();
+                } catch (Exception e) {
+                    continue;
+                }
+                if (text == null || text.isBlank()) continue;
+
+                String normalized = Posting.normalize(text);
+                localTokens.put(normalized, Posting.fromFrame(body, i, 1.0f));
             }
         }
-
-        // 2. Fall through to TokenDictionary
-        if (librarian == null) {
-            return Optional.empty();
-        }
-
-        var tokenDict = librarian.tokenIndex();
-        if (tokenDict == null) {
-            return Optional.empty();
-        }
-
-        // Find first posting that matches a verb in this vocabulary
-        return tokenDict.lookup(token)
-                .filter(posting -> bySememeId.containsKey(posting.target()))
-                .findFirst()
-                .map(posting -> bySememeId.get(posting.target()));
     }
 
-    /**
-     * Check if this vocabulary has a verb for the given Sememe.
-     */
+    // ==================================================================================
+    // Action Lookup
+    // ==================================================================================
+
+    public Optional<VerbEntry> lookup(ItemID sememeId) {
+        return Optional.ofNullable(actions.get(sememeId));
+    }
+
     public boolean hasVerb(ItemID sememeId) {
-        return bySememeId.containsKey(sememeId);
+        return actions.containsKey(sememeId);
     }
 
-    // ==================================================================================
-    // Filtering Methods
-    // ==================================================================================
-
-    /**
-     * Get all verbs in this vocabulary.
-     */
     public Stream<VerbEntry> all() {
-        return bySememeId.values().stream();
+        return actions.values().stream();
     }
 
-    /**
-     * Get all item-level verbs.
-     */
     public Stream<VerbEntry> itemVerbs() {
         return all().filter(v -> v.source() == VerbSpec.VerbSource.ITEM);
     }
 
-    /**
-     * Get all component-level verbs.
-     */
     public Stream<VerbEntry> componentVerbs() {
         return all().filter(v -> v.source() == VerbSpec.VerbSource.COMPONENT);
     }
 
-    /**
-     * Get verbs for a specific component.
-     */
     public Stream<VerbEntry> verbsFor(String componentHandle) {
         List<VerbEntry> entries = byComponentHandle.get(componentHandle);
         return entries != null ? entries.stream() : Stream.empty();
     }
 
     // ==================================================================================
-    // Utility Methods
+    // Local Token Lookup
     // ==================================================================================
 
-    @Override
-    public Iterator<VerbEntry> iterator() {
-        return bySememeId.values().iterator();
-    }
-
-    public int size() {
-        return bySememeId.size();
-    }
-
-    public boolean isEmpty() {
-        return bySememeId.isEmpty();
-    }
-
     /**
-     * Clear runtime verb maps (preserves custom layer: aliases and presets).
-     *
-     * <p>Called during vocabulary regeneration — annotation-derived verbs are
-     * rebuilt but user customizations survive.
+     * Exact match in local token index.
      */
-    public void clear() {
-        bySememeId.clear();
-        byComponentHandle.clear();
-        expressions.clear();
-        localPostings.clear();
-    }
-
-    /**
-     * Clear everything including the custom layer.
-     */
-    public void clearAll() {
-        clear();
-        aliases.clear();
-        presets.clear();
-    }
-
-    // ==================================================================================
-    // Custom Layer (Aliases & Presets)
-    // ==================================================================================
-
-    public List<VerbAlias> aliases() {
-        return Collections.unmodifiableList(aliases);
-    }
-
-    public List<VerbPreset> presets() {
-        return Collections.unmodifiableList(presets);
-    }
-
-    public void addAlias(String token, ItemID sememeId) {
-        Objects.requireNonNull(token, "token");
-        Objects.requireNonNull(sememeId, "sememeId");
-        // Remove existing alias for same token
-        aliases.removeIf(a -> a.token().equalsIgnoreCase(token));
-        aliases.add(new VerbAlias(token, sememeId));
-    }
-
-    public void removeAlias(String token) {
-        aliases.removeIf(a -> a.token().equalsIgnoreCase(token));
-    }
-
-    public void addPreset(VerbPreset preset) {
-        Objects.requireNonNull(preset, "preset");
-        presets.add(preset);
-    }
-
-    /**
-     * Register an expression macro (trigger token → expression string).
-     */
-    public void addExpression(String token, String expression) {
-        Objects.requireNonNull(token, "token");
-        Objects.requireNonNull(expression, "expression");
-        expressions.put(token.toLowerCase(), expression);
-    }
-
-    /**
-     * Look up an expression macro by trigger token.
-     */
-    public Optional<String> lookupExpression(String token) {
+    public Optional<Posting> resolveLocal(String token) {
         if (token == null) return Optional.empty();
-        return Optional.ofNullable(expressions.get(token.toLowerCase()));
+        return Optional.ofNullable(localTokens.get(Posting.normalize(token)));
     }
 
     /**
-     * Whether this vocabulary has any user customizations (aliases or presets).
-     */
-    public boolean hasCustomizations() {
-        return !aliases.isEmpty() || !presets.isEmpty();
-    }
-
-    // ==================================================================================
-    // Local Postings (component handles, transient)
-    // ==================================================================================
-
-    /**
-     * Register a local posting for a component handle.
-     *
-     * <p>These are transient entries rebuilt from component entries on the item.
-     * They provide completions and token resolution for handles like "x", "y",
-     * "chess" — anything added via {@code addComponent()}.
-     */
-    public void addLocalPosting(Posting posting) {
-        localPostings.put(posting.token().toLowerCase(), posting);
-    }
-
-    /**
-     * Remove a local posting by token.
-     */
-    public void removeLocalPosting(String token) {
-        localPostings.remove(token.toLowerCase());
-    }
-
-    /**
-     * Find local postings matching a prefix.
+     * Prefix match in local token index (for completions).
      */
     public List<Posting> prefixMatch(String prefix) {
-        String lower = prefix.toLowerCase();
-        return localPostings.entrySet().stream()
-                .filter(e -> e.getKey().startsWith(lower))
+        if (prefix == null) return List.of();
+        String normalized = Posting.normalize(prefix);
+        return localTokens.entrySet().stream()
+                .filter(e -> e.getKey().startsWith(normalized))
                 .map(Map.Entry::getValue)
                 .toList();
     }
 
-    /**
-     * Find exact local posting match.
-     */
-    public Optional<Posting> exactMatch(String token) {
-        return Optional.ofNullable(localPostings.get(token.toLowerCase()));
+    // ==================================================================================
+    // Utility
+    // ==================================================================================
+
+    @Override
+    public Iterator<VerbEntry> iterator() {
+        return actions.values().iterator();
+    }
+
+    public int size() {
+        return actions.size();
+    }
+
+    public boolean isEmpty() {
+        return actions.isEmpty();
+    }
+
+    public int localTokenCount() {
+        return localTokens.size();
+    }
+
+    public void clear() {
+        actions.clear();
+        byComponentHandle.clear();
+        localTokens.clear();
     }
 
     // ==================================================================================
-    // Merge Support
+    // Display
     // ==================================================================================
 
-    /**
-     * Merge two vocabularies into a new vocabulary.
-     *
-     * <p>The second vocabulary takes precedence on conflicts.
-     */
-    public static Vocabulary merge(Vocabulary base, Vocabulary overlay) {
-        Vocabulary merged = new Vocabulary();
+    public String emoji() { return "📖"; }
+    public String displayToken() { return "Vocabulary"; }
+    public boolean isExpandable() { return !isEmpty() || !localTokens.isEmpty(); }
+    public String colorCategory() { return "vocabulary"; }
 
-        if (base != null) {
-            for (VerbEntry entry : base) {
-                merged.add(entry);
-            }
-            merged.aliases.addAll(base.aliases);
-            merged.presets.addAll(base.presets);
+    public String displaySubtitle() {
+        int verbs = actions.size();
+        int tokens = localTokens.size();
+        if (tokens > 0) {
+            return verbs + " actions, " + tokens + " local tokens";
         }
-
-        if (overlay != null) {
-            for (VerbEntry entry : overlay) {
-                // Remove existing if any, then add
-                merged.bySememeId.remove(entry.sememeId());
-                merged.add(entry);
-            }
-            // Overlay aliases replace base aliases with same token
-            for (VerbAlias alias : overlay.aliases) {
-                merged.aliases.removeIf(a -> a.token().equalsIgnoreCase(alias.token()));
-                merged.aliases.add(alias);
-            }
-            merged.presets.addAll(overlay.presets);
-        }
-
-        return merged;
+        return verbs + " action" + (verbs == 1 ? "" : "s");
     }
 
     @Override
     public String toString() {
-        return "Vocabulary[" + size() + " verbs]";
+        return "Vocabulary[" + actions.size() + " actions, " + localTokens.size() + " local tokens]";
     }
 }

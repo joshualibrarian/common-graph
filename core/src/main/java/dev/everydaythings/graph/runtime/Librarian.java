@@ -2068,9 +2068,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Fall back: plain item with title
         Item newItem = Item.create(this);
         if (name != null && !name.isBlank()) {
-            newItem.relate(
-                    CoreVocabulary.Title.IID,
-                    Literal.ofText(name));
+            storeFrame(FrameBody.builder(CoreVocabulary.Title.IID)
+                    .bind(ThematicRole.Theme.IID, newItem.iid())
+                    .bind(ThematicRole.Name.IID, name)
+                    .build());
         }
         return newItem;
     }

@@ -167,13 +167,14 @@ public class ChessNotation extends Language {
      * tokens are left for the caller to handle.
      */
     @Override
-    public List<SemanticFrame> parse(
+    public ParseResult parse(
             List<Eval.ResolvedToken> tokens,
             String rawText,
             Function<ItemID, Optional<Item>> resolver,
             ToIntFunction<Sememe> headVerbScorer) {
 
         List<SemanticFrame> frames = new ArrayList<>();
+        List<Eval.ResolvedToken> unbound = new ArrayList<>();
 
         for (Eval.ResolvedToken token : tokens) {
             String text = tokenText(token);
@@ -188,12 +189,12 @@ public class ChessNotation extends Language {
             // Try to recognize as a chess move
             if (isChessMove(text)) {
                 frames.add(moveFrame(text));
+            } else {
+                unbound.add(token);
             }
-            // Unrecognized tokens are silently skipped — the caller
-            // (the evaluator) handles them via fallback
         }
 
-        return frames;
+        return new ParseResult(frames, unbound);
     }
 
     /**

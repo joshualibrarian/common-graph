@@ -353,23 +353,12 @@ public class Eval {
     }
 
     /**
-     * Look up an expression macro in the dispatch chain (context → session → librarian).
+     * Look up an expression macro in the dispatch chain.
+     *
+     * <p>TODO: Expression macros will be EXPRESSION frames with indexed NAME
+     * bindings, resolved via the Vocabulary scope stack. For now, returns empty.
      */
     private Optional<String> lookupExpressionInChain(String token) {
-        if (token == null) return Optional.empty();
-        if (context != null) {
-            var expr = context.vocabulary().lookupExpression(token);
-            if (expr.isPresent()) return expr;
-        }
-        if (session != null) {
-            var expr = session.vocabulary().lookupExpression(token);
-            if (expr.isPresent()) return expr;
-        }
-        Vocabulary libVocab = librarianHandle.vocabulary();
-        if (libVocab != null) {
-            var expr = libVocab.lookupExpression(token);
-            if (expr.isPresent()) return expr;
-        }
         return Optional.empty();
     }
 
@@ -748,27 +737,13 @@ public class Eval {
             language = librarianHandle.activeLanguage();
         }
 
-        List<SemanticFrame> frames = (language != null)
+        Language.ParseResult parseResult = (language != null)
                 ? language.parse(resolved, null, iid -> librarianHandle.get(iid), this::headVerbScore)
-                : FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore);
+                : new Language.ParseResult(
+                    FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore),
+                    List.of());
 
-        if (frames.isEmpty()) {
-            return evaluateWithoutVerb(resolved);
-        }
-
-        if (frames.size() == 1) {
-            return evaluateFrame(frames.getFirst());
-        }
-
-        // Multi-verb: execute sequentially
-        EvalResult lastResult = EvalResult.empty();
-        for (SemanticFrame frame : frames) {
-            lastResult = evaluateFrame(frame);
-            if (!lastResult.isSuccess()) {
-                return lastResult;
-            }
-        }
-        return lastResult;
+        return evaluateParseResult(parseResult);
     }
 
     /**
@@ -789,28 +764,13 @@ public class Eval {
 
         // Parse via the active language (delegates to FrameAssembler by default)
         Language activeLanguage = librarianHandle.activeLanguage();
-        List<SemanticFrame> frames = (activeLanguage != null)
+        Language.ParseResult parseResult = (activeLanguage != null)
                 ? activeLanguage.parse(resolved, null, iid -> librarianHandle.get(iid), this::headVerbScore)
-                : FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore);
+                : new Language.ParseResult(
+                    FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore),
+                    List.of());
 
-        if (frames.isEmpty()) {
-            // No verb found — fall back to navigation/literal handling
-            return evaluateWithoutVerb(resolved);
-        }
-
-        if (frames.size() == 1) {
-            return evaluateFrame(frames.get(0));
-        }
-
-        // Multi-verb: execute sequentially, threading results
-        EvalResult lastResult = EvalResult.empty();
-        for (SemanticFrame frame : frames) {
-            lastResult = evaluateFrame(frame);
-            if (!lastResult.isSuccess()) {
-                return lastResult; // stop on first error
-            }
-        }
-        return lastResult;
+        return evaluateParseResult(parseResult);
     }
 
     /**
@@ -851,22 +811,71 @@ public class Eval {
     }
 
     /**
-     * Handle expressions with no verb — navigate to item or return literal.
+     * Evaluate a ParseResult — the language-agnostic dispatch point.
+     *
+     * <p>Three states:
+     * <ul>
+     *   <li>Frames only → execute sequentially</li>
+     *   <li>Unbound only → query or navigate</li>
+     *   <li>Both → ambiguous, error</li>
+     * </ul>
      */
-    private EvalResult evaluateWithoutVerb(List<ResolvedToken> resolved) {
-        // Try to find a navigable item
-        for (ResolvedToken token : resolved) {
-            if (token instanceof ResolvedToken.Link link) {
-                Optional<Item> item = librarianHandle.get(link.iid());
-                if (item.isPresent()) {
-                    pushToHistory(item.get());
-                    return EvalResult.item(item.get());
-                }
-            }
+    private EvalResult evaluateParseResult(Language.ParseResult parseResult) {
+        if (parseResult.isAmbiguous()) {
+            return EvalResult.error("Ambiguous: some tokens couldn't be placed. "
+                    + "Use explicit language (\"as\", \"named\", \"and\") to clarify.");
         }
 
-        // Fall back to first token as literal or error
-        ResolvedToken first = resolved.get(0);
+        if (parseResult.hasFrames()) {
+            List<SemanticFrame> frames = parseResult.frames();
+            if (frames.size() == 1) {
+                return evaluateFrame(frames.getFirst());
+            }
+            EvalResult lastResult = EvalResult.empty();
+            for (SemanticFrame frame : frames) {
+                lastResult = evaluateFrame(frame);
+                if (!lastResult.isSuccess()) return lastResult;
+            }
+            return lastResult;
+        }
+
+        if (parseResult.hasUnbound()) {
+            return evaluateUnbound(parseResult.unbound());
+        }
+
+        return EvalResult.empty();
+    }
+
+    /**
+     * Handle unbound tokens — navigate, query, or return literal.
+     *
+     * <p>Single resolved item → navigate to it.
+     * Multiple resolved items → frame pattern query (intersection).
+     */
+    private EvalResult evaluateUnbound(List<ResolvedToken> resolved) {
+        // Any resolved items → query (single or multiple)
+        List<ResolvedToken.Link> links = resolved.stream()
+                .filter(t -> t instanceof ResolvedToken.Link)
+                .map(t -> (ResolvedToken.Link) t)
+                .toList();
+
+        if (!links.isEmpty()) {
+            Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                    ? local.librarian() : null;
+            if (librarian != null) {
+                QueryItem queryItem = new QueryItem(librarian, resolved);
+                Set<ItemID> results = queryItem.run();
+                List<Item> resultItems = results.stream()
+                        .map(id -> librarianHandle.get(id))
+                        .flatMap(Optional::stream)
+                        .toList();
+                return EvalResult.query(resultItems, queryItem.extractPattern());
+            }
+            return EvalResult.error("Query requires a local librarian");
+        }
+
+        // No resolved items — literal or error
+        ResolvedToken first = resolved.getFirst();
         if (first instanceof ResolvedToken.Unresolved u) {
             return EvalResult.error("Unknown: " + u.token());
         } else if (first instanceof ResolvedToken.Literal lit) {
@@ -1091,6 +1100,13 @@ public class Eval {
                 }
                 yield 1;
             }
+            case EvalResult.QueryResult(var items, var pattern) -> {
+                System.out.println("Query: " + items.size() + " results");
+                for (Item item : items) {
+                    System.out.println("  " + item.displayToken() + " (" + item.iid().encodeText() + ")");
+                }
+                yield 0;
+            }
         };
     }
 
@@ -1309,6 +1325,8 @@ public class Eval {
             public record UnresolvedToken(int index, String text,
                                           List<dev.everydaythings.graph.language.Posting> candidates) {}
         }
+        /** Bare nouns resolved as a frame pattern query — results are matching items. */
+        record QueryResult(List<Item> items, Set<ItemID> pattern) implements EvalResult {}
 
         static EvalResult empty() { return new Empty(); }
         static EvalResult value(Object v) { return new Value(v); }
@@ -1317,6 +1335,7 @@ public class Eval {
         static EvalResult valueWithTarget(Object v, Item t) { return new ValueWithTarget(v, t); }
         static EvalResult error(String msg) { return new Error(msg); }
         static EvalResult ambiguous(List<Ambiguous.UnresolvedToken> tokens) { return new Ambiguous(tokens); }
+        static EvalResult query(List<Item> items, Set<ItemID> pattern) { return new QueryResult(items, pattern); }
 
         default boolean isSuccess() {
             return !(this instanceof Error) && !(this instanceof Ambiguous);

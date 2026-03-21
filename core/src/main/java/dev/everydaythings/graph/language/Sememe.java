@@ -705,15 +705,21 @@ public class Sememe extends Item {
         // 1. Instantiate — try (Librarian) first, fall back to (Librarian, InMemoryMarker)
         Item newItem = instantiateItem(implClass, lib);
 
-        // 2. INSTANCE_OF relation: link instance to this sememe
-        newItem.relate(LexicalVocabulary.InstanceOf.IID, this);
+        // 2. INSTANCE_OF frame: link instance to this sememe
+        lib.storeFrame(FrameBody.builder(LexicalVocabulary.InstanceOf.IID)
+                .bind(ThematicRole.Theme.IID, newItem.iid())
+                .bind(ThematicRole.Goal.IID, this.iid())
+                .build());
 
-        // 3. Optional name — Signers get setName(), others get a TITLE relation
+        // 3. Optional name — Signers get setName(), others get a TITLE frame
         if (name != null && !name.isBlank()) {
             if (newItem instanceof Signer signer) {
                 signer.setName(name);
             } else {
-                newItem.relate(CoreVocabulary.Title.IID, Literal.ofText(name));
+                lib.storeFrame(FrameBody.builder(CoreVocabulary.Title.IID)
+                        .bind(ThematicRole.Theme.IID, newItem.iid())
+                        .bind(ThematicRole.Name.IID, name)
+                        .build());
             }
         }
 

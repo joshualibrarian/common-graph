@@ -791,7 +791,7 @@ public class InputController {
 
         // Check context item's local vocabulary first (component handles — highest priority)
         if (context != null) {
-            context.vocabulary().exactMatch(text).ifPresent(matches::add);
+            context.vocabulary().resolveLocal(text).ifPresent(matches::add);
         }
 
         // Check current completions
