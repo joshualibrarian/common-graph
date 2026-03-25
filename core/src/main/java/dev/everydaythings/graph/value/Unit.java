@@ -273,6 +273,15 @@ public class Unit extends Sememe {
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "px";
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "pixel";
     }
+    @Implements(DevicePixel.KEY) @ItemSeed(key = DevicePixel.KEY)
+    public static class DevicePixel extends Unit {
+        public static final String KEY = "cg.unit:dpx";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        DevicePixel() { super(KEY, "dpx", Map.of("en", "device pixel"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "device pixel";
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "dpx";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "device pixel";
+    }
     @Implements(Percent.KEY) @ItemSeed(key = Percent.KEY)
     public static class Percent extends Unit {
         public static final String KEY = "cg.unit:percent";
@@ -321,7 +330,7 @@ public class Unit extends Sememe {
                 new Second(), new Millisecond(), new Minute(), new Hour(),
                 new Kilogram(), new Gram(), new Pound(),
                 new MeterPerSecond(), new Newton(), new Joule(), new Watt(),
-                new CharacterWidth(), new LineHeight(), new Pixel(), new Percent(), new Fraction(), new Em(), new Rem()
+                new CharacterWidth(), new LineHeight(), new Pixel(), new DevicePixel(), new Percent(), new Fraction(), new Em(), new Rem()
         );
         static final Map<ItemID, Unit> BY_ID = buildById();
         private static Map<ItemID, Unit> buildById() {
@@ -339,6 +348,8 @@ public class Unit extends Sememe {
     /** Look up a seed unit by symbol (e.g., "em", "px", "m"). */
     public static Unit lookupBySymbol(String symbol) {
         if (symbol == null) return null;
+        // lpx is an explicit alias for px (logical pixel)
+        if ("lpx".equals(symbol)) symbol = "px";
         for (Unit u : Seeds.ALL) {
             if (symbol.equals(u.symbol())) return u;
         }

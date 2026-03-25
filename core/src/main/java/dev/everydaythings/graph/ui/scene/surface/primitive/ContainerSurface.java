@@ -47,46 +47,6 @@ public class ContainerSurface extends SurfaceSchema<Void> {
     protected String gap;
 
     /**
-     * Whether this container captures focus and handles its own navigation.
-     *
-     * <p>When true, the container is a single tab stop. Internal navigation
-     * (e.g., arrow keys in a tree or list) is handled by the container itself.
-     * Tab moves to the next focusable element outside this container.
-     *
-     * <p>Examples:
-     * <ul>
-     *   <li>Tree - arrow keys navigate nodes, tab exits</li>
-     *   <li>List - arrow keys navigate items, tab exits</li>
-     *   <li>Form - false (default), tab moves between fields</li>
-     * </ul>
-     */
-    @Canon(order = 12)
-    protected boolean capturesFocus = false;
-
-    /**
-     * Explicit width: "40ch", "200px", "20em".
-     */
-    @Canon(order = 13)
-    protected String boxWidth;
-
-    /**
-     * Explicit height: "10ln", "100px", "5em".
-     */
-    @Canon(order = 14)
-    protected String boxHeight;
-
-    /**
-     * Overflow behavior: "visible", "hidden", "scroll", or "auto".
-     *
-     * <p>"visible" (default) — content overflows, no clipping.
-     * "hidden" — content clipped at bounds.
-     * "scroll" — always show scrollbar.
-     * "auto" — scrollbar shown only when content overflows.
-     */
-    @Canon(order = 15)
-    protected String overflow;
-
-    /**
      * Child surfaces contained by this surface.
      */
     @Canon(order = 100)
@@ -126,9 +86,32 @@ public class ContainerSurface extends SurfaceSchema<Void> {
         return self();
     }
 
-    public <S extends ContainerSurface> S capturesFocus(boolean capturesFocus) {
+    @SuppressWarnings("unchecked")
+    @Override
+    public ContainerSurface width(String width) {
+        this.width = width;
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public ContainerSurface height(String height) {
+        this.height = height;
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public ContainerSurface overflow(String overflow) {
+        this.overflow = overflow;
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public ContainerSurface capturesFocus(boolean capturesFocus) {
         this.capturesFocus = capturesFocus;
-        return self();
+        return this;
     }
 
     public Scene.Direction direction() {
@@ -139,35 +122,20 @@ public class ContainerSurface extends SurfaceSchema<Void> {
         return gap;
     }
 
-    public boolean capturesFocus() {
-        return capturesFocus;
-    }
-
-    public <S extends ContainerSurface> S width(String width) {
-        this.boxWidth = width;
-        return self();
-    }
-
-    public <S extends ContainerSurface> S height(String height) {
-        this.boxHeight = height;
-        return self();
-    }
-
+    /**
+     * Bridge getter for callers that use the old boxWidth name.
+     * Delegates to the base class {@code width} field.
+     */
     public String boxWidth() {
-        return boxWidth;
+        return width;
     }
 
+    /**
+     * Bridge getter for callers that use the old boxHeight name.
+     * Delegates to the base class {@code height} field.
+     */
     public String boxHeight() {
-        return boxHeight;
-    }
-
-    public <S extends ContainerSurface> S overflow(String overflow) {
-        this.overflow = overflow;
-        return self();
-    }
-
-    public String overflow() {
-        return overflow;
+        return height;
     }
 
     // ==================== Children ====================
@@ -243,16 +211,16 @@ public class ContainerSurface extends SurfaceSchema<Void> {
         BoxBorder border = boxBorder();
         boolean hasVisualProps = (border != null && border.isVisible())
                 || (boxBackground != null && !boxBackground.isEmpty())
-                || (boxWidth != null && !boxWidth.isEmpty())
-                || (boxHeight != null && !boxHeight.isEmpty())
+                || (width != null && !width.isEmpty())
+                || (height != null && !height.isEmpty())
                 || (padding != null && !padding.isEmpty());
 
         if (hasVisualProps) {
             out.beginBox(direction, style(),
                     border != null ? border : BoxBorder.NONE,
                     boxBackground != null ? boxBackground : "",
-                    boxWidth != null ? boxWidth : "",
-                    boxHeight != null ? boxHeight : "",
+                    width != null ? width : "",
+                    height != null ? height : "",
                     padding != null ? padding : "");
         } else {
             out.beginBox(direction, style());

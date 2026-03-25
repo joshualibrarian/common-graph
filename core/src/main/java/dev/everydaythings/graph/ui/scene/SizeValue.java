@@ -39,7 +39,7 @@ public record SizeValue(double value, String unit) {
     public static final SizeValue AUTO = new SizeValue(0, "auto");
 
     private static final Pattern SIZE_PATTERN = Pattern.compile(
-            "^(-?\\d+(?:\\.\\d+)?)(px|em|ch|rem|ln|%|vw|vh|in|cm|mm|km|m|ft|pt)$", Pattern.CASE_INSENSITIVE);
+            "^(-?\\d+(?:\\.\\d+)?)(px|lpx|dpx|em|ch|rem|ln|%|vw|vh|in|cm|mm|km|m|ft|pt)$", Pattern.CASE_INSENSITIVE);
 
     /** True if this is an auto-sized value (shrink-to-content). */
     public boolean isAuto() { return "auto".equals(unit); }
@@ -85,6 +85,8 @@ public record SizeValue(double value, String unit) {
         if (m.matches()) {
             double val = Double.parseDouble(m.group(1));
             String unit = m.group(2).toLowerCase();
+            // Normalize lpx → px (lpx is an explicit alias for logical pixel)
+            if ("lpx".equals(unit)) unit = "px";
             return new SizeValue(val, unit);
         }
         return null;

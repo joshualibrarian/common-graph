@@ -15,6 +15,7 @@ import dev.everydaythings.graph.ui.filament.*;
 import dev.everydaythings.graph.ui.scene.AnimationState;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
+import dev.everydaythings.graph.ui.scene.node.NodeRenderer;
 import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.ui.scene.surface.item.ItemModel;
 import dev.everydaythings.graph.ui.scene.surface.item.ViewSurface;
@@ -109,6 +110,7 @@ public class ViewWindow {
     // ==================== Per-Window UI State ====================
 
     private ItemModel itemModel;
+    private dev.everydaythings.graph.ui.scene.surface.item.ItemView itemView;
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
     private final dev.everydaythings.graph.ui.skia.ScrollState scrollState =
@@ -189,10 +191,18 @@ public class ViewWindow {
 
         stage.show();
 
-        // Create per-window ItemModel
+        // Create per-window ItemModel (legacy) and ItemView (new chrome)
         Ref targetRef = Ref.of(viewHandle.target());
         itemModel = new ItemModel(targetRef, iid -> session.resolveItem(iid));
         itemModel.setRenderInputInSurface(true);
+
+        // Create ItemView wrapping the target item
+        Optional<Item> viewTargetItem = session.resolveItem(viewHandle.target());
+        if (viewTargetItem.isPresent()) {
+            itemView = new dev.everydaythings.graph.ui.scene.surface.item.ItemView(
+                    viewTargetItem.get(), iid -> session.resolveItem(iid));
+            itemView.setRenderInputInSurface(true);
+        }
 
         // Create per-window InputController
         initializeInputController();
@@ -445,16 +455,14 @@ public class ViewWindow {
 
     /**
      * Build the surface tree for this window's viewed item.
+     *
+     * <p>Uses ItemModel's full ConstraintSurface layout (header, tree, detail, prompt).
+     * The tree visibility and detail content are controlled by ItemModel's toggle state.
      */
     public SurfaceSchema toSurface() {
+        if (itemView != null) return itemView.toSurface();
         if (itemModel == null) return null;
-        Optional<Item> item = contextItem();
-        if (item.isEmpty()) return itemModel.toSurface();
-
-        SurfaceSchema<?> content = itemModel.contentSurface();
-        SurfaceSchema<?> prompt = itemModel.prompt();
-        ViewConfig config = viewHandle.config();
-        return ViewSurface.of(item.get(), content, prompt, config);
+        return itemModel.toSurface();
     }
 
     private Optional<Item> contextItem() {
@@ -470,9 +478,6 @@ public class ViewWindow {
         if (itemModel == null) return;
 
         try {
-            SurfaceSchema surface = toSurface();
-            if (surface == null) return;
-
             boolean filamentSkiaFallback = rendererType == ViewConfig.RendererType.FILAMENT
                     && uiPane != null
                     && uiPane.painter() instanceof SkiaSurfacePainter;
@@ -513,7 +518,17 @@ public class ViewWindow {
                     .baseFontSize(baseFontSize)
                     .build();
             SkiaSurfaceRenderer renderer = new SkiaSurfaceRenderer(ctx);
-            surface.render(renderer);
+
+            // Node path: ItemView produces Node trees rendered via NodeRenderer
+            if (itemView != null) {
+                NodeRenderer.render(itemView.toNode(), renderer);
+            } else {
+                // Legacy path: SurfaceSchema from ItemModel
+                SurfaceSchema surface = itemModel.toSurface();
+                if (surface == null) return;
+                surface.render(renderer);
+            }
+
             LayoutNode.BoxNode tree = renderer.result();
 
             LayoutEngine.TextMeasurer measurer = useMsdf ? msdfFontManager : shared.fontCache();
@@ -541,15 +556,7 @@ public class ViewWindow {
     // ==================== Input ====================
 
     private void handleKeyChord(KeyChord chord) {
-        // F1 → inspect mode, F2 → presentation mode
-        if (chord.isKey(SpecialKey.F1)) {
-            setViewMode(ViewConfig.ViewMode.INSPECT);
-            return;
-        }
-        if (chord.isKey(SpecialKey.F2)) {
-            setViewMode(ViewConfig.ViewMode.PRESENTATION);
-            return;
-        }
+        // F1-F4 handled by ItemModel toggle actions (help, mounts, frames, versions)
 
         // Completion navigation takes priority when popup is visible
         if (inputController != null
@@ -559,6 +566,13 @@ public class ViewWindow {
                     || chord.isKey(SpecialKey.TAB) || chord.isKey(SpecialKey.ENTER)
                     || chord.isKey(SpecialKey.ESCAPE))) {
             dispatchToInput(chord);
+            rebuildLayout();
+            requestRepaint();
+            return;
+        }
+
+        // ItemView handles F1-F4 toggles and tree navigation
+        if (itemView != null && itemView.handleKey(chord)) {
             rebuildLayout();
             requestRepaint();
             return;
@@ -607,7 +621,10 @@ public class ViewWindow {
         float y = (float) (cursorY * dpi);
         LayoutNode.PendingEvent hit = LayoutNode.hitTest(lastLayoutRoot, x, y, eventType);
         if (hit == null) return;
-        if (itemModel != null && itemModel.handleEvent(hit.action(), hit.target())) {
+        boolean handled = false;
+        if (itemView != null) handled = itemView.handleEvent(hit.action(), hit.target());
+        if (!handled && itemModel != null) handled = itemModel.handleEvent(hit.action(), hit.target());
+        if (handled) {
             sceneDirty = true;
             rebuildLayout();
             requestRepaint();
@@ -741,15 +758,15 @@ public class ViewWindow {
                 .prompt(session.buildPrompt())
                 .hint("")
                 .onChange(snapshot -> {
-                    if (itemModel != null) itemModel.updateInput(snapshot);
+                    if (itemView != null) itemView.updateInput(snapshot);
+                    else if (itemModel != null) itemModel.updateInput(snapshot);
                     rebuildLayout();
                     requestRepaint();
                 })
                 .onNavigate(item -> {
-                    if (itemModel != null) {
-                        session.navigateInto(item);
-                        itemModel.navigateInto(item);
-                    }
+                    session.navigateInto(item);
+                    if (itemView != null) itemView.navigateInto(item);
+                    else if (itemModel != null) itemModel.navigateInto(item);
                     rebuildLayout();
                     requestRepaint();
                 })

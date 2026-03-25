@@ -3,6 +3,7 @@ package dev.everydaythings.graph.ui.scene.surface;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.ui.scene.BoxBorder;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
+import dev.everydaythings.graph.ui.scene.SceneIcon;
 import dev.everydaythings.graph.ui.scene.ViewNode;
 import dev.everydaythings.graph.ui.scene.SceneEvent;
 
@@ -208,6 +209,72 @@ public abstract class SurfaceSchema<T> implements Canonical {
     protected String boxBackground;
 
     /**
+     * Explicit width: "40ch", "200px", "20em".
+     */
+    @Canon(order = 16)
+    protected String width;
+
+    /**
+     * Explicit height: "10ln", "100px", "5em".
+     */
+    @Canon(order = 17)
+    protected String height;
+
+    /**
+     * Border corner radius: "0.25em", "50%".
+     */
+    @Canon(order = 18)
+    protected String corner;
+
+    /**
+     * Overflow behavior: "visible", "hidden", "scroll", "auto".
+     */
+    @Canon(order = 19)
+    protected String overflow;
+
+    /**
+     * Font weight: "normal", "bold", "light".
+     */
+    @Canon(order = 20)
+    protected String fontWeight;
+
+    /**
+     * Text/foreground color: "#89B4FA", "red".
+     */
+    @Canon(order = 21)
+    protected String foreground;
+
+    /**
+     * Opacity: "dim", "bright", "0.5".
+     */
+    @Canon(order = 22)
+    protected String opacity;
+
+    /**
+     * Rotation in degrees: "90", "180".
+     */
+    @Canon(order = 23)
+    protected String rotation;
+
+    /**
+     * Cursor style: "pointer", "default", "text".
+     */
+    @Canon(order = 24)
+    protected String cursorStyle;
+
+    /**
+     * Whether this element captures focus for internal navigation.
+     */
+    @Canon(order = 25)
+    protected boolean capturesFocus = false;
+
+    /**
+     * Icon — multi-fidelity visual identity.
+     */
+    @Canon(order = 26)
+    protected SceneIcon sceneIcon;
+
+    /**
      * Binding expression that controls visibility dynamically.
      *
      * <p>When set, the expression is evaluated against the root value at render time.
@@ -361,6 +428,66 @@ public abstract class SurfaceSchema<T> implements Canonical {
         return self();
     }
 
+    public <S extends SurfaceSchema<?>> S width(String width) {
+        this.width = width;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S height(String height) {
+        this.height = height;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S corner(String corner) {
+        this.corner = corner;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S overflow(String overflow) {
+        this.overflow = overflow;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S fontWeight(String fontWeight) {
+        this.fontWeight = fontWeight;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S foreground(String foreground) {
+        this.foreground = foreground;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S opacity(String opacity) {
+        this.opacity = opacity;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S rotation(String rotation) {
+        this.rotation = rotation;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S cursorStyle(String cursorStyle) {
+        this.cursorStyle = cursorStyle;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S capturesFocus(boolean capturesFocus) {
+        this.capturesFocus = capturesFocus;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S sceneIcon(SceneIcon sceneIcon) {
+        this.sceneIcon = sceneIcon;
+        return self();
+    }
+
+    public <S extends SurfaceSchema<?>> S sceneIcon(String glyph) {
+        this.sceneIcon = SceneIcon.ofGlyph(glyph);
+        return self();
+    }
+
     public <S extends SurfaceSchema<?>> S scaleX(double scaleX) {
         this.scaleX = scaleX;
         return self();
@@ -494,6 +621,50 @@ public abstract class SurfaceSchema<T> implements Canonical {
 
     public String fontSize() {
         return fontSize;
+    }
+
+    public String width() {
+        return width;
+    }
+
+    public String height() {
+        return height;
+    }
+
+    public String corner() {
+        return corner;
+    }
+
+    public String overflow() {
+        return overflow;
+    }
+
+    public String fontWeight() {
+        return fontWeight;
+    }
+
+    public String foreground() {
+        return foreground;
+    }
+
+    public String opacity() {
+        return opacity;
+    }
+
+    public String rotation() {
+        return rotation;
+    }
+
+    public String cursorStyle() {
+        return cursorStyle;
+    }
+
+    public boolean capturesFocus() {
+        return capturesFocus;
+    }
+
+    public SceneIcon sceneIcon() {
+        return sceneIcon;
     }
 
     // ===== Rendering =====

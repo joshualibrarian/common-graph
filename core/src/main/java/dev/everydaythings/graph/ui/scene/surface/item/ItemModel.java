@@ -112,12 +112,28 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     private TreeLink.ChildMode structureMode = TreeLink.ChildMode.PRESENTATION;
 
     /**
-     * Left tree-pane mode.
+     * Which tree is showing, or null if tree is hidden.
      *
-     * <p>Unlike structure mode, vocabulary/config modes are metadata views that do not
-     * change context selection targets.
+     * <p>F2/F3/F4 toggle: press to show, press again to hide.
+     * Pressing a different key switches the tree view.
      */
-    private TreePaneMode treePaneMode = TreePaneMode.PRESENTATION;
+    private TreeView activeTreeView = TreeView.MOUNTS;
+
+
+    /**
+     * Whether the help/vocabulary overlay is showing in the detail panel.
+     * F1 toggles. Independent of which tree is showing.
+     */
+    private boolean helpVisible = false;
+
+    /**
+     * The three tree views available via F2/F3/F4.
+     */
+    public enum TreeView {
+        MOUNTS,     // F2 — presentation mount paths
+        FRAMES,     // F3 — all frames on the item
+        VERSIONS    // F4 — version chain
+    }
 
     /**
      * View mode — presentation (author's scene) or inspect (developer view).
@@ -179,23 +195,14 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     @Canon(order = 30)
     private List<TreeModeSpec> treeModes;
 
-    private enum TreePaneMode {
-        PRESENTATION,
-        INSPECT,
-        VOCABULARY,
-        CONFIG
-    }
-
     @Getter
     public static final class TreeModeSpec implements dev.everydaythings.graph.Canonical {
-        @Canon(order = 0) private TreePaneMode mode;
-        @Canon(order = 1) private SpecialKey hotkey;
-        @Canon(order = 2) private String glyph;
-        @Canon(order = 3) private String action;
-        @Canon(order = 4) private String hint;
+        @Canon(order = 0) private SpecialKey hotkey;
+        @Canon(order = 1) private String glyph;
+        @Canon(order = 2) private String action;
+        @Canon(order = 3) private String hint;
 
-        public TreeModeSpec(TreePaneMode mode, SpecialKey hotkey, String glyph, String action, String hint) {
-            this.mode = mode;
+        public TreeModeSpec(SpecialKey hotkey, String glyph, String action, String hint) {
             this.hotkey = hotkey;
             this.glyph = glyph;
             this.action = action;
@@ -277,10 +284,10 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
 
     private static List<TreeModeSpec> defaultTreeModes() {
         return List.of(
-                new TreeModeSpec(TreePaneMode.VOCABULARY, SpecialKey.F1, "📖", "treeMode:vocabulary", "F1 Vocabulary tree"),
-                new TreeModeSpec(TreePaneMode.PRESENTATION, SpecialKey.F2, "🗂", "treeMode:presentation", "F2 Mount tree"),
-                new TreeModeSpec(TreePaneMode.CONFIG, SpecialKey.F3, "⚙", "treeMode:config", "F3 Config tree"),
-                new TreeModeSpec(TreePaneMode.INSPECT, SpecialKey.F4, "🔍", "treeMode:inspect", "F4 Inspect tree")
+                new TreeModeSpec(SpecialKey.F1, "📖", "toggle:help", "F1 Help"),
+                new TreeModeSpec(SpecialKey.F2, "🗂", "toggle:mounts", "F2 Mounts"),
+                new TreeModeSpec(SpecialKey.F3, "📋", "toggle:frames", "F3 Frames"),
+                new TreeModeSpec(SpecialKey.F4, "📜", "toggle:versions", "F4 Versions")
         );
     }
 
@@ -293,12 +300,12 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * PRESENTATION shows path-mount children; INSPECT shows raw components.
      */
     public void toggleMode() {
-        structureMode = (structureMode == TreeLink.ChildMode.PRESENTATION)
-                ? TreeLink.ChildMode.INSPECT
-                : TreeLink.ChildMode.PRESENTATION;
-        treePaneMode = structureMode == TreeLink.ChildMode.PRESENTATION
-                ? TreePaneMode.PRESENTATION
-                : TreePaneMode.INSPECT;
+        // Toggle between mounts tree and no tree
+        if (activeTreeView == TreeView.MOUNTS) {
+            activeTreeView = null;
+        } else {
+            activeTreeView = TreeView.MOUNTS;
+        }
         rebuildTree();
         changed();
     }
@@ -308,18 +315,6 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      */
     public TreeLink.ChildMode viewMode() {
         return structureMode;
-    }
-
-    private void setTreePaneMode(TreePaneMode mode) {
-        if (mode == null || mode == treePaneMode) return;
-        treePaneMode = mode;
-        if (mode == TreePaneMode.PRESENTATION) {
-            structureMode = TreeLink.ChildMode.PRESENTATION;
-        } else if (mode == TreePaneMode.INSPECT) {
-            structureMode = TreeLink.ChildMode.INSPECT;
-        }
-        rebuildTree();
-        changed();
     }
 
     // ==================== Layout Regions (via methods) ====================
@@ -393,11 +388,11 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     )
     @Scene.Border(all = "0.5em solid #6ABF69", radius = "0.2ch")
     public SurfaceSchema tree() {
+        if (activeTreeView == null) return null;  // tree hidden
+
         ContainerSurface panel = ContainerSurface.vertical().gap("0.25em").style("tree-pane");
         panel.add(buildTreeModeBar());
-        if (treePaneMode == TreePaneMode.CONFIG && configPanel != null) {
-            panel.add(configPanel);
-        } else if (treeModel != null) {
+        if (treeModel != null) {
             panel.add(treeModel.toSurface());
         }
         return panel;
@@ -442,6 +437,49 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * Get the current inspect sub-mode (FRAMES or VERSIONS).
      */
     public ViewConfig.InspectMode currentInspectMode() { return currentInspectMode; }
+
+    /**
+     * Toggle the F1 help overlay in the detail panel.
+     */
+    public void toggleHelp() {
+        helpVisible = !helpVisible;
+        changed();
+    }
+
+    /**
+     * Whether the help overlay is showing.
+     */
+    public boolean helpVisible() {
+        return helpVisible;
+    }
+
+    /**
+     * Toggle a tree view. If already showing this view, hide the tree.
+     * If showing a different view or hidden, show this view.
+     */
+    public void toggleTreeView(TreeView view) {
+        if (activeTreeView == view) {
+            activeTreeView = null;  // hide tree
+        } else {
+            activeTreeView = view;  // show this tree
+        }
+        rebuildTree();
+        changed();
+    }
+
+    /**
+     * Whether the tree is currently visible.
+     */
+    public boolean treeVisible() {
+        return activeTreeView != null;
+    }
+
+    /**
+     * Which tree view is active (null if hidden).
+     */
+    public TreeView activeTreeView() {
+        return activeTreeView;
+    }
 
     /**
      * Set the view mode (PRESENTATION or INSPECT).
@@ -512,6 +550,11 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         Optional<Item> resolved = resolver.apply(context.target());
         if (resolved.isEmpty()) return null;
         Item item = resolved.get();
+
+        // F1 help overlay — shows vocabulary for current context
+        if (helpVisible) {
+            return HelpSurface.of(item, null, item.itemLibrarian());
+        }
 
         if (currentViewMode == ViewConfig.ViewMode.INSPECT) {
             return InspectSurface.of(item, currentInspectMode);
@@ -918,58 +961,74 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
      * the context (detail pane + prompt).
      */
     private void rebuildTree() {
-        if (treePaneMode == TreePaneMode.PRESENTATION || treePaneMode == TreePaneMode.INSPECT) {
-            TreeLink.ChildMode mode = treePaneMode == TreePaneMode.PRESENTATION
-                    ? TreeLink.ChildMode.PRESENTATION
-                    : TreeLink.ChildMode.INSPECT;
-            TreeLink rootTreeLink = TreeLink.of(root, mode, resolver);
-            treeModel = TreeModel.<TreeLink>builder(rootTreeLink)
-                    .children(TreeLink::children)
-                    .label(TreeLink::displayToken)
-                    .iconSurface(link -> {
-                        ImageSurface icon;
-                        String resource = link.iconResource();
-                        if (resource != null) {
-                            icon = ImageSurface.ofResource(resource, link.emoji());
-                        } else {
-                            icon = ImageSurface.of(link.emoji());
-                        }
-                        int tint = link.typeColorArgb();
-                        if (tint != 0) {
-                            icon.color(tint);
-                        }
-                        return icon.size("medium").circle().backgroundColor("#3C3C4E");
-                    })
-                    .expandable(TreeLink::isExpandable)
-                    .id(TreeLink::treeId)
-                    .showRoot(false)
-                    .build();
-            treeModel.onChange(() -> {
-                @SuppressWarnings("unchecked")
-                TreeModel<TreeLink> navTree = (TreeModel<TreeLink>) treeModel;
-                TreeLink selected = navTree.getSelected();
-                if (selected != null) {
-                    select(selected.target());
-                }
-            });
+        configPanel = null;
+
+        if (activeTreeView == null) {
+            // Tree hidden
+            treeModel = null;
             return;
         }
 
+        switch (activeTreeView) {
+            case MOUNTS -> buildMountsTree();
+            case FRAMES -> buildFramesTree();
+            case VERSIONS -> buildVersionsTree();
+        }
+    }
+
+    private void buildMountsTree() {
+        TreeLink rootTreeLink = TreeLink.of(root, TreeLink.ChildMode.PRESENTATION, resolver);
+        treeModel = TreeModel.<TreeLink>builder(rootTreeLink)
+                .children(TreeLink::children)
+                .label(TreeLink::displayToken)
+                .iconSurface(link -> {
+                    ImageSurface icon;
+                    String resource = link.iconResource();
+                    if (resource != null) {
+                        icon = ImageSurface.ofResource(resource, link.emoji());
+                    } else {
+                        icon = ImageSurface.of(link.emoji());
+                    }
+                    int tint = link.typeColorArgb();
+                    if (tint != 0) {
+                        icon.color(tint);
+                    }
+                    return icon.size("medium").circle().backgroundColor("#3C3C4E");
+                })
+                .expandable(TreeLink::isExpandable)
+                .id(TreeLink::treeId)
+                .showRoot(false)
+                .build();
+        treeModel.onChange(() -> {
+            @SuppressWarnings("unchecked")
+            TreeModel<TreeLink> navTree = (TreeModel<TreeLink>) treeModel;
+            TreeLink selected = navTree.getSelected();
+            if (selected != null) {
+                select(selected.target());
+            }
+        });
+    }
+
+    private void buildFramesTree() {
         Optional<Item> focused = resolver.apply(context.target());
         if (focused.isEmpty()) {
             treeModel = null;
-            configPanel = null;
             return;
         }
+        treeModel = buildVocabularyTree(focused.get());
+        treeModel.onChange(this::changed);
+    }
 
-        if (treePaneMode == TreePaneMode.CONFIG) {
+    private void buildVersionsTree() {
+        // TODO: build a tree of versions (VID chain)
+        // For now, show frames as a placeholder
+        Optional<Item> focused = resolver.apply(context.target());
+        if (focused.isEmpty()) {
             treeModel = null;
-            configPanel = buildConfigPanel(focused.get());
-        } else {
-            configPanel = null;
-            treeModel = buildVocabularyTree(focused.get());
-            treeModel.onChange(this::changed);
+            return;
         }
+        treeModel = buildVocabularyTree(focused.get());
+        treeModel.onChange(this::changed);
     }
 
     /**
@@ -1071,8 +1130,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
     public boolean handleKey(KeyChord chord) {
         for (TreeModeSpec mode : treeModes()) {
             if (mode.hotkey() != null && chord.isKey(mode.hotkey())) {
-                setTreePaneMode(mode.mode());
-                return true;
+                return handleEvent(mode.action(), null);
             }
         }
 
@@ -1101,7 +1159,7 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
             // Alt+Enter → navigate into selected
             if (chord.alt()
                     && chord.isKey(SpecialKey.ENTER)
-                    && (treePaneMode == TreePaneMode.PRESENTATION || treePaneMode == TreePaneMode.INSPECT)) {
+                    && activeTreeView == TreeView.MOUNTS) {
                 @SuppressWarnings("unchecked")
                 TreeModel<TreeLink> navTree = (TreeModel<TreeLink>) treeModel;
                 TreeLink sel = navTree.getSelected();
@@ -1127,13 +1185,13 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
         if ("viewClose".equals(action)) {
             return goBack();
         }
-        if (action != null && action.startsWith("treeMode:")) {
-            String mode = action.substring("treeMode:".length());
-            switch (mode) {
-                case "presentation" -> setTreePaneMode(TreePaneMode.PRESENTATION);
-                case "inspect" -> setTreePaneMode(TreePaneMode.INSPECT);
-                case "vocabulary" -> setTreePaneMode(TreePaneMode.VOCABULARY);
-                case "config" -> setTreePaneMode(TreePaneMode.CONFIG);
+        if (action != null && action.startsWith("toggle:")) {
+            String toggle = action.substring("toggle:".length());
+            switch (toggle) {
+                case "help" -> toggleHelp();
+                case "mounts" -> toggleTreeView(TreeView.MOUNTS);
+                case "frames" -> toggleTreeView(TreeView.FRAMES);
+                case "versions" -> toggleTreeView(TreeView.VERSIONS);
                 default -> { return false; }
             }
             return true;
@@ -1249,7 +1307,14 @@ public class ItemModel extends SceneModel<SurfaceSchema> {
                 .style("tree-mode-bar");
 
         for (TreeModeSpec mode : treeModes()) {
-            modeBar.add(modeButton(mode.glyph(), mode.action(), treePaneMode == mode.mode(), mode.hint()));
+            boolean active = switch (mode.action()) {
+                case "toggle:help" -> helpVisible;
+                case "toggle:mounts" -> activeTreeView == TreeView.MOUNTS;
+                case "toggle:frames" -> activeTreeView == TreeView.FRAMES;
+                case "toggle:versions" -> activeTreeView == TreeView.VERSIONS;
+                default -> false;
+            };
+            modeBar.add(modeButton(mode.glyph(), mode.action(), active, mode.hint()));
         }
         if (treeModeHint != null && !treeModeHint.isBlank()) {
             modeBar.add(TextSurface.of("  " + treeModeHint).style("muted"));

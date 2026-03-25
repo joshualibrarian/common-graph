@@ -119,16 +119,7 @@ public final class DisplayResolver {
             }
         }
 
-        // 2) Implementation class annotations (works even without hydrated type item)
-        Optional<Class<?>> implClass = findImplementation(item, typeId);
-        if (implClass.isPresent()) {
-            Class<?> cls = implClass.get();
-            Implements impl = cls.getAnnotation(Implements.class);
-            if (impl != null && !"D83DDCE6".isEmpty()) {
-                return "D83DDCE6";
-            }
-        }
-
+        // TODO: resolve glyph from SceneIcon on the type's scene frame
         return null;
     }
 
@@ -147,10 +138,7 @@ public final class DisplayResolver {
         if (payload instanceof Value value) {
             return value.emoji();
         }
-        Implements impl = payload.getClass().getAnnotation(Implements.class);
-        if (impl != null && !"D83DDCE6".isEmpty()) {
-            return "D83DDCE6";
-        }
+        // TODO: resolve glyph from SceneIcon on the type's scene frame
         return "\uD83D\uDCE6";
     }
 
@@ -488,12 +476,7 @@ public final class DisplayResolver {
             return typeSurface.glyph();
         }
 
-        // Fall back to @Implements annotation glyph
-        Implements implAnno = item.getClass().getAnnotation(Implements.class);
-        if (implAnno != null && !"D83DDCE6".isEmpty()) {
-            return "D83DDCE6";
-        }
-
+        // TODO: resolve glyph from SceneIcon on the type's scene frame
         return "\uD83D\uDCE6";  // Default item glyph
     }
 
