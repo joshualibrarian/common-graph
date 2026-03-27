@@ -117,8 +117,8 @@ import picocli.CommandLine.Mixin;
  *     // Fetch an item
  *     Optional<MyItem> item = lib.get(someIid, MyItem.class);
  *
- *     // Query frames
- *     lib.framesFrom(themeIid).forEach(body -> ...);
+ *     // Query frames via Library
+ *     lib.library().byItem(someIid).forEach(body -> ...);
  * }
  * }</pre>
  */
@@ -1411,29 +1411,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         }
     }
 
-    /**
-     * Find frame bodies where the given item is the theme.
-     */
-    public List<FrameBody> framesFrom(ItemID theme) {
-        // TODO: Query index
-        return List.of();
-    }
-
-    /**
-     * Find frame bodies where the given item appears in a binding.
-     */
-    public List<FrameBody> framesTo(ItemID target) {
-        // TODO: Query index
-        return List.of();
-    }
-
-    /**
-     * Find frame bodies with a specific predicate.
-     */
-    public List<FrameBody> framesWithPredicate(ItemID predicate) {
-        // TODO: Query index
-        return List.of();
-    }
 
     // ==================================================================================
     // Content Operations

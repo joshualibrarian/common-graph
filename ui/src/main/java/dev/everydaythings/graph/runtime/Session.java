@@ -1190,9 +1190,17 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 // Ambiguity is shown in the input field via InputController's error state.
                 logger.debug("Ambiguous input: {} unresolved tokens", ambiguous.tokens().size());
             }
-            case Eval.EvalResult.QueryResult(var items, var pattern) -> {
-                logger.info("Query returned {} results", items.size());
-                // TODO: present query results in the UI
+            case Eval.EvalResult.QueryResult(var queryItem, var items, var pattern) -> {
+                System.err.println("[QUERY] Session received QueryResult: " + items.size() + " items");
+                liveItemCache.put(queryItem.iid(), queryItem);
+                // Open a view for the QueryItem (like actionView does)
+                var key = openView(queryItem.iid());
+                navigateInto(queryItem);
+                if (itemView != null) {
+                    var vh = findView(queryItem.iid());
+                    if (vh != null) itemView.setActiveView(vh);
+                }
+                onViewOpened(key);
             }
         }
     }

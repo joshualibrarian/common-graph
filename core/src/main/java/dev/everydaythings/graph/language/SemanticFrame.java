@@ -4,10 +4,11 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * The assembled result of semantic parsing — a predicate with its role bindings.
@@ -40,26 +41,71 @@ public record SemanticFrame(
         List<ResolvedToken> unmatchedArgs,
         List<ItemID> unboundRoles
 ) {
+    private static final String QUERY_PREFIX = "cg.query:";
+
     /**
-     * Whether all argument slots have been filled.
+     * Whether all argument slots have been filled with concrete values.
+     *
+     * <p>A role bound to a query quantifier (e.g. {@link Sememe.Every}) is
+     * NOT considered filled — it signals "find all values for this role."
      */
     public boolean isComplete() {
-        return unboundRoles.isEmpty();
+        if (!unboundRoles.isEmpty()) return false;
+        // Check that no binding is a query quantifier
+        for (Object value : bindings.values()) {
+            if (isQueryQuantifier(value)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether this frame represents a query — either because roles are
+     * unbound, or because a binding is a query quantifier like "all" or "any".
+     */
+    public boolean isQuery() {
+        return !isComplete();
+    }
+
+    /**
+     * Return a view of this frame with query quantifiers removed from bindings
+     * and their roles added to unboundRoles. Used by the query engine to know
+     * which roles to extract results from.
+     */
+    public SemanticFrame forQuery() {
+        Map<ItemID, Object> concreteBindings = new LinkedHashMap<>();
+        List<ItemID> effectiveUnbound = new ArrayList<>(unboundRoles);
+
+        for (var entry : bindings.entrySet()) {
+            if (isQueryQuantifier(entry.getValue())) {
+                effectiveUnbound.add(entry.getKey());
+            } else {
+                concreteBindings.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return new SemanticFrame(verb, concreteBindings, modifiers, unmatchedArgs, effectiveUnbound);
     }
 
     /**
      * Get the value bound to a specific role (Item or literal).
      */
-    public Optional<Object> binding(ItemID role) {
-        return Optional.ofNullable(bindings.get(role));
+    public java.util.Optional<Object> binding(ItemID role) {
+        return java.util.Optional.ofNullable(bindings.get(role));
     }
 
     /**
      * Get the Item bound to a specific role, if it is an Item.
      */
-    public Optional<Item> itemBinding(ItemID role) {
+    public java.util.Optional<Item> itemBinding(ItemID role) {
         Object value = bindings.get(role);
-        return value instanceof Item item ? Optional.of(item) : Optional.empty();
+        return value instanceof Item item ? java.util.Optional.of(item) : java.util.Optional.empty();
+    }
+
+    private static boolean isQueryQuantifier(Object value) {
+        if (value instanceof Sememe s && s.canonicalKey() != null) {
+            return s.canonicalKey().startsWith(QUERY_PREFIX);
+        }
+        return false;
     }
 
     /**

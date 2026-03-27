@@ -576,6 +576,27 @@ public class Sememe extends Item {
         }
     }
 
+    @Implements(Every.KEY)
+    @ItemSeed(key = Every.KEY)
+    public static class Every extends Sememe {
+        public static final String KEY = "cg.query:every";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        Every() {
+            super(KEY);
+            gloss(ENG, "universal quantifier; all items of a kind");
+            cili("i74328");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "all");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "every");
+            word(PartOfSpeech.PRONOUN, LEMMA, ENG, "everything");
+        }
+
+        @Override
+        public ParseContribution contribute(ParseContext context) {
+            return ParseContribution.structural(ParseContribution.StructuralRole.PRONOUN);
+        }
+    }
+
     @Implements(It.KEY)
     @ItemSeed(key = It.KEY)
     public static class It extends Sememe {

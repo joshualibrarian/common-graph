@@ -959,6 +959,28 @@ public class Item {
         // Local vocabulary registration will be handled by Vocabulary frame scanning
     }
 
+    /**
+     * Endorse a frame body on this item — adds it to the endorsements table
+     * and stores it in the Library.
+     *
+     * <p>The frame body is stored in the Library for indexing and persistence,
+     * and also added to this item's EndorsementsTable so it appears in
+     * {@link #frames()}.
+     *
+     * @param body the frame body to endorse
+     */
+    public void endorseFrame(FrameBody body) {
+        Objects.requireNonNull(body, "body");
+
+        // Store in Library (indexing + persistence)
+        if (librarian != null) {
+            librarian.storeFrame(body);
+        }
+
+        // Add to local EndorsementsTable
+        frames().add(dev.everydaythings.graph.frame.Frame.fromBody(body));
+    }
+
 
     // ==================================================================================
     // Verb Dispatch

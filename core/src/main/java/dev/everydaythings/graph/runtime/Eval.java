@@ -828,6 +828,7 @@ public class Eval {
 
         if (parseResult.hasFrames()) {
             List<SemanticFrame> frames = parseResult.frames();
+            System.err.println("[QUERY] parseResult has " + frames.size() + " frames");
             if (frames.size() == 1) {
                 return evaluateFrame(frames.getFirst());
             }
@@ -840,9 +841,11 @@ public class Eval {
         }
 
         if (parseResult.hasUnbound()) {
+            System.err.println("[QUERY] parseResult has unbound tokens: " + parseResult.unbound().size());
             return evaluateUnbound(parseResult.unbound());
         }
 
+        System.err.println("[QUERY] parseResult is empty — no frames, no unbound");
         return EvalResult.empty();
     }
 
@@ -864,12 +867,14 @@ public class Eval {
                     ? local.librarian() : null;
             if (librarian != null) {
                 QueryItem queryItem = new QueryItem(librarian, resolved);
-                Set<ItemID> results = queryItem.run();
-                List<Item> resultItems = results.stream()
+                Set<ItemID> resultIds = queryItem.run();
+                System.err.println("[QUERY] unbound query returned " + resultIds.size() + " results for pattern " + queryItem.extractPattern());
+                List<Item> resultItems = resultIds.stream()
                         .map(id -> librarianHandle.get(id))
                         .flatMap(Optional::stream)
                         .toList();
-                return EvalResult.query(resultItems, queryItem.extractPattern());
+                queryItem.resultItems(resultItems);
+                return EvalResult.query(queryItem, resultItems, queryItem.extractPattern());
             }
             return EvalResult.error("Query requires a local librarian");
         }
@@ -908,11 +913,25 @@ public class Eval {
                 frame.verb().displayToken(), verbId.encodeText(),
                 frame.bindings().keySet(), frame.unmatchedArgs());
 
+        // Incomplete frame: action verb → dispatch (verb handles defaults),
+        // data predicate → query (find items matching the pattern).
+        // Action verbs live in the cg.verb: or cg.session: namespace.
+        if (!frame.isComplete()) {
+            String key = frame.verb().canonicalKey();
+            boolean isActionVerb = key != null
+                    && (key.startsWith("cg.verb:") || key.startsWith("cg.session:"));
+            System.err.println("[QUERY] incomplete frame. verb=" + key + " isAction=" + isActionVerb);
+            if (!isActionVerb) {
+                return evaluateStructuredQuery(frame);
+            }
+        }
+
         // Find the dispatch target via inner-to-outer scope search
         Item target = findDispatchTarget(verbId, frame);
 
         // Verb alone with no bindings and no context → navigate to verb sememe
         if (target == null) {
+            System.err.println("[QUERY] no dispatch target found, returning item result");
             return EvalResult.item(frame.verb());
         }
 
@@ -936,6 +955,88 @@ public class Eval {
             logger.debug("Frame evaluation failed: {}", e.getMessage());
             return EvalResult.error(e.getMessage());
         }
+    }
+
+    /**
+     * Check if any scope in the vocabulary chain has an executable verb for this ID.
+     *
+     * <p>Searches the same scopes as {@link #findDispatchTarget} but without
+     * the "last resort" fallback. Returns true only if a real {@code @Verb}
+     * method exists somewhere in the dispatch chain.
+     */
+    private boolean hasExecutableVerb(ItemID verbId, SemanticFrame frame) {
+        // Focused component
+        if (focusedComponent != null && context != null) {
+            if (context.vocabulary().verbsFor(focusedComponent)
+                    .anyMatch(v -> v.sememeId().equals(verbId))) {
+                return true;
+            }
+        }
+
+        // Bound items
+        for (var entry : frame.bindings().entrySet()) {
+            if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
+            if (!(entry.getValue() instanceof Item item)) continue;
+            if (item.vocabulary().lookup(verbId).isPresent()) return true;
+        }
+
+        // Context, session, librarian
+        if (context != null && context.vocabulary().lookup(verbId).isPresent()) return true;
+        if (session != null && session.vocabulary().lookup(verbId).isPresent()) return true;
+        Vocabulary lv = librarianHandle.vocabulary();
+        if (lv != null && lv.lookup(verbId).isPresent()) return true;
+
+        return false;
+    }
+
+    /**
+     * Execute an incomplete frame as a structured query.
+     *
+     * <p>Creates a {@link QueryItem} from the semantic frame, runs it against
+     * the library indexes, and returns the matched items.
+     */
+    private EvalResult evaluateStructuredQuery(SemanticFrame frame) {
+        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                ? local.librarian() : null;
+        if (librarian == null) {
+            return EvalResult.error("Query requires a local librarian");
+        }
+
+        // Normalize: move query quantifier bindings (all, any) to unbound roles
+        SemanticFrame queryFrame = frame.forQuery();
+
+        logger.debug("evaluateStructuredQuery: predicate={}, bindings={}, unboundRoles={}",
+                queryFrame.verb().displayToken(), queryFrame.bindings().keySet(), queryFrame.unboundRoles());
+
+        // If no bindings are filled, the predicate alone isn't a structural query —
+        // fall back to unstructured intersection using the predicate as a search term.
+        // "chess" → queryItems({chess.iid}), not byPredicate(chess.iid).
+        // Structured queries only help when there's at least one filled role
+        // (e.g., "authored by tolkien" → AUTHORED with AGENT=tolkien).
+        if (queryFrame.bindings().isEmpty()) {
+            System.err.println("[QUERY] no bindings → unstructured fallback. term=" +
+                    queryFrame.verb().iid().encodeText());
+            List<Eval.ResolvedToken> terms = List.of(
+                    new ResolvedToken.Link(queryFrame.verb().iid(), queryFrame.verb().displayToken()));
+            QueryItem queryItem = new QueryItem(librarian, terms);
+            Set<ItemID> resultIds = queryItem.run();
+            System.err.println("[QUERY] structured→unstructured returned " + resultIds.size() + " results");
+            List<Item> resultItems = resultIds.stream()
+                    .map(id -> librarianHandle.get(id))
+                    .flatMap(Optional::stream)
+                    .toList();
+            queryItem.resultItems(resultItems);
+            return EvalResult.query(queryItem, resultItems, queryItem.extractPattern());
+        }
+
+        QueryItem queryItem = new QueryItem(librarian, queryFrame);
+        Set<ItemID> resultIds = queryItem.run();
+        List<Item> resultItems = resultIds.stream()
+                .map(id -> librarianHandle.get(id))
+                .flatMap(Optional::stream)
+                .toList();
+        queryItem.resultItems(resultItems);
+        return EvalResult.query(queryItem, resultItems, queryItem.extractPattern());
     }
 
     /**
@@ -1100,7 +1201,7 @@ public class Eval {
                 }
                 yield 1;
             }
-            case EvalResult.QueryResult(var items, var pattern) -> {
+            case EvalResult.QueryResult(var queryItem, var items, var pattern) -> {
                 System.out.println("Query: " + items.size() + " results");
                 for (Item item : items) {
                     System.out.println("  " + item.displayToken() + " (" + item.iid().encodeText() + ")");
@@ -1325,8 +1426,8 @@ public class Eval {
             public record UnresolvedToken(int index, String text,
                                           List<dev.everydaythings.graph.language.Posting> candidates) {}
         }
-        /** Bare nouns resolved as a frame pattern query — results are matching items. */
-        record QueryResult(List<Item> items, Set<ItemID> pattern) implements EvalResult {}
+        /** Query results — an incomplete frame pattern matched against the library. */
+        record QueryResult(QueryItem queryItem, List<Item> items, Set<ItemID> pattern) implements EvalResult {}
 
         static EvalResult empty() { return new Empty(); }
         static EvalResult value(Object v) { return new Value(v); }
@@ -1335,7 +1436,7 @@ public class Eval {
         static EvalResult valueWithTarget(Object v, Item t) { return new ValueWithTarget(v, t); }
         static EvalResult error(String msg) { return new Error(msg); }
         static EvalResult ambiguous(List<Ambiguous.UnresolvedToken> tokens) { return new Ambiguous(tokens); }
-        static EvalResult query(List<Item> items, Set<ItemID> pattern) { return new QueryResult(items, pattern); }
+        static EvalResult query(QueryItem qi, List<Item> items, Set<ItemID> pattern) { return new QueryResult(qi, items, pattern); }
 
         default boolean isSuccess() {
             return !(this instanceof Error) && !(this instanceof Ambiguous);

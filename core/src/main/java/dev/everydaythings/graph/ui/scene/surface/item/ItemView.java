@@ -58,8 +58,22 @@ public class ItemView {
         if (ctx == null) return Text.of("");
         Container h = Container.horizontal().gap("0.5em");
         h.add(glyph(ctx.emoji() != null ? ctx.emoji() : ""));
-        h.add(Text.ofSememe(ctx.iid()));
+        h.add(Text.ofSememe(typeIdOf(ctx)));
         return h;
+    }
+
+    /**
+     * Get the type's sememe IID for an item — the IID that has lexemes registered.
+     *
+     * <p>For seed items (sememes, types), returns the item's own IID.
+     * For instances, returns the type's IID via {@code @Implements}.
+     */
+    static ItemID typeIdOf(Item item) {
+        try {
+            return Item.idOf(item.getClass());
+        } catch (IllegalArgumentException e) {
+            return item.iid();
+        }
     }
 
     // ==================================================================================
@@ -79,7 +93,7 @@ public class ItemView {
             icon.background("#3C3C4E");
             icon.corner("50%");
             identity.add(icon);
-            identity.add(Text.ofSememe(ctx.iid()).fontWeight("bold"));
+            identity.add(Text.ofSememe(typeIdOf(ctx)).fontWeight("bold"));
         }
         h.add(identity);
         h.add(Text.of("").classes("spacer"));

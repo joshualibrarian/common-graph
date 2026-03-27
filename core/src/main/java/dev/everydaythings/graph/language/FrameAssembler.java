@@ -513,8 +513,12 @@ public class FrameAssembler {
     /**
      * Static priors for selecting dispatch heads.
      *
-     * <p>Relational/type-link predicates should usually bind as arguments (THEME)
-     * to an action verb (e.g. "find implemented-by"), not become the head action.
+     * <p>Action verbs ({@code cg.verb:}) are strongly preferred as heads.
+     * Data predicates ({@code cg.predicate:}) can become heads for query
+     * assembly but score below action verbs so that "find authored-by alice"
+     * picks {@code find}, while "authored by alice" (no action verb) picks
+     * {@code authored}. Relational/type-link predicates are deprioritized
+     * further — they usually bind as arguments (THEME).
      */
     private static int baseHeadScore(Sememe verb) {
         int score = 0;
@@ -523,11 +527,16 @@ public class FrameAssembler {
             if (key.startsWith("cg.rel:") || key.startsWith("cg.type:")) {
                 score -= 200;
             }
+            if (key.startsWith("cg.predicate:")) {
+                // Data predicates: below action verbs, above relations.
+                // Can become head for queries when no action verb is present.
+                score -= 50;
+            }
             if (key.startsWith("cg.verb:") || key.startsWith("cg.session:")) {
                 score += 25;
             }
         }
-        // Verbs with explicit argument frames are typically command heads.
+        // Sememes with explicit argument slots are more likely command/query heads.
         score += Math.min(verb.slotRoles().size(), 4) * 10;
         return score;
     }

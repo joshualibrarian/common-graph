@@ -152,7 +152,7 @@ public final class CoreVocabulary {
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"list", "enumerate", "all", "tail", "latest"};
+        static final String[] words = {"list", "enumerate", "tail", "latest"};
     }
 
     @ItemSeed(key = Import.KEY, slots = {ThematicRole.Source.KEY})
