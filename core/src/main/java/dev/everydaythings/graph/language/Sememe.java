@@ -746,7 +746,7 @@ public class Sememe extends Item {
 
         // 4. Commit + cache so it's stored and indexed
         ctx.callerSigner().ifPresent(newItem::commit);
-        lib.library().cache(newItem);
+        lib.put(newItem);
 
         // 5. Return Created marker so dispatch pipeline knows this was creation
         return new Created(newItem, this);

@@ -14,7 +14,7 @@ class TokenIndexDebugTest {
     @Test
     void createVerbIsIndexable() {
         Librarian lib = Librarian.createInMemory();
-        var cached = lib.library().getCached(ItemID.fromString(CoreVocabulary.Create.KEY));
+        var cached = lib.get(ItemID.fromString(CoreVocabulary.Create.KEY));
         System.out.println("Create cached: " + cached.isPresent());
         if (cached.isPresent()) {
             Item item = cached.get();

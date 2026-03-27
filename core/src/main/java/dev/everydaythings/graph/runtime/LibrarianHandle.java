@@ -164,6 +164,11 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
     // ==================================================================================
 
     /**
+     * Store an item — cache it so {@link #get} can find it.
+     */
+    void put(Item item);
+
+    /**
      * Get an item by ID.
      */
     <T extends Item> Optional<T> get(ItemID iid, Class<T> type);

@@ -446,64 +446,6 @@ public final class Library implements Canonical, AutoCloseable {
     // Item Cache
     // ==================================================================================
 
-    /**
-     * Get the item cache, if caching is enabled.
-     *
-     * <p>The cache holds already-instantiated Items by IID. This avoids
-     * re-hydration for frequently accessed items and keeps seed items live.
-     *
-     * @return The cache map, or empty if caching is disabled
-     */
-    public Optional<Map<ItemID, Item>> itemCache() {
-        return Optional.of(DefaultCache.INSTANCE);
-    }
-
-    /**
-     * Cache an item.
-     *
-     * <p>Adds the item to the cache if caching is enabled.
-     *
-     * @param item The item to cache
-     */
-    public void cache(Item item) {
-        itemCache().ifPresent(cache -> cache.put(item.iid(), item));
-    }
-
-    /**
-     * Get an item from the cache only (no hydration).
-     *
-     * @param iid The item ID
-     * @return The cached item, or empty if not cached
-     */
-    public Optional<Item> getCached(ItemID iid) {
-        return itemCache().map(cache -> cache.get(iid));
-    }
-
-    /**
-     * Remove an item from the cache.
-     *
-     * @param iid The item ID to remove
-     */
-    public void uncache(ItemID iid) {
-        itemCache().ifPresent(cache -> cache.remove(iid));
-    }
-
-    /**
-     * Clear the entire cache.
-     */
-    public void clearCache() {
-        itemCache().ifPresent(Map::clear);
-    }
-
-    /**
-     * Default shared cache for Library implementations.
-     * Using a class holder for lazy initialization.
-     */
-    private static final class DefaultCache {
-        static final Map<ItemID, Item> INSTANCE = new ConcurrentHashMap<>();
-        private DefaultCache() {}
-    }
-
     // ==================================================================================
     // Store API - Store AND Index together
     // ==================================================================================
@@ -690,23 +632,24 @@ public final class Library implements Canonical, AutoCloseable {
             });
         }
 
-        // 4. Index tokens from cached items' frames (NAME bindings → Postings)
-        indexCachedItemFrames();
+        // 4. Token indexing from cached items is now done by the Librarian
+        //    after bootstrap via indexItemFrames(items).
     }
 
     /**
-     * Index tokens from all cached items' frames.
+     * Index tokens from the given items' frames.
      *
-     * <p>Iterates all items in the cache, extracts NAME-binding postings
-     * from their live Frame objects, and indexes them in the TokenDictionary.
+     * <p>Extracts NAME-binding postings from each item's live Frame objects
+     * and indexes them in the TokenDictionary.
+     *
+     * @param items the items whose frames should be indexed
      */
-    public void indexCachedItemFrames() {
+    public void indexItemFrames(Collection<Item> items) {
         tokenDictionary().ifPresent(tokenDict -> {
-            var cache = itemCache().orElse(null);
-            if (cache == null || cache.isEmpty()) return;
+            if (items == null || items.isEmpty()) return;
 
             // Ensure frame bodies are in the object store (needed for body-hash resolution)
-            for (Item item : cache.values()) {
+            for (Item item : items) {
                 if (item.frames() != null) {
                     for (var frame : item.frames()) {
                         if (frame.body() != null) {
@@ -720,7 +663,7 @@ public final class Library implements Canonical, AutoCloseable {
                 int count = 0;
                 int totalFrames = 0;
                 int framesWithBody = 0;
-                for (Item item : cache.values()) {
+                for (Item item : items) {
                     for (Posting p : TokenExtractor.fromItemFrames(item)) {
                         tokenDict.index(p, tx);
                         count++;
@@ -735,8 +678,8 @@ public final class Library implements Canonical, AutoCloseable {
                         }
                     }
                 }
-                logger.info("Indexed {} token postings from {} cached items ({} frames, {} with body)",
-                    count, cache.size(), totalFrames, framesWithBody);
+                logger.info("Indexed {} token postings from {} items ({} frames, {} with body)",
+                    count, items.size(), totalFrames, framesWithBody);
             });
         });
     }
@@ -937,7 +880,7 @@ public final class Library implements Canonical, AutoCloseable {
      *
      * <p>The process:
      * <ol>
-     *   <li>Check cache for already-instantiated item</li>
+     *   <li>Check directory for item location</li>
      *   <li>Check directory for fast location lookup</li>
      *   <li>Look up VID from index using IID</li>
      *   <li>Retrieve manifest bytes from store using VID</li>
@@ -951,12 +894,6 @@ public final class Library implements Canonical, AutoCloseable {
      * @return The hydrated item, or empty if not found
      */
     public Optional<Item> get(ItemID iid) {
-        // Fast path: check cache first
-        Optional<Item> cached = getCached(iid);
-        if (cached.isPresent()) {
-            return cached;
-        }
-
         // If directory exists, check if item is known
         Optional<ItemDirectory> dir = directory();
         if (dir.isPresent()) {
@@ -1009,7 +946,7 @@ public final class Library implements Canonical, AutoCloseable {
                     itemClass.getDeclaredConstructor(Librarian.class, Manifest.class);
             ctor.setAccessible(true);
             Item item = ctor.newInstance(librarian, manifest);
-            cache(item);  // Cache for future lookups
+            // Caching is handled by the Librarian
             return Optional.of(item);
         } catch (NoSuchMethodException e) {
             // Try base Item as fallback
@@ -1019,7 +956,7 @@ public final class Library implements Canonical, AutoCloseable {
                             Item.class.getDeclaredConstructor(Librarian.class, Manifest.class);
                     baseCtor.setAccessible(true);
                     Item item = baseCtor.newInstance(librarian, manifest);
-                    cache(item);  // Cache for future lookups
+                    // Caching is handled by the Librarian
                     return Optional.of(item);
                 } catch (Exception e2) {
                     // Fall through

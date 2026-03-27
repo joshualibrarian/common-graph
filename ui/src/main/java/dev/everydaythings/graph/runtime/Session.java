@@ -182,6 +182,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Without this, Librarian.get() creates fresh instances from
      * stored manifests, losing runtime modifications.
      */
+    @Deprecated // Being removed — use librarian.put() / librarian.get() instead
     private final Map<ItemID, Item> liveItemCache = new HashMap<>();
 
     private static final ItemID EXIT_SEMEME_ID = ItemID.fromString(CoreVocabulary.Exit.KEY);
@@ -531,13 +532,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (existing != null) return existing.frameKey();
 
         // Create a new ITEM_VIEW frame
-        FrameKey key = FrameKey.of(ITEM_VIEW_SEMEME_ID, target.encodeText());
+        FrameKey key = FrameKey.of(ViewVocabulary.ItemView.IID, target.encodeText());
 
-        FrameBody body = new FrameBody(ITEM_VIEW_SEMEME_ID, List.of(
+        FrameBody body = new FrameBody(ViewVocabulary.ItemView.IID, List.of(
                 Binding.ref(ThematicRole.Theme.IID, target)
         ));
         dev.everydaythings.graph.frame.Frame frame =
-                new dev.everydaythings.graph.frame.Frame(key, ITEM_VIEW_SEMEME_ID, body, null, false);
+                new dev.everydaythings.graph.frame.Frame(key, ViewVocabulary.ItemView.IID, body, null, false);
         frames().add(frame);
 
         // Store default ViewConfig as live instance on the frame
@@ -566,7 +567,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     public ViewHandle findView(ItemID target) {
         for (dev.everydaythings.graph.frame.Frame frame : frames()) {
-            if (ITEM_VIEW_SEMEME_ID.equals(frame.type()) && frame.body() != null) {
+            if (ViewVocabulary.ItemView.IID.equals(frame.type()) && frame.body() != null) {
                 ItemID themeId = frame.body().homeId();
                 if (target.equals(themeId)) {
                     ViewConfig config = frame.instance() instanceof ViewConfig vc
@@ -586,7 +587,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     public List<ViewHandle> openViews() {
         List<ViewHandle> views = new java.util.ArrayList<>();
         for (dev.everydaythings.graph.frame.Frame frame : frames()) {
-            if (ITEM_VIEW_SEMEME_ID.equals(frame.type()) && frame.body() != null) {
+            if (ViewVocabulary.ItemView.IID.equals(frame.type()) && frame.body() != null) {
                 ItemID themeId = frame.body().homeId();
                 if (themeId != null) {
                     ViewConfig config = frame.instance() instanceof ViewConfig vc
@@ -622,8 +623,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             frame.setInstance(config);
         }
     }
-
-    private static final ItemID ITEM_VIEW_SEMEME_ID = ItemID.fromString(ViewVocabulary.ItemView.KEY);
 
     // ==================================================================================
     // Display Layout Management (DISPLAY_LAYOUT frames on this session)
@@ -798,6 +797,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             // Default context is the session itself (you are always somewhere)
             context = Ref.of(iid());
             liveItemCache.put(iid(), this);
+            if (librarian != null) librarian.put(this);
         }
 
         // Cache the principal so resolveItem() can find it
@@ -812,7 +812,10 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     private void cachePrincipal() {
         if (librarian != null) {
-            librarian.principal().ifPresent(p -> liveItemCache.put(p.iid(), p));
+            librarian.principal().ifPresent(p -> {
+                liveItemCache.put(p.iid(), p);
+                librarian.put(p);
+            });
         }
     }
 
@@ -1038,11 +1041,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     public Optional<Item> resolveItem(ItemID iid) {
-        Item cached = liveItemCache.get(iid);
-        if (cached != null) return Optional.of(cached);
-        Optional<Item> resolved = librarian.get(iid);
-        resolved.ifPresent(item -> liveItemCache.put(iid, item));
-        return resolved;
+        return librarian.get(iid);
     }
 
     /**
@@ -1082,7 +1081,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     public void navigateInto(Item item) {
         if (item != null) {
-            liveItemCache.put(item.iid(), item);
+            librarian.put(item);
             navigateInto(Ref.of(item.iid()));
         }
     }
@@ -1160,7 +1159,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             case Eval.EvalResult.Created(Item item, Sememe type) -> {
                 // Item was created — don't navigate the current view.
                 // Cache it and refresh the tree so it's visible.
-                liveItemCache.put(item.iid(), item);
+                librarian.put(item);
 
                 // Instances are discoverable via frame queries from their type sememe
 
@@ -1191,8 +1190,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 logger.debug("Ambiguous input: {} unresolved tokens", ambiguous.tokens().size());
             }
             case Eval.EvalResult.QueryResult(var queryItem, var items, var pattern) -> {
-                System.err.println("[QUERY] Session received QueryResult: " + items.size() + " items");
-                liveItemCache.put(queryItem.iid(), queryItem);
+                librarian.put(queryItem);
                 // Open a view for the QueryItem (like actionView does)
                 var key = openView(queryItem.iid());
                 navigateInto(queryItem);
@@ -1266,8 +1264,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     protected void addComponentToItem(Object component, Item target) {
         // Use cached instance if available to preserve prior modifications
-        Item actual = liveItemCache.getOrDefault(target.iid(), target);
-        liveItemCache.put(actual.iid(), actual);
+        Item actual = librarian.get(target.iid()).orElse(target);
+        librarian.put(actual);
 
         // Resolve the semantic predicate from the component's @Implements annotation
         ItemID predicateId = derivePredicateId(component);

@@ -256,7 +256,7 @@ class SeedVocabularyTest {
         ItemID itemTypeId = ItemID.fromString(Item.KEY);
 
         // Get directly from cache (this is the path that was broken before)
-        Item cached = librarian.library().getCached(itemTypeId).orElse(null);
+        Item cached = librarian.get(itemTypeId).orElse(null);
         assertThat(cached).as("Item type should be in cache").isNotNull();
 
         assertThat(cached.frames().getFrame(SurfaceTemplateComponent.HANDLE))

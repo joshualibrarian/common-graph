@@ -188,6 +188,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
     // Types query removed — use library index to find IMPLEMENTED_BY subjects directly
 
+    /** Item cache — the single cache for all items known to this librarian. */
+    private transient volatile Map<ItemID, Item> itemCache;
+
     // Infrastructure activity log — in-memory, doesn't churn VID
     @ItemFrame(predicate = CoreVocabulary.Activity.KEY, identity = false)
     private ActivityLog activityLog = new ActivityLog();
@@ -274,11 +277,11 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // so all items returned from librarian.get() have a valid librarian.
         for (Item seed : seedItems) {
             seed.setLibrarian(librarian);
-            librarian.library().cache(seed);
+            librarian.put(seed);
         }
 
         // Index seed item frames now that they're cached
-        librarian.library().indexCachedItemFrames();
+        librarian.library().indexItemFrames(librarian.ensureCache().values());
 
         // Start Unix socket for local IPC (must happen after constructor completes)
         librarian.startUnixSocket().thenAccept(path ->
@@ -317,11 +320,11 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Cache fully-populated seed items with librarian reference set.
         for (Item seed : seedItems) {
             seed.setLibrarian(librarian);
-            librarian.library().cache(seed);
+            librarian.put(seed);
         }
 
         // Index seed item frames now that they're cached
-        librarian.library().indexCachedItemFrames();
+        librarian.library().indexItemFrames(librarian.ensureCache().values());
 
         logger.info("In-memory Librarian ready: iid={}", librarian.iid());
         return librarian;
@@ -465,10 +468,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             onReload();
         }
 
-        // Cache ourselves so library.get(iid) can find us
-        if (library != null) {
-            library.cache(this);
-        }
+        // Cache ourselves so get(iid) can find us
+        put(this);
 
         // Re-populate unendorsed frames now that endpoints are gathered
         populateUnendorsedFrames();
@@ -1196,6 +1197,26 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * @param type The expected item class
      * @return The item, or empty if not found
      */
+    private Map<ItemID, Item> ensureCache() {
+        Map<ItemID, Item> c = itemCache;
+        if (c == null) {
+            c = new java.util.concurrent.ConcurrentHashMap<>();
+            itemCache = c;
+        }
+        return c;
+    }
+
+    /**
+     * Store an item — cache it and make it findable by {@link #get}.
+     *
+     * <p>This is the single entry point for making items known to the librarian.
+     * Freshly created items, hydrated items, seed items — all go through here.
+     */
+    public void put(Item item) {
+        Objects.requireNonNull(item, "item");
+        ensureCache().put(item.iid(), item);
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends Item> Optional<T> get(ItemID iid, Class<T> type) {
         Objects.requireNonNull(iid, "iid");
@@ -1203,17 +1224,14 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
         logger.trace("get() called for iid={}", iid.encodeText());
 
-        // First, check the cache (includes the librarian itself)
-        Optional<Item> cached = library().getCached(iid);
-        if (cached.isPresent()) {
-            Item item = cached.get();
-            if (type.isInstance(item)) {
-                logger.trace("get() - found in cache: {}", item.getClass().getSimpleName());
-                return Optional.of((T) item);
-            }
+        // Check the librarian's item cache
+        Item cached = ensureCache().get(iid);
+        if (cached != null && type.isInstance(cached)) {
+            logger.trace("get() - found in cache: {}", cached.getClass().getSimpleName());
+            return Optional.of((T) cached);
         }
 
-        // Next, try to find in directory
+        // Try to find in directory and load from store
         Optional<ItemDirectory> dir = library().directory();
         if (dir.isEmpty()) {
             logger.debug("get() - directory is empty");
@@ -1229,16 +1247,14 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         // Found in directory - get from the store
         return switch (entry.get().location()) {
             case ItemDirectory.InStore(var itemStore) -> {
-                // Load the manifest
                 Optional<Manifest> manifestOpt = loadManifest(iid, itemStore);
                 if (manifestOpt.isEmpty()) {
                     yield Optional.empty();
                 }
-
-                Manifest manifest = manifestOpt.get();
-
-                // Hydrate the item from manifest
-                yield hydrateItem(manifest, type);
+                Optional<T> hydrated = hydrateItem(manifestOpt.get(), type);
+                // Cache the hydrated item for next time
+                hydrated.ifPresent(this::put);
+                yield hydrated;
             }
             case ItemDirectory.Rumor r -> {
                 // TODO: Fetch from network
@@ -1566,7 +1582,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             host = new Host(this);
         }
         host.commit(this);
-        library().cache(host);
+        put(host);
         logger.info("Created host: {}", host.hostname());
     }
 

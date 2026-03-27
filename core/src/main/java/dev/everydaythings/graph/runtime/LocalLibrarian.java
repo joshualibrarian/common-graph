@@ -87,6 +87,12 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     @Override
+    public void put(Item item) {
+        checkOpen();
+        librarian.put(item);
+    }
+
+    @Override
     public <T extends Item> Optional<T> get(ItemID iid, Class<T> type) {
         checkOpen();
         return librarian.get(iid, type);

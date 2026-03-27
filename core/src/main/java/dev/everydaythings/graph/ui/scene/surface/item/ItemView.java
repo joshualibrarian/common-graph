@@ -568,20 +568,25 @@ public class ItemView {
     private void buildFramesTree() {
         Item resolved = item();
         if (resolved == null) { treeNav = null; treeContent = null; return; }
-        List<FrameNode> nodes = new ArrayList<>();
-        if (resolved.frames() != null) for (Frame f : resolved.frames()) nodes.add(new FrameNode(f, resolved));
-        FrameNode r = new FrameNode("Frames (" + nodes.size() + ")", nodes);
-        treeContent = TreeNodes.from(r).children(FrameNode::children).label(FrameNode::label)
+        List<FrameNode> frameNodes = new ArrayList<>();
+        if (resolved.frames() != null) {
+            for (Frame f : resolved.frames()) frameNodes.add(new FrameNode(f, resolved));
+        }
+        // Root group node — children are the flat frame nodes
+        FrameNode root = new FrameNode("Frames (" + frameNodes.size() + ")",
+                "\uD83D\uDCC2", "group:frames", frameNodes);
+        treeContent = TreeNodes.from(root).children(FrameNode::children).label(FrameNode::label)
                 .icon(FrameNode::emoji).expandable(n -> !n.children().isEmpty()).id(FrameNode::id)
                 .showRoot(false).build();
-        treeNav = TreeNav.from(r, FrameNode::children, FrameNode::id, n -> !n.children().isEmpty(), false);
+        treeNav = TreeNav.from(root, FrameNode::children, FrameNode::id, n -> !n.children().isEmpty(), false);
     }
 
     private void buildVersionsTree() {
         Item resolved = item();
         String vid = resolved != null && resolved.base() != null
                 ? resolved.base().displayAtWidth(16) : "?";
-        FrameNode r = new FrameNode("Versions", List.of(new FrameNode(vid, List.of())));
+        FrameNode r = new FrameNode("Versions", "\uD83D\uDCC2", "group:versions",
+                List.of(new FrameNode(vid, "\uD83D\uDCCB", "version:" + vid, List.of())));
         treeContent = TreeNodes.from(r).children(FrameNode::children).label(FrameNode::label)
                 .icon(FrameNode::emoji).expandable(n -> !n.children().isEmpty()).id(FrameNode::id)
                 .showRoot(false).build();
@@ -677,70 +682,91 @@ public class ItemView {
 
     private static class FrameNode {
         private final String label, emoji, id;
+        private final Frame frame;
         private final List<FrameNode> children;
 
-        FrameNode(String label, List<FrameNode> children) {
-            this.label = label; this.emoji = "\uD83D\uDCC2"; this.id = "group:" + label;
-            this.children = children;
+        /** Group node with children. */
+        FrameNode(String label, String emoji, String id, List<FrameNode> children) {
+            this.label = label; this.emoji = emoji; this.id = id;
+            this.frame = null; this.children = children;
         }
 
+        /** Flat frame node — no children. */
         FrameNode(Frame frame, Item item) {
-            this.label = resolveFrameLabel(frame, item); this.emoji = "\uD83D\uDCCB";
-            this.id = "frame:" + (frame.bodyHash() != null ? frame.bodyHash().displayAtWidth(12) : frame.frameKey().toString());
-            this.children = new ArrayList<>();
-            FrameBody body = frame.body();
-            if (body != null) for (Binding b : body.frameBindings()) {
-                String role = item.resolveDisplayToken(b.role());
-                if (role == null) role = b.role().displayAtWidth(12);
-                children.add(new FrameNode(role + ":" + fmtQuals(b, item) + " \u2192 " + fmtTarget(b, item), List.of()));
-            }
+            this.frame = frame;
+            this.emoji = "\uD83D\uDCCB";
+            this.id = "frame:" + (frame.bodyHash() != null
+                    ? frame.bodyHash().displayAtWidth(12)
+                    : frame.frameKey().toString());
+            this.label = buildSummaryLabel(frame, item);
+            this.children = List.of();
         }
 
-        String label() { return label; } String emoji() { return emoji; }
-        String id() { return id; } List<FrameNode> children() { return children; }
+        String label() { return label; }
+        String emoji() { return emoji; }
+        String id() { return id; }
+        List<FrameNode> children() { return children; }
+        Frame frame() { return frame; }
 
-        private static String fmtQuals(Binding b, Item item) {
-            if (b.qualifiers().isEmpty()) return "";
-            StringBuilder q = new StringBuilder("[");
-            for (int i = 0; i < b.qualifiers().size(); i++) {
-                if (i > 0) q.append(", ");
-                var qv = b.qualifiers().get(i);
-                if (qv instanceof FrameKey.Sememe s) { String r = item.resolveDisplayToken(s.id()); q.append(r != null ? r : s.id().displayAtWidth(8)); }
-                else if (qv instanceof FrameKey.Literal l) q.append(l.value());
+        /**
+         * Build a one-line summary: predicate + meaningful binding values.
+         *
+         * <p>Skips the home/THEME binding (always the owning item) and shows
+         * the remaining bindings inline: "query-result → chess"
+         */
+        private static final int MAX_LABEL_LENGTH = 50;
+
+        private static String buildSummaryLabel(Frame frame, Item item) {
+            FrameBody body = frame.body();
+            if (body == null) return truncate(frame.frameKey().toString());
+
+            // Predicate name
+            String pred = resolveId(body.predicate(), item);
+
+            // Collect non-home binding summaries (max 2 to keep it concise)
+            ItemID homeId = body.homeId();
+            List<String> parts = new ArrayList<>();
+            for (Binding b : body.frameBindings()) {
+                if (parts.size() >= 2) break;
+                // Skip the home binding — it's always this item
+                ItemID tid = b.targetId();
+                if (tid != null && tid.equals(homeId)) continue;
+
+                String value = fmtTarget(b, item);
+                parts.add(value);
             }
-            return q.append("] ").toString();
+
+            if (parts.isEmpty()) return truncate(pred);
+            return truncate(pred + " \u2192 " + String.join(", ", parts));
         }
 
-        private static String resolveFrameLabel(Frame frame, Item item) {
-            FrameBody body = frame.body();
-            if (body != null && body.predicate() != null) {
-                String name = item.resolveDisplayToken(body.predicate());
-                if (name == null) name = body.predicate().displayAtWidth(12);
-                FrameKey key = frame.frameKey();
-                if (key.qualifiers() != null && !key.qualifiers().isEmpty()) {
-                    StringBuilder q = new StringBuilder(" [");
-                    for (int i = 0; i < Math.min(key.qualifiers().size(), 3); i++) {
-                        if (i > 0) q.append(", ");
-                        var qv = key.qualifiers().get(i);
-                        if (qv instanceof FrameKey.Sememe s) { String r = item.resolveDisplayToken(s.id()); q.append(r != null ? r : s.id().displayAtWidth(8)); }
-                        else if (qv instanceof FrameKey.Literal l) q.append(l.value());
-                    }
-                    return name + q.append("]");
-                }
-                return name;
-            }
-            FrameKey.FrameToken head = frame.frameKey().head();
-            if (head instanceof FrameKey.Literal l) return l.value();
-            if (head instanceof FrameKey.Sememe s) { String r = item.resolveDisplayToken(s.id()); return r != null ? r : s.id().displayAtWidth(12); }
-            return "?";
+        private static String truncate(String s) {
+            if (s == null) return "?";
+            return s.length() > MAX_LABEL_LENGTH
+                    ? s.substring(0, MAX_LABEL_LENGTH - 1) + "\u2026"
+                    : s;
+        }
+
+        private static String resolveId(ItemID iid, Item item) {
+            if (iid == null) return "?";
+            String r = item.resolveDisplayToken(iid);
+            return r != null ? r : iid.displayAtWidth(12);
         }
 
         static String fmtTarget(Binding b, Item item) {
             ItemID tid = b.targetId();
-            if (tid != null) { String r = item.resolveDisplayToken(tid); return r != null ? r : tid.displayAtWidth(12); }
+            if (tid != null) {
+                String r = item.resolveDisplayToken(tid);
+                return r != null ? r : tid.displayAtWidth(12);
+            }
             if (b.target() instanceof dev.everydaythings.graph.item.Literal lit) {
                 if (dev.everydaythings.graph.item.Literal.TYPE_TEXT.equals(lit.valueType())) {
-                    try { String t = lit.asText(); if (t != null) return t.length() > 30 ? "\"" + t.substring(0, 27) + "...\"" : "\"" + t + "\""; } catch (Exception ignored) {}
+                    try {
+                        String t = lit.asText();
+                        if (t != null) return t.length() > 30
+                                ? "\"" + t.substring(0, 27) + "...\""
+                                : "\"" + t + "\"";
+                    } catch (Exception ignored) {}
                 }
                 return lit.valueType().displayAtWidth(12);
             }

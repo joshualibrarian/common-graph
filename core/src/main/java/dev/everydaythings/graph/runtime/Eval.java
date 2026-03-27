@@ -828,7 +828,6 @@ public class Eval {
 
         if (parseResult.hasFrames()) {
             List<SemanticFrame> frames = parseResult.frames();
-            System.err.println("[QUERY] parseResult has " + frames.size() + " frames");
             if (frames.size() == 1) {
                 return evaluateFrame(frames.getFirst());
             }
@@ -841,11 +840,9 @@ public class Eval {
         }
 
         if (parseResult.hasUnbound()) {
-            System.err.println("[QUERY] parseResult has unbound tokens: " + parseResult.unbound().size());
             return evaluateUnbound(parseResult.unbound());
         }
 
-        System.err.println("[QUERY] parseResult is empty — no frames, no unbound");
         return EvalResult.empty();
     }
 
@@ -868,7 +865,6 @@ public class Eval {
             if (librarian != null) {
                 QueryItem queryItem = new QueryItem(librarian, resolved);
                 Set<ItemID> resultIds = queryItem.run();
-                System.err.println("[QUERY] unbound query returned " + resultIds.size() + " results for pattern " + queryItem.extractPattern());
                 List<Item> resultItems = resultIds.stream()
                         .map(id -> librarianHandle.get(id))
                         .flatMap(Optional::stream)
@@ -920,7 +916,6 @@ public class Eval {
             String key = frame.verb().canonicalKey();
             boolean isActionVerb = key != null
                     && (key.startsWith("cg.verb:") || key.startsWith("cg.session:"));
-            System.err.println("[QUERY] incomplete frame. verb=" + key + " isAction=" + isActionVerb);
             if (!isActionVerb) {
                 return evaluateStructuredQuery(frame);
             }
@@ -931,7 +926,6 @@ public class Eval {
 
         // Verb alone with no bindings and no context → navigate to verb sememe
         if (target == null) {
-            System.err.println("[QUERY] no dispatch target found, returning item result");
             return EvalResult.item(frame.verb());
         }
 
@@ -1014,13 +1008,10 @@ public class Eval {
         // Structured queries only help when there's at least one filled role
         // (e.g., "authored by tolkien" → AUTHORED with AGENT=tolkien).
         if (queryFrame.bindings().isEmpty()) {
-            System.err.println("[QUERY] no bindings → unstructured fallback. term=" +
-                    queryFrame.verb().iid().encodeText());
             List<Eval.ResolvedToken> terms = List.of(
                     new ResolvedToken.Link(queryFrame.verb().iid(), queryFrame.verb().displayToken()));
             QueryItem queryItem = new QueryItem(librarian, terms);
             Set<ItemID> resultIds = queryItem.run();
-            System.err.println("[QUERY] structured→unstructured returned " + resultIds.size() + " results");
             List<Item> resultItems = resultIds.stream()
                     .map(id -> librarianHandle.get(id))
                     .flatMap(Optional::stream)

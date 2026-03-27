@@ -129,7 +129,7 @@ public class User extends Signer {
         }
         user.setName(name);
         user.commit(lib);
-        lib.library().cache(user);
+        lib.put(user);
         return user;
     }
 

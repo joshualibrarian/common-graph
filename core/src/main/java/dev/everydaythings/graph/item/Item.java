@@ -237,10 +237,10 @@ public class Item {
      * @param sememeId the ItemID of the sememe to resolve
      * @return the display token, or null if unresolvable
      */
-    public String resolveDisplayToken(ItemID sememeId) {
-        if (sememeId == null || librarian == null) return null;
-        return librarian.get(sememeId, Sememe.class)
-                .map(Sememe::displayToken)
+    public String resolveDisplayToken(ItemID itemId) {
+        if (itemId == null || librarian == null) return null;
+        return librarian.get(itemId)
+                .map(Item::displayToken)
                 .orElse(null);
     }
 

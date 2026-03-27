@@ -165,6 +165,13 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     }
 
     @Override
+    public void put(Item item) {
+        checkOpen();
+        // Remote items would need protocol-level persistence — not yet implemented
+        log.warn("put() called on RemoteLibrarian - not yet implemented");
+    }
+
+    @Override
     public <T extends Item> Optional<T> get(ItemID iid, Class<T> type) {
         checkOpen();
         // Items can't be directly transferred over the protocol - they're local objects.
