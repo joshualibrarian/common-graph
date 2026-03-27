@@ -31,7 +31,7 @@
  * <ul>
  *   <li>{@code @Scene.Container(direction, gap, align, padding, background, depth, ...)}
  *       — directional box with children</li>
- *   <li>{@code @Scene.Text(content, bind, format, style)}
+ *   <li>{@code @Scene.Text.Literal(content, bind, format, style)}
  *       — text content</li>
  *   <li>{@code @Scene.Image(alt, bind, image, size, fit, style)}
  *       — visual content with fallback chain</li>
@@ -222,10 +222,10 @@
  * @Scene.Container(direction = VERTICAL, gap = "0.5em")
  * public class ContactScene extends SceneSchema<Contact> {
  *
- *     @Scene.Text(bind = "value.name", style = "heading")
+ *     @Scene.Text.Literal(bind = "value.name", style = "heading")
  *     static class Name {}
  *
- *     @Scene.Text(bind = "value.email", style = "muted")
+ *     @Scene.Text.Literal(bind = "value.email", style = "muted")
  *     static class Email {}
  * }
  * }</pre>

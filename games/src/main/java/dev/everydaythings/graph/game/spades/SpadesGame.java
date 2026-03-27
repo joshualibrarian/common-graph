@@ -43,7 +43,6 @@ import java.util.*;
  * </ul>
  */
 @Implements(SpadesGame.KEY)
-@Scene(as = SpadesSurface.class)
 public class SpadesGame extends GameComponent<SpadesGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased {
 

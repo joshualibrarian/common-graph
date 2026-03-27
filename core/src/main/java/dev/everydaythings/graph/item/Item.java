@@ -39,7 +39,6 @@ import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.ValueType;
 import dev.everydaythings.graph.ui.scene.Scene;
-import dev.everydaythings.graph.ui.scene.surface.ItemSurface;
 import dev.everydaythings.graph.ui.scene.SceneMode;
 import dev.everydaythings.graph.ui.scene.View;
 import lombok.Getter;
@@ -79,7 +78,6 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 @Scene.Rule(match = ":hover", opacity = "bright")
 @Implements(Item.KEY)
 @ItemSeed(key = Item.KEY)
-@Scene(as = ItemSurface.class)
 public class Item {
 
     // === TYPE DEFINITION ===
@@ -416,21 +414,17 @@ public class Item {
     // ==================================================================================
 
     /**
-     * Render this item as a compact handle view (CBOR-serializable).
-     *
-     * <p>Uses ItemSurface at COMPACT mode for consistent rendering.
+     * Render this item as a compact handle view.
      */
     public View renderHandle() {
-        return View.of(ItemSurface.from(this, SceneMode.COMPACT));
+        return View.empty();
     }
 
     /**
-     * Render this item as an expanded detail view (CBOR-serializable).
-     *
-     * <p>Uses ItemSurface at FULL mode to show all content.
+     * Render this item as an expanded detail view.
      */
     public View renderDetail() {
-        return View.of(ItemSurface.from(this, SceneMode.FULL));
+        return View.empty();
     }
 
     // ==================================================================================

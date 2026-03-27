@@ -17,6 +17,10 @@ import dev.everydaythings.graph.ui.scene.surface.primitive.ContainerSurface;
 import dev.everydaythings.graph.ui.scene.surface.primitive.ImageSurface;
 import dev.everydaythings.graph.ui.scene.surface.primitive.TextSurface;
 import dev.everydaythings.graph.ui.scene.surface.tree.TreeSurface;
+import dev.everydaythings.graph.ui.scene.node.Body;
+import dev.everydaythings.graph.ui.scene.node.Container;
+import dev.everydaythings.graph.ui.scene.node.Node;
+import dev.everydaythings.graph.ui.scene.node.Text;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -26,7 +30,6 @@ import java.lang.reflect.Modifier;
 import java.time.Instant;
 import java.util.*;
 import java.util.HexFormat;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -44,10 +47,10 @@ import java.util.function.Function;
  * @Scene.Container(direction = Direction.VERTICAL)
  * class PersonScene extends SceneSchema<Person> {
  *
- *     @Scene.Text(bind = "value.name", style = "heading")
+ *     @Scene.Text.Literal(bind = "value.name", style = "heading")
  *     static class Name {}
  *
- *     @Scene.Text(bind = "value.email", style = "muted")
+ *     @Scene.Text.Literal(bind = "value.email", style = "muted")
  *     static class Email {}
  * }
  * }</pre>
@@ -68,8 +71,8 @@ import java.util.function.Function;
  * <p>Annotations on fields describe how to render the data:
  * <pre>{@code
  * class Person {
- *     @Scene.Text(style = "heading") String name;
- *     @Scene.Text(style = "muted") String email;
+ *     @Scene.Text.Literal(style = "heading") String name;
+ *     @Scene.Text.Literal(style = "muted") String email;
  * }
  *
  * // Compile to view:
@@ -99,8 +102,6 @@ public final class SceneCompiler {
 
     private SceneCompiler() {} // Static utility
 
-    /** Cache of compiled structures per class. */
-    private static final Map<Class<?>, ViewNode> STRUCTURE_CACHE = new ConcurrentHashMap<>();
 
     /**
      * Thread-local item resolver for enriching ItemID fields during compilation.
@@ -161,25 +162,16 @@ public final class SceneCompiler {
 
         if (obj instanceof SurfaceSchema<?> schema) {
             renderFromStructure(schema, out);
-        } else if (obj instanceof SceneModel model) {
-            renderFromMethods(model, out);
         } else {
             renderFromFields(obj, out);
         }
     }
 
     /**
-     * Get the compiled structure for a class (cached).
+     * Compile the structure for a class (no caching — always fresh).
      */
     public static ViewNode getCompiled(Class<?> clazz) {
-        return STRUCTURE_CACHE.computeIfAbsent(clazz, SceneCompiler::compileStructure);
-    }
-
-    /**
-     * Clear the compilation cache.
-     */
-    public static void clearCache() {
-        STRUCTURE_CACHE.clear();
+        return compileStructure(clazz);
     }
 
     /**
@@ -277,8 +269,6 @@ public final class SceneCompiler {
         // Compile based on class type
         if (data instanceof SurfaceSchema<?> schema) {
             return View.of(schema).mode(mode);
-        } else if (data instanceof SceneModel model) {
-            return View.of(model.toSurface()).mode(mode);
         } else if (has2DAnnotation(clazz)) {
             // Class itself has @Scene.Container/@Scene.Text/etc — compile from its own annotations
             SurfaceSchema<Object> wrapper = new SurfaceSchema<>() {};
@@ -289,6 +279,702 @@ public final class SceneCompiler {
             // Data model - compile fields
             return compileDataModel(data, mode);
         }
+    }
+
+    // ==================================================================================
+    // Node Tree Compilation — @Scene annotations → Node primitives
+    // ==================================================================================
+
+    /**
+     * Compile an annotated object to a Node tree.
+     *
+     * <p>This is the new rendering path: annotations → Node primitives (Container,
+     * Text, Body) with resolved bindings and visibility. No SurfaceSchema involved.
+     *
+     * @param data the annotated object (Item subclass, SceneSchema, data model)
+     * @return the compiled Node tree, or null if the class has no compilable annotations
+     */
+    public static Node compileToNode(Object data) {
+        if (data == null) return null;
+
+        Class<?> clazz = data.getClass();
+
+        // Find the compilable class — either the class itself or @Scene(as=...) target
+        Class<?> compileFrom = clazz;
+        Scene typeScene = findTypeScene(clazz);
+        if (typeScene != null && typeScene.as() != SceneSchema.class
+                && canCompile(typeScene.as())) {
+            compileFrom = typeScene.as();
+        }
+
+        if (!has2DAnnotation(compileFrom) && !compileFrom.isAnnotationPresent(Scene.Root.class)) {
+            return null;
+        }
+
+        // Build Node tree directly from annotations — no ViewNode intermediary.
+        // 1. Class-level @Scene.Container → root Container
+        // 2. Annotated methods + fields → children (called/read at render time)
+        // 3. Nested annotated classes → children (compiled recursively)
+        StructureRenderContext ctx = new StructureRenderContext(
+                new SurfaceSchema<>() {{ value(data); }});
+
+        Container root = containerFromClassAnnotation(compileFrom);
+        if (root == null) root = new Container("vertical");
+
+        // Collect class-level @Scene.On events onto the root node
+        applyEvents(compileFrom, root);
+
+        // One pass: compile all annotated members (classes, fields, methods)
+        compileMembers(compileFrom, data, root, ctx);
+
+        return root;
+    }
+
+    /**
+     * Create a Container from a class-level @Scene.Container annotation.
+     */
+    private static Container containerFromClassAnnotation(Class<?> clazz) {
+        Scene.Container ann = clazz.getAnnotation(Scene.Container.class);
+        if (ann == null) return null;
+
+        String layout = ann.direction() == Scene.Direction.HORIZONTAL ? "horizontal" : "vertical";
+        Container c = new Container(layout);
+        if (!ann.id().isEmpty()) c.id(ann.id());
+        if (!ann.gap().isEmpty()) c.gap(ann.gap());
+        if (!ann.background().isEmpty()) c.background(ann.background());
+        if (!ann.padding().isEmpty()) c.padding(ann.padding());
+        if (!ann.width().isEmpty()) c.width(ann.width());
+        if (!ann.height().isEmpty()) c.height(ann.height());
+        if (!"visible".equals(ann.overflow())) c.overflow(ann.overflow());
+        if (ann.style().length > 0) c.classes(ann.style());
+        if (!ann.fontSize().isEmpty()) c.fontSize(ann.fontSize());
+        if (!ann.fontFamily().isEmpty()) c.fontFamily(ann.fontFamily());
+        return c;
+    }
+
+    /**
+     * Compile all annotated members of a class as children of a container.
+     * One pass: nested classes, fields, and methods — unified, recursive.
+     *
+     * <p>Nested classes are compiled recursively (their own members become
+     * their children). Methods are called and their return values wrapped.
+     * Fields are read and their values wrapped. All use the same annotation
+     * dispatch logic.
+     *
+     * @param clazz  the class to scan for annotated members
+     * @param data   the live instance (for calling methods / reading instance fields)
+     * @param parent the container to add children to
+     * @param ctx    the binding context
+     */
+    /**
+     * A member record for unified ordering: class, field, or method.
+     */
+    private record OrderedMember(AnnotatedElement element, int order, int index) {}
+
+    private static void compileMembers(Class<?> clazz, Object data, Container parent,
+                                        StructureRenderContext ctx) {
+        List<OrderedMember> members = new ArrayList<>();
+        int idx = 0;
+
+        // Nested static classes
+        Class<?>[] nested = clazz.getDeclaredClasses();
+        List<Class<?>> nestedList = new ArrayList<>(Arrays.asList(nested));
+        Collections.reverse(nestedList);
+        for (Class<?> n : nestedList) {
+            if (n.isAnnotationPresent(Scene.Face.class)) continue;
+            if (n.isAnnotationPresent(Scene.Handle.class)) continue;
+            if (hasStructuralAnnotation(n)) {
+                members.add(new OrderedMember(n, extractOrder(n), idx++));
+            }
+        }
+
+        // Fields (instance and static)
+        for (Field f : clazz.getDeclaredFields()) {
+            if (hasStructuralAnnotation(f)) {
+                members.add(new OrderedMember(f, extractOrder(f), idx++));
+            }
+        }
+
+        // Methods (public, non-static)
+        for (Method m : clazz.getDeclaredMethods()) {
+            if (Modifier.isStatic(m.getModifiers()) || !Modifier.isPublic(m.getModifiers())) continue;
+            if (!hasStructuralAnnotation(m)) continue;
+            if (m.isAnnotationPresent(Scene.Handle.class)) continue;
+            members.add(new OrderedMember(m, extractOrder(m), idx++));
+        }
+
+        // Sort: explicit order first (ascending), then declaration order for unspecified (-1)
+        members.sort((a, b) -> {
+            if (a.order >= 0 && b.order >= 0) return Integer.compare(a.order, b.order);
+            if (a.order >= 0) return -1; // explicit before implicit
+            if (b.order >= 0) return 1;
+            return Integer.compare(a.index, b.index); // preserve scan order
+        });
+
+        // Compile each member
+        for (OrderedMember member : members) {
+            try {
+                Node child = null;
+                if (member.element instanceof Class<?> n) {
+                    child = compileMember(n, data, ctx);
+                } else if (member.element instanceof Field f) {
+                    f.setAccessible(true);
+                    Object value = Modifier.isStatic(f.getModifiers()) ? f.get(null) : f.get(data);
+                    child = wrapMemberResult(f, value, ctx);
+                } else if (member.element instanceof Method m) {
+                    Object value = m.invoke(data);
+                    child = wrapMemberResult(m, value, ctx);
+                }
+                if (child != null) parent.add(child);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * Extract the order attribute from whatever @Scene annotation is on this element.
+     * Returns -1 if no order is specified.
+     */
+    private static int extractOrder(AnnotatedElement element) {
+        Scene.Container c = element.getAnnotation(Scene.Container.class);
+        if (c != null) return c.order();
+        Scene.Text.Literal tl = element.getAnnotation(Scene.Text.Literal.class);
+        if (tl != null) return tl.order();
+        Scene.Text.Semantic ts = element.getAnnotation(Scene.Text.Semantic.class);
+        if (ts != null) return ts.order();
+        Scene.Image img = element.getAnnotation(Scene.Image.class);
+        if (img != null) return img.order();
+        Scene.Shape sh = element.getAnnotation(Scene.Shape.class);
+        if (sh != null) return sh.order();
+        Scene.Embed em = element.getAnnotation(Scene.Embed.class);
+        if (em != null) return em.order();
+        Scene.On on = element.getAnnotation(Scene.On.class);
+        if (on != null) return on.order();
+        Scene.Body bd = element.getAnnotation(Scene.Body.class);
+        if (bd != null) return bd.order();
+        return -1;
+    }
+
+    /**
+     * Compile a single annotated member (class, field, or method) to a Node.
+     * For classes: reads annotations, recurses into children.
+     * For fields/methods: delegates to wrapMemberResult.
+     */
+    private static Node compileMember(Class<?> clazz, Object data, StructureRenderContext ctx) {
+        // Check visibility
+        Scene.If sceneIf = clazz.getAnnotation(Scene.If.class);
+        if (sceneIf != null && !ctx.evaluate(sceneIf.value())) return null;
+
+        // Container — recurse into its members
+        if (clazz.isAnnotationPresent(Scene.Container.class)) {
+            Container c = containerFromClassAnnotation(clazz);
+            if (c == null) c = new Container("vertical");
+            // Recurse: this class's nested classes, fields, and methods become children
+            compileMembers(clazz, data, c, ctx);
+            return c;
+        }
+
+        // Text.Literal
+        Scene.Text.Literal literal = clazz.getAnnotation(Scene.Text.Literal.class);
+        if (literal != null) {
+            String content = !literal.bind().isEmpty()
+                    ? ctx.resolveBinding(literal.bind()) : literal.content();
+            Text t = Text.of(content);
+            if (literal.style().length > 0) t.classes(literal.style());
+            if (!literal.fontSize().isEmpty()) t.fontSize(literal.fontSize());
+            if (!literal.fontFamily().isEmpty()) t.fontFamily(literal.fontFamily());
+            if (!literal.fontWeight().isEmpty()) t.fontWeight(literal.fontWeight());
+            return t;
+        }
+
+        // Text.Semantic
+        Scene.Text.Semantic semantic = clazz.getAnnotation(Scene.Text.Semantic.class);
+        if (semantic != null) {
+            List<Text.SemanticToken> tokens = new ArrayList<>();
+            for (Scene.Text.Token tok : semantic.value()) {
+                tokens.add(new Text.SemanticToken(
+                        ItemID.fromString(tok.sememe()),
+                        Arrays.stream(tok.features()).map(ItemID::fromString).toList()));
+            }
+            Text t = tokens.isEmpty() ? Text.of("") : Text.ofTokens(tokens);
+            if (semantic.style().length > 0) t.classes(semantic.style());
+            return t;
+        }
+
+        // Embed
+        Scene.Embed embed = clazz.getAnnotation(Scene.Embed.class);
+        if (embed != null && !embed.bind().isEmpty()) {
+            Object resolved = ctx.resolveValue(embed.bind());
+            if (resolved instanceof Node node) return node;
+            if (resolved != null) return compileToNode(resolved);
+        }
+
+        // Image
+        Scene.Image image = clazz.getAnnotation(Scene.Image.class);
+        if (image != null) {
+            String alt = !image.bind().isEmpty()
+                    ? ctx.resolveBinding(image.bind()) : image.alt();
+            return Body.ofGlyph(alt);
+        }
+
+        return null;
+    }
+
+    /**
+     * Compiled scene result — the root scene tree and optional handle tree.
+     */
+    public record CompiledScene(Node root, Node handle) {
+        public static CompiledScene of(Node root, Node handle) {
+            return new CompiledScene(root, handle);
+        }
+    }
+
+    /**
+     * Compile an annotated object to a root + handle pair.
+     *
+     * <p>Recognizes {@code @Scene.Root} for the main scene and extracts the
+     * handle from: {@code @Scene.Root(handle = X.class)} → explicit class,
+     * or {@code @Scene.Handle} annotated method → inline handle,
+     * or null → system generates default.
+     *
+     * @param data the annotated object
+     * @return the compiled scene with root and optional handle
+     */
+    public static CompiledScene compileScene(Object data) {
+        if (data == null) return null;
+
+        Class<?> clazz = data.getClass();
+        Node root = compileToNode(data);
+
+        // Resolve handle
+        Node handle = null;
+
+        // 1. Check @Scene.Root(handle = X.class)
+        Scene.Root rootAnnotation = clazz.getAnnotation(Scene.Root.class);
+        if (rootAnnotation != null && rootAnnotation.handle() != Void.class) {
+            try {
+                Object handleInstance = rootAnnotation.handle().getDeclaredConstructor().newInstance();
+                handle = compileToNode(handleInstance);
+            } catch (Exception ignored) {}
+        }
+
+        // 2. Check for @Scene.Handle annotated method
+        if (handle == null) {
+            for (Method m : clazz.getDeclaredMethods()) {
+                if (m.isAnnotationPresent(Scene.Handle.class) && Modifier.isPublic(m.getModifiers())) {
+                    try {
+                        Object result = m.invoke(data);
+                        if (result instanceof Node n) {
+                            handle = n;
+                        } else if (result != null) {
+                            handle = compileToNode(result);
+                        }
+                    } catch (Exception ignored) {}
+                    break;
+                }
+            }
+        }
+
+        // 3. Check for @Scene.Handle annotated inner class
+        if (handle == null) {
+            for (Class<?> inner : clazz.getDeclaredClasses()) {
+                if (inner.isAnnotationPresent(Scene.Handle.class)) {
+                    try {
+                        Object handleInstance = inner.getDeclaredConstructor().newInstance();
+                        handle = compileToNode(handleInstance);
+                    } catch (Exception ignored) {}
+                    break;
+                }
+            }
+        }
+
+        return CompiledScene.of(root, handle);
+    }
+
+    /**
+     * Compile annotated methods on the data object into child nodes.
+     *
+     * <p>Scans public non-static methods for @Scene.* annotations.
+     * Each annotated method's return value becomes a child node.
+     * The method annotation determines how the return value is wrapped.
+     *
+     * @param data   the data object
+     * @param parent the parent container to add children to
+     * @param ctx    the binding context
+     */
+
+    /**
+     * Wrap a member's value based on its @Scene annotation.
+     * Works for methods, fields, or any AnnotatedElement.
+     */
+    private static Node wrapMemberResult(AnnotatedElement m, Object result,
+                                          StructureRenderContext ctx) {
+        if (result == null) return null;
+
+        Node wrapped = null;
+
+        // @Scene.Container on method — result is a Node, wrap in container properties
+        Scene.Container containerAnn = m.getAnnotation(Scene.Container.class);
+        if (containerAnn != null && result instanceof Node node) {
+            String layout = containerAnn.direction() == Scene.Direction.HORIZONTAL
+                    ? "horizontal" : "vertical";
+            Container c = new Container(layout);
+            if (!containerAnn.id().isEmpty()) c.id(containerAnn.id());
+            if (!containerAnn.gap().isEmpty()) c.gap(containerAnn.gap());
+            if (!containerAnn.background().isEmpty()) c.background(containerAnn.background());
+            if (!containerAnn.padding().isEmpty()) c.padding(containerAnn.padding());
+            if (!containerAnn.width().isEmpty()) c.width(containerAnn.width());
+            if (!containerAnn.height().isEmpty()) c.height(containerAnn.height());
+            if (!"visible".equals(containerAnn.overflow())) c.overflow(containerAnn.overflow());
+            if (containerAnn.style().length > 0) c.classes(containerAnn.style());
+            if (!containerAnn.fontSize().isEmpty()) c.fontSize(containerAnn.fontSize());
+            c.add(node);
+            wrapped = c;
+        }
+
+        // @Scene.Text.Semantic on method
+        if (wrapped == null) {
+            Scene.Text.Semantic semanticAnn = m.getAnnotation(Scene.Text.Semantic.class);
+            if (semanticAnn != null) {
+                Text t;
+                if (result instanceof List<?> list) {
+                    List<Text.SemanticToken> tokens = new ArrayList<>();
+                    for (Object item : list) {
+                        if (item instanceof Text.SemanticToken st) tokens.add(st);
+                    }
+                    t = Text.ofTokens(tokens);
+                } else if (result instanceof ItemID iid) {
+                    t = Text.ofSememe(iid);
+                } else {
+                    ItemID iid = extractItemId(result);
+                    t = iid != null ? Text.ofSememe(iid) : Text.of(result.toString());
+                }
+                if (semanticAnn.style().length > 0) t.classes(semanticAnn.style());
+                if (!semanticAnn.fontSize().isEmpty()) t.fontSize(semanticAnn.fontSize());
+                if (!semanticAnn.fontFamily().isEmpty()) t.fontFamily(semanticAnn.fontFamily());
+                if (!semanticAnn.fontWeight().isEmpty()) t.fontWeight(semanticAnn.fontWeight());
+                wrapped = t;
+            }
+        }
+
+        // @Scene.Text.Literal on method
+        if (wrapped == null) {
+            Scene.Text.Literal literalAnn = m.getAnnotation(Scene.Text.Literal.class);
+            if (literalAnn != null) {
+                Text t = Text.of(result.toString());
+                if (!literalAnn.format().isEmpty()) t.format(ItemID.fromString(literalAnn.format()));
+                if (literalAnn.style().length > 0) t.classes(literalAnn.style());
+                if (!literalAnn.fontSize().isEmpty()) t.fontSize(literalAnn.fontSize());
+                if (!literalAnn.fontFamily().isEmpty()) t.fontFamily(literalAnn.fontFamily());
+                if (!literalAnn.fontWeight().isEmpty()) t.fontWeight(literalAnn.fontWeight());
+                wrapped = t;
+            }
+        }
+
+        // @Scene.Image on method
+        if (wrapped == null) {
+            Scene.Image imageAnn = m.getAnnotation(Scene.Image.class);
+            if (imageAnn != null) {
+                Body b = Body.ofGlyph(result.toString());
+                if (imageAnn.style().length > 0) b.classes(imageAnn.style());
+                wrapped = b;
+            }
+        }
+
+        // @Scene.Embed on method — result is already a Node
+        if (wrapped == null && m.isAnnotationPresent(Scene.Embed.class) && result instanceof Node node) {
+            wrapped = node;
+        }
+
+        // Fallback: if result is a Node, embed directly
+        if (wrapped == null && result instanceof Node node) {
+            wrapped = node;
+        }
+
+        // Apply @Scene.On events from this member onto the resulting node
+        if (wrapped != null) {
+            applyEvents(m, wrapped);
+        }
+
+        return wrapped;
+    }
+
+    /**
+     * Apply @Scene.On event declarations from an annotated element onto a node.
+     */
+    private static void applyEvents(AnnotatedElement element, Node target) {
+        for (Scene.On on : element.getAnnotationsByType(Scene.On.class)) {
+            target.on(on.event(), on.action(), on.target());
+        }
+    }
+
+    /** Extract an ItemID from an object via its iid() method. */
+    private static ItemID extractItemId(Object obj) {
+        try {
+            java.lang.reflect.Method iidMethod = obj.getClass().getMethod("iid");
+            Object iid = iidMethod.invoke(obj);
+            if (iid instanceof ItemID id) return id;
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * Convert a ViewNode tree to a Node tree, resolving bindings.
+     */
+    private static Node viewNodeToNode(ViewNode vn, StructureRenderContext ctx) {
+        // Handle @Repeat — iterate and produce children
+        if (vn.isRepeat()) {
+            return repeatToNodes(vn, ctx);
+        }
+
+        // Check visibility condition
+        if (vn.visibilityCondition != null && !ctx.evaluate(vn.visibilityCondition)) {
+            return null;
+        }
+
+        return switch (vn.type) {
+            case CONTAINER -> containerToNode(vn, ctx);
+            case TEXT -> textToNode(vn, ctx);
+            case SEMANTIC -> semanticToNode(vn, ctx);
+            case IMAGE -> imageToNode(vn, ctx);
+            case SHAPE -> shapeToNode(vn, ctx);
+            case EMBED -> embedToNode(vn, ctx);
+            default -> null; // 3D types not handled here
+        };
+    }
+
+    private static Node containerToNode(ViewNode vn, StructureRenderContext ctx) {
+        String layout = vn.direction == Scene.Direction.HORIZONTAL ? "horizontal" : "vertical";
+        Container c = new Container(layout);
+
+        // Identity
+        if (vn.nodeId != null && !vn.nodeId.isEmpty()) {
+            String id = vn.nodeId.startsWith("bind:")
+                    ? ctx.resolveBinding(vn.nodeId.substring("bind:".length()))
+                    : vn.nodeId;
+            if (!id.isEmpty()) c.id(id);
+        }
+
+        // Styles
+        List<String> styles = new ArrayList<>(vn.styles);
+        for (ViewNode.StateStyle ss : vn.stateStyles) {
+            if (ctx.evaluate(ss.condition)) styles.addAll(ss.styles);
+        }
+        if (!styles.isEmpty()) c.classes(styles.toArray(new String[0]));
+
+        // Layout properties
+        if (!vn.gap.isEmpty()) c.gap(vn.gap);
+        if (!vn.background.isEmpty()) c.background(vn.background);
+        if (!vn.padding.isEmpty()) c.padding(vn.padding);
+        if (!vn.width.isEmpty()) c.width(vn.width);
+        if (!vn.height.isEmpty()) c.height(vn.height);
+        if (vn.overflow != null && !"visible".equals(vn.overflow)) c.overflow(vn.overflow);
+        if (vn.align != null && !vn.align.isEmpty()) c.align(vn.align);
+        if (vn.fontFamily != null && !vn.fontFamily.isEmpty()) c.fontFamily(vn.fontFamily);
+        if (vn.textFontSize != null && !vn.textFontSize.isEmpty()) c.fontSize(vn.textFontSize);
+
+        // Border → Node border string
+        BoxBorder boxBorder = resolveBorder(vn);
+        if (boxBorder.isVisible()) {
+            // Reconstruct a shorthand from the all-side spec
+            BoxBorder.BorderSide side = boxBorder.top();
+            if (side.isVisible()) {
+                String borderStr = side.width() + " " + side.style() + " " + side.color();
+                c.border(borderStr.trim());
+            }
+            if (boxBorder.hasRadius()) c.corner(boxBorder.radius());
+        }
+
+        // Elevation
+        if (vn.elevation != null && !vn.elevation.isEmpty()) {
+            c.elevation(elevationToMeters(vn.elevation));
+        }
+
+        // Events
+        for (ViewNode.EventHandler eh : vn.events) {
+            if (eh.condition.isEmpty() || ctx.evaluate(eh.condition)) {
+                String target = ctx.resolveBinding(eh.target);
+                c.on(eh.eventType, eh.action, target);
+            }
+        }
+
+        // Children
+        for (ViewNode child : vn.children) {
+            Node childNode = viewNodeToNode(child, ctx);
+            if (childNode != null) {
+                c.add(childNode);
+            }
+        }
+
+        return c;
+    }
+
+    private static Node textToNode(ViewNode vn, StructureRenderContext ctx) {
+        String content = resolveText(vn, ctx);
+        Text t = Text.of(content);
+
+        // Styles
+        if (!vn.styles.isEmpty()) t.classes(vn.styles.toArray(new String[0]));
+
+        // Typography
+        if (vn.fontFamily != null && !vn.fontFamily.isEmpty()) t.fontFamily(vn.fontFamily);
+        if (vn.textFontSize != null && !vn.textFontSize.isEmpty()) t.fontSize(vn.textFontSize);
+
+        // Identity
+        if (vn.nodeId != null && !vn.nodeId.isEmpty()) t.id(vn.nodeId);
+
+        // Events
+        for (ViewNode.EventHandler eh : vn.events) {
+            if (eh.condition.isEmpty() || ctx.evaluate(eh.condition)) {
+                String target = ctx.resolveBinding(eh.target);
+                t.on(eh.eventType, eh.action, target);
+            }
+        }
+
+        return t;
+    }
+
+    private static Node semanticToNode(ViewNode vn, StructureRenderContext ctx) {
+        // Build SemanticToken list from static annotation tokens
+        List<Text.SemanticToken> tokens = new ArrayList<>();
+
+        if (!vn.semanticTokens.isEmpty()) {
+            // Static tokens from @Scene.Text.Semantic(value = { @Token(...), ... })
+            for (Scene.Text.Token tok : vn.semanticTokens) {
+                ItemID sememe = ItemID.fromString(tok.sememe());
+                List<ItemID> features = Arrays.stream(tok.features())
+                        .map(ItemID::fromString)
+                        .toList();
+                tokens.add(new Text.SemanticToken(sememe, features));
+            }
+        } else if (!vn.semanticBind.isEmpty()) {
+            // Dynamic tokens from method return value
+            Object resolved = ctx.resolveValue(vn.semanticBind);
+            if (resolved instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof Text.SemanticToken st) tokens.add(st);
+                }
+            } else if (resolved instanceof ItemID iid) {
+                tokens.add(Text.SemanticToken.of(iid));
+            } else if (resolved != null) {
+                // Try to get the sememe IID from the object (e.g., a Sememe instance)
+                try {
+                    java.lang.reflect.Method iidMethod = resolved.getClass().getMethod("iid");
+                    Object iid = iidMethod.invoke(resolved);
+                    if (iid instanceof ItemID id) tokens.add(Text.SemanticToken.of(id));
+                } catch (Exception ignored) {}
+            }
+        }
+
+        Text t;
+        if (!tokens.isEmpty()) {
+            t = Text.ofTokens(tokens);
+        } else {
+            t = Text.of(""); // fallback — empty semantic text
+        }
+
+        // Styles
+        if (!vn.semanticStyles.isEmpty()) t.classes(vn.semanticStyles.toArray(new String[0]));
+
+        // Typography
+        if (!vn.semanticFontSize.isEmpty()) t.fontSize(vn.semanticFontSize);
+        if (!vn.semanticFontFamily.isEmpty()) t.fontFamily(vn.semanticFontFamily);
+        if (!vn.semanticFontWeight.isEmpty()) t.fontWeight(vn.semanticFontWeight);
+
+        // Identity
+        if (vn.nodeId != null && !vn.nodeId.isEmpty()) t.id(vn.nodeId);
+
+        return t;
+    }
+
+    private static Node imageToNode(ViewNode vn, StructureRenderContext ctx) {
+        String alt;
+        String resource = null;
+
+        if (!vn.imageBind.isEmpty()) {
+            Object resolved = ctx.resolveValue(vn.imageBind);
+            alt = resolved != null ? resolved.toString() : "";
+        } else {
+            alt = vn.imageAlt;
+        }
+
+        Body b = Body.ofGlyph(alt);
+        if (!vn.styles.isEmpty()) b.classes(vn.styles.toArray(new String[0]));
+        if (vn.nodeId != null && !vn.nodeId.isEmpty()) b.id(vn.nodeId);
+
+        // Image resource (from @Scene.Image annotation — imageModelResource for 3D, or alt for 2D)
+        if (!vn.imageModelResource.isEmpty()) b.model(vn.imageModelResource);
+
+        // Events
+        for (ViewNode.EventHandler eh : vn.events) {
+            if (eh.condition.isEmpty() || ctx.evaluate(eh.condition)) {
+                String target = ctx.resolveBinding(eh.target);
+                b.on(eh.eventType, eh.action, target);
+            }
+        }
+
+        return b;
+    }
+
+    private static Node shapeToNode(ViewNode vn, StructureRenderContext ctx) {
+        Body b = Body.ofShape(vn.shapeType);
+        if (!vn.shapeFill.isEmpty()) b.fill(vn.shapeFill);
+        if (!vn.shapeStroke.isEmpty()) b.stroke(vn.shapeStroke);
+        if (!vn.shapeStrokeWidth.isEmpty()) b.strokeWidth(vn.shapeStrokeWidth);
+        if (!vn.styles.isEmpty()) b.classes(vn.styles.toArray(new String[0]));
+        if (!vn.shapeWidth.isEmpty()) b.width(vn.shapeWidth);
+        if (!vn.shapeHeight.isEmpty()) b.height(vn.shapeHeight);
+        return b;
+    }
+
+    private static Node embedToNode(ViewNode vn, StructureRenderContext ctx) {
+        if (!vn.embedBind.isEmpty()) {
+            Object resolved = ctx.resolveValue(vn.embedBind);
+            if (resolved instanceof Node node) {
+                return node;
+            }
+            // Try compiling the resolved object to a Node tree
+            if (resolved != null) {
+                Node compiled = compileToNode(resolved);
+                if (compiled != null) return compiled;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Handle @Repeat: iterate collection, produce a Container with children.
+     */
+    private static Node repeatToNodes(ViewNode vn, StructureRenderContext ctx) {
+        Object collection = ctx.resolveValue(vn.repeatBind);
+        if (collection == null) return null;
+
+        Iterable<?> items;
+        if (collection instanceof Iterable<?> iterable) {
+            items = iterable;
+        } else if (collection.getClass().isArray()) {
+            items = Arrays.asList((Object[]) collection);
+        } else {
+            items = List.of(collection);
+        }
+
+        ViewNode itemNode = cloneWithoutRepeat(vn);
+
+        // Produce a wrapper container for the repeated items
+        String layout = vn.direction == Scene.Direction.HORIZONTAL ? "horizontal" : "vertical";
+        Container wrapper = new Container(layout);
+        if (!vn.gap.isEmpty()) wrapper.gap(vn.gap);
+        if (!vn.styles.isEmpty()) wrapper.classes(vn.styles.toArray(new String[0]));
+
+        int index = 0;
+        for (Object item : items) {
+            StructureRenderContext itemCtx = ctx.withItem(
+                    item, index, vn.repeatItemVar, vn.repeatIndexVar);
+            Node child = viewNodeToNode(itemNode, itemCtx);
+            if (child != null) wrapper.add(child);
+            index++;
+        }
+
+        return wrapper;
     }
 
     // ==================================================================================
@@ -550,8 +1236,13 @@ public final class SceneCompiler {
      * Compile nested static classes to a node tree.
      */
     private static ViewNode compileStructure(Class<?> sceneClass) {
-        // Check if the class itself has structural annotations
+        // Class itself has structural annotations — compile it
         if (hasStructuralAnnotation(sceneClass)) {
+            return compileClass(sceneClass);
+        }
+
+        // Class has @Scene.Root — treat as a compilable root
+        if (sceneClass.isAnnotationPresent(Scene.Root.class)) {
             return compileClass(sceneClass);
         }
 
@@ -584,10 +1275,13 @@ public final class SceneCompiler {
      */
     public static boolean has2DAnnotation(Class<?> clazz) {
         return clazz.isAnnotationPresent(Scene.Container.class)
-                || clazz.isAnnotationPresent(Scene.Text.class)
+                || clazz.isAnnotationPresent(Scene.Text.Literal.class)
+                || clazz.isAnnotationPresent(Scene.Text.Semantic.class)
                 || clazz.isAnnotationPresent(Scene.Image.class)
                 || clazz.isAnnotationPresent(Scene.Shape.class)
-                || clazz.isAnnotationPresent(Scene.Embed.class);
+                || clazz.isAnnotationPresent(Scene.Embed.class)
+                || clazz.isAnnotationPresent(Scene.Root.class)
+                || clazz.isAnnotationPresent(Scene.Handle.class);
     }
 
     /**
@@ -595,17 +1289,20 @@ public final class SceneCompiler {
      */
     private static boolean hasStructuralAnnotation(Field field) {
         return field.isAnnotationPresent(Scene.Container.class)
-            || field.isAnnotationPresent(Scene.Text.class)
+            || field.isAnnotationPresent(Scene.Text.Literal.class)
+            || field.isAnnotationPresent(Scene.Text.Semantic.class)
             || field.isAnnotationPresent(Scene.Image.class)
             || field.isAnnotationPresent(Scene.Shape.class);
     }
 
     private static boolean hasStructuralAnnotation(Method method) {
         return method.isAnnotationPresent(Scene.Container.class)
-                || method.isAnnotationPresent(Scene.Text.class)
+                || method.isAnnotationPresent(Scene.Text.Literal.class)
+                || method.isAnnotationPresent(Scene.Text.Semantic.class)
                 || method.isAnnotationPresent(Scene.Image.class)
                 || method.isAnnotationPresent(Scene.Shape.class)
-                || method.isAnnotationPresent(Scene.Embed.class);
+                || method.isAnnotationPresent(Scene.Embed.class)
+                || method.isAnnotationPresent(Scene.Handle.class);
     }
 
     /**
@@ -637,22 +1334,19 @@ public final class SceneCompiler {
         // Also extract context menu from the class itself (for type-level annotations)
         extractContextMenu(clazz, node);
 
-        // Compile children from annotated methods (public, non-static)
-        List<Method> annotatedMethods = new ArrayList<>();
-        for (Method m : clazz.getDeclaredMethods()) {
-            if (!Modifier.isStatic(m.getModifiers())
-                    && Modifier.isPublic(m.getModifiers())
-                    && hasStructuralAnnotation(m)) {
-                annotatedMethods.add(m);
+        // Compile children from annotated fields
+        for (Field f : clazz.getDeclaredFields()) {
+            if (hasStructuralAnnotation(f)) {
+                ViewNode child = compileElement(f, f.getName());
+                if (child != null) {
+                    node.children.add(child);
+                }
             }
         }
-        annotatedMethods.sort(Comparator.comparing(Method::getName));
-        for (Method m : annotatedMethods) {
-            ViewNode child = compileElement(m, m.getName());
-            if (child != null) {
-                node.children.add(child);
-            }
-        }
+
+        // Note: annotated METHODS are not compiled here — they need to be CALLED
+        // at render time, which happens in compileMethodAnnotations().
+        // compileClass only handles static structure (nested classes + fields).
 
         return node;
     }
@@ -709,7 +1403,8 @@ public final class SceneCompiler {
 
         // Get structural annotations
         Scene.Container container = element.getAnnotation(Scene.Container.class);
-        Scene.Text sceneText = element.getAnnotation(Scene.Text.class);
+        Scene.Text.Literal sceneText = element.getAnnotation(Scene.Text.Literal.class);
+        Scene.Text.Semantic sceneSemantic = element.getAnnotation(Scene.Text.Semantic.class);
         Scene.Image sceneImage = element.getAnnotation(Scene.Image.class);
         Scene.Shape shape = element.getAnnotation(Scene.Shape.class);
         Scene.Embed embed = element.getAnnotation(Scene.Embed.class);
@@ -788,6 +1483,13 @@ public final class SceneCompiler {
             node.textFontSize = sceneText.fontSize();
             node.fontFamily = sceneText.fontFamily();
             node.styles = new ArrayList<>(Arrays.asList(sceneText.style()));
+        } else if (sceneSemantic != null) {
+            node.type = ViewNode.NodeType.SEMANTIC;
+            node.semanticTokens = List.of(sceneSemantic.value());
+            node.semanticStyles = new ArrayList<>(Arrays.asList(sceneSemantic.style()));
+            node.semanticFontSize = sceneSemantic.fontSize();
+            node.semanticFontFamily = sceneSemantic.fontFamily();
+            node.semanticFontWeight = sceneSemantic.fontWeight();
         } else if (sceneImage != null) {
             node.type = ViewNode.NodeType.IMAGE;
             node.imageAlt = sceneImage.alt();
@@ -1573,17 +2275,7 @@ public final class SceneCompiler {
     // ==================================================================================
 
     /**
-     * Render a SceneModel by calling annotated methods.
-     */
-    private static void renderFromMethods(SceneModel<?> model, SurfaceRenderer out) {
-        SurfaceSchema<?> compiled = compileFromMethods(model);
-        if (compiled != null) {
-            compiled.render(out);
-        }
-    }
-
-    /**
-     * Compile a SceneModel from annotated methods.
+     * Compile an object from annotated methods.
      */
     private static SurfaceSchema<?> compileFromMethods(Object model) {
         if (model == null) {
@@ -2809,6 +3501,12 @@ public final class SceneCompiler {
 
             Object propValue = getProperty(schema, expr);
             if (propValue != null) return isTruthy(propValue);
+
+            // Fall through to value (the data object)
+            if (value != null) {
+                Object valueProp = getProperty(value, expr);
+                if (valueProp != null) return isTruthy(valueProp);
+            }
 
             return false;
         }

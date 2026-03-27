@@ -32,10 +32,8 @@ import dev.everydaythings.graph.parse.InputAction;
 import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.ui.scene.View;
-import dev.everydaythings.graph.ui.scene.surface.item.ItemModel;
-import dev.everydaythings.graph.ui.scene.surface.item.ViewSurface;
+import dev.everydaythings.graph.ui.scene.surface.item.ItemView;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.log4j.Log4j2;
@@ -62,7 +60,7 @@ import java.util.function.Consumer;
  * <p>Session extends {@link Item} — it IS an Item with identity,
  * vocabulary, verbs, and components. It manages authenticated users,
  * session-level verbs (exit, back, authenticate, switch), the activity
- * log, and the UI layer (ItemModel, input, rendering).
+ * log, and the UI layer (ItemView, input, rendering).
  *
  * <h2>Multi-user model</h2>
  *
@@ -165,10 +163,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     protected LibrarianHandle librarian;
 
     /**
-     * The ItemModel manages UI state: root, context, tree, navigation.
+     * The ItemView manages UI state: root, context, tree, navigation.
      */
-    @Getter
-    protected ItemModel itemModel;
+    protected ItemView itemView;
+
+    public ItemView itemView() { return itemView; }
 
     /**
      * Running flag for the main loop.
@@ -468,11 +467,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         FrameKey key = openView(targetId);
         navigateInto(Ref.of(targetId));
 
-        // Tell ItemModel about the active view so it shows view chrome
-        if (itemModel != null) {
+        // Tell ItemView about the active view so it shows view chrome
+        if (itemView != null) {
             ViewHandle vh = findView(targetId);
             if (vh != null) {
-                itemModel.setActiveView(vh);
+                itemView.setActiveView(vh);
             }
         }
 
@@ -500,9 +499,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             }
         }
 
-        // Clear view chrome from ItemModel
-        if (itemModel != null) {
-            itemModel.clearActiveView();
+        // Clear view chrome from ItemView
+        if (itemView != null) {
+            itemView.clearActiveView();
         }
         goBack();
         return ActionResult.success("View closed");
@@ -789,7 +788,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     /**
-     * Initialize the ItemModel for this session.
+     * Initialize the ItemView for this session.
      *
      * <p>If no explicit context is provided, defaults to the session item
      * itself — you are always somewhere.
@@ -804,7 +803,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // Cache the principal so resolveItem() can find it
         cachePrincipal();
 
-        itemModel = new ItemModel(context, this::resolveItem);
+        Item contextItem = resolveItem(context.target()).orElse(this);
+        itemView = new ItemView(contextItem, this::resolveItem);
     }
 
     /**
@@ -857,7 +857,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // Determine UI mode
         UIMode mode = determineMode(opts);
 
-        // Create appropriate session — null context is handled by initializeItemModel
+        // Create appropriate session — null context is handled by initializeItemView
         Session session = switch (mode) {
             case SKIA -> new GraphicalSession(librarian, context, RenderMode.FLAT);
             case SPACE -> new GraphicalSession(librarian, context, RenderMode.SPATIAL);
@@ -976,7 +976,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
     /**
      * Render the current state.
-     * Called when ItemModel changes.
+     * Called when ItemView changes.
      */
     protected abstract void render();
 
@@ -999,29 +999,29 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     // ==================================================================================
-    // ItemModel Accessors
+    // ItemView Accessors
     // ==================================================================================
 
     /**
      * Get the current context Ref.
      */
     public Ref context() {
-        return itemModel != null ? itemModel.context() : null;
+        return itemView != null ? itemView.context() : null;
     }
 
     /**
      * Get the current root Ref.
      */
     public Ref root() {
-        return itemModel != null ? itemModel.root() : null;
+        return itemView != null ? itemView.root() : null;
     }
 
     /**
      * Get the context Item (resolves the Ref's target IID).
      */
     public Optional<Item> contextItem() {
-        if (itemModel == null) return Optional.empty();
-        Ref ctx = itemModel.context();
+        if (itemView == null) return Optional.empty();
+        Ref ctx = itemView.context();
         if (ctx == null || ctx.target() == null) return Optional.empty();
         return resolveItem(ctx.target());
     }
@@ -1032,6 +1032,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * <p>The cache preserves live instances with dynamic modifications
      * (e.g., added components) that aren't yet persisted to the store.
      */
+    /** Generate the current Node tree for rendering. */
+    public dev.everydaythings.graph.ui.scene.node.Node toNode() {
+        return itemView != null ? itemView.toNode() : null;
+    }
+
     public Optional<Item> resolveItem(ItemID iid) {
         Item cached = liveItemCache.get(iid);
         if (cached != null) return Optional.of(cached);
@@ -1041,33 +1046,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     /**
-     * Generate the current surface for rendering.
-     *
-     * <p>When a view is active, wraps the content in {@link ViewSurface} chrome
-     * (title bar + content + prompt). Otherwise returns the standard ItemModel layout.
-     */
-    public SurfaceSchema toSurface() {
-        if (itemModel == null) return null;
-
-        if (itemModel.hasActiveView()) {
-            return buildViewSurface();
-        }
-
-        return itemModel.toSurface();
-    }
-
-    private SurfaceSchema buildViewSurface() {
-        Optional<Item> item = contextItem();
-        if (item.isEmpty()) return itemModel.toSurface();
-
-        SurfaceSchema<?> content = itemModel.contentSurface();
-        SurfaceSchema<?> prompt = itemModel.prompt();
-        ViewConfig config = itemModel.activeView().config();
-        return ViewSurface.of(item.get(), content, prompt, config);
-    }
-
-    /**
-     * Update the input state in the ItemModel from an InputController snapshot.
+     * Update the input state in the ItemView from an InputController snapshot.
      *
      * <p>Call this when InputController fires onChange so that the input field
      * renders as part of the surface tree across all renderers.
@@ -1075,11 +1054,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param snapshot the current input state
      */
     public void updateInputState(InputSnapshot snapshot) {
-        if (itemModel != null) {
-            itemModel.updateInput(snapshot);
+        if (itemView != null) {
+            itemView.updateInput(snapshot);
             // Clear feedback when user starts typing new input
             if (snapshot != null && !snapshot.displayText().isBlank()) {
-                itemModel.clearFeedback();
+                itemView.clearFeedback();
             }
         }
     }
@@ -1092,8 +1071,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Navigate into an item (makes it the new root).
      */
     public void navigateInto(Ref target) {
-        if (itemModel != null) {
-            itemModel.navigateInto(target);
+        if (itemView != null) {
+            itemView.navigateInto(target);
             contextItem().ifPresent(this::onContextComponentsChanged);
         }
     }
@@ -1112,8 +1091,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Select an item (changes context within current root).
      */
     public void select(Ref target) {
-        if (itemModel != null) {
-            itemModel.select(target);
+        if (itemView != null) {
+            itemView.select(target);
         }
     }
 
@@ -1121,14 +1100,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Go back in navigation history.
      */
     public boolean goBack() {
-        return itemModel != null && itemModel.goBack();
+        return itemView != null && itemView.goBack();
     }
 
     /**
      * Check if we can go back.
      */
     public boolean canGoBack() {
-        return itemModel != null && itemModel.canGoBack();
+        return itemView != null && itemView.canGoBack();
     }
 
     // ==================================================================================
@@ -1137,12 +1116,12 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
     /**
      * Handle a key chord.
-     * Routes to ItemModel for navigation keys.
+     * Routes to ItemView for navigation keys.
      *
      * @return true if consumed
      */
     public boolean handleKey(KeyChord chord) {
-        return itemModel != null && itemModel.handleKey(chord);
+        return itemView != null && itemView.handleKey(chord);
     }
 
     /**
@@ -1152,35 +1131,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // View close — remove ITEM_VIEW frame, clear view chrome, go back
         if ("viewClose".equals(action)) {
             contextItem().ifPresent(item -> closeView(item.iid()));
-            if (itemModel != null) {
-                itemModel.clearActiveView();
+            if (itemView != null) {
+                itemView.clearActiveView();
             }
             goBack();
             return true;
         }
-        // View mode toggle — sync config back to the ITEM_VIEW frame
-        if ("viewMode:toggle".equals(action) && itemModel != null) {
-            itemModel.handleEvent(action, target);
-            syncViewModeToFrame();
-            return true;
-        }
-        return itemModel != null && itemModel.handleEvent(action, target);
-    }
-
-    /**
-     * Sync the current viewMode/inspectMode from ItemModel back to the
-     * ITEM_VIEW frame's ViewConfig.
-     */
-    private void syncViewModeToFrame() {
-        if (itemModel == null || !itemModel.hasActiveView()) return;
-        ViewHandle vh = itemModel.activeView();
-        if (vh == null) return;
-        ViewConfig current = viewConfig(vh.frameKey());
-        if (current == null) return;
-        ViewConfig updated = current
-                .withMode(itemModel.currentViewMode())
-                .withInspectMode(itemModel.currentInspectMode());
-        updateViewConfig(vh.frameKey(), updated);
+        return itemView != null && itemView.handleEvent(action, target);
     }
 
     // ==================================================================================
@@ -1207,8 +1164,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
                 // Instances are discoverable via frame queries from their type sememe
 
-                if (itemModel != null) {
-                    itemModel.refresh();
+                if (itemView != null) {
+                    itemView.refresh();
                 }
                 logger.info("Created: {} ({})", item.displayToken(), item.iid().encodeText());
             }
@@ -1251,8 +1208,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         handleEvalResult(result);
 
         // Refresh tree — dispatch may have added/changed components on the focused item
-        if (itemModel != null && !(result instanceof Eval.EvalResult.Empty)) {
-            itemModel.refresh();
+        if (itemView != null && !(result instanceof Eval.EvalResult.Empty)) {
+            itemView.refresh();
         }
 
         // Log to the session activity log and update feedback display
@@ -1263,8 +1220,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             logActivity(entry);
 
             // Push feedback to the prompt area
-            if (itemModel != null && entry.hasResult()) {
-                itemModel.setFeedback(entry.resultText(), !entry.isSuccess());
+            if (itemView != null && entry.hasResult()) {
+                itemView.setFeedback(entry.resultText(), !entry.isSuccess());
             }
         }
 
@@ -1315,8 +1272,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         actual.endorse(predicateId, qualifier, component);
 
         // Refresh tree to pick up the new component, then select it
-        if (itemModel != null) {
-            itemModel.refresh();
+        if (itemView != null) {
+            itemView.refresh();
         }
 
         // Notify subclasses (e.g., GraphicalSession rebuilds tick registry)
@@ -1436,11 +1393,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     public String buildPrompt() {
         String actorPrefix = resolveActorPrefix();
 
-        if (itemModel == null) {
+        if (itemView == null) {
             return actorPrefix + "session> ";
         }
 
-        Ref ctx = itemModel.context();
+        Ref ctx = itemView.context();
         if (ctx == null) {
             return actorPrefix + "session> ";
         }

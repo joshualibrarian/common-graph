@@ -38,7 +38,6 @@ import java.util.*;
  * </ul>
  */
 @Implements(DominoesGame.KEY)
-@Scene(as = DominoesSurface.class)
 public class DominoesGame extends GameComponent<DominoesGame.Op>
         implements Zoned<DominoTile>, Scored {
 

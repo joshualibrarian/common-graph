@@ -134,7 +134,7 @@ public class ChessItem extends Item {
                 @Scene.Container(direction = Direction.HORIZONTAL, width = "100%",
                         style = {"justify-center"}, align = "center")
                 static class ClockOffRow {
-                    @Scene.Text(content = "Clock Off", style = {"muted"})
+                    @Scene.Text.Literal(content = "Clock Off", style = {"muted"})
                     static class ClockOffLabel {}
                 }
 
@@ -142,7 +142,7 @@ public class ChessItem extends Item {
                 @Scene.Container(direction = Direction.HORIZONTAL, width = "100%",
                         style = {"justify-center"}, align = "center")
                 static class AdvantageRow {
-                    @Scene.Text(bind = "value.materialAdvantageLabel", style = {"muted"})
+                    @Scene.Text.Literal(bind = "value.materialAdvantageLabel", style = {"muted"})
                     static class AdvantageLabel {}
                 }
             }

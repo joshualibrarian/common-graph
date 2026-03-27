@@ -578,10 +578,20 @@ public class LayoutEngine {
 
     /**
      * Check if a layout node should fill remaining space in its parent.
-     * Nodes with the "fill" style class participate in flex-fill distribution.
+     *
+     * <p>A node is a fill child if its size spec is "1fr" (fraction of remaining space)
+     * or if it has the legacy "fill" style class.
      */
     private boolean isFillChild(LayoutNode node) {
+        if (node instanceof LayoutNode.BoxNode box) {
+            if (isFrSpec(box.widthSpec()) || isFrSpec(box.heightSpec())) return true;
+        }
+        // Legacy: "fill" style class (for old SurfaceSchema pipeline)
         return node.styles() != null && node.styles().contains("fill");
+    }
+
+    private static boolean isFrSpec(String spec) {
+        return spec != null && spec.endsWith("fr");
     }
 
     private void measureHorizontal(LayoutNode.BoxNode box, float contentWidth, float contentHeight) {

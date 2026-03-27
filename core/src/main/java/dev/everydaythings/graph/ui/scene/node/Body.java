@@ -4,6 +4,9 @@ import dev.everydaythings.graph.Canonical;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * The visual primitive — displays shapes, images, 3D models, or glyphs.
  *
@@ -74,6 +77,24 @@ public class Body extends Node {
     /** Material reference (PBR properties — CID or name). */
     @Canon(order = 120)
     private String material;
+
+    // ==================================================================================
+    // Surfaces — named faces on the geometry
+    // ==================================================================================
+
+    /**
+     * Named surfaces on this Body's geometry.
+     *
+     * <p>Maps surface names (e.g., "front", "top") to Containers that render
+     * on those faces. The spatial renderer rasterizes each Container to a
+     * texture and maps it onto the named surface. Graphical and text renderers
+     * ignore the bindings — the Containers render inline in normal layout flow.
+     *
+     * <p>A cube has six surfaces (front, back, left, right, top, bottom).
+     * A cylinder has three (side, top, bottom). Custom meshes define their own.
+     */
+    @Canon(order = 130)
+    private Map<String, Node> surfaces;
 
     // ==================================================================================
     // Constructors
@@ -166,4 +187,11 @@ public class Body extends Node {
     public Body strokeWidth(String w) { this.strokeWidth = w; return this; }
     public Body radius(String r) { this.radius = r; return this; }
     public Body material(String m) { this.material = m; return this; }
+
+    /** Bind a Container to a named surface on this Body's geometry. */
+    public Body surface(String name, Node content) {
+        if (surfaces == null) surfaces = new LinkedHashMap<>();
+        surfaces.put(name, content);
+        return this;
+    }
 }

@@ -29,6 +29,8 @@ public class ViewNode implements Canonical {
     public enum NodeType {
         // 2D primitives
         CONTAINER, TEXT, IMAGE, SHAPE, EMBED,
+        // Semantic text (labels resolved via language system)
+        SEMANTIC,
         // 3D scene elements
         BODY, FACE, TRANSFORM, LIGHT, AUDIO_3D, ENVIRONMENT, CAMERA
     }
@@ -110,6 +112,28 @@ public class ViewNode implements Canonical {
     @Canonical.Canon(order = 32) public String textFormat = "plain";
     @Canonical.Canon(order = 33) public String textFontSize = "";
     @Canonical.Canon(order = 34) public String fontFamily = "";
+
+    // ==================================================================================
+    // Semantic Text Properties (canon order 135-136)
+    // ==================================================================================
+
+    /** Static semantic tokens from @Scene.Text.Semantic(value = {...}) */
+    public List<Scene.Text.Token> semanticTokens = List.of();
+
+    /** Bind expression for dynamic semantic text (method return value) */
+    public String semanticBind = "";
+
+    /** Style classes for semantic text */
+    public List<String> semanticStyles = List.of();
+
+    /** Font size for semantic text */
+    public String semanticFontSize = "";
+
+    /** Font family for semantic text */
+    public String semanticFontFamily = "";
+
+    /** Font weight for semantic text */
+    public String semanticFontWeight = "";
 
     // ==================================================================================
     // Image Properties (canon order 35-39)

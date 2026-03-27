@@ -35,7 +35,7 @@ public class ChipsSurface extends SurfaceSchema {
         @Scene.If("$item.icon != null")
         static class Icon {}
 
-        @Scene.Text(bind = "$item.label", style = {"chip-label"})
+        @Scene.Text.Literal(bind = "$item.label", style = {"chip-label"})
         static class Label {}
     }
 

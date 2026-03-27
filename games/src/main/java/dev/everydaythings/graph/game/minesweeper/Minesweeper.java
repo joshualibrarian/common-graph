@@ -58,7 +58,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     // Inline Surface Structure
     // ==================================================================================
 
-    @Scene.Text(bind = "value.statusText", style = "heading")
+    @Scene.Text.Literal(bind = "value.statusText", style = "heading")
     static class Status {}
 
     @Scene.Repeat(bind = "value.gridRows")
@@ -79,7 +79,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         @Scene.On(event = "rightclick", action = "flag", target = "$item.id")
         static class Cell {
 
-            @Scene.Text(bind = "$item.display", fontSize = "80%")
+            @Scene.Text.Literal(bind = "$item.display", fontSize = "80%")
             static class Content {}
         }
     }

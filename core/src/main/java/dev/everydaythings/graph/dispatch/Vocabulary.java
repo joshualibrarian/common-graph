@@ -10,8 +10,6 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.ui.scene.Scene;
-import dev.everydaythings.graph.ui.scene.surface.VocabularySurface;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -34,7 +32,6 @@ import java.util.stream.Stream;
  * <p>Drives the "help" command — shows what's available on this item.
  */
 @Implements(Vocabulary.KEY)
-@Scene(as = VocabularySurface.class)
 public class Vocabulary implements Iterable<VerbEntry> {
 
     public static final String KEY = "cg.sememe:vocabulary";

@@ -79,14 +79,14 @@ public class ChessClock implements Canonical {
         @Scene.Container(direction = Direction.HORIZONTAL, width = "100%", height = "49%",
                 style = {"fill", "justify-center"}, align = "center")
         static class BlackRow {
-            @Scene.Text(bind = "value.blackTimeLabel", style = {"heading", "monospace"})
+            @Scene.Text.Literal(bind = "value.blackTimeLabel", style = {"heading", "monospace"})
             static class Time {}
         }
 
         @Scene.Container(direction = Direction.HORIZONTAL, width = "100%", height = "49%",
                 style = {"fill", "justify-center"}, align = "center")
         static class WhiteRow {
-            @Scene.Text(bind = "value.whiteTimeLabel", style = {"heading", "monospace"})
+            @Scene.Text.Literal(bind = "value.whiteTimeLabel", style = {"heading", "monospace"})
             static class Time {}
         }
     }

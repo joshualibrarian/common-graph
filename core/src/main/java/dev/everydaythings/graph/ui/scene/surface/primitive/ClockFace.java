@@ -118,7 +118,7 @@ public class ClockFace implements Canonical {
     @Scene.Container(style = {"align-center", "justify-center"}, depth = "15mm")
     @Scene.If("value.digital")
     static class DigitalOverlay {
-        @Scene.Text(bind = "value.digitalTime", style = {"clock-digital", "heading", "monospace"})
+        @Scene.Text.Literal(bind = "value.digitalTime", style = {"clock-digital", "heading", "monospace"})
         static class Time {}
     }
 
@@ -127,7 +127,7 @@ public class ClockFace implements Canonical {
     @Scene.Query("width < 30ch")
     @Scene.Container(style = {"align-center", "justify-center"})
     static class CompactDigital {
-        @Scene.Text(bind = "value.digitalTime", style = {"clock-digital", "heading", "monospace"})
+        @Scene.Text.Literal(bind = "value.digitalTime", style = {"clock-digital", "heading", "monospace"})
         static class Time {}
     }
 

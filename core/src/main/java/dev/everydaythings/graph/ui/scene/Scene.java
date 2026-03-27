@@ -148,6 +148,55 @@ public @interface Scene {
     Event[] events() default {};
 
     // ===================================================================
+    // Scene Root and Handle
+    // ===================================================================
+
+    /**
+     * Marks the scene root — the entry point for an item's or predicate's presentation.
+     *
+     * <p>The compiler extracts both the root scene and the handle as CONFIG:
+     * {@code { root: Node, handle: Node }}.
+     *
+     * <p>Handle resolution order:
+     * <ol>
+     *   <li>{@code @Scene.Root(handle = MyHandle.class)} — explicit handle class</li>
+     *   <li>{@code @Scene.Handle} annotated method in the class — inline handle</li>
+     *   <li>Default — system generates from SYMBOL + NAME</li>
+     * </ol>
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE, ElementType.METHOD})
+    @interface Root {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
+
+        /** Handle class — a class annotated with @Scene.Container (or other scene annotations)
+         *  that provides the compact identity representation. Defaults to Void (no explicit handle). */
+        Class<?> handle() default Void.class;
+    }
+
+    /**
+     * Marks a handle — the compact identity representation.
+     *
+     * <p>Shows in trees, chips, breadcrumbs, header bars, search results,
+     * HUD labels, nameplates — anywhere the item is referenced but not focused.
+     *
+     * <p>On a type: the class itself declares the handle structure.
+     * On a method: the method returns the handle content (Node or value).
+     *
+     * <p>If no handle is declared, the system generates one from the item's
+     * SYMBOL and NAME bindings.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE, ElementType.METHOD})
+    @interface Handle {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
+    }
+
+    // ===================================================================
     // Style Rules
     // ===================================================================
 
@@ -353,6 +402,9 @@ public @interface Scene {
     @Target({ElementType.TYPE, ElementType.METHOD})
     @interface Container {
 
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
+
         /**
          * Element ID for referencing in styles, hit-testing, event targets, and
          * as an addressable layout frame ("place role") for attachments.
@@ -445,40 +497,112 @@ public @interface Scene {
     }
 
     /**
-     * Defines text content.
+     * Text content namespace — contains {@link Literal} and {@link Semantic}.
      *
-     * <p>Text can be literal or bound to a value property.
+     * <p><b>{@code @Scene.Text.Literal}</b> — verbatim content. Documents, code, raw data.
+     * The method returns a String. An optional format reference (a MIME type sememe)
+     * tells the renderer how to interpret the content.
+     *
+     * <p><b>{@code @Scene.Text.Semantic}</b> — meaning-first labels. The method returns
+     * a value (Sememe, Quantity, List&lt;SemanticToken&gt;, Frame) resolved through the
+     * language system at render time. No hardcoded text.
      */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.METHOD})
     @interface Text {
 
-        /** Literal text content. */
-        String content() default "";
+        /**
+         * Literal text content — displayed verbatim.
+         *
+         * <p>For documents, code, log entries, raw data. The method returns a String.
+         * An optional format (a MIME type sememe) tells the renderer how to interpret
+         * the content — Markdown, Code, JSON are sememes with rendering implementations.
+         */
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target({ElementType.TYPE, ElementType.METHOD})
+        @interface Literal {
 
-        /** Binding expression for dynamic text: "name", "$label", "$id". */
-        String bind() default "";
+            /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+            int order() default -1;
 
-        /** Text format: "plain", "markdown", "code", etc. */
-        String format() default "plain";
+            /** Static text content. */
+            String content() default "";
 
-        /** Style class(es) for the text. */
-        String[] style() default {};
+            /** Binding expression for dynamic text. */
+            String bind() default "";
+
+            /** Format sememe key (MIME type). Default: plain text. */
+            String format() default "";
+
+            /** Style class(es). */
+            String[] style() default {};
+
+            /** Font size: "1.5em", "80%", "20px". */
+            String fontSize() default "";
+
+            /** Font family: "monospace", "sans-serif". */
+            String fontFamily() default "";
+
+            /** Font weight: "normal", "bold", "light". */
+            String fontWeight() default "";
+        }
 
         /**
-         * Font size: "1.5em", "80%", "20px".
+         * Semantic text — a meaning-first label resolved through the language system.
          *
-         * <p>Percentage resolves against parent container height,
-         * enabling text that scales with its tile/cell.
+         * <p>The method returns a value that renders itself in the user's locale
+         * and language:
+         * <ul>
+         *   <li>{@code Sememe} / {@code ItemID} — resolved to a word via the lexeme system</li>
+         *   <li>{@code Quantity} — locale-formatted number + unit symbol</li>
+         *   <li>{@code List<SemanticToken>} — sequence of meaning tokens → composed text</li>
+         *   <li>{@code Frame} — semantic assertion → the language system generates a sentence</li>
+         * </ul>
+         *
+         * <p>For simple labels, specify tokens statically via the {@link Token} annotation.
+         * For dynamic content, the method return value provides the tokens at render time.
          */
-        String fontSize() default "";
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target({ElementType.TYPE, ElementType.METHOD})
+        @interface Semantic {
+
+            /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+            int order() default -1;
+
+            /**
+             * Static semantic tokens. For simple labels that don't need dynamic data.
+             * Empty = method return value provides the tokens at render time.
+             */
+            Token[] value() default {};
+
+            /** Style class(es). */
+            String[] style() default {};
+
+            /** Font size. */
+            String fontSize() default "";
+
+            /** Font family. */
+            String fontFamily() default "";
+
+            /** Font weight. */
+            String fontWeight() default "";
+        }
 
         /**
-         * Preferred font family for this text node.
+         * A single semantic token — a sememe with grammatical features.
          *
-         * <p>Examples: "monospace", "sans-serif", "SF Pro", "Symbols Nerd Font Mono".
+         * <p>Used in {@link Semantic#value()} for static token declarations.
+         * Features default to [NOUN, LEMMA] if empty.
          */
-        String fontFamily() default "";
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target({})
+        @interface Token {
+
+            /** Sememe canonical key (e.g., {@code "cg.chess:checkmate"}). */
+            String sememe();
+
+            /** Grammatical features — canonical keys from the seed vocabulary.
+             *  Default: [NOUN, LEMMA]. */
+            String[] features() default {};
+        }
     }
 
     /**
@@ -489,6 +613,9 @@ public @interface Scene {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE, ElementType.METHOD})
     @interface Image {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
 
         /** Alt text / emoji fallback. */
         String alt() default "";
@@ -527,6 +654,9 @@ public @interface Scene {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE, ElementType.METHOD})
     @interface Shape {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
 
         /**
          * Shape type. Flat shapes (2D-native, extrudable via {@code depth}):
@@ -655,6 +785,9 @@ public @interface Scene {
     @Target({ElementType.TYPE, ElementType.METHOD})
     @Repeatable(On.Events.class)
     @interface On {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
 
         /** Event type: "click", "doubleClick", "hover", "focus", etc. */
         String event();
@@ -811,6 +944,9 @@ public @interface Scene {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE, ElementType.METHOD})
     @interface Embed {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
 
         /** Binding expression for the SceneSchema to embed: "$item", "content". */
         String bind();
@@ -1039,6 +1175,9 @@ public @interface Scene {
     @Retention(RetentionPolicy.RUNTIME)
     @interface Body {
 
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
+
         /** SceneSchema class that defines 3D body presentation. */
         Class<?> as() default SceneSchema.class;
 
@@ -1115,6 +1254,9 @@ public @interface Scene {
     @Retention(RetentionPolicy.RUNTIME)
     @interface Face {
 
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
+
         /** Face name: "top", "front", "back", "bottom", "left", "right". */
         String value() default "top";
 
@@ -1146,6 +1288,9 @@ public @interface Scene {
     @Target({ElementType.TYPE, ElementType.FIELD})
     @Retention(RetentionPolicy.RUNTIME)
     @interface Transform {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
 
         // Position (e.g., "1m", "50cm", "0")
         String x() default "0";
@@ -1189,6 +1334,9 @@ public @interface Scene {
     @Retention(RetentionPolicy.RUNTIME)
     @interface Light {
 
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
+
         /** Light type: "directional", "point", "spot". */
         String type() default "directional";
 
@@ -1230,6 +1378,9 @@ public @interface Scene {
     @Target({ElementType.TYPE, ElementType.FIELD})
     @Retention(RetentionPolicy.RUNTIME)
     @interface Audio {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
 
         /** Content reference to audio asset (handle name or ContentID). */
         String src() default "";
@@ -1286,6 +1437,9 @@ public @interface Scene {
     @Retention(RetentionPolicy.RUNTIME)
     @interface Environment {
 
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
+
         /** Background color as hex int. */
         int background() default 0x1A1A2E;
 
@@ -1324,6 +1478,9 @@ public @interface Scene {
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
     @interface Camera {
+
+        /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
+        int order() default -1;
 
         /** Projection type: "perspective", "orthographic". */
         String projection() default "perspective";

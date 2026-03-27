@@ -1,24 +1,24 @@
 package dev.everydaythings.graph.ui.skia;
 
 import dev.everydaythings.graph.ui.scene.BoxBorder;
-import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneEvent;
 import dev.everydaythings.graph.ui.scene.node.Body;
 import dev.everydaythings.graph.ui.scene.node.Container;
-import dev.everydaythings.graph.ui.scene.node.Embedded;
 import dev.everydaythings.graph.ui.scene.node.Node;
 import dev.everydaythings.graph.ui.scene.node.RenderEnvironment;
 import dev.everydaythings.graph.ui.scene.node.ResolvedProps;
 import dev.everydaythings.graph.ui.scene.node.SceneRenderer;
 import dev.everydaythings.graph.ui.scene.node.Text;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceRenderer;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 /**
  * Skia implementation of {@link SceneRenderer}.
@@ -28,43 +28,59 @@ import java.util.Map;
  * by {@link SkiaPainter} — same pipeline as the old SkiaSurfaceRenderer, but
  * driven by the Node/SceneRenderer model instead of imperative SurfaceRenderer calls.
  *
- * <p>The state store persists across re-renders. Create one SkiaSceneRenderer
- * per window and reuse it — the state survives Node tree rebuilds.
+ * <p>Long-lived: create one per window, call {@link #render(Node)} on each frame.
+ * The state store persists across re-renders. Update the environment before each
+ * render via {@link #environment(RenderEnvironment)}.
  *
  * <h2>Usage</h2>
  * <pre>{@code
- * var renderer = new SkiaSceneRenderer(environment);
+ * // Create once per window
+ * var renderer = new SkiaSceneRenderer();
+ *
+ * // Each frame:
+ * renderer.environment(buildEnvironment(w, h, dpr));
  * renderer.render(rootNode);
  * LayoutNode.BoxNode tree = renderer.result();
- * engine.layout(tree, width, height);
+ * engine.layout(tree, w, h);
  * painter.paint(canvas, tree);
  * }</pre>
  */
 public class SkiaSceneRenderer implements SceneRenderer {
 
     private final Map<String, Map<String, Object>> store = new HashMap<>();
-    private final RenderEnvironment env;
+    private final Deque<String> scopeStack = new ArrayDeque<>();
+    private RenderEnvironment env;
 
-    // Container stack for building the LayoutNode tree
+    // Container stack for building the LayoutNode tree (reset each render)
     private final Deque<LayoutNode.BoxNode> containerStack = new ArrayDeque<>();
     private LayoutNode.BoxNode root;
 
-    // Legacy bridge for Embedded nodes
-    private SkiaSurfaceRenderer legacyRenderer;
-    private RenderContext legacyContext;
+    // Application action handler — receives actions not handled by state runtime
+    private BiFunction<String, String, Boolean> applicationHandler;
+
+    public SkiaSceneRenderer() {}
 
     public SkiaSceneRenderer(RenderEnvironment env) {
         this.env = env;
     }
 
+    // ==================================================================================
+    // Configuration (called before each render)
+    // ==================================================================================
+
+    /** Update the environment (viewport, font metrics, capabilities). */
+    public void environment(RenderEnvironment env) {
+        this.env = env;
+    }
+
     /**
-     * Set the legacy renderer for Embedded node support.
-     * Required until all surfaces are migrated to Node trees.
+     * Set the application action handler.
+     *
+     * <p>Called for actions not handled by the state runtime (toggle/set/unset/cycle).
+     * The handler receives (action, target) and returns true if handled.
      */
-    public SkiaSceneRenderer withLegacyBridge(SkiaSurfaceRenderer legacy, RenderContext ctx) {
-        this.legacyRenderer = legacy;
-        this.legacyContext = ctx;
-        return this;
+    public void onApplicationAction(BiFunction<String, String, Boolean> handler) {
+        this.applicationHandler = handler;
     }
 
     // ==================================================================================
@@ -77,19 +93,36 @@ public class SkiaSceneRenderer implements SceneRenderer {
     @Override
     public RenderEnvironment environment() { return env; }
 
+    @Override
+    public Deque<String> stateScopeStack() { return scopeStack; }
+
+    // ==================================================================================
+    // Application action bridge
+    // ==================================================================================
+
+    @Override
+    public boolean onApplicationAction(String nodeId, String action, String target) {
+        if (applicationHandler != null) {
+            return applicationHandler.apply(action, target);
+        }
+        return false;
+    }
+
     // ==================================================================================
     // Render entry point (overrides default to set up root)
     // ==================================================================================
 
-    @Override
-    public void render(Node node) {
-        // Initialize root container
-        root = new LayoutNode.BoxNode(Scene.Direction.VERTICAL, List.of());
+    /**
+     * Render a Node tree. Call this to start a new render pass.
+     *
+     * <p>Resets the LayoutNode tree (state store persists).
+     * The first Container becomes the root directly (no wrapper).
+     */
+    public void renderTree(Node node) {
+        root = null;
         containerStack.clear();
-        containerStack.push(root);
-
-        // Delegate to default tree walk
-        SceneRenderer.super.render(node);
+        scopeStack.clear();
+        render(node);
     }
 
     /**
@@ -112,10 +145,7 @@ public class SkiaSceneRenderer implements SceneRenderer {
         List<String> styles = props.classes();
         var box = new LayoutNode.BoxNode(dir, styles);
 
-        // Identity
         if (props.id() != null) box.id(props.id());
-
-        // Events from the original node
         applyEvents(box, container);
 
         // Gap
@@ -134,6 +164,7 @@ public class SkiaSceneRenderer implements SceneRenderer {
             BoxBorder border = BoxBorder.parse(props.border());
             if (border != null && border.isVisible()) {
                 box.border(border);
+                resolveBorder(box, border);
             }
         }
 
@@ -142,7 +173,7 @@ public class SkiaSceneRenderer implements SceneRenderer {
             box.background(props.background());
         }
 
-        // Sizing
+        // Sizing — "1fr" flows through; LayoutEngine handles fill distribution
         if (props.width() != null && !props.width().isEmpty()) {
             box.widthSpec(props.width());
         }
@@ -150,17 +181,18 @@ public class SkiaSceneRenderer implements SceneRenderer {
             box.heightSpec(props.height());
         }
 
-        // Padding
+        // Padding — resolve to pixels eagerly
         if (props.padding() != null && !props.padding().isEmpty()) {
-            box.paddingSpec(props.padding());
+            resolvePadding(box, props.padding());
         }
 
         // Corner radius
         if (props.corner() != null && !props.corner().isEmpty()) {
             box.shapeType("rectangle");
-            try {
-                box.borderRadius(Float.parseFloat(props.corner().replaceAll("[^0-9.]", "")));
-            } catch (NumberFormatException ignored) {}
+            if (env != null) {
+                double px = env.resolveToPixels(props.corner());
+                if (px >= 0) box.borderRadius((float) px);
+            }
         }
 
         // Font
@@ -225,7 +257,6 @@ public class SkiaSceneRenderer implements SceneRenderer {
         var imageNode = new LayoutNode.ImageNode(alt, props.image(), null, null, styles);
         if (props.id() != null) imageNode.id(props.id());
 
-        // 3D model hint
         if (props.model() != null) {
             imageNode.modelResource(props.model());
             imageNode.modelColor(-1);
@@ -243,37 +274,67 @@ public class SkiaSceneRenderer implements SceneRenderer {
     }
 
     // ==================================================================================
-    // Legacy bridge for Embedded nodes
-    // ==================================================================================
-
-    @Override
-    public void renderLegacy(Embedded embedded) {
-        if (embedded.surface() == null) return;
-
-        // Render through the old SurfaceRenderer into a temporary LayoutNode tree,
-        // then graft the result into our current container
-        if (legacyRenderer != null) {
-            // Create a fresh legacy renderer for this subtree
-            var sub = new SkiaSurfaceRenderer(legacyContext);
-            embedded.surface().render(sub);
-            LayoutNode.BoxNode subtree = sub.result();
-
-            // Graft all children from the subtree root into our current container
-            for (LayoutNode child : subtree.children()) {
-                addToCurrentContainer(child);
-            }
-        }
-    }
-
-    // ==================================================================================
     // Helpers
     // ==================================================================================
 
     private void addToCurrentContainer(LayoutNode node) {
+        if (containerStack.isEmpty()) {
+            // First container becomes root (no wrapper)
+            if (node instanceof LayoutNode.BoxNode box) {
+                root = box;
+            }
+            return;
+        }
         LayoutNode.BoxNode parent = containerStack.peek();
         if (parent != null) {
             parent.addChild(node);
         }
+    }
+
+    private void resolvePadding(LayoutNode.BoxNode box, String padding) {
+        box.paddingSpec(padding);
+        String[] parts = padding.trim().split("\\s+");
+        try {
+            if (parts.length == 1) {
+                float p = resolvePixels(parts[0]);
+                box.padding(p, p, p, p);
+            } else if (parts.length == 2) {
+                float v = resolvePixels(parts[0]);
+                float h = resolvePixels(parts[1]);
+                box.padding(v, h, v, h);
+            } else if (parts.length == 4) {
+                box.padding(
+                    resolvePixels(parts[0]), resolvePixels(parts[1]),
+                    resolvePixels(parts[2]), resolvePixels(parts[3]));
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private float resolvePixels(String spec) {
+        double px = env.resolveToPixels(spec);
+        return px >= 0 ? (float) px : 0;
+    }
+
+    private void resolveBorder(LayoutNode.BoxNode box, BoxBorder border) {
+        box.borderWidths(
+                resolveBorderSideWidth(border.top()),
+                resolveBorderSideWidth(border.right()),
+                resolveBorderSideWidth(border.bottom()),
+                resolveBorderSideWidth(border.left())
+        );
+        if (border.hasRadius() && env != null) {
+            double px = env.resolveToPixels(border.radius());
+            if (px >= 0) box.borderRadius((float) px);
+        }
+    }
+
+    private float resolveBorderSideWidth(BoxBorder.BorderSide side) {
+        if (!side.isVisible()) return 0;
+        if (env != null) {
+            double px = env.resolveToPixels(side.width());
+            if (px >= 0) return (float) px;
+        }
+        return 1.0f;
     }
 
     private void applyEvents(LayoutNode node, Node source) {

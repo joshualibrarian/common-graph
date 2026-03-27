@@ -71,10 +71,10 @@ public class TreeSurface extends SurfaceSchema {
     @Scene.State(when = "selected", style = {"selected"})
     static class NodeTemplate {
         // Tree chrome (├──, └──, │) requires tracking ancestor state
-        @Scene.Text(bind = "$chrome", style = {"chrome"})
+        @Scene.Text.Literal(bind = "$chrome", style = {"chrome"})
         static class Chrome {}
 
-        @Scene.Text(bind = "expanded ? '▼ ' : '▶ '", style = {"expand-indicator"})
+        @Scene.Text.Literal(bind = "expanded ? '▼ ' : '▶ '", style = {"expand-indicator"})
         @Scene.If("hasChildren()")
         @Scene.On(event = "click", action = "$expanded ? 'collapse' : 'expand'", target = "$id")
         static class ExpandIndicator {}

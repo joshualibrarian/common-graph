@@ -2,6 +2,7 @@ package dev.everydaythings.graph.ui.scene.node;
 
 import dev.everydaythings.graph.ui.scene.SceneEvent;
 
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +88,16 @@ public interface SceneRenderer {
     /** The current rendering environment (viewport, renderer type, capabilities). */
     RenderEnvironment environment();
 
+    /**
+     * Stack of ancestor node IDs for state scope resolution.
+     *
+     * <p>During tree walking, nodes with IDs are pushed onto this stack.
+     * When a child node references {@code $state.key}, it resolves against
+     * the nearest ancestor with an ID — not necessarily the node itself.
+     * This allows children to read their parent's declared state.
+     */
+    Deque<String> stateScopeStack();
+
     /** Paint a Container node. Called before children are rendered. */
     void paintContainer(Container container, ResolvedProps props);
 
@@ -113,33 +124,37 @@ public interface SceneRenderer {
         if (node == null) return;
         if (!evaluateVisible(node)) return;
 
+        // Push state scope if this node has an ID
+        boolean pushedScope = false;
+        if (node.id() != null && !node.id().isEmpty()) {
+            stateScopeStack().push(node.id());
+            pushedScope = true;
+        }
+
         initDeclaredState(node);
         ResolvedProps props = resolveProperties(node);
 
-        if (node instanceof Container c) {
-            paintContainer(c, props);
-            if (c.children() != null) {
-                for (Node child : c.children()) {
-                    render(child);
+        try {
+            if (node instanceof Container c) {
+                paintContainer(c, props);
+                if (c.children() != null) {
+                    for (Node child : c.children()) {
+                        render(child);
+                    }
                 }
+                endContainer();
+            } else if (node instanceof Text t) {
+                paintText(t, props);
+            } else if (node instanceof Body b) {
+                paintBody(b, props);
             }
-            endContainer();
-        } else if (node instanceof Text t) {
-            paintText(t, props);
-        } else if (node instanceof Body b) {
-            paintBody(b, props);
-        } else if (node instanceof Embedded e) {
-            renderLegacy(e);
+        } finally {
+            if (pushedScope) {
+                stateScopeStack().pop();
+            }
         }
     }
 
-    /**
-     * Render a legacy Embedded node. Override to bridge to old SurfaceRenderer.
-     * Default is a no-op — renderers that still support SurfaceSchema override this.
-     */
-    default void renderLegacy(Embedded embedded) {
-        // Override in renderers that bridge to the old SurfaceRenderer path
-    }
 
     // ==================================================================================
     // State Store Management
@@ -327,9 +342,9 @@ public interface SceneRenderer {
 
         boolean result;
         if (expr.startsWith("$state.")) {
-            // $state.key — lookup declared state on this node
+            // $state.key — lookup state on nearest ancestor with ID (scope stack)
             String key = expr.substring("$state.".length());
-            result = isTruthy(getState(node.id(), key));
+            result = isTruthy(getState(currentStateScope(), key));
         } else {
             // Literal truthy check
             result = isTruthy(expr);
@@ -351,6 +366,7 @@ public interface SceneRenderer {
     default ResolvedProps resolveProperties(Node node) {
         ResolvedProps.Builder builder = ResolvedProps.from(node);
 
+        // Apply when-block overrides
         if (node.when() != null && !node.when().isEmpty()) {
             for (Map.Entry<String, Map<String, String>> entry : node.when().entrySet()) {
                 if (evaluateCondition(node, entry.getKey())) {
@@ -359,7 +375,61 @@ public interface SceneRenderer {
             }
         }
 
+        // Resolve semantic text tokens to display text
+        if (node instanceof Text t && t.tokens() != null && !t.tokens().isEmpty()) {
+            String resolved = resolveSemanticTokens(t.tokens());
+            if (resolved != null) {
+                builder.put("text", resolved);
+            }
+        }
+
         return builder.build();
+    }
+
+    /**
+     * Resolve semantic tokens to display text via the language system.
+     *
+     * <p>Each token's sememe is resolved through the librarian to its
+     * display name. Multiple tokens are joined with spaces. The active
+     * language from the environment determines which lexeme is selected.
+     *
+     * <p>When the full NLG pipeline is available, this method will handle
+     * grammatical features, word order, morphology, and agreement per
+     * the target language's rules.
+     *
+     * @param tokens the semantic tokens to resolve
+     * @return the resolved display text, or null if resolution fails
+     */
+    default String resolveSemanticTokens(List<Text.SemanticToken> tokens) {
+        RenderEnvironment env = environment();
+        if (env == null || env.librarian() == null) return null;
+
+        StringBuilder sb = new StringBuilder();
+        for (Text.SemanticToken token : tokens) {
+            if (token.sememe() == null) continue;
+
+            String display = null;
+
+            // Resolve via librarian — get the sememe item and its display token
+            try {
+                var sememe = env.librarian().get(token.sememe());
+                if (sememe.isPresent()) {
+                    display = sememe.get().displayToken();
+                }
+            } catch (Exception ignored) {}
+
+            // Fallback: use the sememe key's last segment
+            if (display == null) {
+                String key = token.sememe().encodeText();
+                int colon = key.lastIndexOf(':');
+                display = colon >= 0 ? key.substring(colon + 1) : key;
+            }
+
+            if (!sb.isEmpty()) sb.append(" ");
+            sb.append(display);
+        }
+
+        return sb.isEmpty() ? null : sb.toString();
     }
 
     /**
@@ -384,24 +454,25 @@ public interface SceneRenderer {
         }
 
         boolean result;
+        String scopeId = currentStateScope();
 
         // Pseudo-state check (hover, focus, active)
-        if (node.id() != null && isPseudoState(expr)) {
-            result = getPseudoStates(node.id()).contains(expr);
+        if (scopeId != null && isPseudoState(expr)) {
+            result = getPseudoStates(scopeId).contains(expr);
         }
         // Explicit state reference: $state.key
-        else if (expr.startsWith("$state.") && node.id() != null) {
+        else if (expr.startsWith("$state.") && scopeId != null) {
             String key = expr.substring("$state.".length());
-            result = isTruthy(getState(node.id(), key));
+            result = isTruthy(getState(scopeId, key));
         }
         // Environment condition: :renderer, @breakpoint, capability
         else if (expr.startsWith(":") || expr.startsWith("@")
                 || environment().matches(expr)) {
             result = environment().matches(expr);
         }
-        // Bare name — check declared state
-        else if (node.id() != null) {
-            result = isTruthy(getState(node.id(), expr));
+        // Bare name — check declared state on nearest ancestor scope
+        else if (scopeId != null) {
+            result = isTruthy(getState(scopeId, expr));
         }
         else {
             result = false;
@@ -438,8 +509,58 @@ public interface SceneRenderer {
     }
 
     // ==================================================================================
+    // Key Event Dispatch
+    // ==================================================================================
+
+    /**
+     * Dispatch a key event by matching it against @Scene.On declarations in the node tree.
+     *
+     * <p>Walks the node tree recursively, checking each node's events for a matching
+     * key chord. When found, dispatches the action through the state runtime.
+     * Returns true if any action was dispatched.
+     *
+     * @param root     the root of the current node tree
+     * @param keyChord the key chord string (e.g., "F1", "Alt+Up", "Ctrl+S")
+     * @return true if a matching event was found and dispatched
+     */
+    default boolean dispatchKeyEvent(Node root, String keyChord) {
+        if (root == null || keyChord == null) return false;
+        return dispatchKeyEventRecursive(root, keyChord);
+    }
+
+    private boolean dispatchKeyEventRecursive(Node node, String keyChord) {
+        // Check this node's events
+        if (node.events() != null) {
+            for (SceneEvent event : node.events()) {
+                if (keyChord.equals(event.on())) {
+                    String nodeId = node.id() != null ? node.id() : "";
+                    if (dispatch(nodeId, event.action(), event.target())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        // Recurse into container children
+        if (node instanceof Container c && c.children() != null) {
+            for (Node child : c.children()) {
+                if (dispatchKeyEventRecursive(child, keyChord)) return true;
+            }
+        }
+        return false;
+    }
+
+    // ==================================================================================
     // Helpers
     // ==================================================================================
+
+    /**
+     * Get the current state scope — the nearest ancestor node ID.
+     * Returns null if no ancestor with an ID has been entered.
+     */
+    default String currentStateScope() {
+        Deque<String> stack = stateScopeStack();
+        return stack != null && !stack.isEmpty() ? stack.peek() : null;
+    }
 
     /** Is this a renderer-tracked pseudo-state name? */
     private static boolean isPseudoState(String name) {

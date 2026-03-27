@@ -82,16 +82,16 @@ public class SystemMonitor implements Canonical {
     @Scene.Container(direction = Direction.HORIZONTAL, gap = "0.5em",
             style = "align-center")
     static class Header {
-        @Scene.Text(content = "📊", style = "heading")
+        @Scene.Text.Literal(content = "📊", style = "heading")
         static class Icon {}
 
-        @Scene.Text(bind = "value.hostnameLabel", style = "heading")
+        @Scene.Text.Literal(bind = "value.hostnameLabel", style = "heading")
         static class Hostname {}
     }
 
     @Scene.Container(direction = Direction.VERTICAL, gap = "0.125em")
     static class CpuSection {
-        @Scene.Text(bind = "value.cpuLabel", style = {"muted", "small"})
+        @Scene.Text.Literal(bind = "value.cpuLabel", style = {"muted", "small"})
         static class Label {}
 
         @Scene.Container(width = "100%")
@@ -103,7 +103,7 @@ public class SystemMonitor implements Canonical {
 
     @Scene.Container(direction = Direction.VERTICAL, gap = "0.125em")
     static class MemorySection {
-        @Scene.Text(bind = "value.memoryLabel", style = {"muted", "small"})
+        @Scene.Text.Literal(bind = "value.memoryLabel", style = {"muted", "small"})
         static class Label {}
 
         @Scene.Container(width = "100%")
@@ -115,7 +115,7 @@ public class SystemMonitor implements Canonical {
 
     @Scene.Container(direction = Direction.VERTICAL, gap = "0.125em")
     static class DiskSection {
-        @Scene.Text(bind = "value.diskLabel", style = {"muted", "small"})
+        @Scene.Text.Literal(bind = "value.diskLabel", style = {"muted", "small"})
         static class Label {}
 
         @Scene.Container(width = "100%")
@@ -125,7 +125,7 @@ public class SystemMonitor implements Canonical {
         }
     }
 
-    @Scene.Text(bind = "value.uptimeLabel", style = {"muted", "small"})
+    @Scene.Text.Literal(bind = "value.uptimeLabel", style = {"muted", "small"})
     static class Uptime {}
 
     // ==================================================================================

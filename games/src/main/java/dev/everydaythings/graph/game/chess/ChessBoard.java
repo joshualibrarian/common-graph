@@ -56,7 +56,7 @@ public class ChessBoard {
 
         @Scene.Container(direction = Direction.VERTICAL, style = {"fill", "align-center", "justify-center"})
         static class LeftLabel {
-            @Scene.Text(bind = "$item.label", style = {"rank-label", "muted"})
+            @Scene.Text.Literal(bind = "$item.label", style = {"rank-label", "muted"})
             static class Text {}
         }
 
@@ -88,7 +88,7 @@ public class ChessBoard {
         @Scene.Repeat(bind = "value.fileLabels")
         @Scene.Container(direction = Direction.VERTICAL, style = {"fill", "align-center", "justify-center"})
         static class FileLabel {
-            @Scene.Text(bind = "$item", style = {"file-label", "muted"})
+            @Scene.Text.Literal(bind = "$item", style = {"file-label", "muted"})
             static class Text {}
         }
 

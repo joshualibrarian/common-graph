@@ -17,11 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class SceneCompilerTest {
 
-    @BeforeEach
-    void clearCaches() {
-        SceneCompiler.clearCache();
-    }
-
     // ==================================================================================
     // Test Fixtures — annotated classes for compilation
     // ==================================================================================
@@ -30,10 +25,10 @@ class SceneCompilerTest {
     @Scene.Container(direction = Scene.Direction.VERTICAL)
     static class SimpleLayout extends SceneSchema<Void> {
 
-        @Scene.Text(content = "Hello")
+        @Scene.Text.Literal(content = "Hello")
         static class Greeting {}
 
-        @Scene.Text(content = "World", style = {"muted"})
+        @Scene.Text.Literal(content = "World", style = {"muted"})
         static class Subtitle {}
     }
 
@@ -41,7 +36,7 @@ class SceneCompilerTest {
     @Scene.Container(direction = Scene.Direction.HORIZONTAL, depth = "1cm")
     static class DepthContainer extends SceneSchema<Void> {
 
-        @Scene.Text(content = "On top")
+        @Scene.Text.Literal(content = "On top")
         static class Label {}
     }
 
@@ -53,7 +48,7 @@ class SceneCompilerTest {
     @Scene.Place(in = "board", anchor = "center", top = "0", left = "0", right = "100%")
     static class PlacedContainer extends SceneSchema<Void> {
 
-        @Scene.Text(content = "Placed")
+        @Scene.Text.Literal(content = "Placed")
         static class Label {}
     }
 
@@ -71,7 +66,7 @@ class SceneCompilerTest {
     @Scene.Face(value = "front", ppm = 1024)
     static class FrontFace extends SceneSchema<Void> {
 
-        @Scene.Text(content = "Face text")
+        @Scene.Text.Literal(content = "Face text")
         static class Label {}
     }
 
@@ -109,7 +104,7 @@ class SceneCompilerTest {
     @Scene.Body(shape = "box", width = "44cm", height = "0", depth = "44cm")
     static class BoardScene extends SceneSchema<Void> {
 
-        @Scene.Text(content = "Board label")
+        @Scene.Text.Literal(content = "Board label")
         static class Label {}
     }
 
@@ -303,23 +298,15 @@ class SceneCompilerTest {
     }
 
     // ==================================================================================
-    // Caching Tests
+    // Compilation Tests
     // ==================================================================================
 
     @Test
-    void compile_cachesPerClass() {
+    void compile_alwaysFresh() {
         ViewNode first = SceneCompiler.getCompiled(SimpleLayout.class);
         ViewNode second = SceneCompiler.getCompiled(SimpleLayout.class);
 
-        assertThat(first).isSameAs(second);
-    }
-
-    @Test
-    void compile_clearCacheWorks() {
-        ViewNode first = SceneCompiler.getCompiled(SimpleLayout.class);
-        SceneCompiler.clearCache();
-        ViewNode second = SceneCompiler.getCompiled(SimpleLayout.class);
-
+        // No caching — each call compiles fresh
         assertThat(first).isNotSameAs(second);
     }
 
@@ -486,7 +473,7 @@ class SceneCompilerTest {
         @Scene.Container(direction = Scene.Direction.HORIZONTAL)
         static class GridCell {
 
-            @Scene.Text(bind = "$item")
+            @Scene.Text.Literal(bind = "$item")
             static class Label {}
         }
     }
@@ -500,7 +487,7 @@ class SceneCompilerTest {
                 fontSize = "80%")
         static class Row {
 
-            @Scene.Text(bind = "$item")
+            @Scene.Text.Literal(bind = "$item")
             static class Label {}
         }
     }

@@ -8,7 +8,6 @@ import dev.everydaythings.graph.runtime.options.SessionOptions;
 import dev.everydaythings.graph.ui.input.*;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
 import dev.everydaythings.graph.ui.scene.View;
 import dev.everydaythings.graph.ui.text.*;
 import lombok.extern.log4j.Log4j2;
@@ -53,6 +52,9 @@ public class TextSession extends Session {
     private Attributes savedAttributes;
     private boolean mouseEnabled = false;
     private TuiSurfaceRenderer lastRenderer;
+    private TuiSceneRenderer tuiSceneRenderer;
+    private TuiSceneRenderer lastTuiSceneRenderer;
+    private CliSceneRenderer cliSceneRenderer;
     private int renderStartRow = 0;
 
     // Input handling
@@ -91,8 +93,8 @@ public class TextSession extends Session {
         }
 
         // Wire up ItemModel to trigger render on changes
-        if (itemModel != null) {
-            itemModel.onChange(this::render);
+        if (itemView != null) {
+            itemView.onChange(this::render);
         }
 
         // Interactive mode - CLI or TUI
@@ -220,8 +222,8 @@ public class TextSession extends Session {
             bindingReader = new BindingReader(terminal.reader());
 
             // Set up InputController for the prompt
-            if (itemModel != null) {
-                itemModel.setRenderInputInSurface(false);
+            if (itemView != null) {
+                itemView.setRenderInputInSurface(false);
             }
             initializeInputController();
             if (inputController != null) {
@@ -303,7 +305,7 @@ public class TextSession extends Session {
      */
     @Override
     protected void render() {
-        if (itemModel == null) return;
+        if (itemView == null) return;
 
         if (mode == UIMode.TUI) {
             renderTuiSurface();
@@ -322,16 +324,35 @@ public class TextSession extends Session {
         terminal.writer().print("\u001b[2J\u001b[H");
         renderStartRow = 0;
 
-        // Create renderer with Librarian-backed unit resolution
-        RenderContext ctx = buildRenderContext();
-        TuiSurfaceRenderer output = new TuiSurfaceRenderer(null, ctx);
-        SurfaceSchema surface = toSurface();
-        if (surface != null) {
-            surface.render(output);
+        // Node tree → TuiSceneRenderer
+        if (tuiSceneRenderer == null) {
+            tuiSceneRenderer = new TuiSceneRenderer();
+            tuiSceneRenderer.onApplicationAction((action, target) -> {
+                boolean handled = false;
+                if (itemView != null) handled = itemView.handleEvent(action, target);
+                if (!handled && itemView != null) handled = itemView.handleEvent(action, target);
+                return handled;
+            });
         }
-
-        terminal.writer().print(output.result());
-        lastRenderer = output;
+        int w = terminal.getWidth();
+        int h = terminal.getHeight();
+        var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
+                .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.TUI)
+                .viewportWidth(w).viewportHeight(h)
+                .dpi(96).devicePixelRatio(1)
+                .baseFontSize(1)
+                .librarian(librarian)
+                .capabilities("color")
+                .unit(dev.everydaythings.graph.value.Unit.CharacterWidth.IID, 1.0)
+                .unit(dev.everydaythings.graph.value.Unit.Em.IID, 2.0)
+                .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, 1.0)
+                .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 0.125)
+                .build();
+        tuiSceneRenderer.environment(env);
+        tuiSceneRenderer.renderTree(toNode());
+        terminal.writer().print(tuiSceneRenderer.result());
+        lastTuiSceneRenderer = tuiSceneRenderer;
+        lastRenderer = null;
 
         // Show buffered message (e.g., move result, error) above the prompt
         if (pendingMessage != null) {
@@ -362,14 +383,25 @@ public class TextSession extends Session {
             inputRenderer.dispose();
         }
 
-        // Render surface as scrolling text
-        CliSurfaceRenderer output = new CliSurfaceRenderer();
-        SurfaceSchema surface = toSurface();
-        if (surface != null) {
-            surface.render(output);
+        // Node tree → CliSceneRenderer
+        if (cliSceneRenderer == null) {
+            cliSceneRenderer = new CliSceneRenderer();
         }
+        var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
+                .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.CLI)
+                .viewportWidth(terminal != null ? terminal.getWidth() : 80)
+                .viewportHeight(terminal != null ? terminal.getHeight() : 24)
+                .baseFontSize(1)
+                .librarian(librarian)
+                .unit(dev.everydaythings.graph.value.Unit.CharacterWidth.IID, 1.0)
+                .unit(dev.everydaythings.graph.value.Unit.Em.IID, 2.0)
+                .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, 1.0)
+                .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 0.125)
+                .build();
+        cliSceneRenderer.environment(env);
+        cliSceneRenderer.renderTree(toNode());
+        String result = cliSceneRenderer.result();
 
-        String result = output.result();
         if (result != null && !result.isEmpty()) {
             if (terminal != null) {
                 terminal.writer().print(result);
@@ -503,7 +535,7 @@ public class TextSession extends Session {
         };
 
         // Only render explicitly when the model didn't change —
-        // model changes already triggered render via itemModel.onChange()
+        // model changes already triggered render via itemView.onChange()
         if (!modelWillChange) {
             render();
         }
@@ -575,10 +607,6 @@ public class TextSession extends Session {
     }
 
     private void handleMouseEvent(TerminalMouseEvent event) {
-        if (lastRenderer == null) {
-            return;
-        }
-
         int hitRow = event.row() - renderStartRow;
         int hitCol = event.column();
 
@@ -589,13 +617,27 @@ public class TextSession extends Session {
             default -> null;
         };
 
-        if (eventType == null) {
-            return;
+        if (eventType == null) return;
+
+        // Try SceneRenderer path first (state dispatch + hit regions)
+        if (lastTuiSceneRenderer != null) {
+            TuiSceneRenderer.HitRegion hit = lastTuiSceneRenderer.hitTest(hitRow, hitCol, eventType);
+            if (hit != null) {
+                // Route through state runtime first, then application
+                boolean handled = lastTuiSceneRenderer.dispatch(
+                        hit.id() != null ? hit.id() : "", hit.action(), hit.target());
+                if (!handled) handleEvent(hit.action(), hit.target());
+                else render();
+                return;
+            }
         }
 
-        TuiSurfaceRenderer.HitRegion hit = lastRenderer.hitTest(hitRow, hitCol, eventType);
-        if (hit != null) {
-            handleEvent(hit.action(), hit.target());
+        // Legacy path
+        if (lastRenderer != null) {
+            TuiSurfaceRenderer.HitRegion hit = lastRenderer.hitTest(hitRow, hitCol, eventType);
+            if (hit != null) {
+                handleEvent(hit.action(), hit.target());
+            }
         }
     }
 
@@ -637,8 +679,8 @@ public class TextSession extends Session {
             bindingReader = new BindingReader(terminal.reader());
 
             // Set up InputController (shared with TUI)
-            if (itemModel != null) {
-                itemModel.setRenderInputInSurface(false);
+            if (itemView != null) {
+                itemView.setRenderInputInSurface(false);
             }
             initializeInputController();
             if (inputController != null) {

@@ -100,6 +100,7 @@ public class RenderEnvironment {
     private final Set<String> capabilities;
     private final String breakpoint;
     private final LibrarianHandle librarian;
+    private final ItemID language;             // active language for label resolution
 
     /**
      * Contextual unit measurements — the renderer's actual pixel equivalents.
@@ -128,6 +129,7 @@ public class RenderEnvironment {
         this.inputModality = b.inputModality;
         this.capabilities = b.capabilities.isEmpty() ? Set.of() : Set.copyOf(b.capabilities);
         this.librarian = b.librarian;
+        this.language = b.language;
         this.unitContext = b.unitContext.isEmpty() ? Map.of() : Map.copyOf(b.unitContext);
         this.smThreshold = b.smThreshold;
         this.mdThreshold = b.mdThreshold;
@@ -358,6 +360,7 @@ public class RenderEnvironment {
     public Set<String> capabilities() { return capabilities; }
     public String breakpoint() { return breakpoint; }
     public LibrarianHandle librarian() { return librarian; }
+    public ItemID language() { return language; }
     public Map<ItemID, Double> unitContext() { return unitContext; }
 
     public boolean hasCapability(String cap) { return capabilities.contains(cap); }
@@ -406,6 +409,7 @@ public class RenderEnvironment {
         private final Map<ItemID, Double> unitContext = new HashMap<>();
         private String breakpoint;
         private LibrarianHandle librarian;
+        private ItemID language;
         private float smThreshold = DEFAULT_SM_THRESHOLD;
         private float mdThreshold = DEFAULT_MD_THRESHOLD;
         private float lgThreshold = DEFAULT_LG_THRESHOLD;
@@ -420,6 +424,7 @@ public class RenderEnvironment {
         public Builder inputModality(String m) { this.inputModality = m; return this; }
         public Builder breakpoint(String bp) { this.breakpoint = bp; return this; }
         public Builder librarian(LibrarianHandle lib) { this.librarian = lib; return this; }
+        public Builder language(ItemID lang) { this.language = lang; return this; }
 
         /**
          * Register a contextual unit measurement — "in this renderer, 1 of this unit = N pixels."

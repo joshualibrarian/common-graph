@@ -4,16 +4,11 @@ import dev.everydaythings.graph.frame.ViewConfig;
 import dev.everydaythings.graph.frame.ViewHandle;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
-import dev.everydaythings.graph.ui.scene.surface.item.ViewSurface;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,14 +21,10 @@ class SessionViewTest {
     private Librarian librarian;
     private TestSession session;
 
-    /**
-     * Minimal concrete Session for testing.
-     */
     static class TestSession extends Session {
         TestSession(LibrarianHandle librarian, Ref context) {
             super(librarian, context);
         }
-
         @Override public int run() { return 0; }
         @Override public Integer call() { return 0; }
         @Override public void close() {}
@@ -106,7 +97,7 @@ class SessionViewTest {
         @DisplayName("no-op for non-existent view")
         void noOpForNonExistent() {
             Item item = Item.create(librarian);
-            session.closeView(item.iid()); // Should not throw
+            session.closeView(item.iid());
             assertThat(session.openViews()).isEmpty();
         }
     }
@@ -170,94 +161,35 @@ class SessionViewTest {
     }
 
     @Nested
-    @DisplayName("toSurface rendering")
-    class ToSurfaceRendering {
-
-        @Test
-        @DisplayName("returns ViewSurface when view is active")
-        void returnsViewSurfaceWhenActive() {
-            Item item = Item.create(librarian);
-            // Cache the item so contextItem() can resolve it
-            session.navigateInto(item);
-            session.actionView(item.iid());
-
-            SurfaceSchema surface = session.toSurface();
-            assertThat(surface).isInstanceOf(ViewSurface.class);
-        }
-
-        @Test
-        @DisplayName("returns compiled layout when no view active")
-        void returnsCompiledLayoutWhenNoView() {
-            SurfaceSchema surface = session.toSurface();
-            // No view active → returns ItemModel's compiled constraint layout (not ViewSurface)
-            assertThat(surface).isNotInstanceOf(ViewSurface.class);
-        }
-
-        @Test
-        @DisplayName("close reverts to compiled layout")
-        void closeRevertsToCompiledLayout() {
-            Item item = Item.create(librarian);
-            session.navigateInto(item);
-            session.actionView(item.iid());
-            assertThat(session.toSurface()).isInstanceOf(ViewSurface.class);
-
-            session.actionClose(item.iid());
-            SurfaceSchema after = session.toSurface();
-            assertThat(after).isNotInstanceOf(ViewSurface.class);
-        }
-    }
-
-    @Nested
     @DisplayName("verb dispatch")
     class VerbDispatch {
 
         @Test
-        @DisplayName("actionView creates frame and sets active view on ItemModel")
-        void actionViewWiresItemModel() {
+        @DisplayName("actionView creates frame and sets active view on ItemView")
+        void actionViewWiresItemView() {
             Item item = Item.create(librarian);
 
             session.actionView(item.iid());
 
-            // Frame exists on session
             assertThat(session.openViews()).hasSize(1);
             assertThat(session.openViews().getFirst().target()).isEqualTo(item.iid());
 
-            // ItemModel knows about the active view
-            assertThat(session.itemModel()).isNotNull();
-            assertThat(session.itemModel().hasActiveView()).isTrue();
-            assertThat(session.itemModel().activeView().target()).isEqualTo(item.iid());
+            assertThat(session.itemView()).isNotNull();
+            assertThat(session.itemView().hasActiveView()).isTrue();
+            assertThat(session.itemView().activeView().target()).isEqualTo(item.iid());
         }
 
         @Test
         @DisplayName("actionClose removes frame and clears active view")
-        void actionCloseWiresItemModel() {
+        void actionCloseWiresItemView() {
             Item item = Item.create(librarian);
             session.actionView(item.iid());
-            assertThat(session.itemModel().hasActiveView()).isTrue();
+            assertThat(session.itemView().hasActiveView()).isTrue();
 
             session.actionClose(item.iid());
 
             assertThat(session.openViews()).isEmpty();
-            assertThat(session.itemModel().hasActiveView()).isFalse();
-        }
-
-        @Test
-        @DisplayName("viewMode:toggle event syncs to frame config")
-        void modeToggleSyncs() {
-            Item item = Item.create(librarian);
-            session.actionView(item.iid());
-
-            // Toggle mode
-            session.handleEvent("viewMode:toggle", null);
-
-            // ItemModel should be in INSPECT mode
-            assertThat(session.itemModel().currentViewMode())
-                    .isEqualTo(ViewConfig.ViewMode.INSPECT);
-
-            // Frame config should also be updated
-            ViewHandle vh = session.findView(item.iid());
-            ViewConfig config = session.viewConfig(vh.frameKey());
-            assertThat(config.mode()).isEqualTo(ViewConfig.ViewMode.INSPECT);
+            assertThat(session.itemView().hasActiveView()).isFalse();
         }
     }
 }

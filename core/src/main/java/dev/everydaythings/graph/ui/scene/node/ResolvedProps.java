@@ -117,6 +117,18 @@ public class ResolvedProps {
     public String strokeWidth(){ return string("strokeWidth"); }
     public String material()   { return string("material"); }
 
+    // Text semantic tokens (for label resolution)
+    @SuppressWarnings("unchecked")
+    public java.util.List<Text.SemanticToken> tokens() {
+        Object v = props.get("tokens");
+        if (v instanceof java.util.List<?> list) return (java.util.List<Text.SemanticToken>) list;
+        return null;
+    }
+    public dev.everydaythings.graph.item.id.ItemID format() {
+        Object v = props.get("format");
+        return v instanceof dev.everydaythings.graph.item.id.ItemID id ? id : null;
+    }
+
     // ==================================================================================
     // Building
     // ==================================================================================
@@ -165,6 +177,8 @@ public class ResolvedProps {
             if (c.justify() != null) b.put("justify", c.justify());
         } else if (node instanceof Text t) {
             if (t.text() != null) b.put("text", t.text());
+            if (t.tokens() != null && !t.tokens().isEmpty()) b.put("tokens", t.tokens());
+            if (t.format() != null) b.put("format", t.format());
         } else if (node instanceof Body bd) {
             if (bd.shape() != null)       b.put("shape", bd.shape());
             if (bd.image() != null)       b.put("image", bd.image());

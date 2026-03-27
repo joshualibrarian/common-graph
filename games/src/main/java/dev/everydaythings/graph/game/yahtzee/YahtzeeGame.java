@@ -40,7 +40,6 @@ import java.util.*;
  * </ul>
  */
 @Implements(YahtzeeGame.KEY)
-@Scene(as = YahtzeeSurface.class)
 public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         implements Scored, Phased, Randomized {
 

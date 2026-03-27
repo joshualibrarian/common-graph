@@ -67,11 +67,11 @@ public class HandleSurface extends ContainerSurface {
     @Scene.If("icon != null")
     static class Icon {}
 
-    @Scene.Text(bind = "label", style = {"handle-label"})
+    @Scene.Text.Literal(bind = "label", style = {"handle-label"})
     @Scene.If("label != null")
     static class Label {}
 
-    @Scene.Text(bind = "subtitle", style = {"handle-subtitle", "muted"})
+    @Scene.Text.Literal(bind = "subtitle", style = {"handle-subtitle", "muted"})
     @Scene.If("subtitle != null")
     static class Subtitle {}
 

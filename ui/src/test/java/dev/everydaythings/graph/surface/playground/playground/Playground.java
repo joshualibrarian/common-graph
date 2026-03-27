@@ -32,10 +32,10 @@ import org.junit.jupiter.api.Test;
  * @Scene.Container(direction = Scene.Direction.VERTICAL, gap = "0.5em")
  * static class MyCard extends SurfaceSchema<MyData> {
  *
- *     @Scene.Text(content = "Card Title", style = "heading")
+ *     @Scene.Text.Literal(content = "Card Title", style = "heading")
  *     static class Title {}
  *
- *     @Scene.Text(bind = "value.name")  // binds to MyData.name()
+ *     @Scene.Text.Literal(bind = "value.name")  // binds to MyData.name()
  *     @Scene.If("value")
  *     static class Name {}
  * }
@@ -89,7 +89,7 @@ public class Playground {
     @Scene.Container(direction = Scene.Direction.VERTICAL, style = "profile-card", gap = "0.5em")
     static class ProfileCard extends SurfaceSchema<Profile> {
 
-        @Scene.Text(content = "Profile", style = "heading")
+        @Scene.Text.Literal(content = "Profile", style = "heading")
         static class Title {}
 
         @Scene.Container(direction = Scene.Direction.HORIZONTAL, gap = "1em")
@@ -102,10 +102,10 @@ public class Playground {
             @Scene.Container(direction = Scene.Direction.VERTICAL)
             static class Info {
 
-                @Scene.Text(bind = "value.name", style = "bold")
+                @Scene.Text.Literal(bind = "value.name", style = "bold")
                 static class Name {}
 
-                @Scene.Text(bind = "value.email", style = "muted")
+                @Scene.Text.Literal(bind = "value.email", style = "muted")
                 static class Email {}
             }
         }
@@ -114,14 +114,14 @@ public class Playground {
         @Scene.If("value")
         static class Status {
 
-            @Scene.Text(content = "Status: ")
+            @Scene.Text.Literal(content = "Status: ")
             static class Label {}
 
-            @Scene.Text(content = "Active", style = "success")
+            @Scene.Text.Literal(content = "Active", style = "success")
             @Scene.If("value.active")
             static class Active {}
 
-            @Scene.Text(content = "Inactive", style = "muted")
+            @Scene.Text.Literal(content = "Inactive", style = "muted")
             @Scene.If("!value.active")
             static class Inactive {}
         }

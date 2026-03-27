@@ -15,10 +15,6 @@ import dev.everydaythings.graph.ui.filament.*;
 import dev.everydaythings.graph.ui.scene.AnimationState;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
-import dev.everydaythings.graph.ui.scene.node.NodeRenderer;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
-import dev.everydaythings.graph.ui.scene.surface.item.ItemModel;
-import dev.everydaythings.graph.ui.scene.surface.item.ViewSurface;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
 import dev.everydaythings.graph.ui.skia.*;
@@ -109,8 +105,9 @@ public class ViewWindow {
 
     // ==================== Per-Window UI State ====================
 
-    private ItemModel itemModel;
     private dev.everydaythings.graph.ui.scene.surface.item.ItemView itemView;
+    private dev.everydaythings.graph.ui.skia.SkiaSceneRenderer nodeRenderer;
+    private dev.everydaythings.graph.ui.scene.node.Node lastNodeTree;
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
     private final dev.everydaythings.graph.ui.skia.ScrollState scrollState =
@@ -156,7 +153,7 @@ public class ViewWindow {
     public FrameKey frameKey() { return frameKey; }
     public ViewHandle viewHandle() { return viewHandle; }
     public Stage stage() { return stage; }
-    public ItemModel itemModel() { return itemModel; }
+    public dev.everydaythings.graph.ui.scene.surface.item.ItemView itemView() { return itemView; }
     public ViewConfig.RendererType rendererType() { return rendererType; }
 
     // ==================== Lifecycle ====================
@@ -191,17 +188,26 @@ public class ViewWindow {
 
         stage.show();
 
-        // Create per-window ItemModel (legacy) and ItemView (new chrome)
-        Ref targetRef = Ref.of(viewHandle.target());
-        itemModel = new ItemModel(targetRef, iid -> session.resolveItem(iid));
-        itemModel.setRenderInputInSurface(true);
-
         // Create ItemView wrapping the target item
         Optional<Item> viewTargetItem = session.resolveItem(viewHandle.target());
         if (viewTargetItem.isPresent()) {
             itemView = new dev.everydaythings.graph.ui.scene.surface.item.ItemView(
                     viewTargetItem.get(), iid -> session.resolveItem(iid));
             itemView.setRenderInputInSurface(true);
+        }
+
+        // Create per-window SceneRenderer (state store persists across re-renders)
+        nodeRenderer = new dev.everydaythings.graph.ui.skia.SkiaSceneRenderer();
+        nodeRenderer.onApplicationAction((action, target) -> {
+            boolean handled = false;
+            if (itemView != null) handled = itemView.handleEvent(action, target);
+            return handled;
+        });
+
+        // Wire ItemView state changes to trigger re-render
+        if (itemView != null) {
+            itemView.setStateStore(nodeRenderer.stateStore());
+            itemView.onChange(() -> { rebuildLayout(); requestRepaint(); });
         }
 
         // Create per-window InputController
@@ -451,23 +457,9 @@ public class ViewWindow {
         });
     }
 
-    // ==================== Surface Building ====================
-
-    /**
-     * Build the surface tree for this window's viewed item.
-     *
-     * <p>Uses ItemModel's full ConstraintSurface layout (header, tree, detail, prompt).
-     * The tree visibility and detail content are controlled by ItemModel's toggle state.
-     */
-    public SurfaceSchema toSurface() {
-        if (itemView != null) return itemView.toSurface();
-        if (itemModel == null) return null;
-        return itemModel.toSurface();
-    }
-
     private Optional<Item> contextItem() {
-        if (itemModel == null) return Optional.empty();
-        Ref ctx = itemModel.context();
+        if (itemView == null) return Optional.empty();
+        Ref ctx = itemView.context();
         if (ctx == null || ctx.target() == null) return Optional.empty();
         return session.resolveItem(ctx.target());
     }
@@ -475,7 +467,7 @@ public class ViewWindow {
     // ==================== Layout ====================
 
     void rebuildLayout() {
-        if (itemModel == null) return;
+        if (itemView == null) return;
 
         try {
             boolean filamentSkiaFallback = rendererType == ViewConfig.RendererType.FILAMENT
@@ -517,19 +509,24 @@ public class ViewWindow {
                     .renderMetrics(metrics)
                     .baseFontSize(baseFontSize)
                     .build();
-            SkiaSurfaceRenderer renderer = new SkiaSurfaceRenderer(ctx);
-
-            // Node path: ItemView produces Node trees rendered via NodeRenderer
-            if (itemView != null) {
-                NodeRenderer.render(itemView.toNode(), renderer);
-            } else {
-                // Legacy path: SurfaceSchema from ItemModel
-                SurfaceSchema surface = itemModel.toSurface();
-                if (surface == null) return;
-                surface.render(renderer);
-            }
-
-            LayoutNode.BoxNode tree = renderer.result();
+            // Node tree → SkiaSceneRenderer → LayoutNode tree
+            var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
+                    .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.SKIA)
+                    .viewportWidth(w).viewportHeight(h)
+                    .dpi(96 * dpr).devicePixelRatio(dpr)
+                    .baseFontSize(baseFontSize)
+                    .librarian(session.librarian())
+                    .capabilities("color", "mouse", "images")
+                    .unit(dev.everydaythings.graph.value.Unit.Em.IID, (double) baseFontSize)
+                    .unit(dev.everydaythings.graph.value.Unit.CharacterWidth.IID, (double) baseFontSize * 0.6)
+                    .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, (double) baseFontSize * 1.4)
+                    .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 1.0)
+                    .build();
+            nodeRenderer.environment(env);
+            lastNodeTree = itemView.toNode();
+            nodeRenderer.renderTree(lastNodeTree);
+            LayoutNode.BoxNode tree = nodeRenderer.result();
+            if (tree == null) return;
 
             LayoutEngine.TextMeasurer measurer = useMsdf ? msdfFontManager : shared.fontCache();
             float bfs = useMsdf ? msdfFontManager.baseFontSize() : shared.fontCache().baseFontSize();
@@ -571,18 +568,22 @@ public class ViewWindow {
             return;
         }
 
-        // ItemView handles F1-F4 toggles and tree navigation
+        // @Scene.On key dispatch — matches key chords against event declarations
+        if (nodeRenderer != null && lastNodeTree != null
+                && nodeRenderer.dispatchKeyEvent(lastNodeTree, chord.toString())) {
+            rebuildLayout();
+            requestRepaint();
+            return;
+        }
+
+        // ItemView handles tree navigation (Alt+arrows) — legacy, until fully declarative
         if (itemView != null && itemView.handleKey(chord)) {
             rebuildLayout();
             requestRepaint();
             return;
         }
 
-        if (itemModel != null && itemModel.handleKey(chord)) {
-            rebuildLayout();
-            requestRepaint();
-            return;
-        }
+        // ItemView handles F1-F4 and tree nav via handleKey above
         if (session.handleKey(chord)) {
             rebuildLayout();
             requestRepaint();
@@ -595,9 +596,7 @@ public class ViewWindow {
         ViewConfig config = viewHandle.config().withMode(mode);
         session.updateViewConfig(frameKey, config);
         viewHandle = viewHandle.withConfig(config);
-        if (itemModel != null) {
-            itemModel.setViewMode(mode);
-        }
+        // View mode stored on ViewConfig/viewHandle — no model sync needed
         rebuildLayout();
         requestRepaint();
     }
@@ -621,14 +620,46 @@ public class ViewWindow {
         float y = (float) (cursorY * dpi);
         LayoutNode.PendingEvent hit = LayoutNode.hitTest(lastLayoutRoot, x, y, eventType);
         if (hit == null) return;
+
+        // Route through SceneRenderer state runtime first (toggle/set/unset/cycle),
+        // then fall through to application actions
         boolean handled = false;
-        if (itemView != null) handled = itemView.handleEvent(hit.action(), hit.target());
-        if (!handled && itemModel != null) handled = itemModel.handleEvent(hit.action(), hit.target());
+        if (nodeRenderer != null) {
+            // For state mutations, the target node ID comes from the LayoutNode that was hit.
+            // When hit.target() is empty (self-targeting), walk up to find the nearest node with an ID.
+            String nodeId = hit.target() != null && !hit.target().isEmpty()
+                    ? hit.target() : findNodeIdAtHit(lastLayoutRoot, x, y);
+            handled = nodeRenderer.dispatch(nodeId != null ? nodeId : "", hit.action(), hit.target());
+        }
+        if (!handled && itemView != null) handled = itemView.handleEvent(hit.action(), hit.target());
+        // Application events already routed through nodeRenderer.onApplicationAction → itemView
         if (handled) {
             sceneDirty = true;
             rebuildLayout();
             requestRepaint();
         }
+    }
+
+    /**
+     * Find the nearest node ID at a hit position by walking the LayoutNode tree.
+     * Returns the ID of the deepest node containing the point that has an ID.
+     */
+    private String findNodeIdAtHit(LayoutNode node, float x, float y) {
+        if (node == null) return null;
+        if (!(node instanceof LayoutNode.BoxNode box)) {
+            return node.id();
+        }
+        if (x < box.x() || x > box.x() + box.width() ||
+            y < box.y() || y > box.y() + box.height()) {
+            return null;
+        }
+        // Check children deepest-first
+        float testY = box.isScrollContainer() ? y + box.scrollOffsetY() : y;
+        for (int i = box.children().size() - 1; i >= 0; i--) {
+            String childId = findNodeIdAtHit(box.children().get(i), x, testY);
+            if (childId != null) return childId;
+        }
+        return box.id(); // this box's ID, or null if no ID
     }
 
     private void handleMouseButtonRelease(int button, double cursorX, double cursorY, float dpi) {
@@ -669,7 +700,7 @@ public class ViewWindow {
             String scrollTarget = hit.target().isEmpty()
                     ? String.format("%.1f,%.1f", xOffset, yOffset)
                     : hit.target();
-            if (itemModel != null && itemModel.handleEvent(hit.action(), scrollTarget)) {
+            if (itemView != null && itemView.handleEvent(hit.action(), scrollTarget)) {
                 rebuildLayout();
                 requestRepaint();
             }
@@ -759,14 +790,12 @@ public class ViewWindow {
                 .hint("")
                 .onChange(snapshot -> {
                     if (itemView != null) itemView.updateInput(snapshot);
-                    else if (itemModel != null) itemModel.updateInput(snapshot);
                     rebuildLayout();
                     requestRepaint();
                 })
                 .onNavigate(item -> {
                     session.navigateInto(item);
                     if (itemView != null) itemView.navigateInto(item);
-                    else if (itemModel != null) itemModel.navigateInto(item);
                     rebuildLayout();
                     requestRepaint();
                 })

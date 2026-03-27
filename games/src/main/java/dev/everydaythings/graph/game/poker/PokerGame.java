@@ -35,7 +35,6 @@ import java.util.*;
  * </ul>
  */
 @Implements(PokerGame.KEY)
-@Scene(as = PokerSurface.class)
 public class PokerGame extends GameComponent<PokerGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased, Randomized {
 
