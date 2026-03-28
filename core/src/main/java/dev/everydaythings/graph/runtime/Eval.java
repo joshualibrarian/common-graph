@@ -3,6 +3,8 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyPipeline;
 import dev.everydaythings.graph.frame.eval.FrameEvaluator;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.eval.Scope;
@@ -85,6 +87,8 @@ public class Eval {
     private final int depth;
     /** Unified frame evaluator for expression evaluation via FrameBody trees. */
     private final FrameEvaluator frameEvaluator;
+    /** Frame assembly pipeline — tries onFrameAssembled before @Verb fallback. */
+    private final FrameAssemblyPipeline assemblyPipeline;
 
     private Eval(LibrarianHandle librarianHandle, Item context, String focusedComponent,
                  Item session, DiscourseHistory discourseHistory,
@@ -98,6 +102,7 @@ public class Eval {
         this.jsonOutput = jsonOutput;
         this.depth = depth;
         this.frameEvaluator = new FrameEvaluator();
+        this.assemblyPipeline = new FrameAssemblyPipeline();
     }
 
     // ==================================================================================
@@ -921,7 +926,21 @@ public class Eval {
             }
         }
 
-        // Find the dispatch target via inner-to-outer scope search
+        // Try frame assembly pipeline first — participants react via onFrameAssembled
+        FrameBody frameBody = toFrameBody(frame);
+        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+                ? local.librarian() : null;
+        if (librarian != null) {
+            Signer signer = session instanceof Signer s ? s : librarian;
+            Scope assemblyScope = Scope.of(librarian, context);
+            FrameAssemblyContext ctx = assemblyPipeline.assemble(
+                    frameBody, assemblyScope, signer, session);
+            if (ctx.handled()) {
+                return mapResultToEvalResult(ctx.result(), frame);
+            }
+        }
+
+        // Fallback: existing FrameEvaluator + @Verb dispatch path
         Item target = findDispatchTarget(verbId, frame);
 
         // Verb alone with no bindings and no context → navigate to verb sememe
@@ -931,12 +950,7 @@ public class Eval {
 
         logger.debug("evaluateFrame: dispatch target={}", target.displayToken());
 
-        // Convert SemanticFrame → FrameBody
-        FrameBody frameBody = toFrameBody(frame);
-
         // Build scope with the dispatch target as owner
-        Librarian librarian = librarianHandle instanceof LocalLibrarian local
-                ? local.librarian() : null;
         Scope evalScope = librarian != null
                 ? Scope.of(librarian, target)
                 : Scope.of(null, target);
@@ -1167,7 +1181,7 @@ public class Eval {
                 showItemInfo(item);
                 yield 0;
             }
-            case EvalResult.Created(Item item, Sememe type) -> {
+            case EvalResult.Created(Item item, Item type) -> {
                 showItemInfo(item);
                 yield 0;
             }
@@ -1405,7 +1419,7 @@ public class Eval {
         record Value(Object value) implements EvalResult {}
         record ItemResult(Item item) implements EvalResult {}
         /** An item was created — session should NOT navigate the current view. */
-        record Created(Item item, Sememe type) implements EvalResult {}
+        record Created(Item item, Item type) implements EvalResult {}
         record ValueWithTarget(Object value, Item targetItem) implements EvalResult {}
         record Error(String message) implements EvalResult {}
         /**
@@ -1423,7 +1437,7 @@ public class Eval {
         static EvalResult empty() { return new Empty(); }
         static EvalResult value(Object v) { return new Value(v); }
         static EvalResult item(Item i) { return new ItemResult(i); }
-        static EvalResult created(Item i, Sememe type) { return new Created(i, type); }
+        static EvalResult created(Item i, Item type) { return new Created(i, type); }
         static EvalResult valueWithTarget(Object v, Item t) { return new ValueWithTarget(v, t); }
         static EvalResult error(String msg) { return new Error(msg); }
         static EvalResult ambiguous(List<Ambiguous.UnresolvedToken> tokens) { return new Ambiguous(tokens); }

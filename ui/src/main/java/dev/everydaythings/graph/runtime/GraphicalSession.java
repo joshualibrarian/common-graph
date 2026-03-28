@@ -53,8 +53,8 @@ public class GraphicalSession extends Session {
     /** Local display layouts for view routing. */
     private List<DisplayLayoutConfig> localDisplays = List.of();
 
-    /** Primary display IID — first enumerated display, used as default for new views. */
-    private ItemID primaryDisplayId;
+    /** Primary display Ref — compound ref to the first enumerated display on the host. */
+    private Ref primaryDisplayRef;
 
     // ==================== Constructor ====================
 
@@ -222,8 +222,9 @@ public class GraphicalSession extends Session {
         }
 
         ItemID hostId = host.iid();
-        host.clearDisplays();
 
+        // Enumerate OS monitors (ui-layer concern — GLFW)
+        List<Host.DisplayUpdate> updates = new ArrayList<>();
         List<DisplayLayoutConfig> layouts = new ArrayList<>();
 
         PointerBuffer monitors = org.lwjgl.glfw.GLFW.glfwGetMonitors();
@@ -261,27 +262,29 @@ public class GraphicalSession extends Session {
                     .osY(posY[0])
                     .build();
 
-            FrameKey displayFrameKey = host.registerDisplay(displayId, displayConfig);
-
-            // Track primary display (first enumerated)
-            ItemID displayIid = ItemID.fromString("cg.display:" + displayId);
-            if (i == 0) {
-                primaryDisplayId = displayIid;
-            }
+            updates.add(new Host.DisplayUpdate(displayId, displayConfig));
 
             // Single-host: session-space = OS-space (identity)
-            DisplayLayoutConfig layout = DisplayLayoutConfig.builder()
+            layouts.add(DisplayLayoutConfig.builder()
                     .hostId(hostId)
                     .displayId(displayId)
                     .sessionX(posX[0])
                     .sessionY(posY[0])
                     .widthPx(width)
                     .heightPx(height)
-                    .build();
-            layouts.add(layout);
+                    .build());
 
             log.info("Detected display: {} ({}x{} @{}Hz, scale={}, pos={},{})",
                     name, width, height, refreshRate, scaleX[0], posX[0], posY[0]);
+        }
+
+        // Tell the Host about connected displays (core-layer concern)
+        host.updateDisplays(updates);
+
+        // Track primary display as compound Ref (host + device frame key)
+        List<Host.DeviceInfo> hostDisplays = host.displays();
+        if (!hostDisplays.isEmpty()) {
+            primaryDisplayRef = hostDisplays.getFirst().refOn(hostId);
         }
 
         registerHostDisplays(hostId, layouts);
@@ -307,10 +310,10 @@ public class GraphicalSession extends Session {
     private boolean isViewOnLocalDisplay(ViewHandle vh) {
         if (localDisplays.isEmpty()) return true;
 
-        // Check LOCATION binding — the proper way
-        if (vh.display() != null && primaryDisplayId != null) {
+        // Check LOCATION binding — compound Ref to host + device frame
+        if (vh.display() != null && primaryDisplayRef != null) {
             // For single-host, all local displays are ours
-            // TODO: multi-host would check if vh.display() matches any local display
+            // Multi-host: check if vh.display().target() matches the local host IID
             return true;
         }
 
@@ -358,10 +361,10 @@ public class GraphicalSession extends Session {
     }
 
     @Override
-    public ItemID focusedDisplay() {
+    public Ref focusedDisplay() {
         // TODO: track which window has focus and return its display
         // For now, return the primary display
-        return primaryDisplayId;
+        return primaryDisplayRef;
     }
 
     // ==================== View Lifecycle Hooks ====================

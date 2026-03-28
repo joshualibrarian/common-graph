@@ -16,7 +16,7 @@ import lombok.Getter;
  * <p>For single-host sessions, sessionX/Y equals the OS-reported position
  * from {@link DisplayConfig} (identity transform).
  *
- * @see dev.everydaythings.graph.language.ViewVocabulary.DisplayLayout
+ * @see dev.everydaythings.graph.language.ViewVocabulary
  */
 @Getter
 @Builder

@@ -13,8 +13,7 @@ import java.lang.annotation.Target;
  * This links the Java class to its concept definition (a Sememe with that key).
  *
  * <p>Display metadata (glyph, color) lives on the Sememe seed via
- * {@code .glyph()} and {@code .color()}, and flows into the library as a
- * SurfaceTemplateComponent at bootstrap.
+ * {@code .glyph()} and {@code .color()}.
  *
  * <pre>{@code
  * @Implements(ChessItem.Chess.KEY)

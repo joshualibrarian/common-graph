@@ -7,8 +7,6 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.PresentationConfig;
-import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.id.FrameKey;

@@ -10,6 +10,7 @@ import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -35,6 +36,7 @@ import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
 import dev.everydaythings.graph.policy.PolicySet;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.ValueType;
@@ -367,14 +369,6 @@ public class Item {
         return DisplayResolver.displayInfo(this);
     }
 
-    public dev.everydaythings.graph.frame.PresentationConfig resolvedPresentation() {
-        return DisplayResolver.resolvedPresentation(this);
-    }
-
-    protected dev.everydaythings.graph.frame.SurfaceTemplateComponent getTypeSurfaceTemplate() {
-        return DisplayResolver.getTypeSurfaceTemplate(this);
-    }
-
     protected String findDisplayName() {
         return DisplayResolver.findDisplayName(this);
     }
@@ -392,8 +386,6 @@ public class Item {
     }
 
     public String emoji() {
-        var pc = resolvedPresentation();
-        if (pc != null && pc.glyph() != null) return pc.glyph();
         return findIconText();
     }
 
@@ -1674,6 +1666,133 @@ public class Item {
             }
         }
     }
+
+    // ==================================================================================
+    // Frame Assembly Callback
+    // ==================================================================================
+
+    /**
+     * Called when a frame referencing this item is assembled by the evaluator.
+     *
+     * <p>Participants in the callback chain include the predicate sememe, all
+     * binding targets that are Items (in EXPECTS salience order), the signer,
+     * and the session. Each participant can react to the frame — endorse it,
+     * trigger side effects, or set a result.
+     *
+     * <p>To claim the frame, call {@code ctx.handled(result)}. This signals
+     * the pipeline to store the body and sign a record.
+     *
+     * <p>Default implementation is a no-op. Subclasses override to react to
+     * specific predicates.
+     *
+     * @param ctx the assembly context (mutable accumulator)
+     */
+    public void onFrameAssembled(FrameAssemblyContext ctx) {
+        if (CoreVocabulary.Create.IID.equals(ctx.body().predicate())) {
+            handleCreate(ctx);
+        }
+    }
+
+    /**
+     * Handle being the THEME of a CREATE frame — instantiate this type.
+     *
+     * <p>Looks up the IMPLEMENTED_BY frame to find the Java class,
+     * instantiates it, creates an INSTANCE_OF frame, commits, and caches.
+     */
+    private void handleCreate(FrameAssemblyContext ctx) {
+        Class<?> implClass = resolveImplementingClass().orElse(null);
+        if (implClass == null || !Item.class.isAssignableFrom(implClass)) return;
+
+        Librarian lib = ctx.scope().librarian();
+        if (lib == null) return;
+
+        Item newItem = instantiateItem(implClass, lib);
+
+        // INSTANCE_OF frame: link new instance to this type
+        lib.storeFrame(FrameBody.builder(LexicalVocabulary.InstanceOf.IID)
+                .bind(ThematicRole.Theme.IID, newItem.iid())
+                .bind(ThematicRole.Goal.IID, this.iid())
+                .build());
+
+        // Optional name from NAME binding
+        BindingTarget nameTarget = ctx.body().binding(ThematicRole.Name.IID);
+        if (nameTarget instanceof Literal lit && lit.payload() != null) {
+            String name = new String(lit.payload(), java.nio.charset.StandardCharsets.UTF_8);
+            if (!name.isBlank()) {
+                if (newItem instanceof dev.everydaythings.graph.item.user.Signer signer) {
+                    signer.setName(name);
+                } else {
+                    lib.storeFrame(FrameBody.builder(CoreVocabulary.Title.IID)
+                            .bind(ThematicRole.Theme.IID, newItem.iid())
+                            .bind(ThematicRole.Name.IID, name)
+                            .build());
+                }
+            }
+        }
+
+        if (ctx.signer() != null) {
+            newItem.commit(ctx.signer());
+        }
+        lib.put(newItem);
+
+        ctx.handled(new dev.everydaythings.graph.dispatch.Created(newItem, this));
+    }
+
+    /**
+     * Resolve the implementing Java class from IMPLEMENTED_BY frames.
+     */
+    public java.util.Optional<Class<?>> resolveImplementingClass() {
+        if (frames() != null) {
+            ItemID implPredicate = CoreVocabulary.ImplementedBy.IID;
+            var it = frames().bareFrames().iterator();
+            while (it.hasNext()) {
+                var frame = it.next();
+                java.util.Optional<Object> live = frames().getLive(frame.frameKey());
+                if (live.isPresent() && live.get() instanceof FrameBody body) {
+                    if (implPredicate.equals(body.predicate())) {
+                        BindingTarget target = body.bindings().get(ThematicRole.Goal.IID);
+                        if (target instanceof Literal lit && lit.asText() != null) {
+                            try {
+                                return java.util.Optional.of(Class.forName(lit.asText()));
+                            } catch (ClassNotFoundException ignored) {}
+                        }
+                    }
+                }
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    /**
+     * Instantiate an Item subclass, trying constructors in priority order.
+     */
+    private static Item instantiateItem(Class<?> implClass, Librarian lib) {
+        try {
+            var ctor = implClass.getDeclaredConstructor(Librarian.class);
+            ctor.setAccessible(true);
+            return (Item) ctor.newInstance(lib);
+        } catch (NoSuchMethodException ignored) {
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
+        }
+        try {
+            Class<?> markerClass = Class.forName(
+                    "dev.everydaythings.graph.item.Item$InMemoryMarker");
+            Object markerInstance = markerClass.getField("INSTANCE").get(null);
+            var ctor = implClass.getDeclaredConstructor(Librarian.class, markerClass);
+            ctor.setAccessible(true);
+            return (Item) ctor.newInstance(lib, markerInstance);
+        } catch (NoSuchMethodException | ClassNotFoundException e) {
+            throw new IllegalArgumentException(
+                    implClass.getSimpleName() + " has no Librarian or (Librarian, InMemoryMarker) constructor");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
+        }
+    }
+
+    // ==================================================================================
+    // Endorsement Resolution
+    // ==================================================================================
 
     /**
      * Resolve endorsements from the manifest into EndorsementsTable entries.

@@ -9,6 +9,7 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
 
 import java.util.Objects;
 
@@ -58,7 +59,10 @@ public interface BindingTarget extends Canonical {
     static IidTarget iid(ItemID iid) { return IidTarget.of(iid); }
 
     /** Convenience factory for unified references (Tag 6). */
-    static RefTarget ref(HashID ref) { return new RefTarget(ref); }
+    static RefTarget ref(HashID ref) { return new RefTarget(Ref.of(new ItemID(ref.encodeBinary()))); }
+
+    /** Convenience factory for compound references (Tag 6 with frame key). */
+    static RefTarget ref(Ref ref) { return new RefTarget(ref); }
 
     /** Convenience factory for inline nested frames (Tag 23). */
     static FrameTarget frame(FrameBody body) { return new FrameTarget(body); }
@@ -66,41 +70,45 @@ public interface BindingTarget extends Canonical {
     /**
      * Unified reference target using CG-CBOR Tag 6 (REF).
      *
-     * <p>Handles both ItemID and ContentID references — both are HashIDs.
-     * The wire format is identical: {@code Tag(6, bytes)}. On decode,
-     * consumers use {@link #asItemId()} or {@link #asCid()} based on
-     * context (the role tells you what to expect).
+     * <p>Holds a full {@link Ref} which supports both simple item references
+     * (bare ItemID) and compound references (item + frame key path).
+     * The wire format uses the Ref binary encoding inside Tag 6.
+     *
+     * <p>For simple references, {@link #asItemId()} returns the target.
+     * For compound references, {@link #asRef()} returns the full Ref
+     * including the frame key path.
      */
     final class RefTarget implements BindingTarget {
-        private final HashID ref;
+        private final Ref ref;
 
-        public RefTarget(HashID ref) {
+        public RefTarget(Ref ref) {
             this.ref = Objects.requireNonNull(ref, "ref");
         }
 
-        public HashID ref() { return ref; }
+        /** The full Ref (may include frame key for compound references). */
+        public Ref asRef() { return ref; }
 
-        public ItemID asItemId() {
-            return ref instanceof ItemID iid ? iid : new ItemID(ref.encodeBinary());
-        }
+        /** The target ItemID (ignoring any frame key). */
+        public ItemID asItemId() { return ref.target(); }
 
+        /** The target as a ContentID. */
         public ContentID asCid() {
-            return ref instanceof ContentID cid ? cid : new ContentID(ref.encodeBinary());
+            return new ContentID(ref.target().encodeBinary());
         }
+
+        /** Whether this is a compound reference (has a frame key path). */
+        public boolean isCompound() { return ref.frameKey() != null; }
 
         @Override
         public CBORObject toCborTree(Scope scope) {
-            return CBORObject.FromObjectAndTag(
-                    CBORObject.FromByteArray(ref.encodeBinary()), Canonical.CgTag.REF);
+            return ref.toCborTree(scope);
         }
 
         @Factory
         public static RefTarget fromCborTree(CBORObject node) {
             if (node == null || node.isNull()) return null;
-            CBORObject inner = node.isTagged() ? node.UntagOne() : node;
-            byte[] bytes = inner.GetByteString();
-            // Default to ItemID — callers use asCid() when the role indicates content
-            return new RefTarget(new ItemID(bytes));
+            Ref decoded = Ref.fromCborTree(node);
+            return new RefTarget(decoded);
         }
 
         @Override
@@ -117,7 +125,7 @@ public interface BindingTarget extends Canonical {
 
         @Override
         public String toString() {
-            return "Ref(" + ref.displayAtWidth(12) + ")";
+            return "Ref(" + ref.encodeText() + ")";
         }
     }
 

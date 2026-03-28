@@ -5,7 +5,6 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
 import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
@@ -609,8 +608,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
     @Override
     public DisplayInfo displayInfo() {
-        // Override name to use the root path (more descriptive than just "Librarian")
-        // Delegate to parent's resolution (instance SurfaceTemplateComponent → type → annotation)
         DisplayInfo base = super.displayInfo();
         String name = rootPath != null ? rootPath.getFileName().toString() : "Librarian";
         return base.withName(name);
@@ -624,10 +621,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /**
      * Resolve display info for a type from the graph.
      *
-     * <p>Looks up the type Item and extracts its SurfaceTemplateComponent. This is the
-     * proper way to get display metadata for any type - the graph is the source
-     * of truth for all display information.
-     *
      * @param typeId The type's ItemID (e.g., "cg.sememe:log")
      * @return DisplayInfo from the type, or a default based on the type key
      */
@@ -639,25 +632,9 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                     .build();
         }
 
-        // Try to get the type Item from the graph
         Optional<Item> typeItem = get(typeId, Item.class);
         if (typeItem.isPresent()) {
-            Item type = typeItem.get();
-
-            // Look for SurfaceTemplateComponent on the type
-            var stc = type.frames().getLive(
-                    SurfaceTemplateComponent.HANDLE,
-                    SurfaceTemplateComponent.class
-            );
-
-            if (stc.isPresent()) {
-                // Extract name from type key for the display
-                String typeName = extractTypeShortName(typeId);
-                return stc.get().toDisplayInfo(typeName);
-            }
-
-            // Type exists but no SurfaceTemplateComponent - use type's own display
-            return type.displayInfo();
+            return typeItem.get().displayInfo();
         }
 
         // Type not in graph - extract what we can from the key
@@ -665,7 +642,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         return DisplayInfo.builder()
                 .name(typeName != null ? typeName : typeId.encodeText())
                 .typeName(typeName)
-                .iconText("\uD83D\uDCE6")  // Default package icon
+                .iconText("\uD83D\uDCE6")
                 .build();
     }
 

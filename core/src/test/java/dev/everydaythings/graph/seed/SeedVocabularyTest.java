@@ -1,20 +1,14 @@
 package dev.everydaythings.graph.seed;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.TreeLink;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.SurfaceTemplateComponent;
-import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.library.mapdb.MapDBItemStore;
 import dev.everydaythings.graph.library.SeedVocabulary;
-import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.Dimension;
 import dev.everydaythings.graph.value.Unit;
 import dev.everydaythings.graph.value.ValueType;
@@ -205,109 +199,4 @@ class SeedVocabularyTest {
         assertThat(hasManifest(Literal.TYPE_INSTANT)).isTrue();
     }
 
-    @Test
-    void typeItemsHaveSurfaceTemplateWithDisplayFields() {
-        // Item type should have a unified surface template with display fields
-        ItemID itemTypeId = ItemID.fromString(Item.KEY);
-        Manifest manifest = store.manifests(itemTypeId).findFirst().orElse(null);
-        assertThat(manifest).isNotNull();
-
-        Frame surfaceEntry = manifest.components().stream()
-                .filter(e -> e.frameKey().equals(SurfaceTemplateComponent.HANDLE))
-                .findFirst()
-                .orElse(null);
-        assertThat(surfaceEntry).as("Item type should have surface template component").isNotNull();
-        assertThat(surfaceEntry.body().contentCid()).as("Surface template should have CID").isNotNull();
-
-        // Content should be retrievable from store
-        assertThat(store.content(surfaceEntry.body().contentCid()))
-                .as("Surface template content should be stored").isPresent();
-
-        // Should NOT have a separate "display" handle
-        FrameKey displayKey = FrameKey.of(ItemID.fromString("cg.test:display"));
-        boolean hasDisplay = manifest.components().stream()
-                .anyMatch(e -> e.frameKey().equals(displayKey));
-        assertThat(hasDisplay).as("Should not have a separate display component").isFalse();
-    }
-
-    @Test
-    void bootstrapReturnsFullyPopulatedItems() {
-        // bootstrap() should return the same items that were stored (with components)
-        ItemStore testStore = MapDBItemStore.memory();
-        List<Item> seedItems = SeedVocabulary.bootstrap(testStore);
-
-        assertThat(seedItems).isNotEmpty();
-
-        // Find the Item type seed (should have unified surface template)
-        Item itemTypeSeed = seedItems.stream()
-                .filter(i -> i.iid().equals(ItemID.fromString(Item.KEY)))
-                .findFirst()
-                .orElse(null);
-        assertThat(itemTypeSeed).as("bootstrap() should return Item type seed").isNotNull();
-
-        assertThat(itemTypeSeed.frames().getFrame(SurfaceTemplateComponent.HANDLE))
-                .as("Returned seed should have surface template entry").isPresent();
-    }
-
-    @Test
-    void cachedSeedItemsHaveComponents() {
-        // Items cached via Librarian should have their components (not bare copies)
-        Librarian librarian = Librarian.createInMemory();
-        ItemID itemTypeId = ItemID.fromString(Item.KEY);
-
-        // Get directly from cache (this is the path that was broken before)
-        Item cached = librarian.get(itemTypeId).orElse(null);
-        assertThat(cached).as("Item type should be in cache").isNotNull();
-
-        assertThat(cached.frames().getFrame(SurfaceTemplateComponent.HANDLE))
-                .as("Cached seed should have surface template entry").isPresent();
-    }
-
-    @Test
-    void roundTripHydrationFromManifest() throws Exception {
-        // Load Item type manifest from store and hydrate via constructor
-        // (simulates the Librarian.get() -> hydrateItem() path, bypassing cache)
-        Librarian librarian = Librarian.createInMemory();
-        ItemID itemTypeId = ItemID.fromString(Item.KEY);
-
-        // Get manifest from the librarian's own store (same store that has the content)
-        ItemStore libStore = librarian.library().primaryStore().orElseThrow();
-        Manifest manifest = libStore.manifests(itemTypeId).findFirst().orElse(null);
-        assertThat(manifest).as("Item type manifest should exist in store").isNotNull();
-
-        // Hydrate via the protected (Librarian, Manifest) constructor using reflection
-        var ctor = Item.class.getDeclaredConstructor(Librarian.class, Manifest.class);
-        ctor.setAccessible(true);
-        Item item = (Item) ctor.newInstance(librarian, manifest);
-
-        // Verify component entry exists
-        assertThat(item.frames().getFrame(SurfaceTemplateComponent.HANDLE))
-                .as("Should have surface template component entry").isPresent();
-
-        // Verify live instance was hydrated (not just entry)
-        assertThat(item.frames().hasLive(SurfaceTemplateComponent.HANDLE))
-                .as("Surface template should have live instance").isTrue();
-
-        // Verify live instance is the correct type
-        assertThat(item.frames().getLive(SurfaceTemplateComponent.HANDLE))
-                .isPresent()
-                .get()
-                .isInstanceOf(SurfaceTemplateComponent.class);
-
-        // Verify display fields are populated on the hydrated component
-        var stc = item.frames().getLive(
-                SurfaceTemplateComponent.HANDLE, SurfaceTemplateComponent.class).orElse(null);
-        assertThat(stc).isNotNull();
-        assertThat(stc.glyph()).as("Display glyph should survive round-trip").isNotNull();
-        assertThat(stc.typeName()).as("Type name should survive round-trip").isNotNull();
-
-        // Verify children(INSPECT) returns refs for components
-        List<Ref> inspectChildren = item.children(TreeLink.ChildMode.INSPECT);
-        assertThat(inspectChildren).as("Inspect mode should show component refs").isNotEmpty();
-
-        // Should include surface template ref
-        boolean hasSurface = inspectChildren.stream()
-                .anyMatch(ref -> ref.frameKey() != null && ref.frameKey().equals(SurfaceTemplateComponent.HANDLE));
-        assertThat(hasSurface).as("Inspect children should include surface template").isTrue();
-    }
 }

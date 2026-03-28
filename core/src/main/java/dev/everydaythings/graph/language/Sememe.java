@@ -4,6 +4,7 @@ import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.Frame;
@@ -642,18 +643,13 @@ public class Sememe extends Item {
     }
 
     // ==================================================================================
-    // CREATE Verb — any sememe with an IMPLEMENTED_BY frame is createable
+    // CREATE Verb (legacy @Verb path — fallback until fully migrated)
     // ==================================================================================
 
     /**
-     * Create a new instance of the type this sememe represents.
-     *
-     * <p>When the user types "create chess", this verb fires on the chess
-     * sememe. It looks up the IMPLEMENTED_BY frame to find the Java
-     * class, instantiates it via {@code (Librarian)} constructor, creates
-     * an INSTANCE_OF relation, commits, caches, and returns a {@link Created}
-     * marker so the dispatch pipeline knows this was creation.
+     * @deprecated Use {@link #onFrameAssembled(FrameAssemblyContext)} instead.
      */
+    @Deprecated
     @Verb(value = CoreVocabulary.Create.KEY, doc = "Create a new instance of this type")
     public Object actionCreate(ActionContext ctx,
                                @Param(value = "name", required = false, role = "NAME") String name) {

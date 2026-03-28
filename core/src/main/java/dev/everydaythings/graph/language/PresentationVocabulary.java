@@ -9,12 +9,8 @@ import dev.everydaythings.graph.language.CoreVocabulary;
 /**
  * Seed vocabulary for semantic presentation tokens (palette slots).
  *
- * <p>These sememes name palette slots used in the presentation cascade.
- * Actual color values are bound in {@link dev.everydaythings.graph.frame.PresentationConfig}
- * payloads stored in {@code (PRESENTATION)} config entries on individual
- * items, implementations, or sememes.
+ * <p>These sememes name palette slots used in presentation configuration.
  *
- * @see dev.everydaythings.graph.frame.PresentationConfig
  * @see CoreVocabulary
  */
 public final class PresentationVocabulary {

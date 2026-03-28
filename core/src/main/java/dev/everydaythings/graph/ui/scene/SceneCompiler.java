@@ -2820,7 +2820,7 @@ public final class SceneCompiler {
      * <ol>
      *   <li>Instance name from displayInfo (content fields: name, title, label)</li>
      *   <li>displayToken &mdash; Sememes return their canonical key part (e.g., "title")</li>
-     *   <li>Type name from SurfaceTemplateComponent (e.g., "Sememe")</li>
+     *   <li>Type name from displayInfo (e.g., "Sememe")</li>
      * </ol>
      */
     private static SurfaceSchema<?> resolveItemHandle(ItemID iid) {
@@ -2845,7 +2845,7 @@ public final class SceneCompiler {
                     }
                 }
 
-                // 3. Final fallback: type name from SurfaceTemplateComponent
+                // 3. Final fallback: type name from displayInfo
                 if (label == null || label.isBlank() || label.equals(className)) {
                     label = info.typeName();
                 }

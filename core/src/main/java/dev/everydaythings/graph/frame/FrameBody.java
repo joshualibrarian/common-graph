@@ -482,7 +482,24 @@ public final class FrameBody implements Canonical {
      */
     public ItemID bindingId(ItemID role) {
         BindingTarget target = binding(role);
-        return target instanceof BindingTarget.IidTarget iidTarget ? iidTarget.iid() : null;
+        if (target instanceof BindingTarget.IidTarget iidTarget) return iidTarget.iid();
+        if (target instanceof BindingTarget.RefTarget refTarget) return refTarget.asItemId();
+        return null;
+    }
+
+    /**
+     * Get the Ref bound to a specific role (works for both IidTarget and RefTarget).
+     *
+     * <p>IidTarget is wrapped as a simple Ref. RefTarget returns its full Ref
+     * (which may include a compound frame key path).
+     */
+    public dev.everydaythings.graph.item.id.Ref bindingRef(ItemID role) {
+        BindingTarget target = binding(role);
+        if (target instanceof BindingTarget.RefTarget refTarget) return refTarget.asRef();
+        if (target instanceof BindingTarget.IidTarget iidTarget) {
+            return iidTarget.iid() != null ? dev.everydaythings.graph.item.id.Ref.of(iidTarget.iid()) : null;
+        }
+        return null;
     }
 
     /**
@@ -703,8 +720,7 @@ public final class FrameBody implements Canonical {
      */
     private static ContentID extractCidFromTarget(BindingTarget target) {
         if (target instanceof BindingTarget.RefTarget ref) {
-            HashID id = ref.ref();
-            return id instanceof ContentID cid ? cid : new ContentID(id.encodeBinary());
+            return ref.asCid();
         }
         if (target instanceof BindingTarget.IidTarget iid) {
             return new ContentID(iid.iid().encodeBinary());

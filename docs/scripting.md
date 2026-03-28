@@ -788,8 +788,8 @@ carol@kanban-type> describe
           mainClass: dev.carol.kanban.KanbanBoard
           targetVersion: 21
           dependencies: []   # Only depends on core CG types
-      SurfaceTemplateComponent:
-          @Surface annotations on KanbanBoard define the board UI
+      Scene:
+          @Scene annotations on KanbanBoard define the board UI
   Relations:
       PROVIDES_TYPE → cg:type/kanban-board
       HAS_VERB → cg.verb:create, cg.verb:move, cg.verb:archive

@@ -118,7 +118,7 @@ public class ActivityEntry implements Canonical {
                     new ActivityEntry(input, contextIid, Kind.ITEM,
                             item.displayToken(), item.iid(), Source.SESSION);
 
-            case Eval.EvalResult.Created(Item item, Sememe type) ->
+            case Eval.EvalResult.Created(Item item, Item type) ->
                     new ActivityEntry(input, contextIid, Kind.CREATED,
                             item.displayToken(), item.iid(), Source.SESSION);
 

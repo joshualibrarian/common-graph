@@ -1,17 +1,14 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.*;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
+import dev.everydaythings.graph.item.*;
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.parse.InputSnapshot;
-import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.ActionResult;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -28,6 +25,7 @@ import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.View;
+import dev.everydaythings.graph.ui.scene.node.Node;
 import dev.everydaythings.graph.ui.scene.surface.item.ItemView;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -39,13 +37,7 @@ import picocli.CommandLine.Mixin;
 import java.awt.GraphicsEnvironment;
 import java.io.Closeable;
 import java.security.SecureRandom;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
@@ -449,25 +441,64 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     // ==================================================================================
+    // Frame Assembly Reactions
+    // ==================================================================================
+
+    @Override
+    public void onFrameAssembled(FrameAssemblyContext ctx) {
+        ItemID predicate = ctx.body().predicate();
+
+        if (ViewVocabulary.ItemView.IID.equals(predicate)) {
+            ItemID target = ctx.body().bindingId(ThematicRole.Theme.IID);
+            if (target == null) return;
+
+            // Endorse the ITEM_VIEW frame on this session
+            FrameKey key = endorseViewFrame(ctx.body());
+            onViewOpened(key);
+            ctx.handled(ActionResult.success("Viewing " + target.displayAtWidth(12)));
+            return;
+        }
+
+        if (ViewVocabulary.Close.IID.equals(predicate)) {
+            ItemID target = ctx.body().bindingId(ThematicRole.Theme.IID);
+            if (target != null) {
+                ViewHandle vh = findView(target);
+                closeViewOf(target);
+                if (vh != null) onViewClosed(vh.frameKey());
+            }
+            goBack();
+            ctx.handled(ActionResult.success("View closed"));
+        }
+    }
+
+    /**
+     * Endorse an ITEM_VIEW FrameBody on this session's frames table.
+     *
+     * <p>Creates a Frame with a unique key and adds it to the session's
+     * endorsements table. Returns the key for window management.
+     */
+    private FrameKey endorseViewFrame(FrameBody body) {
+        String viewId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        FrameKey key = FrameKey.of(ViewVocabulary.ItemView.IID, viewId);
+
+        Frame frame = new Frame(key, ViewVocabulary.ItemView.IID, body, null, false);
+        frames().add(frame);
+        frame.setInstance(ViewConfig.defaults());
+
+        return key;
+    }
+
+    // ==================================================================================
     // View Management (ITEM_VIEW frames on this session)
     // ==================================================================================
 
-    @Verb(predicate = ViewVocabulary.View.KEY, doc = "Open a persistent view of an item")
+    @Verb(predicate = ViewVocabulary.ItemView.KEY, doc = "Open a persistent view of an item")
     public ActionResult actionView(
             @Param(role = ThematicRole.Theme.KEY, doc = "The item to view") ItemID targetId) {
         if (targetId == null) return ActionResult.failure(new IllegalArgumentException("No target item specified"));
         FrameKey key = openView(targetId);
-        navigateInto(Ref.of(targetId));
 
-        // Tell ItemView about the active view so it shows view chrome
-        if (itemView != null) {
-            ViewHandle vh = findView(targetId);
-            if (vh != null) {
-                itemView.setActiveView(vh);
-            }
-        }
-
-        // Notify subclasses (GraphicalSession creates OS window)
+        // Notify subclasses (GraphicalSession creates a new OS window)
         onViewOpened(key);
 
         return ActionResult.success("Viewing " + targetId.displayAtWidth(12));
@@ -522,10 +553,16 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param displayId the IID of the display (null = unassigned)
      * @return the FrameKey of the new ITEM_VIEW frame
      */
-    public FrameKey openView(ItemID target, ItemID displayId) {
+    public FrameKey openView(ItemID target, Ref displayRef) {
+        logger.info("openView called: target={}, display={}", target.displayAtWidth(12),
+                displayRef != null ? displayRef.encodeText() : "none");
+
         // Check if a view already exists for this target
         ViewHandle existing = findView(target);
-        if (existing != null) return existing.frameKey();
+        if (existing != null) {
+            logger.info("View already exists for {} → {}", target.displayAtWidth(12), existing.frameKey());
+            return existing.frameKey();
+        }
 
         // Unique view ID — allows multiple views of the same item
         String viewId = java.util.UUID.randomUUID().toString().substring(0, 8);
@@ -533,16 +570,17 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         List<Binding> bindings = new java.util.ArrayList<>();
         bindings.add(Binding.ref(ThematicRole.Theme.IID, target));
-        if (displayId != null) {
-            bindings.add(Binding.ref(ThematicRole.Location.IID, displayId));
+        if (displayRef != null) {
+            bindings.add(Binding.ref(ThematicRole.Location.IID, displayRef));
         }
         FrameBody body = new FrameBody(ViewVocabulary.ItemView.IID, bindings);
 
-        dev.everydaythings.graph.frame.Frame frame =
-                new dev.everydaythings.graph.frame.Frame(key, ViewVocabulary.ItemView.IID, body, null, false);
+        Frame frame = new Frame(key, ViewVocabulary.ItemView.IID, body, null, false);
         frames().add(frame);
         frame.setInstance(ViewConfig.defaults());
 
+        logger.info("Created ITEM_VIEW frame {} for target {} (display: {})",
+                key, target.displayAtWidth(12), displayRef != null ? displayRef.encodeText() : "none");
         return key;
     }
 
@@ -562,7 +600,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * <p>Subclasses (GraphicalSession) override to return the display
      * of the currently focused window. Returns null if unknown.
      */
-    public ItemID focusedDisplay() {
+    public Ref focusedDisplay() {
         return null;
     }
 
@@ -600,13 +638,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @return a ViewHandle if found, null otherwise
      */
     public ViewHandle findView(ItemID target) {
-        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+        for (Frame frame : frames()) {
             if (ViewVocabulary.ItemView.IID.equals(frame.type()) && frame.body() != null) {
                 ItemID themeId = frame.body().homeId();
                 if (target.equals(themeId)) {
                     ViewConfig config = frame.instance() instanceof ViewConfig vc
                             ? vc : ViewConfig.defaults();
-                    ItemID display = frame.body().bindingId(ThematicRole.Location.IID);
+                    Ref display = frame.body().bindingRef(ThematicRole.Location.IID);
                     return new ViewHandle(frame.frameKey(), target, display, config);
                 }
             }
@@ -621,13 +659,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     public List<ViewHandle> openViews() {
         List<ViewHandle> views = new java.util.ArrayList<>();
-        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+        for (Frame frame : frames()) {
             if (ViewVocabulary.ItemView.IID.equals(frame.type()) && frame.body() != null) {
                 ItemID themeId = frame.body().homeId();
                 if (themeId != null) {
                     ViewConfig config = frame.instance() instanceof ViewConfig vc
                             ? vc : ViewConfig.defaults();
-                    ItemID display = frame.body().bindingId(ThematicRole.Location.IID);
+                    Ref display = frame.body().bindingRef(ThematicRole.Location.IID);
                     views.add(new ViewHandle(frame.frameKey(), themeId, display, config));
                 }
             }
@@ -638,8 +676,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Resolve all open view targets to Items, for sibling disambiguation.
      */
-    private java.util.Collection<Item> openViewItems() {
-        List<Item> items = new java.util.ArrayList<>();
+    private Collection<Item> openViewItems() {
+        List<Item> items = new ArrayList<>();
         for (ViewHandle vh : openViews()) {
             resolveItem(vh.target()).ifPresent(items::add);
         }
@@ -653,7 +691,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @return the config, or null if not found
      */
     public ViewConfig viewConfig(FrameKey key) {
-        dev.everydaythings.graph.frame.Frame frame = frames().get(key);
+        Frame frame = frames().get(key);
         if (frame == null) return null;
         return frame.instance() instanceof ViewConfig vc ? vc : ViewConfig.defaults();
     }
@@ -692,7 +730,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         List<Binding> bindings = new java.util.ArrayList<>();
         bindings.add(Binding.literal(ThematicRole.Theme.IID,
-                dev.everydaythings.graph.item.Literal.ofText(config.displayId())));
+                Literal.ofText(config.displayId())));
         bindings.add(Binding.ref(ThematicRole.Location.IID, config.hostId()));
         FrameBody body = new FrameBody(ViewVocabulary.DisplayLayout.IID, bindings);
 
@@ -723,8 +761,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param hostId the host whose layouts to remove
      */
     public void clearDisplayLayouts(ItemID hostId) {
-        List<FrameKey> toRemove = new java.util.ArrayList<>();
-        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+        List<FrameKey> toRemove = new ArrayList<>();
+        for (Frame frame : frames()) {
             if (ViewVocabulary.DisplayLayout.IID.equals(frame.type())
                     && frame.instance() instanceof DisplayLayoutConfig dlc
                     && hostId.equals(dlc.hostId())) {
@@ -1085,7 +1123,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * (e.g., added components) that aren't yet persisted to the store.
      */
     /** Generate the current Node tree for rendering. */
-    public dev.everydaythings.graph.ui.scene.node.Node toNode() {
+    public Node toNode() {
         return itemView != null ? itemView.toNode() : null;
     }
 
@@ -1205,7 +1243,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 }
                 navigateInto(item);
             }
-            case Eval.EvalResult.Created(Item item, Sememe type) -> {
+            case Eval.EvalResult.Created(Item item, Item type) -> {
                 // Item was created — don't navigate the current view.
                 // Cache it and refresh the tree so it's visible.
                 librarian.put(item);

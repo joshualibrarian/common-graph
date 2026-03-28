@@ -11,7 +11,7 @@ import lombok.Getter;
  * <p>Stored as the live instance on a DISPLAY frame on a Host item.
  * Each connected monitor produces one DisplayConfig.
  *
- * @see dev.everydaythings.graph.language.ViewVocabulary.Display
+ * @see dev.everydaythings.graph.language.DeviceVocabulary.Display
  */
 @Getter
 @Builder

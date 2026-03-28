@@ -12,8 +12,9 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.language.ViewVocabulary;
+import dev.everydaythings.graph.language.DeviceVocabulary;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.library.ItemStore;
@@ -181,34 +182,46 @@ public class Host extends Signer {
     }
 
     // ==================================================================================
-    // DISPLAY MANAGEMENT
+    // DEVICE MANAGEMENT
     // ==================================================================================
 
-    private static final ItemID DISPLAY_SEMEME_ID = ItemID.fromString(ViewVocabulary.Display.KEY);
+    /**
+     * Projection of a DEVICE frame on this Host.
+     *
+     * @param frameKey   the device's FrameKey (DEVICE, type, deviceId)
+     * @param deviceType the device type qualifier (Display, Audio, etc.)
+     * @param deviceId   the string identifier for the device
+     * @param config     the device's configuration (e.g., DisplayConfig)
+     */
+    public record DeviceInfo(FrameKey frameKey, ItemID deviceType, String deviceId, Object config) {
+
+        /** Build a compound Ref targeting this device on the given host. */
+        public Ref refOn(ItemID hostIid) {
+            return Ref.of(hostIid, frameKey);
+        }
+    }
 
     /**
-     * Projection of a DISPLAY frame on this Host.
-     */
-    public record DisplayInfo(FrameKey frameKey, String displayId, DisplayConfig config) {}
-
-    /**
-     * Register a physical display on this host.
+     * Register a device on this host.
      *
-     * <p>Creates a DISPLAY frame with the given displayId as qualifier
-     * and stores the DisplayConfig as its live instance.
+     * <p>Creates a DEVICE frame with the device type as a qualifier and the
+     * deviceId as a literal qualifier. Stores the config as its live instance.
      *
-     * @param displayId unique identifier for the display (e.g., monitor name or index)
-     * @param config    the display's physical properties
-     * @return the FrameKey of the new DISPLAY frame
+     * <p>FrameKey structure: {@code (DEVICE, <deviceType>, <deviceId>)}
+     *
+     * @param deviceType the device type qualifier (e.g., DeviceVocabulary.Display.IID)
+     * @param deviceId   unique identifier for the device
+     * @param config     the device's configuration object
+     * @return the FrameKey of the new DEVICE frame
      */
-    public FrameKey registerDisplay(String displayId, DisplayConfig config) {
-        FrameKey key = FrameKey.of(DISPLAY_SEMEME_ID, displayId);
+    public FrameKey registerDevice(ItemID deviceType, String deviceId, Object config) {
+        FrameKey key = FrameKey.of(DeviceVocabulary.Device.IID, deviceType, deviceId);
 
-        // Remove existing frame for this display if present
+        // Remove existing frame for this device if present
         frames().removeByKey(key);
 
         dev.everydaythings.graph.frame.Frame frame =
-                new dev.everydaythings.graph.frame.Frame(key, DISPLAY_SEMEME_ID, null, null, false);
+                new dev.everydaythings.graph.frame.Frame(key, DeviceVocabulary.Device.IID, null, null, false);
         frames().add(frame);
         frame.setInstance(config);
 
@@ -216,33 +229,120 @@ public class Host extends Signer {
     }
 
     /**
-     * Get all DISPLAY frames on this host.
+     * Register a physical display on this host.
+     *
+     * @param displayId unique identifier for the display (e.g., "Built-in Retina Display-0")
+     * @param config    the display's physical properties
+     * @return the FrameKey of the new DEVICE frame
      */
-    public List<DisplayInfo> displays() {
-        List<DisplayInfo> result = new ArrayList<>();
+    public FrameKey registerDisplay(String displayId, DisplayConfig config) {
+        return registerDevice(DeviceVocabulary.Display.IID, displayId, config);
+    }
+
+    /**
+     * Disconnect a device — remove its frame from the endorsements table.
+     *
+     * <p>The frame body is preserved in the library for history. Re-registering
+     * the same device will re-endorse it with the same identity.
+     */
+    public void disconnectDevice(FrameKey key) {
+        frames().removeByKey(key);
+    }
+
+    /**
+     * Get all DEVICE frames on this host.
+     */
+    public List<DeviceInfo> devices() {
+        List<DeviceInfo> result = new ArrayList<>();
         for (dev.everydaythings.graph.frame.Frame frame : frames()) {
-            if (DISPLAY_SEMEME_ID.equals(frame.type()) && frame.instance() instanceof DisplayConfig dc) {
-                List<FrameKey.FrameToken> quals = frame.frameKey().qualifiers();
-                String qualifier = !quals.isEmpty() && quals.getFirst() instanceof FrameKey.Literal lit
-                        ? lit.value() : null;
-                result.add(new DisplayInfo(frame.frameKey(), qualifier, dc));
+            if (DeviceVocabulary.Device.IID.equals(frame.type())) {
+                extractDeviceInfo(frame, result);
             }
         }
         return result;
     }
 
     /**
-     * Remove all DISPLAY frames from this host.
+     * Get all DEVICE frames of a specific type on this host.
+     *
+     * @param deviceType the device type to filter by (e.g., DeviceVocabulary.Display.IID)
      */
-    public void clearDisplays() {
+    public List<DeviceInfo> devices(ItemID deviceType) {
+        List<DeviceInfo> result = new ArrayList<>();
+        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+            if (DeviceVocabulary.Device.IID.equals(frame.type())) {
+                List<FrameKey.FrameToken> quals = frame.frameKey().qualifiers();
+                if (!quals.isEmpty()
+                        && quals.getFirst() instanceof FrameKey.Sememe sem
+                        && deviceType.equals(sem.id())) {
+                    extractDeviceInfo(frame, result);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get all display devices on this host.
+     */
+    public List<DeviceInfo> displays() {
+        return devices(DeviceVocabulary.Display.IID);
+    }
+
+    /**
+     * Update the set of connected displays from OS enumeration.
+     *
+     * <p>Compares incoming display list against current DEVICE frames.
+     * New displays are registered. Missing displays are disconnected.
+     *
+     * @param updates the currently connected displays
+     */
+    public void updateDisplays(List<DisplayUpdate> updates) {
+        java.util.Set<String> currentIds = new java.util.HashSet<>();
+
+        for (DisplayUpdate update : updates) {
+            currentIds.add(update.displayId());
+            registerDisplay(update.displayId(), update.config());
+        }
+
+        // Disconnect displays that are no longer present
+        for (DeviceInfo existing : displays()) {
+            if (!currentIds.contains(existing.deviceId())) {
+                disconnectDevice(existing.frameKey());
+            }
+        }
+    }
+
+    /**
+     * Update payload for {@link #updateDisplays(List)}.
+     */
+    public record DisplayUpdate(String displayId, DisplayConfig config) {}
+
+    /**
+     * Remove all DEVICE frames from this host.
+     */
+    public void clearDevices() {
         List<FrameKey> toRemove = new ArrayList<>();
         for (dev.everydaythings.graph.frame.Frame frame : frames()) {
-            if (DISPLAY_SEMEME_ID.equals(frame.type())) {
+            if (DeviceVocabulary.Device.IID.equals(frame.type())) {
                 toRemove.add(frame.frameKey());
             }
         }
         for (FrameKey key : toRemove) {
             frames().removeByKey(key);
         }
+    }
+
+    private static void extractDeviceInfo(dev.everydaythings.graph.frame.Frame frame, List<DeviceInfo> result) {
+        List<FrameKey.FrameToken> quals = frame.frameKey().qualifiers();
+        ItemID deviceType = null;
+        String deviceId = null;
+        if (quals.size() >= 1 && quals.get(0) instanceof FrameKey.Sememe sem) {
+            deviceType = sem.id();
+        }
+        if (quals.size() >= 2 && quals.get(1) instanceof FrameKey.Literal lit) {
+            deviceId = lit.value();
+        }
+        result.add(new DeviceInfo(frame.frameKey(), deviceType, deviceId, frame.instance()));
     }
 }

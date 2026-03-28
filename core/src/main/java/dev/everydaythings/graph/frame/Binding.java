@@ -280,6 +280,13 @@ public final class Binding implements Canonical {
     }
 
     /**
+     * Create an identity binding with a compound reference (item + frame key path).
+     */
+    public static Binding ref(ItemID role, dev.everydaythings.graph.item.id.Ref target) {
+        return new Binding(role, BindingTarget.ref(target));
+    }
+
+    /**
      * Create an identity binding with a literal value.
      */
     public static Binding literal(ItemID role, BindingTarget target) {

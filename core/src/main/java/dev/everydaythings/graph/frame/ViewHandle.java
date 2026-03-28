@@ -2,24 +2,25 @@ package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.Ref;
 
 /**
  * Lightweight wrapper for an open ITEM_VIEW frame.
  *
  * <p>Bundles the frame key (address on the Session), the target item IID,
- * the display IID, and the current {@link ViewConfig}. This is a convenience
+ * the display reference, and the current {@link ViewConfig}. This is a convenience
  * projection — the canonical source of truth is the frame itself on the
  * Session's endorsements table.
  *
  * @param frameKey the ITEM_VIEW frame's key on the session
  * @param target   the IID of the viewed item
- * @param display  the IID of the display (null if unassigned)
+ * @param display  compound Ref to the display device on a host (null if unassigned)
  * @param config   the current view configuration
  */
 public record ViewHandle(
         FrameKey frameKey,
         ItemID target,
-        ItemID display,
+        Ref display,
         ViewConfig config
 ) {
     /**
@@ -39,7 +40,7 @@ public record ViewHandle(
     /**
      * Return a copy with an updated display.
      */
-    public ViewHandle withDisplay(ItemID display) {
+    public ViewHandle withDisplay(Ref display) {
         return new ViewHandle(frameKey, target, display, config);
     }
 }

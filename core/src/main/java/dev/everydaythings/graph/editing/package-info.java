@@ -15,6 +15,5 @@
  * numeric (editable text with type-aware parsing), nested Canonical (expandable sub-editor).
  * Collections are display-only (item count) pending list editing support.
  *
- * @see dev.everydaythings.graph.CanonicalSchema
  */
 package dev.everydaythings.graph.editing;

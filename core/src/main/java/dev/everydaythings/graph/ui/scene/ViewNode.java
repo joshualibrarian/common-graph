@@ -10,9 +10,7 @@ import java.util.List;
  * A compiled structural node — the serializable unit of a scene template tree.
  *
  * <p>ViewNodes are compiled from {@code @Scene} annotations by {@link SceneCompiler}
- * and can be serialized to CBOR for storage as
- * {@link dev.everydaythings.graph.frame.SurfaceTemplateComponent}
- * on type items.
+ * and can be serialized to CBOR for storage as CONFIG bindings on type items.
  *
  * <p>Uses MAP encoding so that only non-default fields are serialized, keeping
  * the CBOR compact for simple nodes (e.g., a text node only stores type + textContent).
