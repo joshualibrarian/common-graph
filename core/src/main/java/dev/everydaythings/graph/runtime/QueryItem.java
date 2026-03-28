@@ -81,6 +81,18 @@ public class QueryItem extends Item {
                                                  PartOfSpeech.Noun.KEY,
                                                  GrammaticalFeature.Lemma.KEY}))
         static final String word = "query";
+
+        // EXPECTS — declaration order is salience order for handle disambiguation.
+        // QUERY frame is most identifying (what was searched for).
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {Query.KEY}))
+        static final ItemID expectQuery = ItemID.fromString(Query.KEY);
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {Result.KEY}))
+        static final ItemID expectResult = ItemID.fromString(Result.KEY);
     }
 
     // ==================================================================================

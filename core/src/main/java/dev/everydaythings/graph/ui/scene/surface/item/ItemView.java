@@ -7,6 +7,7 @@ import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ViewHandle;
+import dev.everydaythings.graph.item.HandleResolver;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.TreeLink;
 import dev.everydaythings.graph.item.id.FrameKey;
@@ -20,7 +21,9 @@ import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
 import dev.everydaythings.graph.ui.scene.Scene;
+import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
+import dev.everydaythings.graph.ui.scene.node.Body;
 import dev.everydaythings.graph.ui.scene.node.Container;
 import dev.everydaythings.graph.ui.scene.node.Node;
 import dev.everydaythings.graph.ui.scene.node.Text;
@@ -28,133 +31,258 @@ import dev.everydaythings.graph.ui.scene.node.TreeNav;
 import dev.everydaythings.graph.ui.scene.node.TreeNodes;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The universal item chrome — header, tree, detail, prompt.
  *
- * <p>Declarative layout via {@code @Scene} annotations on methods.
- * Dynamic content provided by method return values. The scene compiler
- * calls each annotated method and wraps the result per its annotation.
+ * <p>Layout is declarative via static inner classes with {@code @Scene} annotations.
+ * The class hierarchy IS the layout. Dynamic content is exposed through view-model
+ * methods that binding expressions resolve against. Only genuinely dynamic content
+ * (tree building, input rendering) is procedural.
  *
- * <p>{@code @Scene.On} declares event bindings — F1 toggles help,
- * F2-F4 toggle tree views. The renderer dispatches these automatically.
+ * <p>This class is the reference pattern for building Common Graph UI surfaces.
+ * Structure in annotations. Style in rules. Logic in methods. Nothing hardcoded.
  */
 @Scene.Root
-@Scene.Container(direction = Scene.Direction.VERTICAL, id = "item-view", height = "100%")
+@Scene.Container(direction = Direction.VERTICAL, id = "item-view", height = "100%")
+@Scene.Rule(match = ".header", background = "#1E1E2E")
+@Scene.Rule(match = ".mode-btn", opacity = "dim")
+@Scene.Rule(match = ".mode-btn-active", background = "#3C3C4E", opacity = "bright")
+@Scene.Rule(match = ".muted", opacity = "dim")
+@Scene.Rule(match = ".bold", fontWeight = "bold")
+@Scene.Rule(match = ".mono", fontFamily = "monospace")
+@Scene.Rule(match = ".feedback-error", color = "#F38BA8")
+@Scene.On(event = "F1", action = "toggle:help")
+@Scene.On(event = "F2", action = "toggle:mounts")
+@Scene.On(event = "F3", action = "toggle:frames")
+@Scene.On(event = "F4", action = "toggle:versions")
 public class ItemView {
 
     // ==================================================================================
-    // Handle — compact identity (tree nodes, header bar, breadcrumbs)
+    // Declarative Layout — inner classes define the structure
     // ==================================================================================
 
+    // ── Handle (compact identity for accordion, breadcrumbs, tree nodes) ─────
+
     @Scene.Handle
-    @Scene.Container(direction = Scene.Direction.HORIZONTAL, gap = "0.5em")
-    public Node handle() {
+    @Scene.Container(direction = Direction.HORIZONTAL, gap = "0.5em", align = "center")
+    static class Handle {
+        @Scene.Image(bind = "value.itemEmoji", size = "1em")
+        static class Icon {}
+
+        @Scene.Text.Literal(bind = "value.typeName", style = {"bold"})
+        static class TypeName {}
+
+        @Scene.If("value.handleLabel")
+        @Scene.Container(direction = Direction.HORIZONTAL, gap = "0.25em")
+        static class Label {
+            @Scene.Text.Literal(content = "\u2014", style = {"muted"})
+            static class Dash {}
+
+            @Scene.Text.Literal(bind = "value.handleLabel")
+            static class LabelText {}
+        }
+    }
+
+    // ── Header (order=0) ────────────────────────────────────────────────────
+
+    @Scene.Container(order = 0, direction = Direction.HORIZONTAL, id = "header",
+            style = {"header"}, gap = "0.5em", padding = "0.3em")
+    static class Header {
+        @Scene.Container(direction = Direction.HORIZONTAL, gap = "0.5em", align = "center")
+        static class Identity {
+            @Scene.Image(bind = "value.itemEmoji", size = "1.2em")
+            static class Icon {}
+
+            @Scene.Text.Literal(bind = "value.typeName", style = {"bold"})
+            static class TypeName {}
+
+            @Scene.If("value.handleLabel")
+            @Scene.Container(direction = Direction.HORIZONTAL, gap = "0.25em")
+            static class Label {
+                @Scene.Text.Literal(content = "\u2014", style = {"muted"})
+                static class Dash {}
+
+                @Scene.Text.Literal(bind = "value.handleLabel")
+                static class LabelText {}
+            }
+        }
+
+        @Scene.Container(width = "1fr")
+        static class Spacer {}
+
+        @Scene.Container(direction = Direction.HORIZONTAL, gap = "0.2em")
+        static class ModeBar {
+            @Scene.On(event = "click", action = "toggle:help")
+            @Scene.State(style = {"mode-btn-active"}, when = "value.helpVisible")
+            @Scene.State(style = {"mode-btn"}, when = "!value.helpVisible")
+            @Scene.Text.Literal(content = "\uD83D\uDCD6")
+            static class HelpBtn {}
+
+            @Scene.On(event = "click", action = "toggle:mounts")
+            @Scene.State(style = {"mode-btn-active"}, when = "value.mountsActive")
+            @Scene.State(style = {"mode-btn"}, when = "!value.mountsActive")
+            @Scene.Text.Literal(content = "\uD83D\uDDC2")
+            static class MountsBtn {}
+
+            @Scene.On(event = "click", action = "toggle:frames")
+            @Scene.State(style = {"mode-btn-active"}, when = "value.framesActive")
+            @Scene.State(style = {"mode-btn"}, when = "!value.framesActive")
+            @Scene.Text.Literal(content = "\uD83D\uDCCB")
+            static class FramesBtn {}
+
+            @Scene.On(event = "click", action = "toggle:versions")
+            @Scene.State(style = {"mode-btn-active"}, when = "value.versionsActive")
+            @Scene.State(style = {"mode-btn"}, when = "!value.versionsActive")
+            @Scene.Text.Literal(content = "\uD83D\uDCDC")
+            static class VersionsBtn {}
+        }
+    }
+
+    // ── Body (order=1) ──────────────────────────────────────────────────────
+
+    @Scene.Container(order = 1, direction = Direction.HORIZONTAL, id = "body", height = "1fr")
+    static class BodyArea {
+        @Scene.If("value.treeVisible")
+        @Scene.Container(direction = Direction.VERTICAL, id = "tree", style = {"tree-panel"},
+                gap = "0.25em", overflow = "auto")
+        static class TreePanel {
+            @Scene.Embed(bind = "value.treeContent")
+            static class Tree {}
+        }
+
+        @Scene.Container(direction = Direction.VERTICAL, id = "detail",
+                width = "1fr", overflow = "auto")
+        static class DetailPanel {
+            @Scene.Embed(bind = "value.detailContent")
+            static class Detail {}
+        }
+    }
+
+    // ── Prompt (order=2) ────────────────────────────────────────────────────
+
+    @Scene.Container(order = 2, direction = Direction.VERTICAL, id = "prompt")
+    static class PromptArea {
+        @Scene.If("value.hasFeedback")
+        @Scene.State(style = {"feedback-error"}, when = "value.feedbackIsError")
+        @Scene.Text.Literal(bind = "value.feedbackDisplay")
+        static class Feedback {}
+
+        @Scene.Embed(bind = "value.inputNode")
+        static class Input {}
+    }
+
+    // Key events are declared on the root class via @Scene.On above.
+
+    // ==================================================================================
+    // View-Model — methods that binding expressions resolve against
+    // ==================================================================================
+
+    /** Item emoji for icon display. */
+    public String itemEmoji() {
         Item ctx = item();
-        if (ctx == null) return Text.of("");
-        Container h = Container.horizontal().gap("0.5em");
-        h.add(glyph(ctx.emoji() != null ? ctx.emoji() : ""));
-        h.add(Text.ofSememe(typeIdOf(ctx)));
-        return h;
+        return ctx != null && ctx.emoji() != null ? ctx.emoji() : "";
+    }
+
+    /** Type display name (resolved from @Implements key). */
+    public String typeName() {
+        Item ctx = item();
+        if (ctx == null) return "";
+        ItemID typeId = typeIdOf(ctx);
+        if (typeId == null) return ctx.displayToken();
+        String resolved = ctx.resolveDisplayToken(typeId);
+        return resolved != null ? resolved : ctx.displayToken();
+    }
+
+    /** Distinguishing label from HandleResolver (null if none). */
+    public String handleLabel() {
+        Item ctx = item();
+        if (ctx == null) return null;
+        Collection<Item> siblings = siblingsProvider != null
+                ? siblingsProvider.get() : List.of();
+        return HandleResolver.resolve(ctx, siblings);
+    }
+
+    /** Whether the help panel (F1) is visible. */
+    public boolean helpVisible() { return helpVisible; }
+
+    /** Whether any tree panel is visible. */
+    public boolean treeVisible() { return activeTreeView != null; }
+
+    /** Whether the mounts tree (F2) is active. */
+    public boolean mountsActive() { return activeTreeView == TreeView.MOUNTS; }
+
+    /** Whether the frames tree (F3) is active. */
+    public boolean framesActive() { return activeTreeView == TreeView.FRAMES; }
+
+    /** Whether the versions tree (F4) is active. */
+    public boolean versionsActive() { return activeTreeView == TreeView.VERSIONS; }
+
+    /** Whether there is feedback text to display. */
+    public boolean hasFeedback() { return feedbackText != null && !feedbackText.isBlank(); }
+
+    /** Formatted feedback text with prefix. */
+    public String feedbackDisplay() {
+        if (feedbackText == null) return "";
+        return (feedbackIsError ? "! " : "  \u2192 ") + feedbackText;
+    }
+
+    /** Whether the feedback is an error (for styling). */
+    public boolean feedbackIsError() { return feedbackIsError; }
+
+    // ==================================================================================
+    // Dynamic Content — procedural node building for @Scene.Embed
+    // ==================================================================================
+
+    /**
+     * Tree content node — built from the active tree view (mounts/frames/versions).
+     *
+     * <p>Tree building is complex data transformation. The tree structure is built
+     * procedurally via TreeNodes, then returned as a pre-built Node for embedding.
+     */
+    public Node treeContent() { return treeContentNode; }
+
+    /**
+     * Detail panel content — routes to help, frame detail, or item scene.
+     *
+     * <p>The routing logic is inherently conditional (which mode are we in?
+     * what's selected in the tree?). Each branch produces a Node.
+     */
+    public Node detailContent() {
+        if (helpVisible) return helpContent();
+        if (selectedTreeNodeId != null && activeTreeView != null) return selectedNodeContent();
+        return itemContent();
     }
 
     /**
-     * Get the type's sememe IID for an item — the IID that has lexemes registered.
+     * Input node — the prompt/input area built from InputSnapshot.
      *
-     * <p>For seed items (sememes, types), returns the item's own IID.
-     * For instances, returns the type's IID via {@code @Implements}.
+     * <p>Token chips, cursor positioning, and completion lists are genuinely
+     * dynamic and require procedural construction.
      */
-    static ItemID typeIdOf(Item item) {
-        try {
-            return Item.idOf(item.getClass());
-        } catch (IllegalArgumentException e) {
-            return item.iid();
-        }
-    }
-
-    // ==================================================================================
-    // Layout — annotated methods, compiled by SceneCompiler
-    // ==================================================================================
-
-    @Scene.Container(order = 0, direction = Scene.Direction.HORIZONTAL, id = "header",
-            gap = "0.5em", background = "#1E1E2E", padding = "0.3em")
-    public Node header() {
-        Item ctx = item();
-        Container h = Container.horizontal().gap("0.5em");
-
-        // Icon + name + type
-        Container identity = Container.horizontal().gap("0.5em");
-        if (ctx != null) {
-            Node icon = glyph(ctx.emoji() != null ? ctx.emoji() : "");
-            icon.background("#3C3C4E");
-            icon.corner("50%");
-            identity.add(icon);
-            identity.add(Text.ofSememe(typeIdOf(ctx)).fontWeight("bold"));
-        }
-        h.add(identity);
-        h.add(Text.of("").classes("spacer"));
-        h.add(modeBar());
-        return h;
-    }
-
-    @Scene.Container(order = 1, direction = Scene.Direction.HORIZONTAL, id = "body", height = "1fr")
-    public Node body() {
-        Container b = Container.horizontal().height("1fr");
-        if (treeVisible()) b.add(treePanel());
-        b.add(detailPanel());
-        return b;
-    }
-
-    @Scene.Container(order = 2, direction = Scene.Direction.VERTICAL, id = "prompt")
-    public Node prompt() {
-        Node input;
+    public Node inputNode() {
         if (inputSnapshot != null && renderInputInSurface) {
-            input = inputFromSnapshot(inputSnapshot);
-        } else if (inputSnapshot != null) {
-            input = null;
-        } else {
-            Item ctx = item();
-            String p = ctx != null
-                    ? (ctx.emoji() != null ? ctx.emoji() + " " : "") + ctx.displayToken() + "> "
-                    : "> ";
-            Container empty = Container.vertical().classes("input-surface");
-            Container row = Container.horizontal().gap("0.25em");
-            row.classes("input-row");
-            row.add(Text.of(p).classes("prompt"));
-            empty.add(row);
-            input = empty;
+            return inputFromSnapshot(inputSnapshot);
         }
-        if (feedbackText != null && !feedbackText.isBlank()) {
-            Container pr = Container.vertical();
-            pr.add(Text.of((feedbackIsError ? "! " : "  \u2192 ") + feedbackText)
-                    .classes(feedbackIsError ? "feedback-error" : "feedback"));
-            if (input != null) pr.add(input);
-            return pr;
-        }
-        return input;
+        if (inputSnapshot != null) return null;
+
+        // Empty prompt placeholder
+        Item ctx = item();
+        String p = ctx != null
+                ? (ctx.emoji() != null ? ctx.emoji() + " " : "") + ctx.displayToken() + "> "
+                : "> ";
+        Container empty = Container.vertical().classes("input-surface");
+        Container row = Container.horizontal().gap("0.25em").classes("input-row");
+        row.add(Text.of(p).classes("prompt"));
+        empty.add(row);
+        return empty;
     }
-
-    // ==================================================================================
-    // Events — @Scene.On declarations (renderer dispatches automatically)
-    // ==================================================================================
-
-    @Scene.On(event = "F1", action = "toggle:help")
-    @Scene.On(event = "F2", action = "toggle:mounts")
-    @Scene.On(event = "F3", action = "toggle:frames")
-    @Scene.On(event = "F4", action = "toggle:versions")
-    private void keyBindings() {} // marker method for key declarations
-
-    // ==================================================================================
-    // Change Notification
-    // ==================================================================================
-
-    private Runnable onChanged;
-    public void onChange(Runnable listener) { this.onChanged = listener; }
-    protected void changed() { if (onChanged != null) onChanged.run(); }
 
     // ==================================================================================
     // State
@@ -164,11 +292,12 @@ public class ItemView {
     private Ref context;
     private final List<Ref> history = new ArrayList<>();
     private final Function<ItemID, Optional<Item>> resolver;
+    private Supplier<Collection<Item>> siblingsProvider;
 
     private TreeView activeTreeView = null;
     private boolean helpVisible = false;
     private TreeNav<?> treeNav;
-    private Node treeContent;
+    private Node treeContentNode;
 
     private Map<String, Map<String, Object>> stateStore;
     private String selectedTreeNodeId;
@@ -179,6 +308,14 @@ public class ItemView {
     private boolean feedbackIsError;
 
     public enum TreeView { MOUNTS, FRAMES, VERSIONS }
+
+    // ==================================================================================
+    // Change Notification
+    // ==================================================================================
+
+    private Runnable onChanged;
+    public void onChange(Runnable listener) { this.onChanged = listener; }
+    protected void changed() { if (onChanged != null) onChanged.run(); }
 
     // ==================================================================================
     // Constructor
@@ -255,6 +392,9 @@ public class ItemView {
     }
     public void clearFeedback() { this.feedbackText = null; this.feedbackIsError = false; }
     public void setRenderInputInSurface(boolean render) { this.renderInputInSurface = render; }
+    public void setSiblingsProvider(Supplier<Collection<Item>> provider) {
+        this.siblingsProvider = provider;
+    }
     public void setStateStore(Map<String, Map<String, Object>> store) { this.stateStore = store; }
     public InputSnapshot inputSnapshot() { return inputSnapshot; }
     public void setActiveView(ViewHandle view) { this.activeView = view; changed(); }
@@ -271,28 +411,12 @@ public class ItemView {
         activeTreeView = (activeTreeView == view) ? null : view;
         rebuildTree(); changed();
     }
-    public boolean helpVisible() { return helpVisible; }
-    public boolean treeVisible() { return activeTreeView != null; }
     public TreeView activeTreeView() { return activeTreeView; }
 
     // ==================================================================================
-    // Detail Panel
+    // Detail Content (procedural — routing logic)
     // ==================================================================================
 
-    private Node detailPanel() {
-        Container detail = Container.vertical().width("1fr").overflow("auto").padding("0.5em");
-        detail.id("detail");
-        if (helpVisible) {
-            detail.add(helpContent());
-        } else if (selectedTreeNodeId != null && activeTreeView != null) {
-            detail.add(selectedNodeContent());
-        } else {
-            detail.add(itemContent());
-        }
-        return detail;
-    }
-
-    /** Content for the selected tree node — works for any tree type. */
     private Node selectedNodeContent() {
         Item resolved = item();
         if (resolved == null) return Text.of("");
@@ -315,36 +439,32 @@ public class ItemView {
             }
         }
 
-        // Fallback — show root item
         return itemContent();
     }
 
-    /** Build a detail view for a single frame. */
     private Node buildFrameDetail(Frame frame, Item resolved) {
         Container detail = Container.vertical().gap("0.5em");
 
-        // Predicate
         FrameBody body = frame.body();
-        if (body != null && body.predicate() != null) {
-            String pred = resolved.resolveDisplayToken(body.predicate());
-            if (pred == null) pred = body.predicate().displayAtWidth(20);
+        if (body != null) {
+            String pred = FrameNode.resolvePredicate(frame, resolved);
             detail.add(Text.of(pred).fontWeight("bold").classes("heading"));
         }
 
-        // Bindings
         if (body != null) {
             for (Binding b : body.frameBindings()) {
-                Container row = Container.horizontal().gap("0.5em");
                 String role = resolved.resolveDisplayToken(b.role());
                 if (role == null) role = b.role().displayAtWidth(12);
+                String target = FrameNode.fmtTarget(b, resolved);
+                if (target == null || target.isBlank()) continue;
+                Container row = Container.horizontal().gap("0.5em");
                 row.add(Text.of(role).fontWeight("bold"));
                 row.add(Text.of("\u2192").classes("muted"));
-                row.add(Text.of(FrameNode.fmtTarget(b, resolved)).classes("muted"));
+                row.add(Text.of(target).classes("muted"));
                 detail.add(row);
             }
         }
 
-        // Body hash
         if (frame.bodyHash() != null) {
             detail.add(Text.of("Hash: " + frame.bodyHash().displayAtWidth(20)).classes("mono", "muted"));
         }
@@ -352,7 +472,6 @@ public class ItemView {
         return detail;
     }
 
-    /** Item content for a specific item (overload). */
     private Node itemContent(Item resolved) {
         Class<?> clazz = resolved.getClass();
         if (clazz != Item.class && SceneCompiler.has2DAnnotation(clazz)) {
@@ -383,7 +502,7 @@ public class ItemView {
     }
 
     // ==================================================================================
-    // Help Content
+    // Help Content (procedural — vocabulary iteration)
     // ==================================================================================
 
     private Node helpContent() {
@@ -398,19 +517,16 @@ public class ItemView {
     private Node scopeSection(ItemID nameId, Vocabulary vocab) {
         Container s = Container.vertical().gap("0.25em");
         s.add(Text.ofSememe(nameId).fontWeight("bold"));
-        boolean hasContent = false;
         if (vocab != null) {
             List<VerbEntry> verbs = new ArrayList<>();
             for (VerbEntry v : vocab) verbs.add(v);
             if (!verbs.isEmpty()) {
-                hasContent = true;
                 Container vl = Container.vertical().gap("0.125em");
                 for (VerbEntry v : verbs) vl.add(verbRow(v));
                 s.add(vl);
             }
             List<Posting> tokens = vocab.prefixMatch("");
             if (!tokens.isEmpty()) {
-                hasContent = true;
                 Container tl = Container.vertical().gap("0.0625em");
                 for (Posting p : tokens) {
                     Container row = Container.horizontal().gap("0.5em");
@@ -447,42 +563,7 @@ public class ItemView {
     }
 
     // ==================================================================================
-    // Tree Panel
-    // ==================================================================================
-
-    private Node treePanel() {
-        Container panel = Container.vertical().gap("0.25em");
-        panel.id("tree");
-        panel.border("0.1ln solid #313244");
-        panel.padding("0.25em");
-        panel.overflow("auto");
-        if (treeContent != null) panel.add(treeContent);
-        return panel;
-    }
-
-    // ==================================================================================
-    // Mode Bar
-    // ==================================================================================
-
-    private Node modeBar() {
-        Container bar = Container.horizontal().gap("0.2em");
-        bar.add(modeBtn("\uD83D\uDCD6", "toggle:help", helpVisible));
-        bar.add(modeBtn("\uD83D\uDDC2", "toggle:mounts", activeTreeView == TreeView.MOUNTS));
-        bar.add(modeBtn("\uD83D\uDCCB", "toggle:frames", activeTreeView == TreeView.FRAMES));
-        bar.add(modeBtn("\uD83D\uDCDC", "toggle:versions", activeTreeView == TreeView.VERSIONS));
-        return bar;
-    }
-
-    private Node modeBtn(String g, String action, boolean active) {
-        Container btn = Container.horizontal();
-        btn.classes(active ? "mode-button-active" : "mode-button");
-        btn.on("click", action);
-        btn.add(glyph(g));
-        return btn;
-    }
-
-    // ==================================================================================
-    // Input
+    // Input Rendering (procedural — tokens, cursor, completions)
     // ==================================================================================
 
     private Node inputFromSnapshot(InputSnapshot snap) {
@@ -504,7 +585,7 @@ public class ItemView {
         if (snap.error() != null && !snap.error().isEmpty())
             outer.add(Text.of(snap.error()).classes("error"));
         if (snap.showCompletions() && snap.completionEntries() != null && !snap.completionEntries().isEmpty())
-            outer.add(completions(snap.completionEntries(), snap.selectedCompletion()));
+            outer.add(completionsList(snap.completionEntries(), snap.selectedCompletion()));
         return outer;
     }
 
@@ -512,13 +593,14 @@ public class ItemView {
         boolean resolved = token instanceof ExpressionToken.RefToken;
         String emoji = null;
         if (token instanceof ExpressionToken.RefToken ref && resolver != null) {
-            try { Optional<Item> it = resolver.apply(ref.target()); if (it.isPresent()) emoji = it.get().emoji(); }
-            catch (Exception ignored) {}
+            try {
+                Optional<Item> it = resolver.apply(ref.target());
+                if (it.isPresent()) emoji = it.get().emoji();
+            } catch (Exception ignored) {}
         }
         if (resolved) {
-            Container c = Container.horizontal().classes("token-chip", "resolved")
-                    .border("0.1em solid #4A5568").corner("0.6em")
-                    .background("#2D3748").padding("0.1em 0.4em");
+            Container c = Container.horizontal().classes("token-chip", "token-chip-resolved")
+                    .padding("0.1em 0.4em");
             if (emoji != null && !emoji.isEmpty()) c.add(Text.of(emoji));
             c.add(Text.of(token.displayText()));
             return c;
@@ -528,7 +610,7 @@ public class ItemView {
         return c;
     }
 
-    private Node completions(List<CompletionEntry> entries, int selected) {
+    private Node completionsList(List<CompletionEntry> entries, int selected) {
         Container list = Container.vertical().gap("0.125em").classes("completions");
         for (int i = 0; i < entries.size(); i++) {
             CompletionEntry e = entries.get(i);
@@ -549,7 +631,7 @@ public class ItemView {
     // ==================================================================================
 
     private void rebuildTree() {
-        if (activeTreeView == null) { treeNav = null; treeContent = null; return; }
+        if (activeTreeView == null) { treeNav = null; treeContentNode = null; return; }
         switch (activeTreeView) {
             case MOUNTS -> buildMountsTree();
             case FRAMES -> buildFramesTree();
@@ -559,7 +641,7 @@ public class ItemView {
 
     private void buildMountsTree() {
         TreeLink tl = TreeLink.of(root, TreeLink.ChildMode.PRESENTATION, resolver);
-        treeContent = TreeNodes.from(tl).children(TreeLink::children).label(TreeLink::displayToken)
+        treeContentNode = TreeNodes.from(tl).children(TreeLink::children).label(TreeLink::displayToken)
                 .icon(TreeLink::emoji).expandable(TreeLink::isExpandable).id(TreeLink::treeId)
                 .showRoot(false).build();
         treeNav = TreeNav.from(tl, TreeLink::children, TreeLink::treeId, TreeLink::isExpandable, false);
@@ -567,15 +649,14 @@ public class ItemView {
 
     private void buildFramesTree() {
         Item resolved = item();
-        if (resolved == null) { treeNav = null; treeContent = null; return; }
+        if (resolved == null) { treeNav = null; treeContentNode = null; return; }
         List<FrameNode> frameNodes = new ArrayList<>();
         if (resolved.frames() != null) {
             for (Frame f : resolved.frames()) frameNodes.add(new FrameNode(f, resolved));
         }
-        // Root group node — children are the flat frame nodes
         FrameNode root = new FrameNode("Frames (" + frameNodes.size() + ")",
                 "\uD83D\uDCC2", "group:frames", frameNodes);
-        treeContent = TreeNodes.from(root).children(FrameNode::children).label(FrameNode::label)
+        treeContentNode = TreeNodes.from(root).children(FrameNode::children).label(FrameNode::label)
                 .icon(FrameNode::emoji).expandable(n -> !n.children().isEmpty()).id(FrameNode::id)
                 .showRoot(false).build();
         treeNav = TreeNav.from(root, FrameNode::children, FrameNode::id, n -> !n.children().isEmpty(), false);
@@ -587,7 +668,7 @@ public class ItemView {
                 ? resolved.base().displayAtWidth(16) : "?";
         FrameNode r = new FrameNode("Versions", "\uD83D\uDCC2", "group:versions",
                 List.of(new FrameNode(vid, "\uD83D\uDCCB", "version:" + vid, List.of())));
-        treeContent = TreeNodes.from(r).children(FrameNode::children).label(FrameNode::label)
+        treeContentNode = TreeNodes.from(r).children(FrameNode::children).label(FrameNode::label)
                 .icon(FrameNode::emoji).expandable(n -> !n.children().isEmpty()).id(FrameNode::id)
                 .showRoot(false).build();
         treeNav = TreeNav.from(r, FrameNode::children, FrameNode::id, n -> !n.children().isEmpty(), false);
@@ -597,8 +678,12 @@ public class ItemView {
     // Helpers
     // ==================================================================================
 
-    private static Node glyph(String g) {
-        return dev.everydaythings.graph.ui.scene.node.Body.ofGlyph(g != null ? g : "");
+    static ItemID typeIdOf(Item item) {
+        try {
+            return Item.idOf(item.getClass());
+        } catch (IllegalArgumentException e) {
+            return item.iid();
+        }
     }
 
     private static String insertCursor(String text, int pos) {
@@ -608,7 +693,7 @@ public class ItemView {
     }
 
     // ==================================================================================
-    // Key / Event Handling (legacy — being replaced by @Scene.On)
+    // Key / Event Handling
     // ==================================================================================
 
     public boolean handleKey(KeyChord chord) {
@@ -645,18 +730,15 @@ public class ItemView {
             };
         }
         if ("select".equals(action) && target != null && !target.isEmpty()) {
-            // Unhighlight previous selection in state store
             if (stateStore != null && selectedTreeNodeId != null) {
                 var prev = stateStore.get(selectedTreeNodeId);
                 if (prev != null) prev.put("selected", false);
             }
-            // Highlight new selection
             selectedTreeNodeId = target;
             if (stateStore != null) {
                 stateStore.computeIfAbsent(target, k -> new java.util.HashMap<>())
                         .put("selected", true);
             }
-            // Try to resolve as an ItemID and update context
             try {
                 ItemID iid = ItemID.fromString(target);
                 Optional<Item> item = resolver.apply(iid);
@@ -680,18 +762,16 @@ public class ItemView {
     // FrameNode (data record for frame tree)
     // ==================================================================================
 
-    private static class FrameNode {
+    static class FrameNode {
         private final String label, emoji, id;
         private final Frame frame;
         private final List<FrameNode> children;
 
-        /** Group node with children. */
         FrameNode(String label, String emoji, String id, List<FrameNode> children) {
             this.label = label; this.emoji = emoji; this.id = id;
             this.frame = null; this.children = children;
         }
 
-        /** Flat frame node — no children. */
         FrameNode(Frame frame, Item item) {
             this.frame = frame;
             this.emoji = "\uD83D\uDCCB";
@@ -708,32 +788,22 @@ public class ItemView {
         List<FrameNode> children() { return children; }
         Frame frame() { return frame; }
 
-        /**
-         * Build a one-line summary: predicate + meaningful binding values.
-         *
-         * <p>Skips the home/THEME binding (always the owning item) and shows
-         * the remaining bindings inline: "query-result → chess"
-         */
         private static final int MAX_LABEL_LENGTH = 50;
 
         private static String buildSummaryLabel(Frame frame, Item item) {
             FrameBody body = frame.body();
             if (body == null) return truncate(frame.frameKey().toString());
 
-            // Predicate name
-            String pred = resolveId(body.predicate(), item);
+            String pred = resolvePredicate(frame, item);
 
-            // Collect non-home binding summaries (max 2 to keep it concise)
             ItemID homeId = body.homeId();
             List<String> parts = new ArrayList<>();
             for (Binding b : body.frameBindings()) {
                 if (parts.size() >= 2) break;
-                // Skip the home binding — it's always this item
                 ItemID tid = b.targetId();
                 if (tid != null && tid.equals(homeId)) continue;
-
                 String value = fmtTarget(b, item);
-                parts.add(value);
+                if (value != null && !value.isBlank()) parts.add(value);
             }
 
             if (parts.isEmpty()) return truncate(pred);
@@ -743,21 +813,36 @@ public class ItemView {
         private static String truncate(String s) {
             if (s == null) return "?";
             return s.length() > MAX_LABEL_LENGTH
-                    ? s.substring(0, MAX_LABEL_LENGTH - 1) + "\u2026"
-                    : s;
+                    ? s.substring(0, MAX_LABEL_LENGTH - 1) + "\u2026" : s;
         }
 
-        private static String resolveId(ItemID iid, Item item) {
-            if (iid == null) return "?";
-            String r = item.resolveDisplayToken(iid);
-            return r != null ? r : iid.displayAtWidth(12);
+        static String resolvePredicate(Frame frame, Item item) {
+            if (frame.body() != null && frame.body().predicate() != null) {
+                String r = item.resolveDisplayToken(frame.body().predicate());
+                if (r != null) return r;
+            }
+            FrameKey key = frame.frameKey();
+            if (key != null && !key.tokens().isEmpty()) {
+                FrameKey.FrameToken head = key.tokens().get(0);
+                if (head instanceof FrameKey.Sememe s) {
+                    String r = item.resolveDisplayToken(s.id());
+                    if (r != null) return r;
+                } else if (head instanceof FrameKey.Literal l) {
+                    return l.value();
+                }
+            }
+            if (frame.body() != null && frame.body().predicate() != null) {
+                return frame.body().predicate().displayAtWidth(12);
+            }
+            return "?";
         }
 
         static String fmtTarget(Binding b, Item item) {
             ItemID tid = b.targetId();
             if (tid != null) {
                 String r = item.resolveDisplayToken(tid);
-                return r != null ? r : tid.displayAtWidth(12);
+                if (r != null) return r;
+                return null;
             }
             if (b.target() instanceof dev.everydaythings.graph.item.Literal lit) {
                 if (dev.everydaythings.graph.item.Literal.TYPE_TEXT.equals(lit.valueType())) {

@@ -7,30 +7,39 @@ import dev.everydaythings.graph.item.id.ItemID;
  * Lightweight wrapper for an open ITEM_VIEW frame.
  *
  * <p>Bundles the frame key (address on the Session), the target item IID,
- * and the current {@link ViewConfig}. This is a convenience projection —
- * the canonical source of truth is the frame itself on the Session's
- * endorsements table.
+ * the display IID, and the current {@link ViewConfig}. This is a convenience
+ * projection — the canonical source of truth is the frame itself on the
+ * Session's endorsements table.
  *
  * @param frameKey the ITEM_VIEW frame's key on the session
  * @param target   the IID of the viewed item
+ * @param display  the IID of the display (null if unassigned)
  * @param config   the current view configuration
  */
 public record ViewHandle(
         FrameKey frameKey,
         ItemID target,
+        ItemID display,
         ViewConfig config
 ) {
     /**
-     * Create a ViewHandle with default config.
+     * Create a ViewHandle with default config and no display.
      */
     public static ViewHandle of(FrameKey frameKey, ItemID target) {
-        return new ViewHandle(frameKey, target, ViewConfig.defaults());
+        return new ViewHandle(frameKey, target, null, ViewConfig.defaults());
     }
 
     /**
      * Return a copy with an updated config.
      */
     public ViewHandle withConfig(ViewConfig config) {
-        return new ViewHandle(frameKey, target, config);
+        return new ViewHandle(frameKey, target, display, config);
+    }
+
+    /**
+     * Return a copy with an updated display.
+     */
+    public ViewHandle withDisplay(ItemID display) {
+        return new ViewHandle(frameKey, target, display, config);
     }
 }

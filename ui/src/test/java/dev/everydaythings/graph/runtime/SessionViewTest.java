@@ -89,7 +89,7 @@ class SessionViewTest {
             session.openView(item.iid());
             assertThat(session.openViews()).hasSize(1);
 
-            session.closeView(item.iid());
+            session.closeViewOf(item.iid());
             assertThat(session.openViews()).isEmpty();
         }
 
@@ -97,7 +97,7 @@ class SessionViewTest {
         @DisplayName("no-op for non-existent view")
         void noOpForNonExistent() {
             Item item = Item.create(librarian);
-            session.closeView(item.iid());
+            session.closeViewOf(item.iid());
             assertThat(session.openViews()).isEmpty();
         }
     }

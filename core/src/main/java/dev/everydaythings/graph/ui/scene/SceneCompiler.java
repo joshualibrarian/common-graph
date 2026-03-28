@@ -345,6 +345,7 @@ public final class SceneCompiler {
         if (!ann.padding().isEmpty()) c.padding(ann.padding());
         if (!ann.width().isEmpty()) c.width(ann.width());
         if (!ann.height().isEmpty()) c.height(ann.height());
+        if (!ann.align().isEmpty()) c.align(ann.align());
         if (!"visible".equals(ann.overflow())) c.overflow(ann.overflow());
         if (ann.style().length > 0) c.classes(ann.style());
         if (!ann.fontSize().isEmpty()) c.fontSize(ann.fontSize());

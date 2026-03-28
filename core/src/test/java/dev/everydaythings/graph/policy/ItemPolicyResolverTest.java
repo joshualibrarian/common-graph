@@ -448,7 +448,12 @@ class ItemPolicyResolverTest {
     private void addRosterWithMember(ItemID member) {
         Roster roster = new Roster();
         roster.add(member);
-        item.endorse(dev.everydaythings.graph.item.id.ItemID.fromString(Roster.KEY), roster);
+        dev.everydaythings.graph.item.id.ItemID rosterPred = dev.everydaythings.graph.item.id.ItemID.fromString(Roster.KEY);
+        dev.everydaythings.graph.item.id.FrameKey key = dev.everydaythings.graph.item.id.FrameKey.of(rosterPred);
+        dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(
+                key, rosterPred, null, true);
+        item.frames().add(frame);
+        item.frames().setLive(key, roster);
     }
 
     private Roster findRoster() {

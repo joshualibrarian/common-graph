@@ -240,7 +240,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      *
      * <p>Must be called after construction to enable user authentication.
      * Auto-authenticates the librarian's principal if the vault is accessible.
-     * Adds the activity log component to the component tree.
      */
     public void bind(LibrarianHandle handle) {
         this.handle = handle;
@@ -249,9 +248,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (handle instanceof LocalLibrarian local) {
             setLibrarian(local.librarian());
         }
-
-        // Add activity log with semantic key
-        endorse(ItemID.fromString(ActivityLog.KEY), activityLog);
 
         autoAuthenticate();
     }
@@ -494,7 +490,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (actualTarget != null) {
             // Find the frame key before closing so we can notify
             ViewHandle vh = findView(actualTarget);
-            closeView(actualTarget);
+            closeViewOf(actualTarget);
             if (vh != null) {
                 onViewClosed(vh.frameKey());
             }
@@ -521,38 +517,78 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     protected void onViewClosed(FrameKey key) {}
 
     /**
-     * Open a view of an item — creates an ITEM_VIEW frame on this session.
+     * Open a view of an item on a specific display.
      *
-     * @param target the IID of the item to view
+     * <p>Creates an ITEM_VIEW frame with THEME (what) and LOCATION (which display)
+     * as identity bindings. Each view gets a unique FrameKey — the same item can
+     * be open in multiple views, even on the same display.
+     *
+     * @param target    the IID of the item to view
+     * @param displayId the IID of the display (null = unassigned)
      * @return the FrameKey of the new ITEM_VIEW frame
      */
-    public FrameKey openView(ItemID target) {
+    public FrameKey openView(ItemID target, ItemID displayId) {
         // Check if a view already exists for this target
         ViewHandle existing = findView(target);
         if (existing != null) return existing.frameKey();
 
-        // Create a new ITEM_VIEW frame
-        FrameKey key = FrameKey.of(ViewVocabulary.ItemView.IID, target.encodeText());
+        // Unique view ID — allows multiple views of the same item
+        String viewId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        FrameKey key = FrameKey.of(ViewVocabulary.ItemView.IID, viewId);
 
-        FrameBody body = new FrameBody(ViewVocabulary.ItemView.IID, List.of(
-                Binding.ref(ThematicRole.Theme.IID, target)
-        ));
+        List<Binding> bindings = new java.util.ArrayList<>();
+        bindings.add(Binding.ref(ThematicRole.Theme.IID, target));
+        if (displayId != null) {
+            bindings.add(Binding.ref(ThematicRole.Location.IID, displayId));
+        }
+        FrameBody body = new FrameBody(ViewVocabulary.ItemView.IID, bindings);
+
         dev.everydaythings.graph.frame.Frame frame =
                 new dev.everydaythings.graph.frame.Frame(key, ViewVocabulary.ItemView.IID, body, null, false);
         frames().add(frame);
-
-        // Store default ViewConfig as live instance on the frame
         frame.setInstance(ViewConfig.defaults());
 
         return key;
     }
 
     /**
-     * Close a view by removing its ITEM_VIEW frame.
+     * Open a view of an item on the current/default display.
+     *
+     * @param target the IID of the item to view
+     * @return the FrameKey of the new ITEM_VIEW frame
+     */
+    public FrameKey openView(ItemID target) {
+        return openView(target, focusedDisplay());
+    }
+
+    /**
+     * Get the currently focused display.
+     *
+     * <p>Subclasses (GraphicalSession) override to return the display
+     * of the currently focused window. Returns null if unknown.
+     */
+    public ItemID focusedDisplay() {
+        return null;
+    }
+
+    /**
+     * Close a view by its frame key.
+     *
+     * <p>With multiple views of the same item possible, closing targets
+     * a specific view (window), not all views of an item.
+     *
+     * @param viewKey the ITEM_VIEW frame key to close
+     */
+    public void closeView(FrameKey viewKey) {
+        frames().removeByKey(viewKey);
+    }
+
+    /**
+     * Close the first view of a target item.
      *
      * @param target the IID of the viewed item
      */
-    public void closeView(ItemID target) {
+    public void closeViewOf(ItemID target) {
         ViewHandle vh = findView(target);
         if (vh != null) {
             frames().removeByKey(vh.frameKey());
@@ -560,7 +596,10 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     }
 
     /**
-     * Find the ITEM_VIEW frame for a given target item.
+     * Find the first ITEM_VIEW frame for a given target item.
+     *
+     * <p>Scans all ITEM_VIEW frames by THEME binding. Returns the first
+     * match — use {@link #openViews()} to find all views of an item.
      *
      * @param target the IID of the viewed item
      * @return a ViewHandle if found, null otherwise
@@ -572,7 +611,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 if (target.equals(themeId)) {
                     ViewConfig config = frame.instance() instanceof ViewConfig vc
                             ? vc : ViewConfig.defaults();
-                    return new ViewHandle(frame.frameKey(), target, config);
+                    ItemID display = frame.body().bindingId(ThematicRole.Location.IID);
+                    return new ViewHandle(frame.frameKey(), target, display, config);
                 }
             }
         }
@@ -592,11 +632,23 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 if (themeId != null) {
                     ViewConfig config = frame.instance() instanceof ViewConfig vc
                             ? vc : ViewConfig.defaults();
-                    views.add(new ViewHandle(frame.frameKey(), themeId, config));
+                    ItemID display = frame.body().bindingId(ThematicRole.Location.IID);
+                    views.add(new ViewHandle(frame.frameKey(), themeId, display, config));
                 }
             }
         }
         return views;
+    }
+
+    /**
+     * Resolve all open view targets to Items, for sibling disambiguation.
+     */
+    private java.util.Collection<Item> openViewItems() {
+        List<Item> items = new java.util.ArrayList<>();
+        for (ViewHandle vh : openViews()) {
+            resolveItem(vh.target()).ifPresent(items::add);
+        }
+        return items;
     }
 
     /**
@@ -805,6 +857,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         Item contextItem = resolveItem(context.target()).orElse(this);
         itemView = new ItemView(contextItem, this::resolveItem);
+        itemView.setSiblingsProvider(this::openViewItems);
     }
 
     /**
@@ -1129,7 +1182,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     public boolean handleEvent(String action, String target) {
         // View close — remove ITEM_VIEW frame, clear view chrome, go back
         if ("viewClose".equals(action)) {
-            contextItem().ifPresent(item -> closeView(item.iid()));
+            contextItem().ifPresent(item -> closeViewOf(item.iid()));
             if (itemView != null) {
                 itemView.clearActiveView();
             }
@@ -1169,16 +1222,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 logger.info("Created: {} ({})", item.displayToken(), item.iid().encodeText());
             }
             case Eval.EvalResult.Value(Object value) -> {
-                if (isComponent(value)) {
-                    addComponentToContext(value);
-                } else {
-                    displayValue(value);
-                }
+                displayValue(value);
             }
             case Eval.EvalResult.ValueWithTarget(Object value, Item targetItem) -> {
-                if (isComponent(value)) {
-                    addComponentToItem(value, targetItem);
-                }
+                // Value targeted at an item — display for now
+                displayValue(value);
             }
             case Eval.EvalResult.Error(String message) -> {
                 // Errors are shown in the input field via InputController's error state.
@@ -1242,99 +1290,15 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // ==================================================================================
 
     /**
-     * Add a component result to the current context item.
-     *
-     * <p>Derives a handle name from the component's {@code @Type}
-     * annotation (e.g., "cg.sememe:chess" → "chess").
-     */
-    protected void addComponentToContext(Object component) {
-        Item ctx = contextItem().orElse(null);
-        if (ctx == null) {
-            logger.warn("No context item to add component to");
-            return;
-        }
-        addComponentToItem(component, ctx);
-    }
-
-    /**
-     * Add a component to a specific target item.
-     *
-     * <p>Used by {@link #addComponentToContext} (implicit target) and by
-     * the {@code ValueWithTarget} result path (explicit "on" target).
-     */
-    protected void addComponentToItem(Object component, Item target) {
-        // Use cached instance if available to preserve prior modifications
-        Item actual = librarian.get(target.iid()).orElse(target);
-        librarian.put(actual);
-
-        // Resolve the semantic predicate from the component's @Implements annotation
-        ItemID predicateId = derivePredicateId(component);
-        if (predicateId == null) {
-            throw new IllegalArgumentException(
-                    "Component " + component.getClass().getSimpleName()
-                            + " must have @Implements annotation");
-        }
-        String qualifier = deriveUniqueQualifier(actual, predicateId);
-        actual.endorse(predicateId, qualifier, component);
-
-        // Refresh tree to pick up the new component, then select it
-        if (itemView != null) {
-            itemView.refresh();
-        }
-
-        // Notify subclasses (e.g., GraphicalSession rebuilds tick registry)
-        onContextComponentsChanged(actual);
-    }
-
-    /**
      * Hook for subclasses to react when the context item's components change.
      *
-     * <p>Called after navigation and after adding components. Subclasses
-     * (e.g., {@link GraphicalSession}) override this to rebuild the
-     * tick registry for live widget updates.
+     * <p>Called after navigation. Subclasses (e.g., {@link GraphicalSession})
+     * override this to rebuild the tick registry for live widget updates.
      *
      * @param item the item whose components changed
      */
     protected void onContextComponentsChanged(Item item) {
         // Default: no-op
-    }
-
-    /**
-     * Get the semantic predicate ItemID from a component's @Implements annotation.
-     */
-    private ItemID derivePredicateId(Object component) {
-        Implements impl = component.getClass().getAnnotation(Implements.class);
-        if (impl != null) {
-            return ItemID.fromString(impl.value());
-        }
-        return null;
-    }
-
-    /**
-     * Derive a unique qualifier for a semantic frame key.
-     *
-     * <p>If the item already has a frame with this predicate and no qualifier,
-     * returns "2", "3", etc. Returns null for the first instance.
-     */
-    private String deriveUniqueQualifier(Item item, ItemID predicateId) {
-        // First instance: no qualifier needed
-        if (!item.frames().containsKey(FrameKey.of(predicateId))) {
-            return null;
-        }
-        // Subsequent: find next available number
-        int n = 2;
-        while (item.frames().containsKey(FrameKey.of(predicateId, String.valueOf(n)))) {
-            n++;
-        }
-        return String.valueOf(n);
-    }
-
-
-    /**
-     * Check if a value is a component (has @Type annotation).
-     */
-    private static boolean isComponent(Object value) {
-        return value != null && value.getClass().isAnnotationPresent(Implements.class);
     }
 
     // ==================================================================================

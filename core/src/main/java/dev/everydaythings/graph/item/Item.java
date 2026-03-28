@@ -205,9 +205,11 @@ public class Item {
     }
 
 
-    /** Per-item policies — stored in EndorsementsTable under well-known handle. */
+    /** Per-item policies — will be CONFIG binding on frames/manifests. */
     public PolicySet policy() {
-        return frames().getLive(BuiltinKeys.POLICY, PolicySet.class).orElse(null);
+        // Legacy: check if a PolicySet live instance exists on frames
+        PolicySet fromFrames = frames().getLive(BuiltinKeys.POLICY, PolicySet.class).orElse(null);
+        return fromFrames != null ? fromFrames : new PolicySet();
     }
 
     /** Intrinsic vocabulary: semantic actions available on this item. */
@@ -339,13 +341,7 @@ public class Item {
     private List<Ref> childrenInspect() {
         List<Ref> children = new ArrayList<>();
 
-        // All non-built-in component frames (content components, relations).
-        // Policy now lives under component config metadata and should not appear
-        // as a standalone inspect tree component.
         for (dev.everydaythings.graph.frame.Frame frame : frames()) {
-            if (BuiltinKeys.POLICY.equals(frame.frameKey())) {
-                continue;
-            }
             Ref ref = frame.ref();
             if (ref != null) {
                 children.add(ref);
@@ -445,7 +441,6 @@ public class Item {
         this.iid = Objects.requireNonNull(iid, "iid");
         this.dirty = false;  // Seed items are immutable
         state.setOwner(this);
-        ensurePolicy();
         populateVocabulary();
     }
 
@@ -457,7 +452,6 @@ public class Item {
         this.iid = ItemID.random();
         this.dirty = true;
         state.setOwner(this);
-        ensurePolicy();
         populateVocabulary();
     }
 
@@ -469,7 +463,6 @@ public class Item {
         this.iid = Objects.requireNonNull(iid, "iid");
         this.dirty = true;
         state.setOwner(this);
-        ensurePolicy();
         populateVocabulary();
     }
 
@@ -500,7 +493,6 @@ public class Item {
 
         // Hydrate: decode all, bind fields, invoke callbacks
         hydrate();
-        ensurePolicy();
         populateVocabulary();
     }
 
@@ -715,7 +707,6 @@ public class Item {
      * to ensure the vocabulary is populated.
      */
     protected void onFullyInitialized() {
-        ensurePolicy();
         populateVocabulary();
         populateUnendorsedFrames();
         // Sync pre-initialized field values to EndorsementsTable (handles subclass field initializers)
@@ -880,83 +871,6 @@ public class Item {
         if (value == null) return Optional.empty();
         if (type.isInstance(value)) return Optional.of(type.cast(value));
         return Optional.empty();
-    }
-
-    /**
-     * Dynamically add a component to this item.
-     *
-     * <p>This enables the core pattern: any Item can host any component.
-     * The component's verbs are scanned and added to this item's vocabulary,
-     * so they "bubble up" and become dispatchable through this item.
-     *
-     * <p>The component can be any object with a {@code @Type}
-     * annotation — it does not need to implement Component.
-     *
-     * @param handle    The component handle (e.g., "chess")
-     * @param component The component instance
-     */
-    /**
-     * Dynamically add a component with a semantic predicate key.
-     *
-     * <p>This is the preferred way to attach components to items.
-     * The component's verbs are scanned and added to this item's vocabulary.
-     *
-     * @param predicateId the semantic predicate (Sememe IID) for the frame key
-     * @param component   the component instance
-     */
-    public void endorse(ItemID predicateId, Object component) {
-        endorse(predicateId, null, component);
-    }
-
-    /**
-     * Endorse a frame on this item — adds it to the endorsements table.
-     *
-     * <p>An endorsed frame is part of this item's identity. When the item
-     * commits, endorsed frames affect the manifest hash. The component's
-     * verbs are scanned and added to this item's vocabulary.
-     *
-     * @param predicateId the semantic predicate (Sememe IID) for the frame key
-     * @param qualifier   optional qualifier for multiple instances (null for first/only)
-     * @param component   the component instance
-     */
-    public void endorse(ItemID predicateId, String qualifier, Object component) {
-        Objects.requireNonNull(predicateId, "predicateId");
-        Objects.requireNonNull(component, "component");
-
-        FrameKey key = qualifier != null
-                ? FrameKey.of(predicateId, qualifier)
-                : FrameKey.of(predicateId);
-        ItemID typeId = Item.idOf(component.getClass());
-        String handle = resolveDisplayToken(predicateId);
-        if (handle == null) {
-            String text = predicateId.encodeText();
-            int colon = text.lastIndexOf(':');
-            handle = colon >= 0 ? text.substring(colon + 1) : text;
-        }
-        if (qualifier != null) {
-            handle = handle + "-" + qualifier;
-        }
-
-        // 1. Add frame
-        dev.everydaythings.graph.frame.Frame frame = dev.everydaythings.graph.frame.Frame.snapshot(key, typeId, null, true);
-
-        frames().add(frame);
-
-        // 2. Register live instance
-        frames().setLive(key, component);
-
-        // 3. Call lifecycle hooks
-        if (component instanceof FrameAware fa) {
-            fa.onFramePlaced(new FrameContext(this, key, frame));
-        }
-
-        // 5. Scan component class for verbs and register them
-        List<VerbSpec> verbs = ItemScanner.scanComponentVerbs(component.getClass(), handle);
-        for (VerbSpec spec : verbs) {
-            vocabulary().add(VerbEntry.componentVerb(spec, handle, component));
-        }
-
-        // Local vocabulary registration will be handled by Vocabulary frame scanning
     }
 
     /**
@@ -1316,24 +1230,7 @@ public class Item {
     // Path-Based Component Management
     // ==================================================================================
 
-    /**
-     * Ensure the item-level policy binding exists.
-     *
-     * <p>Policy is item-level configuration — it will move to the manifest's
-     * config map when dual-bindings are implemented. For now, stored as a
-     * semantic frame in the endorsements table.
-     *
-     * <p>Called in every constructor after {@code state.setOwner(this)}.
-     */
-    private void ensurePolicy() {
-        if (!frames().hasLive(BuiltinKeys.POLICY)) {
-            ItemID typeId = Item.idOf(PolicySet.class);
-            dev.everydaythings.graph.frame.Frame frame =
-                    dev.everydaythings.graph.frame.Frame.snapshot(BuiltinKeys.POLICY, typeId, null, true);
-            frames().add(frame);
-            frames().setLive(BuiltinKeys.POLICY, new PolicySet());
-        }
-    }
+    // ensurePolicy() DELETED — policy is now CONFIG on frames/manifests, not a component frame
 
     /**
      * Initialize fresh components for a newly created item.

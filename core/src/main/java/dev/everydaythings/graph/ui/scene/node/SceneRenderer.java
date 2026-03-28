@@ -251,13 +251,16 @@ public interface SceneRenderer {
     default boolean dispatch(String nodeId, String action, String target) {
         if (action == null || action.isEmpty()) return false;
 
-        // toggle:key — flip boolean
+        // toggle:key — flip boolean in renderer state, then also notify application
         if (action.startsWith("toggle:")) {
             String key = action.substring("toggle:".length());
             String effectiveId = resolveActionTarget(nodeId, target);
             Object current = getState(effectiveId, key);
             boolean val = isTruthy(current);
             setState(effectiveId, key, !val);
+            // Also notify application — toggles often drive Java-side state
+            // (e.g., tree rebuilding, detail panel routing)
+            onApplicationAction(nodeId, action, target);
             return true;
         }
 

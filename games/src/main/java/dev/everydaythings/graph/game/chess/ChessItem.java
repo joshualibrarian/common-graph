@@ -14,6 +14,7 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.language.ColorVocabulary;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
@@ -71,6 +72,23 @@ public class ChessItem extends Item {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String word = "chess";
+
+        // EXPECTS — declaration order is salience order for handle disambiguation.
+        // The expected predicate is a qualifier on TOPIC (ensures unique FrameKeys).
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
+                        qualifiers = {GameVocabulary.Player.KEY, ColorVocabulary.White.KEY}))
+        static final ItemID expectWhitePlayer = ItemID.fromString(GameVocabulary.Player.KEY);
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
+                        qualifiers = {GameVocabulary.Player.KEY, ColorVocabulary.Black.KEY}))
+        static final ItemID expectBlackPlayer = ItemID.fromString(GameVocabulary.Player.KEY);
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
+                        qualifiers = {GameVocabulary.Move.KEY}))
+        static final ItemID expectMove = ItemID.fromString(GameVocabulary.Move.KEY);
     }
 
     // ==================================================================================

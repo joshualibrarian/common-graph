@@ -632,10 +632,13 @@ public class LayoutEngine {
                         w = b.explicitWidth();
                     }
                     float h = child.height();
-                    // Horizontal fill children should stretch on the cross-axis unless
-                    // they declare an explicit height. This keeps fill columns truly
-                    // full-height and prevents top-biased layouts in tall panes.
-                    if (child instanceof LayoutNode.BoxNode b && b.explicitHeight() <= 0) {
+                    // Horizontal fill children should stretch on the cross-axis when
+                    // the parent has an explicit height. This keeps fill columns truly
+                    // full-height in fixed-size panes. But when the parent auto-sizes
+                    // to content (no explicit height), don't stretch — otherwise the
+                    // grandparent's height leaks through and inflates the parent.
+                    if (child instanceof LayoutNode.BoxNode b && b.explicitHeight() <= 0
+                            && box.explicitHeight() > 0) {
                         h = contentHeight;
                     }
                     child.setBounds(child.x(), child.y(), w, h);
