@@ -1,12 +1,18 @@
 package dev.everydaythings.graph.game.chess;
 
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.ThematicRole;
+
+import java.util.List;
 
 /**
  * The CHESS_MOVE predicate — a specialized move sememe for chess.
@@ -37,7 +43,9 @@ public class ChessMove extends Sememe {
     ChessMove() {
         super(KEY);
         gloss("en", "a chess move in algebraic notation");
-        slot(GameVocabulary.Move.KEY);
+        endorseFrame(new FrameBody(CoreVocabulary.Expects.IID,
+                List.of(Binding.ref(ThematicRole.Topic.IID,
+                        ItemID.fromString(GameVocabulary.Move.KEY)))));
     }
 
     /**

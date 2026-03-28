@@ -2,6 +2,7 @@ package dev.everydaythings.graph.game.chess;
 
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -54,6 +55,7 @@ import java.util.regex.Pattern;
  * and produces frames.
  */
 @Implements(ChessNotation.KEY)
+@ItemSeed(key = ChessNotation.KEY)
 public class ChessNotation extends Language {
 
     public static final String KEY = "cg:language/chess-notation";

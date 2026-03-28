@@ -67,17 +67,18 @@ public class ChessItem extends Item {
     public static class Chess {
         public static final String KEY = "cg.sememe:chess";
 
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        @ItemFrame(predicate = SememeGloss.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the game of chess";
 
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String word = "chess";
 
         // EXPECTS — declaration order is salience order for handle disambiguation.
         // The expected predicate is a qualifier on TOPIC (ensures unique FrameKeys).
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
-                        qualifiers = {GameVocabulary.Player.KEY, ColorVocabulary.White.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {GameVocabulary.Player.KEY, ColorVocabulary.White.KEY}))
         static final ItemID expectWhitePlayer = ItemID.fromString(GameVocabulary.Player.KEY);
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,

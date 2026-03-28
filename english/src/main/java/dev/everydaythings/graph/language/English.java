@@ -2,6 +2,7 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -38,6 +39,7 @@ import java.util.function.ToIntFunction;
  * <p>After initial generation, the generate method should be removed.
  */
 @Implements(English.KEY)
+@ItemSeed(key = English.KEY)
 public class English extends Language {
 
     // ==================================================================================

@@ -58,13 +58,23 @@ public final class BridgeVocabulary {
      * Predicate for a frame on a Librarian declaring an active bridge service.
      * Configuration (host, port, credentials, etc.) lives in the frame's bindings.
      */
-    @ItemSeed(key = Bridges.KEY, slots = {ThematicRole.Instrument.KEY, ThematicRole.Goal.KEY})
+    @ItemSeed(key = Bridges.KEY)
     public static class Bridges {
         public static final String KEY = "cg.core:bridges";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "provides bridge service to a foreign protocol";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Instrument.KEY}))
+        static final ItemID expectInstrument = ThematicRole.Instrument.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     // ==================================================================================
@@ -130,25 +140,45 @@ public final class BridgeVocabulary {
      * Asserts that a CG identity corresponds to a foreign identity.
      * Used when a phantom item is merged with a real principal.
      */
-    @ItemSeed(key = IdentifiesAs.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
+    @ItemSeed(key = IdentifiesAs.KEY)
     public static class IdentifiesAs {
         public static final String KEY = "cg.bridge:identifies-as";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "asserts that this identity corresponds to another; merges a phantom with a real principal";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     /**
      * Records that content was received via a specific bridge protocol.
      * Used on frames created from inbound foreign messages.
      */
-    @ItemSeed(key = ReceivedVia.KEY, slots = {ThematicRole.Instrument.KEY, ThematicRole.Source.KEY})
+    @ItemSeed(key = ReceivedVia.KEY)
     public static class ReceivedVia {
         public static final String KEY = "cg.bridge:received-via";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "records that content was received through a foreign protocol bridge";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Instrument.KEY}))
+        static final ItemID expectInstrument = ThematicRole.Instrument.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Source.KEY}))
+        static final ItemID expectSource = ThematicRole.Source.IID;
     }
 }

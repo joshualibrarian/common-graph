@@ -31,7 +31,7 @@ public final class GameVocabulary {
     // Game predicates (nouns — used in EXPECTS frames and as frame predicates)
     // ==================================================================================
 
-    @ItemSeed(key = Player.KEY, slots = {ThematicRole.Agent.KEY, ThematicRole.Theme.KEY})
+    @ItemSeed(key = Player.KEY)
     public static class Player {
         public static final String KEY = "cg.game:player";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -40,13 +40,21 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String noun1 = "player";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Agent.KEY}))
+        static final ItemID expectAgent = ThematicRole.Agent.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
     // ==================================================================================
     // Board and spatial game verbs
     // ==================================================================================
 
-    @ItemSeed(key = Move.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
+    @ItemSeed(key = Move.KEY)
     public static class Move {
         public static final String KEY = "cg.verb:move";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -64,6 +72,14 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb3 = "go";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     @ItemSeed(key = Resign.KEY)
@@ -86,7 +102,7 @@ public final class GameVocabulary {
         static final String verb3 = "surrender";
     }
 
-    @ItemSeed(key = Offer.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Offer.KEY)
     public static class Offer {
         public static final String KEY = "cg.verb:offer";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -101,9 +117,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "propose";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Accept.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Accept.KEY)
     public static class Accept {
         public static final String KEY = "cg.verb:accept";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -118,9 +138,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "agree";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Decline.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Decline.KEY)
     public static class Decline {
         public static final String KEY = "cg.verb:decline";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -138,9 +162,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb3 = "reject";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Select.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Select.KEY)
     public static class Select {
         public static final String KEY = "cg.verb:select";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -158,9 +186,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb3 = "choose";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Place.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = Place.KEY)
     public static class Place {
         public static final String KEY = "cg.verb:place";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -178,13 +210,17 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb3 = "put-down";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     // ==================================================================================
     // Multiplayer verbs
     // ==================================================================================
 
-    @ItemSeed(key = Join.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = Join.KEY)
     public static class Join {
         public static final String KEY = "cg.verb:join";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -199,6 +235,10 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "sit";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     @ItemSeed(key = Leave.KEY)
@@ -242,7 +282,7 @@ public final class GameVocabulary {
         static final String verb3 = "toss";
     }
 
-    @ItemSeed(key = Keep.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Keep.KEY)
     public static class Keep {
         public static final String KEY = "cg.verb:keep";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -260,9 +300,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb3 = "retain";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Score.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = Score.KEY)
     public static class Score {
         public static final String KEY = "cg.verb:score";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -274,13 +318,17 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb1 = "score";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     // ==================================================================================
     // Card/betting game verbs
     // ==================================================================================
 
-    @ItemSeed(key = Bet.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Bet.KEY)
     public static class Bet {
         public static final String KEY = "cg.verb:bet";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -295,9 +343,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "wager";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Raise.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Raise.KEY)
     public static class Raise {
         public static final String KEY = "cg.verb:raise";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -309,6 +361,10 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb1 = "raise";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
     @ItemSeed(key = Fold.KEY)
@@ -348,7 +404,7 @@ public final class GameVocabulary {
         static final String verb3 = "tap";
     }
 
-    @ItemSeed(key = Deal.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Goal.KEY})
+    @ItemSeed(key = Deal.KEY)
     public static class Deal {
         public static final String KEY = "cg.verb:deal";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -363,9 +419,17 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "distribute";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
-    @ItemSeed(key = Bid.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Bid.KEY)
     public static class Bid {
         public static final String KEY = "cg.verb:bid";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -377,9 +441,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb1 = "bid";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Play.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Play.KEY)
     public static class Play {
         public static final String KEY = "cg.verb:play";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -391,6 +459,10 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb1 = "play";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
     @ItemSeed(key = Pass.KEY)
@@ -410,7 +482,7 @@ public final class GameVocabulary {
         static final String verb2 = "skip";
     }
 
-    @ItemSeed(key = Draw.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Draw.KEY)
     public static class Draw {
         public static final String KEY = "cg.verb:draw";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -425,9 +497,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "pick";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = Call.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Call.KEY)
     public static class Call {
         public static final String KEY = "cg.verb:call";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -439,13 +515,17 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb1 = "call";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
     // ==================================================================================
     // Minesweeper verbs
     // ==================================================================================
 
-    @ItemSeed(key = Reveal.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = Reveal.KEY)
     public static class Reveal {
         public static final String KEY = "cg.verb:reveal";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -460,9 +540,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "uncover";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
-    @ItemSeed(key = Flag.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = Flag.KEY)
     public static class Flag {
         public static final String KEY = "cg.verb:flag";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -477,9 +561,13 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb2 = "mark";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
-    @ItemSeed(key = Chord.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = Chord.KEY)
     public static class Chord {
         public static final String KEY = "cg.verb:chord";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -491,6 +579,10 @@ public final class GameVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String verb1 = "chord";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
 }

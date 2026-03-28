@@ -31,6 +31,7 @@ import dev.everydaythings.graph.language.CoreVocabulary;
  * @see Language#inflect(Lexeme, java.util.Set)
  */
 @Implements(GrammaticalFeature.KEY)
+@ItemSeed(key = GrammaticalFeature.KEY)
 public class GrammaticalFeature extends Sememe {
 
     public static final String KEY = "cg.sememe:grammatical-feature";

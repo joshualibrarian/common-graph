@@ -58,6 +58,7 @@ import java.util.Map;
  * }</pre>
  */
 @Implements(Unit.KEY)
+@ItemSeed(key = Unit.KEY)
 public class Unit extends Sememe {
 
     // ==================================================================================

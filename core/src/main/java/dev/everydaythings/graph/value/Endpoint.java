@@ -4,6 +4,7 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import lombok.Getter;
 
 import java.util.Objects;
@@ -33,6 +34,7 @@ import java.util.Objects;
  */
 @Getter
 @Implements("cg.value:endpoint")
+@ItemSeed(key = "cg.value:endpoint")
 @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
 public final class Endpoint implements Value {
 

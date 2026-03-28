@@ -2,9 +2,11 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.Created;
+import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
@@ -56,6 +58,7 @@ import java.util.Optional;
  */
 @Log4j2
 @Implements(Sememe.KEY)
+@ItemSeed(key = Sememe.KEY)
 public class Sememe extends Item {
 
     // ==================================================================================
@@ -151,16 +154,6 @@ public class Sememe extends Item {
     private ItemID assignedRole;
 
     /**
-     * Slot expectations for this predicate (e.g., AUTHOR expects THEME, TARGET).
-     *
-     * <p>Transient — populated by fluent {@link #slot(Sememe)} or
-     * {@link #slot(String)} during seed declaration. Consumed by
-     * {@link #slotRoles()} for frame assembly.
-     */
-    @Getter
-    private transient List<ItemID> slots;
-
-    /**
      * Lexeme declarations for bootstrap (e.g., LEMMA "author" in English).
      *
      * <p>Transient — during bootstrap, these flow into the appropriate
@@ -170,18 +163,6 @@ public class Sememe extends Item {
      */
     @Getter
     private transient List<LexemeDeclaration> lexemeDeclarations;
-
-    /**
-     * Expected frame declarations for this type (schema/template).
-     *
-     * <p>Transient — populated by fluent {@link #expects(String)} and
-     * {@link #expects(String, String, String)} during seed declaration.
-     * During bootstrap, each expectation becomes an EXPECTS frame on the
-     * Sememe item. Serves dual purpose: creation guidance (forward) and
-     * duck-typing recognition (backward).
-     */
-    @Getter
-    private transient List<Expectation> expectations;
 
     // ==================================================================================
     // CONSTRUCTORS (protected for subclass access)
@@ -361,20 +342,6 @@ public class Sememe extends Item {
         return this;
     }
 
-    /** Declare that this predicate expects a slot filled by the given role. */
-    public Sememe slot(Sememe role) {
-        if (this.slots == null) this.slots = new ArrayList<>();
-        this.slots.add(role.iid());
-        return this;
-    }
-
-    /** Declare a slot via canonical key string (avoids circular static init). */
-    public Sememe slot(String roleKey) {
-        if (this.slots == null) this.slots = new ArrayList<>();
-        this.slots.add(ItemID.fromString(roleKey));
-        return this;
-    }
-
     /**
      * Set the index weight for this predicate's string targets.
      *
@@ -389,35 +356,6 @@ public class Sememe extends Item {
     /** Set the thematic role this preposition assigns, by canonical key. */
     public Sememe role(String roleKey) {
         this.assignedRole = ItemID.fromString(roleKey);
-        return this;
-    }
-
-    /**
-     * Declare that instances of this type should carry frames with the given predicate.
-     *
-     * @param predicateKey canonical key of the expected predicate
-     */
-    public Sememe expects(String predicateKey) {
-        if (this.expectations == null) this.expectations = new ArrayList<>();
-        this.expectations.add(new Expectation(ItemID.fromString(predicateKey), Map.of()));
-        return this;
-    }
-
-    /**
-     * Declare an expected frame with a specific role binding.
-     *
-     * <p>For example, chess expects a Player frame with THEME=White:
-     * {@code .expects("cg.game:player", "cg.role:theme", "cg.game:white")}
-     *
-     * @param predicateKey canonical key of the expected predicate
-     * @param roleKey      canonical key of the role to constrain
-     * @param valueKey     canonical key of the expected value for that role
-     */
-    public Sememe expects(String predicateKey, String roleKey, String valueKey) {
-        if (this.expectations == null) this.expectations = new ArrayList<>();
-        this.expectations.add(new Expectation(
-                ItemID.fromString(predicateKey),
-                Map.of(ItemID.fromString(roleKey), ItemID.fromString(valueKey))));
         return this;
     }
 
@@ -515,19 +453,29 @@ public class Sememe extends Item {
     }
 
     // ==================================================================================
-    // SLOT ROLES
+    // EXPECTED ROLES — read from EXPECTS frames
     // ==================================================================================
 
     /**
-     * Returns the role IIDs this sememe expects as arguments (null-safe).
+     * Returns the IIDs this sememe expects as arguments, read from EXPECTS frames.
      *
-     * <p>Derived from the transient {@link #slots()} field populated during
-     * seed construction. Since all sememes with slots are seeds (code-defined),
-     * transient-only is fine — no persistence needed.
+     * <p>Reads EXPECTS frames on this sememe item and extracts TOPIC binding targets.
+     * For predicates, these are role IIDs (what bindings a frame should carry).
+     * For types, these are predicate IIDs (what frames an item should carry).
+     * The consumer determines interpretation based on context.
      */
     public List<ItemID> slotRoles() {
-        List<ItemID> s = slots();
-        return s != null ? s : List.of();
+        if (frames() == null) return List.of();
+        List<ItemID> roles = new ArrayList<>();
+        for (Frame frame : frames()) {
+            if (frame.body() == null) continue;
+            if (!CoreVocabulary.Expects.IID.equals(frame.body().predicate())) continue;
+            Binding topicBinding = frame.body().getBindingByRole(ThematicRole.Topic.IID);
+            if (topicBinding != null && topicBinding.targetId() != null) {
+                roles.add(topicBinding.targetId());
+            }
+        }
+        return roles;
     }
 
     // ==================================================================================
@@ -837,18 +785,6 @@ public class Sememe extends Item {
      * @param surface the written word
      */
     public record LexemeDeclaration(ItemID pos, Sememe form, String lang, String surface) {}
-
-    /**
-     * An expected frame template: a predicate and optional role bindings.
-     *
-     * <p>Used by the EXPECTS mechanism to describe what frames instances
-     * of this type should carry. For duck typing, matching against these
-     * expectations determines structural type membership.
-     *
-     * @param predicate    the expected frame predicate (e.g., Player, Move)
-     * @param roleBindings role→value constraints on the expected frame (e.g., THEME→White)
-     */
-    public record Expectation(ItemID predicate, Map<ItemID, ItemID> roleBindings) {}
 
     /**
      * Describes facets of a predicate (domain, range, cardinality, etc.)

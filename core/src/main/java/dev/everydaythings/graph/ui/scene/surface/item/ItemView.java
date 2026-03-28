@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.ui.scene.surface.item;
 
+import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.dispatch.ParamSpec;
 import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.Vocabulary;
@@ -29,6 +30,8 @@ import dev.everydaythings.graph.ui.scene.node.Node;
 import dev.everydaythings.graph.ui.scene.node.Text;
 import dev.everydaythings.graph.ui.scene.node.TreeNav;
 import dev.everydaythings.graph.ui.scene.node.TreeNodes;
+
+import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -445,28 +448,31 @@ public class ItemView {
     private Node buildFrameDetail(Frame frame, Item resolved) {
         Container detail = Container.vertical().gap("0.5em");
 
-        FrameBody body = frame.body();
-        if (body != null) {
-            String pred = FrameNode.resolvePredicate(frame, resolved);
-            detail.add(Text.of(pred).fontWeight("bold").classes("heading"));
+        // Heading — resolved predicate name
+        String pred = FrameNode.resolvePredicate(frame, resolved);
+        detail.add(Text.of(pred).fontWeight("bold").classes("heading"));
+
+        // Render the CBOR content — body or instance, whichever is available
+        java.util.function.Function<ItemID, String> resolver = iid -> {
+            if (resolved.itemLibrarian() == null) return null;
+            return resolved.itemLibrarian().get(iid)
+                    .map(item -> {
+                        String emoji = item.emoji();
+                        String name = item.displayToken();
+                        return (emoji != null ? emoji + " " : "") + name;
+                    })
+                    .orElse(null);
+        };
+        ItemID typeId = frame.type() != null ? frame.type() : FrameBody.TYPE_ID;
+        if (frame.body() != null) {
+            detail.add(CborInspector.render(frame.body(), resolver, FrameBody.TYPE_ID));
+        } else if (frame.instance() instanceof Canonical canonical) {
+            detail.add(CborInspector.render(canonical, resolver, typeId));
         }
 
-        if (body != null) {
-            for (Binding b : body.frameBindings()) {
-                String role = resolved.resolveDisplayToken(b.role());
-                if (role == null) role = b.role().displayAtWidth(12);
-                String target = FrameNode.fmtTarget(b, resolved);
-                if (target == null || target.isBlank()) continue;
-                Container row = Container.horizontal().gap("0.5em");
-                row.add(Text.of(role).fontWeight("bold"));
-                row.add(Text.of("\u2192").classes("muted"));
-                row.add(Text.of(target).classes("muted"));
-                detail.add(row);
-            }
-        }
-
+        // Hash footer
         if (frame.bodyHash() != null) {
-            detail.add(Text.of("Hash: " + frame.bodyHash().displayAtWidth(20)).classes("mono", "muted"));
+            detail.add(Text.of("Hash: " + frame.bodyHash().fullDisplay()).classes("mono", "muted"));
         }
 
         return detail;
@@ -762,6 +768,7 @@ public class ItemView {
     // FrameNode (data record for frame tree)
     // ==================================================================================
 
+    @Log4j2
     static class FrameNode {
         private final String label, emoji, id;
         private final Frame frame;
@@ -792,7 +799,10 @@ public class ItemView {
 
         private static String buildSummaryLabel(Frame frame, Item item) {
             FrameBody body = frame.body();
-            if (body == null) return truncate(frame.frameKey().toString());
+            if (body == null) {
+                // No body — resolve the FrameKey tokens through the librarian
+                return truncate(resolveFrameKeyLabel(frame, item));
+            }
 
             String pred = resolvePredicate(frame, item);
 
@@ -816,6 +826,61 @@ public class ItemView {
                     ? s.substring(0, MAX_LABEL_LENGTH - 1) + "\u2026" : s;
         }
 
+        /**
+         * Resolve a FrameKey into a human-readable label via the librarian.
+         * Resolves sememe tokens to display names, keeps literal tokens as-is.
+         * Never returns raw hashes.
+         */
+        private static String resolveFrameKeyLabel(Frame frame, Item item) {
+            // Try the frame type first (same IID as the head sememe, but may be set even without body)
+            if (frame.type() != null) {
+                String r = item.resolveDisplayToken(frame.type());
+                if (r != null) {
+                    // Append any literal qualifiers from the key for context
+                    String qualifier = literalQualifiers(frame.frameKey());
+                    return qualifier != null ? r + " \u2014 " + qualifier : r;
+                }
+            }
+
+            // Try resolving FrameKey tokens directly
+            FrameKey key = frame.frameKey();
+            if (key != null && !key.tokens().isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                for (FrameKey.FrameToken token : key.tokens()) {
+                    if (token instanceof FrameKey.Sememe s) {
+                        String r = item.resolveDisplayToken(s.id());
+                        if (r != null) {
+                            if (!sb.isEmpty()) sb.append(" \u2014 ");
+                            sb.append(r);
+                        }
+                        // Skip unresolvable sememe tokens — don't show hashes
+                    } else if (token instanceof FrameKey.Literal l) {
+                        if (!sb.isEmpty()) sb.append(" \u2014 ");
+                        sb.append(l.value());
+                    }
+                }
+                if (!sb.isEmpty()) return sb.toString();
+            }
+
+            return "frame";
+        }
+
+        /** Extract literal tokens from a FrameKey as qualifier context, skipping hash-like values. */
+        private static String literalQualifiers(FrameKey key) {
+            if (key == null) return null;
+            StringBuilder sb = new StringBuilder();
+            for (FrameKey.FrameToken token : key.tokens()) {
+                if (token instanceof FrameKey.Literal l) {
+                    String v = l.value();
+                    // Skip literals that are or contain raw hashes
+                    if (v.startsWith("iid:") || v.startsWith("cid:") || v.startsWith("vid:")) continue;
+                    if (!sb.isEmpty()) sb.append(", ");
+                    sb.append(v);
+                }
+            }
+            return sb.isEmpty() ? null : sb.toString();
+        }
+
         static String resolvePredicate(Frame frame, Item item) {
             if (frame.body() != null && frame.body().predicate() != null) {
                 String r = item.resolveDisplayToken(frame.body().predicate());
@@ -831,10 +896,13 @@ public class ItemView {
                     return l.value();
                 }
             }
-            if (frame.body() != null && frame.body().predicate() != null) {
-                return frame.body().predicate().displayAtWidth(12);
+            // Try frame type as last resort before giving up
+            if (frame.type() != null) {
+                String r = item.resolveDisplayToken(frame.type());
+                if (r != null) return r;
             }
-            return "?";
+            logger.debug("FrameNode: unresolved predicate on frame key={}", frame.frameKey());
+            return "frame";
         }
 
         static String fmtTarget(Binding b, Item item) {
@@ -842,6 +910,7 @@ public class ItemView {
             if (tid != null) {
                 String r = item.resolveDisplayToken(tid);
                 if (r != null) return r;
+                logger.debug("FrameNode: unresolved binding target {}", tid::encodeText);
                 return null;
             }
             if (b.target() instanceof dev.everydaythings.graph.item.Literal lit) {
@@ -853,9 +922,10 @@ public class ItemView {
                                 : "\"" + t + "\"";
                     } catch (Exception ignored) {}
                 }
-                return lit.valueType().displayAtWidth(12);
+                // Non-text literal with unresolvable type — skip
+                return null;
             }
-            return "\u2014";
+            return null;
         }
     }
 }

@@ -277,7 +277,7 @@ public final class Frame implements Canonical {
         return new Frame(key, type, body, null, identity);
     }
 
-    /** Create a bare frame (type = FrameBody.TYPE_ID, for unendorsed semantic assertions). */
+    /** Create a bare frame wrapping a stored FrameBody, using the actual predicate. */
     public static Frame forFrameBody(ItemID predicate, ContentID cid, boolean identity, String displayName) {
         FrameKey key = FrameKey.of(predicate, cid != null ? cid.encodeText() : "?");
         List<Binding> bindings = new ArrayList<>();
@@ -285,8 +285,8 @@ public final class Frame implements Canonical {
             bindings.add(new Binding(ThematicRole.Topic.IID,
                     BindingTarget.ref(cid), true, false));
         }
-        FrameBody body = new FrameBody(FrameBody.TYPE_ID, bindings);
-        return new Frame(key, FrameBody.TYPE_ID, body, null, identity);
+        FrameBody body = new FrameBody(predicate, bindings);
+        return new Frame(key, predicate, body, null, identity);
     }
 
     /** Create a bare frame (no display name). */

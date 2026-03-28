@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.value.DisplayWidth;
 import lombok.Getter;
@@ -15,6 +16,7 @@ import java.util.Objects;
  */
 @Getter
 @Implements("cg.value:quantity")
+@ItemSeed(key = "cg.value:quantity")
 public final class Quantity implements Value {
 
     /** Display width: quantities can be shown very compact (emoji + number) or full with unit */

@@ -44,6 +44,7 @@ import java.util.List;
  * @see Numeric
  */
 @Implements(ValueType.KEY)
+@ItemSeed(key = ValueType.KEY)
 public class ValueType extends Item {
 
     // ==================================================================================

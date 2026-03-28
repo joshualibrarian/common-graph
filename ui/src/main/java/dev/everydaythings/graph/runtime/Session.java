@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.frame.*;
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.item.Implements;
@@ -19,11 +19,6 @@ import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.DisplayLayoutConfig;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.ViewConfig;
-import dev.everydaythings.graph.frame.ViewHandle;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.ViewVocabulary;
@@ -680,9 +675,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // Display Layout Management (DISPLAY_LAYOUT frames on this session)
     // ==================================================================================
 
-    private static final ItemID DISPLAY_LAYOUT_SEMEME_ID =
-            ItemID.fromString(ViewVocabulary.DisplayLayout.KEY);
-
     /**
      * Register a display layout in session space.
      *
@@ -693,14 +685,18 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @return the FrameKey of the new DISPLAY_LAYOUT frame
      */
     public FrameKey registerDisplayLayout(DisplayLayoutConfig config) {
-        String qualifier = config.hostId().encodeText() + ":" + config.displayId();
-        FrameKey key = FrameKey.of(DISPLAY_LAYOUT_SEMEME_ID, qualifier);
+        FrameKey key = FrameKey.of(ViewVocabulary.DisplayLayout.IID, config.displayId());
 
         // Remove existing frame for this display if present
         frames().removeByKey(key);
 
-        dev.everydaythings.graph.frame.Frame frame =
-                new dev.everydaythings.graph.frame.Frame(key, DISPLAY_LAYOUT_SEMEME_ID, null, null, false);
+        List<Binding> bindings = new java.util.ArrayList<>();
+        bindings.add(Binding.literal(ThematicRole.Theme.IID,
+                dev.everydaythings.graph.item.Literal.ofText(config.displayId())));
+        bindings.add(Binding.ref(ThematicRole.Location.IID, config.hostId()));
+        FrameBody body = new FrameBody(ViewVocabulary.DisplayLayout.IID, bindings);
+
+        Frame frame = new Frame(key, ViewVocabulary.DisplayLayout.IID, body, null, false);
         frames().add(frame);
         frame.setInstance(config);
 
@@ -713,7 +709,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     public List<DisplayLayoutConfig> displayLayouts() {
         List<DisplayLayoutConfig> result = new java.util.ArrayList<>();
         for (dev.everydaythings.graph.frame.Frame frame : frames()) {
-            if (DISPLAY_LAYOUT_SEMEME_ID.equals(frame.type())
+            if (ViewVocabulary.DisplayLayout.IID.equals(frame.type())
                     && frame.instance() instanceof DisplayLayoutConfig dlc) {
                 result.add(dlc);
             }
@@ -729,7 +725,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     public void clearDisplayLayouts(ItemID hostId) {
         List<FrameKey> toRemove = new java.util.ArrayList<>();
         for (dev.everydaythings.graph.frame.Frame frame : frames()) {
-            if (DISPLAY_LAYOUT_SEMEME_ID.equals(frame.type())
+            if (ViewVocabulary.DisplayLayout.IID.equals(frame.type())
                     && frame.instance() instanceof DisplayLayoutConfig dlc
                     && hostId.equals(dlc.hostId())) {
                 toRemove.add(frame.frameKey());

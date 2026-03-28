@@ -50,8 +50,11 @@ public class GraphicalSession extends Session {
     /** Default renderer for new windows (from constructor arg). */
     private final ViewConfig.RendererType defaultRenderer;
 
-    /** Local display layouts for geometry-based view routing. */
+    /** Local display layouts for view routing. */
     private List<DisplayLayoutConfig> localDisplays = List.of();
+
+    /** Primary display IID — first enumerated display, used as default for new views. */
+    private ItemID primaryDisplayId;
 
     // ==================== Constructor ====================
 
@@ -258,7 +261,13 @@ public class GraphicalSession extends Session {
                     .osY(posY[0])
                     .build();
 
-            host.registerDisplay(displayId, displayConfig);
+            FrameKey displayFrameKey = host.registerDisplay(displayId, displayConfig);
+
+            // Track primary display (first enumerated)
+            ItemID displayIid = ItemID.fromString("cg.display:" + displayId);
+            if (i == 0) {
+                primaryDisplayId = displayIid;
+            }
 
             // Single-host: session-space = OS-space (identity)
             DisplayLayoutConfig layout = DisplayLayoutConfig.builder()
@@ -279,20 +288,34 @@ public class GraphicalSession extends Session {
         localDisplays = List.copyOf(layouts);
     }
 
-    // ==================== Geometry-Based View Routing ====================
+    // ==================== View-to-Display Routing ====================
 
     /**
-     * Check whether a view's bounds intersect any local display.
+     * Check whether a view is assigned to a local display.
+     *
+     * <p>Uses the LOCATION binding on the ITEM_VIEW frame to determine
+     * which display the view is on. Falls back to geometry intersection
+     * when no LOCATION binding exists (legacy views).
      *
      * <p>Returns true (show locally) when:
      * <ul>
-     *   <li>No display info is available (single-host, no enumeration)</li>
-     *   <li>The view has no geometry yet (new view, width=0)</li>
-     *   <li>The view's rectangle intersects at least one local display</li>
+     *   <li>No display info available (single-host, no enumeration)</li>
+     *   <li>View has a LOCATION matching a local display</li>
+     *   <li>View has no LOCATION — falls back to geometry intersection</li>
      * </ul>
      */
-    private boolean isViewOnLocalDisplay(ViewConfig config) {
+    private boolean isViewOnLocalDisplay(ViewHandle vh) {
         if (localDisplays.isEmpty()) return true;
+
+        // Check LOCATION binding — the proper way
+        if (vh.display() != null && primaryDisplayId != null) {
+            // For single-host, all local displays are ours
+            // TODO: multi-host would check if vh.display() matches any local display
+            return true;
+        }
+
+        // Legacy fallback: geometry intersection
+        ViewConfig config = vh.config();
         if (config.width() == 0) return true;
         for (DisplayLayoutConfig display : localDisplays) {
             if (display.intersects(config.x(), config.y(), config.width(), config.height())) {
@@ -334,13 +357,20 @@ public class GraphicalSession extends Session {
         return IDENTITY_MAPPER;
     }
 
+    @Override
+    public ItemID focusedDisplay() {
+        // TODO: track which window has focus and return its display
+        // For now, return the primary display
+        return primaryDisplayId;
+    }
+
     // ==================== View Lifecycle Hooks ====================
 
     @Override
     protected void onViewOpened(FrameKey key) {
         if (shared != null) {
             ViewHandle vh = findViewByKey(key);
-            if (vh != null && !isViewOnLocalDisplay(vh.config())) {
+            if (vh != null && !isViewOnLocalDisplay(vh)) {
                 log.debug("View {} not on local display — skipping window creation", key);
                 return;
             }

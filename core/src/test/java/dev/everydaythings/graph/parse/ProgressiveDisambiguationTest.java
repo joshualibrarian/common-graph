@@ -325,9 +325,11 @@ class ProgressiveDisambiguationTest {
     // ==================================================================================
 
     private static Sememe mockVerb(ItemID iid) {
-        // Verb with a slot role so inferPOSFromItem detects it as a verb
-        return new Sememe("test:verb/" + iid.toString().substring(0, 8))
-                .slot("cg.role:theme");
+        // Verb with an EXPECTS frame so inferPOSFromItem detects it as a verb
+        Sememe verb = new Sememe("test:verb/" + iid.toString().substring(0, 8));
+        verb.endorseFrame(new FrameBody(CoreVocabulary.Expects.IID, verb.iid(),
+                List.of(Binding.ref(ThematicRole.Topic.IID, ThematicRole.Theme.IID))));
+        return verb;
     }
 
     private static Sememe mockNoun(ItemID iid) {

@@ -1,16 +1,21 @@
 package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 
 import java.util.ArrayList;
@@ -41,14 +46,57 @@ import java.util.Objects;
  * @see FrameEndorsement
  * @see Binding
  */
+@Implements(FrameBody.TYPE_KEY)
+@ItemSeed(key = FrameBody.TYPE_KEY)
 public final class FrameBody implements Canonical {
 
-    /** Canonical type key for frame bodies. */
-    // TODO: this key should be united with it's seed
     public static final String TYPE_KEY = "cg.sememe:frame";
-
-    /** Deterministic ItemID for the frame body type. */
     public static final ItemID TYPE_ID = ItemID.fromString(TYPE_KEY);
+
+    @ItemFrame(predicate = SememeGloss.KEY,
+               fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+    static final String gloss = "a semantic assertion — predicate with role bindings";
+
+    // EXPECTS — array position 0, 1, 2 (declaration order = position)
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {Predicate.KEY}))
+    static final ItemID expectPredicate = Predicate.IID;
+
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {Bindings.KEY}))
+    static final ItemID expectBindings = Bindings.IID;
+
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {Config.KEY}))
+    static final ItemID expectConfig = Config.IID;
+
+    // Field-name sememes for array positions
+    @ItemSeed(key = Predicate.KEY)
+    static class Predicate {
+        static final String KEY = "cg.structure:predicate";
+        static final ItemID IID = ItemID.fromString(KEY);
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "the predicate of a frame — what kind of assertion";
+    }
+
+    @ItemSeed(key = Bindings.KEY)
+    static class Bindings {
+        static final String KEY = "cg.structure:bindings";
+        static final ItemID IID = ItemID.fromString(KEY);
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "the role bindings of a frame";
+    }
+
+    @ItemSeed(key = Config.KEY)
+    static class Config {
+        static final String KEY = "cg.structure:config";
+        static final ItemID IID = ItemID.fromString(KEY);
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "non-identity configuration bindings";
+    }
 
     /** The frame type — a sememe that names this kind of assertion. */
     private final ItemID predicate;

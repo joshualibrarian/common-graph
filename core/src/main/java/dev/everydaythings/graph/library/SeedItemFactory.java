@@ -64,14 +64,9 @@ public final class SeedItemFactory {
         Sememe item = instantiate(clazz, key);
         if (item == null) return null;
 
-        // 2. Process @ItemSeed slots
-        for (String slotKey : seedAnn.slots()) {
-            item.slot(slotKey);
-        }
-
-        // 3. Scan static @ItemFrame fields → create frames
+        // 2. Scan static @ItemFrame fields → create frames (includes EXPECTS)
         scanStaticFrameFields(clazz, item);
-        // 4. Scan @Implements → create IMPLEMENTED_BY frame
+        // 3. Scan @Implements → create IMPLEMENTED_BY frame
         scanImplements(clazz, item);
 
         return item;

@@ -2,6 +2,7 @@ package dev.everydaythings.graph.game.set;
 
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
@@ -38,6 +39,7 @@ import java.util.*;
  * @see SetProperty
  */
 @Implements(SetGame.KEY)
+@ItemSeed(key = SetGame.KEY)
 @Scene.Body(shape = "box", width = "60cm", height = "0", depth = "50cm", color = 0x2E7D32)
 public class SetGame extends GameComponent<SetGame.Op>
         implements Zoned<SetCard>, Scored, Randomized {

@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
@@ -19,15 +21,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class FrameAssemblerTest {
 
-    // Construct verb sememes with slot roles (matching the old SEED definitions)
-    private static final Sememe CREATE = new Sememe(CoreVocabulary.Create.KEY)
-            .slot(ThematicRole.Theme.KEY).slot(ThematicRole.Goal.KEY)
-            .slot(ThematicRole.Name.KEY).slot(ThematicRole.Partner.KEY)
-            .slot(ThematicRole.Source.KEY);
-    private static final Sememe SHOW = new Sememe(CoreVocabulary.Show.KEY)
-            .slot(ThematicRole.Theme.KEY);
-    private static final Sememe EDIT = new Sememe(CoreVocabulary.Edit.KEY)
-            .slot(ThematicRole.Patient.KEY);
+    // Construct verb sememes with EXPECTS frames (matching slot role declarations)
+    private static final Sememe CREATE = withExpects(new Sememe(CoreVocabulary.Create.KEY),
+            ThematicRole.Theme.IID, ThematicRole.Goal.IID,
+            ThematicRole.Name.IID, ThematicRole.Partner.IID,
+            ThematicRole.Source.IID);
+    private static final Sememe SHOW = withExpects(new Sememe(CoreVocabulary.Show.KEY),
+            ThematicRole.Theme.IID);
+    private static final Sememe EDIT = withExpects(new Sememe(CoreVocabulary.Edit.KEY),
+            ThematicRole.Patient.IID);
 
     // Construct preposition sememes with assigned roles
     private static final Sememe ON = new Sememe(PrepositionVocabulary.On.KEY)
@@ -294,9 +296,8 @@ class FrameAssemblerTest {
 
     @Test
     void requiredSlotsTracked() {
-        // GET has a required THEME slot
-        var getVerb = new Sememe(CoreVocabulary.Get.KEY)
-                .slot(ThematicRole.Theme.KEY);
+        // GET has a required THEME slot (via EXPECTS frame)
+        var getVerb = withExpects(new Sememe(CoreVocabulary.Get.KEY), ThematicRole.Theme.IID);
         Function<ItemID, Optional<Item>> r = iid -> {
             if (iid.equals(getVerb.iid())) return Optional.of(getVerb);
             return Optional.empty();
@@ -523,5 +524,18 @@ class FrameAssemblerTest {
         // Should produce 1 frame (not split at AND — no verb after AND)
         assertThat(frames).hasSize(1);
         assertThat(frames.get(0).verb()).isSameAs(CREATE);
+    }
+
+    // ==================================================================================
+    // Helpers
+    // ==================================================================================
+
+    /** Add EXPECTS frames for the given role IIDs to a sememe. */
+    private static Sememe withExpects(Sememe sememe, ItemID... roleIids) {
+        for (ItemID roleIid : roleIids) {
+            sememe.endorseFrame(new FrameBody(CoreVocabulary.Expects.IID, sememe.iid(),
+                    List.of(Binding.ref(ThematicRole.Topic.IID, roleIid))));
+        }
+        return sememe;
     }
 }

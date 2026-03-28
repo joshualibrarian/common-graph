@@ -28,7 +28,7 @@ public final class RoutingVocabulary {
     // Reachability and location predicates
     // ==================================================================================
 
-    @ItemSeed(key = ReachableAt.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = ReachableAt.KEY)
     public static class ReachableAt {
         public static final String KEY = "cg.core:reachable-at";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -38,9 +38,14 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i25412";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
-    @ItemSeed(key = AvailableAt.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = AvailableAt.KEY)
     public static class AvailableAt {
         public static final String KEY = "cg.core:available-at";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -50,13 +55,18 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i35108";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     // ==================================================================================
     // Peer relationship predicates
     // ==================================================================================
 
-    @ItemSeed(key = PeersWith.KEY, slots = {ThematicRole.Goal.KEY})
+    @ItemSeed(key = PeersWith.KEY)
     public static class PeersWith {
         public static final String KEY = "cg.core:peers-with";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -66,13 +76,18 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i34787";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Goal.KEY}))
+        static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     // ==================================================================================
     // Identification predicates
     // ==================================================================================
 
-    @ItemSeed(key = Name.KEY, slots = {ThematicRole.Referent.KEY})
+    @ItemSeed(key = Name.KEY)
     public static class Name {
         public static final String KEY = "cg.core:name";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -85,13 +100,18 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.IndexWeight.KEY)
         static final String indexWeight = "1000";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Referent.KEY}))
+        static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
     // ==================================================================================
     // Acknowledgement predicates
     // ==================================================================================
 
-    @ItemSeed(key = AcknowledgesDelivery.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = AcknowledgesDelivery.KEY)
     public static class AcknowledgesDelivery {
         public static final String KEY = "cg.trust:acknowledges-delivery";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -101,9 +121,14 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i26081";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = AcknowledgesRelay.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = AcknowledgesRelay.KEY)
     public static class AcknowledgesRelay {
         public static final String KEY = "cg.trust:acknowledges-relay";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -113,9 +138,14 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i25411";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
-    @ItemSeed(key = RequestId.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = RequestId.KEY)
     public static class RequestId {
         public static final String KEY = "cg.trust:request-id";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -125,18 +155,28 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i74891";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
     // ==================================================================================
     // Service predicates
     // ==================================================================================
 
-    @ItemSeed(key = Serves.KEY, slots = {ThematicRole.Recipient.KEY})
+    @ItemSeed(key = Serves.KEY)
     public static class Serves {
         public static final String KEY = "cg.core:serves";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "acts on behalf of; provides services to a principal";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Recipient.KEY}))
+        static final ItemID expectRecipient = ThematicRole.Recipient.IID;
     }
 }

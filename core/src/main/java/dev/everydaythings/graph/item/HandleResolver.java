@@ -8,6 +8,7 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.Librarian;
+import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,6 +36,7 @@ import java.util.Optional;
  *
  * @see CoreVocabulary.Expects
  */
+@Log4j2
 public final class HandleResolver {
 
     private HandleResolver() {}
@@ -349,7 +351,8 @@ public final class HandleResolver {
             if (resolved.isPresent()) {
                 return resolved.get().displayToken();
             }
-            return tid.displayAtWidth(12);
+            logger.debug("Handle: unresolved binding target {}", tid::encodeText);
+            return null;
         }
 
         if (binding.target() instanceof Literal lit) {

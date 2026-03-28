@@ -50,6 +50,7 @@ import java.util.Map;
  * }</pre>
  */
 @Implements(Dimension.KEY)
+@ItemSeed(key = Dimension.KEY)
 public class Dimension extends Item {
 
     // ==================================================================================

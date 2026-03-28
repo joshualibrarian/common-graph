@@ -3,6 +3,7 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval;
@@ -28,6 +29,7 @@ import java.util.Set;
  * (e.g., English) can add language-specific import logic.
  */
 @Implements(Language.KEY)
+@ItemSeed(key = Language.KEY)
 public class Language extends Item {
 
     // ==================================================================================

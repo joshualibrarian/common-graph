@@ -56,6 +56,7 @@ import java.util.stream.Stream;
  * to snapshot results, clear and re-run for a fresh set.
  */
 @Implements(QueryItem.KEY)
+@ItemSeed(key = QueryItem.KEY)
 @Scene.Root
 public class QueryItem extends Item {
 
@@ -100,7 +101,7 @@ public class QueryItem extends Item {
     // ==================================================================================
 
     /** The QUERY predicate — the pattern itself. */
-    @ItemSeed(key = Query.KEY, slots = {Term.KEY})
+    @ItemSeed(key = Query.KEY)
     public static class Query {
         public static final String KEY = "cg.predicate:query";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -109,10 +110,15 @@ public class QueryItem extends Item {
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a pattern of items to search for by frame co-occurrence";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {Term.KEY}))
+        static final ItemID expectTerm = Term.IID;
     }
 
     /** The QUERY_RESULT predicate — a single result. */
-    @ItemSeed(key = Result.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Result.KEY})
+    @ItemSeed(key = Result.KEY)
     public static class Result {
         public static final String KEY = "cg.predicate:query-result";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -121,6 +127,16 @@ public class QueryItem extends Item {
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a single item matched by a query pattern";
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
+                                   qualifiers = {ThematicRole.Result.KEY}))
+        static final ItemID expectResult = ThematicRole.Result.IID;
     }
 
     /** The TERM role — a search term in a query pattern. */

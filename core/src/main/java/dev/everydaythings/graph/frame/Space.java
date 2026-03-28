@@ -3,6 +3,7 @@ package dev.everydaythings.graph.frame;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSeed;
 
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -40,6 +41,7 @@ import java.util.*;
  * "what you see when inside an item" - Surface in 2D, Space in 3D.
  */
 @Implements(Space.KEY)
+@ItemSeed(key = Space.KEY)
 public final class Space {
 
     public static final String KEY = "cg.sememe:space";

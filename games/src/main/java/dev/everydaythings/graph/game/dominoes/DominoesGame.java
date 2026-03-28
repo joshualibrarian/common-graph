@@ -3,6 +3,7 @@ package dev.everydaythings.graph.game.dominoes;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
@@ -38,6 +39,7 @@ import java.util.*;
  * </ul>
  */
 @Implements(DominoesGame.KEY)
+@ItemSeed(key = DominoesGame.KEY)
 public class DominoesGame extends GameComponent<DominoesGame.Op>
         implements Zoned<DominoTile>, Scored {
 

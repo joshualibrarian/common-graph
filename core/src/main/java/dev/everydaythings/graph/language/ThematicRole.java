@@ -40,6 +40,7 @@ import dev.everydaythings.graph.language.CoreVocabulary;
  * @see PrepositionVocabulary
  */
 @Implements(ThematicRole.KEY)
+@ItemSeed(key = ThematicRole.KEY)
 public class ThematicRole extends Sememe {
 
     public static final String KEY = "cg.sememe:role";

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.value.address;
 
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -34,6 +35,7 @@ import java.util.regex.Pattern;
  * </ul>
  */
 @Implements(AtDomain.KEY)
+@ItemSeed(key = AtDomain.KEY)
 public class AtDomain extends AddressSpace {
 
     // ==================================================================================

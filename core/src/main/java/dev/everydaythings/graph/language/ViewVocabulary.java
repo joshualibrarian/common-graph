@@ -29,7 +29,7 @@ public final class ViewVocabulary {
      * <p>An ITEM_VIEW frame on a Session represents an open view of an item.
      * THEME identifies the viewed item; LOCATION identifies the session.
      */
-    @ItemSeed(key = ItemView.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Location.KEY})
+    @ItemSeed(key = ItemView.KEY)
     public static class ItemView {
         public static final String KEY = "cg.sememe:item-view";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -41,6 +41,14 @@ public final class ViewVocabulary {
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] words = {"item-view"};
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Location.KEY}))
+        static final ItemID expectLocation = ThematicRole.Location.IID;
     }
 
     /**
@@ -49,7 +57,7 @@ public final class ViewVocabulary {
      * <p>A DISPLAY frame on a Host represents a physical display device
      * attached to that host. THEME identifies the host.
      */
-    @ItemSeed(key = Display.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Display.KEY)
     public static class Display {
         public static final String KEY = "cg.sememe:display";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -61,6 +69,10 @@ public final class ViewVocabulary {
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] words = {"display"};
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
     /**
@@ -70,7 +82,7 @@ public final class ViewVocabulary {
      * session's unified coordinate space. THEME identifies the display,
      * LOCATION identifies the session.
      */
-    @ItemSeed(key = DisplayLayout.KEY, slots = {ThematicRole.Theme.KEY, ThematicRole.Location.KEY})
+    @ItemSeed(key = DisplayLayout.KEY)
     public static class DisplayLayout {
         public static final String KEY = "cg.sememe:display-layout";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -82,6 +94,14 @@ public final class ViewVocabulary {
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] words = {"display-layout"};
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Location.KEY}))
+        static final ItemID expectLocation = ThematicRole.Location.IID;
     }
 
     // ==================================================================================
@@ -94,7 +114,7 @@ public final class ViewVocabulary {
      * <p>Creates an ITEM_VIEW frame on the session for the target item
      * and navigates into it.
      */
-    @ItemSeed(key = View.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = View.KEY)
     public static class View {
         public static final String KEY = "cg.verb:view";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -106,6 +126,10 @@ public final class ViewVocabulary {
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] words = {"view", "open"};
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
     /**
@@ -113,7 +137,7 @@ public final class ViewVocabulary {
      *
      * <p>Removes the ITEM_VIEW frame from the session and navigates back.
      */
-    @ItemSeed(key = Close.KEY, slots = {ThematicRole.Theme.KEY})
+    @ItemSeed(key = Close.KEY)
     public static class Close {
         public static final String KEY = "cg.verb:close";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -125,5 +149,9 @@ public final class ViewVocabulary {
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] words = {"close"};
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 }

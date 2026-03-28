@@ -4,9 +4,15 @@ import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.SememeGloss;
+import dev.everydaythings.graph.language.ThematicRole;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -39,7 +45,62 @@ import java.util.Objects;
  * @see BindingTarget
  */
 @Getter
+@Implements(Binding.KEY)
+@ItemSeed(key = Binding.KEY)
 public final class Binding implements Canonical {
+
+    public static final String KEY = "cg.structure:binding";
+    public static final ItemID IID = ItemID.fromString(KEY);
+
+    @ItemFrame(predicate = SememeGloss.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+    static final String seedGloss = "a role binding within a frame — key→value with semantic function";
+
+    // EXPECTS — array position 0, 1, 2, 3, 4 (declaration order = position)
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
+    static final ItemID expectRole = ItemID.fromString(ThematicRole.KEY);
+
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Qualifiers.KEY}))
+    static final ItemID expectQualifiers = Qualifiers.IID;
+
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Target.KEY}))
+    static final ItemID expectTarget = Target.IID;
+
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Identity.KEY}))
+    static final ItemID expectIdentity = Identity.IID;
+
+    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Index.KEY}))
+    static final ItemID expectIndex = Index.IID;
+
+    // Field-name sememes for array positions
+    @ItemSeed(key = Qualifiers.KEY)
+    static class Qualifiers {
+        static final String KEY = "cg.structure:qualifiers";
+        static final ItemID IID = ItemID.fromString(KEY);
+    }
+
+    @ItemSeed(key = Target.KEY)
+    static class Target {
+        static final String KEY = "cg.structure:target";
+        static final ItemID IID = ItemID.fromString(KEY);
+    }
+
+    @ItemSeed(key = Identity.KEY)
+    static class Identity {
+        static final String KEY = "cg.structure:identity";
+        static final ItemID IID = ItemID.fromString(KEY);
+    }
+
+    @ItemSeed(key = Index.KEY)
+    static class Index {
+        static final String KEY = "cg.structure:index";
+        static final ItemID IID = ItemID.fromString(KEY);
+    }
 
     /** The semantic function — what KIND of binding (NAME, THEME, AGENT, ...). */
     private final ItemID role;

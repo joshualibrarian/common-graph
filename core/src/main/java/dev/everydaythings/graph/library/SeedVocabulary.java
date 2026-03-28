@@ -15,6 +15,7 @@ import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
@@ -239,11 +240,12 @@ public final class SeedVocabulary {
                 .findFirst()
                 .orElse(null);
 
-        // Attach display metadata from @Implements
-        Implements impl = clazz.getAnnotation(Implements.class);
-        if (impl != null && seedItem != null) {
-            attachTypePresentation(seedItem, clazz, impl, key);
+        if (seedItem == null) {
+            logger.warn("@Implements({}) on {} has no matching @ItemSeed — IID will be unresolvable",
+                    key, clazz.getSimpleName());
         }
+
+        // @Implements metadata noted — presentation is now CONFIG bindings on frames/items
 
         // Store manifest first (with presentation but without IMPLEMENTED_BY).
         // storeItem() calls generateSeedManifest() which rebuilds the EndorsementsTable
@@ -274,74 +276,6 @@ public final class SeedVocabulary {
     }
 
     // ==================================================================================
-    // Unified Presentation Attachment
-    // ==================================================================================
-
-    /**
-     * Attach a unified SurfaceTemplateComponent with both display metadata and
-     * surface template to a type item.
-     *
-     * <p>This replaces the former two-component pattern (DisplayComponent + SurfaceTemplateComponent)
-     * with a single component at handle "surface".
-     */
-    private void attachTypePresentation(Item typeItem, Class<?> typeClass, Implements annotation, String key) {
-        // Start with display fields from @Implements annotation
-        SurfaceTemplateComponent stc = SurfaceTemplateComponent.fromImplements(annotation);
-        stc.typeName(extractReadableName(key));
-
-        // Compile surface template from @Scene annotations (if present)
-        Class<?> surfaceClass = null;
-        Scene sceneAnn = typeClass.getAnnotation(Scene.class);
-        if (sceneAnn != null && sceneAnn.as() != SceneSchema.class) {
-            surfaceClass = sceneAnn.as();
-        }
-        Class<?> target = surfaceClass != null ? surfaceClass : typeClass;
-        if (SceneCompiler.canCompile(target)) {
-            ViewNode compiled = SceneCompiler.getCompiled(target);
-            if (compiled != null) {
-                stc.root(compiled);
-            }
-        }
-
-        attachComponent(typeItem, SurfaceTemplateComponent.HANDLE, "surface", stc);
-
-        // Phase 5: also store PresentationConfig in a PRESENTATION frame on the type item.
-        PresentationConfig presConfig = PresentationConfig.of(
-                "📦", 0x78788C, "sphere");
-        byte[] presBytes = presConfig.encodeBinary(Canonical.Scope.RECORD);
-        Literal presLiteral = new Literal(Literal.TYPE_CBOR, presBytes);
-
-        FrameKey presKey = FrameKey.of(ThematicRole.Presentation.IID);
-        FrameBody presBody = new FrameBody(ThematicRole.Presentation.IID,
-                List.of(new Binding(ThematicRole.Topic.IID, presLiteral)));
-        Frame presFrame = new Frame(presKey, ThematicRole.Presentation.IID,
-                presBody, presBody.hash(), false);
-        typeItem.frames().add(presFrame);
-    }
-
-    /**
-     * Attach a component to an item's content table.
-     *
-     * <p>Encodes the component to CBOR, computes a ContentID, and stores
-     * the entry with a snapshot CID so it survives manifest generation.
-     */
-    private void attachComponent(Item item, FrameKey key, String alias, Object component) {
-        var contentTable = item.frames();
-        if (contentTable != null) {
-            // Encode and compute CID upfront so the entry has a snapshot
-            byte[] bytes = ((Canonical) component).encodeBinary(Canonical.Scope.RECORD);
-            ContentID cid = ContentID.of(bytes);
-
-            Frame frame = Frame.snapshot(key,
-                    ItemID.fromString(SurfaceTemplateComponent.KEY), cid, false);
-
-            contentTable.add(frame);
-            contentTable.setLive(key, component);
-            logger.debug("Attached surface template to {}", item.displayToken());
-        }
-    }
-
-    // ==================================================================================
     // Relation Creation
     // ==================================================================================
 
@@ -351,11 +285,12 @@ public final class SeedVocabulary {
                 typeId,
                 Map.of(ThematicRole.Goal.IID, Literal.ofJavaClass(implementingClass)));
 
-        // Add to item's endorsements table as a bare frame
+        // Add to item's endorsements table
         if (item != null) {
             byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
             Frame frame = Frame.forFrameBody(body.predicate(), cid, true, "implementedBy");
+            frame.setBody(body);
             item.frames().add(frame);
             item.frames().setLive(frame.frameKey(), body);
         }

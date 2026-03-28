@@ -4,6 +4,7 @@ import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.game.card.PlayingCard;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
@@ -43,6 +44,7 @@ import java.util.*;
  * </ul>
  */
 @Implements(SpadesGame.KEY)
+@ItemSeed(key = SpadesGame.KEY)
 public class SpadesGame extends GameComponent<SpadesGame.Op>
         implements Zoned<PlayingCard>, Scored, Phased {
 

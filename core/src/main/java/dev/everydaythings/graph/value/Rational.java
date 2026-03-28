@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import lombok.Getter;
 
 /**
@@ -18,6 +19,7 @@ import lombok.Getter;
  */
 @Getter
 @Implements("cg.value:rational")
+@ItemSeed(key = "cg.value:rational")
 public final class Rational implements Numeric {
 
     @Canon(order = 1)

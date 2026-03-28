@@ -16,7 +16,7 @@ import java.lang.annotation.Target;
  * on static fields.
  *
  * <pre>{@code
- * @ItemSeed(key = Create.KEY, slots = {ThematicRole.Theme.KEY})
+ * @ItemSeed(key = Create.KEY)
  * public static class Create {
  *     public static final String KEY = "cg.verb:create";
  *
@@ -40,7 +40,4 @@ public @interface ItemSeed {
 
     /** The canonical key for this seed sememe. */
     String key();
-
-    /** Expected thematic role slots (KEY strings). */
-    String[] slots() default {};
 }

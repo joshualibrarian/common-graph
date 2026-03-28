@@ -9,6 +9,7 @@ import dev.everydaythings.graph.game.Scored;
 import dev.everydaythings.graph.game.dice.Die;
 import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Param;
 import dev.everydaythings.graph.item.Verb;
@@ -40,6 +41,7 @@ import java.util.*;
  * </ul>
  */
 @Implements(YahtzeeGame.KEY)
+@ItemSeed(key = YahtzeeGame.KEY)
 public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
         implements Scored, Phased, Randomized {
 

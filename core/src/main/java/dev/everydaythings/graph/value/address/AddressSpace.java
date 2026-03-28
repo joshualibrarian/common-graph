@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.value.address;
 
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -46,6 +47,7 @@ import java.util.regex.Pattern;
  * @see ValueType
  */
 @Implements(AddressSpace.KEY)
+@ItemSeed(key = AddressSpace.KEY)
 public abstract class AddressSpace extends ValueType {
 
     // ==================================================================================
