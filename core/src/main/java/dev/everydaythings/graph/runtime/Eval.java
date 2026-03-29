@@ -909,92 +909,23 @@ public class Eval {
      * </ol>
      */
     private EvalResult evaluateFrame(SemanticFrame frame) {
-        ItemID verbId = frame.verb().iid();
-        logger.debug("evaluateFrame: verb={}, verbId={}, bindings={}, unmatchedArgs={}",
-                frame.verb().displayToken(), verbId.encodeText(),
-                frame.bindings().keySet(), frame.unmatchedArgs());
-
-        // Incomplete frame: action verb → dispatch (verb handles defaults),
-        // data predicate → query (find items matching the pattern).
-        // Action verbs live in the cg.verb: or cg.session: namespace.
-        if (!frame.isComplete()) {
-            String key = frame.verb().canonicalKey();
-            boolean isActionVerb = key != null
-                    && (key.startsWith("cg.verb:") || key.startsWith("cg.session:"));
-            if (!isActionVerb) {
-                return evaluateStructuredQuery(frame);
-            }
-        }
-
-        // Try frame assembly pipeline first — participants react via onFrameAssembled
         FrameBody frameBody = toFrameBody(frame);
         Librarian librarian = librarianHandle instanceof LocalLibrarian local
                 ? local.librarian() : null;
-        if (librarian != null) {
-            Signer signer = session instanceof Signer s ? s : librarian;
-            Scope assemblyScope = Scope.of(librarian, context);
-            FrameAssemblyContext ctx = assemblyPipeline.assemble(
-                    frameBody, assemblyScope, signer, session);
-            if (ctx.handled()) {
-                return mapResultToEvalResult(ctx.result(), frame);
-            }
+        if (librarian == null) {
+            return EvalResult.error("No librarian available");
         }
 
-        // Fallback: existing FrameEvaluator + @Verb dispatch path
-        Item target = findDispatchTarget(verbId, frame);
-
-        // Verb alone with no bindings and no context → navigate to verb sememe
-        if (target == null) {
-            return EvalResult.item(frame.verb());
+        Signer signer = session instanceof Signer s ? s : librarian;
+        Scope assemblyScope = Scope.of(librarian, context);
+        FrameAssemblyContext ctx = assemblyPipeline.assemble(
+                frameBody, assemblyScope, signer, session);
+        if (ctx.handled()) {
+            return mapResultToEvalResult(ctx.result(), frame);
         }
 
-        logger.debug("evaluateFrame: dispatch target={}", target.displayToken());
-
-        // Build scope with the dispatch target as owner
-        Scope evalScope = librarian != null
-                ? Scope.of(librarian, target)
-                : Scope.of(null, target);
-
-        // Evaluate through the unified path — same as expressions
-        try {
-            Object value = frameEvaluator.evaluate(frameBody, evalScope);
-            return mapResultToEvalResult(value, frame);
-        } catch (Exception e) {
-            logger.debug("Frame evaluation failed: {}", e.getMessage());
-            return EvalResult.error(e.getMessage());
-        }
-    }
-
-    /**
-     * Check if any scope in the vocabulary chain has an executable verb for this ID.
-     *
-     * <p>Searches the same scopes as {@link #findDispatchTarget} but without
-     * the "last resort" fallback. Returns true only if a real {@code @Verb}
-     * method exists somewhere in the dispatch chain.
-     */
-    private boolean hasExecutableVerb(ItemID verbId, SemanticFrame frame) {
-        // Focused component
-        if (focusedComponent != null && context != null) {
-            if (context.vocabulary().verbsFor(focusedComponent)
-                    .anyMatch(v -> v.sememeId().equals(verbId))) {
-                return true;
-            }
-        }
-
-        // Bound items
-        for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
-            if (!(entry.getValue() instanceof Item item)) continue;
-            if (item.vocabulary().lookup(verbId).isPresent()) return true;
-        }
-
-        // Context, session, librarian
-        if (context != null && context.vocabulary().lookup(verbId).isPresent()) return true;
-        if (session != null && session.vocabulary().lookup(verbId).isPresent()) return true;
-        Vocabulary lv = librarianHandle.vocabulary();
-        if (lv != null && lv.lookup(verbId).isPresent()) return true;
-
-        return false;
+        // Nobody handled — unrecognized predicate
+        return EvalResult.error("No handler for predicate: " + frame.verb().displayToken());
     }
 
     /**
@@ -1044,49 +975,6 @@ public class Eval {
         return EvalResult.query(queryItem, resultItems, queryItem.extractPattern());
     }
 
-    /**
-     * Find the dispatch target for a verb via inner-to-outer scope search.
-     */
-    private Item findDispatchTarget(ItemID verbId, SemanticFrame frame) {
-        // 1. Focused component's verbs (innermost scope)
-        if (focusedComponent != null && context != null) {
-            if (context.vocabulary().verbsFor(focusedComponent)
-                    .anyMatch(v -> v.sememeId().equals(verbId))) {
-                return context;
-            }
-        }
-
-        // 2. Bound items from the frame (explicit user intent)
-        for (var entry : frame.bindings().entrySet()) {
-            if (entry.getKey().equals(ThematicRole.Goal.IID)) continue;
-            if (!(entry.getValue() instanceof Item item)) continue;
-            if (item.vocabulary().lookup(verbId).isPresent()) {
-                return item;
-            }
-        }
-
-        // 3. Context item's vocabulary
-        if (context != null && context.vocabulary().lookup(verbId).isPresent()) {
-            return context;
-        }
-
-        // 4. Session item's vocabulary (outermost scope)
-        if (session != null && session.vocabulary().lookup(verbId).isPresent()) {
-            return session;
-        }
-
-        // 5. Librarian's vocabulary (system-level)
-        Vocabulary lv = librarianHandle.vocabulary();
-        if (lv != null && lv.lookup(verbId).isPresent()) {
-            return librarianHandle.get(librarianHandle.iid()).orElse(null);
-        }
-
-        // Last resort: first bound Item
-        return frame.bindings().values().stream()
-                .filter(v -> v instanceof Item)
-                .map(v -> (Item) v)
-                .findFirst().orElse(null);
-    }
 
     /**
      * Convert a SemanticFrame to a FrameBody for unified evaluation.
@@ -1394,8 +1282,11 @@ public class Eval {
      */
     private ResolvedToken convertToken(ExpressionToken token) {
         return switch (token) {
-            case ExpressionToken.RefToken ref ->
-                    new ResolvedToken.Link(ref.target(), ref.displayText());
+            case ExpressionToken.RefToken ref -> {
+                    var features = ref.sourcePosting() != null
+                            ? ref.sourcePosting().features() : java.util.Set.<ItemID>of();
+                    yield new ResolvedToken.Link(ref.target(), ref.displayText(), features);
+            }
             case ExpressionToken.LiteralToken lit ->
                     new ResolvedToken.Literal(lit.value(), lit.displayText());
             case ExpressionToken.OpToken op ->

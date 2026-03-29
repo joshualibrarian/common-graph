@@ -1200,7 +1200,7 @@ public class InputController {
                 if (item.isPresent()) {
                     String display = item.get().displayToken();
                     if (display != null && !display.isBlank()) {
-                        return RefToken.of(posting.target(), display);
+                        return new RefToken(posting.target(), display, posting);
                     }
                 }
             } catch (Exception e) {

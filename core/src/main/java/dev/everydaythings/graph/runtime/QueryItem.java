@@ -87,12 +87,12 @@ public class QueryItem extends Item {
         // QUERY frame is most identifying (what was searched for).
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {Query.KEY}))
+                                   qualifiers = {FrameBody.TYPE_KEY, Query.KEY}))
         static final ItemID expectQuery = ItemID.fromString(Query.KEY);
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {Result.KEY}))
+                                   qualifiers = {FrameBody.TYPE_KEY, Result.KEY}))
         static final ItemID expectResult = ItemID.fromString(Result.KEY);
     }
 
@@ -113,7 +113,7 @@ public class QueryItem extends Item {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {Term.KEY}))
+                                   qualifiers = {ThematicRole.KEY, Term.KEY}))
         static final ItemID expectTerm = Term.IID;
     }
 
@@ -130,12 +130,12 @@ public class QueryItem extends Item {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Theme.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Result.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Result.KEY}))
         static final ItemID expectResult = ThematicRole.Result.IID;
     }
 

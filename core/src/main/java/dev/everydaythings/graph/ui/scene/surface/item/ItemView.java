@@ -328,6 +328,31 @@ public class ItemView {
         this.root = Ref.of(item.iid());
         this.context = this.root;
         this.resolver = resolver;
+        watchFrames();
+    }
+
+    /** Currently watched item (for unsubscribing on navigation). */
+    private transient Item watchedItem;
+
+    /**
+     * Subscribe to the current item's frame changes.
+     * When frames are added/removed, the tree rebuilds and the UI re-renders.
+     */
+    private void watchFrames() {
+        // Unsubscribe from old item
+        if (watchedItem != null && watchedItem.frames() != null) {
+            watchedItem.frames().onChanged(null);
+        }
+
+        Item current = item();
+        watchedItem = current;
+
+        if (current != null && current.frames() != null) {
+            current.frames().onChanged(() -> {
+                rebuildTree();
+                changed();
+            });
+        }
     }
 
     // ==================================================================================
@@ -353,6 +378,7 @@ public class ItemView {
         if (target == null) return;
         history.add(root);
         root = target; context = target;
+        watchFrames();
         rebuildTree(); changed();
     }
 
@@ -364,6 +390,7 @@ public class ItemView {
     public boolean goBack() {
         if (history.isEmpty()) return false;
         root = history.removeLast(); context = root;
+        watchFrames();
         rebuildTree(); changed();
         return true;
     }
@@ -800,24 +827,17 @@ public class ItemView {
         private static String buildSummaryLabel(Frame frame, Item item) {
             FrameBody body = frame.body();
             if (body == null) {
-                // No body — resolve the FrameKey tokens through the librarian
                 return truncate(resolveFrameKeyLabel(frame, item));
             }
 
-            String pred = resolvePredicate(frame, item);
-
-            ItemID homeId = body.homeId();
-            List<String> parts = new ArrayList<>();
-            for (Binding b : body.frameBindings()) {
-                if (parts.size() >= 2) break;
-                ItemID tid = b.targetId();
-                if (tid != null && tid.equals(homeId)) continue;
-                String value = fmtTarget(b, item);
-                if (value != null && !value.isBlank()) parts.add(value);
+            Librarian lib = item.itemLibrarian();
+            if (lib != null) {
+                return truncate(HandleResolver.labelForFrame(body, item.iid(), lib));
             }
 
-            if (parts.isEmpty()) return truncate(pred);
-            return truncate(pred + " \u2192 " + String.join(", ", parts));
+            // No librarian — fall back to predicate name only
+            String pred = resolvePredicate(frame, item);
+            return truncate(pred != null ? pred : "frame");
         }
 
         private static String truncate(String s) {

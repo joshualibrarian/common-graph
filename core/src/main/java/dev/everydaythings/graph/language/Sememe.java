@@ -9,6 +9,7 @@ import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.item.Implements;
@@ -454,29 +455,58 @@ public class Sememe extends Item {
     }
 
     // ==================================================================================
-    // EXPECTED ROLES — read from EXPECTS frames
+    // EXPECTS — role expectations (predicates) and frame expectations (types)
     // ==================================================================================
 
     /**
-     * Returns the IIDs this sememe expects as arguments, read from EXPECTS frames.
+     * Returns the thematic role IIDs this predicate expects as bindings.
      *
-     * <p>Reads EXPECTS frames on this sememe item and extracts TOPIC binding targets.
-     * For predicates, these are role IIDs (what bindings a frame should carry).
-     * For types, these are predicate IIDs (what frames an item should carry).
-     * The consumer determines interpretation based on context.
+     * <p>Reads EXPECTS frames whose TOPIC binding is qualified with ROLE
+     * ({@code cg.sememe:role}). Falls back to ALL expects if no qualified
+     * ones are found (backward compat).
      */
     public List<ItemID> slotRoles() {
+        return expectsFiltered(ItemID.fromString(ThematicRole.KEY));
+    }
+
+    /**
+     * Returns the predicate IIDs this type expects as frames on its instances.
+     *
+     * <p>Reads EXPECTS frames whose TOPIC binding is qualified with FRAME
+     * ({@code cg.sememe:frame}).
+     */
+    public List<ItemID> expectedFrames() {
+        return expectsFiltered(FrameBody.TYPE_ID);
+    }
+
+    /**
+     * Read EXPECTS frames, optionally filtered by a qualifier.
+     *
+     * <p>If qualifier is non-null, only returns EXPECTS whose TOPIC binding
+     * has that qualifier as its first token. If no qualified EXPECTS are found,
+     * falls back to returning ALL EXPECTS (backward compat).
+     */
+    private List<ItemID> expectsFiltered(ItemID qualifier) {
         if (frames() == null) return List.of();
-        List<ItemID> roles = new ArrayList<>();
+        List<ItemID> qualified = new ArrayList<>();
+        List<ItemID> all = new ArrayList<>();
         for (Frame frame : frames()) {
             if (frame.body() == null) continue;
             if (!CoreVocabulary.Expects.IID.equals(frame.body().predicate())) continue;
             Binding topicBinding = frame.body().getBindingByRole(ThematicRole.Topic.IID);
-            if (topicBinding != null && topicBinding.targetId() != null) {
-                roles.add(topicBinding.targetId());
+            if (topicBinding == null || topicBinding.targetId() == null) continue;
+
+            all.add(topicBinding.targetId());
+
+            // Check if first qualifier matches
+            if (qualifier != null && !topicBinding.qualifiers().isEmpty()) {
+                if (topicBinding.qualifiers().getFirst() instanceof FrameKey.Sememe sem
+                        && qualifier.equals(sem.id())) {
+                    qualified.add(topicBinding.targetId());
+                }
             }
         }
-        return roles;
+        return qualified;
     }
 
     // ==================================================================================
@@ -642,121 +672,7 @@ public class Sememe extends Item {
         }
     }
 
-    // ==================================================================================
-    // CREATE Verb (legacy @Verb path — fallback until fully migrated)
-    // ==================================================================================
 
-    /**
-     * @deprecated Use {@link #onFrameAssembled(FrameAssemblyContext)} instead.
-     */
-    @Deprecated
-    @Verb(value = CoreVocabulary.Create.KEY, doc = "Create a new instance of this type")
-    public Object actionCreate(ActionContext ctx,
-                               @Param(value = "name", required = false, role = "NAME") String name) {
-        Class<?> implClass = resolveImplementingClass()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No implementing class for: " + displayToken()));
-
-        if (!Item.class.isAssignableFrom(implClass)) {
-            throw new IllegalStateException(
-                    implClass.getSimpleName() + " is not an Item subclass");
-        }
-
-        Librarian lib = ctx.librarian();
-        if (lib == null) {
-            throw new IllegalStateException("Cannot create item without librarian");
-        }
-
-        // 1. Instantiate — try (Librarian) first, fall back to (Librarian, InMemoryMarker)
-        Item newItem = instantiateItem(implClass, lib);
-
-        // 2. INSTANCE_OF frame: link instance to this sememe
-        lib.storeFrame(FrameBody.builder(LexicalVocabulary.InstanceOf.IID)
-                .bind(ThematicRole.Theme.IID, newItem.iid())
-                .bind(ThematicRole.Goal.IID, this.iid())
-                .build());
-
-        // 3. Optional name — Signers get setName(), others get a TITLE frame
-        if (name != null && !name.isBlank()) {
-            if (newItem instanceof Signer signer) {
-                signer.setName(name);
-            } else {
-                lib.storeFrame(FrameBody.builder(CoreVocabulary.Title.IID)
-                        .bind(ThematicRole.Theme.IID, newItem.iid())
-                        .bind(ThematicRole.Name.IID, name)
-                        .build());
-            }
-        }
-
-        // 4. Commit + cache so it's stored and indexed
-        ctx.callerSigner().ifPresent(newItem::commit);
-        lib.put(newItem);
-
-        // 5. Return Created marker so dispatch pipeline knows this was creation
-        return new Created(newItem, this);
-    }
-
-    /**
-     * Instantiate an Item subclass, trying constructors in priority order:
-     * (Librarian), then (Librarian, InMemoryMarker).
-     */
-    private static Item instantiateItem(Class<?> implClass, Librarian lib) {
-        // Try (Librarian) constructor first
-        try {
-            var ctor = implClass.getDeclaredConstructor(Librarian.class);
-            ctor.setAccessible(true);
-            return (Item) ctor.newInstance(lib);
-        } catch (NoSuchMethodException ignored) {
-            // fall through to InMemoryMarker
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
-        }
-
-        // Try (Librarian, InMemoryMarker) constructor
-        try {
-            Class<?> markerClass = Class.forName(
-                    "dev.everydaythings.graph.item.Item$InMemoryMarker");
-            Object markerInstance = markerClass.getField("INSTANCE").get(null);
-            var ctor = implClass.getDeclaredConstructor(Librarian.class, markerClass);
-            ctor.setAccessible(true);
-            return (Item) ctor.newInstance(lib, markerInstance);
-        } catch (NoSuchMethodException | ClassNotFoundException e) {
-            throw new IllegalArgumentException(
-                    implClass.getSimpleName() + " has no Librarian or (Librarian, InMemoryMarker) constructor");
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
-        }
-    }
-
-    /**
-     * Resolve the implementing Java class from the IMPLEMENTED_BY frame.
-     */
-    public Optional<Class<?>> resolveImplementingClass() {
-        if (frames() != null) {
-            ItemID implPredicate = CoreVocabulary.ImplementedBy.IID;
-            var it = frames().bareFrames().iterator();
-            while (it.hasNext()) {
-                var frame = it.next();
-                Optional<Object> live = frames().getLive(frame.frameKey());
-                if (live.isPresent() && live.get() instanceof FrameBody body) {
-                    if (implPredicate.equals(body.predicate())) {
-                        BindingTarget target = body.bindings().get(ThematicRole.Goal.IID);
-                        if (target instanceof Literal lit) {
-                            String className = lit.asText();
-                            if (className != null) {
-                                try {
-                                    return Optional.of(Class.forName(className));
-                                } catch (ClassNotFoundException e) {
-                                    logger.debug("Could not resolve class '{}': {}", className, e.getMessage());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return Optional.empty();
-    }
 
     /**
      * Whether this sememe has an implementing class (is createable).

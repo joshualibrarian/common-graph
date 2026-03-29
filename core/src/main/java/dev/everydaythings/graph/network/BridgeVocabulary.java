@@ -68,12 +68,12 @@ public final class BridgeVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Instrument.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Instrument.KEY}))
         static final ItemID expectInstrument = ThematicRole.Instrument.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Goal.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -150,12 +150,12 @@ public final class BridgeVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Theme.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Goal.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -173,12 +173,12 @@ public final class BridgeVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Instrument.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Instrument.KEY}))
         static final ItemID expectInstrument = ThematicRole.Instrument.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Source.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Source.KEY}))
         static final ItemID expectSource = ThematicRole.Source.IID;
     }
 }

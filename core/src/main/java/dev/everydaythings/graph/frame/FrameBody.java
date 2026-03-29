@@ -59,15 +59,15 @@ public final class FrameBody implements Canonical {
 
     // EXPECTS — array position 0, 1, 2 (declaration order = position)
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {Predicate.KEY}))
+               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {TYPE_KEY, Predicate.KEY}))
     static final ItemID expectPredicate = Predicate.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {Bindings.KEY}))
+               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {TYPE_KEY, Bindings.KEY}))
     static final ItemID expectBindings = Bindings.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {Config.KEY}))
+               fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {TYPE_KEY, Config.KEY}))
     static final ItemID expectConfig = Config.IID;
 
     // Field-name sememes for array positions

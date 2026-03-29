@@ -530,11 +530,17 @@ class FrameAssemblerTest {
     // Helpers
     // ==================================================================================
 
-    /** Add EXPECTS frames for the given role IIDs to a sememe. */
+    /** Add EXPECTS ROLE frames for the given role IIDs to a sememe. */
     private static Sememe withExpects(Sememe sememe, ItemID... roleIids) {
         for (ItemID roleIid : roleIids) {
-            sememe.endorseFrame(new FrameBody(CoreVocabulary.Expects.IID, sememe.iid(),
-                    List.of(Binding.ref(ThematicRole.Topic.IID, roleIid))));
+            // Qualified with ROLE (ThematicRole.KEY) so slotRoles() picks them up
+            List<dev.everydaythings.graph.item.id.FrameKey.FrameToken> qualifiers = List.of(
+                    new dev.everydaythings.graph.item.id.FrameKey.Sememe(ItemID.fromString(ThematicRole.KEY)),
+                    new dev.everydaythings.graph.item.id.FrameKey.Sememe(roleIid));
+            var binding = new Binding(ThematicRole.Topic.IID, qualifiers,
+                    dev.everydaythings.graph.frame.BindingTarget.iid(roleIid), true, false);
+            sememe.endorseFrame(new FrameBody(CoreVocabulary.Expects.IID,
+                    List.of(Binding.ref(ThematicRole.Theme.IID, sememe.iid()), binding)));
         }
         return sememe;
     }

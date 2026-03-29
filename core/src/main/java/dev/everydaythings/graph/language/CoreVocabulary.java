@@ -1,10 +1,19 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.dispatch.Created;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.runtime.Librarian;
 
 /**
  * Core vocabulary seeds — the fundamental predicates and actions CG needs to function.
@@ -41,23 +50,25 @@ public final class CoreVocabulary {
         static final String cili = "i33787";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
     /**
-     * Declares a frame structure expected on instances of a type.
+     * Declares an expectation on a sememe — either a role binding (for predicates)
+     * or a frame type (for item types).
      *
-     * <p>EXPECTS frames live on a Sememe (type definition) and describe what
-     * frames its instances should carry. TOPIC identifies the expected predicate;
-     * additional roles constrain expected bindings.
-     *
-     * <p>Serves double duty: forward (creation guidance — "chess needs players")
-     * and backward (duck typing — "this item has players and moves, it's chess").
+     * <p>The first qualifier on the TOPIC binding distinguishes the kind:
+     * <ul>
+     *   <li>ROLE ({@code cg.sememe:role}) — predicate expects a thematic role binding
+     *       (e.g., ITEM_VIEW expects THEME, LOCATION)</li>
+     *   <li>FRAME ({@code cg.sememe:frame}) — type expects a frame on its instances
+     *       (e.g., CHESS expects PLAYER, MOVE frames)</li>
+     * </ul>
      */
     @ItemSeed(key = Expects.KEY)
     public static class Expects {
@@ -66,21 +77,27 @@ public final class CoreVocabulary {
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "declares a frame structure expected on instances of this type";
+        static final String gloss = "declares an expectation — a role binding or a frame type";
 
         @ItemFrame(predicate = Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
+
     // ==================================================================================
     // ACTION VERBS
     // ==================================================================================
 
+    @Implements(Create.KEY)
     @ItemSeed(key = Create.KEY)
-    public static class Create {
+    public static class Create extends Sememe {
         public static final String KEY = "cg.verb:create";
         public static final ItemID IID = ItemID.fromString(KEY);
+
+        public Create() { super(KEY); }
+        protected Create(ItemID iid) { super(iid); }
+        protected Create(Librarian lib, Manifest m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -95,24 +112,67 @@ public final class CoreVocabulary {
         static final String[] words = {"create", "new", "make"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Name.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Name.KEY}))
         static final ItemID expectName = ThematicRole.Name.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Partner.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Partner.KEY}))
         static final ItemID expectPartner = ThematicRole.Partner.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Source.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Source.KEY}))
         static final ItemID expectSource = ThematicRole.Source.IID;
+
+        @Override
+        public void onFrameAssembled(FrameAssemblyContext ctx) {
+            Item typeItem = ctx.item(ThematicRole.Theme.IID);
+            if (typeItem == null) return;
+
+            Class<?> implClass = typeItem.resolveImplementingClass().orElse(null);
+            if (implClass == null || !Item.class.isAssignableFrom(implClass)) return;
+
+            Librarian lib = ctx.scope().librarian();
+            if (lib == null) return;
+
+            Item newItem = Item.instantiateItem(implClass, lib);
+
+            // INSTANCE_OF frame
+            lib.storeFrame(FrameBody.builder(LexicalVocabulary.InstanceOf.IID)
+                    .bind(ThematicRole.Theme.IID, newItem.iid())
+                    .bind(ThematicRole.Goal.IID, typeItem.iid())
+                    .build());
+
+            // Optional name from NAME binding
+            BindingTarget nameTarget = ctx.body().binding(ThematicRole.Name.IID);
+            if (nameTarget instanceof Literal lit && lit.payload() != null) {
+                String name = new String(lit.payload(), java.nio.charset.StandardCharsets.UTF_8);
+                if (!name.isBlank()) {
+                    if (newItem instanceof Signer signer) {
+                        signer.setName(name);
+                    } else {
+                        lib.storeFrame(FrameBody.builder(Title.IID)
+                                .bind(ThematicRole.Theme.IID, newItem.iid())
+                                .bind(ThematicRole.Name.IID, name)
+                                .build());
+                    }
+                }
+            }
+
+            if (ctx.signer() != null) {
+                newItem.commit(ctx.signer());
+            }
+            lib.put(newItem);
+
+            ctx.handled(new Created(newItem, typeItem));
+        }
     }
 
     @ItemSeed(key = Get.KEY)
@@ -133,7 +193,7 @@ public final class CoreVocabulary {
         static final String[] words = {"get", "retrieve", "fetch", "lookup"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -155,11 +215,11 @@ public final class CoreVocabulary {
         static final String[] words = {"put", "store", "add", "insert"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -181,7 +241,7 @@ public final class CoreVocabulary {
         static final String[] words = {"remove", "delete", "drop"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -203,7 +263,7 @@ public final class CoreVocabulary {
         static final String[] words = {"list", "enumerate", "tail", "latest"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -225,7 +285,7 @@ public final class CoreVocabulary {
         static final String[] words = {"import", "ingest", "load"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Source.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Source.KEY}))
         static final ItemID expectSource = ThematicRole.Source.IID;
     }
 
@@ -247,7 +307,7 @@ public final class CoreVocabulary {
         static final String[] words = {"query", "search"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -269,15 +329,15 @@ public final class CoreVocabulary {
         static final String[] words = {"find", "lookup"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Recipient.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Recipient.KEY}))
         static final ItemID expectRecipient = ThematicRole.Recipient.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Source.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Source.KEY}))
         static final ItemID expectSource = ThematicRole.Source.IID;
     }
 
@@ -299,7 +359,7 @@ public final class CoreVocabulary {
         static final String[] words = {"show", "display"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -321,7 +381,7 @@ public final class CoreVocabulary {
         static final String[] words = {"help", "assist", "commands"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -343,7 +403,7 @@ public final class CoreVocabulary {
         static final String[] words = {"edit", "modify", "change"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Patient.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Patient.KEY}))
         static final ItemID expectPatient = ThematicRole.Patient.IID;
     }
 
@@ -365,7 +425,7 @@ public final class CoreVocabulary {
         static final String[] words = {"count", "size"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -387,7 +447,7 @@ public final class CoreVocabulary {
         static final String[] words = {"describe", "status", "info"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -409,7 +469,7 @@ public final class CoreVocabulary {
         static final String[] words = {"inspect", "examine"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -428,7 +488,7 @@ public final class CoreVocabulary {
         static final String[] words = {"cd", "go", "enter"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -486,7 +546,7 @@ public final class CoreVocabulary {
         static final String[] words = {"serve", "use"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -508,11 +568,11 @@ public final class CoreVocabulary {
         static final String[] words = {"invite"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -534,7 +594,7 @@ public final class CoreVocabulary {
         static final String[] words = {"authenticate", "auth", "login"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -556,7 +616,7 @@ public final class CoreVocabulary {
         static final String[] words = {"switch", "as"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -578,7 +638,7 @@ public final class CoreVocabulary {
         static final String[] words = {"rename", "name"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -599,7 +659,7 @@ public final class CoreVocabulary {
         static final String cili = "i90183";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Agent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
         static final ItemID expectAgent = ThematicRole.Agent.IID;
     }
 
@@ -616,7 +676,7 @@ public final class CoreVocabulary {
         static final String cili = "i36666";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Time.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Time.KEY}))
         static final ItemID expectTime = ThematicRole.Time.IID;
     }
 
@@ -633,7 +693,7 @@ public final class CoreVocabulary {
         static final String cili = "i22389";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Time.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Time.KEY}))
         static final ItemID expectTime = ThematicRole.Time.IID;
     }
 
@@ -653,7 +713,7 @@ public final class CoreVocabulary {
         static final int indexWeight = 1000;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Referent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -673,7 +733,7 @@ public final class CoreVocabulary {
         static final int indexWeight = 500;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
@@ -695,7 +755,7 @@ public final class CoreVocabulary {
         static final String[] words = {"slot"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -717,7 +777,7 @@ public final class CoreVocabulary {
         static final String[] words = {"lexeme"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Referent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -739,7 +799,7 @@ public final class CoreVocabulary {
         static final String[] words = {"frequency"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
@@ -761,7 +821,7 @@ public final class CoreVocabulary {
         static final String[] words = {"provenance"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Source.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Source.KEY}))
         static final ItemID expectSource = ThematicRole.Source.IID;
     }
 
@@ -783,11 +843,11 @@ public final class CoreVocabulary {
         static final String[] words = {"activity"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
@@ -810,7 +870,7 @@ public final class CoreVocabulary {
         static final String[] words = {"library"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -829,7 +889,7 @@ public final class CoreVocabulary {
         static final String[] words = {"vault"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -848,11 +908,11 @@ public final class CoreVocabulary {
         static final String[] words = {"key history"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
@@ -871,11 +931,11 @@ public final class CoreVocabulary {
         static final String[] words = {"cert history"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
@@ -894,7 +954,7 @@ public final class CoreVocabulary {
         static final String[] words = {"hash key"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Referent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -913,7 +973,7 @@ public final class CoreVocabulary {
         static final String[] words = {"language code"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Referent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -932,7 +992,7 @@ public final class CoreVocabulary {
         static final String[] words = {"canonicalization"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
@@ -951,7 +1011,7 @@ public final class CoreVocabulary {
         static final String[] words = {"monitor"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -974,7 +1034,7 @@ public final class CoreVocabulary {
         static final String[] words = {"symbol"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Referent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -988,7 +1048,7 @@ public final class CoreVocabulary {
         static final String gloss = "how heavily to index relation targets using this predicate";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Extent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Extent.KEY}))
         static final ItemID expectExtent = ThematicRole.Extent.IID;
     }
 
@@ -1002,7 +1062,7 @@ public final class CoreVocabulary {
         static final String gloss = "the thematic role a function word assigns to its object";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Referent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -1021,7 +1081,7 @@ public final class CoreVocabulary {
         static final String[] words = {"facet"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
@@ -1101,7 +1161,7 @@ public final class CoreVocabulary {
         static final String[] words = {"CILI"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Referent.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -1269,15 +1329,15 @@ public final class CoreVocabulary {
         static final String[] words = {"if"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Result.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Result.KEY}))
         static final ItemID expectResult = ThematicRole.Result.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -1297,7 +1357,7 @@ public final class CoreVocabulary {
         static final String[] words = {"sequence"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -1317,15 +1377,15 @@ public final class CoreVocabulary {
         static final String[] words = {"let"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Result.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Result.KEY}))
         static final ItemID expectResult = ThematicRole.Result.IID;
     }
 
@@ -1345,7 +1405,7 @@ public final class CoreVocabulary {
         static final String[] words = {"resolve"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -1365,11 +1425,11 @@ public final class CoreVocabulary {
         static final String[] words = {"access"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 }

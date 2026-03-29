@@ -492,44 +492,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // View Management (ITEM_VIEW frames on this session)
     // ==================================================================================
 
-    @Verb(predicate = ViewVocabulary.ItemView.KEY, doc = "Open a persistent view of an item")
-    public ActionResult actionView(
-            @Param(role = ThematicRole.Theme.KEY, doc = "The item to view") ItemID targetId) {
-        if (targetId == null) return ActionResult.failure(new IllegalArgumentException("No target item specified"));
-        FrameKey key = openView(targetId);
-
-        // Notify subclasses (GraphicalSession creates a new OS window)
-        onViewOpened(key);
-
-        return ActionResult.success("Viewing " + targetId.displayAtWidth(12));
-    }
-
-    @Verb(predicate = ViewVocabulary.Close.KEY, doc = "Close an open view")
-    public ActionResult actionClose(
-            @Param(role = ThematicRole.Theme.KEY, doc = "The item whose view to close", required = false) ItemID targetId) {
-        ItemID actualTarget = targetId;
-        if (actualTarget == null) {
-            Optional<Item> ctx = contextItem();
-            if (ctx.isPresent()) actualTarget = ctx.get().iid();
-        }
-
-        if (actualTarget != null) {
-            // Find the frame key before closing so we can notify
-            ViewHandle vh = findView(actualTarget);
-            closeViewOf(actualTarget);
-            if (vh != null) {
-                onViewClosed(vh.frameKey());
-            }
-        }
-
-        // Clear view chrome from ItemView
-        if (itemView != null) {
-            itemView.clearActiveView();
-        }
-        goBack();
-        return ActionResult.success("View closed");
-    }
-
     /**
      * Hook called when a new ITEM_VIEW frame is opened.
      * GraphicalSession overrides to create an OS window.

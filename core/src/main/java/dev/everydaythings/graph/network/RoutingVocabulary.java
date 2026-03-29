@@ -41,7 +41,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Goal.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -58,7 +58,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Goal.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -79,7 +79,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Goal.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -103,7 +103,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Referent.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
         static final ItemID expectReferent = ThematicRole.Referent.IID;
     }
 
@@ -124,7 +124,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Theme.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -141,7 +141,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Theme.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -158,7 +158,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Theme.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -176,7 +176,7 @@ public final class RoutingVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.Recipient.KEY}))
+                                   qualifiers = {ThematicRole.KEY, ThematicRole.Recipient.KEY}))
         static final ItemID expectRecipient = ThematicRole.Recipient.IID;
     }
 }

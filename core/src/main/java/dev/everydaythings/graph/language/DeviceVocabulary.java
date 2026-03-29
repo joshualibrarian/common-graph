@@ -49,7 +49,7 @@ public final class DeviceVocabulary {
         static final String[] words = {"device"};
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Name.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Name.KEY}))
         static final ItemID expectName = ThematicRole.Name.IID;
     }
 

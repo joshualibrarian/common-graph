@@ -78,17 +78,17 @@ public class ChessItem extends Item {
         // EXPECTS — declaration order is salience order for handle disambiguation.
         // The expected predicate is a qualifier on TOPIC (ensures unique FrameKeys).
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {GameVocabulary.Player.KEY, ColorVocabulary.White.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Player.KEY, ColorVocabulary.White.KEY}))
         static final ItemID expectWhitePlayer = ItemID.fromString(GameVocabulary.Player.KEY);
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                 fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
-                        qualifiers = {GameVocabulary.Player.KEY, ColorVocabulary.Black.KEY}))
+                        qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Player.KEY, ColorVocabulary.Black.KEY}))
         static final ItemID expectBlackPlayer = ItemID.fromString(GameVocabulary.Player.KEY);
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                 fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
-                        qualifiers = {GameVocabulary.Move.KEY}))
+                        qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Move.KEY}))
         static final ItemID expectMove = ItemID.fromString(GameVocabulary.Move.KEY);
     }
 

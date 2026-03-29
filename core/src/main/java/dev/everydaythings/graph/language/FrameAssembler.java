@@ -170,7 +170,7 @@ public class FrameAssembler {
                     Item candidate = slots.get(j).item();
                     Set<ItemID> candidateFeats = slots.get(j).features();
                     if (candidate != null
-                            && !candidateFeats.contains(PartOfSpeech.VERB)
+                            && !(candidate instanceof Sememe cs && canBePredicate(cs, candidateFeats))
                             && !candidateFeats.contains(PartOfSpeech.PREPOSITION)
                             && !candidateFeats.contains(PartOfSpeech.CONJUNCTION)
                             && !candidateFeats.contains(PartOfSpeech.ADJECTIVE)
@@ -201,7 +201,7 @@ public class FrameAssembler {
             Item item = slots.get(i).item();
             if (item == null) continue; // literals and unresolved handled in step 5
             Set<ItemID> feats = slots.get(i).features();
-            if (feats.contains(PartOfSpeech.VERB)) continue; // extra verbs go unmatched
+            if (item instanceof Sememe s && canBePredicate(s, feats)) continue; // extra predicates go unmatched
             if (feats.contains(PartOfSpeech.PREPOSITION)) continue; // unconsumed prepositions go unmatched
             if (feats.contains(PartOfSpeech.CONJUNCTION)) continue; // unconsumed conjunctions go unmatched
 
@@ -347,12 +347,16 @@ public class FrameAssembler {
         for (int i = 0; i < tokens.size(); i++) {
             if (tokens.get(i) instanceof ResolvedToken.Link link) {
                 Set<ItemID> feats = link.features();
-                if (feats.isEmpty()) {
-                    Optional<Item> item = resolver.apply(link.iid());
-                    if (item.isPresent()) feats = inferPOSFromItem(item.get());
+                Optional<Item> resolved = resolver.apply(link.iid());
+                if (feats.isEmpty() && resolved.isPresent()) {
+                    feats = inferPOSFromItem(resolved.get());
                 }
-                if (feats.contains(PartOfSpeech.VERB)) verbIndices.add(i);
-                else if (feats.contains(PartOfSpeech.CONJUNCTION)) conjIndices.add(i);
+                if (resolved.isPresent() && resolved.get() instanceof Sememe sem
+                        && canBePredicate(sem, feats)) {
+                    verbIndices.add(i);
+                } else if (feats.contains(PartOfSpeech.CONJUNCTION)) {
+                    conjIndices.add(i);
+                }
             }
         }
 
@@ -485,78 +489,84 @@ public class FrameAssembler {
     }
 
     /**
-     * Choose the head verb index by combining static priors and runtime dispatchability.
+     * Choose the head predicate index by combining static priors and runtime dispatchability.
+     *
+     * <p>A sememe can be a head predicate if it has EXPECTS roles, or if its
+     * lexeme features include VERB. Both are valid signals — EXPECTS is graph data,
+     * VERB POS is a lexeme feature that the language layer provides.
      */
     private static int selectHeadVerbIndex(List<Slot> slots, ToIntFunction<Sememe> headVerbScorer) {
         int bestIndex = -1;
         int bestScore = Integer.MIN_VALUE;
 
         for (int i = 0; i < slots.size(); i++) {
-            if (!slots.get(i).features().contains(PartOfSpeech.VERB)) continue;
             Item item = slots.get(i).item();
-            if (!(item instanceof Sememe verb)) continue;
+            if (!(item instanceof Sememe sememe)) continue;
+            if (!canBePredicate(sememe, slots.get(i).features())) continue;
 
-            int score = baseHeadScore(verb) + headVerbScorer.applyAsInt(verb);
-            // Stable tie-breaker: earlier token wins.
+            int score = baseHeadScore(sememe) + headVerbScorer.applyAsInt(sememe);
             if (score > bestScore) {
                 bestScore = score;
                 bestIndex = i;
             }
             if (traceEnabled()) {
-                logger.info("[Parse] head-candidate token={} verb={} score={}",
-                        i, verb.displayToken(), score);
+                logger.info("[Parse] head-candidate token={} predicate={} score={}",
+                        i, sememe.displayToken(), score);
             }
         }
         return bestIndex;
     }
 
     /**
-     * Static priors for selecting dispatch heads.
+     * Can this sememe serve as a frame predicate in the current parse context?
      *
-     * <p>Action verbs ({@code cg.verb:}) are strongly preferred as heads.
-     * Data predicates ({@code cg.predicate:}) can become heads for query
-     * assembly but score below action verbs so that "find authored-by alice"
-     * picks {@code find}, while "authored by alice" (no action verb) picks
-     * {@code authored}. Relational/type-link predicates are deprioritized
-     * further — they usually bind as arguments (THEME).
+     * <p>Checks EXPECTS role declarations (graph data), ParseContribution
+     * (fixity for operators), and lexeme features (VERB POS).
+     * Uses slotRoles() which now filters to ROLE-qualified EXPECTS only,
+     * excluding type-level FRAME expectations.
      */
-    private static int baseHeadScore(Sememe verb) {
-        int score = 0;
-        String key = verb.canonicalKey();
-        if (key != null) {
-            if (key.startsWith("cg.rel:") || key.startsWith("cg.type:")) {
-                score -= 200;
-            }
-            if (key.startsWith("cg.predicate:")) {
-                // Data predicates: below action verbs, above relations.
-                // Can become head for queries when no action verb is present.
-                score -= 50;
-            }
-            if (key.startsWith("cg.verb:") || key.startsWith("cg.session:")) {
-                score += 25;
-            }
+    private static boolean canBePredicate(Sememe sememe, Set<ItemID> features) {
+        // EXPECTS ROLE declarations = this sememe expects thematic role bindings
+        if (!sememe.slotRoles().isEmpty()) return true;
+
+        // ParseContribution declares fixity (operators) or expected roles (functions)
+        ParseContribution contribution = sememe.contribute(null);
+        if (contribution.isPresent()) {
+            if (contribution.fixity() != null) return true;
+            if (contribution.expectedRoles() != null && !contribution.expectedRoles().isEmpty()) return true;
         }
-        // Sememes with explicit argument slots are more likely command/query heads.
-        score += Math.min(verb.slotRoles().size(), 4) * 10;
-        return score;
+
+        // Lexeme features include VERB
+        if (features.contains(PartOfSpeech.VERB)) return true;
+
+        return false;
     }
 
     /**
-     * Infer POS from an Item when the token pipeline didn't provide it.
+     * Score a sememe's suitability as the head predicate of a frame.
      *
-     * <p>This is a fallback for direct IID references (e.g., {@code @cg.verb:create})
-     * that bypass the TokenDictionary and thus have no Posting with POS.
+     * <p>Based on EXPECTS ROLE declarations (now filtered to role-qualified
+     * only, excluding type-level frame expectations). More roles = more
+     * likely to be the head predicate.
+     */
+    private static int baseHeadScore(Sememe sememe) {
+        return Math.min(sememe.slotRoles().size(), 6) * 15;
+    }
+
+    /**
+     * Infer POS-like features from an Item when the token pipeline didn't provide them.
+     *
+     * <p>This is a fallback for direct IID references (e.g., {@code @cg.sememe:item-view})
+     * that bypass the TokenDictionary and thus have no Posting with features.
+     * Returns features that allow FrameAssembler to categorize the token.
      */
     public static Set<ItemID> inferPOSFromItem(Item item) {
         if (!(item instanceof Sememe sememe)) return Set.of();
 
-        // Ask the sememe for its parsing contribution — no hardcoded IID checks
+        // Ask the sememe for its parsing contribution
         ParseContribution contribution = sememe.contribute(null);
         if (contribution.isPresent()) {
-            // Prepositions assign a role
             if (contribution.assignedRole() != null) return Set.of(PartOfSpeech.PREPOSITION);
-
-            // Structural roles map to POS
             if (contribution.structuralRole() != null) {
                 return switch (contribution.structuralRole()) {
                     case CONJUNCTION -> Set.of(PartOfSpeech.CONJUNCTION);
@@ -564,17 +574,13 @@ public class FrameAssembler {
                     default -> Set.of();
                 };
             }
-
-            // Operators/functions with fixity
             if (contribution.fixity() != null) return Set.of(PartOfSpeech.VERB);
-
-            // Predicates with expected roles
             if (contribution.expectedRoles() != null && !contribution.expectedRoles().isEmpty()) {
                 return Set.of(PartOfSpeech.VERB);
             }
         }
 
-        // Sememes with argument slots are verbs (fallback for seeds without contribute())
+        // EXPECTS roles = can be a predicate
         if (!sememe.slotRoles().isEmpty()) return Set.of(PartOfSpeech.VERB);
 
         return Set.of();

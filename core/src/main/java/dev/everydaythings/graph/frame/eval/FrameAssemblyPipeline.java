@@ -64,36 +64,20 @@ public class FrameAssemblyPipeline {
         // Create the context
         FrameAssemblyContext ctx = new FrameAssemblyContext(body, scope, signer, session, resolvedItems);
 
-        logger.info("Assembly pipeline: predicate={}, participants={}, resolvedItems={}",
-                body.predicate().displayAtWidth(16),
-                callbackChain.stream().map(Item::displayToken).toList(),
-                resolvedItems.entrySet().stream()
-                        .map(e -> e.getKey().displayAtWidth(12) + "→" + e.getValue().displayToken())
-                        .toList());
-
-        // Run callbacks
+        // Run callbacks — stop on first handler
         for (Item participant : callbackChain) {
             participant.onFrameAssembled(ctx);
-            if (ctx.handled()) {
-                logger.debug("Handled by: {}", participant.displayToken());
-                break;
-            }
+            if (ctx.handled()) break;
         }
 
         // If handled, persist the frame body
         if (ctx.handled() && librarian != null) {
             try {
                 librarian.storeFrame(body);
-
-                // Sign a record if we have a signer
                 if (signer != null && signer.canSign()) {
                     FrameRecord record = FrameRecord.create(body, signer);
                     ctx.record(record);
-                    // TODO: store record via librarian when record storage is wired
                 }
-
-                logger.info("Frame assembly handled: predicate={}, result={}",
-                        body.predicate().displayAtWidth(16), ctx.result());
             } catch (Exception e) {
                 logger.warn("Failed to persist assembled frame: {}", e.getMessage());
             }

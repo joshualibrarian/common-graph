@@ -371,6 +371,61 @@ public final class HandleResolver {
     }
 
     // ==================================================================================
+    // Frame-level label (shared by item handles and frame tree nodes)
+    // ==================================================================================
+
+    /**
+     * Produce a human-readable summary label for a frame body.
+     *
+     * <p>Format: {@code predicate — role: value, role: value}
+     * Skips self-references and the predicate IID as a binding target.
+     * Resolves binding targets and roles through the librarian.
+     *
+     * @param body   the frame body to summarize
+     * @param selfId the owning item's IID (to skip self-references), or null
+     * @param lib    the librarian for resolving IIDs to display names
+     * @return a human-readable label, never null
+     */
+    public static String labelForFrame(FrameBody body, ItemID selfId, Librarian lib) {
+        if (body == null) return "frame";
+
+        String pred = resolveDisplayToken(body.predicate(), lib);
+
+        List<String> parts = new java.util.ArrayList<>();
+        boolean firstBinding = true;
+        for (Binding b : body.frameBindings()) {
+            if (parts.size() >= 3) break;
+            ItemID tid = b.targetId();
+            // Skip self-references, UNLESS it's the first binding (THEME) —
+            // "viewing session" is more useful than showing nothing
+            if (tid != null && selfId != null && tid.equals(selfId) && !firstBinding) continue;
+            if (tid != null && tid.equals(body.predicate())) continue;
+            firstBinding = false;
+
+            String value = extractBindingDisplayValue(b, lib);
+            if (value != null && !value.isBlank()) {
+                String roleName = resolveDisplayToken(b.role(), lib);
+                if (roleName != null && !roleName.equals(value)) {
+                    parts.add(roleName + ": " + value);
+                } else {
+                    parts.add(value);
+                }
+            }
+        }
+
+        if (parts.isEmpty()) return pred != null ? pred : "frame";
+        return pred + " \u2014 " + String.join(", ", parts);
+    }
+
+    /**
+     * Resolve an ItemID to a display token via the librarian.
+     */
+    private static String resolveDisplayToken(ItemID iid, Librarian lib) {
+        if (iid == null || lib == null) return null;
+        return lib.get(iid).map(Item::displayToken).orElse(null);
+    }
+
+    // ==================================================================================
     // Type resolution
     // ==================================================================================
 

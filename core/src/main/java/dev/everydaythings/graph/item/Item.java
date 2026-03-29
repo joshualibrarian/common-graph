@@ -1688,75 +1688,33 @@ public class Item {
      * @param ctx the assembly context (mutable accumulator)
      */
     public void onFrameAssembled(FrameAssemblyContext ctx) {
-        if (CoreVocabulary.Create.IID.equals(ctx.body().predicate())) {
-            handleCreate(ctx);
-        }
-    }
-
-    /**
-     * Handle being the THEME of a CREATE frame — instantiate this type.
-     *
-     * <p>Looks up the IMPLEMENTED_BY frame to find the Java class,
-     * instantiates it, creates an INSTANCE_OF frame, commits, and caches.
-     */
-    private void handleCreate(FrameAssemblyContext ctx) {
-        Class<?> implClass = resolveImplementingClass().orElse(null);
-        if (implClass == null || !Item.class.isAssignableFrom(implClass)) return;
-
-        Librarian lib = ctx.scope().librarian();
-        if (lib == null) return;
-
-        Item newItem = instantiateItem(implClass, lib);
-
-        // INSTANCE_OF frame: link new instance to this type
-        lib.storeFrame(FrameBody.builder(LexicalVocabulary.InstanceOf.IID)
-                .bind(ThematicRole.Theme.IID, newItem.iid())
-                .bind(ThematicRole.Goal.IID, this.iid())
-                .build());
-
-        // Optional name from NAME binding
-        BindingTarget nameTarget = ctx.body().binding(ThematicRole.Name.IID);
-        if (nameTarget instanceof Literal lit && lit.payload() != null) {
-            String name = new String(lit.payload(), java.nio.charset.StandardCharsets.UTF_8);
-            if (!name.isBlank()) {
-                if (newItem instanceof dev.everydaythings.graph.item.user.Signer signer) {
-                    signer.setName(name);
-                } else {
-                    lib.storeFrame(FrameBody.builder(CoreVocabulary.Title.IID)
-                            .bind(ThematicRole.Theme.IID, newItem.iid())
-                            .bind(ThematicRole.Name.IID, name)
-                            .build());
-                }
-            }
-        }
-
-        if (ctx.signer() != null) {
-            newItem.commit(ctx.signer());
-        }
-        lib.put(newItem);
-
-        ctx.handled(new dev.everydaythings.graph.dispatch.Created(newItem, this));
+        // Default no-op. Predicate sememes and item subclasses override.
     }
 
     /**
      * Resolve the implementing Java class from IMPLEMENTED_BY frames.
      */
     public java.util.Optional<Class<?>> resolveImplementingClass() {
-        if (frames() != null) {
-            ItemID implPredicate = CoreVocabulary.ImplementedBy.IID;
-            var it = frames().bareFrames().iterator();
-            while (it.hasNext()) {
-                var frame = it.next();
-                java.util.Optional<Object> live = frames().getLive(frame.frameKey());
-                if (live.isPresent() && live.get() instanceof FrameBody body) {
-                    if (implPredicate.equals(body.predicate())) {
-                        BindingTarget target = body.bindings().get(ThematicRole.Goal.IID);
-                        if (target instanceof Literal lit && lit.asText() != null) {
-                            try {
-                                return java.util.Optional.of(Class.forName(lit.asText()));
-                            } catch (ClassNotFoundException ignored) {}
-                        }
-                    }
+        if (frames() == null) return java.util.Optional.empty();
+        ItemID implPredicate = CoreVocabulary.ImplementedBy.IID;
+        for (Frame frame : frames()) {
+            if (!implPredicate.equals(frame.type())) continue;
+            java.util.Optional<Object> live = frames().getLive(frame.frameKey());
+            if (live.isPresent() && live.get() instanceof FrameBody body) {
+                BindingTarget target = body.bindings().get(ThematicRole.Goal.IID);
+                if (target instanceof Literal lit && lit.asText() != null) {
+                    try {
+                        return java.util.Optional.of(Class.forName(lit.asText()));
+                    } catch (ClassNotFoundException ignored) {}
+                }
+            }
+            // Also check the frame's own body
+            if (frame.body() != null && implPredicate.equals(frame.body().predicate())) {
+                BindingTarget target = frame.body().bindings().get(ThematicRole.Goal.IID);
+                if (target instanceof Literal lit && lit.asText() != null) {
+                    try {
+                        return java.util.Optional.of(Class.forName(lit.asText()));
+                    } catch (ClassNotFoundException ignored) {}
                 }
             }
         }
@@ -1766,7 +1724,7 @@ public class Item {
     /**
      * Instantiate an Item subclass, trying constructors in priority order.
      */
-    private static Item instantiateItem(Class<?> implClass, Librarian lib) {
+    public static Item instantiateItem(Class<?> implClass, Librarian lib) {
         try {
             var ctor = implClass.getDeclaredConstructor(Librarian.class);
             ctor.setAccessible(true);

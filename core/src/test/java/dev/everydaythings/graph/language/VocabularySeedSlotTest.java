@@ -12,27 +12,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests verifying that vocabulary seed expected roles are correctly declared
- * as {@code @ItemFrame(predicate = Expects.KEY)} annotations.
+ * as {@code @ItemFrame(predicate = Expects.KEY)} annotations with the ROLE qualifier.
  */
 class VocabularySeedSlotTest {
 
     /**
      * Read the expected roles from @ItemFrame(predicate = Expects.KEY) annotations
-     * on static fields of the given class. Returns the qualifier keys (which identify
-     * the expected thematic role) in field declaration order.
+     * on static fields of the given class. Expects qualifiers of the form
+     * {ThematicRole.KEY, ThematicRole.Xxx.KEY} — returns the role IID (second qualifier).
      */
     private static List<ItemID> expectedRolesOf(Class<?> seedClass) {
         List<ItemID> roles = new ArrayList<>();
         for (Field field : seedClass.getDeclaredFields()) {
             var frame = field.getAnnotation(ItemFrame.class);
             if (frame != null && frame.predicate().equals(CoreVocabulary.Expects.KEY)) {
-                // The qualifier on fieldAs identifies which role is expected
                 var qualifiers = frame.fieldAs().qualifiers();
                 assertThat(qualifiers)
-                        .as("EXPECTS frame on %s.%s should have exactly one qualifier",
+                        .as("EXPECTS frame on %s.%s should have ROLE qualifier + role key",
                                 seedClass.getSimpleName(), field.getName())
-                        .hasSize(1);
-                roles.add(ItemID.fromString(qualifiers[0]));
+                        .hasSizeGreaterThanOrEqualTo(2);
+                assertThat(qualifiers[0])
+                        .as("First qualifier should be ThematicRole.KEY")
+                        .isEqualTo(ThematicRole.KEY);
+                roles.add(ItemID.fromString(qualifiers[1]));
             }
         }
         return roles;
@@ -64,7 +66,6 @@ class VocabularySeedSlotTest {
 
     @Test
     void relationVerbHasThemeAndGoalSlots() {
-        // HYPERNYM is a binary relation predicate — Theme (subject) → Goal (object)
         var roles = expectedRolesOf(LexicalVocabulary.Hypernym.class);
         assertThat(roles)
                 .as("Relation verbs should have Theme and Goal expected roles")

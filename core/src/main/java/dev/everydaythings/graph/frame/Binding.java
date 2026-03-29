@@ -62,19 +62,19 @@ public final class Binding implements Canonical {
     static final ItemID expectRole = ItemID.fromString(ThematicRole.KEY);
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Qualifiers.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Qualifiers.KEY}))
     static final ItemID expectQualifiers = Qualifiers.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Target.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Target.KEY}))
     static final ItemID expectTarget = Target.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Identity.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Identity.KEY}))
     static final ItemID expectIdentity = Identity.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {Index.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Index.KEY}))
     static final ItemID expectIndex = Index.IID;
 
     // Field-name sememes for array positions

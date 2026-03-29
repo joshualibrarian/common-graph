@@ -48,6 +48,9 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     /** Owner item (transient). */
     private transient Item owningItem;
 
+    /** Change listener — notified when frames are added or removed. */
+    private transient Runnable onChanged;
+
     // ==================================================================================
     // Owner Tracking
     // ==================================================================================
@@ -57,6 +60,15 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
         for (Frame frame : frames.values()) {
             frame.setOwner(owner);
         }
+    }
+
+    /** Subscribe to frame changes (add/remove). Only one listener at a time. */
+    public void onChanged(Runnable listener) {
+        this.onChanged = listener;
+    }
+
+    private void notifyChanged() {
+        if (onChanged != null) onChanged.run();
     }
 
     // ==================================================================================
@@ -96,8 +108,10 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
 
     @Override
     public void clear() {
+        boolean wasNonEmpty = !frames.isEmpty();
         frames.clear();
         mounts.clear();
+        if (wasNonEmpty) notifyChanged();
     }
 
     @Override
@@ -105,7 +119,9 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
         if (key instanceof FrameKey fk) {
             mounts.remove(fk);
         }
-        return frames.remove(key);
+        Frame removed = frames.remove(key);
+        if (removed != null) notifyChanged();
+        return removed;
     }
 
     // ==================================================================================
@@ -132,14 +148,19 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
         if (owningItem != null) {
             frame.setOwner(owningItem);
         }
+        notifyChanged();
     }
 
     /** Add a frame with mounts. */
     public void add(Frame frame, List<Mount> frameMounts) {
-        add(frame);
+        frames.put(frame.frameKey(), frame);
+        if (owningItem != null) {
+            frame.setOwner(owningItem);
+        }
         if (frameMounts != null && !frameMounts.isEmpty()) {
             mounts.put(frame.frameKey(), List.copyOf(frameMounts));
         }
+        notifyChanged();
     }
 
     /** Get frame by key. */
@@ -150,7 +171,9 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     /** Remove by key. */
     public boolean removeByKey(FrameKey key) {
         mounts.remove(key);
-        return frames.remove(key) != null;
+        boolean removed = frames.remove(key) != null;
+        if (removed) notifyChanged();
+        return removed;
     }
 
     // ==================================================================================

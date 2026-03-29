@@ -42,11 +42,11 @@ public final class GameVocabulary {
         static final String noun1 = "player";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Agent.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
         static final ItemID expectAgent = ThematicRole.Agent.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -74,11 +74,11 @@ public final class GameVocabulary {
         static final String verb3 = "go";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -119,7 +119,7 @@ public final class GameVocabulary {
         static final String verb2 = "propose";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -140,7 +140,7 @@ public final class GameVocabulary {
         static final String verb2 = "agree";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -164,7 +164,7 @@ public final class GameVocabulary {
         static final String verb3 = "reject";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -188,7 +188,7 @@ public final class GameVocabulary {
         static final String verb3 = "choose";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -212,7 +212,7 @@ public final class GameVocabulary {
         static final String verb3 = "put-down";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -237,7 +237,7 @@ public final class GameVocabulary {
         static final String verb2 = "sit";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -302,7 +302,7 @@ public final class GameVocabulary {
         static final String verb3 = "retain";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -320,7 +320,7 @@ public final class GameVocabulary {
         static final String verb1 = "score";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -345,7 +345,7 @@ public final class GameVocabulary {
         static final String verb2 = "wager";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -363,7 +363,7 @@ public final class GameVocabulary {
         static final String verb1 = "raise";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -421,11 +421,11 @@ public final class GameVocabulary {
         static final String verb2 = "distribute";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -443,7 +443,7 @@ public final class GameVocabulary {
         static final String verb1 = "bid";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -461,7 +461,7 @@ public final class GameVocabulary {
         static final String verb1 = "play";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -499,7 +499,7 @@ public final class GameVocabulary {
         static final String verb2 = "pick";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -517,7 +517,7 @@ public final class GameVocabulary {
         static final String verb1 = "call";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Theme.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
     }
 
@@ -542,7 +542,7 @@ public final class GameVocabulary {
         static final String verb2 = "uncover";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -563,7 +563,7 @@ public final class GameVocabulary {
         static final String verb2 = "mark";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
@@ -581,7 +581,7 @@ public final class GameVocabulary {
         static final String verb1 = "chord";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Goal.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
