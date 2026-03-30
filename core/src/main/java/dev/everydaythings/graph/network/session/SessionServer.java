@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.network.session;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.network.Ack;
@@ -356,39 +355,9 @@ public class SessionServer implements AutoCloseable {
     }
 
     private void handleDispatch(ChannelHandlerContext ctx, ClientSession session, SessionMessage.DispatchRequest m) {
-        String action = m.action();
-        long requestId = m.requestId();
-        ItemID caller = m.caller();
-
-        if (session.principalId != null && caller != null && !caller.equals(session.principalId)) {
-            sendMessage(ctx, SessionMessage.DispatchResponse.failure(requestId,
-                    "Caller " + caller.encodeText() + " does not match authenticated principal"));
-            return;
-        }
-
-        if (caller == null) {
-            caller = session.principalId;
-        }
-
-        Item target = session.context != null ? session.context : librarian;
-
-        ActionResult result;
-        if (caller != null) {
-            result = target.dispatch(caller, action, m.args());
-        } else {
-            result = target.dispatch(action, m.args());
-        }
-
-        if (result.success()) {
-            Object value = result.value();
-            View view = value instanceof View v ? v :
-                    value != null ? View.of(TextSurface.of(value.toString())) : View.empty();
-            sendMessage(ctx, SessionMessage.DispatchResponse.success(requestId, view));
-            notifySubscribers(target.iid(), target);
-        } else {
-            sendMessage(ctx, SessionMessage.DispatchResponse.failure(requestId,
-                    result.error() != null ? result.error().getMessage() : "Unknown error"));
-        }
+        // Verb dispatch has been removed — all evaluation goes through FrameAssemblyPipeline
+        sendMessage(ctx, SessionMessage.DispatchResponse.failure(m.requestId(),
+                "Verb dispatch is no longer supported; use the frame assembly pipeline"));
     }
 
     private void handleLookup(ChannelHandlerContext ctx, ClientSession session, SessionMessage.LookupRequest m) {

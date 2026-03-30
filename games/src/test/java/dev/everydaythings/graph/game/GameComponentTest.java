@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.game;
 
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.Test;
@@ -262,60 +261,6 @@ class GameComponentTest {
     void leave_returnsEmptyForAbsentPlayer() {
         TestGame game = new TestGame();
         assertThat(game.leave(pid("alice"))).isEmpty();
-    }
-
-    // ==================================================================================
-    // Join/Leave Verb Tests
-    // ==================================================================================
-
-    static ActionContext ctxFor(ItemID caller) {
-        return ActionContext.of(caller, null, null, null);
-    }
-
-    @Test
-    void joinVerb_assignsFirstAvailable() {
-        TestGame game = new TestGame();
-        String result = game.joinVerb(ctxFor(pid("alice")), null);
-        assertThat(result).isEqualTo("Joined at seat 0");
-        assertThat(game.seatOf(pid("alice"))).hasValue(0);
-    }
-
-    @Test
-    void joinVerb_assignsSpecificSeat() {
-        TestGame game = new TestGame();
-        String result = game.joinVerb(ctxFor(pid("alice")), 2);
-        assertThat(result).isEqualTo("Joined at seat 2");
-        assertThat(game.seatOf(pid("alice"))).hasValue(2);
-    }
-
-    @Test
-    void joinVerb_rejectsAlreadySeated() {
-        TestGame game = new TestGame();
-        game.setMode(GameMode.AUTHENTICATED);
-        game.joinVerb(ctxFor(pid("alice")), null);
-
-        assertThatIllegalStateException()
-                .isThrownBy(() -> game.joinVerb(ctxFor(pid("alice")), null))
-                .withMessageContaining("Already in the game");
-    }
-
-    @Test
-    void leaveVerb_removesPlayer() {
-        TestGame game = new TestGame();
-        game.joinVerb(ctxFor(pid("alice")), null);
-
-        String result = game.leaveVerb(ctxFor(pid("alice")));
-        assertThat(result).isEqualTo("Left seat 0");
-        assertThat(game.seatOf(pid("alice"))).isEmpty();
-    }
-
-    @Test
-    void leaveVerb_notInGame() {
-        TestGame game = new TestGame();
-
-        assertThatIllegalStateException()
-                .isThrownBy(() -> game.leaveVerb(ctxFor(pid("alice"))))
-                .withMessageContaining("Not in the game");
     }
 
 }

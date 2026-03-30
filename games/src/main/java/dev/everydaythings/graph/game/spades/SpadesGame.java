@@ -2,17 +2,8 @@ package dev.everydaythings.graph.game.spades;
 
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.game.card.PlayingCard;
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -371,46 +362,6 @@ public class SpadesGame extends GameComponent<SpadesGame.Op>
      */
     public static int teamOf(int seat) {
         return seat % 2;
-    }
-
-    // ==================================================================================
-    // Game Actions (Verbs)
-    // ==================================================================================
-
-    @Verb(value = GameVocabulary.Deal.KEY, doc = "Deal cards for a new round")
-    public String deal(ActionContext ctx) {
-        if (!PHASE_DEAL.equals(phase)) return "Cannot deal now";
-        apply(new DealOp());
-        return "Cards dealt";
-    }
-
-    @Verb(value = GameVocabulary.Bid.KEY, doc = "Bid number of tricks")
-    public String bid(ActionContext ctx,
-                      @Param(value = "tricks", doc = "Number of tricks (0 = nil)") int tricks) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-
-        if (!PHASE_BID.equals(phase)) return "Not in bidding phase";
-        if (tricks < 0 || tricks > CARDS_PER_HAND) return "Bid must be 0-13";
-
-        apply(new BidOp(seat, tricks));
-        return "Bid " + (tricks == 0 ? "nil" : tricks + " tricks");
-    }
-
-    @Verb(value = GameVocabulary.Play.KEY, doc = "Play a card")
-    public String playCard(ActionContext ctx,
-                           @Param(value = "card", doc = "Card ordinal") int cardOrdinal) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-
-        if (!PHASE_PLAY.equals(phase)) return "Not in play phase";
-
-        PlayingCard card = PlayingCard.fromOrdinal(cardOrdinal);
-        String error = validatePlay(seat, card);
-        if (error != null) return error;
-
-        apply(new PlayCardOp(seat, cardOrdinal));
-        return "Played " + card;
     }
 
     // ==================================================================================

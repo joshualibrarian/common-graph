@@ -284,7 +284,7 @@ class ConfigCascadeTest {
             Literal manifestLit = Literal.ofText("manifest-level-theme");
             Manifest manifest = Manifest.builder()
                     .iid(item.iid())
-                    .configEntry(Binding.nonIdentity(
+                    .binding(Binding.nonIdentity(
                             ThematicRole.Presentation.IID, manifestLit))
                     .build();
             // Inject manifest via reflection (normally set during commit/hydrate)

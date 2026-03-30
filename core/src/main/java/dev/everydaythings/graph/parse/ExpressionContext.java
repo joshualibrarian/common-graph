@@ -202,38 +202,7 @@ public record ExpressionContext(
             surviving.removeIf(p -> featuresOf(p, resolver).contains(PartOfSpeech.PREPOSITION));
         }
 
-        // Rule 3: Role type constraints — when verb is known with unfilled roles,
-        // check if any candidate is a createable noun (has a CREATE verb) that matches
-        // the THEME expectation. Prefer createable nouns over other candidates.
-        if (verb != null && !unfilledRoles.isEmpty()) {
-            ItemID createId = ItemID.fromString(CoreVocabulary.Create.KEY);
-            boolean hasCreateable = false;
-            boolean hasNonCreateable = false;
-            for (Posting p : surviving) {
-                Optional<Item> item = resolver.apply(p.target());
-                if (item.isPresent()) {
-                    if (item.get().vocabulary().lookup(createId).isPresent()) {
-                        hasCreateable = true;
-                    } else if (!featuresOf(p, resolver).contains(PartOfSpeech.VERB)) {
-                        hasNonCreateable = true;
-                    }
-                }
-            }
-            // If we have both createable and non-createable nouns, and the verb
-            // has unfilled roles, prefer createable nouns (they fill the THEME role)
-            if (hasCreateable && hasNonCreateable && surviving.size() > 1) {
-                List<Posting> createableCandidates = new ArrayList<>();
-                for (Posting p : surviving) {
-                    Optional<Item> item = resolver.apply(p.target());
-                    if (item.isPresent() && item.get().vocabulary().lookup(createId).isPresent()) {
-                        createableCandidates.add(p);
-                    }
-                }
-                if (!createableCandidates.isEmpty()) {
-                    surviving = createableCandidates;
-                }
-            }
-        }
+        // Rule 3 (removed — was verb-vocabulary-based disambiguation)
 
         // Rule 4: Compound noun resolution — check adjacent tokens for known compounds.
         // If this CandidateToken has a neighbor that's also ambiguous or resolved,

@@ -2,9 +2,6 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.frame.ItemFrame;
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.dispatch.VerbEntry;
-import dev.everydaythings.graph.dispatch.VerbInvoker;
-import dev.everydaythings.graph.dispatch.VerbSpec;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
@@ -22,8 +19,6 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.FrameRecord;
 import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.frame.EndorsementsTable;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.mount.Mount;
@@ -169,6 +164,9 @@ public class Item {
     /** Tracks whether item has uncommitted changes. */
     @Getter
     private boolean dirty;
+
+    /** Item-level bindings to include in the next manifest. */
+    private transient List<dev.everydaythings.graph.frame.Binding> itemBindings;
 
     // ==================================================================================
     // Schema Access (cached per class via ItemScanner)
@@ -741,24 +739,16 @@ public class Item {
     }
 
     /**
-     * Populate the vocabulary from the cached schema.
+     * Populate the vocabulary from the item's frames.
      *
-     * <p>Uses {@link ItemSchema#populateVocabulary(Vocabulary, Item)} to add
-     * all verbs discovered during class scanning:
-     * <ul>
-     *   <li>{@code @Verb} methods on this class hierarchy</li>
-     *   <li>{@code @Verb} methods on all components (future)</li>
-     * </ul>
+     * <p>Scans frames for indexed string bindings and adds them to the
+     * local token index.
      *
-     * <p>Called automatically from {@link #onFullyInitialized()} for path-based items.
-     * Other item types should call this explicitly if they need verb dispatch.
+     * <p>Called automatically from constructors and {@link #onFullyInitialized()}.
      */
     protected void populateVocabulary() {
         // Clear any existing entries (in case called multiple times)
         vocabulary().clear();
-
-        // Code layer: @Verb annotations from class hierarchy
-        schema().populateVocabulary(vocabulary(), this);
 
         // Data layer: scan frames for indexed string bindings
         vocabulary().scanFrames(frames());
@@ -887,64 +877,6 @@ public class Item {
         frames().add(dev.everydaythings.graph.frame.Frame.fromBody(body));
     }
 
-
-    // ==================================================================================
-    // Verb Dispatch
-    // ==================================================================================
-
-    /**
-     * Dispatch a command to this item via vocabulary lookup.
-     *
-     * <p>Resolves the command token to a verb using the item's {@link Vocabulary}:
-     * <ul>
-     *   <li>With librarian: token → {@link dev.everydaythings.graph.library.dictionary.TokenDictionary}
-     *       → Sememe ID → Vocabulary → VerbEntry</li>
-     *   <li>Without librarian (seed items): tries direct Sememe ID lookup</li>
-     * </ul>
-     *
-     * <p>This enables language-agnostic dispatch: the same verb can be
-     * invoked via "create", "crear", "新建", etc.
-     *
-     * @param caller  The identity of who is invoking this verb
-     * @param command The command token (resolved via TokenDictionary)
-     * @param args    The arguments as strings
-     * @return The invocation result
-     */
-    public ActionResult dispatch(ItemID caller, String command, List<String> args) {
-        Objects.requireNonNull(command, "command");
-        Objects.requireNonNull(args, "args");
-
-        // Build context — resolve caller to Signer if available
-        dev.everydaythings.graph.item.user.Signer callerSigner = null;
-        if (librarian != null && caller != null) {
-            callerSigner = librarian.get(caller, dev.everydaythings.graph.item.user.Signer.class).orElse(null);
-        }
-        ActionContext ctx = ActionContext.of(caller, callerSigner, this, librarian);
-
-        // Vocabulary dispatch — command is a sememe ID or canonical key
-        Optional<VerbEntry> verbOpt = vocabulary().lookup(ItemID.fromString(command));
-
-        if (verbOpt.isEmpty()) {
-            return ActionResult.failure(
-                    new IllegalArgumentException("Unknown command: " + command));
-        }
-
-        VerbInvoker invoker = new VerbInvoker();
-        return invoker.invokeWithStrings(verbOpt.get(), ctx, args);
-    }
-
-    /**
-     * Dispatch a command to this item (anonymous caller).
-     *
-     * <p>Convenience method for local dispatch where caller identity isn't needed.
-     *
-     * @param command The action name
-     * @param args    The arguments
-     * @return The action result
-     */
-    public ActionResult dispatch(String command, List<String> args) {
-        return dispatch(null, command, args);
-    }
 
     // ==================================================================================
     // Relations
@@ -1140,7 +1072,7 @@ public class Item {
         // Step 2: check manifest config map, then (qualifier) frame on this item
         Manifest mf = current();
         if (mf != null) {
-            Binding mb = mf.configBinding(qualifier);
+            Binding mb = mf.nonIdentityBinding(qualifier);
             if (mb != null && mb.target() instanceof Literal lit) {
                 return lit.payload();
             }
@@ -1364,13 +1296,16 @@ public class Item {
         // Build endorsements from EndorsementsTable for manifest serialization
         state.buildEndorsements();
 
-        // Build manifest with the item's state
-        Manifest manifest = Manifest.builder()
+        // Build manifest with the item's state and bindings
+        var manifestBuilder = Manifest.builder()
                 .iid(iid)
                 .implementation(Manifest.javaImplementation(this.getClass()))
                 .parents(base != null ? List.of(base) : List.of())
-                .state(state)
-                .build();
+                .state(state);
+        if (itemBindings != null) {
+            for (var b : itemBindings) manifestBuilder.binding(b);
+        }
+        Manifest manifest = manifestBuilder.build();
         manifest.sign(signer);
 
         // Store manifest and content
@@ -1690,6 +1625,31 @@ public class Item {
     public void onFrameAssembled(FrameAssemblyContext ctx) {
         // Default no-op. Predicate sememes and item subclasses override.
     }
+
+    // ==================================================================================
+    // Item-Level Bindings
+    // ==================================================================================
+
+    /**
+     * Add an item-level binding. Included in the manifest at commit time.
+     * Identity bindings affect the VID; non-identity bindings are record-scope.
+     */
+    public void addBinding(dev.everydaythings.graph.frame.Binding binding) {
+        if (itemBindings == null) itemBindings = new java.util.ArrayList<>();
+        itemBindings.add(binding);
+        dirty = true;
+    }
+
+    /**
+     * Get item-level bindings (pending for next manifest).
+     */
+    public List<dev.everydaythings.graph.frame.Binding> itemBindings() {
+        return itemBindings != null ? itemBindings : List.of();
+    }
+
+    // ==================================================================================
+    // Implementation Resolution
+    // ==================================================================================
 
     /**
      * Resolve the implementing Java class from IMPLEMENTED_BY frames.
@@ -2131,10 +2091,8 @@ public class Item {
      * @throws IllegalArgumentException if the type is abstract or has no suitable constructor
      */
     public Item actionNew(
-            ActionContext ctx,
-            @Param(
-                    value = "name", required = false, role = "NAME") String name) {
-        Librarian lib = ctx.librarian();
+            String name) {
+        Librarian lib = this.librarian;
         if (lib == null) {
             throw new IllegalStateException("Cannot create item without librarian");
         }
@@ -2171,62 +2129,6 @@ public class Item {
         }
 
         return newItem;
-    }
-
-    /**
-     * Show available verbs and their documentation.
-     *
-     * <p>Returns the vocabulary itself — it's a Component with a Surface,
-     * so the rendering pipeline handles display.
-     */
-    @Verb(value = dev.everydaythings.graph.language.CoreVocabulary.Help.KEY, doc = "Show available verbs and their documentation")
-    public Object actionHelp(ActionContext ctx) {
-        return vocabulary();
-    }
-
-    /**
-     * Navigate to a path within this item's mount tree.
-     *
-     * <p>Resolves the target path and returns a {@link Ref} that the session
-     * can use for navigation. Supports:
-     * <ul>
-     *   <li>{@code ".."} — navigate to parent path (or back to root)</li>
-     *   <li>{@code "/path"} — absolute path within this item's mounts</li>
-     *   <li>{@code "path"} — relative path (treated as absolute)</li>
-     * </ul>
-     *
-     * <p>The path must resolve to either a real mounted component or a virtual
-     * directory implied by deeper mounts. Returns a failure if the path doesn't exist.
-     *
-     * @param target The path to navigate to
-     * @return A Ref for the session to navigate to
-     */
-    @Verb(value = dev.everydaythings.graph.language.CoreVocabulary.Cd.KEY, doc = "Navigate to path within item")
-    public Ref actionCd(
-            @Param(value = "target", doc = "Path or '..' to go back") String target) {
-        if (target == null || target.isBlank()) {
-            throw new IllegalArgumentException("cd requires a target path");
-        }
-
-        // ".." — navigate to parent
-        if ("..".equals(target.trim())) {
-            return Ref.of(iid());  // Back to item root
-        }
-
-        // Canonicalize path
-        String path = target.startsWith("/") ? target : "/" + target;
-        String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(path);
-
-        // Check if path exists as a real component
-        return frames().atPath(canonical)
-                .map(entry -> Ref.of(iid(), entry.frameKey()))
-                .orElseGet(() -> {
-                    // Check if path exists as a virtual directory (has children under it)
-                    if (frames().hasChildren(canonical)) {
-                        return Ref.of(iid());
-                    }
-                    throw new IllegalArgumentException("No such path: " + target);
-                });
     }
 
     // ==================================================================================

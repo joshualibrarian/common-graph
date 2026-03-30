@@ -103,29 +103,15 @@ public record FactorySchema(
          * Build from a method parameter.
          */
         public static ParamSchema fromParameter(Parameter param) {
-            Param annotation = param.getAnnotation(Param.class);
-
             String name = param.getName();
             String label = name;
             String doc = "";
             boolean required = true;
             String defaultValue = "";
             String showWhen = "";
-            Picker picker = Picker.AUTO;
-
-            if (annotation != null) {
-                label = annotation.label().isEmpty() ? name : annotation.label();
-                doc = annotation.doc();
-                required = annotation.required();
-                defaultValue = annotation.defaultValue();
-                showWhen = annotation.showWhen();
-                picker = annotation.picker();
-            }
 
             // Auto-detect picker based on type
-            if (picker == Picker.AUTO) {
-                picker = inferPicker(param.getType());
-            }
+            Picker picker = inferPicker(param.getType());
 
             // Build enum options if applicable
             List<EnumOption> enumOptions = null;

@@ -5,9 +5,6 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -144,12 +141,11 @@ public class User extends Signer {
      *
      * <p>Does NOT set the principal — use {@code serve <name>} for that.
      *
-     * @param ctx  The action context
      * @param name The user's name
      * @return The newly created User
      */
-    public User actionNew(ActionContext ctx, @Param(value = "name", role = "NAME") String name) {
-        Librarian lib = ctx.librarian();
+    public User actionNew(String name) {
+        Librarian lib = this.librarian;
         if (lib == null) {
             throw new IllegalStateException("Cannot create user without librarian");
         }

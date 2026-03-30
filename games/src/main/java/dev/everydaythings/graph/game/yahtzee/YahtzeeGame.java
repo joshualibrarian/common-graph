@@ -7,17 +7,8 @@ import dev.everydaythings.graph.game.Randomized;
 import dev.everydaythings.graph.game.ScoreBoard;
 import dev.everydaythings.graph.game.Scored;
 import dev.everydaythings.graph.game.dice.Die;
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -280,74 +271,6 @@ public class YahtzeeGame extends GameComponent<YahtzeeGame.Op>
                 break;
             }
         }
-    }
-
-    // ==================================================================================
-    // Game Actions
-    // ==================================================================================
-
-    /**
-     * Roll all unheld dice.
-     */
-    @Verb(value = GameVocabulary.Roll.KEY, doc = "Roll the dice")
-    public String roll(ActionContext ctx) {
-        int seat = authorizedSeat(ctx);
-        if (!PHASE_ROLL.equals(phase) && !PHASE_KEEP.equals(phase)) {
-            return "Cannot roll in phase: " + phase;
-        }
-        if (rollsRemaining <= 0) {
-            return "No rolls remaining — must score";
-        }
-
-        apply(new RollOp());
-        return diceString();
-    }
-
-    /**
-     * Choose which dice to keep before re-rolling.
-     */
-    @Verb(value = GameVocabulary.Keep.KEY, doc = "Choose dice to keep")
-    public String keep(ActionContext ctx,
-                       @Param(value = "indices", doc = "Dice positions to keep (0-4)") String indicesStr) {
-        authorizedSeat(ctx);
-        if (!PHASE_KEEP.equals(phase)) {
-            return "Cannot keep in phase: " + phase;
-        }
-
-        Set<Integer> indices = parseIndices(indicesStr);
-        apply(new KeepOp(indices));
-        return "Keeping dice at: " + indices + " → " + diceString();
-    }
-
-    /**
-     * Assign current dice to a scoring category.
-     */
-    @Verb(value = GameVocabulary.Score.KEY, doc = "Score in a category")
-    public String score(ActionContext ctx,
-                        @Param(value = "category", doc = "Scoring category name") String category) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-
-        if (dice[0] == 0) {
-            return "Must roll first";
-        }
-
-        // Validate category
-        YahtzeeCategory cat;
-        try {
-            cat = YahtzeeCategory.valueOf(category.toUpperCase().replace(' ', '_'));
-        } catch (IllegalArgumentException e) {
-            return "Unknown category: " + category;
-        }
-
-        Set<String> used = usedCategories.getOrDefault(seat, Set.of());
-        if (used.contains(cat.name())) {
-            return "Category " + cat.displayName() + " already used";
-        }
-
-        int points = cat.score(dice);
-        apply(new ScoreOp(seat, cat.name()));
-        return "Scored " + points + " in " + cat.displayName();
     }
 
     // ==================================================================================

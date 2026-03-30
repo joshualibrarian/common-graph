@@ -67,10 +67,14 @@ public final class Manifest implements Signing.Target {
     @Canon(order = 6, isBody = false)
     private Signing signature;
 
-    // --- CONFIG (non-BODY, item-level config bindings) ---
+    // --- ITEM BINDINGS ---
     @Getter(AccessLevel.NONE)
-    @Canon(order = 7, isBody = false)
-    private List<Binding> config;
+    @Canon(order = 7)
+    private List<Binding> identityBindingsList;
+
+    @Getter(AccessLevel.NONE)
+    @Canon(order = 8, isBody = false)
+    private List<Binding> nonIdentityBindingsList;
 
     // --- DERIVED CACHES (NOT serialized) ---
     @Getter(AccessLevel.NONE)
@@ -89,13 +93,24 @@ public final class Manifest implements Signing.Target {
             @Singular("parent") List<ContentID> parents,
             Binding implementation,
             ItemState state,
-            @Singular("configEntry") List<Binding> config
+            @Singular("binding") List<Binding> bindings
     ) {
         this.iid = Objects.requireNonNull(iid, "iid");
         this.parents = (parents == null) ? List.of() : List.copyOf(parents);
         this.implementation = implementation;
         this.state = state != null ? state : new ItemState();
-        this.config = (config == null || config.isEmpty()) ? null : List.copyOf(config);
+
+        // Split bindings by identity flag for body/record encoding
+        if (bindings != null && !bindings.isEmpty()) {
+            List<Binding> identity = new java.util.ArrayList<>();
+            List<Binding> nonIdentity = new java.util.ArrayList<>();
+            for (Binding b : bindings) {
+                if (b.identity()) identity.add(b);
+                else nonIdentity.add(b);
+            }
+            this.identityBindingsList = identity.isEmpty() ? null : List.copyOf(identity);
+            this.nonIdentityBindingsList = nonIdentity.isEmpty() ? null : List.copyOf(nonIdentity);
+        }
 
         // Precompute caches for newly-built instances
         this.bodyBytes = encodeBinary(Canonical.Scope.BODY);
@@ -134,31 +149,58 @@ public final class Manifest implements Signing.Target {
     }
 
     // ==================================================================================
-    // Config Accessors
+    // Binding Accessors
     // ==================================================================================
 
     /**
-     * Item-level config bindings (record-scope, non-identity).
-     *
-     * <p>Config bindings carry presentation, vocabulary, and general config
-     * data at the item level. They do not affect the VID.
-     *
-     * @return config binding list, never null
+     * All item-level bindings (both identity and non-identity).
      */
-    public List<Binding> config() {
-        return config != null ? config : List.of();
+    public List<Binding> bindings() {
+        if (identityBindingsList == null && nonIdentityBindingsList == null) return List.of();
+        List<Binding> all = new java.util.ArrayList<>();
+        if (identityBindingsList != null) all.addAll(identityBindingsList);
+        if (nonIdentityBindingsList != null) all.addAll(nonIdentityBindingsList);
+        return List.copyOf(all);
     }
 
     /**
-     * Look up a config binding by qualifier (simple key match).
-     *
-     * @param qualifier the config qualifier IID (e.g., PRESENTATION, VOCABULARY, CONFIG)
-     * @return the matching binding, or null if not found
+     * Look up a binding by role (simple key match, searches all bindings).
      */
-    public Binding configBinding(ItemID qualifier) {
-        if (config == null || config.isEmpty()) return null;
-        for (Binding b : config) {
-            if (b.isSimpleKey() && qualifier.equals(b.role())) return b;
+    public Binding binding(ItemID role) {
+        if (identityBindingsList != null) {
+            for (Binding b : identityBindingsList) {
+                if (b.isSimpleKey() && role.equals(b.role())) return b;
+            }
+        }
+        if (nonIdentityBindingsList != null) {
+            for (Binding b : nonIdentityBindingsList) {
+                if (b.isSimpleKey() && role.equals(b.role())) return b;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Identity bindings only (contribute to VID).
+     */
+    public List<Binding> identityBindings() {
+        return identityBindingsList != null ? identityBindingsList : List.of();
+    }
+
+    /**
+     * Non-identity bindings (record-scope, don't affect VID).
+     */
+    public List<Binding> nonIdentityBindings() {
+        return nonIdentityBindingsList != null ? nonIdentityBindingsList : List.of();
+    }
+
+    /**
+     * Look up a non-identity binding by role (simple key match).
+     */
+    public Binding nonIdentityBinding(ItemID role) {
+        if (nonIdentityBindingsList == null) return null;
+        for (Binding b : nonIdentityBindingsList) {
+            if (b.isSimpleKey() && role.equals(b.role())) return b;
         }
         return null;
     }

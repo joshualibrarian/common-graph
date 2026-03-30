@@ -1,8 +1,6 @@
 package dev.everydaythings.graph.ui.scene.surface.item;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.dispatch.ParamSpec;
-import dev.everydaythings.graph.dispatch.VerbEntry;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.Frame;
@@ -10,6 +8,8 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ViewHandle;
 import dev.everydaythings.graph.item.HandleResolver;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.TreeLink;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -213,7 +213,13 @@ public class ItemView {
     }
 
     /** Whether the help panel (F1) is visible. */
-    public boolean helpVisible() { return helpVisible; }
+    public boolean helpVisible() { return detailMode == DetailMode.HELP; }
+
+    /** Whether the meta panel is visible. */
+    public boolean metaVisible() { return detailMode == DetailMode.META; }
+
+    /** Current detail mode. */
+    public DetailMode detailMode() { return detailMode; }
 
     /** Whether any tree panel is visible. */
     public boolean treeVisible() { return activeTreeView != null; }
@@ -258,7 +264,8 @@ public class ItemView {
      * what's selected in the tree?). Each branch produces a Node.
      */
     public Node detailContent() {
-        if (helpVisible) return helpContent();
+        if (detailMode == DetailMode.HELP) return helpContent();
+        if (detailMode == DetailMode.META) return metaContent();
         if (selectedTreeNodeId != null && activeTreeView != null) return selectedNodeContent();
         return itemContent();
     }
@@ -297,8 +304,11 @@ public class ItemView {
     private final Function<ItemID, Optional<Item>> resolver;
     private Supplier<Collection<Item>> siblingsProvider;
 
+    /** Detail panel mode — what the right panel shows. */
+    public enum DetailMode { PRESENTATION, HELP, META }
+
     private TreeView activeTreeView = null;
-    private boolean helpVisible = false;
+    private DetailMode detailMode = DetailMode.PRESENTATION;
     private TreeNav<?> treeNav;
     private Node treeContentNode;
 
@@ -436,7 +446,14 @@ public class ItemView {
     // Toggles
     // ==================================================================================
 
-    public void toggleHelp() { helpVisible = !helpVisible; changed(); }
+    public void toggleDetailMode() {
+        detailMode = switch (detailMode) {
+            case PRESENTATION -> DetailMode.HELP;
+            case HELP -> DetailMode.META;
+            case META -> DetailMode.PRESENTATION;
+        };
+        changed();
+    }
     public void toggleTreeView(TreeView view) {
         activeTreeView = (activeTreeView == view) ? null : view;
         rebuildTree(); changed();
@@ -505,6 +522,112 @@ public class ItemView {
         return detail;
     }
 
+    /**
+     * Meta content — manifest body + record rendered via CborInspector.
+     */
+    private Node metaContent() {
+        Item resolved = item();
+        if (resolved == null) return Text.of("No item").classes("muted");
+
+        Container meta = Container.vertical().gap("0.5em");
+        meta.add(Text.of("meta").fontWeight("bold").classes("heading"));
+
+        // Item IID and type
+        meta.add(Text.of("IID: " + resolved.iid().encodeText()).classes("mono", "muted"));
+        String typeName = resolved.getClass().getSimpleName();
+        meta.add(Text.of("type: " + typeName).classes("muted"));
+
+        // Frame count
+        int frameCount = 0;
+        if (resolved.frames() != null) {
+            for (var f : resolved.frames()) frameCount++;
+        }
+        meta.add(Text.of("frames: " + frameCount).classes("muted"));
+
+        // Item-level bindings (pending, not yet in manifest)
+        List<Binding> pending = resolved.itemBindings();
+        if (!pending.isEmpty()) {
+            meta.add(Text.of("item bindings:").fontWeight("bold"));
+            Function<ItemID, String> labelResolver = resolved::resolveDisplayToken;
+            for (Binding b : pending) {
+                meta.add(renderBinding(b, labelResolver));
+            }
+        }
+
+        // Manifest
+        Manifest mf = resolved.current();
+        if (mf != null) {
+            // VID
+            if (mf.vid() != null) {
+                meta.add(Text.of("VID: " + mf.vid().displayAtWidth(20)).classes("mono", "muted"));
+            }
+
+            // Implementation
+            if (mf.implementationName() != null) {
+                meta.add(Text.of("impl: " + mf.implementationName()).classes("mono", "muted"));
+            }
+
+            // Identity bindings
+            List<Binding> identity = mf.identityBindings();
+            if (!identity.isEmpty()) {
+                meta.add(Text.of("identity bindings:").fontWeight("bold"));
+                Function<ItemID, String> labelResolver = iid ->
+                        resolved.resolveDisplayToken(iid);
+                for (Binding b : identity) {
+                    meta.add(renderBinding(b, labelResolver));
+                }
+            }
+
+            // Non-identity bindings
+            List<Binding> nonIdentity = mf.nonIdentityBindings();
+            if (!nonIdentity.isEmpty()) {
+                meta.add(Text.of("non-identity bindings:").fontWeight("bold"));
+                Function<ItemID, String> labelResolver = iid ->
+                        resolved.resolveDisplayToken(iid);
+                for (Binding b : nonIdentity) {
+                    meta.add(renderBinding(b, labelResolver));
+                }
+            }
+
+            // Render full manifest via CborInspector
+            Function<ItemID, String> resolver = iid -> {
+                if (resolved.itemLibrarian() == null) return null;
+                return resolved.itemLibrarian().get(iid)
+                        .map(Item::displayToken).orElse(null);
+            };
+            meta.add(Text.of("raw manifest:").fontWeight("bold").classes("muted"));
+            meta.add(CborInspector.render(mf, resolver));
+        } else {
+            meta.add(Text.of("(uncommitted — no manifest yet)").classes("muted"));
+        }
+
+        return meta;
+    }
+
+    /**
+     * Render a single binding as a Node for the meta view.
+     */
+    private static Node renderBinding(Binding b, Function<ItemID, String> resolver) {
+        String roleName = resolver.apply(b.role());
+        String role = roleName != null ? roleName : b.role().displayAtWidth(12);
+
+        String value;
+        if (b.targetId() != null) {
+            String resolved = resolver.apply(b.targetId());
+            value = resolved != null ? resolved : b.targetId().displayAtWidth(16);
+        } else if (b.target() instanceof Literal lit && lit.asText() != null) {
+            value = "\"" + lit.asText() + "\"";
+        } else {
+            value = b.target() != null ? b.target().toString() : "(null)";
+        }
+
+        Container row = Container.horizontal().gap("0.5em");
+        row.add(Text.of(role + ":").classes("muted"));
+        row.add(Text.of(value));
+        if (b.identity()) row.add(Text.of("[id]").classes("mono", "muted"));
+        return row;
+    }
+
     private Node itemContent(Item resolved) {
         Class<?> clazz = resolved.getClass();
         if (clazz != Item.class && SceneCompiler.has2DAnnotation(clazz)) {
@@ -530,7 +653,7 @@ public class ItemView {
         int frames = 0;
         if (resolved.frames() != null) for (var f : resolved.frames()) frames++;
         s.add(Text.of(frames + " frames").classes("muted"));
-        s.add(Text.of(resolved.vocabulary().size() + " verbs").classes("muted"));
+        s.add(Text.of(resolved.vocabulary().localTokenCount() + " local tokens").classes("muted"));
         return s;
     }
 
@@ -551,13 +674,6 @@ public class ItemView {
         Container s = Container.vertical().gap("0.25em");
         s.add(Text.ofSememe(nameId).fontWeight("bold"));
         if (vocab != null) {
-            List<VerbEntry> verbs = new ArrayList<>();
-            for (VerbEntry v : vocab) verbs.add(v);
-            if (!verbs.isEmpty()) {
-                Container vl = Container.vertical().gap("0.125em");
-                for (VerbEntry v : verbs) vl.add(verbRow(v));
-                s.add(vl);
-            }
             List<Posting> tokens = vocab.prefixMatch("");
             if (!tokens.isEmpty()) {
                 Container tl = Container.vertical().gap("0.0625em");
@@ -572,27 +688,6 @@ public class ItemView {
             }
         }
         return s;
-    }
-
-    private Node verbRow(VerbEntry verb) {
-        Container r = Container.vertical();
-        Container nameRow = Container.horizontal().gap("0.5em");
-        String mn = verb.methodName();
-        String dn = mn.startsWith("action") ? mn.substring(6, 7).toLowerCase() + mn.substring(7) : mn;
-        nameRow.add(Text.of(dn).fontWeight("bold"));
-        if (verb.doc() != null) nameRow.add(Text.of(verb.doc()).classes("muted"));
-        r.add(nameRow);
-        if (verb.params() != null && !verb.params().isEmpty()) {
-            Container params = Container.vertical();
-            for (ParamSpec p : verb.params()) {
-                Container pr = Container.horizontal().gap("0.25em");
-                pr.add(Text.of("  " + p.name()).fontWeight("bold"));
-                pr.add(Text.of(": " + p.type().getSimpleName()).classes("muted"));
-                params.add(pr);
-            }
-            r.add(params);
-        }
-        return r;
     }
 
     // ==================================================================================
@@ -730,7 +825,7 @@ public class ItemView {
     // ==================================================================================
 
     public boolean handleKey(KeyChord chord) {
-        if (chord.isKey(SpecialKey.F1)) return handleEvent("toggle:help", null);
+        if (chord.isKey(SpecialKey.F1)) return handleEvent("toggle:detail", null);
         if (chord.isKey(SpecialKey.F2)) return handleEvent("toggle:mounts", null);
         if (chord.isKey(SpecialKey.F3)) return handleEvent("toggle:frames", null);
         if (chord.isKey(SpecialKey.F4)) return handleEvent("toggle:versions", null);
@@ -755,7 +850,7 @@ public class ItemView {
         if (action == null) return false;
         if (action.startsWith("toggle:")) {
             return switch (action.substring("toggle:".length())) {
-                case "help" -> { toggleHelp(); yield true; }
+                case "help", "detail" -> { toggleDetailMode(); yield true; }
                 case "mounts" -> { toggleTreeView(TreeView.MOUNTS); yield true; }
                 case "frames" -> { toggleTreeView(TreeView.FRAMES); yield true; }
                 case "versions" -> { toggleTreeView(TreeView.VERSIONS); yield true; }

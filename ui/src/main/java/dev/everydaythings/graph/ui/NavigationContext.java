@@ -189,33 +189,19 @@ public class NavigationContext {
         if (librarian == null || iid == null) {
             return Optional.empty();
         }
-
-        var result = librarian.dispatch("library.get", List.of(iid.encodeText()));
-        if (result.success()) {
-            Object value = result.value();
-            if (value instanceof Optional<?> opt && opt.isPresent() && opt.get() instanceof Item item) {
-                return Optional.of(item);
-            } else if (value instanceof Item item) {
-                return Optional.of(item);
-            }
-        }
-        return Optional.empty();
+        return librarian.get(iid, Item.class);
     }
 
     /**
      * Lookup items by text query.
      */
-    @SuppressWarnings("unchecked")
     public List<Posting> lookup(String text) {
         if (librarian == null || text == null || text.length() < 2) {
             return List.of();
         }
-
-        var result = librarian.dispatch("library.lookup", List.of(text));
-        if (result.success() && result.value() instanceof List<?> list) {
-            return (List<Posting>) list;
-        }
-        return List.of();
+        var tokenDict = librarian.tokenIndex();
+        if (tokenDict == null) return List.of();
+        return tokenDict.lookup(text).toList();
     }
 
     // ==================================================================================

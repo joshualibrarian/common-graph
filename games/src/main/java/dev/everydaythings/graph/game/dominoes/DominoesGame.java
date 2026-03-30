@@ -1,17 +1,8 @@
 package dev.everydaythings.graph.game.dominoes;
 
 import dev.everydaythings.graph.game.*;
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -367,76 +358,6 @@ public class DominoesGame extends GameComponent<DominoesGame.Op>
             case 3 -> 13;
             default -> 10; // 4+ players
         };
-    }
-
-    // ==================================================================================
-    // Game Actions
-    // ==================================================================================
-
-    /**
-     * Start the game (deal tiles, place starting double).
-     */
-    @Verb(value = GameVocabulary.Deal.KEY, doc = "Start the game")
-    public String start(ActionContext ctx) {
-        if (started) return "Game already started";
-        apply(new StartOp());
-        return "Game started with double-" + startingDouble + " as center";
-    }
-
-    /**
-     * Play a tile on a train.
-     */
-    @Verb(value = GameVocabulary.Play.KEY, doc = "Play a tile")
-    public String play(ActionContext ctx,
-                       @Param(value = "tile", doc = "Tile ordinal") int tileOrdinal,
-                       @Param(value = "train", doc = "Target train name") String train) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-
-        DominoTile tile = DominoTile.fromOrdinal(tileOrdinal);
-
-        // Validate
-        Zone<DominoTile> hand = zoneMap.zone("hand", seat);
-        if (!hand.contents().contains(tile)) {
-            return "You don't have that tile";
-        }
-        if (!isValidTarget(seat, train)) {
-            return "Cannot play on train: " + train;
-        }
-        int end = trainEnds.get(train);
-        if (!tile.matches(end)) {
-            return "Tile " + tile + " doesn't match end value " + end;
-        }
-
-        apply(new PlayOp(seat, tileOrdinal, train));
-        return "Played " + tile + " on " + train;
-    }
-
-    /**
-     * Draw a tile from the boneyard.
-     */
-    @Verb(value = GameVocabulary.Draw.KEY, doc = "Draw from boneyard")
-    public String draw(ActionContext ctx) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-
-        if (hasDrawnThisTurn) return "Already drew this turn";
-        if (zoneMap.zone("boneyard").size() == 0) return "Boneyard is empty";
-
-        apply(new DrawOp(seat));
-        return "Drew a tile";
-    }
-
-    /**
-     * Pass (marks your train as open).
-     */
-    @Verb(value = GameVocabulary.Pass.KEY, doc = "Pass your turn")
-    public String pass(ActionContext ctx) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-
-        apply(new PassOp(seat));
-        return "Passed — train is now open";
     }
 
     // ==================================================================================

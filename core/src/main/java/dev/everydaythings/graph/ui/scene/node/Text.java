@@ -119,10 +119,11 @@ public class Text extends Node {
     // Factories — Semantic Mode
     // ==================================================================================
 
-    /** Label from a single sememe — default features (noun, lemma). */
+    /** Label from a single sememe — default features (noun, lemma). Double-click opens a view. */
     public static Text ofSememe(ItemID sememe) {
         Text t = new Text();
         t.tokens = List.of(SemanticToken.of(sememe));
+        t.on(dev.everydaythings.graph.ui.scene.SceneEvent.of("doubleClick", "view", sememe.encodeText()));
         return t;
     }
 

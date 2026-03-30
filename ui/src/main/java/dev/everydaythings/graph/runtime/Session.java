@@ -2,6 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.*;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyPipeline;
 import dev.everydaythings.graph.item.*;
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.parse.InputSnapshot;
@@ -419,25 +420,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
     public void onBack(Runnable callback) {
         this.onBack = callback;
-    }
-
-    // ==================================================================================
-    // Verbs (formerly on SessionItem)
-    // ==================================================================================
-
-    @Verb(value = CoreVocabulary.Exit.KEY, doc = "Exit the session")
-    public ActionResult exit() {
-        if (onExit != null) {
-            onExit.run();
-        }
-        return ActionResult.success("exit");
-    }
-
-    @Verb(value = CoreVocabulary.Authenticate.KEY, doc = "Authenticate as a user")
-    public ActionResult actionAuthenticate(
-            @Param(value = "user", doc = "The user to authenticate as") ItemID userId) {
-        Signer user = authenticate(userId);
-        return ActionResult.success(user.displayToken() + " authenticated");
     }
 
     // ==================================================================================

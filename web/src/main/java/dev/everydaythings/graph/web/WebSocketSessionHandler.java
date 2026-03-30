@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.web;
 
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
@@ -227,57 +226,9 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
     }
 
     private void handleDispatch(ChannelHandlerContext ctx, SessionMessage.DispatchRequest m) {
-        String action = m.action();
-        long requestId = m.requestId();
-        ItemID caller = m.caller();
-
-        if (principalId != null && caller != null && !caller.equals(principalId)) {
-            sendMessage(ctx, SessionMessage.DispatchResponse.failure(requestId,
-                    "Caller does not match authenticated principal"));
-            return;
-        }
-
-        if (caller == null) {
-            caller = principalId;
-        }
-
-        Item target = context != null ? context : librarian;
-
-        ActionResult result;
-        if (caller != null) {
-            result = target.dispatch(caller, action, m.args());
-        } else {
-            result = target.dispatch(action, m.args());
-        }
-
-        if (result.success()) {
-            Object value = result.value();
-            View view;
-            if (value instanceof View v) {
-                view = v;
-            } else {
-                // Compile the context item's scene — this is what the native
-                // session does after every dispatch. The item's @Scene annotations
-                // define its visual presentation.
-                view = compileItemView(target);
-                // If the dispatch returned a non-View value (e.g., a string result),
-                // prepend it as text above the item view
-                if (value != null && !(value instanceof java.util.stream.BaseStream)) {
-                    String text = value.toString();
-                    if (!text.isBlank()) {
-                        view = View.of(
-                            ContainerSurface.vertical()
-                                .add(TextSurface.of(text).style("muted"))
-                                .add(view.root() != null ? view.root() : ContainerSurface.vertical())
-                        );
-                    }
-                }
-            }
-            sendMessage(ctx, SessionMessage.DispatchResponse.success(requestId, view));
-        } else {
-            sendMessage(ctx, SessionMessage.DispatchResponse.failure(requestId,
-                    result.error() != null ? result.error().getMessage() : "Unknown error"));
-        }
+        // Verb dispatch has been removed — all evaluation goes through FrameAssemblyPipeline
+        sendMessage(ctx, SessionMessage.DispatchResponse.failure(m.requestId(),
+                "Verb dispatch is no longer supported; use the frame assembly pipeline"));
     }
 
     private void handleLookup(ChannelHandlerContext ctx, SessionMessage.LookupRequest m) {

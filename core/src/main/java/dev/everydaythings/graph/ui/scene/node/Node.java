@@ -122,6 +122,14 @@ public abstract class Node implements Canonical {
     @Canon(order = 40)
     protected List<SceneEvent> events;
 
+    /** Add an event handler to this node. Fluent. */
+    @SuppressWarnings("unchecked")
+    public <T extends Node> T on(SceneEvent event) {
+        if (events == null) events = new java.util.ArrayList<>();
+        events.add(event);
+        return (T) this;
+    }
+
     @Canon(order = 41)
     protected boolean capturesFocus;
 

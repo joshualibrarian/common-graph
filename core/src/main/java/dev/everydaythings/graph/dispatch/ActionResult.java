@@ -1,12 +1,9 @@
 package dev.everydaythings.graph.dispatch;
 
 /**
- * Result of a verb or action invocation.
+ * Result of an action invocation.
  *
  * <p>Wraps success/failure state with an optional return value or error.
- * Used as the universal return type across all dispatch paths:
- * {@link dev.everydaythings.graph.item.VerbInvoker},
- * {@link dev.everydaythings.graph.item.Item#dispatch}.
  */
 @lombok.Value
 public class ActionResult {

@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.game.chess;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.network.session.RenderInstructionRecorder;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -37,9 +36,7 @@ class ChessItemTest {
 
     @Test
     void move_appliesAndTracksHistory() {
-        ActionContext ctx = ActionContext.of(ItemID.fromString("test:player/white"), null, chess, librarian);
-
-        String result = chess.move(ctx, "e2e4");
+        String result = chess.move("e2e4");
         assertThat(result).isNull(); // null = success
         assertThat(chess.moveCount()).isEqualTo(1);
         assertThat(chess.moves()).containsExactly("e2e4");
@@ -47,9 +44,7 @@ class ChessItemTest {
 
     @Test
     void move_rejectsIllegal() {
-        ActionContext ctx = ActionContext.of(ItemID.fromString("test:player/white"), null, chess, librarian);
-
-        String result = chess.move(ctx, "e5e6");
+        String result = chess.move("e5e6");
         assertThat(result).contains("Illegal move");
         assertThat(chess.moveCount()).isEqualTo(0);
     }
@@ -63,16 +58,14 @@ class ChessItemTest {
 
     @Test
     void scholarsMate_detectsCheckmate() {
-        ActionContext ctx = ActionContext.of(ItemID.fromString("test:player/white"), null, chess, librarian);
-
         // Scholar's mate: 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
-        assertThat(chess.move(ctx, "e2e4")).isNull();
-        assertThat(chess.move(ctx, "e7e5")).isNull();
-        assertThat(chess.move(ctx, "f1c4")).isNull();
-        assertThat(chess.move(ctx, "b8c6")).isNull();
-        assertThat(chess.move(ctx, "d1h5")).isNull();
-        assertThat(chess.move(ctx, "g8f6")).isNull();
-        assertThat(chess.move(ctx, "h5f7")).isNull();
+        assertThat(chess.move("e2e4")).isNull();
+        assertThat(chess.move("e7e5")).isNull();
+        assertThat(chess.move("f1c4")).isNull();
+        assertThat(chess.move("b8c6")).isNull();
+        assertThat(chess.move("d1h5")).isNull();
+        assertThat(chess.move("g8f6")).isNull();
+        assertThat(chess.move("h5f7")).isNull();
 
         assertThat(chess.isGameOver()).isTrue();
         assertThat(chess.result()).isEqualTo(ChessItem.GameResult.WHITE_WINS_CHECKMATE);
@@ -80,9 +73,7 @@ class ChessItemTest {
 
     @Test
     void resign_endsGame() {
-        ActionContext ctx = ActionContext.of(ItemID.fromString("test:player/white"), null, chess, librarian);
-
-        String msg = chess.resign(ctx);
+        String msg = chess.resign();
         assertThat(msg).contains("White resigns");
         assertThat(chess.isGameOver()).isTrue();
         assertThat(chess.result()).isEqualTo(ChessItem.GameResult.BLACK_WINS_RESIGNATION);
@@ -93,11 +84,8 @@ class ChessItemTest {
         ItemID white = ItemID.fromString("test:player/white");
         ItemID black = ItemID.fromString("test:player/black");
 
-        ActionContext ctxW = ActionContext.of(white, null, chess, librarian);
-        ActionContext ctxB = ActionContext.of(black, null, chess, librarian);
-
-        assertThat(chess.join(ctxW, null)).isEqualTo("Joined as white");
-        assertThat(chess.join(ctxB, null)).isEqualTo("Joined as black");
+        assertThat(chess.join(white, null)).isEqualTo("Joined as white");
+        assertThat(chess.join(black, null)).isEqualTo("Joined as black");
     }
 
     @Test

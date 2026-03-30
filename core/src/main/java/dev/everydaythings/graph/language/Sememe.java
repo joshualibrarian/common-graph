@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
@@ -17,8 +16,6 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.runtime.Librarian;

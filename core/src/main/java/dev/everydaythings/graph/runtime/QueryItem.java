@@ -6,7 +6,6 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -83,13 +82,7 @@ public class QueryItem extends Item {
                                                  GrammaticalFeature.Lemma.KEY}))
         static final String word = "query";
 
-        // EXPECTS — declaration order is salience order for handle disambiguation.
-        // QUERY frame is most identifying (what was searched for).
-        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {FrameBody.TYPE_KEY, Query.KEY}))
-        static final ItemID expectQuery = ItemID.fromString(Query.KEY);
-
+        // EXPECTS — query results are the frames on a QueryItem
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
                                    qualifiers = {FrameBody.TYPE_KEY, Result.KEY}))
@@ -100,22 +93,6 @@ public class QueryItem extends Item {
     // Seed predicates
     // ==================================================================================
 
-    /** The QUERY predicate — the pattern itself. */
-    @ItemSeed(key = Query.KEY)
-    public static class Query {
-        public static final String KEY = "cg.predicate:query";
-        public static final ItemID IID = ItemID.fromString(KEY);
-
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "a pattern of items to search for by frame co-occurrence";
-
-        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {ThematicRole.KEY, Term.KEY}))
-        static final ItemID expectTerm = Term.IID;
-    }
 
     /** The QUERY_RESULT predicate — a single result. */
     @ItemSeed(key = Result.KEY)
@@ -180,9 +157,9 @@ public class QueryItem extends Item {
         for (Eval.ResolvedToken token : terms) {
             if (token instanceof Eval.ResolvedToken.Link link) {
                 patternTerms.add(link.iid());
+                addBinding(new Binding(Term.IID, BindingTarget.iid(link.iid()), true, true));
             }
         }
-        storeQueryFrame(terms);
     }
 
     /** Fresh query from an incomplete semantic frame (structured query). */
@@ -191,11 +168,14 @@ public class QueryItem extends Item {
         this.semanticFrame = frame;
         this.patternTerms = new LinkedHashSet<>();
         patternTerms.add(frame.verb().iid());
+        addBinding(new Binding(Term.IID, BindingTarget.iid(frame.verb().iid()), true, true));
         for (var entry : frame.bindings().entrySet()) {
             ItemID valueId = extractItemId(entry.getValue());
-            if (valueId != null) patternTerms.add(valueId);
+            if (valueId != null) {
+                patternTerms.add(valueId);
+                addBinding(new Binding(Term.IID, BindingTarget.iid(valueId), true, true));
+            }
         }
-        storeStructuredQueryFrame(frame);
     }
 
     /** Hydrate from manifest. */
@@ -277,7 +257,9 @@ public class QueryItem extends Item {
     private Set<ItemID> runUnstructured() {
         Set<ItemID> pattern = extractPattern();
         if (pattern.isEmpty()) return Set.of();
-        Set<ItemID> results = librarian.library().queryItems(pattern);
+        Set<ItemID> results = new LinkedHashSet<>(librarian.library().queryItems(pattern));
+        // Exclude the search terms themselves — they're the query, not results
+        results.removeAll(pattern);
         return storeResults(results);
     }
 
@@ -300,29 +282,10 @@ public class QueryItem extends Item {
     // ==================================================================================
 
     /**
-     * Extract the pattern ItemIDs — from transient state if available,
-     * otherwise from stored QUERY frame TERM bindings.
+     * Extract the pattern ItemIDs from the transient query state.
      */
     public Set<ItemID> extractPattern() {
-        // Use transient pattern if available (freshly constructed query)
-        if (patternTerms != null && !patternTerms.isEmpty()) {
-            return patternTerms;
-        }
-        // Fall back to reading from stored frames (hydrated from manifest)
-        Set<ItemID> pattern = new LinkedHashSet<>();
-        if (frames() != null) {
-            for (var frame : frames()) {
-                if (frame.body() != null && Query.IID.equals(frame.body().predicate())) {
-                    for (Binding b : frame.body().frameBindings()) {
-                        if (Term.IID.equals(b.role())) {
-                            ItemID termId = b.targetId();
-                            if (termId != null) pattern.add(termId);
-                        }
-                    }
-                }
-            }
-        }
-        return pattern;
+        return patternTerms != null ? patternTerms : Set.of();
     }
 
     // ==================================================================================
@@ -343,48 +306,6 @@ public class QueryItem extends Item {
         return results;
     }
 
-    /**
-     * Build and store the QUERY frame from resolved tokens (unstructured).
-     */
-    private void storeQueryFrame(List<Eval.ResolvedToken> terms) {
-        List<Binding> bindings = new ArrayList<>();
-        bindings.add(FrameBody.homeBinding(iid()));
-
-        for (Eval.ResolvedToken token : terms) {
-            if (token instanceof Eval.ResolvedToken.Link link) {
-                bindings.add(new Binding(Term.IID, BindingTarget.iid(link.iid()), true, true));
-            } else if (token instanceof Eval.ResolvedToken.Literal lit) {
-                bindings.add(new Binding(Term.IID, Literal.ofText(lit.value().toString()), true, true));
-            }
-        }
-
-        FrameBody queryFrame = new FrameBody(Query.IID, bindings);
-        endorseFrame(queryFrame);
-    }
-
-    /**
-     * Build and store the QUERY frame from a structured semantic frame.
-     *
-     * <p>Stores the predicate as a TERM binding plus each filled role's value.
-     */
-    private void storeStructuredQueryFrame(SemanticFrame frame) {
-        List<Binding> bindings = new ArrayList<>();
-        bindings.add(FrameBody.homeBinding(iid()));
-
-        // The predicate itself is a term
-        bindings.add(new Binding(Term.IID, BindingTarget.iid(frame.verb().iid()), true, true));
-
-        // Each filled binding value is a term
-        for (var entry : frame.bindings().entrySet()) {
-            ItemID valueId = extractItemId(entry.getValue());
-            if (valueId != null) {
-                bindings.add(new Binding(Term.IID, BindingTarget.iid(valueId), true, true));
-            }
-        }
-
-        FrameBody queryFrame = new FrameBody(Query.IID, bindings);
-        endorseFrame(queryFrame);
-    }
 
     /**
      * Check if a specific item fills a specific role in a frame body.

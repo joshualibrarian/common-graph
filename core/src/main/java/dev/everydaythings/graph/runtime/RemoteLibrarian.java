@@ -3,7 +3,6 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.Vocabulary;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.network.session.SessionClient;
@@ -124,38 +123,6 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     @Override
     public String connectionString() {
         return connectionTarget();
-    }
-
-    @Override
-    public ActionResult dispatch(String command, List<String> args) {
-        checkOpen();
-        try {
-            SessionMessage.DispatchResponse response = sendDispatch(command, args);
-            if (response.success()) {
-                return ActionResult.success(response.view());
-            } else {
-                return ActionResult.failure(new RuntimeException(response.error()));
-            }
-        } catch (IOException e) {
-            return ActionResult.failure(e);
-        }
-    }
-
-    @Override
-    public ActionResult dispatch(ItemID target, String command, List<String> args) {
-        checkOpen();
-        try {
-            // First set context to the target item
-            SessionMessage.ContextResponse ctxResponse = setContext(target);
-            if (ctxResponse.error() != null) {
-                return ActionResult.failure(new RuntimeException(ctxResponse.error()));
-            }
-
-            // Then dispatch the command
-            return dispatch(command, args);
-        } catch (IOException e) {
-            return ActionResult.failure(e);
-        }
     }
 
     @Override

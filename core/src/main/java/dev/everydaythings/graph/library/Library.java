@@ -4,8 +4,6 @@ import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Picker;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
@@ -169,9 +167,7 @@ public final class Library implements Canonical, AutoCloseable {
      */
     @Factory(label = "Persistent (RocksDB)", glyph = "💾", primary = true,
              doc = "Production-grade persistent storage.")
-    public static Library file(
-            @Param(label = "Storage Directory", doc = "Directory to store library data",
-                   picker = Picker.DIRECTORY) Path rootPath) {
+    public static Library file(Path rootPath) {
         return new Library(Backend.ROCKS, rootPath);
     }
 
@@ -185,9 +181,7 @@ public final class Library implements Canonical, AutoCloseable {
      */
     @Factory(label = "MapDB (Persistent)", glyph = "📦",
              doc = "Lightweight persistent storage.")
-    public static Library mapdb(
-            @Param(label = "Storage Directory", doc = "Directory to store library data",
-                   picker = Picker.DIRECTORY) Path rootPath) {
+    public static Library mapdb(Path rootPath) {
         return new Library(Backend.MAPDB, rootPath);
     }
 

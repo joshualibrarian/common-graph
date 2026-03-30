@@ -4,9 +4,6 @@ import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.dispatch.VerbEntry;
-import dev.everydaythings.graph.dispatch.VerbSpec;
-import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameConfig;
 import dev.everydaythings.graph.frame.EndorsementsTable;
@@ -45,8 +42,6 @@ import java.util.stream.Collectors;
  * <p>The schema contains:
  * <ul>
  *   <li>Frame field specs from @Item.Frame</li>
- *   <li>Item-level verbs from @Verb on methods</li>
- *   <li>Component verbs from @Verb on component classes</li>
  * </ul>
  */
 @Getter
@@ -58,52 +53,11 @@ public class ItemSchema {
     /** All frame fields (endorsed + unendorsed). */
     private final List<FrameFieldSpec> frameFields;
 
-    /** All @Verb methods on the item class. */
-    private final List<VerbSpec> verbSpecs;
-
-    /** Verbs per component handle (handle -> list of verbs). */
-    private final Map<String, List<VerbSpec>> componentVerbs;
-
     public ItemSchema(
             @NonNull Class<? extends Item> itemClass,
-            List<FrameFieldSpec> frameFields,
-            List<VerbSpec> verbSpecs,
-            Map<String, List<VerbSpec>> componentVerbs) {
+            List<FrameFieldSpec> frameFields) {
         this.itemClass = itemClass;
         this.frameFields = frameFields != null ? List.copyOf(frameFields) : List.of();
-        this.verbSpecs = verbSpecs != null ? List.copyOf(verbSpecs) : List.of();
-        this.componentVerbs = componentVerbs != null ? Map.copyOf(componentVerbs) : Map.of();
-    }
-
-    // ==================================================================================
-    // Vocabulary Population
-    // ==================================================================================
-
-    /**
-     * Populate the Vocabulary from this schema.
-     *
-     * <p>Adds all item-level verbs and all component verbs discovered
-     * during scanning.
-     *
-     * @param vocab The vocabulary to populate
-     * @param owner The owning item (for setting owner on verb entries)
-     */
-    public void populateVocabulary(Vocabulary vocab, Item owner) {
-        // Add item-level verbs
-        for (VerbSpec spec : verbSpecs) {
-            vocab.add(VerbEntry.itemVerb(spec, owner));
-        }
-
-        // Add component verbs
-        for (Map.Entry<String, List<VerbSpec>> entry : componentVerbs.entrySet()) {
-            String componentHandle = entry.getKey();
-            Object component = owner.component(componentHandle);
-            if (component != null) {
-                for (VerbSpec spec : entry.getValue()) {
-                    vocab.add(VerbEntry.componentVerb(spec, componentHandle, component));
-                }
-            }
-        }
     }
 
     // ==================================================================================
@@ -659,7 +613,6 @@ public class ItemSchema {
     @Override
     public String toString() {
         return "ItemSchema[" + itemClass.getSimpleName() +
-                ", frames=" + frameFields.size() +
-                ", verbs=" + verbSpecs.size() + "]";
+                ", frames=" + frameFields.size() + "]";
     }
 }

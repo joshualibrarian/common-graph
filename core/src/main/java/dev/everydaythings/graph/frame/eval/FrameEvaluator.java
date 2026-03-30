@@ -201,8 +201,8 @@ public final class FrameEvaluator {
             }
         }
 
-        // 3. Verb dispatch — owner provides implementation (vocabulary chain)
-        return javaRuntime.resolveVerb(predicate, scope);
+        // No implementation found
+        return null;
     }
 
     /**

@@ -3,7 +3,6 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.Vocabulary;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Posting;
@@ -135,29 +134,6 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * Get the connection description (path for local, host:port for remote).
      */
     String connectionString();
-
-    // ==================================================================================
-    // Dispatch
-    // ==================================================================================
-
-    /**
-     * Dispatch a command to the Librarian.
-     *
-     * @param command The command/verb to execute
-     * @param args String arguments
-     * @return The action result
-     */
-    ActionResult dispatch(String command, List<String> args);
-
-    /**
-     * Dispatch a command to a specific item.
-     *
-     * @param target The target item ID
-     * @param command The command/verb to execute
-     * @param args String arguments
-     * @return The action result
-     */
-    ActionResult dispatch(ItemID target, String command, List<String> args);
 
     // ==================================================================================
     // Item Access

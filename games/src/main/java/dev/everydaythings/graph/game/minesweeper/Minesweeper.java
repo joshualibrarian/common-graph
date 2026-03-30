@@ -5,14 +5,6 @@ import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.View;
@@ -378,16 +370,6 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         }
     }
 
-    // ==================================================================================
-    // Game Actions (Verbs)
-    // ==================================================================================
-
-    @Verb(value = GameVocabulary.Reveal.KEY, doc = "Reveal a tile")
-    public boolean reveal(@Param(value = "cell", doc = "Cell label (e.g., a1)") String label) {
-        int[] pos = GameBoard.parseGridLabel(label);
-        return reveal(pos[0], pos[1]);
-    }
-
     public boolean reveal(int x, int y) {
         if (result != GameResult.IN_PROGRESS) return false;
         if (!inBounds(x, y)) return false;
@@ -402,12 +384,6 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         return true;
     }
 
-    @Verb(value = GameVocabulary.Flag.KEY, doc = "Toggle flag on a tile")
-    public boolean flag(@Param(value = "cell", doc = "Cell label (e.g., a1)") String label) {
-        int[] pos = GameBoard.parseGridLabel(label);
-        return flag(pos[0], pos[1]);
-    }
-
     public boolean flag(int x, int y) {
         if (result != GameResult.IN_PROGRESS) return false;
         if (!inBounds(x, y)) return false;
@@ -415,12 +391,6 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         if (tile != MineTile.HIDDEN && tile != MineTile.FLAGGED) return false;
         apply(new FlagOp(x, y));
         return true;
-    }
-
-    @Verb(value = GameVocabulary.Chord.KEY, doc = "Auto-reveal neighbors when flags match the number")
-    public boolean chord(@Param(value = "cell", doc = "Cell label (e.g., a1)") String label) {
-        int[] pos = GameBoard.parseGridLabel(label);
-        return chord(pos[0], pos[1]);
     }
 
     public boolean chord(int x, int y) {
@@ -488,7 +458,6 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         return result;
     }
 
-    @Verb(value = CoreVocabulary.Describe.KEY, doc = "Describe game status")
     public String statusText() {
         if (isWon()) return "You win! All mines cleared.";
         if (isLost()) return "Game over! Hit a mine.";

@@ -2,11 +2,7 @@ package dev.everydaythings.graph.game;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Canonical.Canon;
-import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -321,48 +317,6 @@ public abstract class GameComponent<Op> implements Canonical {
     }
 
     // ==================================================================================
-    // Authorization Helpers
-    // ==================================================================================
-
-    /**
-     * Get the caller's seat and verify it's their turn.
-     *
-     * <p>In AUTHENTICATED mode, the caller must be a seated player and it must
-     * be their turn. In ANALYSIS/ARCHIVE mode, authorization is skipped (returns -1).
-     *
-     * @param ctx the action context
-     * @return the caller's seat index, or -1 if authorization was skipped
-     * @throws SecurityException if the caller is not seated or it's not their turn
-     */
-    protected int authorizedSeat(ActionContext ctx) {
-        if (!isAuthenticated()) return -1;
-        if (ctx == null || ctx.caller() == null) return -1;
-        int seat = requireSeat(ctx);
-        if (!canAct(seat)) {
-            throw new SecurityException("Not your turn (seat " + seat + ")");
-        }
-        return seat;
-    }
-
-    /**
-     * Get the caller's seat (no turn check). For resign/draw that work any time.
-     *
-     * <p>In AUTHENTICATED mode, the caller must be a seated player.
-     * In ANALYSIS/ARCHIVE mode, returns -1 (no enforcement).
-     *
-     * @param ctx the action context
-     * @return the caller's seat index, or -1 if authorization was skipped
-     * @throws SecurityException if the caller is not seated in the game
-     */
-    protected int requireSeat(ActionContext ctx) {
-        if (!isAuthenticated()) return -1;
-        if (ctx == null || ctx.caller() == null) return -1;
-        return seatOf(ctx.caller())
-                .orElseThrow(() -> new SecurityException(
-                        "Not a player in this game: " + ctx.caller()));
-    }
-
-    // ==================================================================================
     // Leave (data method)
     // ==================================================================================
 
@@ -381,113 +335,6 @@ public abstract class GameComponent<Op> implements Canonical {
             }
         }
         return Optional.empty();
-    }
-
-    // ==================================================================================
-    // Join/Leave Verbs
-    // ==================================================================================
-
-    /**
-     * Join the game via verb dispatch.
-     *
-     * <p>In AUTHENTICATED mode, uses the caller's identity from ActionContext.
-     * In ANALYSIS mode, joins with a display name only (no identity required).
-     *
-     * @param ctx  the action context (provides caller identity)
-     * @param seat optional seat number (null for first available)
-     * @return status message
-     */
-    @Verb(value = GameVocabulary.Join.KEY, doc = "Join the game")
-    public String joinVerb(ActionContext ctx,
-                           @Param(value = "seat", required = false) Integer seat) {
-        ItemID callerId = ctx.caller();
-
-        if (isAuthenticated()) {
-            if (callerId == null) {
-                throw new IllegalStateException("Cannot join anonymously — game requires authentication");
-            }
-
-            // Check if already seated
-            if (seatOf(callerId).isPresent()) {
-                throw new IllegalStateException("Already in the game at seat " + seatOf(callerId).get());
-            }
-
-            // Extract display name from caller's signer if available
-            String displayName = ctx.callerSigner()
-                    .map(Signer::name)
-                    .orElse(null);
-
-            if (seat != null) {
-                joinAs(seat, callerId, displayName);
-                return "Joined at seat " + seat;
-            } else {
-                return joinWithName(callerId, displayName)
-                        .map(s -> "Joined at seat " + s)
-                        .orElseThrow(() -> new IllegalStateException("Game is full"));
-            }
-        } else {
-            // ANALYSIS/ARCHIVE: join with caller identity if available, otherwise just a seat
-            String displayName = null;
-            if (callerId != null) {
-                displayName = ctx.callerSigner()
-                        .map(Signer::name)
-                        .orElse(null);
-            }
-
-            if (seat != null) {
-                if (callerId != null) {
-                    joinAs(seat, callerId, displayName);
-                } else {
-                    // Name-only join — no ItemID needed
-                    while (playerSeats.size() <= seat) playerSeats.add(null);
-                    playerNames.put(seat, displayName);
-                }
-                return "Joined at seat " + seat;
-            } else {
-                if (callerId != null) {
-                    return joinWithName(callerId, displayName)
-                            .map(s -> "Joined at seat " + s)
-                            .orElseThrow(() -> new IllegalStateException("Game is full"));
-                }
-                // Find first available seat for name-only join
-                for (int i = 0; i < maxPlayers(); i++) {
-                    while (playerSeats.size() <= i) playerSeats.add(null);
-                    if (playerSeats.get(i) == null && !playerNames.containsKey(i)) {
-                        playerNames.put(i, displayName);
-                        return "Joined at seat " + i;
-                    }
-                }
-                throw new IllegalStateException("Game is full");
-            }
-        }
-    }
-
-    /**
-     * Leave the game via verb dispatch.
-     *
-     * @param ctx the action context (provides caller identity)
-     * @return status message
-     */
-    @Verb(value = GameVocabulary.Leave.KEY, doc = "Leave the game")
-    public String leaveVerb(ActionContext ctx) {
-        if (isAuthenticated()) {
-            ItemID callerId = ctx.caller();
-            if (callerId == null) {
-                throw new IllegalStateException("Cannot leave anonymously — game requires authentication");
-            }
-            return leave(callerId)
-                    .map(s -> "Left seat " + s)
-                    .orElseThrow(() -> new IllegalStateException("Not in the game"));
-        } else {
-            // ANALYSIS/ARCHIVE: leave by caller ID if available
-            ItemID callerId = ctx.caller();
-            if (callerId != null) {
-                return leave(callerId)
-                        .map(s -> "Left seat " + s)
-                        .orElseThrow(() -> new IllegalStateException("Not in the game"));
-            }
-            throw new IllegalStateException("No caller identity to leave with");
-        }
     }
 
     // ==================================================================================

@@ -156,16 +156,8 @@ public class TextSession extends Session {
         System.out.println("  IID: " + item.iid().encodeText());
         System.out.println("  Type: " + item.getClass().getSimpleName());
         var vocab = item.vocabulary();
-        if (vocab != null && vocab.size() > 0) {
-            System.out.println("  Verbs:");
-            for (var entry : vocab) {
-                String doc = entry.doc();
-                if (doc != null && !doc.isBlank()) {
-                    System.out.println("    " + entry.methodName() + " - " + doc);
-                } else {
-                    System.out.println("    " + entry.methodName());
-                }
-            }
+        if (vocab != null && vocab.localTokenCount() > 0) {
+            System.out.println("  Local tokens: " + vocab.localTokenCount());
         }
     }
 

@@ -2,8 +2,6 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.dispatch.VerbEntry;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -144,49 +142,6 @@ class LibrarianTest extends SignerTest {
         }
     }
 
-    // ==================================================================================
-    // Librarian Verbs
-    // ==================================================================================
-
-    @Nested
-    @DisplayName("Librarian Verbs")
-    class LibrarianVerbs {
-
-        @Test
-        @DisplayName("debug: print all verbs")
-        void debugPrintVerbs() {
-            System.out.println("=== ALL REGISTERED VERBS ===");
-            for (VerbEntry v : librarian.vocabulary()) {
-                System.out.println("  " + v.sememeKey() + " → " + v.methodName()
-                    + " [" + v.source() + "] doc=" + v.doc());
-            }
-            System.out.println("=== END VERBS ===");
-        }
-
-        @Test
-        @DisplayName("has CREATE verb from base Item")
-        void hasCreateVerb() {
-            assertThat(librarian.vocabulary().lookup(ItemID.fromString(CoreVocabulary.Create.KEY)))
-                    .as("CREATE verb from base Item")
-                    .isPresent();
-        }
-
-        @Test
-        @DisplayName("has GET verb")
-        void hasGetVerb() {
-            assertThat(librarian.vocabulary().lookup(ItemID.fromString(CoreVocabulary.Get.KEY)))
-                    .as("GET verb")
-                    .isPresent();
-        }
-
-        @Test
-        @DisplayName("has QUERY verb")
-        void hasQueryVerb() {
-            assertThat(librarian.vocabulary().lookup(ItemID.fromString(CoreVocabulary.Query.KEY)))
-                    .as("QUERY verb")
-                    .isPresent();
-        }
-    }
 
     // ==================================================================================
     // Type Registry
@@ -251,25 +206,6 @@ class LibrarianTest extends SignerTest {
                     .isTrue();
         }
 
-        @Test
-        @DisplayName("can create items via 'new' action on type")
-        void canCreateItemsViaNewAction() {
-            Item itemType = librarian.get(ItemID.fromString(Item.KEY), Item.class)
-                    .orElseThrow(() -> new AssertionError("Item type not found"));
-
-            ActionResult result = librarian.dispatch(itemType, "new", List.of());
-
-            assertThat(result.success())
-                    .as("'new' action should succeed")
-                    .isTrue();
-
-            Item created = (Item) result.value();
-            assertThat(created)
-                    .as("Created item")
-                    .isNotNull();
-            assertThat(created.iid())
-                    .isNotEqualTo(itemType.iid());
-        }
     }
 
     // ==================================================================================

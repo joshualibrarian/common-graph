@@ -110,6 +110,7 @@ public class ViewWindow {
     private dev.everydaythings.graph.ui.scene.node.Node lastNodeTree;
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
+    private volatile String pendingExpression;
     private final dev.everydaythings.graph.ui.skia.ScrollState scrollState =
             new dev.everydaythings.graph.ui.skia.ScrollState();
     private ScheduledExecutorService liveTimer;
@@ -225,6 +226,17 @@ public class ViewWindow {
      */
     public boolean tick() {
         if (stage == null) return false;
+
+        // Process deferred expression from mouse events (outside GLFW callback)
+        String expr = pendingExpression;
+        if (expr != null) {
+            pendingExpression = null;
+            if (evaluateExpression(expr)) {
+                rebuildLayout();
+                requestRepaint();
+            }
+        }
+
         return stage.tick();
     }
 
@@ -621,23 +633,57 @@ public class ViewWindow {
         LayoutNode.PendingEvent hit = LayoutNode.hitTest(lastLayoutRoot, x, y, eventType);
         if (hit == null) return;
 
-        // Route through SceneRenderer state runtime first (toggle/set/unset/cycle),
-        // then fall through to application actions
+        // 1. Renderer-internal state mutations (toggle/set/unset/cycle)
         boolean handled = false;
         if (nodeRenderer != null) {
-            // For state mutations, the target node ID comes from the LayoutNode that was hit.
-            // When hit.target() is empty (self-targeting), walk up to find the nearest node with an ID.
             String nodeId = hit.target() != null && !hit.target().isEmpty()
                     ? hit.target() : findNodeIdAtHit(lastLayoutRoot, x, y);
             handled = nodeRenderer.dispatch(nodeId != null ? nodeId : "", hit.action(), hit.target());
         }
-        if (!handled && itemView != null) handled = itemView.handleEvent(hit.action(), hit.target());
-        // Application events already routed through nodeRenderer.onApplicationAction → itemView
+
+        // 2. ItemView internal events (toggle:help, select, etc.)
+        if (!handled && itemView != null) {
+            handled = itemView.handleEvent(hit.action(), hit.target());
+        }
+
+        // 3. Predicate expressions — action is a predicate, target is the argument.
+        //    Compose into an expression and defer evaluation to after the GLFW callback
+        //    returns (GLFW doesn't support nested callbacks like window creation).
+        if (!handled && hit.action() != null && !hit.action().startsWith("toggle:")
+                && !hit.action().equals("select") && !hit.action().equals("hover")) {
+            String expression = hit.target() != null && !hit.target().isEmpty()
+                    ? hit.action() + " " + hit.target()
+                    : hit.action();
+            pendingExpression = expression;
+            handled = true;
+        }
+
         if (handled) {
             sceneDirty = true;
             rebuildLayout();
             requestRepaint();
         }
+    }
+
+    /**
+     * Evaluate an expression through the pipeline (same path as typed input).
+     */
+    private boolean evaluateExpression(String expression) {
+        if (expression == null || expression.isBlank()) return false;
+        var lib = session.librarian();
+        if (lib == null) return false;
+
+        var eval = dev.everydaythings.graph.runtime.Eval.builder()
+                .librarian(lib)
+                .context(session.resolveItem(viewHandle.target()).orElse(null))
+                .session(session)
+                .build();
+        var result = eval.evaluateRaw(expression);
+        if (result != null && !(result instanceof dev.everydaythings.graph.runtime.Eval.EvalResult.Empty)) {
+            session.handleInputResult(result);
+            return true;
+        }
+        return false;
     }
 
     /**

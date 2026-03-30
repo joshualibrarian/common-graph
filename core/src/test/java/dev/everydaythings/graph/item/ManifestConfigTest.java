@@ -29,8 +29,8 @@ class ManifestConfigTest {
                     .implementation(TEST_IMPL)
                     .build();
 
-            assertThat(m.config()).isEmpty();
-            assertThat(m.configBinding(ThematicRole.Presentation.IID)).isNull();
+            assertThat(m.nonIdentityBindings()).isEmpty();
+            assertThat(m.nonIdentityBinding(ThematicRole.Presentation.IID)).isNull();
         }
 
         @Test
@@ -43,12 +43,12 @@ class ManifestConfigTest {
             Manifest m = Manifest.builder()
                     .iid(ItemID.random())
                     .implementation(TEST_IMPL)
-                    .configEntry(presBinding)
+                    .binding(presBinding)
                     .build();
 
-            assertThat(m.config()).hasSize(1);
-            assertThat(m.configBinding(ThematicRole.Presentation.IID)).isNotNull();
-            assertThat(m.configBinding(ThematicRole.Vocabulary.IID)).isNull();
+            assertThat(m.nonIdentityBindings()).hasSize(1);
+            assertThat(m.nonIdentityBinding(ThematicRole.Presentation.IID)).isNotNull();
+            assertThat(m.nonIdentityBinding(ThematicRole.Vocabulary.IID)).isNull();
         }
 
         @Test
@@ -60,15 +60,15 @@ class ManifestConfigTest {
             Manifest m = Manifest.builder()
                     .iid(ItemID.random())
                     .implementation(TEST_IMPL)
-                    .configEntry(Binding.nonIdentity(
+                    .binding(Binding.nonIdentity(
                             ThematicRole.Presentation.IID, presLit))
-                    .configEntry(Binding.nonIdentity(
+                    .binding(Binding.nonIdentity(
                             ThematicRole.Vocabulary.IID, vocabLit))
                     .build();
 
-            assertThat(m.config()).hasSize(2);
-            assertThat(m.configBinding(ThematicRole.Presentation.IID)).isNotNull();
-            assertThat(m.configBinding(ThematicRole.Vocabulary.IID)).isNotNull();
+            assertThat(m.nonIdentityBindings()).hasSize(2);
+            assertThat(m.nonIdentityBinding(ThematicRole.Presentation.IID)).isNotNull();
+            assertThat(m.nonIdentityBinding(ThematicRole.Vocabulary.IID)).isNotNull();
         }
 
         @Test
@@ -79,11 +79,11 @@ class ManifestConfigTest {
             Manifest m = Manifest.builder()
                     .iid(ItemID.random())
                     .implementation(TEST_IMPL)
-                    .config(List.of(
+                    .bindings(List.of(
                             Binding.nonIdentity(ThematicRole.Presentation.IID, lit)))
                     .build();
 
-            assertThat(m.config()).hasSize(1);
+            assertThat(m.nonIdentityBindings()).hasSize(1);
         }
     }
 
@@ -104,7 +104,7 @@ class ManifestConfigTest {
             Manifest with = Manifest.builder()
                     .iid(iid)
                     .implementation(TEST_IMPL)
-                    .configEntry(Binding.nonIdentity(
+                    .binding(Binding.nonIdentity(
                             ThematicRole.Presentation.IID,
                             Literal.ofText("theme-data")))
                     .build();
@@ -130,7 +130,7 @@ class ManifestConfigTest {
 
             assertThat(decoded.iid()).isEqualTo(original.iid());
             assertThat(decoded.vid()).isEqualTo(original.vid());
-            assertThat(decoded.config()).isEmpty();
+            assertThat(decoded.nonIdentityBindings()).isEmpty();
         }
 
         @Test
@@ -142,9 +142,9 @@ class ManifestConfigTest {
             Manifest original = Manifest.builder()
                     .iid(ItemID.random())
                     .implementation(TEST_IMPL)
-                    .configEntry(Binding.nonIdentity(
+                    .binding(Binding.nonIdentity(
                             ThematicRole.Presentation.IID, presLit))
-                    .configEntry(Binding.nonIdentity(
+                    .binding(Binding.nonIdentity(
                             ThematicRole.Vocabulary.IID, vocabLit))
                     .build();
 
@@ -153,14 +153,14 @@ class ManifestConfigTest {
 
             assertThat(decoded.iid()).isEqualTo(original.iid());
             assertThat(decoded.vid()).isEqualTo(original.vid());
-            assertThat(decoded.config()).hasSize(2);
+            assertThat(decoded.nonIdentityBindings()).hasSize(2);
 
-            Binding pres = decoded.configBinding(ThematicRole.Presentation.IID);
+            Binding pres = decoded.nonIdentityBinding(ThematicRole.Presentation.IID);
             assertThat(pres).isNotNull();
             assertThat(pres.target()).isInstanceOf(Literal.class);
             assertThat(((Literal) pres.target()).payload()).isEqualTo(presLit.payload());
 
-            Binding vocab = decoded.configBinding(ThematicRole.Vocabulary.IID);
+            Binding vocab = decoded.nonIdentityBinding(ThematicRole.Vocabulary.IID);
             assertThat(vocab).isNotNull();
         }
 
@@ -177,7 +177,7 @@ class ManifestConfigTest {
             byte[] bytes = original.encodeBinary(Canonical.Scope.RECORD);
             Manifest decoded = Manifest.decode(bytes);
 
-            assertThat(decoded.config()).isEmpty();
+            assertThat(decoded.nonIdentityBindings()).isEmpty();
             assertThat(decoded.vid()).isEqualTo(original.vid());
         }
     }

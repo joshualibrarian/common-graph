@@ -3,15 +3,6 @@ package dev.everydaythings.graph.game.set;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
@@ -237,35 +228,6 @@ public class SetGame extends GameComponent<SetGame.Op>
     }
 
     // ==================================================================================
-    // Game Actions (Verbs)
-    // ==================================================================================
-
-    @Verb(value = CoreVocabulary.Create.KEY, doc = "Start the game")
-    public void start() {
-        if (started) return;
-        apply(new StartOp());
-    }
-
-    @Verb(value = GameVocabulary.Call.KEY, doc = "Call a set of three cards")
-    public boolean callSet(
-            @Param(value = "seat", doc = "Player seat") int seat,
-            @Param(value = "card1", doc = "First card ordinal") int card1,
-            @Param(value = "card2", doc = "Second card ordinal") int card2,
-            @Param(value = "card3", doc = "Third card ordinal") int card3) {
-        if (gameOver || !started) return false;
-        apply(new CallSetOp(seat, card1, card2, card3));
-        return true;
-    }
-
-    @Verb(value = GameVocabulary.Deal.KEY, doc = "Request more cards")
-    public boolean dealMore(
-            @Param(value = "seat", doc = "Requesting player seat") int seat) {
-        if (gameOver || !started) return false;
-        apply(new DealMoreOp(seat));
-        return true;
-    }
-
-    // ==================================================================================
     // View Model
     // ==================================================================================
 
@@ -340,7 +302,6 @@ public class SetGame extends GameComponent<SetGame.Op>
         return zoneMap.zone("deck").size();
     }
 
-    @Verb(value = CoreVocabulary.Describe.KEY, doc = "Describe game status")
     public String describeStatus() {
         if (!started) return "Waiting to start. " + seatedCount() + " players.";
         if (gameOver) {
@@ -352,7 +313,6 @@ public class SetGame extends GameComponent<SetGame.Op>
                 + " | Sets in view: " + findAllSets().size();
     }
 
-    @Verb(value = CoreVocabulary.Show.KEY, doc = "Show the tableau")
     public String renderTableau() {
         if (!started) return "Game not started.";
 

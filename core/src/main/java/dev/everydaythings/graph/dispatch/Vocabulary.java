@@ -4,47 +4,26 @@ import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.EndorsementsTable;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.language.Sememe;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 /**
  * An item's local vocabulary — derived from its frames at hydration time.
  *
- * <p>Two kinds of entries:
- * <ul>
- *   <li><b>Actions</b> — predicate dispatch entries from {@code @Verb} annotations.
- *       Maps predicate IIDs to executable methods.</li>
- *   <li><b>Local tokens</b> — indexed string bindings scanned from the item's
- *       frames (endorsed + unendorsed). Bindings where {@code index == true}
- *       and target is a string Literal.</li>
- * </ul>
+ * <p>Contains local tokens: indexed string bindings scanned from the item's
+ * frames (endorsed + unendorsed). Bindings where {@code index == true}
+ * and target is a string Literal.
  *
  * <p>Vocabulary is entirely <b>derived</b> — transient, rebuilt at hydration,
  * not persisted. The frames are the source of truth.
- *
- * <p>Drives the "help" command — shows what's available on this item.
  */
 @Implements(Vocabulary.KEY)
-public class Vocabulary implements Iterable<VerbEntry> {
+public class Vocabulary {
 
     public static final String KEY = "cg.sememe:vocabulary";
-
-    // ==================================================================================
-    // Action Dispatch (from @Verb annotations)
-    // ==================================================================================
-
-    /** Actions indexed by predicate Sememe ID. */
-    private transient final Map<ItemID, VerbEntry> actions = new LinkedHashMap<>();
-
-    /** Actions indexed by component handle (for component actions). */
-    private transient final Map<String, List<VerbEntry>> byComponentHandle = new LinkedHashMap<>();
 
     // ==================================================================================
     // Local Tokens (scanned from frames)
@@ -58,42 +37,6 @@ public class Vocabulary implements Iterable<VerbEntry> {
      * When duplicate tokens exist, the latest (by insertion order) wins.
      */
     private transient final Map<String, Posting> localTokens = new LinkedHashMap<>();
-
-    // ==================================================================================
-    // Action Registration
-    // ==================================================================================
-
-    public void add(VerbEntry entry) {
-        Objects.requireNonNull(entry, "entry");
-        ItemID sememeId = entry.sememeId();
-
-        if (actions.containsKey(sememeId)) {
-            VerbEntry existing = actions.get(sememeId);
-            if (existing.source() == entry.source()) {
-                // Same source — allow override
-            } else if (entry.source() == VerbSpec.VerbSource.COMPONENT) {
-                // Component action overrides item action
-            } else {
-                throw new IllegalArgumentException(
-                        "Duplicate action sememe: " + sememeId + " (existing: " + existing.source() +
-                        ", new: " + entry.source() + ")");
-            }
-        }
-
-        actions.put(sememeId, entry);
-
-        if (entry.componentHandle() != null) {
-            byComponentHandle
-                    .computeIfAbsent(entry.componentHandle(), k -> new ArrayList<>())
-                    .add(entry);
-        }
-    }
-
-    public void addAll(List<VerbSpec> specs, Item owner) {
-        for (VerbSpec spec : specs) {
-            add(VerbEntry.itemVerb(spec, owner));
-        }
-    }
 
     // ==================================================================================
     // Frame Scanning — builds local token index
@@ -138,35 +81,6 @@ public class Vocabulary implements Iterable<VerbEntry> {
     }
 
     // ==================================================================================
-    // Action Lookup
-    // ==================================================================================
-
-    public Optional<VerbEntry> lookup(ItemID sememeId) {
-        return Optional.ofNullable(actions.get(sememeId));
-    }
-
-    public boolean hasVerb(ItemID sememeId) {
-        return actions.containsKey(sememeId);
-    }
-
-    public Stream<VerbEntry> all() {
-        return actions.values().stream();
-    }
-
-    public Stream<VerbEntry> itemVerbs() {
-        return all().filter(v -> v.source() == VerbSpec.VerbSource.ITEM);
-    }
-
-    public Stream<VerbEntry> componentVerbs() {
-        return all().filter(v -> v.source() == VerbSpec.VerbSource.COMPONENT);
-    }
-
-    public Stream<VerbEntry> verbsFor(String componentHandle) {
-        List<VerbEntry> entries = byComponentHandle.get(componentHandle);
-        return entries != null ? entries.stream() : Stream.empty();
-    }
-
-    // ==================================================================================
     // Local Token Lookup
     // ==================================================================================
 
@@ -194,26 +108,11 @@ public class Vocabulary implements Iterable<VerbEntry> {
     // Utility
     // ==================================================================================
 
-    @Override
-    public Iterator<VerbEntry> iterator() {
-        return actions.values().iterator();
-    }
-
-    public int size() {
-        return actions.size();
-    }
-
-    public boolean isEmpty() {
-        return actions.isEmpty();
-    }
-
     public int localTokenCount() {
         return localTokens.size();
     }
 
     public void clear() {
-        actions.clear();
-        byComponentHandle.clear();
         localTokens.clear();
     }
 
@@ -223,20 +122,16 @@ public class Vocabulary implements Iterable<VerbEntry> {
 
     public String emoji() { return "📖"; }
     public String displayToken() { return "Vocabulary"; }
-    public boolean isExpandable() { return !isEmpty() || !localTokens.isEmpty(); }
+    public boolean isExpandable() { return !localTokens.isEmpty(); }
     public String colorCategory() { return "vocabulary"; }
 
     public String displaySubtitle() {
-        int verbs = actions.size();
         int tokens = localTokens.size();
-        if (tokens > 0) {
-            return verbs + " actions, " + tokens + " local tokens";
-        }
-        return verbs + " action" + (verbs == 1 ? "" : "s");
+        return tokens + " local token" + (tokens == 1 ? "" : "s");
     }
 
     @Override
     public String toString() {
-        return "Vocabulary[" + actions.size() + " actions, " + localTokens.size() + " local tokens]";
+        return "Vocabulary[" + localTokens.size() + " local tokens]";
     }
 }

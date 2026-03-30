@@ -1,37 +1,24 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.dispatch.ActionResult;
-import dev.everydaythings.graph.dispatch.VerbEntry;
-import dev.everydaythings.graph.dispatch.VerbInvoker;
-import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.value.Function;
 import dev.everydaythings.graph.value.Operator;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
  * Language runtime for Java implementations.
  *
- * <p>Handles two kinds of Java code references from IMPLEMENTED_BY frames:
+ * <p>Handles Java code references from IMPLEMENTED_BY frames:
  * <ul>
  *   <li><b>Java class names</b> — {@link Literal} with {@code TYPE_JAVA_CLASS}.
  *       The class is loaded and checked for {@link PredicateBehavior}. If it
- *       implements the interface directly, it's used as-is. Otherwise, verb
- *       dispatch is attempted via the class's vocabulary.</li>
- *   <li><b>Verb dispatch</b> — when the predicate matches a {@code @Verb}
- *       method on the owner item's vocabulary chain, the verb is invoked
- *       with typed bindings from the frame.</li>
+ *       implements the interface directly, it's used as-is.</li>
  * </ul>
  *
  * <p>The Java runtime is NOT sandboxed — it runs in the host JVM with full
@@ -41,8 +28,6 @@ public final class JavaRuntime implements LanguageRuntime {
 
     public static final String KEY = "cg.language:java";
     public static final ItemID LANGUAGE_ID = ItemID.fromString(KEY);
-
-    private final VerbInvoker verbInvoker = new VerbInvoker();
 
     @Override
     public ItemID languageId() {
@@ -56,43 +41,6 @@ public final class JavaRuntime implements LanguageRuntime {
                 && Literal.TYPE_JAVA_CLASS.equals(lit.valueType())) {
             return resolveJavaClass(lit, predicate, scope);
         }
-        return null;
-    }
-
-    /**
-     * Resolve a verb predicate through the vocabulary dispatch chain.
-     *
-     * <p>This is the Java runtime's verb dispatch path. It searches the
-     * scope's vocabulary chain (owner → librarian) for a matching @Verb
-     * method and wraps it as a PredicateBehavior.
-     *
-     * @param predicate the verb sememe IID
-     * @param scope     the evaluation scope (carries owner and librarian)
-     * @return a PredicateBehavior wrapping the verb, or null if not found
-     */
-    public PredicateBehavior resolveVerb(ItemID predicate, Scope scope) {
-        // Check owner item's vocabulary
-        if (scope.owner() != null) {
-            Vocabulary vocab = scope.owner().vocabulary();
-            if (vocab != null) {
-                Optional<VerbEntry> entry = vocab.lookup(predicate);
-                if (entry.isPresent()) {
-                    return wrapVerb(entry.get());
-                }
-            }
-        }
-
-        // Check librarian vocabulary as fallback
-        if (scope.librarian() != null && scope.librarian() != scope.owner()) {
-            Vocabulary libVocab = scope.librarian().vocabulary();
-            if (libVocab != null) {
-                Optional<VerbEntry> entry = libVocab.lookup(predicate);
-                if (entry.isPresent()) {
-                    return wrapVerb(entry.get());
-                }
-            }
-        }
-
         return null;
     }
 
@@ -120,11 +68,6 @@ public final class JavaRuntime implements LanguageRuntime {
             // If the class directly implements PredicateBehavior, use it
             if (PredicateBehavior.class.isAssignableFrom(clazz)) {
                 return (PredicateBehavior) clazz.getDeclaredConstructor().newInstance();
-            }
-
-            // Item subclass — verb dispatch via vocabulary
-            if (Item.class.isAssignableFrom(clazz)) {
-                return resolveVerb(predicate, scope);
             }
 
         } catch (ClassNotFoundException e) {
@@ -208,37 +151,4 @@ public final class JavaRuntime implements LanguageRuntime {
         };
     }
 
-    // ==================================================================================
-    // Verb Wrapping
-    // ==================================================================================
-
-    private PredicateBehavior wrapVerb(VerbEntry verb) {
-        return (bindings, evaluator, evalScope) -> {
-            // Eagerly resolve all bindings to values
-            Map<ItemID, Object> roleValues = new LinkedHashMap<>();
-            List<Object> overflow = new ArrayList<>();
-
-            for (Binding b : bindings) {
-                if (b.isSimpleKey() && b.role() != null) {
-                    Object value = evaluator.resolve(b.target(), evalScope);
-                    roleValues.put(b.role(), value);
-                } else {
-                    overflow.add(evaluator.resolve(b.target(), evalScope));
-                }
-            }
-
-            ActionContext ctx = ActionContext.of(
-                    evalScope.owner() != null ? evalScope.owner().iid() : null,
-                    null,
-                    evalScope.owner(),
-                    evalScope.librarian());
-
-            ActionResult result = verbInvoker.invokeWithBindings(verb, ctx, roleValues, overflow);
-            if (result.success()) {
-                return result.value();
-            }
-            throw new RuntimeException("Verb dispatch failed: " + result.error().getMessage(),
-                    result.error());
-        };
-    }
 }

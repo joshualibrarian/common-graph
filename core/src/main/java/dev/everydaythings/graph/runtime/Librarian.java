@@ -4,8 +4,6 @@ import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
 import dev.everydaythings.graph.network.session.SessionServer;
@@ -14,9 +12,6 @@ import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.dispatch.VerbEntry;
-import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.Literal;
@@ -1739,29 +1734,6 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 .map(FrameBody::theme);
     }
 
-    /**
-     * Set the principal (user) that this librarian serves.
-     *
-     * <p>Looks up the user by name in the token dictionary, then sets them
-     * as the principal. The librarian is a servant — it executes items' actions
-     * on behalf of its principal.
-     *
-     * @param userName The name of the user to serve
-     * @return The user that is now the principal
-     */
-    @Verb(value = CoreVocabulary.Serve.KEY, doc = "Set the principal (user) this librarian serves")
-    public Signer serve(@Param(value = "user", doc = "The user to serve") ItemID userId) {
-        // By the time we get here, Eval has already resolved the token to an IID
-        Optional<User> found = get(userId, User.class);
-        if (found.isEmpty()) {
-            throw new IllegalArgumentException("Not a user: " + userId.encodeText());
-        }
-
-        User user = found.get();
-        setPrincipal(user);
-        return user;
-    }
-
     // ==================================================================================
     // Type Catalogs
     // ==================================================================================
@@ -1893,124 +1865,17 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     }
 
     // ==================================================================================
-    // Command Dispatch
+    // Operations
     // ==================================================================================
 
     /**
-     * Dispatch a command to an item.
-     *
-     * <p>Delegates to the target item's dispatch method, with this librarian
-     * as the caller.
-     *
-     * @param target  The item to dispatch the command to
-     * @param command The action name
-     * @param args    The arguments (as strings)
-     * @return The action result
-     */
-    public ActionResult dispatch(Item target, String command, List<String> args) {
-        return target.dispatch(this.iid(), command, args);
-    }
-
-    /**
-     * Dispatch a command to this librarian.
-     *
-     * <p>Convenience method that dispatches to this librarian as the target.
-     *
-     * @param command The action name
-     * @param args    The arguments (as strings)
-     * @return The action result
-     */
-    public ActionResult dispatch(String command, List<String> args) {
-        return dispatch(this, command, args);
-    }
-
-    // ==================================================================================
-    // Verbs — UI-Accessible Operations (dispatched via Vocabulary)
-    // ==================================================================================
-
-    /**
-     * Fetch an item by ID (verb overload for CLI dispatch).
-     *
-     * <p>VerbInvoker converts the string argument to ItemID via
-     * {@link ItemID#fromString(String)}.
+     * Fetch an item by ID.
      *
      * @param iid The item ID
      * @return The item, or empty if not found
      */
-    public Optional<Item> get(
-            @Param(value = "iid", doc = "Item ID") ItemID iid) {
+    public Optional<Item> get(ItemID iid) {
         return get(iid, Item.class);
-    }
-
-    /**
-     * Show librarian status including path, library info, and network status.
-     */
-    @Verb(value = CoreVocabulary.Describe.KEY, doc = "Show librarian status")
-    public String status() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Librarian: ").append(rootPath != null ? rootPath : "(in-memory)").append("\n");
-        sb.append("IID: ").append(iid().encodeText()).append("\n");
-
-        if (library != null) {
-            sb.append("Library: open\n");
-            // Count types as a proxy for library content
-            long typeCount = itemTypes().count();
-            sb.append("  Registered types: ").append(typeCount).append("\n");
-        } else {
-            sb.append("Library: not initialized\n");
-        }
-
-        if (network != null) {
-            sb.append("Network: running\n");
-        } else {
-            sb.append("Network: stopped\n");
-        }
-
-        if (principal != null) {
-            sb.append("Principal: ").append(principal.iid().encodeText()).append("\n");
-        }
-
-        return sb.toString();
-    }
-
-    /**
-     * Generate an invite code for someone to engage (register) with this librarian.
-     *
-     * <p>The invite code is a one-time, 5-minute expiry code. Share it with someone
-     * who wants to connect. They use {@code graph --to <host:port> --engage <code> --name <name>}
-     * to register a new identity and start a session.
-     *
-     * @return A message with the invite code
-     */
-    @Verb(value = CoreVocabulary.Invite.KEY, doc = "Generate an invite code for a new user")
-    public String invite() {
-        if (sessionServer == null) {
-            return "No session server running — start with --daemon or combined mode.";
-        }
-
-        String code = sessionServer.createInviteCode();
-        return "Invite code: " + code + "\nExpires in 5 minutes. Share with: graph --to <host:port> --engage " + code + " --name <name>";
-    }
-
-    /**
-     * Show available verbs on this librarian.
-     */
-    @Verb(value = CoreVocabulary.Help.KEY, doc = "Show available verbs")
-    public String help() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Librarian Verbs:\n");
-        for (VerbEntry verb : vocabulary()) {
-            String key = verb.sememeKey();
-            // Extract short name from canonical key (e.g., "cg.verb:get" -> "get")
-            int colonIdx = key.lastIndexOf(':');
-            String shortName = colonIdx >= 0 ? key.substring(colonIdx + 1) : key;
-            sb.append("  ").append(shortName);
-            if (verb.doc() != null && !verb.doc().isEmpty()) {
-                sb.append(" - ").append(verb.doc());
-            }
-            sb.append("\n");
-        }
-        return sb.toString();
     }
 
     /**
@@ -2025,10 +1890,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * to a new Item via {@link Item#addComponent}.
      */
     @Override
-    public Item actionNew(
-            ActionContext ctx,
-            @Param(
-                    value = "name", required = false, role = "NAME") String name) {
+    public Item actionNew(String name) {
         // Try to resolve as a type and create a typed Item
         if (name != null && !name.isBlank()) {
             Optional<Item> typed = createTypedItem(name);

@@ -1,8 +1,6 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.CoreVocabulary;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -204,46 +202,6 @@ public abstract class ItemTest {
                     .isNotNull();
         }
 
-        @Test
-        @DisplayName("vocabulary is populated")
-        void vocabularyIsPopulated() {
-            assertThat(item.vocabulary().size())
-                    .as("Verb count")
-                    .isGreaterThan(0);
-        }
-
-        @Test
-        @DisplayName("has 'create' verb inherited from Item")
-        void hasCreateVerb() {
-            ItemID createSememe = ItemID.fromString(CoreVocabulary.Create.KEY);
-            assertThat(item.vocabulary().lookup(createSememe))
-                    .as("CREATE verb")
-                    .isPresent();
-        }
-
-        @Test
-        @DisplayName("verb lookup returns empty for unknown verb")
-        void unknownVerbLookupReturnsEmpty() {
-            ItemID unknownSememe = ItemID.fromString("cg.verb:nonexistent");
-            assertThat(item.vocabulary().lookup(unknownSememe))
-                    .as("Unknown verb lookup")
-                    .isEmpty();
-        }
-
-        @Test
-        @DisplayName("dispatch fails gracefully for unknown command")
-        void dispatchFailsForUnknownCommand() {
-            ActionResult result = item.dispatch("nonexistent_action_xyz", List.of());
-
-            assertThat(result.success())
-                    .as("Unknown command should fail")
-                    .isFalse();
-
-            assertThat(result.error())
-                    .as("Should have error")
-                    .isNotNull()
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
     }
 
     // ==================================================================================

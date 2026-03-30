@@ -3,7 +3,6 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.Vocabulary;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 
@@ -61,23 +60,6 @@ public final class LocalLibrarian implements LibrarianHandle {
     public String connectionString() {
         Path rootPath = librarian.rootPath();
         return rootPath != null ? rootPath.toString() : "<in-memory>";
-    }
-
-    @Override
-    public ActionResult dispatch(String command, List<String> args) {
-        checkOpen();
-        return librarian.dispatch(command, args);
-    }
-
-    @Override
-    public ActionResult dispatch(ItemID target, String command, List<String> args) {
-        checkOpen();
-        Optional<Item> item = librarian.get(target, Item.class);
-        if (item.isEmpty()) {
-            return ActionResult.failure(
-                    new IllegalArgumentException("Item not found: " + target.encodeText()));
-        }
-        return item.get().dispatch(command, args);
     }
 
     @Override

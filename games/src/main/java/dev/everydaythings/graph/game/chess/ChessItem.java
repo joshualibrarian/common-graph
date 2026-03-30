@@ -5,7 +5,6 @@ import com.github.bhlangonijr.chesslib.MoveBackup;
 import com.github.bhlangonijr.chesslib.Side;
 import com.github.bhlangonijr.chesslib.Square;
 import com.github.bhlangonijr.chesslib.move.Move;
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.game.BoardState;
 import dev.everydaythings.graph.game.GameBoard;
 import dev.everydaythings.graph.game.GameVocabulary;
@@ -23,13 +22,7 @@ import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
@@ -235,16 +228,6 @@ public class ChessItem extends Item {
         super(librarian);
     }
 
-    // ==================================================================================
-    // Verbs
-    // ==================================================================================
-
-    @Verb(value = GameVocabulary.Move.KEY, doc = "Make a chess move in SAN or UCI notation")
-    public String move(ActionContext ctx,
-                       @Param(value = "notation", doc = "Move in algebraic notation (e.g., e4, Nf3, e2e4)") String san) {
-        return move(san);
-    }
-
     public String move(String san) {
         if (isGameOver()) return "Game is already over";
 
@@ -282,8 +265,7 @@ public class ChessItem extends Item {
         }
     }
 
-    @Verb(value = GameVocabulary.Resign.KEY, doc = "Resign the game")
-    public String resign(ActionContext ctx) {
+    public String resign() {
         if (isGameOver()) return "Game is already over";
 
         Side resigning = board.getSideToMove();
@@ -294,10 +276,7 @@ public class ChessItem extends Item {
         return (resigning == Side.WHITE ? "White" : "Black") + " resigns";
     }
 
-    @Verb(value = GameVocabulary.Join.KEY, doc = "Join the game")
-    public String join(ActionContext ctx,
-                       @Param(value = "seat", doc = "Seat number (0=white, 1=black)", required = false) Integer seat) {
-        ItemID caller = ctx.caller();
+    public String join(ItemID caller, Integer seat) {
         if (caller == null) return "No caller identity";
 
         if (seat != null) {
@@ -316,35 +295,11 @@ public class ChessItem extends Item {
         return "Game is full";
     }
 
-    @Verb(value = CoreVocabulary.ListVerb.KEY, doc = "List legal moves")
-    public List<String> legalMoves() {
-        List<Move> moves = board.legalMoves();
-        List<String> result = new ArrayList<>(moves.size());
-        for (Move m : moves) {
-            result.add(m.toString());
-        }
-        return result;
-    }
-
-    @Verb(value = CoreVocabulary.Put.KEY, doc = "Set time control (e.g., '5+3')")
-    public String setClock(@Param(value = "spec", doc = "Time spec like '5+3' or 'off'") String spec) {
-        if ("off".equalsIgnoreCase(spec)) {
-            clock = null;
-            return "Clock disabled";
-        }
-        String[] parts = spec.split("\\+");
-        int minutes = Integer.parseInt(parts[0].trim());
-        int increment = parts.length > 1 ? Integer.parseInt(parts[1].trim()) : 0;
-        clock = ChessClock.create(minutes, increment);
-        return "Clock set: " + minutes + " min + " + increment + "s increment";
-    }
-
     // ==================================================================================
     // Selection (interactive piece movement)
     // ==================================================================================
 
-    @Verb(value = GameVocabulary.Select.KEY, doc = "Select a piece to move")
-    public String select(@Param(value = "square", doc = "Square to select") String squareId) {
+    public String select(String squareId) {
         if (isGameOver()) return "Game is over";
 
         if (selectedSquare != null && legalTargets.contains(squareId)) {
@@ -374,8 +329,7 @@ public class ChessItem extends Item {
         return null;
     }
 
-    @Verb(value = GameVocabulary.Place.KEY, doc = "Place selected piece on target")
-    public String place(@Param(value = "square", doc = "Target square") String squareId) {
+    public String place(String squareId) {
         if (selectedSquare == null) return "No piece selected";
         if (!legalTargets.contains(squareId)) return "Not a legal target";
 

@@ -13,13 +13,8 @@ import dev.everydaythings.graph.parse.FrameBodyParser;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.dispatch.Created;
-import dev.everydaythings.graph.dispatch.Vocabulary;
-import dev.everydaythings.graph.dispatch.VerbEntry;
-import dev.everydaythings.graph.dispatch.VerbInvoker;
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.dispatch.ParamSpec;
 import dev.everydaythings.graph.language.DiscourseHistory;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.FrameAssembler;
@@ -519,24 +514,7 @@ public class Eval {
     }
 
     private Posting preferredExactPosting(List<Posting> postings, String token, ResolutionHint hint) {
-        if (hint != ResolutionHint.CREATE_OBJECT) return null;
-
-        List<Posting> exact = postings.stream()
-                .filter(p -> p.token().equalsIgnoreCase(token))
-                .toList();
-        if (exact.size() <= 1) return null;
-
-        // For "create <noun>", prefer nouns that have a non-base CREATE verb (createable types).
-        ItemID createId = ItemID.fromString(CoreVocabulary.Create.KEY);
-        for (Posting p : exact) {
-            Optional<Item> candidate = librarianHandle.get(p.target());
-            if (candidate.isEmpty()) continue;
-            Optional<VerbEntry> create = candidate.get().vocabulary().lookup(createId);
-            if (create.isPresent() && create.get().method().getDeclaringClass() != Item.class) {
-                return p;
-            }
-        }
-
+        // No verb-based disambiguation — return null (no preference)
         return null;
     }
 
@@ -705,7 +683,7 @@ public class Eval {
                 // Try IID and handle formats before giving up
                 String text = span.text();
                 if (text.startsWith("iid:")) {
-                    return new ResolvedToken.Link(ItemID.fromString(text), text);
+                    return new ResolvedToken.Link(ItemID.parse(text), text);
                 }
                 if (text.startsWith("@")) {
                     String handleText = text.substring(1);
@@ -743,9 +721,9 @@ public class Eval {
         }
 
         Language.ParseResult parseResult = (language != null)
-                ? language.parse(resolved, null, iid -> librarianHandle.get(iid), this::headVerbScore)
+                ? language.parse(resolved, null, iid -> librarianHandle.get(iid), v -> 0)
                 : new Language.ParseResult(
-                    FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore),
+                    FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), v -> 0),
                     List.of());
 
         return evaluateParseResult(parseResult);
@@ -770,49 +748,12 @@ public class Eval {
         // Parse via the active language (delegates to FrameAssembler by default)
         Language activeLanguage = librarianHandle.activeLanguage();
         Language.ParseResult parseResult = (activeLanguage != null)
-                ? activeLanguage.parse(resolved, null, iid -> librarianHandle.get(iid), this::headVerbScore)
+                ? activeLanguage.parse(resolved, null, iid -> librarianHandle.get(iid), v -> 0)
                 : new Language.ParseResult(
-                    FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), this::headVerbScore),
+                    FrameAssembler.assembleAll(resolved, iid -> librarianHandle.get(iid), v -> 0),
                     List.of());
 
         return evaluateParseResult(parseResult);
-    }
-
-    /**
-     * Runtime head-verb score contribution used by FrameAssembler.
-     *
-     * <p>Higher score means "more likely to be executable now."
-     * Scores mirror the inner-to-outer dispatch order.
-     */
-    private int headVerbScore(Sememe verb) {
-        int score = 0;
-        ItemID verbId = verb.iid();
-
-        // Focused component verbs (innermost)
-        if (focusedComponent != null && context != null) {
-            if (context.vocabulary().verbsFor(focusedComponent)
-                    .anyMatch(v -> v.sememeId().equals(verbId))) {
-                score += 1200;
-            }
-        }
-
-        // Context item verbs
-        if (context != null && context.vocabulary().lookup(verbId).isPresent()) {
-            score += 1000;
-        }
-
-        // Session item verbs
-        if (session != null && session.vocabulary().lookup(verbId).isPresent()) {
-            score += 800;
-        }
-
-        // Librarian/system scope
-        Vocabulary libVocab = librarianHandle.vocabulary();
-        if (libVocab != null && libVocab.lookup(verbId).isPresent()) {
-            score += 700;
-        }
-
-        return score;
     }
 
     /**
@@ -924,8 +865,8 @@ public class Eval {
             return mapResultToEvalResult(ctx.result(), frame);
         }
 
-        // Nobody handled — unrecognized predicate
-        return EvalResult.error("No handler for predicate: " + frame.verb().displayToken());
+        // Nobody handled — treat as a query (incomplete frames ARE queries)
+        return evaluateStructuredQuery(frame);
     }
 
     /**
@@ -1117,15 +1058,11 @@ public class Eval {
         System.out.println("  IID:  " + item.iid().encodeText());
         System.out.println("  Type: " + item.getClass().getSimpleName());
 
-        // Show vocabulary (verbs)
+        // Show local tokens
         var vocab = item.vocabulary();
-        if (vocab != null && vocab.size() > 0) {
-            System.out.println("  Verbs:");
-            for (var entry : vocab) {
-                System.out.println("    " + entry.methodName());
-            }
+        if (vocab != null && vocab.localTokenCount() > 0) {
+            System.out.println("  Local tokens: " + vocab.localTokenCount());
         }
-
     }
 
     private void printResult(Object value) {

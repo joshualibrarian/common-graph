@@ -3,17 +3,10 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.dispatch.ActionContext;
-import dev.everydaythings.graph.dispatch.ParamSpec;
-import dev.everydaythings.graph.dispatch.VerbSpec;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,10 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * Unified scanner for Item class metadata.
  *
  * <p>ItemScanner performs a single walk through an Item class hierarchy,
- * extracting all annotation-based metadata:
+ * extracting annotation-based metadata:
  * <ul>
  *   <li>@Item.Frame → FrameFieldSpec (endorsed + unendorsed)</li>
- *   <li>@Verb → VerbSpec (on methods and component classes)</li>
  * </ul>
  *
  * <p><b>Caching:</b> Scan results are cached per class. Call {@link #clearCache()}
@@ -91,12 +83,9 @@ public final class ItemScanner {
     @SuppressWarnings("unchecked")
     private static ItemSchema scan(Class<?> itemClass) {
         List<FrameFieldSpec> frameFields = new ArrayList<>();
-        List<VerbSpec> verbSpecs = new ArrayList<>();
-        Map<String, List<VerbSpec>> componentVerbs = new HashMap<>();
 
         Set<FrameKey> frameKeys = new HashSet<>(); // Track for uniqueness
         Set<String> paths = new HashSet<>();   // Track for uniqueness
-        Set<ItemID> seenVerbIds = new HashSet<>(); // Track verb sememe IDs for child-wins precedence
 
         // Walk class hierarchy (child first → parent)
         for (Class<?> c = itemClass; c != null && c != Object.class; c = c.getSuperclass()) {
@@ -111,39 +100,16 @@ public final class ItemScanner {
 
                     if (frameSpec.endorsed()) {
                         validateFrameField(frameSpec, frameKeys, paths);
-
-                        // Scan component class for @Verb methods
-                        if (field.getType().isAnnotationPresent(Implements.class)) {
-                            String keyString = frameSpec.canonicalKeyString();
-                            List<VerbSpec> verbs = scanComponentVerbs(field.getType(), keyString);
-                            if (!verbs.isEmpty()) {
-                                componentVerbs.put(keyString, verbs);
-                            }
-                        }
                     }
 
                     frameFields.add(frameSpec);
-                }
-            }
-
-            // Scan methods for @Verb
-            // Child methods are scanned first — skip parent verbs with same sememe ID
-            for (Method method : c.getDeclaredMethods()) {
-                Verb va = method.getAnnotation(Verb.class);
-                if (va != null) {
-                    ItemID sememeId = ItemID.fromString(va.value());
-                    if (seenVerbIds.add(sememeId)) {
-                        verbSpecs.add(extractMethodVerb(method, va));
-                    }
                 }
             }
         }
 
         return new ItemSchema(
                 (Class<? extends Item>) itemClass,
-                frameFields,
-                verbSpecs,
-                componentVerbs
+                frameFields
         );
     }
 
@@ -222,114 +188,6 @@ public final class ItemScanner {
         return new FrameFieldSpec(
                 field, frameKey, type, selfRole, valueRole,
                 mountPath, snapshot, stream, localOnly, identity, endorsed);
-    }
-
-    // ==================================================================================
-    // Verb Extraction
-    // ==================================================================================
-
-    /**
-     * Extract a VerbSpec from a method with @Verb.
-     */
-    private static VerbSpec extractMethodVerb(Method method, Verb ann) {
-        method.setAccessible(true);
-
-        ItemID sememeId = ItemID.fromString(verbPredicate(ann));
-        String doc = ann.doc();
-        List<ParamSpec> params = extractParameters(method);
-
-        return VerbSpec.itemVerb(sememeId, method, doc, params);
-    }
-
-    /**
-     * Scan a component class for @Verb methods.
-     *
-     * <p>Verbs reference Sememes for language-agnostic dispatch.
-     * Any class with {@code @Type} can declare verbs.
-     *
-     * @param componentClass The component class to scan
-     * @param componentHandle The handle of the component instance
-     * @return List of VerbSpec for discovered verbs
-     */
-    public static List<VerbSpec> scanComponentVerbs(
-            Class<?> componentClass,
-            String componentHandle) {
-
-        List<VerbSpec> results = new ArrayList<>();
-
-        for (Class<?> cls = componentClass;
-             cls != null && cls != Object.class;
-             cls = cls.getSuperclass()) {
-
-            for (Method method : cls.getDeclaredMethods()) {
-                Verb ann = method.getAnnotation(Verb.class);
-                if (ann != null) {
-                    method.setAccessible(true);
-                    ItemID sememeId = ItemID.fromString(verbPredicate(ann));
-                    String doc = ann.doc();
-                    List<ParamSpec> params = extractParameters(method);
-                    results.add(VerbSpec.componentVerb(sememeId, method, doc, params));
-                }
-            }
-        }
-
-        return results;
-    }
-
-    // ==================================================================================
-    // Parameter Extraction
-    // ==================================================================================
-
-    /**
-     * Extract parameter specifications from a method.
-     */
-    static List<ParamSpec> extractParameters(Method method) {
-        List<ParamSpec> params = new ArrayList<>();
-
-        Parameter[] methodParams = method.getParameters();
-        int startIndex = 0;
-
-        // Skip ActionContext if it's the first parameter
-        if (methodParams.length > 0 && ActionContext.class.isAssignableFrom(methodParams[0].getType())) {
-            startIndex = 1;
-        }
-
-        for (int i = startIndex; i < methodParams.length; i++) {
-            Parameter param = methodParams[i];
-            params.add(extractParamSpec(param));
-        }
-
-        return params;
-    }
-
-    /**
-     * Extract a ParamSpec from a method parameter.
-     */
-    private static ParamSpec extractParamSpec(Parameter param) {
-        Param ann = param.getAnnotation(Param.class);
-
-        String name;
-        String doc = "";
-        boolean required = true;
-        String defaultValue = null;
-        String role = null;
-
-        if (ann != null) {
-            name = ann.value().isEmpty() ? param.getName() : ann.value();
-            doc = ann.doc();
-            required = ann.required();
-            defaultValue = ann.defaultValue().isEmpty() ? null : ann.defaultValue();
-            role = ann.role();
-        } else {
-            name = param.getName();
-        }
-
-        return new ParamSpec(name, param.getType(), doc, required, defaultValue, role);
-    }
-
-    /** Resolve verb predicate — new style (predicate) or legacy (value). */
-    private static String verbPredicate(Verb ann) {
-        return !ann.predicate().isEmpty() ? ann.predicate() : ann.value();
     }
 
     // ==================================================================================

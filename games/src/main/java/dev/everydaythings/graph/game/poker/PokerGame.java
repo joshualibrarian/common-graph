@@ -2,17 +2,8 @@ package dev.everydaythings.graph.game.poker;
 
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.game.card.PlayingCard;
-import dev.everydaythings.graph.dispatch.ActionContext;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Verb;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.ui.scene.Scene;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -501,59 +492,6 @@ public class PokerGame extends GameComponent<PokerGame.Op>
         if (withChips <= 1) {
             gameOver = true;
         }
-    }
-
-    // ==================================================================================
-    // Game Actions (Verbs)
-    // ==================================================================================
-
-    @Verb(value = GameVocabulary.Deal.KEY, doc = "Deal a new hand")
-    public String deal(ActionContext ctx) {
-        if (handInProgress) return "Hand already in progress";
-        apply(new DealOp());
-        return "Hand dealt";
-    }
-
-    @Verb(value = GameVocabulary.Bet.KEY, doc = "Place a bet")
-    public String bet(ActionContext ctx,
-                      @Param(value = "amount", doc = "Bet amount") int amount) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-        apply(new BetOp(seat, amount));
-        return "Bet " + amount;
-    }
-
-    @Verb(value = GameVocabulary.Call.KEY, doc = "Call the current bet")
-    public String call(ActionContext ctx) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-        apply(new CallOp(seat));
-        return "Called";
-    }
-
-    @Verb(value = GameVocabulary.Raise.KEY, doc = "Raise the bet")
-    public String raise(ActionContext ctx,
-                        @Param(value = "amount", doc = "Total raise amount") int amount) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-        apply(new RaiseOp(seat, amount));
-        return "Raised to " + amount;
-    }
-
-    @Verb(value = GameVocabulary.Check.KEY, doc = "Check (pass without betting)")
-    public String check(ActionContext ctx) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-        apply(new CheckOp(seat));
-        return "Checked";
-    }
-
-    @Verb(value = GameVocabulary.Fold.KEY, doc = "Fold your hand")
-    public String fold(ActionContext ctx) {
-        int seat = authorizedSeat(ctx);
-        if (seat < 0) seat = currentSeat;
-        apply(new FoldOp(seat));
-        return "Folded";
     }
 
     // ==================================================================================

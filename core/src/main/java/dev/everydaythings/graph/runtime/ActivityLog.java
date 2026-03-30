@@ -5,14 +5,12 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Verb;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.dispatch.ActionResult;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -147,17 +145,6 @@ public class ActivityLog implements Canonical, Inspectable {
     public String displayToken() {
         long n = recentEntries.size();
         return "activity" + (n > 0 ? " (" + n + ")" : "");
-    }
-
-    // ==================================================================================
-    // Verbs
-    // ==================================================================================
-
-    @Verb(value = CoreVocabulary.Remove.KEY, doc = "Clear activity log")
-    public ActionResult clear() {
-        recentEntries.clear();
-        lastByContext.clear();
-        return ActionResult.success("Activity log cleared.");
     }
 
     // ==================================================================================

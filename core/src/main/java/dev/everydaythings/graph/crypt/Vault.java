@@ -5,8 +5,6 @@ import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Param;
-import dev.everydaythings.graph.item.Picker;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
@@ -85,9 +83,7 @@ public abstract class Vault {
      */
     @Factory(label = "In-Memory Vault", glyph = "\uD83D\uDD10", primary = true,
                               doc = "Ephemeral in-memory vault for testing. Keys lost on exit.")
-    public static Vault open(@Param(label = "Vault File",
-                                                     doc = "Path (ignored for in-memory)",
-                                                     picker = Picker.FILE) Path path) {
+    public static Vault open(Path path) {
         // Use InMemoryVault for now during development
         // TODO: Switch to SoftwareVault.open(path) for production
         return InMemoryVault.create();
