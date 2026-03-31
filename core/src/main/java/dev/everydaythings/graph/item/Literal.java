@@ -30,11 +30,9 @@ import java.util.Objects;
 @Getter
 public final class Literal implements BindingTarget {
 
-    @Canon(order = 1)
     private final ItemID valueType;
 
     /** Canonical CBOR bytes of the payload value (primitive or structured), interpreted by valueType. */
-    @Canon(order = 2)
     private final byte[] payload;
 
     /**
@@ -56,6 +54,96 @@ public final class Literal implements BindingTarget {
         } catch (Exception e) {
             throw new IllegalArgumentException("payload is not valid CBOR", e);
         }
+    }
+
+    /* ------------------------ CBOR Encoding (shorthand + long form) ------------------------ */
+
+    /**
+     * Encode this Literal to CBOR using shorthand for common types.
+     *
+     * <ul>
+     *   <li>TEXT → bare CBOR TextString</li>
+     *   <li>INTEGER → bare CBOR Integer</li>
+     *   <li>BOOLEAN → bare CBOR Boolean</li>
+     *   <li>INSTANT → Tag(1, epoch_millis)</li>
+     *   <li>Everything else → Tag(7, [typeIID_bytes, payload_cbor])</li>
+     * </ul>
+     */
+    @Override
+    public CBORObject toCborTree(Canonical.Scope scope) {
+        CBORObject payloadCbor = payloadNode();
+
+        // Shorthand: bare CBOR primitives
+        if (TYPE_TEXT.equals(valueType)) return payloadCbor;
+        if (TYPE_INTEGER.equals(valueType)) return payloadCbor;
+        if (TYPE_BOOLEAN.equals(valueType)) return payloadCbor;
+
+        // Shorthand: standard CBOR Tag 1 for instants
+        if (TYPE_INSTANT.equals(valueType)) {
+            return CBORObject.FromObjectAndTag(payloadCbor, 1);
+        }
+
+        // Long form: Tag 7 [typeIID, payload]
+        CBORObject arr = CBORObject.NewArray();
+        arr.Add(CBORObject.FromByteArray(valueType.encodeBinary()));
+        arr.Add(payloadCbor);
+        return CBORObject.FromObjectAndTag(arr, Canonical.CgTag.VALUE);
+    }
+
+    /**
+     * Decode a Literal from CBOR, accepting both shorthand and long form.
+     *
+     * <ul>
+     *   <li>Bare TextString → TYPE_TEXT</li>
+     *   <li>Bare Integer → TYPE_INTEGER</li>
+     *   <li>Bare Boolean → TYPE_BOOLEAN</li>
+     *   <li>Tag(1, millis) → TYPE_INSTANT</li>
+     *   <li>Tag(7, [typeIID, payload]) → custom type</li>
+     *   <li>Array [typeIID_bytes, payload_bytes] → legacy long form (no tag)</li>
+     * </ul>
+     */
+    @dev.everydaythings.graph.item.Factory
+    public static Literal fromCborTree(CBORObject node) {
+        if (node == null || node.isNull()) return null;
+
+        // Tag 1: Instant (epoch millis)
+        if (node.HasMostOuterTag(1)) {
+            CBORObject inner = node.UntagOne();
+            return ofCbor(TYPE_INSTANT, inner);
+        }
+
+        // Tag 7: Explicit typed value [typeIID, payload]
+        if (node.HasMostOuterTag(Canonical.CgTag.VALUE)) {
+            CBORObject inner = node.UntagOne();
+            if (inner.getType() == CBORType.Array && inner.size() == 2) {
+                ItemID typeId = new ItemID(inner.get(0).GetByteString());
+                CBORObject payloadCbor = inner.get(1);
+                return ofCbor(typeId, payloadCbor);
+            }
+        }
+
+        // Bare primitives (shorthand)
+        return switch (node.getType()) {
+            case TextString -> ofCbor(TYPE_TEXT, node);
+            case Integer -> ofCbor(TYPE_INTEGER, node);
+            case Boolean -> ofCbor(TYPE_BOOLEAN, node);
+            // Legacy: bare array [typeIID_bytes, payload_bytes]
+            case Array -> {
+                if (node.size() == 2 && node.get(0).getType() == CBORType.ByteString) {
+                    ItemID typeId = new ItemID(node.get(0).GetByteString());
+                    CBORObject payloadCbor;
+                    if (node.get(1).getType() == CBORType.ByteString) {
+                        payloadCbor = CBORObject.DecodeFromBytes(node.get(1).GetByteString());
+                    } else {
+                        payloadCbor = node.get(1);
+                    }
+                    yield ofCbor(typeId, payloadCbor);
+                }
+                // Fall back to default Canonical decoding
+                yield Canonical.fromCborTree(node, Literal.class, Canonical.Scope.RECORD);
+            }
+            default -> throw new IllegalArgumentException("Cannot decode Literal from CBOR: " + node.getType());
+        };
     }
 
     /* ------------------------ Well-known value type IDs ------------------------ */

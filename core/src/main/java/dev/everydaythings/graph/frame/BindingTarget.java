@@ -42,15 +42,23 @@ public interface BindingTarget extends Canonical {
     static BindingTarget fromCborTree(CBORObject node) {
         if (node == null || node.isNull()) return null;
         if (node.isTagged()) {
-            int tag = node.getMostInnerTag().ToInt32Checked();
+            int tag = node.getMostOuterTag().ToInt32Checked();
             if (tag == Canonical.CgTag.REF) return RefTarget.fromCborTree(node);
             if (tag == Canonical.CgTag.FRAME) return FrameTarget.fromCborTree(node);
+            // Tag 1 (instant), Tag 7 (explicit typed value) → Literal
+            if (tag == 1 || tag == Canonical.CgTag.VALUE) return Literal.fromCborTree(node);
         }
         if (node.getType() == CBORType.ByteString) {
             return IidTarget.fromCborTree(node);
         }
+        // Bare primitives (text, integer, boolean) and arrays → Literal
+        if (node.getType() == CBORType.TextString
+                || node.getType() == CBORType.Integer
+                || node.getType() == CBORType.Boolean) {
+            return Literal.fromCborTree(node);
+        }
         if (node.getType() == CBORType.Array) {
-            return Canonical.fromCborTree(node, Literal.class, Scope.RECORD);
+            return Literal.fromCborTree(node);
         }
         throw new IllegalArgumentException("Cannot decode BindingTarget from CBOR type: " + node.getType());
     }

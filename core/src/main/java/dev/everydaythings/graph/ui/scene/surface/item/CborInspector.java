@@ -227,6 +227,16 @@ public final class CborInspector {
             case Canonical.CgTag.VALUE -> renderTypedValue(inner, resolver, depth);
             case Canonical.CgTag.SIG -> renderLabeled("sig", inner, resolver, depth);
             case Canonical.CgTag.QTY -> renderQuantity(inner, resolver);
+            case 1 -> {
+                // CBOR Tag 1: epoch timestamp → format as human-readable date/time
+                if (inner.getType() == CBORType.Integer) {
+                    java.time.Instant instant = java.time.Instant.ofEpochMilli(inner.AsInt64Value());
+                    String formatted = java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())
+                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm:ss a"));
+                    yield Text.of(formatted).classes("literal");
+                }
+                yield renderLabeled("instant", inner, resolver, depth);
+            }
             default -> renderLabeled("tag(" + tag + ")", inner, resolver, depth);
         };
     }
