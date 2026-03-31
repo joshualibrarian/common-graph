@@ -168,6 +168,24 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /** Sessions currently connected to this librarian. */
     private final transient Set<SessionInfo> connectedSessions = ConcurrentHashMap.newKeySet();
 
+    // ==================================================================================
+    // Ephemeral Frame Store
+    //
+    // In-memory store for frames whose predicate declares CONFIG:[DURABILITY]→EPHEMERAL.
+    // These are not persisted, not indexed, and use LATEST retention (replace previous
+    // at the same key). Keyed by (item, predicate, signer) — e.g., one AVATAR_STATE
+    // per user per space. Cleaned up when the signer's PRESENT frame is revoked.
+    // ==================================================================================
+
+    /** Key for ephemeral frame lookup: one frame per (item, predicate, signer). */
+    public record EphemeralKey(ItemID item, ItemID predicate, ItemID signer) {}
+
+    /** Ephemeral frames — in-memory only, latest-wins, not persisted. */
+    private final transient Map<EphemeralKey, FrameBody> ephemeralFrames = new ConcurrentHashMap<>();
+
+    /** Listeners for ephemeral frame changes, keyed by item. */
+    private final transient Map<ItemID, List<Runnable>> ephemeralListeners = new ConcurrentHashMap<>();
+
     // --- On-disk paths ---
     private final Path rootPath;
 
@@ -1380,9 +1398,19 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
 
     /**
      * Store and index a frame body via the library.
+     *
+     * <p>If the predicate declares {@code CONFIG:[DURABILITY] → EPHEMERAL},
+     * the frame is stored in the ephemeral map (in-memory, latest-wins) instead
+     * of the persistent object store. Subscription notifications fire either way.
      */
     public void storeFrame(FrameBody body) {
-        // Library handles both storage and indexing
+        // Check predicate durability policy
+        if (isEphemeralPredicate(body.predicate())) {
+            storeEphemeralFrame(body);
+            return;
+        }
+
+        // Durable path: Library handles both storage and indexing
         library().storeFrameBody(body);
 
         // Also index in TokenDictionary (NAME bindings + GOAL bindings)
@@ -1397,8 +1425,118 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
                 });
             }
         }
+
+        // Notify peer subscribers
+        notifyFrameSubscribers(body);
     }
 
+    /**
+     * Store an ephemeral frame — in-memory only, latest-wins, not persisted.
+     * Replaces the previous frame at the same (item, predicate, signer) key.
+     */
+    private void storeEphemeralFrame(FrameBody body) {
+        ItemID item = body.homeId();
+        // The AGENT binding identifies who this ephemeral frame belongs to
+        BindingTarget agentTarget = body.binding(ItemID.fromString(ThematicRole.Agent.KEY));
+        ItemID agent = (agentTarget instanceof BindingTarget.IidTarget iid) ? iid.iid() : null;
+        if (item == null || agent == null) {
+            // Ephemeral frames require both item context and agent attribution
+            logger.warn("Ephemeral frame missing item or agent: predicate={}", body.predicate());
+            return;
+        }
+        ItemID signer = agent;
+        var key = new EphemeralKey(item, body.predicate(), signer);
+        ephemeralFrames.put(key, body);
+        logger.trace("Stored ephemeral frame: {}", key);
+
+        // Notify local listeners (e.g., ItemView watching this item)
+        notifyEphemeralListeners(item);
+
+        // Notify peer subscribers (same path as durable frames)
+        notifyFrameSubscribers(body);
+    }
+
+    /**
+     * Check if a predicate declares ephemeral durability.
+     */
+    private boolean isEphemeralPredicate(ItemID predicateId) {
+        return get(predicateId, Sememe.class)
+                .map(Sememe::isEphemeral)
+                .orElse(false);
+    }
+
+    /**
+     * Notify peer protocol and session subscribers of a new frame.
+     */
+    private void notifyFrameSubscribers(FrameBody body) {
+        if (peerProtocol != null) {
+            peerProtocol.onFrameBodyAdded(body);
+        }
+        // Notify session subscribers — the frame's home item gets an event
+        if (sessionServer != null) {
+            ItemID homeItem = body.homeId();
+            if (homeItem != null) {
+                String eventType = isEphemeralPredicate(body.predicate()) ? "ephemeral" : "frame";
+                sessionServer.notifySubscribers(homeItem, eventType);
+            }
+        }
+    }
+
+    /**
+     * Get all ephemeral frames for an item.
+     */
+    public List<FrameBody> ephemeralFramesForItem(ItemID itemId) {
+        return ephemeralFrames.entrySet().stream()
+                .filter(e -> e.getKey().item().equals(itemId))
+                .map(Map.Entry::getValue)
+                .toList();
+    }
+
+    /**
+     * Remove all ephemeral frames from a specific signer on a specific item.
+     * Called when a PRESENT frame is revoked (user leaves the space).
+     */
+    public void clearEphemeralFrames(ItemID itemId, ItemID signerId) {
+        ephemeralFrames.entrySet().removeIf(e ->
+                e.getKey().item().equals(itemId) && e.getKey().signer().equals(signerId));
+        logger.debug("Cleared ephemeral frames for signer {} on item {}", signerId, itemId);
+        notifyEphemeralListeners(itemId);
+    }
+
+    /**
+     * Subscribe to ephemeral frame changes on an item.
+     * The listener fires whenever an ephemeral frame is added, replaced, or cleared.
+     */
+    public void onEphemeralChanged(ItemID itemId, Runnable listener) {
+        ephemeralListeners.computeIfAbsent(itemId, k -> new java.util.concurrent.CopyOnWriteArrayList<>())
+                .add(listener);
+    }
+
+    /**
+     * Unsubscribe from ephemeral frame changes on an item.
+     */
+    public void removeEphemeralListener(ItemID itemId, Runnable listener) {
+        List<Runnable> listeners = ephemeralListeners.get(itemId);
+        if (listeners != null) {
+            listeners.remove(listener);
+            if (listeners.isEmpty()) {
+                ephemeralListeners.remove(itemId);
+            }
+        }
+    }
+
+    private void notifyEphemeralListeners(ItemID itemId) {
+        List<Runnable> listeners = ephemeralListeners.get(itemId);
+        if (listeners != null) {
+            for (Runnable listener : listeners) {
+                try {
+                    listener.run();
+                } catch (Exception e) {
+                    logger.warn("Ephemeral listener error for item {}", itemId, e);
+                }
+            }
+        }
+    }
 
     // ==================================================================================
     // Content Operations

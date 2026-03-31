@@ -384,14 +384,17 @@ public class SessionServer implements AutoCloseable {
     // Subscriber Notification
     // =========================================================================
 
-    private void notifySubscribers(ItemID itemId, Item item) {
+    /**
+     * Notify subscribed sessions that an item has been updated.
+     */
+    public void notifySubscribers(ItemID itemId, String eventType) {
         for (var entry : sessions.entrySet()) {
             ClientSession cs = entry.getValue();
             if (cs.subscriptions.contains(itemId)) {
                 try {
                     Channel ch = entry.getKey();
                     if (ch.isOpen()) {
-                        ch.writeAndFlush(new SessionMessage.EventMessage(itemId, "updated", null));
+                        ch.writeAndFlush(new SessionMessage.EventMessage(itemId, eventType, null));
                     }
                 } catch (Exception e) {
                     logger.warn("Failed to notify session {} of update to {}",

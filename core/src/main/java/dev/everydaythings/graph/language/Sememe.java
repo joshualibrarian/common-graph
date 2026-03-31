@@ -507,6 +507,48 @@ public class Sememe extends Item {
     }
 
     // ==================================================================================
+    // CONFIG — predicate-level configuration (lifecycle, presentation, etc.)
+    // ==================================================================================
+
+    /**
+     * Returns the durability policy for frames of this predicate.
+     *
+     * <p>Reads CONFIG bindings qualified with DURABILITY from this predicate's
+     * frames. Returns the target ItemID (e.g., {@link CoreVocabulary.Ephemeral#IID})
+     * or {@code null} if no durability policy is declared (meaning: default/persistent).
+     *
+     * <p>This is the mechanism by which presence predicates (AVATAR_STATE, TYPING,
+     * CURSOR, FOCUS) declare their frames as ephemeral — in-memory only, latest-wins
+     * retention, not persisted, expire with presence.
+     */
+    public ItemID durability() {
+        if (frames() == null) return null;
+        ItemID durabilityQualifier = ItemID.fromString(CoreVocabulary.Durability.KEY);
+        ItemID configRole = ItemID.fromString(ThematicRole.Config.KEY);
+        for (Frame frame : frames()) {
+            if (frame.body() == null) continue;
+            if (!CoreVocabulary.Expects.IID.equals(frame.body().predicate())) continue;
+            Binding configBinding = frame.body().getBindingByRole(configRole);
+            if (configBinding == null || configBinding.targetId() == null) continue;
+            if (!configBinding.qualifiers().isEmpty()
+                    && configBinding.qualifiers().getFirst() instanceof FrameKey.Sememe sem
+                    && durabilityQualifier.equals(sem.id())) {
+                return configBinding.targetId();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns true if frames of this predicate are ephemeral —
+     * in-memory only, latest-wins retention, not persisted.
+     */
+    public boolean isEphemeral() {
+        ItemID d = durability();
+        return d != null && d.equals(ItemID.fromString(CoreVocabulary.Ephemeral.KEY));
+    }
+
+    // ==================================================================================
     // SEED INSTANCES — Pronouns (proper subclasses with parsing behavior)
     // ==================================================================================
 

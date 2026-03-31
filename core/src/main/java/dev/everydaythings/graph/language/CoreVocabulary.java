@@ -1143,6 +1143,46 @@ public final class CoreVocabulary {
     }
 
     // ==================================================================================
+    // CONFIG QUALIFIERS — narrow CONFIG bindings by policy domain
+    // ==================================================================================
+
+    /** Qualifier: frame lifecycle durability — narrows CONFIG. */
+    @ItemSeed(key = Durability.KEY)
+    public static class Durability {
+        public static final String KEY = "cg.config:durability";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "frame lifecycle policy — how durable frames of this predicate are";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"durability"};
+    }
+
+    // ==================================================================================
+    // CONFIG VALUES — policy values targeted by CONFIG bindings
+    // ==================================================================================
+
+    /** Value: ephemeral lifecycle — in-memory only, latest-wins, connection-authenticated, expires with presence. */
+    @ItemSeed(key = Ephemeral.KEY)
+    public static class Ephemeral {
+        public static final String KEY = "cg.config:ephemeral";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "ephemeral — in-memory only, latest-wins retention, not persisted, expires with presence";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"ephemeral"};
+    }
+
+    // ==================================================================================
     // EXTERNAL ID PREDICATES
     // ==================================================================================
 

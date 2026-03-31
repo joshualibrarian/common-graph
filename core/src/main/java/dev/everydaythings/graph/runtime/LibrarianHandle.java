@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.Vocabulary;
@@ -246,6 +247,36 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
                 .map(p -> Ref.of(p.iid()))
                 .orElse(Ref.of(iid()));
     }
+
+    // ==================================================================================
+    // Ephemeral Frames
+    // ==================================================================================
+
+    /**
+     * Get all ephemeral frames for an item (presence state, cursors, etc.).
+     *
+     * <p>Returns frames from predicates with EPHEMERAL durability policy —
+     * in-memory only, latest-wins, not persisted. These include avatar state,
+     * typing indicators, cursor positions, and other real-time presence data.
+     *
+     * @param itemId The item to query
+     * @return List of ephemeral frame bodies for this item
+     */
+    List<FrameBody> ephemeralFrames(ItemID itemId);
+
+    /**
+     * Subscribe to ephemeral frame changes on an item.
+     * The listener fires when an ephemeral frame is added, replaced, or cleared.
+     *
+     * @param itemId   The item to watch
+     * @param listener Callback fired on changes
+     */
+    void onEphemeralChanged(ItemID itemId, Runnable listener);
+
+    /**
+     * Unsubscribe from ephemeral frame changes on an item.
+     */
+    void removeEphemeralListener(ItemID itemId, Runnable listener);
 
     // ==================================================================================
     // Lifecycle

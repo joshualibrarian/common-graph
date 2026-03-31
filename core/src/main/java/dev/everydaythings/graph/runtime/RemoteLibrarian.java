@@ -228,6 +228,22 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     // ==================================================================================
 
     @Override
+    public java.util.List<dev.everydaythings.graph.frame.FrameBody> ephemeralFrames(dev.everydaythings.graph.item.id.ItemID itemId) {
+        // TODO: Remote ephemeral frame queries require protocol extension
+        return java.util.List.of();
+    }
+
+    @Override
+    public void onEphemeralChanged(dev.everydaythings.graph.item.id.ItemID itemId, Runnable listener) {
+        // TODO: Remote ephemeral change subscriptions require protocol extension
+    }
+
+    @Override
+    public void removeEphemeralListener(dev.everydaythings.graph.item.id.ItemID itemId, Runnable listener) {
+        // TODO: Remote ephemeral change subscriptions require protocol extension
+    }
+
+    @Override
     public void close() {
         super.close();
         log.debug("RemoteLibrarian closed");

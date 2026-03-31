@@ -304,6 +304,35 @@ public class ItemView {
     private final Function<ItemID, Optional<Item>> resolver;
     private Supplier<Collection<Item>> siblingsProvider;
 
+    /**
+     * Provider for ephemeral frames on the current item (presence, cursors, etc.).
+     * Set by the Session after construction. When non-null, ephemeral frame changes
+     * trigger tree rebuilds alongside normal frame changes.
+     */
+    private EphemeralFrameProvider ephemeralProvider;
+    private Runnable ephemeralListener;
+    private ItemID watchedEphemeralItem;
+
+    /** Functional interface for ephemeral frame access — avoids coupling to LibrarianHandle. */
+    public interface EphemeralFrameProvider {
+        List<FrameBody> ephemeralFrames(ItemID itemId);
+        void onEphemeralChanged(ItemID itemId, Runnable listener);
+        void removeEphemeralListener(ItemID itemId, Runnable listener);
+    }
+
+    public void setEphemeralProvider(EphemeralFrameProvider provider) {
+        this.ephemeralProvider = provider;
+        watchEphemeralFrames();
+    }
+
+    /** Get ephemeral frames for the currently viewed item. */
+    public List<FrameBody> ephemeralFrames() {
+        if (ephemeralProvider == null) return List.of();
+        Item current = item();
+        if (current == null) return List.of();
+        return ephemeralProvider.ephemeralFrames(current.iid());
+    }
+
     /** Detail panel mode — what the right panel shows. */
     public enum DetailMode { PRESENTATION, HELP, META }
 
@@ -363,6 +392,34 @@ public class ItemView {
                 changed();
             });
         }
+
+        // Also subscribe to ephemeral frame changes for this item
+        watchEphemeralFrames();
+    }
+
+    /**
+     * Subscribe to ephemeral frame changes for the current item.
+     * When ephemeral frames are added/replaced/cleared, trigger a re-render.
+     */
+    private void watchEphemeralFrames() {
+        // Unsubscribe from old item
+        if (ephemeralProvider != null && watchedEphemeralItem != null && ephemeralListener != null) {
+            ephemeralProvider.removeEphemeralListener(watchedEphemeralItem, ephemeralListener);
+        }
+
+        Item current = item();
+        if (current == null || ephemeralProvider == null) {
+            watchedEphemeralItem = null;
+            ephemeralListener = null;
+            return;
+        }
+
+        watchedEphemeralItem = current.iid();
+        ephemeralListener = () -> {
+            // Ephemeral frame changed — re-render but don't rebuild the whole tree
+            changed();
+        };
+        ephemeralProvider.onEphemeralChanged(watchedEphemeralItem, ephemeralListener);
     }
 
     // ==================================================================================

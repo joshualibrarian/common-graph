@@ -153,7 +153,9 @@ Subscribe to: Relations(item=chessClub, predicate=*, subscribe=true)
 --> Receive all new relations involving the chess club item as they're created
 ```
 
-Your Librarian subscribes to items and predicates relevant to your interests. When peers create new relations or versions, you receive them via push. This is how chat messages arrive, game moves propagate, and shared documents sync.
+Your Librarian subscribes to items and predicates relevant to your interests. When peers create new relations or versions, you receive them via push. This is how chat messages arrive, game moves propagate, shared documents sync, and real-time presence works.
+
+**Presence as subscription.** When you create a PRESENT frame on an item, peers subscribed to that item see you arrive. Ephemeral frames (AVATAR_STATE, TYPING, CURSOR — predicates with LATEST retention) flow through the same subscription channel at high frequency, replacing the previous value on each update. When you disconnect, your PRESENT frame is revoked and peers see you leave. There is no separate presence service — presence is subscription-driven frame delivery with lifecycle policies on the predicates.
 
 ### Device-to-Device Sync
 

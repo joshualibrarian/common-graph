@@ -131,8 +131,25 @@ The manifest records all heads. How forks are resolved depends on the stream typ
 
 This is related to the broader field of [Merkle-CRDTs](https://arxiv.org/abs/2004.00107) — conflict-free replicated data structures built on Merkle DAGs.
 
+## Streams vs. Ephemeral Frames
+
+Streams (Chains) and ephemeral frames are both temporal data, but with different retention semantics:
+
+| | Streams (Chains) | Ephemeral Frames |
+|---|---|---|
+| **Retention** | ALL — every entry is kept, history matters | LATEST — only the most recent value per key |
+| **Persistence** | Content-addressed chunks in the object store | In-memory only, never persisted |
+| **Consumption** | Replay from root, or catch up from checkpoint | Read current value, ignore history |
+| **Lifetime** | Permanent (or until garbage collected) | Tied to signer's PRESENT frame or connection |
+| **Examples** | Chat log, key history, audio/video feed, activity log | Avatar position, typing indicator, cursor, focus |
+| **Content model** | TOPIC:[STREAM] binding → Chain root → linked chunks | Normal frame with LATEST retention predicate |
+
+Both can coexist on the same item. A PRESENT frame (durable) carries TOPIC stream bindings for video/audio Chains, while AVATAR_STATE (ephemeral, LATEST) carries position data that replaces every tick. The predicate's lifecycle policy — declared as part of the predicate's schema alongside EXPECTS — determines which mode applies.
+
 ## Related Work
 
 - [Secure Scuttlebutt](https://scuttlebutt.nz/) — Append-only log replication for social networks
 - [Merkle-CRDTs](https://arxiv.org/abs/2004.00107) — CRDTs over Merkle DAGs
 - [Certificate Transparency](https://certificate.transparency.dev/) — Append-only logs for PKI auditing
+- [Smith, Kay, Raab, Reed 2003 — Croquet](references/Smith%2C%20Kay%2C%20Raab%2C%20Reed%202003%20-%20Croquet%20A%20Collaboration%20System%20Architecture.pdf) — TeaTime protocol for replicated, versioned objects with coordinated timebase. CG achieves similar real-time collaboration through lifecycle policies on the frame primitive rather than a separate collaboration protocol.
+- [Reed 1978 — Naming and Synchronization](references/Reed%201978%20-%20Naming%20and%20Synchronization%20in%20a%20Decentralized%20Computer%20System.pdf) — Decentralized naming, versioned objects, and synchronization without central authority. Intellectual ancestor of both TeaTime and CG's per-principal versioned manifests.

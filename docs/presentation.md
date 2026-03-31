@@ -329,7 +329,21 @@ Instant, in-memory. The renderer owns this state. It persists across re-renders 
 
 Pseudo-states (hover, focus, active) are renderer-tracked automatically — no declaration needed.
 
-### Tier 2: Frame-Backed
+### Tier 2: Shared Ephemeral
+
+Real-time, per-space. State shared among all participants in a space — presence, cursors, typing indicators, avatar positions. Delivered through frame subscriptions using predicates with LATEST retention policy. Exists only while participants are connected.
+
+- Structured as frames (predicate + role-keyed bindings) using the same vocabulary
+- Delivered through normal subscription channels
+- Replaced on each update (LATEST retention — only the most recent value per key)
+- Not persisted to the object store
+- Discarded when the signer's PRESENT frame is revoked (disconnect)
+
+The renderer reads these exactly like any other frame data. A scene expression referencing avatar position doesn't know or care that the data came from an ephemeral frame rather than a persisted one.
+
+Examples: AVATAR_STATE (position, orientation), TYPING (indicator + partial text), CURSOR (pointer position), FOCUS (what the user is looking at).
+
+### Tier 3: Frame-Backed
 
 Persistent, debounced. State that matters beyond the current session writes back to frame CONFIG bindings. The renderer debounces writes to avoid thrashing storage.
 

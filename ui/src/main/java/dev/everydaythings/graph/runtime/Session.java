@@ -27,6 +27,7 @@ import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.View;
 import dev.everydaythings.graph.ui.scene.node.Node;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.ui.scene.surface.item.ItemView;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -836,6 +837,21 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         Item contextItem = resolveItem(context.target()).orElse(this);
         itemView = new ItemView(contextItem, this::resolveItem);
         itemView.setSiblingsProvider(this::openViewItems);
+
+        // Wire ephemeral frame provider if librarian supports it
+        if (librarian != null) {
+            itemView.setEphemeralProvider(new ItemView.EphemeralFrameProvider() {
+                @Override public List<FrameBody> ephemeralFrames(ItemID itemId) {
+                    return librarian.ephemeralFrames(itemId);
+                }
+                @Override public void onEphemeralChanged(ItemID itemId, Runnable listener) {
+                    librarian.onEphemeralChanged(itemId, listener);
+                }
+                @Override public void removeEphemeralListener(ItemID itemId, Runnable listener) {
+                    librarian.removeEphemeralListener(itemId, listener);
+                }
+            });
+        }
     }
 
     /**

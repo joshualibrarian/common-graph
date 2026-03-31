@@ -156,6 +156,14 @@ Subscriber                          Publisher
 
 Subscription filters support wildcards — a null item or predicate means "any." Per-connection subscription limits prevent abuse (default: 100 per peer).
 
+### Presence and Ephemeral Frames
+
+Subscriptions are the delivery mechanism for real-time presence. When a user creates a PRESENT frame on an item, all subscribers to that item see it arrive as a normal Delivery. Ephemeral frames — predicates with LATEST retention policy, like AVATAR_STATE, TYPING, or CURSOR — flow through the same subscription channel. The receiver replaces the previous frame from the same signer (LATEST semantics) and does not persist it to the object store.
+
+Ephemeral frames within an authenticated peer connection may omit individual Ed25519 signatures, relying instead on the connection-level authentication established during the handshake. The predicate's lifecycle policy declares whether per-frame signing is required. This enables high-frequency updates (e.g., 60Hz avatar position) without per-message signing overhead, while durable frames (PRESENT, MOVE, MESSAGE) always carry full signatures.
+
+PRESENT frames can also carry TOPIC stream bindings pointing to content Chains — video feeds, audio feeds, screen shares — that accumulate as content-addressed chunks delivered via the existing Content payload type.
+
 ### Relay Forwarding
 
 The Envelope payload enables indirect communication through trusted intermediaries. A message can be wrapped and forwarded through peers that are reachable even when the final destination is not directly accessible:

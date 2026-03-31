@@ -132,6 +132,24 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     @Override
+    public List<dev.everydaythings.graph.frame.FrameBody> ephemeralFrames(ItemID itemId) {
+        checkOpen();
+        return librarian.ephemeralFramesForItem(itemId);
+    }
+
+    @Override
+    public void onEphemeralChanged(ItemID itemId, Runnable listener) {
+        checkOpen();
+        librarian.onEphemeralChanged(itemId, listener);
+    }
+
+    @Override
+    public void removeEphemeralListener(ItemID itemId, Runnable listener) {
+        checkOpen();
+        librarian.removeEphemeralListener(itemId, listener);
+    }
+
+    @Override
     public boolean isOpen() {
         return !closed && librarian != null;
     }
