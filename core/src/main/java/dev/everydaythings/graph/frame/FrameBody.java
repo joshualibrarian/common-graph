@@ -269,9 +269,14 @@ public final class FrameBody implements Canonical {
      * (events/computations).
      */
     public Binding home() {
+        // Prefer THEME, fall back to LOCATION. Skip bindings that don't target an item.
         Binding theme = getBinding(ThematicRole.Theme.IID);
+        if (theme != null && theme.targetId() != null) return theme;
+        Binding location = getBinding(ThematicRole.Location.IID);
+        if (location != null && location.targetId() != null) return location;
+        // Last resort: return whichever exists, even if not an item ref
         if (theme != null) return theme;
-        return getBinding(ThematicRole.Location.IID);
+        return location;
     }
 
     /**

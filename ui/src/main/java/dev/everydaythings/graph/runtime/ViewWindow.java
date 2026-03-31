@@ -846,6 +846,7 @@ public class ViewWindow {
                     requestRepaint();
                 })
                 .onResult(result -> {
+                    session.setLastDispatchedText(inputController.lastSubmittedText());
                     session.handleInputResult(result);
                     rebuildLayout();
                     requestRepaint();

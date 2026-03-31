@@ -181,6 +181,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Shared input handling — pulled up from subclasses.
      */
     protected InputController inputController;
+    /** Captured submitted text — set in onResult before handleInputResult runs. */
+    private String lastDispatchedText;
+
+    /** Set the last dispatched text — called by ViewWindow before handleInputResult. */
+    public void setLastDispatchedText(String text) { this.lastDispatchedText = text; }
     protected InputBindings inputBindings;
 
     /**
@@ -819,6 +824,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 })
                 .onNavigate(this::navigateInto)
                 .onResult(result -> {
+                    // Capture submitted text NOW before anything clears it
+                    lastDispatchedText = inputController.lastSubmittedText();
                     handleInputResult(result);
                     onInputDispatched(result);
                 })
@@ -1317,7 +1324,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         // Log to the session activity log and update feedback display
         if (!(result instanceof Eval.EvalResult.Empty)) {
-            String inputText = inputController != null ? inputController.lastSubmittedText() : null;
+            String inputText = lastDispatchedText;
             ItemID contextIid = contextItem().map(Item::iid).orElse(null);
             ActivityEntry entry = ActivityEntry.from(inputText, contextIid, result);
             logActivity(entry);
