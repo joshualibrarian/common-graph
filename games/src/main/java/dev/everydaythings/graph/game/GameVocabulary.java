@@ -241,22 +241,8 @@ public final class GameVocabulary {
         static final ItemID expectGoal = ThematicRole.Goal.IID;
     }
 
-    @ItemSeed(key = Leave.KEY)
-    public static class Leave {
-        public static final String KEY = "cg.verb:leave";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "go away from a place or group";
-
-        @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
-        static final String cili = "i30118";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String verb1 = "leave";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String verb2 = "stand";
-    }
+    // Leave was here — superseded by PresenceVocabulary.Leave (cg.presence:leave).
+    // Leaving a game IS leaving the space.
 
     // ==================================================================================
     // Dice game verbs

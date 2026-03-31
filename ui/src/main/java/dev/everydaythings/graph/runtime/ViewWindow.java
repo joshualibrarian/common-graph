@@ -5,6 +5,7 @@ import dev.everydaythings.graph.frame.ViewConfig;
 import dev.everydaythings.graph.frame.ViewHandle;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.parse.InputController;
@@ -111,6 +112,7 @@ public class ViewWindow {
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
     private volatile String pendingExpression;
+    private volatile ItemID pendingNavigation;
     private final dev.everydaythings.graph.ui.skia.ScrollState scrollState =
             new dev.everydaythings.graph.ui.skia.ScrollState();
     private ScheduledExecutorService liveTimer;
@@ -226,6 +228,18 @@ public class ViewWindow {
      */
     public boolean tick() {
         if (stage == null) return false;
+
+        // Process deferred navigation from double-click (outside GLFW callback)
+        ItemID navTarget = pendingNavigation;
+        if (navTarget != null) {
+            pendingNavigation = null;
+            session.librarian().get(navTarget).ifPresent(item -> {
+                session.navigateInto(item);
+                if (itemView != null) itemView.navigateInto(item);
+                rebuildLayout();
+                requestRepaint();
+            });
+        }
 
         // Process deferred expression from mouse events (outside GLFW callback)
         String expr = pendingExpression;
@@ -646,7 +660,19 @@ public class ViewWindow {
             handled = itemView.handleEvent(hit.action(), hit.target());
         }
 
-        // 3. Predicate expressions — action is a predicate, target is the argument.
+        // 3. Direct navigation — "view" with an IID target defers navigation
+        //    to the next tick (outside GLFW callback).
+        if (!handled && "view".equals(hit.action())
+                && hit.target() != null && hit.target().startsWith("iid:")) {
+            try {
+                pendingNavigation = ItemID.parse(hit.target());
+            } catch (Exception e) {
+                log.debug("Failed to parse IID {}: {}", hit.target(), e.getMessage());
+            }
+            handled = true;
+        }
+
+        // 4. Predicate expressions — action is a predicate, target is the argument.
         //    Compose into an expression and defer evaluation to after the GLFW callback
         //    returns (GLFW doesn't support nested callbacks like window creation).
         if (!handled && hit.action() != null && !hit.action().startsWith("toggle:")

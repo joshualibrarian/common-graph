@@ -57,6 +57,9 @@ public class FrameAssemblyContext {
     /** True if a participant has claimed the frame. */
     private boolean handled;
 
+    /** True if the frame was handled as a command — don't persist the frame itself. */
+    private boolean commandOnly;
+
     public FrameAssemblyContext(FrameBody body, Scope scope, Signer signer, Item session,
                                 Map<ItemID, Item> resolvedItems) {
         this.body = body;
@@ -77,6 +80,21 @@ public class FrameAssemblyContext {
         this.handled = true;
         this.result = result;
     }
+
+    /**
+     * Mark as handled but don't persist the frame — it's a command, not an assertion.
+     *
+     * <p>Use this for actions like "leave", "commit", "exit" where the predicate
+     * triggers a side effect but the frame itself shouldn't be stored.
+     */
+    public void handledCommand(Object result) {
+        this.handled = true;
+        this.commandOnly = true;
+        this.result = result;
+    }
+
+    /** Whether this was handled as a command (don't persist). */
+    public boolean isCommandOnly() { return commandOnly; }
 
     /**
      * Set the signed record (called by the pipeline after signing).

@@ -1315,14 +1315,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * the input field via InputController's error state.
      */
     protected void handleInputResult(Eval.EvalResult result) {
-        handleEvalResult(result);
-
-        // Refresh tree — dispatch may have added/changed components on the focused item
-        if (itemView != null && !(result instanceof Eval.EvalResult.Empty)) {
-            itemView.refresh();
-        }
-
-        // Log to the session activity log and update feedback display
+        // Log to the session activity log FIRST (before navigation changes context)
         if (!(result instanceof Eval.EvalResult.Empty)) {
             String inputText = lastDispatchedText;
             ItemID contextIid = contextItem().map(Item::iid).orElse(null);
@@ -1333,6 +1326,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             if (itemView != null && entry.hasResult()) {
                 itemView.setFeedback(entry.resultText(), !entry.isSuccess());
             }
+        }
+
+        handleEvalResult(result);
+
+        // Refresh tree — dispatch may have added/changed components on the focused item
+        if (itemView != null && !(result instanceof Eval.EvalResult.Empty)) {
+            itemView.refresh();
         }
 
         if (inputController != null) {

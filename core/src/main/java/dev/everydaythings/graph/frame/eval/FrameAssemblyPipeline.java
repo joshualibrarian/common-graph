@@ -70,8 +70,8 @@ public class FrameAssemblyPipeline {
             if (ctx.handled()) break;
         }
 
-        // If handled, persist the frame body
-        if (ctx.handled() && librarian != null) {
+        // If handled, persist the frame body (unless it's a command-only action)
+        if (ctx.handled() && !ctx.isCommandOnly() && librarian != null) {
             try {
                 librarian.storeFrame(body);
                 if (signer != null && signer.canSign()) {

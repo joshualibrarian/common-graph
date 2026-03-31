@@ -695,7 +695,7 @@ public final class CoreVocabulary {
             if (signer == null) return;
 
             ContentID vid = target.commit(signer);
-            ctx.handled("Committed " + target.displayToken() + " → " + vid.displayAtWidth(16));
+            ctx.handledCommand("Committed " + target.displayToken() + " → " + vid.displayAtWidth(16));
         }
     }
 

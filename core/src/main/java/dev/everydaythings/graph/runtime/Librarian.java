@@ -204,8 +204,8 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     /** Item cache — the single cache for all items known to this librarian. */
     private transient volatile Map<ItemID, Item> itemCache;
 
-    // Infrastructure activity log — in-memory, doesn't churn VID
-    @ItemFrame(predicate = CoreVocabulary.Activity.KEY, identity = false)
+    // Infrastructure activity log — in-memory only (no longer a manifest frame).
+    // Activity logging is now frame-based: each eval produces an ACTIVITY frame.
     private ActivityLog activityLog = new ActivityLog();
 
     // --- Services ---
@@ -1445,9 +1445,15 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         ItemID homeId = body.homeId();
         if (homeId == null) return;
         get(homeId, Item.class).ifPresent(item -> {
-            if (item.frames() != null) {
-                item.frames().add(Frame.fromBody(body));
+            if (item.frames() == null) return;
+
+            // Skip if the item already has a frame with the same body hash (endorsed)
+            var hash = body.hash();
+            for (Frame existing : item.frames()) {
+                if (hash.equals(existing.bodyHash())) return;
             }
+
+            item.frames().add(Frame.fromBody(body));
         });
     }
 

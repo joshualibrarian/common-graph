@@ -1,9 +1,11 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
@@ -83,6 +85,73 @@ public final class PresenceVocabulary {
         public void onFrameAssembled(FrameAssemblyContext ctx) {
             // Store the PRESENT frame — durable, signed
             ctx.handled("present");
+        }
+    }
+
+    /**
+     * Revokes presence — the signer is leaving an item context.
+     *
+     * <p>When assembled, finds and removes the signer's PRESENT frame from the
+     * target item, then clears all ephemeral frames (AVATAR_STATE, TYPING, etc.)
+     * tied to that presence. Subscribers see the departure.
+     */
+    @Implements(Leave.KEY)
+    @ItemSeed(key = Leave.KEY)
+    public static class Leave extends Sememe {
+        public static final String KEY = "cg.presence:leave";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        public Leave() { super(KEY); }
+        protected Leave(ItemID iid) { super(iid); }
+        protected Leave(Librarian lib, Manifest m) { super(lib, m); }
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "revoke presence — leave an item context";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"leave", "depart"};
+
+        @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Location.KEY}))
+        static final ItemID expectLocation = ThematicRole.Location.IID;
+
+        @Override
+        public void onFrameAssembled(FrameAssemblyContext ctx) {
+            // Find the target item (LOCATION, filled from context)
+            Item target = ctx.item(ThematicRole.Location.IID);
+            if (target == null || target.frames() == null) return;
+
+            Librarian lib = ctx.scope().librarian();
+            if (lib == null) return;
+
+            // Use the principal's identity (matches what announcePresence uses)
+            ItemID signerId = lib.principal().map(Item::iid).orElse(lib.iid());
+
+            // Find and remove PRESENT frames from this signer on this item
+            ItemID presentPredicate = ItemID.fromString(Present.KEY);
+            java.util.List<FrameKey> toRemove = new java.util.ArrayList<>();
+            for (Frame frame : target.frames()) {
+                if (frame.body() == null) continue;
+                if (!presentPredicate.equals(frame.body().predicate())) continue;
+                // Check if the AGENT binding matches our signer
+                var agentTarget = frame.body().binding(ItemID.fromString(ThematicRole.Agent.KEY));
+                if (agentTarget instanceof dev.everydaythings.graph.frame.BindingTarget.IidTarget iidTarget
+                        && signerId.equals(iidTarget.iid())) {
+                    toRemove.add(frame.frameKey());
+                }
+            }
+
+            for (var key : toRemove) {
+                target.frames().remove(key);
+            }
+
+            // Clear all ephemeral frames for this signer on this item
+            lib.clearEphemeralFrames(target.iid(), signerId);
+
+            ctx.handledCommand(toRemove.isEmpty() ? "Not present" : "Left " + target.displayToken());
         }
     }
 
