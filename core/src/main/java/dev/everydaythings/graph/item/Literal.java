@@ -344,6 +344,17 @@ public final class Literal implements BindingTarget {
      * Format the payload as generic CBOR (without type system lookup).
      */
     private String formatCbor() {
+        // Instant — format as human-readable date/time
+        if (TYPE_INSTANT.equals(valueType)) {
+            try {
+                Instant instant = asInstantMillis();
+                return java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm:ss a"));
+            } catch (Exception e) {
+                // fall through to generic
+            }
+        }
+
         CBORObject node = payloadNode();
         return switch (node.getType()) {
             case TextString -> "\"" + node.AsString() + "\"";

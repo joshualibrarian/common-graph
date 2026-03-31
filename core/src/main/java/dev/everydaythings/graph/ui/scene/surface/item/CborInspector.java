@@ -199,7 +199,15 @@ public final class CborInspector {
                 // Simple field — label and value on one line
                 Container row = Container.horizontal().gap("0.5em");
                 row.add(Text.of(label + ":").fontWeight("bold").classes("field-name"));
-                row.add(renderValue(element, resolver, List.of(), depth + 1));
+
+                // Binding "target" field: try Literal rendering (2-element array [typeId, payload])
+                if ("target".equals(label) && element.getType() == CBORType.Array && element.size() == 2
+                        && element.get(0).getType() == CBORType.ByteString) {
+                    Node litNode = tryRenderLiteral(element, resolver);
+                    row.add(litNode != null ? litNode : renderValue(element, resolver, List.of(), depth + 1));
+                } else {
+                    row.add(renderValue(element, resolver, List.of(), depth + 1));
+                }
                 container.add(row);
             }
         }
@@ -256,6 +264,17 @@ public final class CborInspector {
                 return renderValue(value, resolver, List.of(), depth + 1);
             }
 
+            // Instant values: format as human-readable date/time
+            if (typeId != null && Literal.TYPE_INSTANT.equals(typeId)
+                    && value.getType() == CBORType.Integer) {
+                try {
+                    java.time.Instant instant = java.time.Instant.ofEpochMilli(value.AsInt64Value());
+                    String formatted = java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())
+                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm:ss a"));
+                    return Text.of(formatted).classes("literal");
+                } catch (Exception ignored) {}
+            }
+
             Container row = Container.horizontal().gap("0.25em");
             row.add(Text.of(typeName + ":").classes("muted"));
             row.add(renderValue(value, resolver, List.of(), depth + 1));
@@ -296,11 +315,16 @@ public final class CborInspector {
     private static Node tryRenderLiteral(CBORObject cbor, Function<ItemID, String> resolver) {
         try {
             byte[] typeBytes = cbor.get(0).GetByteString();
-            byte[] payload = cbor.get(1).GetByteString();
             ItemID typeId = new ItemID(typeBytes);
+            CBORObject payloadElement = cbor.get(1);
 
-            // Payload is CBOR-encoded — decode it first
-            CBORObject decoded = CBORObject.DecodeFromBytes(payload);
+            // Decode the payload — it may be CBOR-encoded bytes or a direct CBOR value
+            CBORObject decoded;
+            if (payloadElement.getType() == CBORType.ByteString) {
+                decoded = CBORObject.DecodeFromBytes(payloadElement.GetByteString());
+            } else {
+                decoded = payloadElement;
+            }
 
             // Text
             if (Literal.TYPE_TEXT.equals(typeId) && decoded.getType() == CBORType.TextString) {
@@ -315,6 +339,14 @@ public final class CborInspector {
             // Integer
             if (Literal.TYPE_INTEGER.equals(typeId)) {
                 return Text.of(decoded.toString()).classes("number");
+            }
+
+            // Instant — format as human-readable date/time
+            if (Literal.TYPE_INSTANT.equals(typeId) && decoded.getType() == CBORType.Integer) {
+                java.time.Instant instant = java.time.Instant.ofEpochMilli(decoded.AsInt64Value());
+                String formatted = java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm:ss a"));
+                return Text.of(formatted).classes("literal");
             }
 
             // Other type — show resolved type name + decoded CBOR value

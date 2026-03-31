@@ -712,10 +712,10 @@ public class ItemView {
         if (b.targetId() != null) {
             String resolved = resolver.apply(b.targetId());
             value = resolved != null ? resolved : b.targetId().displayAtWidth(16);
-        } else if (b.target() instanceof Literal lit && lit.asText() != null) {
-            value = "\"" + lit.asText() + "\"";
+        } else if (b.target() != null) {
+            value = b.target().toString();
         } else {
-            value = b.target() != null ? b.target().toString() : "(null)";
+            value = "(null)";
         }
 
         Container row = Container.horizontal().gap("0.5em");
@@ -1158,15 +1158,14 @@ public class ItemView {
                 return null;
             }
             if (b.target() instanceof dev.everydaythings.graph.item.Literal lit) {
-                if (dev.everydaythings.graph.item.Literal.TYPE_TEXT.equals(lit.valueType())) {
-                    try {
-                        String t = lit.asText();
-                        if (t != null) return t.length() > 30
-                                ? "\"" + t.substring(0, 27) + "...\""
-                                : "\"" + t + "\"";
-                    } catch (Exception ignored) {}
-                }
-                // Non-text literal with unresolvable type — skip
+                // Use type-aware formatting (handles text, instant, integer, etc.)
+                try {
+                    String formatted = lit.toString();
+                    if (formatted != null && formatted.length() > 40) {
+                        formatted = formatted.substring(0, 37) + "...";
+                    }
+                    return formatted;
+                } catch (Exception ignored) {}
                 return null;
             }
             return null;
