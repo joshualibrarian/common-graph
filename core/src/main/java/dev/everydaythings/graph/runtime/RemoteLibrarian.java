@@ -228,6 +228,11 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     // ==================================================================================
 
     @Override
+    public void storeFrame(dev.everydaythings.graph.frame.FrameBody body) {
+        // TODO: Remote frame storage requires DISPATCH protocol message
+    }
+
+    @Override
     public java.util.List<dev.everydaythings.graph.frame.FrameBody> ephemeralFrames(dev.everydaythings.graph.item.id.ItemID itemId) {
         // TODO: Remote ephemeral frame queries require protocol extension
         return java.util.List.of();

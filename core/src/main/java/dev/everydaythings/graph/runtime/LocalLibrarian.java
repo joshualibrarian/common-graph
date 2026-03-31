@@ -132,6 +132,12 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     @Override
+    public void storeFrame(dev.everydaythings.graph.frame.FrameBody body) {
+        checkOpen();
+        librarian.storeFrame(body);
+    }
+
+    @Override
     public List<dev.everydaythings.graph.frame.FrameBody> ephemeralFrames(ItemID itemId) {
         checkOpen();
         return librarian.ephemeralFramesForItem(itemId);

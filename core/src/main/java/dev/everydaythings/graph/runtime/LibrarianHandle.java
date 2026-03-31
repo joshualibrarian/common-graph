@@ -253,6 +253,12 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
     // ==================================================================================
 
     /**
+     * Store a frame body — routes to persistent or ephemeral storage
+     * based on the predicate's durability policy.
+     */
+    void storeFrame(FrameBody body);
+
+    /**
      * Get all ephemeral frames for an item (presence state, cursors, etc.).
      *
      * <p>Returns frames from predicates with EPHEMERAL durability policy —

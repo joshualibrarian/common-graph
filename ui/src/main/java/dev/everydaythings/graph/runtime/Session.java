@@ -851,7 +851,29 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                     librarian.removeEphemeralListener(itemId, listener);
                 }
             });
+
+            // Announce presence in the session — the user is HERE
+            announcePresence(context.target());
         }
+    }
+
+    /**
+     * Create a PRESENT frame on the given item, announcing that this session's
+     * principal is present. This is an ephemeral frame — it lives in memory only
+     * and expires when the session closes.
+     */
+    private void announcePresence(ItemID itemId) {
+        if (librarian == null) return;
+        ItemID principalId = librarian.principalId();
+        if (principalId == null) principalId = librarian.iid();
+
+        FrameBody presence = FrameBody.builder(
+                        ItemID.fromString(dev.everydaythings.graph.language.PresenceVocabulary.Present.KEY))
+                .bind(ItemID.fromString(dev.everydaythings.graph.language.ThematicRole.Agent.KEY), principalId)
+                .bind(ItemID.fromString(dev.everydaythings.graph.language.ThematicRole.Location.KEY), itemId)
+                .build();
+
+        librarian.storeFrame(presence);
     }
 
     /**

@@ -117,6 +117,14 @@ public class ItemView {
             }
         }
 
+        // Presence strip — shows when others are present
+        @Scene.If("value.hasPresence")
+        @Scene.Container(direction = Direction.HORIZONTAL, gap = "0.3em", style = {"muted"})
+        static class PresenceStrip {
+            @Scene.Text.Literal(bind = "value.presenceSummary", style = {"muted"})
+            static class PresenceText {}
+        }
+
         @Scene.Container(width = "1fr")
         static class Spacer {}
 
@@ -232,6 +240,38 @@ public class ItemView {
 
     /** Whether the versions tree (F4) is active. */
     public boolean versionsActive() { return activeTreeView == TreeView.VERSIONS; }
+
+    /** Whether there are presence frames (durable PRESENT or ephemeral state) on this item. */
+    public boolean hasPresence() {
+        return !presenceFrames().isEmpty() || !ephemeralFrames().isEmpty();
+    }
+
+    /** Summary of who is present — e.g., "👤 2 present". */
+    public String presenceSummary() {
+        List<FrameBody> present = presenceFrames();
+        if (present.isEmpty()) {
+            // Fall back to counting ephemeral frames
+            List<FrameBody> ephemeral = ephemeralFrames();
+            if (ephemeral.isEmpty()) return "";
+            return "\uD83D\uDC64 " + ephemeral.size() + " active";
+        }
+        return "\uD83D\uDC64 " + present.size() + " present";
+    }
+
+    /** Get durable PRESENT frames on the current item. */
+    private List<FrameBody> presenceFrames() {
+        Item resolved = item();
+        if (resolved == null || resolved.frames() == null) return List.of();
+        ItemID presentPredicate = ItemID.fromString(
+                dev.everydaythings.graph.language.PresenceVocabulary.Present.KEY);
+        List<FrameBody> result = new ArrayList<>();
+        for (Frame f : resolved.frames()) {
+            if (f.body() != null && presentPredicate.equals(f.body().predicate())) {
+                result.add(f.body());
+            }
+        }
+        return result;
+    }
 
     /** Whether there is feedback text to display. */
     public boolean hasFeedback() { return feedbackText != null && !feedbackText.isBlank(); }
@@ -835,12 +875,30 @@ public class ItemView {
     private void buildFramesTree() {
         Item resolved = item();
         if (resolved == null) { treeNav = null; treeContentNode = null; return; }
-        List<FrameNode> frameNodes = new ArrayList<>();
+
+        // Durable frames from the item's EndorsementsTable
+        List<FrameNode> durableNodes = new ArrayList<>();
         if (resolved.frames() != null) {
-            for (Frame f : resolved.frames()) frameNodes.add(new FrameNode(f, resolved));
+            for (Frame f : resolved.frames()) durableNodes.add(new FrameNode(f, resolved));
         }
-        FrameNode root = new FrameNode("Frames (" + frameNodes.size() + ")",
-                "\uD83D\uDCC2", "group:frames", frameNodes);
+
+        // Ephemeral frames from the Librarian's in-memory store
+        List<FrameNode> ephemeralNodes = new ArrayList<>();
+        List<FrameBody> ephemeral = ephemeralFrames();
+        for (FrameBody body : ephemeral) {
+            ephemeralNodes.add(new FrameNode(body, resolved));
+        }
+
+        // Combine into tree — ephemeral frames grouped under their own header if present
+        List<FrameNode> allNodes = new ArrayList<>(durableNodes);
+        if (!ephemeralNodes.isEmpty()) {
+            allNodes.add(new FrameNode("\u26A1 Ephemeral (" + ephemeralNodes.size() + ")",
+                    "\u26A1", "group:ephemeral", ephemeralNodes));
+        }
+
+        int totalCount = durableNodes.size() + ephemeralNodes.size();
+        FrameNode root = new FrameNode("Frames (" + totalCount + ")",
+                "\uD83D\uDCC2", "group:frames", allNodes);
         treeContentNode = TreeNodes.from(root).children(FrameNode::children).label(FrameNode::label)
                 .icon(FrameNode::emoji).expandable(n -> !n.children().isEmpty()).id(FrameNode::id)
                 .showRoot(false).build();
@@ -965,6 +1023,20 @@ public class ItemView {
                     ? frame.bodyHash().displayAtWidth(12)
                     : frame.frameKey().toString());
             this.label = buildSummaryLabel(frame, item);
+            this.children = List.of();
+        }
+
+        /** Construct from an ephemeral FrameBody (no Frame wrapper, no body hash). */
+        FrameNode(FrameBody body, Item item) {
+            this.frame = null;
+            this.emoji = "\u26A1";  // ⚡ lightning bolt for ephemeral
+            this.id = "ephemeral:" + body.predicate().encodeText();
+            Librarian lib = item.itemLibrarian();
+            if (lib != null) {
+                this.label = "\u26A1 " + HandleResolver.labelForFrame(body, item.iid(), lib);
+            } else {
+                this.label = "\u26A1 ephemeral";
+            }
             this.children = List.of();
         }
 
