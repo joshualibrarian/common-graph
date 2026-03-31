@@ -11,6 +11,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -640,6 +641,62 @@ public final class CoreVocabulary {
         @ItemFrame(predicate = Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
         static final ItemID expectTheme = ThematicRole.Theme.IID;
+    }
+
+    /**
+     * Commit — create a new signed version of an item.
+     *
+     * <p>When assembled, commits the context item: scans fields, builds endorsements,
+     * signs the manifest, and stores the new version. The result is the new VID.
+     *
+     * <p>Bare "commit" commits the current context item. "commit [item]" commits
+     * a specific item.
+     */
+    @Implements(Commit.KEY)
+    @ItemSeed(key = Commit.KEY)
+    public static class Commit extends Sememe {
+        public static final String KEY = "cg.verb:commit";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        public Commit() { super(KEY); }
+        protected Commit(ItemID iid) { super(iid); }
+        protected Commit(Librarian lib, Manifest m) { super(lib, m); }
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "create a new signed version of an item";
+
+        @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
+        static final String cili = "i37296";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"commit", "save", "version"};
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @Override
+        public void onFrameAssembled(FrameAssemblyContext ctx) {
+            // The THEME is the item to commit — filled from context if bare "commit"
+            Item target = ctx.item(ThematicRole.Theme.IID);
+            if (target == null) {
+                // No explicit target — commit the context item
+                Librarian lib = ctx.scope().librarian();
+                if (lib != null && ctx.scope().owner() != null) {
+                    target = ctx.scope().owner();
+                }
+            }
+            if (target == null) return;
+
+            Signer signer = ctx.signer();
+            if (signer == null) return;
+
+            ContentID vid = target.commit(signer);
+            ctx.handled("Committed " + target.displayToken() + " → " + vid.displayAtWidth(16));
+        }
     }
 
     // ==================================================================================

@@ -997,12 +997,19 @@ public class Eval {
 
         ItemID locationRole = ItemID.fromString(ThematicRole.Location.KEY);
         ItemID agentRole = ItemID.fromString(ThematicRole.Agent.KEY);
+        ItemID themeRole = ItemID.fromString(ThematicRole.Theme.KEY);
         for (ItemID role : expectedRoles) {
             // Skip roles that are already filled
             if (body.binding(role) != null) continue;
 
+            // THEME → fill from context item (bare "commit" means "commit this item")
+            if (role.equals(themeRole)) {
+                if (context != null) {
+                    additions.add(new Binding(role, BindingTarget.iid(context.iid())));
+                }
+            }
             // LOCATION → fill from context item
-            if (role.equals(locationRole)) {
+            else if (role.equals(locationRole)) {
                 if (context != null) {
                     additions.add(new Binding(role, BindingTarget.iid(context.iid())));
                 }
