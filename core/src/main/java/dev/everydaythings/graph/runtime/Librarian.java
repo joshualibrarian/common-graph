@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.Implements;
@@ -1426,8 +1427,28 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
             }
         }
 
+        // Add to the target item's frames (so item.frames() shows ALL frames, not just endorsed)
+        addFrameToItem(body);
+
         // Notify peer subscribers
         notifyFrameSubscribers(body);
+    }
+
+    /**
+     * Add a stored frame to the in-memory item it belongs to.
+     *
+     * <p>Looks up the frame's home item (from its LOCATION or THEME binding)
+     * in the item cache. If found, adds the frame to the item's EndorsementsTable
+     * so that {@code item.frames()} yields ALL frames — endorsed and unendorsed.
+     */
+    private void addFrameToItem(FrameBody body) {
+        ItemID homeId = body.homeId();
+        if (homeId == null) return;
+        get(homeId, Item.class).ifPresent(item -> {
+            if (item.frames() != null) {
+                item.frames().add(Frame.fromBody(body));
+            }
+        });
     }
 
     /**

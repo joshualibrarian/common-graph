@@ -1,9 +1,15 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
+import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
+import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.runtime.Librarian;
 
 /**
  * Presence vocabulary — predicates for real-time shared presence in items.
@@ -46,10 +52,15 @@ public final class PresenceVocabulary {
      * Revoking a PRESENT frame signals departure and triggers cleanup of ephemeral
      * frames tied to this presence (AVATAR_STATE, TYPING, CURSOR, FOCUS).
      */
+    @Implements(Present.KEY)
     @ItemSeed(key = Present.KEY)
-    public static class Present {
+    public static class Present extends Sememe {
         public static final String KEY = "cg.presence:present";
         public static final ItemID IID = ItemID.fromString(KEY);
+
+        public Present() { super(KEY); }
+        protected Present(ItemID iid) { super(iid); }
+        protected Present(Librarian lib, Manifest m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -57,8 +68,8 @@ public final class PresenceVocabulary {
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"present"};
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] words = {"enter", "join"};
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
@@ -67,6 +78,12 @@ public final class PresenceVocabulary {
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Location.KEY}))
         static final ItemID expectLocation = ThematicRole.Location.IID;
+
+        @Override
+        public void onFrameAssembled(FrameAssemblyContext ctx) {
+            // Store the PRESENT frame — durable, signed
+            ctx.handled("present");
+        }
     }
 
     // ==================================================================================

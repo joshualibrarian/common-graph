@@ -386,6 +386,39 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (activityLog != null) {
             activityLog.append(entry);
         }
+
+        // Also create an ACTIVITY frame on the Session item (frame-based logging)
+        if (librarian != null) {
+            FrameBody.Builder builder = FrameBody.builder(
+                    ItemID.fromString(CoreVocabulary.Activity.KEY));
+
+            // THEME — what was evaluated (input text)
+            if (entry.input() != null) {
+                builder.bind(ItemID.fromString(ThematicRole.Theme.KEY), entry.input());
+            }
+
+            // LOCATION — where (the Session item itself, since that's where the log lives)
+            builder.bind(ItemID.fromString(ThematicRole.Location.KEY), iid());
+
+            // AGENT — who
+            ItemID principalId = librarian.principalId();
+            if (principalId != null) {
+                builder.bind(ItemID.fromString(ThematicRole.Agent.KEY), principalId);
+            }
+
+            // RESULT — what happened
+            if (entry.resultText() != null) {
+                builder.bind(ItemID.fromString(ThematicRole.Result.KEY), entry.resultText());
+            } else if (entry.resultIid() != null) {
+                builder.bind(ItemID.fromString(ThematicRole.Result.KEY), entry.resultIid());
+            }
+
+            // TIME — when
+            builder.bind(ItemID.fromString(ThematicRole.Time.KEY),
+                    dev.everydaythings.graph.item.Literal.ofInstant(java.time.Instant.now()));
+
+            librarian.storeFrame(builder.build());
+        }
     }
 
     /**

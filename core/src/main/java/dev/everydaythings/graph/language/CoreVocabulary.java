@@ -485,7 +485,7 @@ public final class CoreVocabulary {
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY,
                                    qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"cd", "go", "enter"};
+        static final String[] words = {"cd", "go"};
 
         @ItemFrame(predicate = Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Goal.KEY}))
@@ -825,6 +825,21 @@ public final class CoreVocabulary {
         static final ItemID expectSource = ThematicRole.Source.IID;
     }
 
+    /**
+     * An activity record — what happened, where, when, by whom, with what result.
+     *
+     * <p>Each evaluation in a Session produces an ACTIVITY frame on the Session item.
+     * These frames form the persistent, queryable audit trail of user interactions.
+     *
+     * <p>Bindings:
+     * <ul>
+     *   <li>THEME — what was evaluated (input text as literal)</li>
+     *   <li>AGENT — who did it (the user/principal)</li>
+     *   <li>LOCATION — context item (where they were focused)</li>
+     *   <li>RESULT — outcome (result text or item reference)</li>
+     *   <li>TIME — when it happened</li>
+     * </ul>
+     */
     @ItemSeed(key = Activity.KEY)
     public static class Activity {
         public static final String KEY = "cg.core:activity";
@@ -832,7 +847,7 @@ public final class CoreVocabulary {
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "a record of actions or events";
+        static final String gloss = "a record of an action or event — what happened, where, when, by whom";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i30955";
@@ -847,8 +862,20 @@ public final class CoreVocabulary {
         static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
-        static final ItemID expectTopic = ThematicRole.Topic.IID;
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
+        static final ItemID expectAgent = ThematicRole.Agent.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Location.KEY}))
+        static final ItemID expectLocation = ThematicRole.Location.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Result.KEY}))
+        static final ItemID expectResult = ThematicRole.Result.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Time.KEY}))
+        static final ItemID expectTime = ThematicRole.Time.IID;
     }
 
     // ==================================================================================

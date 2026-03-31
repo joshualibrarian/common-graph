@@ -851,6 +851,10 @@ public class Eval {
      */
     private EvalResult evaluateFrame(SemanticFrame frame) {
         FrameBody frameBody = toFrameBody(frame);
+
+        // Context filling: fill unfilled EXPECTS roles from context and signer
+        frameBody = fillFromContext(frameBody);
+
         Librarian librarian = librarianHandle instanceof LocalLibrarian local
                 ? local.librarian() : null;
         if (librarian == null) {
@@ -971,6 +975,55 @@ public class Eval {
             case ResolvedToken.Literal lit -> toBindingTarget(lit.value());
             case ResolvedToken.Unresolved u -> Literal.ofText(u.token());
         };
+    }
+
+    /**
+     * Fill unfilled EXPECTS roles from context.
+     *
+     * <p>When a predicate expects LOCATION and it's not provided, fill from the
+     * current context item. When it expects AGENT and it's not provided, fill
+     * from the session's principal. This enables bare commands like "enter" to
+     * auto-fill LOCATION from the focused item and AGENT from the user.
+     */
+    private FrameBody fillFromContext(FrameBody body) {
+        // Resolve the predicate to check its EXPECTS
+        Sememe predicate = librarianHandle.get(body.predicate(), Sememe.class).orElse(null);
+        if (predicate == null) return body;
+
+        List<ItemID> expectedRoles = predicate.slotRoles();
+        if (expectedRoles.isEmpty()) return body;
+
+        List<Binding> additions = new ArrayList<>();
+
+        ItemID locationRole = ItemID.fromString(ThematicRole.Location.KEY);
+        ItemID agentRole = ItemID.fromString(ThematicRole.Agent.KEY);
+        for (ItemID role : expectedRoles) {
+            // Skip roles that are already filled
+            if (body.binding(role) != null) continue;
+
+            // LOCATION → fill from context item
+            if (role.equals(locationRole)) {
+                if (context != null) {
+                    additions.add(new Binding(role, BindingTarget.iid(context.iid())));
+                }
+            }
+            // AGENT → fill from principal/signer
+            else if (role.equals(agentRole)) {
+                ItemID principalId = librarianHandle.principalId();
+                if (principalId != null) {
+                    additions.add(new Binding(role, BindingTarget.iid(principalId)));
+                } else {
+                    additions.add(new Binding(role, BindingTarget.iid(librarianHandle.iid())));
+                }
+            }
+        }
+
+        if (additions.isEmpty()) return body;
+
+        // Rebuild the body with the additional bindings
+        List<Binding> allBindings = new ArrayList<>(body.frameBindings());
+        allBindings.addAll(additions);
+        return new FrameBody(body.predicate(), allBindings);
     }
 
     /**
@@ -1189,7 +1242,7 @@ public class Eval {
         // Resolve pronouns
         resolved = resolvePronouns(resolved);
 
-        logger.debug("Executing {} tokens: {}", resolved.size(), resolved);
+        logger.warn("executeTokens: {} resolved tokens → evaluateResolved", resolved.size());
 
         return evaluateResolved(resolved);
     }
