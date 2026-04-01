@@ -28,7 +28,7 @@ import java.util.Map;
  * <p>If any participant calls {@link #handled(Object)}, the pipeline stores
  * the frame body, signs a record, and returns the result. If nobody handles
  * it, the pipeline returns unhandled and the evaluator falls through to the
- * existing FrameEvaluator / {@code @Verb} dispatch path.
+ * FrameEvaluator for pure computation (operators, functions).
  */
 @Getter
 public class FrameAssemblyContext {

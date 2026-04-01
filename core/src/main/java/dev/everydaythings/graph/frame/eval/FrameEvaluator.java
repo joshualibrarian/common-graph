@@ -30,7 +30,7 @@ import java.util.Optional;
  * <p>Registered runtimes handle different code formats:
  * <ul>
  *   <li>{@link FormulaRuntime} — FrameBody trees (universal, every host evaluates these)</li>
- *   <li>{@link JavaRuntime} — Java classes and @Verb methods (host-specific)</li>
+ *   <li>{@link JavaRuntime} — Java classes (host-specific)</li>
  *   <li>Future: WASM, Python, etc.</li>
  * </ul>
  *

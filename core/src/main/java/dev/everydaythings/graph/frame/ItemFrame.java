@@ -70,7 +70,7 @@ public @interface ItemFrame {
     /**
      * The frame's predicate — what kind of assertion this is.
      * An ItemID canonical string (e.g., "cg.core:lexeme").
-     * Required for new-style annotations. Empty for legacy {@code key={}} style.
+     * Required. An ItemID canonical string (e.g., "cg.core:lexeme").
      */
     String predicate() default EMPTY;
 
@@ -152,19 +152,7 @@ public @interface ItemFrame {
     // Legacy storage attributes — to be migrated to @Bind flags
     // ==================================================================================
 
-    /** @deprecated Storage mode — use TOPIC bindings instead. */
-    @Deprecated
-    boolean snapshot() default true;
-
-    /** @deprecated Storage mode — use TOPIC:[STREAM] binding instead. */
-    @Deprecated
-    boolean stream() default false;
-
     /** @deprecated Use TOPIC:[LOCAL] binding instead. */
     @Deprecated
     boolean localOnly() default false;
-
-    /** @deprecated Use identity flag on @Bind instead. */
-    @Deprecated
-    boolean identity() default true;
 }

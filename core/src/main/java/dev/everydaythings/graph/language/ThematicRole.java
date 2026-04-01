@@ -599,9 +599,6 @@ public class ThematicRole extends Sememe {
     /** TODO: we need to talk about this switch... why do we need it?  Those tokens should be assigned to those sememes via the token dictionary and normal lookup path... not with this special switch?
      * Look up a ThematicRole by its constant name (e.g., "THEME", "AGENT").
      *
-     * <p>Used by {@code @Param(role="THEME")} annotation processing to
-     * resolve string role names to ThematicRole seed instances.
-     *
      * @param name The uppercase constant name
      * @return The ThematicRole IID, or null if not found
      */

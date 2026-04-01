@@ -122,6 +122,13 @@ public final class Frame implements Canonical {
             byte[] configBytes = body.configPayload();
             if (configBytes != null) {
                 try {
+                    // Try direct PolicySet decode first (new format)
+                    PolicySet direct = Canonical.decodeBinary(
+                            configBytes, PolicySet.class, Canonical.Scope.RECORD);
+                    if (direct != null) return direct;
+                } catch (Exception ignored) {}
+                try {
+                    // Fall back to FrameConfig wrapper (legacy format)
                     FrameConfig cfg = Canonical.decodeBinary(
                             configBytes, FrameConfig.class, Canonical.Scope.RECORD);
                     if (cfg != null) return cfg.policy();
@@ -150,9 +157,8 @@ public final class Frame implements Canonical {
     public void setPolicy(PolicySet policy) {
         this.policy = policy;
         if (body == null) return;
-        // Encode the policy into a FrameConfig and store in the config map
-        FrameConfig cfg = FrameConfig.builder().policy(policy).build();
-        byte[] configBytes = cfg.encodeBinary(Canonical.Scope.RECORD);
+        // Encode PolicySet directly into the config map
+        byte[] configBytes = policy.encodeBinary(Canonical.Scope.RECORD);
         Literal configLiteral = new Literal(Literal.TYPE_CBOR, configBytes);
         setBody(body.withConfig(ThematicRole.Config.IID, configLiteral));
     }

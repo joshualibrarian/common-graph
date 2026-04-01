@@ -14,8 +14,7 @@ import java.util.function.Function;
 /**
  * Unified tokenizer that produces a lattice of candidate token spans.
  *
- * <p>Replaces the three separate tokenization strategies (CLI whitespace split,
- * GUI char-by-char, math ExpressionLexer) with a single lattice-based approach.
+ * <p>Replaces all prior tokenization strategies with a single lattice-based approach.
  * Multiple tokenization strategies run concurrently, generating candidate spans.
  * The best path through the lattice is selected via Viterbi scoring.
  *

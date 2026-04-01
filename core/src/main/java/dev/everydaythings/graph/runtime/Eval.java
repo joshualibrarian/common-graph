@@ -9,7 +9,6 @@ import dev.everydaythings.graph.frame.eval.FrameEvaluator;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.eval.Scope;
 import dev.everydaythings.graph.parse.ExpressionToken;
-import dev.everydaythings.graph.parse.FrameBodyParser;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.dispatch.Created;
@@ -82,7 +81,7 @@ public class Eval {
     private final int depth;
     /** Unified frame evaluator for expression evaluation via FrameBody trees. */
     private final FrameEvaluator frameEvaluator;
-    /** Frame assembly pipeline — tries onFrameAssembled before @Verb fallback. */
+    /** Frame assembly pipeline — dispatches via onFrameAssembled. */
     private final FrameAssemblyPipeline assemblyPipeline;
 
     private Eval(LibrarianHandle librarianHandle, Item context, String focusedComponent,
@@ -869,6 +868,20 @@ public class Eval {
             return mapResultToEvalResult(ctx.result(), frame);
         }
 
+        // Try FrameEvaluator for pure computation (operators, functions).
+        // These predicates don't have onFrameAssembled handlers yet —
+        // they evaluate via JavaRuntime/FormulaRuntime instead.
+        try {
+            Scope evalScope = Scope.of(librarian, context);
+            Object value = frameEvaluator.evaluate(frameBody, evalScope);
+            if (value != null) {
+                return EvalResult.value(value);
+            }
+        } catch (Exception e) {
+            // FrameEvaluator couldn't handle it — fall through to query
+            logger.debug("FrameEvaluator fallback failed: {}", e.getMessage());
+        }
+
         // Nobody handled — treat as a query (incomplete frames ARE queries)
         return evaluateStructuredQuery(frame);
     }
@@ -954,7 +967,8 @@ public class Eval {
     /**
      * Convert a Java value to a BindingTarget.
      */
-    private static BindingTarget toBindingTarget(Object value) {
+    private BindingTarget toBindingTarget(Object value) {
+        if (value instanceof SemanticFrame nested) return BindingTarget.frame(toFrameBody(nested));
         if (value instanceof Item item) return BindingTarget.iid(item.iid());
         if (value instanceof ItemID iid) return BindingTarget.iid(iid);
         if (value instanceof String s) return Literal.ofText(s);
@@ -969,7 +983,7 @@ public class Eval {
     /**
      * Convert a ResolvedToken to a BindingTarget.
      */
-    private static BindingTarget resolvedTokenToTarget(ResolvedToken token) {
+    private BindingTarget resolvedTokenToTarget(ResolvedToken token) {
         return switch (token) {
             case ResolvedToken.Link ref -> BindingTarget.iid(ref.iid());
             case ResolvedToken.Literal lit -> toBindingTarget(lit.value());
@@ -1202,28 +1216,6 @@ public class Eval {
             Eval child = new Eval(librarianHandle, context, focusedComponent, session,
                     discourseHistory, interactive, jsonOutput, depth + 1);
             return child.evaluateCommand(expanded);
-        }
-
-        // If the tokens look like a mathematical expression (contain operators,
-        // parentheses, or are bare numerics), try the frame body parser first.
-        // This is the unified evaluation path: tokens → FrameBody → FrameEvaluator → result.
-        if (FrameBodyParser.looksLikeExpression(tokens)) {
-            var frameResult = FrameBodyParser.tryParse(tokens);
-            if (frameResult.isPresent()) {
-                FrameBody frame = frameResult.get();
-                Scope evalScope = getOrCreateScope();
-                try {
-                    Object value = frameEvaluator.evaluate(frame, evalScope);
-                    logger.debug("Frame expression evaluated: {} → {}", frame.predicate(), value);
-                    return EvalResult.value(value);
-                } catch (Exception e) {
-                    logger.debug("Frame expression evaluation failed: {}", e.getMessage());
-                    // Expression parsed successfully but evaluation failed —
-                    // report the error rather than falling through to verb dispatch
-                    // (which would misinterpret operands as navigation targets).
-                    return EvalResult.error(e.getMessage());
-                }
-            }
         }
 
         // Check for surviving CandidateTokens — InputController should have resolved

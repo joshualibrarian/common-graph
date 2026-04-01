@@ -176,9 +176,9 @@ public final class ItemScanner {
         ItemID valueRole = ItemID.fromString(ann.fieldAs().role());
 
         boolean localOnly = ann.localOnly();
-        boolean stream = ann.stream();
-        boolean snapshot = ann.snapshot() && !localOnly;
-        boolean identity = ann.identity() && !localOnly;
+        boolean stream = false;
+        boolean snapshot = !localOnly;
+        boolean identity = !localOnly;
 
         String mountPath = ann.endorsement().mounts().length > 0 ? ann.endorsement().mounts()[0] : "";
         boolean endorsed = ann.endorsement().value();

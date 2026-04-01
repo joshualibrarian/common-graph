@@ -19,7 +19,7 @@ import java.lang.annotation.Target;
  *
  * @Factory(label = "Persistent (RocksDB)", glyph = "💾",
  *          primary = true, doc = "Production-grade persistent storage")
- * public static Library file(@Param(label = "Directory") Path path) { ... }
+ * public static Library file(Path path) { ... }
  * }</pre>
  */
 @Retention(RetentionPolicy.RUNTIME)

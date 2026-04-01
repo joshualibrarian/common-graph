@@ -9,11 +9,11 @@ import java.util.List;
  *
  * <p>Every predicate can carry BOTH a parsing contribution (how it participates
  * in parsing) AND an evaluation strategy (how it computes results from filled
- * bindings). This replaces {@code FrameImplementation} with a richer contract.
+ * bindings).
  *
  * <p>Still {@code @FunctionalInterface} because {@link #contribute} has a default
- * implementation. All existing lambdas that implemented FrameImplementation work
- * unchanged — they just get a default no-op parsing contribution.
+ * implementation — lambdas that provide only evaluation get a default no-op
+ * parsing contribution.
  *
  * <p>The two methods represent two phases of the predicate lifecycle:
  * <ol>

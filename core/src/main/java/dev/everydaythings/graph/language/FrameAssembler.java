@@ -1,6 +1,9 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.frame.eval.ParseContribution;
+import dev.everydaythings.graph.frame.eval.ParseContribution.Associativity;
+import dev.everydaythings.graph.frame.eval.ParseContribution.Fixity;
+import dev.everydaythings.graph.frame.eval.ParseContribution.StructuralRole;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
@@ -363,6 +366,10 @@ public class FrameAssembler {
         // Only split if there are 2+ verbs with a conjunction between them
         if (verbIndices.size() < 2 || conjIndices.isEmpty()) {
             Optional<SemanticFrame> single = assemble(tokens, resolver);
+            if (single.isEmpty()) {
+                // No verb found — try expression parsing (operators, functions)
+                single = assembleExpression(tokens, resolver);
+            }
             return single.map(List::of).orElse(List.of());
         }
 
@@ -584,5 +591,270 @@ public class FrameAssembler {
         if (!sememe.slotRoles().isEmpty()) return Set.of(PartOfSpeech.VERB);
 
         return Set.of();
+    }
+
+    // ==================================================================================
+    // Expression parsing — precedence-climbing for operators and functions
+    // ==================================================================================
+
+    /**
+     * Try to parse tokens as an expression with operator precedence.
+     *
+     * <p>This handles infix operators ({@code 5 + 3 * 2}), prefix operators
+     * ({@code -x}), function calls ({@code sqrt(16)}), and parenthesized
+     * grouping ({@code (a + b) * c}). Operators declare their precedence,
+     * fixity, and associativity via {@link ParseContribution} — no hardcoded
+     * special cases.
+     *
+     * @return A SemanticFrame if the tokens form a valid expression, empty otherwise
+     */
+    public static Optional<SemanticFrame> assembleExpression(
+            List<ResolvedToken> tokens,
+            Function<ItemID, Optional<Item>> resolver) {
+
+        if (tokens.isEmpty()) return Optional.empty();
+
+        // Quick check: are there any operators or structural tokens?
+        boolean hasExpressionSyntax = false;
+        for (ResolvedToken token : tokens) {
+            if (token instanceof ResolvedToken.Link link) {
+                Optional<Item> item = resolver.apply(link.iid());
+                if (item.isPresent() && item.get() instanceof Sememe s) {
+                    ParseContribution c = s.contribute(null);
+                    if (c.fixity() != null || c.structuralRole() == StructuralRole.OPEN_GROUP
+                            || c.grouped()) {
+                        hasExpressionSyntax = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (!hasExpressionSyntax) return Optional.empty();
+
+        ExpressionParser parser = new ExpressionParser(tokens, resolver);
+        try {
+            Object result = parser.parseExpression(0);
+            if (parser.pos < tokens.size()) return Optional.empty();
+
+            if (result instanceof SemanticFrame frame) {
+                return Optional.of(frame);
+            }
+            // Bare literal or item — not an expression needing evaluation
+            return Optional.empty();
+        } catch (Exception e) {
+            if (traceEnabled()) {
+                logger.info("[Parse] expression parsing failed: {}", e.getMessage());
+            }
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Precedence-climbing expression parser.
+     *
+     * <p>Reads {@link ParseContribution} from each resolved sememe to determine
+     * fixity, precedence, and associativity. Builds nested {@link SemanticFrame}
+     * trees for operator expressions.
+     */
+    private static class ExpressionParser {
+        private final List<ResolvedToken> tokens;
+        private final Function<ItemID, Optional<Item>> resolver;
+        private int pos = 0;
+
+        ExpressionParser(List<ResolvedToken> tokens, Function<ItemID, Optional<Item>> resolver) {
+            this.tokens = tokens;
+            this.resolver = resolver;
+        }
+
+        /**
+         * Parse an expression with minimum binding power (precedence-climbing).
+         *
+         * @param minPrec Minimum precedence for an infix operator to bind
+         * @return The parsed value: a literal, an Item, or a nested SemanticFrame
+         */
+        Object parseExpression(int minPrec) {
+            Object left = parsePrefix();
+
+            while (pos < tokens.size()) {
+                ResolvedToken token = tokens.get(pos);
+
+                // Check for close group or separator — stop
+                Sememe sem = resolveAsSememe(token);
+                if (sem != null) {
+                    ParseContribution c = sem.contribute(null);
+                    if (c.structuralRole() == StructuralRole.CLOSE_GROUP
+                            || c.structuralRole() == StructuralRole.SEPARATOR
+                            || c.structuralRole() == StructuralRole.PIPE
+                            || c.structuralRole() == StructuralRole.SEQUENCE) {
+                        break;
+                    }
+
+                    // Infix operator
+                    if (c.fixity() == Fixity.INFIX) {
+                        if (c.precedence() < minPrec) break;
+
+                        pos++; // consume operator
+                        int nextMinPrec = (c.associativity() == Associativity.RIGHT)
+                                ? c.precedence() : c.precedence() + 1;
+
+                        Object right = parseExpression(nextMinPrec);
+
+                        left = new SemanticFrame(sem,
+                                new LinkedHashMap<>(Map.of(
+                                        ThematicRole.Theme.IID, left,
+                                        ThematicRole.Goal.IID, right)),
+                                Map.of(), List.of(), List.of());
+                        continue;
+                    }
+                }
+
+                // No more infix operators — done
+                break;
+            }
+
+            return left;
+        }
+
+        /**
+         * Parse a prefix expression (unary operator, function call, literal, grouping).
+         */
+        Object parsePrefix() {
+            if (pos >= tokens.size()) {
+                throw new RuntimeException("Unexpected end of expression");
+            }
+
+            ResolvedToken token = tokens.get(pos);
+
+            // Literal value
+            if (token instanceof ResolvedToken.Literal lit) {
+                pos++;
+                return lit.value();
+            }
+
+            // Resolve as sememe to check contribution
+            Sememe sem = resolveAsSememe(token);
+            if (sem != null) {
+                ParseContribution c = sem.contribute(null);
+
+                // Open group: ( expr )
+                if (c.structuralRole() == StructuralRole.OPEN_GROUP) {
+                    pos++; // consume (
+                    Object inner = parseExpression(0);
+                    expectCloseGroup();
+                    return inner;
+                }
+
+                // Prefix function with grouped args: sqrt(16), max(a, b)
+                if (c.fixity() == Fixity.PREFIX && c.grouped()) {
+                    pos++; // consume function name
+                    return parseFunctionCall(sem);
+                }
+
+                // Prefix operator: -x, !x
+                if (c.fixity() == Fixity.PREFIX) {
+                    pos++; // consume operator
+                    Object operand = parseExpression(c.precedence());
+                    return new SemanticFrame(sem,
+                            new LinkedHashMap<>(Map.of(ThematicRole.Theme.IID, operand)),
+                            Map.of(), List.of(), List.of());
+                }
+            }
+
+            // Non-operator item reference (variable, item, noun)
+            if (token instanceof ResolvedToken.Link link) {
+                pos++;
+                Optional<Item> item = resolver.apply(link.iid());
+                return item.orElse(null);
+            }
+
+            // Unresolved token — return as string
+            if (token instanceof ResolvedToken.Unresolved u) {
+                pos++;
+                return u.token();
+            }
+
+            throw new RuntimeException("Unexpected token in expression: " + token);
+        }
+
+        /**
+         * Parse a parenthesized function call: f(arg1, arg2, ...)
+         */
+        private SemanticFrame parseFunctionCall(Sememe function) {
+            // Expect open group
+            if (pos >= tokens.size()) {
+                // No parens — treat as unary prefix: f x
+                Object operand = parseExpression(Integer.MAX_VALUE);
+                return new SemanticFrame(function,
+                        new LinkedHashMap<>(Map.of(ThematicRole.Theme.IID, operand)),
+                        Map.of(), List.of(), List.of());
+            }
+
+            Sememe openSem = resolveAsSememe(tokens.get(pos));
+            if (openSem == null || openSem.contribute(null).structuralRole() != StructuralRole.OPEN_GROUP) {
+                // No parens — treat as unary prefix
+                Object operand = parseExpression(Integer.MAX_VALUE);
+                return new SemanticFrame(function,
+                        new LinkedHashMap<>(Map.of(ThematicRole.Theme.IID, operand)),
+                        Map.of(), List.of(), List.of());
+            }
+
+            pos++; // consume (
+
+            // Parse comma-separated arguments
+            List<Object> args = new ArrayList<>();
+            while (pos < tokens.size()) {
+                Sememe closeSem = resolveAsSememe(tokens.get(pos));
+                if (closeSem != null && closeSem.contribute(null).structuralRole() == StructuralRole.CLOSE_GROUP) {
+                    pos++; // consume )
+                    break;
+                }
+
+                args.add(parseExpression(0));
+
+                // Consume separator if present
+                if (pos < tokens.size()) {
+                    Sememe sepSem = resolveAsSememe(tokens.get(pos));
+                    if (sepSem != null && sepSem.contribute(null).structuralRole() == StructuralRole.SEPARATOR) {
+                        pos++; // consume ,
+                    }
+                }
+            }
+
+            // Map arguments to roles: THEME for first, GOAL for second
+            Map<ItemID, Object> bindings = new LinkedHashMap<>();
+            List<ItemID> expectedRoles = function.contribute(null).expectedRoles();
+            if (expectedRoles != null && !expectedRoles.isEmpty()) {
+                for (int i = 0; i < args.size() && i < expectedRoles.size(); i++) {
+                    bindings.put(expectedRoles.get(i), args.get(i));
+                }
+            } else {
+                // Default: THEME, GOAL, INSTRUMENT for first three args
+                if (args.size() > 0) bindings.put(ThematicRole.Theme.IID, args.get(0));
+                if (args.size() > 1) bindings.put(ThematicRole.Goal.IID, args.get(1));
+            }
+
+            return new SemanticFrame(function, bindings, Map.of(), List.of(), List.of());
+        }
+
+        private void expectCloseGroup() {
+            if (pos < tokens.size()) {
+                Sememe closeSem = resolveAsSememe(tokens.get(pos));
+                if (closeSem != null && closeSem.contribute(null).structuralRole() == StructuralRole.CLOSE_GROUP) {
+                    pos++;
+                    return;
+                }
+            }
+            throw new RuntimeException("Expected closing parenthesis");
+        }
+
+        private Sememe resolveAsSememe(ResolvedToken token) {
+            if (token instanceof ResolvedToken.Link link) {
+                Optional<Item> item = resolver.apply(link.iid());
+                if (item.isPresent() && item.get() instanceof Sememe s) {
+                    return s;
+                }
+            }
+            return null;
+        }
     }
 }
