@@ -65,12 +65,12 @@ public final class PresenceVocabulary {
         protected Present(Librarian lib, Manifest m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "asserts that a signer is currently present in an item context";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"enter", "join"};
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
@@ -106,12 +106,12 @@ public final class PresenceVocabulary {
         protected Leave(Librarian lib, Manifest m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "revoke presence — leave an item context";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"leave", "depart"};
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
@@ -173,7 +173,7 @@ public final class PresenceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "real-time avatar position and orientation in a shared space";
 
         // CONFIG:[DURABILITY] → EPHEMERAL (predicate-level default)
@@ -200,12 +200,12 @@ public final class PresenceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "typing indicator — the signer is composing input in this context";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"typing"};
 
         // CONFIG:[DURABILITY] → EPHEMERAL
@@ -232,12 +232,12 @@ public final class PresenceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "cursor or selection position in shared content";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"cursor"};
 
         // CONFIG:[DURABILITY] → EPHEMERAL
@@ -264,12 +264,12 @@ public final class PresenceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "what the user is currently focused on or interacting with";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"focus"};
 
         // CONFIG:[DURABILITY] → EPHEMERAL

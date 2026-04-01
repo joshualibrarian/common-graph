@@ -53,7 +53,7 @@ public final class Binding implements Canonical {
     public static final ItemID IID = ItemID.fromString(KEY);
 
     @ItemFrame(predicate = SememeGloss.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "a role binding within a frame — key→value with semantic function";
 
     // EXPECTS — array position 0, 1, 2, 3, 4 (declaration order = position)

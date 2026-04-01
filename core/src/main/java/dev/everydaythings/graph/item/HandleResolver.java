@@ -283,7 +283,7 @@ public final class HandleResolver {
      * People > names > time > location > status.
      */
     private static final ItemID[] FALLBACK_ROLE_PRIORITY = {
-            ThematicRole.Name.IID,
+            ThematicRole.Value.IID,
             ThematicRole.Agent.IID,
             ThematicRole.Recipient.IID,
             ThematicRole.Partner.IID,

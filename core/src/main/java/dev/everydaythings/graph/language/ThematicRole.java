@@ -59,12 +59,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant who initiates and carries out an event intentionally";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"agent"};
     }
 
@@ -75,12 +75,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant that is affected, changed, or consumed by the event";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"patient"};
     }
 
@@ -91,12 +91,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant that is located, moved, or exists in a state without being changed";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"theme"};
     }
 
@@ -107,12 +107,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant who perceives, feels, or undergoes a mental or emotional state";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"experiencer"};
     }
 
@@ -123,12 +123,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant that unintentionally arouses a mental or emotional response";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"stimulus"};
     }
 
@@ -139,12 +139,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the central participant in a state, in a fixed position or condition throughout";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"pivot"};
     }
 
@@ -155,12 +155,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant that initiates an event without intentionality or consciousness";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"cause"};
     }
 
@@ -175,12 +175,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the abstract end-point or target of an action";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"goal"};
     }
 
@@ -191,12 +191,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the physical place where a motion event ends";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"destination"};
     }
 
@@ -207,12 +207,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the origin or starting point of an action or motion";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"source"};
     }
 
@@ -223,12 +223,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the route or trajectory between origin and endpoint";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"path"};
     }
 
@@ -239,12 +239,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant that comes into existence through the event";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"result"};
     }
 
@@ -259,12 +259,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the animate entity that receives something transferred";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"recipient"};
     }
 
@@ -275,12 +275,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant who benefits from or is advantaged by the event";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"beneficiary"};
     }
 
@@ -291,12 +291,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a participant intentionally co-involved in the event but not the principal agent";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"partner"};
     }
 
@@ -311,12 +311,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a tool or means manipulated by an agent to perform an action";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"instrument"};
     }
 
@@ -327,12 +327,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the way or style in which an action is performed";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"manner"};
     }
 
@@ -343,12 +343,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the degree, amount, or measure of change in an event";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"extent"};
     }
 
@@ -359,12 +359,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a property that an event or state associates with a participant";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"attribute"};
     }
 
@@ -375,12 +375,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the intended outcome that motivates an intentional action";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"purpose"};
     }
 
@@ -395,12 +395,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the place where an event occurs or a state holds";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"location"};
     }
 
@@ -411,12 +411,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the instant or interval during which an event occurs or state holds";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"time"};
     }
 
@@ -431,29 +431,29 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the subject of communication, information transfer, or recorded content";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"topic"};
     }
 
-    /** A name, label, or designation being assigned. [CG extension] */
-    @ItemSeed(key = Name.KEY)
-    public static class Name {
-        public static final String KEY = "cg.role:name";
+    /** The content asserted by a predicate about its theme — a name, quantity, measurement, or any value. [CG extension, generalizes VerbNet Value] */
+    @ItemSeed(key = Value.KEY)
+    public static class Value {
+        public static final String KEY = "cg.role:value";
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "a name, label, or designation being assigned";
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "the content asserted by a predicate — a name, quantity, measurement, or designation";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"name"};
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"value"};
     }
 
     /** The concept being referred to in a metalinguistic frame. [CG extension] */
@@ -463,12 +463,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the concept being referred to or expressed";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"referent"};
     }
 
@@ -483,12 +483,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "configuration governing a frame's behavior — policy, scene, settings";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"config"};
     }
 
@@ -499,12 +499,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "rendering configuration — scene, skin, style overrides";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"presentation"};
     }
 
@@ -515,12 +515,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "vocabulary configuration — token declarations, aliases, proper nouns";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"vocabulary"};
     }
 
@@ -535,12 +535,12 @@ public class ThematicRole extends Sememe {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "causal predecessor — this frame follows/is-caused-by the target frame";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"follows"};
     }
 
@@ -592,48 +592,4 @@ public class ThematicRole extends Sememe {
     @Override public ThematicRole symbol(String s) { super.symbol(s); return this; }
     @Override public ThematicRole indexWeight(int weight) { super.indexWeight(weight); return this; }
 
-    // ==================================================================================
-    // LOOKUP
-    // ==================================================================================
-
-    /** TODO: we need to talk about this switch... why do we need it?  Those tokens should be assigned to those sememes via the token dictionary and normal lookup path... not with this special switch?
-     * Look up a ThematicRole by its constant name (e.g., "THEME", "AGENT").
-     *
-     * @param name The uppercase constant name
-     * @return The ThematicRole IID, or null if not found
-     */
-    public static ItemID fromName(String name) {
-        return switch (name) {
-            case "AGENT" -> Agent.IID;
-            case "PATIENT" -> Patient.IID;
-            case "THEME" -> Theme.IID;
-            case "EXPERIENCER" -> Experiencer.IID;
-            case "STIMULUS" -> Stimulus.IID;
-            case "PIVOT" -> Pivot.IID;
-            case "CAUSE" -> Cause.IID;
-            case "GOAL" -> Goal.IID;
-            case "DESTINATION" -> Destination.IID;
-            case "SOURCE" -> Source.IID;
-            case "PATH" -> Path.IID;
-            case "RESULT" -> Result.IID;
-            case "RECIPIENT" -> Recipient.IID;
-            case "BENEFICIARY" -> Beneficiary.IID;
-            case "PARTNER" -> Partner.IID;
-            case "INSTRUMENT" -> Instrument.IID;
-            case "MANNER" -> Manner.IID;
-            case "EXTENT" -> Extent.IID;
-            case "ATTRIBUTE" -> Attribute.IID;
-            case "PURPOSE" -> Purpose.IID;
-            case "LOCATION" -> Location.IID;
-            case "TIME" -> Time.IID;
-            case "TOPIC" -> Topic.IID;
-            case "NAME" -> Name.IID;
-            case "REFERENT" -> Referent.IID;
-            case "CONFIG" -> Config.IID;
-            case "PRESENTATION" -> Presentation.IID;
-            case "VOCABULARY" -> Vocabulary.IID;
-            case "FOLLOWS" -> Follows.IID;
-            default -> null;
-        };
-    }
 }

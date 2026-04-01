@@ -36,21 +36,18 @@ class ConfigCascadeTest {
         @DisplayName("Presentation role is seeded")
         void presentationSeeded() {
             assertThat(ThematicRole.Presentation.IID).isNotNull();
-            assertThat(ThematicRole.fromName("PRESENTATION")).isEqualTo(ThematicRole.Presentation.IID);
         }
 
         @Test
         @DisplayName("Vocabulary role is seeded")
         void vocabularySeeded() {
             assertThat(ThematicRole.Vocabulary.IID).isNotNull();
-            assertThat(ThematicRole.fromName("VOCABULARY")).isEqualTo(ThematicRole.Vocabulary.IID);
         }
 
         @Test
         @DisplayName("Config role still works")
         void configSeeded() {
             assertThat(ThematicRole.Config.IID).isNotNull();
-            assertThat(ThematicRole.fromName("CONFIG")).isEqualTo(ThematicRole.Config.IID);
         }
     }
 

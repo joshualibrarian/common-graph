@@ -81,15 +81,15 @@ public class Function extends Sememe {
         Abs() { super(KEY, "abs", "compute the absolute value of a number", 1, 1, MATH); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "compute the absolute value of a number";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "abs";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"abs"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.abs(((Number) args.getFirst()).doubleValue()); }
@@ -102,15 +102,15 @@ public class Function extends Sememe {
         Ceil() { super(KEY, "ceil", "round up to the nearest integer", 1, 1, MATH); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "round up to the nearest integer";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "ceil";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"ceil"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.ceil(((Number) args.getFirst()).doubleValue()); }
@@ -123,15 +123,15 @@ public class Function extends Sememe {
         Floor() { super(KEY, "floor", "round down to the nearest integer", 1, 1, MATH); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "round down to the nearest integer";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "floor";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"floor"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.floor(((Number) args.getFirst()).doubleValue()); }
@@ -144,15 +144,15 @@ public class Function extends Sememe {
         Round() { super(KEY, "round", "round to the nearest integer", 1, 1, MATH); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "round to the nearest integer";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "round";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"round"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.round(((Number) args.getFirst()).doubleValue()); }
@@ -165,15 +165,15 @@ public class Function extends Sememe {
         Sqrt() { super(KEY, "sqrt", "compute the positive square root", 1, 1, MATH, "square root"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "compute the positive square root";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "sqrt";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"sqrt", "square root"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.sqrt(((Number) args.getFirst()).doubleValue()); }
@@ -186,15 +186,15 @@ public class Function extends Sememe {
         Pow() { super(KEY, "pow", "raise to a power", 2, 2, MATH, "power", "exponent"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "raise to a power";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "pow";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"pow", "power", "exponent"};
 
         @Override public Object apply(List<Object> args) { return args.size() < 2 ? 0 : Math.pow(((Number) args.get(0)).doubleValue(), ((Number) args.get(1)).doubleValue()); }
@@ -207,15 +207,15 @@ public class Function extends Sememe {
         Log() { super(KEY, "log", "compute the natural logarithm", 1, 1, MATH, "logarithm"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "compute the natural logarithm";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "log";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"log", "logarithm"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.log(((Number) args.getFirst()).doubleValue()); }
@@ -228,15 +228,15 @@ public class Function extends Sememe {
         Sin() { super(KEY, "sin", "compute the sine", 1, 1, MATH, "sine"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "compute the sine";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "sin";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"sin", "sine"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.sin(((Number) args.getFirst()).doubleValue()); }
@@ -249,15 +249,15 @@ public class Function extends Sememe {
         Cos() { super(KEY, "cos", "compute the cosine", 1, 1, MATH, "cosine"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "compute the cosine";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "cos";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"cos", "cosine"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.cos(((Number) args.getFirst()).doubleValue()); }
@@ -270,15 +270,15 @@ public class Function extends Sememe {
         Tan() { super(KEY, "tan", "compute the tangent", 1, 1, MATH, "tangent"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "compute the tangent";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "tan";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"tan", "tangent"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? 0 : Math.tan(((Number) args.getFirst()).doubleValue()); }
@@ -291,15 +291,15 @@ public class Function extends Sememe {
         Random() { super(KEY, "random", "generate a random number between 0 and 1", 0, 0, MATH, "rand"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "generate a random number between 0 and 1";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "random";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"random", "rand"};
 
         @Override public Object apply(List<Object> args) { return Math.random(); }
@@ -314,15 +314,15 @@ public class Function extends Sememe {
         ToString() { super(KEY, "toString", "convert a value to its string representation", 1, 1, COERCION, "str"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "convert a value to its string representation";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "toString";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"toString", "str"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()); }
@@ -335,15 +335,15 @@ public class Function extends Sememe {
         ToNumber() { super(KEY, "toNumber", "convert a value to a number", 1, 1, COERCION, "num"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "convert a value to a number";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "toNumber";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"toNumber", "num"};
 
         @Override public Object apply(List<Object> args) {
@@ -361,15 +361,15 @@ public class Function extends Sememe {
         ToBool() { super(KEY, "toBool", "convert a value to a boolean", 1, 1, COERCION, "bool"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "convert a value to a boolean";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "toBool";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"toBool", "bool"};
 
         @Override public Object apply(List<Object> args) {
@@ -391,15 +391,15 @@ public class Function extends Sememe {
         Upper() { super(KEY, "upper", "convert to uppercase", 1, 1, STRING, "uppercase"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "convert to uppercase";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "upper";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"upper", "uppercase"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()).toUpperCase(); }
@@ -412,15 +412,15 @@ public class Function extends Sememe {
         Lower() { super(KEY, "lower", "convert to lowercase", 1, 1, STRING, "lowercase"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "convert to lowercase";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "lower";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"lower", "lowercase"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()).toLowerCase(); }
@@ -433,15 +433,15 @@ public class Function extends Sememe {
         Trim() { super(KEY, "trim", "remove leading and trailing whitespace", 1, 1, STRING); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "remove leading and trailing whitespace";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "trim";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"trim"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? "" : String.valueOf(args.getFirst()).trim(); }
@@ -454,15 +454,15 @@ public class Function extends Sememe {
         Length() { super(KEY, "length", "get the length of a string or collection", 1, 1, STRING, "len"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "get the length of a string or collection";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "length";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"length", "len"};
 
         @Override public Object apply(List<Object> args) {
@@ -481,15 +481,15 @@ public class Function extends Sememe {
         Substring() { super(KEY, "substring", "extract a portion of a string", 2, 3, STRING, "substr"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "extract a portion of a string";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "substring";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"substring", "substr"};
 
         @Override public Object apply(List<Object> args) {
@@ -511,15 +511,15 @@ public class Function extends Sememe {
         Split() { super(KEY, "split", "split a string by delimiter", 2, 2, STRING); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "split a string by delimiter";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "split";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"split"};
 
         @Override public Object apply(List<Object> args) {
@@ -535,15 +535,15 @@ public class Function extends Sememe {
         Join() { super(KEY, "join", "join a list into a string with delimiter", 2, 2, STRING); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "join a list into a string with delimiter";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "join";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"join"};
 
         @Override public Object apply(List<Object> args) {
@@ -562,15 +562,15 @@ public class Function extends Sememe {
         Format() { super(KEY, "format", "format a string with arguments", 1, -1, STRING); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "format a string with arguments";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "format";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"format"};
 
         @Override public Object apply(List<Object> args) {
@@ -588,15 +588,15 @@ public class Function extends Sememe {
         MapFn() { super(KEY, "map", "apply a function to each element", 2, 2, COLLECTION); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "apply a function to each element";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "map";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"map"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? List.of() : args.getFirst(); } // TODO: lambda support
@@ -609,15 +609,15 @@ public class Function extends Sememe {
         Filter() { super(KEY, "filter", "keep elements matching a predicate", 2, 2, COLLECTION); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "keep elements matching a predicate";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "filter";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"filter"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() ? List.of() : args.getFirst(); } // TODO: lambda support
@@ -630,15 +630,15 @@ public class Function extends Sememe {
         Reduce() { super(KEY, "reduce", "fold a collection into a single value", 3, 3, COLLECTION, "fold"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "fold a collection into a single value";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "reduce";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"reduce", "fold"};
 
         @Override public Object apply(List<Object> args) { return args.size() < 2 ? null : args.get(1); } // TODO: lambda support
@@ -651,15 +651,15 @@ public class Function extends Sememe {
         Range() { super(KEY, "range", "generate a sequence of integers", 1, 3, COLLECTION); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "generate a sequence of integers";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "range";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"range"};
 
         @Override public Object apply(List<Object> args) {
@@ -680,15 +680,15 @@ public class Function extends Sememe {
         Reverse() { super(KEY, "reverse", "reverse a list or string", 1, 1, COLLECTION); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "reverse a list or string";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "reverse";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"reverse"};
 
         @Override public Object apply(List<Object> args) {
@@ -707,15 +707,15 @@ public class Function extends Sememe {
         Sort() { super(KEY, "sort", "sort a list", 1, 1, COLLECTION); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "sort a list";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "sort";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"sort"};
 
         @Override @SuppressWarnings("unchecked") public Object apply(List<Object> args) {
@@ -733,15 +733,15 @@ public class Function extends Sememe {
         Unique() { super(KEY, "unique", "remove duplicates from a list", 1, 1, COLLECTION, "distinct"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "remove duplicates from a list";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "unique";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"unique", "distinct"};
 
         @Override public Object apply(List<Object> args) { if (args.isEmpty()) return List.of(); Object a = args.getFirst(); return a instanceof List<?> l ? l.stream().distinct().toList() : a; }
@@ -754,15 +754,15 @@ public class Function extends Sememe {
         Flatten() { super(KEY, "flatten", "flatten nested lists into a single list", 1, 1, COLLECTION); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "flatten nested lists into a single list";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "flatten";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"flatten"};
 
         @Override public Object apply(List<Object> args) {
@@ -782,15 +782,15 @@ public class Function extends Sememe {
         Typeof() { super(KEY, "typeof", "get the type name of a value", 1, 1, UTILITY, "type"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "get the type name of a value";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "typeof";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"typeof", "type"};
 
         @Override public Object apply(List<Object> args) {
@@ -813,15 +813,15 @@ public class Function extends Sememe {
         IsNull() { super(KEY, "isNull", "check whether a value is null", 1, 1, UTILITY, "null?"); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "check whether a value is null";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "isNull";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"isNull", "null?"};
 
         @Override public Object apply(List<Object> args) { return args.isEmpty() || args.getFirst() == null; }
@@ -834,15 +834,15 @@ public class Function extends Sememe {
         Coalesce() { super(KEY, "coalesce", "return the first non-null argument", 1, -1, UTILITY); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "return the first non-null argument";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "coalesce";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"coalesce"};
 
         @Override public Object apply(List<Object> args) { return args.stream().filter(a -> a != null).findFirst().orElse(null); }
@@ -855,15 +855,15 @@ public class Function extends Sememe {
         Default() { super(KEY, "default", "return a default value if the first is null", 2, 2, UTILITY); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "return a default value if the first is null";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "default";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"default"};
 
         @Override public Object apply(List<Object> args) { if (args.size() < 2) return null; return args.get(0) != null ? args.get(0) : args.get(1); }
@@ -878,15 +878,15 @@ public class Function extends Sememe {
         Now() { super(KEY, "now", "current time in milliseconds", 0, 0, TIME); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "current time in milliseconds";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "now";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"now"};
 
         @Override public Object apply(List<Object> args) { return System.currentTimeMillis(); }
@@ -899,15 +899,15 @@ public class Function extends Sememe {
         Timestamp() { super(KEY, "timestamp", "current time in seconds since epoch", 0, 0, TIME); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "current time in seconds since epoch";
 
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
         static final String symbol = "timestamp";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"timestamp"};
 
         @Override public Object apply(List<Object> args) { return System.currentTimeMillis() / 1000; }

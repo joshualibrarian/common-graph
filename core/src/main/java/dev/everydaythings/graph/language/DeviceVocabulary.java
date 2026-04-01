@@ -40,17 +40,17 @@ public final class DeviceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a physical device attached to a host";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"device"};
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Name.KEY}))
-        static final ItemID expectName = ThematicRole.Name.IID;
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Value.KEY}))
+        static final ItemID expectName = ThematicRole.Value.IID;
     }
 
     // ==================================================================================
@@ -66,12 +66,12 @@ public final class DeviceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a display device such as a monitor or screen";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"display", "monitor", "screen"};
     }
 
@@ -84,12 +84,12 @@ public final class DeviceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "an audio output device such as speakers or headphones";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"audio"};
     }
 
@@ -102,12 +102,12 @@ public final class DeviceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "an audio input device such as a microphone";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"microphone", "mic"};
     }
 
@@ -120,12 +120,12 @@ public final class DeviceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a USB peripheral device";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"usb"};
     }
 
@@ -138,12 +138,12 @@ public final class DeviceVocabulary {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "an input device such as a keyboard, mouse, or trackpad";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"input"};
     }
 }

@@ -61,11 +61,11 @@ public class ChessItem extends Item {
         public static final String KEY = "cg.sememe:chess";
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the game of chess";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String word = "chess";
 
         // EXPECTS — declaration order is salience order for handle disambiguation.

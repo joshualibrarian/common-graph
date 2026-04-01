@@ -24,7 +24,7 @@ class FrameAssemblerTest {
     // Construct verb sememes with EXPECTS frames (matching slot role declarations)
     private static final Sememe CREATE = withExpects(new Sememe(CoreVocabulary.Create.KEY),
             ThematicRole.Theme.IID, ThematicRole.Goal.IID,
-            ThematicRole.Name.IID, ThematicRole.Partner.IID,
+            ThematicRole.Value.IID, ThematicRole.Partner.IID,
             ThematicRole.Source.IID);
     private static final Sememe SHOW = withExpects(new Sememe(CoreVocabulary.Show.KEY),
             ThematicRole.Theme.IID);
@@ -37,7 +37,7 @@ class FrameAssemblerTest {
     private static final Sememe BETWEEN = new Sememe(PrepositionVocabulary.Between.KEY)
             .role(ThematicRole.Partner.KEY);
     private static final Sememe NAMED = new Sememe(PrepositionVocabulary.Named.KEY)
-            .role(ThematicRole.Name.KEY);
+            .role(ThematicRole.Value.KEY);
     private static final Sememe FROM = new Sememe(PrepositionVocabulary.From.KEY)
             .role(ThematicRole.Source.KEY);
 
@@ -360,7 +360,7 @@ class FrameAssemblerTest {
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings())
                 .containsEntry(ThematicRole.Theme.IID, CHESS_ITEM)
-                .containsEntry(ThematicRole.Name.IID, "its-on!");
+                .containsEntry(ThematicRole.Value.IID, "its-on!");
         assertThat(frame.get().unmatchedArgs()).isEmpty();
     }
 
@@ -404,7 +404,7 @@ class FrameAssemblerTest {
         assertThat(frame).isPresent();
         assertThat(frame.get().verb()).isSameAs(CREATE);
         assertThat(frame.get().bindings()).containsEntry(ThematicRole.Theme.IID, CHESS_ITEM);
-        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Name.IID, "its-on!");
+        assertThat(frame.get().bindings()).containsEntry(ThematicRole.Value.IID, "its-on!");
 
         List<Object> players = (List<Object>) frame.get().bindings().get(ThematicRole.Partner.IID);
         assertThat(players).containsExactly(BOB_ITEM, JANE_ITEM);

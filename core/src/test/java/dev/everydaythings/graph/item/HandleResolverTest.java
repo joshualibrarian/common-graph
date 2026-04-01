@@ -216,7 +216,7 @@ class HandleResolverTest {
                 ItemID.fromString(CoreVocabulary.Title.KEY),
                 List.of(
                         new Binding(ThematicRole.Theme.IID, BindingTarget.iid(item.iid())),
-                        Binding.literal(ThematicRole.Name.IID, Literal.ofText("The Hobbit"))
+                        Binding.literal(ThematicRole.Value.IID, Literal.ofText("The Hobbit"))
                 )));
 
         String label = HandleResolver.resolve(item);

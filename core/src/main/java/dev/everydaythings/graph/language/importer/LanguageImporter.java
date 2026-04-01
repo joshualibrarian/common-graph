@@ -165,7 +165,7 @@ public abstract class LanguageImporter {
                                      ItemID feature, float weight) {
         FrameBody body = FrameBody.builder(CoreVocabulary.Lexeme.IID)
                 .bind(ThematicRole.Theme.IID, sememeId)
-                .bind(ThematicRole.Name.IID)
+                .bind(ThematicRole.Value.IID)
                     .qualified(languageId(), pos, feature)
                     .to(word)
                     .identity(true).index(true)
@@ -219,7 +219,7 @@ public abstract class LanguageImporter {
 
         return FrameBody.builder(CoreVocabulary.Lexeme.IID)
                 .bind(ThematicRole.Theme.IID, sememeId)
-                .bind(ThematicRole.Name.IID)
+                .bind(ThematicRole.Value.IID)
                     .qualified(quals.toArray(new ItemID[0]))
                     .to(form)
                     .identity(true).index(true)

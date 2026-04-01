@@ -25,12 +25,12 @@ public final class PrepositionVocabulary {
         public static final String KEY = "cg.prep:on";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "indicating target or destination";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"on", "to", "into"};
 
         @ItemFrame(predicate = CoreVocabulary.AssignedRole.KEY)
@@ -42,12 +42,12 @@ public final class PrepositionVocabulary {
         public static final String KEY = "cg.prep:with";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "indicating tool or means";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"with", "using"};
 
         @ItemFrame(predicate = CoreVocabulary.AssignedRole.KEY)
@@ -59,12 +59,12 @@ public final class PrepositionVocabulary {
         public static final String KEY = "cg.prep:from";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "indicating origin or source";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"from"};
 
         @ItemFrame(predicate = CoreVocabulary.AssignedRole.KEY)
@@ -76,12 +76,12 @@ public final class PrepositionVocabulary {
         public static final String KEY = "cg.prep:for";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "indicating beneficiary or recipient";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"for"};
 
         @ItemFrame(predicate = CoreVocabulary.AssignedRole.KEY)
@@ -93,12 +93,12 @@ public final class PrepositionVocabulary {
         public static final String KEY = "cg.prep:between";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "indicating companions or participants";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"between"};
 
         @ItemFrame(predicate = CoreVocabulary.AssignedRole.KEY)
@@ -110,15 +110,15 @@ public final class PrepositionVocabulary {
         public static final String KEY = "cg.prep:named";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "indicating designation or label";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"named", "called"};
 
         @ItemFrame(predicate = CoreVocabulary.AssignedRole.KEY)
-        static final String role = ThematicRole.Name.KEY;
+        static final String role = ThematicRole.Value.KEY;
     }
 }

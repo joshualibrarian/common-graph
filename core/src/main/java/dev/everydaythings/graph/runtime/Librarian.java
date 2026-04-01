@@ -130,10 +130,10 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     // === TYPE DEFINITION ===
     public static final String KEY = "cg.sememe:librarian";
 
-    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "the local runtime bootstrap item";
 
-    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
     static final String seedNoun = "librarian";
 
     /** Default port for Common Graph protocol. */
@@ -2067,7 +2067,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         if (name != null && !name.isBlank()) {
             storeFrame(FrameBody.builder(CoreVocabulary.Title.IID)
                     .bind(ThematicRole.Theme.IID, newItem.iid())
-                    .bind(ThematicRole.Name.IID, name)
+                    .bind(ThematicRole.Value.IID, name)
                     .build());
         }
         return newItem;

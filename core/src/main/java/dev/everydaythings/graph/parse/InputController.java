@@ -1,9 +1,11 @@
 package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.parse.ExpressionToken.*;
+import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import lombok.extern.log4j.Log4j2;
@@ -516,13 +518,20 @@ public class InputController {
     }
 
     /**
-     * Check if a posting is a local component handle (from context item's vocabulary).
+     * Check if a posting represents a variable/identifier lookup (THEME-indexed)
+     * rather than a vocabulary/content lookup (VALUE-indexed).
+     *
+     * <p>THEME-indexed bindings are identifiers (e.g., "x" in EQUALS frames) —
+     * these should be stored as string literals for lazy evaluation-time resolution.
+     * VALUE-indexed bindings are content (titles, lexemes, symbols) — these are
+     * vocabulary entries that resolve to items.
      */
     private boolean isLocalPosting(Posting posting) {
-        return context != null
-                && posting.scope() != null
-                && posting.scope().equals(context.iid())
-                && posting.target().equals(context.iid());
+        if (posting.body() == null) return false;
+        List<Binding> bindings = posting.body().frameBindings();
+        int idx = posting.bindingIndex();
+        if (idx < 0 || idx >= bindings.size()) return false;
+        return ThematicRole.Theme.IID.equals(bindings.get(idx).role());
     }
 
     // ==================================================================================
@@ -587,20 +596,7 @@ public class InputController {
             return;
         }
 
-        // Check for symbolic operators (+, -, *, /, etc.) — before dictionary
-        // so "+" becomes OpToken (enabling expression detection), not RefToken.
-        // Word-form operators (in, contains) go through dictionary first so they
-        // can also serve as prepositions in verb frames.
-        if (!startsWithLetter(trimmed)) {
-            OpToken opToken = OpToken.tryParse(trimmed);
-            if (opToken != null) {
-                tokens.add(opToken);
-                resetPending();
-                return;
-            }
-        }
-
-        // Dictionary lookup — for words like "create", "sqrt", "in"
+        // Dictionary lookup — resolves operators, verbs, nouns, everything
         List<Posting> exactMatches = findAllExactMatches(trimmed);
         if (!exactMatches.isEmpty()) {
             if (exactMatches.size() == 1) {
@@ -849,13 +845,7 @@ public class InputController {
             LiteralToken lit = LiteralToken.tryParse(word);
             if (lit != null) { tokens.add(lit); continue; }
 
-            // Symbolic operator (+, -, *, /, etc.)
-            if (!startsWithLetter(word)) {
-                OpToken op = OpToken.tryParse(word);
-                if (op != null) { tokens.add(op); continue; }
-            }
-
-            // Dictionary lookup — may produce CandidateToken for ambiguous words
+            // Dictionary lookup — resolves operators, verbs, nouns, everything
             List<Posting> matches = findAllExactMatches(word);
             if (!matches.isEmpty()) {
                 if (matches.size() == 1) {
@@ -870,10 +860,6 @@ public class InputController {
                 }
                 continue;
             }
-
-            // Word-form operator (in, contains) — after dictionary
-            OpToken op = OpToken.tryParse(word);
-            if (op != null) { tokens.add(op); continue; }
 
             // Unresolved text → name token (for function calls, variables)
             tokens.add(new NameToken(word));

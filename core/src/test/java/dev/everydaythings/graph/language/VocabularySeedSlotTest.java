@@ -49,7 +49,7 @@ class VocabularySeedSlotTest {
 
         assertThat(roles.get(0)).isEqualTo(ThematicRole.Theme.IID);
         assertThat(roles.get(1)).isEqualTo(ThematicRole.Goal.IID);
-        assertThat(roles.get(2)).isEqualTo(ThematicRole.Name.IID);
+        assertThat(roles.get(2)).isEqualTo(ThematicRole.Value.IID);
         assertThat(roles.get(3)).isEqualTo(ThematicRole.Partner.IID);
         assertThat(roles.get(4)).isEqualTo(ThematicRole.Source.IID);
     }

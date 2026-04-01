@@ -324,7 +324,7 @@ class TokenLatticeTest {
     private static Posting posting(String token, ItemID target, float weight) {
         FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
                 FrameBody.homeBinding(target),
-                new Binding(ThematicRole.Name.IID, List.of(), Literal.ofText(token), true, true)
+                new Binding(ThematicRole.Value.IID, List.of(), Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, weight);
     }
@@ -332,7 +332,7 @@ class TokenLatticeTest {
     private static Posting scopedPosting(String token, ItemID target, ItemID scope) {
         FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
                 FrameBody.homeBinding(target),
-                new Binding(ThematicRole.Name.IID,
+                new Binding(ThematicRole.Value.IID,
                         List.of(new FrameKey.Sememe(scope)),
                         Literal.ofText(token), true, true)
         ));

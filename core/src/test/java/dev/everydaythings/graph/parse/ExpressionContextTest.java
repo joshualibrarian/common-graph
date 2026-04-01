@@ -43,7 +43,7 @@ class ExpressionContextTest {
                 ? List.of(new FrameKey.Sememe(scope)) : List.of();
         FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
                 FrameBody.homeBinding(target),
-                new Binding(ThematicRole.Name.IID, quals, Literal.ofText(token), true, true)
+                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, weight);
     }

@@ -81,12 +81,12 @@ public class Item {
     public static final String KEY = "cg.sememe:item";
 
     @ItemFrame(predicate = SememeGloss.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                          qualifiers = {Language.ENGLISH_KEY}))
     static final String seedGloss = "the fundamental unit of Common Graph";
 
     @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                          qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY,
                                                        GrammaticalFeature.Lemma.KEY}))
     static final String seedNoun = "item";
@@ -2124,7 +2124,7 @@ public class Item {
             newItem.librarian.storeFrame(FrameBody.builder(
                     dev.everydaythings.graph.language.CoreVocabulary.Title.IID)
                     .bind(dev.everydaythings.graph.language.ThematicRole.Theme.IID, newItem.iid())
-                    .bind(dev.everydaythings.graph.language.ThematicRole.Name.IID, name)
+                    .bind(dev.everydaythings.graph.language.ThematicRole.Value.IID, name)
                     .build());
         }
 

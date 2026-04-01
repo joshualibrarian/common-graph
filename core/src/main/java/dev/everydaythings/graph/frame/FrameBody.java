@@ -54,7 +54,7 @@ public final class FrameBody implements Canonical {
     public static final ItemID TYPE_ID = ItemID.fromString(TYPE_KEY);
 
     @ItemFrame(predicate = SememeGloss.KEY,
-               fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+               fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
     static final String gloss = "a semantic assertion — predicate with role bindings";
 
     // EXPECTS — array position 0, 1, 2 (declaration order = position)
@@ -76,7 +76,7 @@ public final class FrameBody implements Canonical {
         static final String KEY = "cg.structure:predicate";
         static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the predicate of a frame — what kind of assertion";
     }
 
@@ -85,7 +85,7 @@ public final class FrameBody implements Canonical {
         static final String KEY = "cg.structure:bindings";
         static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the role bindings of a frame";
     }
 
@@ -94,7 +94,7 @@ public final class FrameBody implements Canonical {
         static final String KEY = "cg.structure:config";
         static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "non-identity configuration bindings";
     }
 
@@ -820,7 +820,7 @@ public final class FrameBody implements Canonical {
      * <pre>{@code
      * FrameBody.builder(CoreVocabulary.Lexeme.IID)
      *     .bind(ThematicRole.Theme.IID, sememe.iid())
-     *     .bind(ThematicRole.Name.IID)
+     *     .bind(ThematicRole.Value.IID)
      *         .qualified(Language.ENGLISH, PartOfSpeech.Verb.IID, GrammaticalFeature.Lemma.IID)
      *         .to("create")
      *         .identity(true).index(true)

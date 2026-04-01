@@ -148,7 +148,7 @@ public final class SeedItemFactory {
         for (Object v : values) {
             BindingTarget target = encodeValue(v);
             if (target != null) {
-                bindings.add(Binding.qualified(valueRole, qualifiers, target, true, false));
+                bindings.add(Binding.qualified(valueRole, qualifiers, target, ann.fieldAs().identity(), ann.fieldAs().index()));
             }
         }
         if (bindings.size() < 2) return; // no value bindings created

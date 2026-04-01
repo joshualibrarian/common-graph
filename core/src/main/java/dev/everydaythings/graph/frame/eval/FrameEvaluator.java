@@ -109,6 +109,12 @@ public final class FrameEvaluator {
         if (target == null) return null;
 
         if (target instanceof Literal lit) {
+            // Text literals may be variable references — try resolution before
+            // treating as a raw string value.
+            if (Literal.TYPE_TEXT.equals(lit.valueType())) {
+                Object resolved = resolveVariable(lit, scope);
+                if (resolved != null) return resolved;
+            }
             return decodeLiteral(lit);
         }
 
@@ -125,6 +131,61 @@ public final class FrameEvaluator {
         }
 
         return target;
+    }
+
+    /**
+     * Try to resolve a text literal as a variable reference.
+     *
+     * <p>Resolution order:
+     * <ol>
+     *   <li>Scope variables (LET bindings, function parameters)</li>
+     *   <li>Context item's frames — find frames where THEME matches the text
+     *       and a VALUE binding exists (e.g., EQUALS frames). The VALUE is
+     *       evaluated recursively, enabling reactive formulas.</li>
+     * </ol>
+     *
+     * @return the resolved value, or null if the text is not a variable
+     */
+    private Object resolveVariable(Literal lit, Scope scope) {
+        String text;
+        try {
+            text = lit.asText();
+        } catch (Exception e) {
+            return null;
+        }
+        if (text == null || text.isBlank()) return null;
+
+        // 1. Scope variables (LET bindings, function params)
+        Optional<Object> scopeVar = scope.lookup(text);
+        if (scopeVar.isPresent()) return scopeVar.get();
+
+        // 2. Context item's frames — look for a frame whose THEME is this text
+        //    and that has a VALUE binding (the asserted content to evaluate).
+        Item owner = scope.owner();
+        if (owner != null && owner.frames() != null) {
+            for (Frame frame : owner.frames()) {
+                FrameBody body = frame.body();
+                if (body == null) continue;
+
+                // Check if this frame's THEME is the string we're looking for
+                BindingTarget themeTarget = body.binding(ThematicRole.Theme.IID);
+                if (!(themeTarget instanceof Literal themeLit)) continue;
+                if (!Literal.TYPE_TEXT.equals(themeLit.valueType())) continue;
+                try {
+                    if (!text.equals(themeLit.asText())) continue;
+                } catch (Exception e) {
+                    continue;
+                }
+
+                // Found a match — extract and evaluate the VALUE binding
+                BindingTarget valueTarget = body.binding(ThematicRole.Value.IID);
+                if (valueTarget != null) {
+                    return resolve(valueTarget, scope);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -215,19 +276,28 @@ public final class FrameEvaluator {
         if (scope.librarian() == null) return null;
 
         Optional<Item> item = scope.librarian().get(predicate, Item.class);
-        if (item.isEmpty()) return null;
+        if (item.isEmpty()) {
+            System.err.println("  lookupImplementedBy: item not found for " + predicate);
+            return null;
+        }
 
         Item sememe = item.get();
-        if (sememe.frames() == null) return null;
+        if (sememe.frames() == null) {
+            System.err.println("  lookupImplementedBy: item has no frames: " + sememe.displayToken());
+            return null;
+        }
 
         ItemID implPredicate = CoreVocabulary.ImplementedBy.IID;
-        var it = sememe.frames().bareFrames().iterator();
-        while (it.hasNext()) {
-            Frame frame = it.next();
+        for (Frame frame : sememe.frames()) {
+            FrameBody body = frame.body();
+            if (body != null && implPredicate.equals(body.predicate())) {
+                return body.binding(ThematicRole.Goal.IID);
+            }
+            // Also check live objects (seed frames store FrameBody as live)
             Optional<Object> live = sememe.frames().getLive(frame.frameKey());
-            if (live.isPresent() && live.get() instanceof FrameBody body) {
-                if (implPredicate.equals(body.predicate())) {
-                    return body.binding(ThematicRole.Goal.IID);
+            if (live.isPresent() && live.get() instanceof FrameBody liveBody) {
+                if (implPredicate.equals(liveBody.predicate())) {
+                    return liveBody.binding(ThematicRole.Goal.IID);
                 }
             }
         }

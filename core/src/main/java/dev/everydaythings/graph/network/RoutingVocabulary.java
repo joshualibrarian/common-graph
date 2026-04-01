@@ -33,7 +33,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.core:reachable-at";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "be in or establish communication with";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
@@ -50,7 +50,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.core:available-at";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "be located or situated somewhere; occupy a certain position";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
@@ -71,7 +71,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.core:peers-with";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "be connected to as a network peer";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
@@ -92,7 +92,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.core:name";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a word or phrase that identifies something";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
@@ -116,7 +116,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.trust:acknowledges-delivery";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "acknowledge receipt of a successful delivery";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
@@ -133,7 +133,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.trust:acknowledges-relay";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "pass along; relay a message through an intermediary";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
@@ -150,7 +150,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.trust:request-id";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "identifier of the request being acknowledged";
 
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
@@ -171,7 +171,7 @@ public final class RoutingVocabulary {
         public static final String KEY = "cg.core:serves";
         public static final ItemID IID = ItemID.fromString(KEY);
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "acts on behalf of; provides services to a principal";
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,

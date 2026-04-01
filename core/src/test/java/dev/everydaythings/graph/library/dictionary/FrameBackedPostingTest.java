@@ -30,7 +30,7 @@ class FrameBackedPostingTest {
                 ? List.of(new FrameKey.Sememe(scope)) : List.of();
         FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
                 FrameBody.homeBinding(target),
-                new Binding(ThematicRole.Name.IID, quals, Literal.ofText(token), true, true)
+                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, weight);
     }
@@ -44,7 +44,7 @@ class FrameBackedPostingTest {
         List<Binding> bindings = List.of(
                 FrameBody.homeBinding(sememeId),
                 new Binding(
-                        ThematicRole.Name.IID,
+                        ThematicRole.Value.IID,
                         List.of(
                                 new FrameKey.Sememe(Language.ENGLISH),
                                 new FrameKey.Sememe(PartOfSpeech.Verb.IID),
@@ -81,7 +81,7 @@ class FrameBackedPostingTest {
         FrameBody body = new FrameBody(predicate, List.of(
                 FrameBody.homeBinding(sememeId),
                 new Binding(
-                        ThematicRole.Name.IID,
+                        ThematicRole.Value.IID,
                         List.of(
                                 new FrameKey.Sememe(Language.ENGLISH),
                                 new FrameKey.Sememe(PartOfSpeech.Verb.IID),

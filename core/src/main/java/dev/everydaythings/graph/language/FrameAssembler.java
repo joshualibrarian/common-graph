@@ -365,10 +365,12 @@ public class FrameAssembler {
 
         // Only split if there are 2+ verbs with a conjunction between them
         if (verbIndices.size() < 2 || conjIndices.isEmpty()) {
-            Optional<SemanticFrame> single = assemble(tokens, resolver);
+            // Try expression parsing first — handles "x = 5 + 2", "5 + 3", etc.
+            // assembleExpression() returns empty if tokens don't contain operators,
+            // so verb-noun commands like "create chess" fall through.
+            Optional<SemanticFrame> single = assembleExpression(tokens, resolver);
             if (single.isEmpty()) {
-                // No verb found — try expression parsing (operators, functions)
-                single = assembleExpression(tokens, resolver);
+                single = assemble(tokens, resolver);
             }
             return single.map(List::of).orElse(List.of());
         }
@@ -633,7 +635,7 @@ public class FrameAssembler {
 
         ExpressionParser parser = new ExpressionParser(tokens, resolver);
         try {
-            Object result = parser.parseExpression(0);
+            Object result = parser.parseExpression(Integer.MIN_VALUE);
             if (parser.pos < tokens.size()) return Optional.empty();
 
             if (result instanceof SemanticFrame frame) {
@@ -699,10 +701,18 @@ public class FrameAssembler {
 
                         Object right = parseExpression(nextMinPrec);
 
+                        // Use expectedRoles from contribute() if declared,
+                        // otherwise default to THEME (left) / GOAL (right)
+                        ItemID leftRole = ThematicRole.Theme.IID;
+                        ItemID rightRole = ThematicRole.Goal.IID;
+                        List<ItemID> expected = c.expectedRoles();
+                        if (expected != null && expected.size() >= 2) {
+                            leftRole = expected.get(0);
+                            rightRole = expected.get(1);
+                        }
+
                         left = new SemanticFrame(sem,
-                                new LinkedHashMap<>(Map.of(
-                                        ThematicRole.Theme.IID, left,
-                                        ThematicRole.Goal.IID, right)),
+                                new LinkedHashMap<>(Map.of(leftRole, left, rightRole, right)),
                                 Map.of(), List.of(), List.of());
                         continue;
                     }

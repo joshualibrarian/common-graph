@@ -79,54 +79,54 @@ public class Unit extends Sememe {
         public static final String KEY = "cg.unit:meter";
         public static final ItemID IID = ItemID.fromString(KEY);
         Meter() { super(KEY, "m", Map.of("en", "meter", "en-GB", "metre"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "meter";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "meter";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "m";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "meter";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "meter";
     }
     @Implements(Millimeter.KEY) @ItemSeed(key = Millimeter.KEY)
     public static class Millimeter extends Unit {
         public static final String KEY = "cg.unit:millimeter";
         public static final ItemID IID = ItemID.fromString(KEY);
         Millimeter() { super(KEY, "mm", Map.of("en", "millimeter", "en-GB", "millimetre"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1000); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "millimeter";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "millimeter";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "mm";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "millimeter";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "millimeter";
     }
     @Implements(Centimeter.KEY) @ItemSeed(key = Centimeter.KEY)
     public static class Centimeter extends Unit {
         public static final String KEY = "cg.unit:centimeter";
         public static final ItemID IID = ItemID.fromString(KEY);
         Centimeter() { super(KEY, "cm", Map.of("en", "centimeter", "en-GB", "centimetre"), Map.of(dim(Dimension.Length.KEY), 1), 1, 100); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "centimeter";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "centimeter";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "cm";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "centimeter";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "centimeter";
     }
     @Implements(Kilometer.KEY) @ItemSeed(key = Kilometer.KEY)
     public static class Kilometer extends Unit {
         public static final String KEY = "cg.unit:kilometer";
         public static final ItemID IID = ItemID.fromString(KEY);
         Kilometer() { super(KEY, "km", Map.of("en", "kilometer", "en-GB", "kilometre"), Map.of(dim(Dimension.Length.KEY), 1), 1000, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "kilometer";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "kilometer";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "km";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "kilometer";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "kilometer";
     }
     @Implements(Inch.KEY) @ItemSeed(key = Inch.KEY)
     public static class Inch extends Unit {
         public static final String KEY = "cg.unit:inch";
         public static final ItemID IID = ItemID.fromString(KEY);
         Inch() { super(KEY, "in", Map.of("en", "inch"), Map.of(dim(Dimension.Length.KEY), 1), 127, 5000); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "inch";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "inch";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "in";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "inch";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "inch";
     }
     @Implements(Foot.KEY) @ItemSeed(key = Foot.KEY)
     public static class Foot extends Unit {
         public static final String KEY = "cg.unit:foot";
         public static final ItemID IID = ItemID.fromString(KEY);
         Foot() { super(KEY, "ft", Map.of("en", "foot"), Map.of(dim(Dimension.Length.KEY), 1), 381, 1250); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "foot";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "foot";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "ft";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "foot";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "foot";
     }
 
     // ==================================================================================
@@ -138,36 +138,36 @@ public class Unit extends Sememe {
         public static final String KEY = "cg.unit:second";
         public static final ItemID IID = ItemID.fromString(KEY);
         Second() { super(KEY, "s", Map.of("en", "second"), Map.of(dim(Dimension.Time.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "second";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "second";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "s";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "second";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "second";
     }
     @Implements(Millisecond.KEY) @ItemSeed(key = Millisecond.KEY)
     public static class Millisecond extends Unit {
         public static final String KEY = "cg.unit:millisecond";
         public static final ItemID IID = ItemID.fromString(KEY);
         Millisecond() { super(KEY, "ms", Map.of("en", "millisecond"), Map.of(dim(Dimension.Time.KEY), 1), 1, 1000); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "millisecond";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "millisecond";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "ms";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "millisecond";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "millisecond";
     }
     @Implements(Minute.KEY) @ItemSeed(key = Minute.KEY)
     public static class Minute extends Unit {
         public static final String KEY = "cg.unit:minute";
         public static final ItemID IID = ItemID.fromString(KEY);
         Minute() { super(KEY, "min", Map.of("en", "minute"), Map.of(dim(Dimension.Time.KEY), 1), 60, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "minute";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "minute";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "min";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "minute";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "minute";
     }
     @Implements(Hour.KEY) @ItemSeed(key = Hour.KEY)
     public static class Hour extends Unit {
         public static final String KEY = "cg.unit:hour";
         public static final ItemID IID = ItemID.fromString(KEY);
         Hour() { super(KEY, "h", Map.of("en", "hour"), Map.of(dim(Dimension.Time.KEY), 1), 3600, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "hour";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "hour";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "h";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "hour";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "hour";
     }
 
     // ==================================================================================
@@ -179,27 +179,27 @@ public class Unit extends Sememe {
         public static final String KEY = "cg.unit:kilogram";
         public static final ItemID IID = ItemID.fromString(KEY);
         Kilogram() { super(KEY, "kg", Map.of("en", "kilogram"), Map.of(dim(Dimension.Mass.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "kilogram";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "kilogram";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "kg";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "kilogram";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "kilogram";
     }
     @Implements(Gram.KEY) @ItemSeed(key = Gram.KEY)
     public static class Gram extends Unit {
         public static final String KEY = "cg.unit:gram";
         public static final ItemID IID = ItemID.fromString(KEY);
         Gram() { super(KEY, "g", Map.of("en", "gram"), Map.of(dim(Dimension.Mass.KEY), 1), 1, 1000); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "gram";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "gram";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "g";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "gram";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "gram";
     }
     @Implements(Pound.KEY) @ItemSeed(key = Pound.KEY)
     public static class Pound extends Unit {
         public static final String KEY = "cg.unit:pound";
         public static final ItemID IID = ItemID.fromString(KEY);
         Pound() { super(KEY, "lb", Map.of("en", "pound"), Map.of(dim(Dimension.Mass.KEY), 1), 45359237, 100000000); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "pound";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "pound";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "lb";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "pound";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "pound";
     }
 
     // ==================================================================================
@@ -211,36 +211,36 @@ public class Unit extends Sememe {
         public static final String KEY = "cg.unit:meter-per-second";
         public static final ItemID IID = ItemID.fromString(KEY);
         MeterPerSecond() { super(KEY, "m/s", Map.of("en", "meter per second"), Map.of(dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "meter per second";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "meter per second";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "m/s";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "velocity";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "velocity";
     }
     @Implements(Newton.KEY) @ItemSeed(key = Newton.KEY)
     public static class Newton extends Unit {
         public static final String KEY = "cg.unit:newton";
         public static final ItemID IID = ItemID.fromString(KEY);
         Newton() { super(KEY, "N", Map.of("en", "newton"), Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 1, dim(Dimension.Time.KEY), -2), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "newton";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "newton";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "N";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "newton";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "newton";
     }
     @Implements(Joule.KEY) @ItemSeed(key = Joule.KEY)
     public static class Joule extends Unit {
         public static final String KEY = "cg.unit:joule";
         public static final ItemID IID = ItemID.fromString(KEY);
         Joule() { super(KEY, "J", Map.of("en", "joule"), Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -2), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "joule";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "joule";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "J";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "joule";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "joule";
     }
     @Implements(Watt.KEY) @ItemSeed(key = Watt.KEY)
     public static class Watt extends Unit {
         public static final String KEY = "cg.unit:watt";
         public static final ItemID IID = ItemID.fromString(KEY);
         Watt() { super(KEY, "W", Map.of("en", "watt"), Map.of(dim(Dimension.Mass.KEY), 1, dim(Dimension.Length.KEY), 2, dim(Dimension.Time.KEY), -3), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "watt";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "watt";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "W";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "watt";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "watt";
     }
 
     // ==================================================================================
@@ -252,72 +252,72 @@ public class Unit extends Sememe {
         public static final String KEY = "cg.unit:ch";
         public static final ItemID IID = ItemID.fromString(KEY);
         CharacterWidth() { super(KEY, "ch", Map.of("en", "character width"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "character width";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "character width";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "ch";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "character width";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "character width";
     }
     @Implements(LineHeight.KEY) @ItemSeed(key = LineHeight.KEY)
     public static class LineHeight extends Unit {
         public static final String KEY = "cg.unit:ln";
         public static final ItemID IID = ItemID.fromString(KEY);
         LineHeight() { super(KEY, "ln", Map.of("en", "line height"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "line height";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "line height";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "ln";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "line height";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "line height";
     }
     @Implements(Pixel.KEY) @ItemSeed(key = Pixel.KEY)
     public static class Pixel extends Unit {
         public static final String KEY = "cg.unit:px";
         public static final ItemID IID = ItemID.fromString(KEY);
         Pixel() { super(KEY, "px", Map.of("en", "pixel"), Map.of(dim(Dimension.Length.KEY), 1), 127, 4838400); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "pixel";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "pixel";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "px";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "pixel";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "pixel";
     }
     @Implements(DevicePixel.KEY) @ItemSeed(key = DevicePixel.KEY)
     public static class DevicePixel extends Unit {
         public static final String KEY = "cg.unit:dpx";
         public static final ItemID IID = ItemID.fromString(KEY);
         DevicePixel() { super(KEY, "dpx", Map.of("en", "device pixel"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "device pixel";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "device pixel";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "dpx";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "device pixel";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "device pixel";
     }
     @Implements(Percent.KEY) @ItemSeed(key = Percent.KEY)
     public static class Percent extends Unit {
         public static final String KEY = "cg.unit:percent";
         public static final ItemID IID = ItemID.fromString(KEY);
         Percent() { super(KEY, "%", Map.of("en", "percent"), Map.of(), 1, 100); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "percent";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "percent";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "%";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "percent";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "percent";
     }
     @Implements(Fraction.KEY) @ItemSeed(key = Fraction.KEY)
     public static class Fraction extends Unit {
         public static final String KEY = "cg.unit:fr";
         public static final ItemID IID = ItemID.fromString(KEY);
         Fraction() { super(KEY, "fr", Map.of("en", "fraction"), Map.of(), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "fraction";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "fraction";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "fr";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "fraction";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "fraction";
     }
     @Implements(Em.KEY) @ItemSeed(key = Em.KEY)
     public static class Em extends Unit {
         public static final String KEY = "cg.unit:em";
         public static final ItemID IID = ItemID.fromString(KEY);
         Em() { super(KEY, "em", Map.of("en", "em"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "em";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "em";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "em";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "em";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "em";
     }
     @Implements(Rem.KEY) @ItemSeed(key = Rem.KEY)
     public static class Rem extends Unit {
         public static final String KEY = "cg.unit:rem";
         public static final ItemID IID = ItemID.fromString(KEY);
         Rem() { super(KEY, "rem", Map.of("en", "root em"), Map.of(dim(Dimension.Length.KEY), 1), 1, 1); }
-        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "root em";
+        @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY})) static final String gloss = "root em";
         @ItemFrame(predicate = CoreVocabulary.Symbol.KEY) static final String sym = "rem";
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})) static final String word = "rem";
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true)) static final String word = "rem";
     }
 
     // ==================================================================================

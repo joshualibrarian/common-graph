@@ -43,7 +43,6 @@ public sealed interface ExpressionToken {
          * Create from a posting (the common case).
          */
         public static RefToken from(Posting posting) {
-            // Use token as display text, or derive a short form from target
             String display = posting.token();
             if (display == null || display.isBlank()) {
                 display = shortForm(posting.target());
@@ -151,54 +150,19 @@ public sealed interface ExpressionToken {
      *
      * @param operatorId The ItemID of the Operator item
      */
-    record OpToken(ItemID operatorId) implements ExpressionToken {
+    record OpToken(ItemID operatorId, String symbolText) implements ExpressionToken {
 
-        /**
-         * Create an AND operator token.
-         */
-        public static OpToken and() {
-            return new OpToken(Operator.And.IID);
+        /** Convenience constructor with just the IID. */
+        public OpToken(ItemID operatorId) {
+            this(operatorId, operatorId.toString());
         }
 
-        /**
-         * Create an OR operator token.
-         */
-        public static OpToken or() {
-            return new OpToken(Operator.Or.IID);
-        }
+        public static OpToken and() { return new OpToken(Operator.And.IID, "&&"); }
+        public static OpToken or() { return new OpToken(Operator.Or.IID, "||"); }
 
         @Override
         public String displayText() {
-            // Resolve from operator metadata (seed lookup path).
-            Operator op = Operator.lookupKnown(operatorId);
-            if (op != null && op.symbol() != null && !op.symbol().isBlank()) {
-                return op.symbol();
-            }
-            return operatorId.toString();
-        }
-
-        /**
-         * Get the precedence of this operator.
-         *
-         * <p>Higher precedence binds tighter. AND (1) binds tighter than OR (0).
-         *
-         * @return The precedence level
-         */
-        public int precedence() {
-            Operator op = Operator.lookupKnown(operatorId);
-            if (op != null) return op.precedence();
-            return 0;
-        }
-
-        /**
-         * Try to parse an operator from text.
-         *
-         * @param text The text to parse (e.g., "AND", "&&", "OR", "||")
-         * @return OpToken if recognized, null otherwise
-         */
-        public static OpToken tryParse(String text) {
-            Operator op = Operator.fromSymbol(text);
-            return op != null ? new OpToken(op.iid()) : null;
+            return symbolText;
         }
     }
 

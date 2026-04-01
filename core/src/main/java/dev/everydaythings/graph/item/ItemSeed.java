@@ -21,12 +21,12 @@ import java.lang.annotation.Target;
  *     public static final String KEY = "cg.verb:create";
  *
  *     @ItemFrame(predicate = SememeGloss.KEY,
- *                fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+ *                fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
  *                                          qualifiers = {Language.ENGLISH_KEY}))
  *     static final String gloss = "create a new item";
  *
  *     @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
- *                fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+ *                fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
  *                                          qualifiers = {Language.ENGLISH_KEY,
  *                                                        PartOfSpeech.Verb.KEY,
  *                                                        GrammaticalFeature.Lemma.KEY}))

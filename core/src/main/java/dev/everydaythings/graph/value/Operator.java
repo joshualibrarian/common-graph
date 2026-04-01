@@ -17,7 +17,6 @@ import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -60,16 +59,17 @@ public class Operator extends Sememe {
         And() { super(KEY, "&&", "and", 2, 1, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "and";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "&&";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"and"};
 
         @Override public boolean isShortCircuit() { return true; }
@@ -84,16 +84,17 @@ public class Operator extends Sememe {
         Or() { super(KEY, "||", "or", 2, 0, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "or";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "||";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"or"};
 
         @Override public boolean isShortCircuit() { return true; }
@@ -108,16 +109,17 @@ public class Operator extends Sememe {
         Not() { super(KEY, "!", "not", 1, 25, Associativity.RIGHT, Fixity.PREFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "not";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "!";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"not"};
 
         @Override public Object applyUnary(Object operand) {
@@ -136,16 +138,17 @@ public class Operator extends Sememe {
         Add() { super(KEY, "+", "add", 2, 10, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "add";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "+";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"add"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -170,16 +173,17 @@ public class Operator extends Sememe {
         Subtract() { super(KEY, "-", "subtract", 2, 10, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "subtract";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "-";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"subtract"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -198,16 +202,17 @@ public class Operator extends Sememe {
         Multiply() { super(KEY, "*", "multiply", 2, 20, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "multiply";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "*";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"multiply"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -228,16 +233,17 @@ public class Operator extends Sememe {
         Divide() { super(KEY, "/", "divide", 2, 20, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "divide";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "/";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"divide"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -263,16 +269,17 @@ public class Operator extends Sememe {
         Modulo() { super(KEY, "%", "modulo", 2, 20, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "modulo";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "%";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"modulo"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -291,16 +298,17 @@ public class Operator extends Sememe {
         Power() { super(KEY, "^", "power", 2, 30, Associativity.RIGHT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "power";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "^";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"power"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -317,16 +325,17 @@ public class Operator extends Sememe {
         Negate() { super(KEY, "-", "negate", 1, 25, Associativity.RIGHT, Fixity.PREFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "negate";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "-";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"negate"};
 
         @Override public Object applyUnary(Object operand) {
@@ -347,16 +356,17 @@ public class Operator extends Sememe {
         Equal() { super(KEY, "==", "equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "equal";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "==";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"equal"};
 
         @Override public Object applyBinary(Object left, Object right) { return valueEquals(left, right); }
@@ -371,16 +381,17 @@ public class Operator extends Sememe {
         NotEqual() { super(KEY, "!=", "not equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "not equal";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "!=";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"not equal"};
 
         @Override public Object applyBinary(Object left, Object right) { return !valueEquals(left, right); }
@@ -395,16 +406,17 @@ public class Operator extends Sememe {
         LessThan() { super(KEY, "<", "less than", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "less than";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "<";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"less than"};
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) < 0; }
@@ -419,16 +431,17 @@ public class Operator extends Sememe {
         GreaterThan() { super(KEY, ">", "greater than", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "greater than";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = ">";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"greater than"};
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) > 0; }
@@ -443,16 +456,17 @@ public class Operator extends Sememe {
         LessOrEqual() { super(KEY, "<=", "less or equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "less or equal";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "<=";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"less or equal"};
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) <= 0; }
@@ -467,16 +481,17 @@ public class Operator extends Sememe {
         GreaterOrEqual() { super(KEY, ">=", "greater or equal", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "greater or equal";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = ">=";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"greater or equal"};
 
         @Override public Object applyBinary(Object left, Object right) { return valueCompare(left, right) >= 0; }
@@ -493,16 +508,17 @@ public class Operator extends Sememe {
         Concat() { super(KEY, "++", "concat", 2, 10, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "concat";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "++";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"concat"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -521,16 +537,17 @@ public class Operator extends Sememe {
         In() { super(KEY, "in", "in", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "in";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "in";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"in"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -548,16 +565,17 @@ public class Operator extends Sememe {
         Contains() { super(KEY, "contains", "contains", 2, 5, Associativity.NONE, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "contains";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "contains";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"contains"};
 
         @Override public Object applyBinary(Object left, Object right) {
@@ -568,50 +586,6 @@ public class Operator extends Sememe {
 
     // --- Structural ---
 
-    @Implements(Assign.KEY)
-    @ItemSeed(key = Assign.KEY)
-    public static class Assign extends Operator {
-        public static final String KEY = "cg.op:assign";
-        public static final ItemID IID = ItemID.fromString(KEY);
-
-        Assign() { super(KEY, "=", "assign", 2, -5, Associativity.RIGHT, Fixity.INFIX); }
-
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "assign";
-
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
-        static final String symbol = "=";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"assign"};
-    }
-
-    @Implements(IsOp.KEY)
-    @ItemSeed(key = IsOp.KEY)
-    public static class IsOp extends Operator {
-        public static final String KEY = "cg.op:is";
-        public static final ItemID IID = ItemID.fromString(KEY);
-
-        IsOp() { super(KEY, "is", "is", 2, -5, Associativity.RIGHT, Fixity.INFIX); }
-
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "is";
-
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
-        static final String symbol = "is";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] words = {"is"};
-    }
-
     @Implements(Pipe.KEY)
     @ItemSeed(key = Pipe.KEY)
     public static class Pipe extends Operator {
@@ -621,16 +595,17 @@ public class Operator extends Sememe {
         Pipe() { super(KEY, "|>", "pipe", 2, -10, Associativity.LEFT, Fixity.INFIX); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
                                              qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "pipe";
 
-        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY)
+        @ItemFrame(predicate = CoreVocabulary.Symbol.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, index = true))
         static final String symbol = "|>";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Name.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
         static final String[] words = {"pipe"};
     }
 
@@ -638,38 +613,6 @@ public class Operator extends Sememe {
     // LOOKUP TABLES
     // ==================================================================================
 
-    // Temporary lookup tables — used by the parser/lexer to resolve symbols to IIDs.
-    // These will be replaced by TokenDictionary lookups once the lexer is refactored.
-    private static class Seeds {
-        static final List<Operator> ALL = List.of(
-                new And(), new Or(), new Not(),
-                new Add(), new Subtract(), new Multiply(), new Divide(), new Modulo(), new Power(), new Negate(),
-                new Equal(), new NotEqual(), new LessThan(), new GreaterThan(), new LessOrEqual(), new GreaterOrEqual(),
-                new Concat(), new In(), new Contains(),
-                new Assign(), new IsOp(), new Pipe()
-        );
-        static final Map<ItemID, Operator> BY_ID;
-        static final Map<String, Operator> INFIX_BY_SYMBOL;
-        static final Map<String, Operator> PREFIX_BY_SYMBOL;
-        static {
-            Map<ItemID, Operator> byId = new LinkedHashMap<>();
-            Map<String, Operator> infix = new LinkedHashMap<>();
-            Map<String, Operator> prefix = new LinkedHashMap<>();
-            for (Operator op : ALL) {
-                byId.put(op.iid(), op);
-                if (op.fixity() == Fixity.INFIX && op.symbol() != null && !op.symbol().isBlank())
-                    infix.put(op.symbol(), op);
-                if (op.fixity() == Fixity.PREFIX && op.symbol() != null && !op.symbol().isBlank())
-                    prefix.put(op.symbol(), op);
-            }
-            infix.put("&", byId.get(And.IID));
-            infix.put("|", byId.get(Or.IID));
-            infix.put("**", byId.get(Power.IID));
-            BY_ID = Map.copyOf(byId);
-            INFIX_BY_SYMBOL = Map.copyOf(infix);
-            PREFIX_BY_SYMBOL = Map.copyOf(prefix);
-        }
-    }
 
     // ==================================================================================
     // INSTANCE FIELDS (shared by all operators)
@@ -886,34 +829,6 @@ public class Operator extends Sememe {
         return Decimal.parse(String.valueOf(d));
     }
 
-    // ==================================================================================
-    // LOOKUP
-    // ==================================================================================
-
-    public static Operator lookupKnown(ItemID iid) {
-        if (iid == null) return null;
-        return Seeds.BY_ID.get(iid);
-    }
-
-    public static Operator fromSymbol(String text) {
-        if (text == null) return null;
-        String trimmed = text.trim();
-        Operator op = Seeds.INFIX_BY_SYMBOL.get(trimmed);
-        if (op != null) return op;
-        return Seeds.PREFIX_BY_SYMBOL.get(trimmed);
-    }
-
-    public static Operator infixFromSymbol(String text) {
-        if (text == null) return null;
-        return Seeds.INFIX_BY_SYMBOL.get(text.trim());
-    }
-
-    public static Operator prefixFromSymbol(String text) {
-        if (text == null) return null;
-        return Seeds.PREFIX_BY_SYMBOL.get(text.trim());
-    }
-
-    public static List<Operator> seeds() { return Seeds.ALL; }
 
     @Override
     public String toString() {

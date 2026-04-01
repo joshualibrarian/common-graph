@@ -24,15 +24,15 @@ import java.lang.annotation.Target;
  *
  * // With qualifiers on the field binding
  * @ItemFrame(predicate = SememeGloss.KEY,
- *            fieldAs = @Bind(role = ThematicRole.Name.KEY,
+ *            fieldAs = @Bind(role = ThematicRole.Value.KEY,
  *                            qualifiers = {Language.ENGLISH_KEY}))
  * static final String gloss = "add two values";
  *
  * // Array value — multiple bindings with the same key
  * @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
- *            fieldAs = @Bind(role = ThematicRole.Name.KEY,
+ *            fieldAs = @Bind(role = ThematicRole.Value.KEY,
  *                            qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY,
- *                                          GrammaticalFeature.Lemma.KEY}))
+ *                                          GrammaticalFeature.Lemma.KEY}, index = true))
  * static final String[] words = {"create", "new", "make"};
  *
  * // Different field role + flags
@@ -88,7 +88,7 @@ public @interface ItemFrame {
      * The binding for the field's value.
      * Default: NAME ("the field provides the name/text").
      */
-    Bind fieldAs() default @Bind(role = ThematicRole.Name.KEY);
+    Bind fieldAs() default @Bind(role = ThematicRole.Value.KEY);
 
     // ==================================================================================
     // Full form — overrides classAs/fieldAs when present
@@ -132,7 +132,7 @@ public @interface ItemFrame {
         boolean identity() default true;
 
         /** Does this binding create a reverse-lookup index entry? */
-        boolean index() default false;
+        boolean index() default true;
     }
 
     /**

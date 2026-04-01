@@ -71,15 +71,15 @@ public class QueryItem extends Item {
         public static final String KEY = QueryItem.KEY;
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
                                    qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a query; a search for items matching a pattern";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
                                    qualifiers = {Language.ENGLISH_KEY,
                                                  PartOfSpeech.Noun.KEY,
-                                                 GrammaticalFeature.Lemma.KEY}))
+                                                 GrammaticalFeature.Lemma.KEY}, index = true))
         static final String word = "query";
 
         // EXPECTS — query results are the frames on a QueryItem
@@ -101,7 +101,7 @@ public class QueryItem extends Item {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
                                    qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a single item matched by a query pattern";
 
@@ -123,7 +123,7 @@ public class QueryItem extends Item {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Name.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
                                    qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "a search term in a query pattern";
     }

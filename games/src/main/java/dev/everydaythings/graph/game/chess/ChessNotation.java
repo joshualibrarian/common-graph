@@ -230,7 +230,7 @@ public class ChessNotation extends Language {
      */
     private static SemanticFrame moveFrame(String notation) {
         Map<ItemID, Object> bindings = new LinkedHashMap<>();
-        bindings.put(ThematicRole.Name.IID, notation);
+        bindings.put(ThematicRole.Value.IID, notation);
         return new SemanticFrame(
                 new Sememe(GameVocabulary.Move.KEY),
                 bindings,
