@@ -49,6 +49,10 @@ public class Language extends Item {
     public static final String ENGLISH_KEY = "cg:language/eng";
     public static final ItemID ENGLISH = ItemID.fromString(ENGLISH_KEY);
 
+    /** German Language KEY and IID. */
+    public static final String GERMAN_KEY = "cg:language/deu";
+    public static final ItemID GERMAN = ItemID.fromString(GERMAN_KEY);
+
     // ==================================================================================
     // FIELDS
     // ==================================================================================

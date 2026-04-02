@@ -11,8 +11,11 @@ plugins {
 
 dependencies {
 
-    // Core module (Item, Language, Sememe, WordNetImporter, etc.)
+    // Core module (Item, Language, Sememe, etc.)
     api project(':core')
+
+    // Language import infrastructure (LanguageImporter, LmfImporter, etc.)
+    api project(':lang-import')
 
     // Abstract test bases (ItemTest, LanguageTest)
     testImplementation testFixtures(project(':core'))

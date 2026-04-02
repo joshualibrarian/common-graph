@@ -1,0 +1,18 @@
+// =============================================================================
+// :language — Shared language import infrastructure
+//
+// Import utilities for bootstrapping languages from external data sources:
+// WordNet (LMF), VerbNet, UniMorph. Used once per language, not at runtime.
+// Depends on :core for Item/Language/Sememe infrastructure.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+
+    // Abstract test bases
+    testImplementation testFixtures(project(':core'))
+}

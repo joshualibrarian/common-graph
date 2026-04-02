@@ -7,8 +7,8 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.language.importer.EnglishImporter;
-import dev.everydaythings.graph.language.importer.LanguageImporter;
+import dev.everydaythings.graph.importer.EnglishImporter;
+import dev.everydaythings.graph.importer.LanguageImporter;
 import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.Librarian;
 

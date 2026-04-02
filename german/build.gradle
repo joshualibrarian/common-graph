@@ -1,0 +1,17 @@
+// =============================================================================
+// :german — German language support (OdeNet import, morphology)
+//
+// German-specific language data and importers.
+// Depends on :core for runtime and :language for import infrastructure.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+    api project(':lang-import')
+
+    testImplementation testFixtures(project(':core'))
+}

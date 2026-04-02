@@ -393,6 +393,98 @@ public class GrammaticalFeature extends Sememe {
     }
 
     // ==================================================================================
+    // CASE
+    // ==================================================================================
+
+    @ItemSeed(key = Nominative.KEY)
+    public static class Nominative {
+        public static final String KEY = "cg.feat:nominative";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "nominative case — the subject of a sentence";
+    }
+
+    @ItemSeed(key = Genitive.KEY)
+    public static class Genitive {
+        public static final String KEY = "cg.feat:genitive";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "genitive case — possession or association";
+    }
+
+    @ItemSeed(key = Dative.KEY)
+    public static class Dative {
+        public static final String KEY = "cg.feat:dative";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "dative case — the indirect object";
+    }
+
+    @ItemSeed(key = Accusative.KEY)
+    public static class Accusative {
+        public static final String KEY = "cg.feat:accusative";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "accusative case — the direct object";
+    }
+
+    // ==================================================================================
+    // GENDER
+    // ==================================================================================
+
+    @ItemSeed(key = Masculine.KEY)
+    public static class Masculine {
+        public static final String KEY = "cg.feat:masculine";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "masculine grammatical gender";
+    }
+
+    @ItemSeed(key = Feminine.KEY)
+    public static class Feminine {
+        public static final String KEY = "cg.feat:feminine";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "feminine grammatical gender";
+    }
+
+    @ItemSeed(key = Neuter.KEY)
+    public static class Neuter {
+        public static final String KEY = "cg.feat:neuter";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "neuter grammatical gender";
+    }
+
+    // ==================================================================================
+    // MOOD (additional)
+    // ==================================================================================
+
+    @ItemSeed(key = Indicative.KEY)
+    public static class Indicative {
+        public static final String KEY = "cg.feat:indicative";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "indicative mood — statements of fact";
+    }
+
+    // ==================================================================================
     // CONSTRUCTORS
     // ==================================================================================
 

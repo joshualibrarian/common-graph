@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.importer.UniMorphReader;
+import dev.everydaythings.graph.importer.UniMorphReader;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

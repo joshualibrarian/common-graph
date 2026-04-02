@@ -2,7 +2,7 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.importer.LanguageImporter;
+import dev.everydaythings.graph.importer.LanguageImporter;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
