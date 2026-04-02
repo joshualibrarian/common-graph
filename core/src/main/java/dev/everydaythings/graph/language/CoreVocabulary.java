@@ -837,24 +837,40 @@ public final class CoreVocabulary {
         static final ItemID expectTime = ThematicRole.Time.IID;
     }
 
+    @Implements(Title.KEY)
     @ItemSeed(key = Title.KEY)
-    public static class Title {
+    public static class Title extends Sememe {
         public static final String KEY = "cg.core:title";
         public static final ItemID IID = ItemID.fromString(KEY);
+
+        public Title() { super(KEY); }
+        protected Title(ItemID iid) { super(iid); }
+        protected Title(Librarian lib, Manifest m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the name or title of something";
 
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String noun = "title";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Past.KEY}, index = true))
+        static final String verb = "titled";
+
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i69816";
 
-        @ItemFrame(predicate = CoreVocabulary.IndexWeight.KEY)
-        static final int indexWeight = 1000;
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
-        static final ItemID expectReferent = ThematicRole.Referent.IID;
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Value.KEY}))
+        static final ItemID expectValue = ThematicRole.Value.IID;
     }
 
     @ItemSeed(key = Description.KEY)

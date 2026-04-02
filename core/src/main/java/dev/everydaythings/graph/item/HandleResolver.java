@@ -6,6 +6,7 @@ import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.extern.log4j.Log4j2;
@@ -389,6 +390,16 @@ public final class HandleResolver {
     public static String labelForFrame(FrameBody body, ItemID selfId, Librarian lib) {
         if (body == null) return "frame";
 
+        // Use Language.express() for natural language handle text
+        if (lib != null) {
+            Language lang = lib.get(Language.ENGLISH, Language.class).orElse(null);
+            if (lang != null) {
+                String expressed = lang.express(body, selfId, lib);
+                if (expressed != null && !expressed.isBlank()) return expressed;
+            }
+        }
+
+        // Fallback: predicate — role: value, role: value
         String pred = resolveDisplayToken(body.predicate(), lib);
 
         List<String> parts = new java.util.ArrayList<>();
@@ -396,8 +407,6 @@ public final class HandleResolver {
         for (Binding b : body.frameBindings()) {
             if (parts.size() >= 3) break;
             ItemID tid = b.targetId();
-            // Skip self-references, UNLESS it's the first binding (THEME) —
-            // "viewing session" is more useful than showing nothing
             if (tid != null && selfId != null && tid.equals(selfId) && !firstBinding) continue;
             if (tid != null && tid.equals(body.predicate())) continue;
             firstBinding = false;

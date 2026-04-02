@@ -1,18 +1,25 @@
 package dev.everydaythings.graph.language;
 
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /** TODO: what... are we going to do about "regions"?  Like... "en-us" and "en-uk"... we haven't dealt with that at all yet.
@@ -277,6 +284,170 @@ public class Language extends Item {
         }
         // No predicate found — all tokens are unbound (query pattern)
         return ParseResult.unbound(tokens);
+    }
+
+    // ==================================================================================
+    // Expression — semantic frame → natural language text
+    // ==================================================================================
+
+    /**
+     * Express a semantic frame as natural language text.
+     *
+     * <p>The dual of {@link #parse}: parse converts text → semantics,
+     * express converts semantics → text. The Language chooses word order,
+     * prepositions, verb forms, and register.
+     *
+     * <p>Base implementation uses the terse register: {@code "predicate: value1, value2"}.
+     * Symbols are preferred over words when available (e.g., "=" not "equals").
+     * The owner binding (the item being viewed) is omitted — it's implicit.
+     *
+     * @param body    the frame to express
+     * @param ownerIid the item being viewed (its binding is omitted), nullable
+     * @param lib     librarian for resolving item references to display text
+     * @return natural language text expressing the frame's assertion
+     */
+    public String express(FrameBody body, ItemID ownerIid, Librarian lib) {
+        if (body == null) return "frame";
+
+        String predDisplay = predicateDisplay(body.predicate(), lib);
+        boolean symbolic = isSymbolic(predDisplay);
+
+        // For symbolic infix predicates (=, +, -, etc.), render as "left symbol right"
+        // using the predicate's declared role order (THEME first, then VALUE/GOAL)
+        if (symbolic) {
+            String left = expressBinding(body, ThematicRole.Theme.IID, ownerIid, lib);
+            // Try VALUE first (for EQUALS), then GOAL (for operators)
+            String right = expressBinding(body, ThematicRole.Value.IID, ownerIid, lib);
+            if (right == null) {
+                right = expressBinding(body, ThematicRole.Goal.IID, ownerIid, lib);
+            }
+            if (left != null && right != null) {
+                return left + " " + predDisplay + " " + right;
+            }
+            // Prefix unary: "-x"
+            if (left != null) {
+                return predDisplay + left;
+            }
+        }
+
+        // Word predicates: "predicate: value1, value2"
+        List<String> parts = new ArrayList<>();
+        for (Binding b : body.frameBindings()) {
+            // Skip owner binding — it's the item we're looking at
+            ItemID tid = b.targetId();
+            if (tid != null && ownerIid != null && tid.equals(ownerIid)) continue;
+
+            String value = expressTarget(b.target(), ownerIid, lib);
+            if (value != null && !value.isBlank()) {
+                parts.add(value);
+            }
+        }
+
+        if (parts.isEmpty()) return predDisplay != null ? predDisplay : "frame";
+        return (predDisplay != null ? predDisplay + ": " : "") + String.join(", ", parts);
+    }
+
+    /**
+     * Express a specific role's binding from a frame body.
+     */
+    private String expressBinding(FrameBody body, ItemID role, ItemID ownerIid, Librarian lib) {
+        BindingTarget target = body.binding(role);
+        if (target == null) return null;
+        // Skip if it's the owner
+        if (target instanceof BindingTarget.IidTarget iid
+                && ownerIid != null && iid.iid().equals(ownerIid)) return null;
+        return expressTarget(target, ownerIid, lib);
+    }
+
+    /**
+     * Get the display text for a predicate — symbol first, then lexeme/display name.
+     *
+     * <p>Checks the item's SYMBOL frames directly (not the transient field,
+     * which may not be hydrated on cached seeds).
+     */
+    protected String predicateDisplay(ItemID predicate, Librarian lib) {
+        if (predicate == null || lib == null) return null;
+
+        Optional<Item> item = lib.get(predicate);
+        if (item.isEmpty()) return null;
+
+        // Check SYMBOL frames on the item for a universal symbol
+        Item pred = item.get();
+        if (pred.frames() != null) {
+            for (Frame frame : pred.frames()) {
+                FrameBody fb = frame.body();
+                if (fb == null) continue;
+                if (!CoreVocabulary.Symbol.IID.equals(fb.predicate())) continue;
+                // Extract the VALUE binding text
+                BindingTarget vt = fb.binding(ThematicRole.Value.IID);
+                if (vt instanceof Literal lit && Literal.TYPE_TEXT.equals(lit.valueType())) {
+                    try {
+                        String sym = lit.asText();
+                        if (sym != null && !sym.isBlank()) return sym;
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        return pred.displayToken();
+    }
+
+    /**
+     * Express a binding target as text.
+     */
+    protected String expressTarget(BindingTarget target, ItemID ownerIid, Librarian lib) {
+        if (target == null) return null;
+
+        if (target instanceof Literal lit) {
+            return expressLiteral(lit);
+        }
+
+        if (target instanceof BindingTarget.FrameTarget ft) {
+            // Nested frame — recurse (e.g., ADD sub-expression)
+            return express(ft.body(), ownerIid, lib);
+        }
+
+        if (target instanceof BindingTarget.IidTarget iid) {
+            if (lib != null) {
+                return lib.get(iid.iid()).map(Item::displayToken).orElse(null);
+            }
+            return iid.iid().displayAtWidth(12);
+        }
+
+        if (target instanceof BindingTarget.RefTarget ref) {
+            if (lib != null) {
+                return lib.get(ref.asItemId()).map(Item::displayToken).orElse(null);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Express a literal value as text.
+     */
+    protected String expressLiteral(Literal lit) {
+        if (lit == null) return null;
+        if (Literal.TYPE_TEXT.equals(lit.valueType())) {
+            try {
+                String text = lit.asText();
+                if (text == null) return null;
+                // Quote strings that look like they need quoting
+                return "\"" + (text.length() > 40 ? text.substring(0, 37) + "..." : text) + "\"";
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        try { return String.valueOf(lit.asInteger()); } catch (Exception ignored) {}
+        try { return String.valueOf(lit.asBoolean()); } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * Check if a predicate display string is a symbol (not a word).
+     */
+    private static boolean isSymbolic(String s) {
+        return s != null && !s.isEmpty() && !Character.isLetter(s.charAt(0));
     }
 
     /**

@@ -3,6 +3,7 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameRecord;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyPipeline;
 import dev.everydaythings.graph.frame.eval.FrameEvaluator;
@@ -869,8 +870,7 @@ public class Eval {
         }
 
         // Try FrameEvaluator for pure computation (operators, functions).
-        // These predicates don't have onFrameAssembled handlers yet —
-        // they evaluate via JavaRuntime/FormulaRuntime instead.
+        // These have IMPLEMENTED_BY frames → JavaRuntime resolves them.
         try {
             Scope evalScope = Scope.of(librarian, context);
             Object value = frameEvaluator.evaluate(frameBody, evalScope);
@@ -878,12 +878,66 @@ public class Eval {
                 return EvalResult.value(value);
             }
         } catch (Exception e) {
-            // FrameEvaluator couldn't handle it — fall through to query
-            logger.debug("FrameEvaluator fallback failed: {}", e.getMessage());
+            // Not a computable expression — fall through
+            logger.debug("FrameEvaluator: {}", e.getMessage());
         }
 
-        // Nobody handled — treat as a query (incomplete frames ARE queries)
+        // Default: persist as an assertion.
+        // Frame creation IS the action — typing "titled 'The Hobbit'" creates
+        // a TITLE frame on the context item. No special handler needed.
+        if (isAssertable(frameBody, librarian)) {
+            persistFrame(frameBody, signer, librarian);
+            Language lang = librarianHandle.activeLanguage();
+            String expressed = lang != null
+                    ? lang.express(frameBody, context != null ? context.iid() : null, librarian)
+                    : "asserted";
+            return EvalResult.value(expressed);
+        }
+
+        // Truly incomplete — treat as a query
         return evaluateStructuredQuery(frame);
+    }
+
+    /**
+     * Check if a frame body is a complete assertion worth persisting.
+     *
+     * <p>A frame is assertable if its predicate is a known sememe (not garbage)
+     * and it has at least one binding with user-provided content (not just
+     * auto-filled context bindings).
+     */
+    private boolean isAssertable(FrameBody body, Librarian librarian) {
+        if (body == null || body.predicate() == null) return false;
+        if (body.frameBindings() == null || body.frameBindings().isEmpty()) return false;
+
+        // Predicate must be a known item in the library
+        if (librarian.get(body.predicate()).isEmpty()) return false;
+
+        // Must have at least one non-context binding (something the user provided)
+        ItemID contextIid = context != null ? context.iid() : null;
+        for (Binding b : body.frameBindings()) {
+            ItemID tid = b.targetId();
+            // Skip bindings that are just the context item or the signer
+            if (tid != null && contextIid != null && tid.equals(contextIid)) continue;
+            if (session instanceof Item s && tid != null && tid.equals(s.iid())) continue;
+            // Found user-provided content
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Persist a frame body and sign it — the default assertion action.
+     */
+    private void persistFrame(FrameBody body, Signer signer, Librarian librarian) {
+        librarian.storeFrame(body);
+        if (signer != null && signer.canSign()) {
+            try {
+                FrameRecord record = FrameRecord.create(body, signer);
+                // Record is stored as part of storeFrame's pipeline
+            } catch (Exception e) {
+                logger.warn("Failed to sign frame: {}", e.getMessage());
+            }
+        }
     }
 
     /**
