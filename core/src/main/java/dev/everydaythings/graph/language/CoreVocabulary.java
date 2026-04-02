@@ -786,21 +786,40 @@ public final class CoreVocabulary {
     // METADATA PREDICATES
     // ==================================================================================
 
+    @Implements(Author.KEY)
     @ItemSeed(key = Author.KEY)
-    public static class Author {
+    public static class Author extends Sememe {
         public static final String KEY = "cg.core:author";
         public static final ItemID IID = ItemID.fromString(KEY);
+
+        public Author() { super(KEY); }
+        protected Author(ItemID iid) { super(iid); }
+        protected Author(Librarian lib, Manifest m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
         static final String gloss = "the creator or originator of a work";
 
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String noun = "author";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Past.KEY}, index = true))
+        static final String verb = "authored";
+
         @ItemFrame(predicate = CoreVocabulary.CiliId.KEY)
         static final String cili = "i90183";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
-        static final ItemID expectAgent = ThematicRole.Agent.IID;
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Value.KEY}))
+        static final ItemID expectValue = ThematicRole.Value.IID;
     }
 
     @ItemSeed(key = CreatedAt.KEY)
@@ -1384,8 +1403,66 @@ public final class CoreVocabulary {
         static final String[] words = {"CILI"};
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Referent.KEY}))
-        static final ItemID expectReferent = ThematicRole.Referent.IID;
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Value.KEY}))
+        static final ItemID expectValue = ThematicRole.Value.IID;
+    }
+
+    @ItemSeed(key = OewnId.KEY)
+    public static class OewnId {
+        public static final String KEY = "cg.source:oewn";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "an Open English WordNet synset identifier";
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Value.KEY}))
+        static final ItemID expectValue = ThematicRole.Value.IID;
+    }
+
+    @ItemSeed(key = WnSenseKey.KEY)
+    public static class WnSenseKey {
+        public static final String KEY = "cg.source:wn-sense";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "a WordNet sense key linking a word sense to a synset";
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Value.KEY}))
+        static final ItemID expectValue = ThematicRole.Value.IID;
+    }
+
+    @ItemSeed(key = VerbNetClass.KEY)
+    public static class VerbNetClass {
+        public static final String KEY = "cg.source:verbnet";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "a VerbNet verb class identifier declaring thematic role expectations";
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Value.KEY}))
+        static final ItemID expectValue = ThematicRole.Value.IID;
     }
 
     // ==================================================================================

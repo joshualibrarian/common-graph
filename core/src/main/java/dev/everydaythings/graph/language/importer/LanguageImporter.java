@@ -98,6 +98,7 @@ public abstract class LanguageImporter {
                     .forEach(synset -> {
                         Sememe sememe = resolveSememe(synset, signer);
                         synsetIdToSememe.put(synset.id(), sememe);
+                        librarian.put(sememe);
                         synsetCount.incrementAndGet();
 
                         int rels = createRelations(synset, sememe, synsetIdToSememe, signer);
@@ -124,6 +125,21 @@ public abstract class LanguageImporter {
                         storeLexemeFrame(sememe.iid(), lemma, pos,
                                 GrammaticalFeature.Lemma.IID, frequency);
                         lexemeCount.incrementAndGet();
+
+                        // Store sense keys for cross-referencing.
+                        // OEWN format (oewn-give__2.40.00..) and WN format (give%2:40:00)
+                        // are stored as separate frames so either format can be looked up.
+                        if (sense.id() != null && !sense.id().isBlank()) {
+                            // OEWN sense ID as-is
+                            storeSourceIdFrame(sememe, CoreVocabulary.OewnId.IID,
+                                    sense.id(), signer);
+                            // WN-format sense key (for VerbNet cross-referencing)
+                            String wnKey = oewnToWnSenseKey(sense.id());
+                            if (wnKey != null) {
+                                storeSourceIdFrame(sememe, CoreVocabulary.WnSenseKey.IID,
+                                        wnKey, signer);
+                            }
+                        }
 
                         // Pass 3: store inflected forms as LEXEME frames
                         // Pre-generated for lookup speed — see class javadoc
@@ -280,8 +296,61 @@ public abstract class LanguageImporter {
 
         String definition = synset.definition() != null ? synset.definition() : "";
 
-        return Sememe.create(librarian, signer, canonicalKey,
+        Sememe sememe = Sememe.create(librarian, signer, canonicalKey,
                 Map.of("en", definition), sources);
+
+        // Store source IDs as proper frames for cross-referencing
+        storeSourceIdFrame(sememe, CoreVocabulary.OewnId.IID, synset.id(), signer);
+        if (synset.ili() != null && !synset.ili().isEmpty()) {
+            storeSourceIdFrame(sememe, CoreVocabulary.CiliId.IID, synset.ili(), signer);
+        }
+
+        return sememe;
+    }
+
+    /**
+     * Store an external source ID as a frame on a sememe.
+     *
+     * <p>Creates a frame like {@code OEWN_ID { THEME → sememe, VALUE → "oewn-00001740-v" }}.
+     * This enables cross-referencing: VerbNet can find sememes by their WordNet sense keys.
+     */
+    protected void storeSourceIdFrame(Sememe sememe, ItemID predicate, String sourceId, Signer signer) {
+        if (librarian == null || sourceId == null || sourceId.isBlank()) return;
+
+        FrameBody body = FrameBody.builder(predicate)
+                .bind(ThematicRole.Theme.IID, sememe.iid())
+                .bind(ThematicRole.Value.IID, sourceId)
+                .build();
+
+        librarian.storeFrame(body);
+    }
+
+    /**
+     * Convert an OEWN sense ID to a WordNet sense key.
+     *
+     * <p>OEWN: {@code oewn-give__2.40.00..} → WN: {@code give%2:40:00}
+     * Strips the "oewn-" prefix, replaces "__" with "%", dots with colons,
+     * and trims trailing empty fields.
+     */
+    static String oewnToWnSenseKey(String oewnId) {
+        if (oewnId == null || !oewnId.startsWith("oewn-")) return null;
+
+        String body = oewnId.substring(5); // strip "oewn-"
+        int dunder = body.indexOf("__");
+        if (dunder < 0) return null;
+
+        String lemma = body.substring(0, dunder);
+        String rest = body.substring(dunder + 2); // after "__"
+
+        // Replace dots with colons
+        String colonized = rest.replace('.', ':');
+
+        // Trim trailing empty fields (trailing colons)
+        while (colonized.endsWith(":")) {
+            colonized = colonized.substring(0, colonized.length() - 1);
+        }
+
+        return lemma + "%" + colonized;
     }
 
     // ==================================================================================
@@ -306,7 +375,7 @@ public abstract class LanguageImporter {
             FrameRecord record = FrameRecord.create(body, signer);
 
             if (librarian != null) {
-                librarian.library().storeFrame(body, record);
+                librarian.storeFrame(body);
             }
             count++;
         }

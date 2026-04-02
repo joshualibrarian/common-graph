@@ -228,6 +228,40 @@ public class FrameAssembler {
             // If no slot matched, item stays unconsumed → goes to unmatchedArgs
         }
 
+        // Step 4.5: Assign unresolved bare text to remaining unfilled roles.
+        // Consecutive unresolved tokens are concatenated into a single string
+        // (e.g., "titled the hobbit" → VALUE = "the hobbit").
+        // Only handles Unresolved tokens — typed Literals (numbers, booleans)
+        // stay in unmatchedArgs for specialized handling.
+        if (!filledRoles.containsAll(slotRoles)) {
+            StringBuilder pendingText = new StringBuilder();
+            for (int i = 0; i < slots.size(); i++) {
+                if (consumed.contains(i)) continue;
+                ResolvedToken token = slots.get(i).token();
+
+                if (token instanceof ResolvedToken.Unresolved u) {
+                    if (!pendingText.isEmpty()) pendingText.append(' ');
+                    pendingText.append(u.token());
+                    consumed.add(i);
+                }
+            }
+
+            if (!pendingText.isEmpty()) {
+                // Assign concatenated text to the first unfilled role that
+                // won't be auto-filled by context (skip THEME, LOCATION, AGENT
+                // — those are filled from the evaluation context).
+                for (ItemID role : slotRoles) {
+                    if (filledRoles.contains(role)) continue;
+                    if (ThematicRole.Theme.IID.equals(role)) continue;
+                    if (ThematicRole.Location.IID.equals(role)) continue;
+                    if (ThematicRole.Agent.IID.equals(role)) continue;
+                    bindings.put(role, pendingText.toString());
+                    filledRoles.add(role);
+                    break;
+                }
+            }
+        }
+
         // Step 5: Collect unmatched tokens
         List<ResolvedToken> unmatchedArgs = new ArrayList<>();
         for (int i = 0; i < slots.size(); i++) {

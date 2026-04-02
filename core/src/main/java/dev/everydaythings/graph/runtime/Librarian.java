@@ -1435,6 +1435,47 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
     }
 
     /**
+     * Find an item by a source ID frame.
+     *
+     * <p>Searches for items that have a frame with the given predicate and a VALUE
+     * binding matching the source ID string. Used for cross-referencing between
+     * data sources (e.g., finding a sememe by its WordNet sense key).
+     *
+     * <p>This is a scan over cached items — suitable for import-time lookups
+     * where the frame index may not yet cover source ID frames.
+     *
+     * @param predicate the source ID predicate (e.g., WnSenseKey.IID)
+     * @param sourceId  the source ID value to match
+     * @param type      the expected item type
+     * @return the matching item, or empty
+     */
+    public <T extends Item> Optional<T> findBySourceFrame(ItemID predicate, String sourceId, Class<T> type) {
+        if (predicate == null || sourceId == null) return Optional.empty();
+
+        for (Item item : itemCache.values()) {
+            if (!type.isInstance(item)) continue;
+            if (item.frames() == null) continue;
+
+            for (dev.everydaythings.graph.frame.Frame frame : item.frames()) {
+                dev.everydaythings.graph.frame.FrameBody body = frame.body();
+                if (body == null) continue;
+                if (!predicate.equals(body.predicate())) continue;
+
+                dev.everydaythings.graph.frame.BindingTarget vt = body.binding(ThematicRole.Value.IID);
+                if (vt instanceof dev.everydaythings.graph.item.Literal lit
+                        && dev.everydaythings.graph.item.Literal.TYPE_TEXT.equals(lit.valueType())) {
+                    try {
+                        if (sourceId.equals(lit.asText())) {
+                            return Optional.of(type.cast(item));
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
      * Add a stored frame to the in-memory item it belongs to.
      *
      * <p>Looks up the frame's home item (from its LOCATION or THEME binding)

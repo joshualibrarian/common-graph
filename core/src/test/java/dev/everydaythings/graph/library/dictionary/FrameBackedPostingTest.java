@@ -157,4 +157,32 @@ class FrameBackedPostingTest {
                 .contains(PartOfSpeech.Verb.IID);
         assertThat(createPosting.scope()).isEqualTo(Language.ENGLISH);
     }
+
+    @Test
+    void titlePredicate_resolvesInTokenDictionary() {
+        Librarian lib = Librarian.createInMemory();
+
+        var tokenDict = lib.tokenIndex();
+        assertThat(tokenDict).isNotNull();
+        java.util.function.Function<ContentID, Optional<FrameBody>> resolver =
+                hash -> lib.library().loadFrameBody(hash);
+
+        // "title" should resolve as a noun
+        var titlePostings = tokenDict.lookup("title", resolver, Language.ENGLISH).toList();
+        assertThat(titlePostings).as("'title' should resolve in English scope").isNotEmpty();
+
+        // "titled" should resolve as a past-tense verb
+        var titledPostings = tokenDict.lookup("titled", resolver, Language.ENGLISH).toList();
+        assertThat(titledPostings).as("'titled' should resolve in English scope").isNotEmpty();
+
+        Posting titledPosting = titledPostings.stream()
+                .filter(p -> p.token().equals("titled"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("'titled' posting not found"));
+
+        assertThat(titledPosting.target()).isEqualTo(CoreVocabulary.Title.IID);
+        assertThat(titledPosting.features())
+                .as("'titled' should have VERB and PAST features")
+                .contains(PartOfSpeech.Verb.IID, GrammaticalFeature.Past.IID);
+    }
 }
