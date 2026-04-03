@@ -32,76 +32,53 @@ When you query "red shirt," you're not searching for the *words* "red" and "shir
 
 ### Frames: The Single Primitive
 
-The entire data model is built from one structure:
+The entire data model is built from one structure: the **semantic frame** — a structured assertion grounded in shared meaning.
 
-```
-Frame {
-    predicate   — what kind of assertion (a grounded meaning)
-    bindings    — role-value pairs filling the predicate's slots
-}
-```
+A frame has a **predicate** — what kind of assertion this is — and **bindings** that fill the predicate's semantic slots. Each binding maps a **role** (the semantic function: NAME, THEME, AGENT, GOAL...) through optional **qualifiers** (narrowing constraints: a language, a format, a unit) to a **target** value. Two flags — **identity** and **index** — control whether the binding affects the body hash and whether it's indexed for queries.
 
-A predicate declares the roles it expects — the semantic slots that must be filled to make the assertion complete. Each binding fills a role with a value, using a compound semantic key:
-
-```
-Binding {
-    key         — compound semantic key: role + qualifiers (e.g., (VIDEO, MKV, UHD))
-    target      — content, reference, inline value, stream
-    identity    — in body hash? (default from predicate and role)
-    index       — in frame index? (default from predicate and role)
-}
-```
-
-Everything is a binding. The title text, the video file, the move log, the signature — each is a binding on a frame with a compound semantic key. Content, provenance, format variants, cached transcodes, metadata — all expressed uniformly as bindings. No special-purpose fields.
-
-**Predicates define meaningful roles.** Each predicate declares what bindings its frames expect. The roles are grounded meanings, not arbitrary strings — drawn from the same vocabulary as the predicates themselves, with roots in Fillmore's frame semantics (1968/1982), [VerbNet](https://verbs.colorado.edu/verbnet/), [FrameNet](https://framenet.icsi.berkeley.edu/), and [ISO 24617-4](https://www.iso.org/standard/56866.html):
+A predicate declares the roles it expects — the semantic slots that must be filled to make the assertion complete. Qualifiers both **distinguish** multiple bindings of the same role and **constrain** valid inputs:
 
 ```
 TITLE frame:
-  (NAME) → "The Hobbit"                              [identity]
+  NAME:[] → "The Hobbit"                              [identity]
 
-PLAYER frame (on a chess game item):
-  (AGENT) → fischer                                   [identity]
-  (ROLE)  → WHITE                                     [identity]
+PLAYER frame (on a chess game):
+  AGENT:[] → fischer                                   [identity]
+  ROLE:[]  → WHITE                                     [identity]
 
-MOVE frame (on the same game item):
-  (AGENT)  → fischer                                  [identity]
-  (THEME)  → king-pawn                                [identity]
-  (SOURCE) → e2                                       [identity]
-  (GOAL)   → e4                                       [identity]
+MOVE frame (on the same game):
+  AGENT:[]  → fischer                                  [identity]
+  THEME:[]  → king-pawn                                [identity]
+  SOURCE:[] → e2                                       [identity]
+  GOAL:[]   → e4                                       [identity]
 
 VIDEO frame:
-  (VIDEO, MKV, UHD) → cid:master-4k                  [identity]
-  (VIDEO, MKV, HD)  → cid:hd-transcode               [non-identity]
+  NAME:[MKV, UHD] → cid:master-4k                     [identity]
+  NAME:[MKV, HD]  → cid:hd-transcode                  [non-identity]
 ```
 
-Every meaning in a compound key is an opportunity for indexing. Query "all videos" — index lookup on the VIDEO sememe. Query "all UHD videos" — narrow with both VIDEO and UHD. The key *is* the index.
+Every meaning in a binding is an opportunity for indexing. Query "all videos" — index lookup on the VIDEO predicate. Query "all UHD videos" — narrow with qualifiers. The structure *is* the index.
 
-**Identity bindings control versioning.** The body hash is computed from predicate + identity bindings only. Non-identity bindings (cached transcodes, streaming logs, signatures) live on the frame but don't affect its hash. Replace an HD transcode tomorrow — body hash unchanged.
+**Identity bindings control versioning.** The body hash is computed from predicate + identity bindings only. Non-identity bindings (cached transcodes, configuration, presentation) live on the frame without affecting its hash. Replace an HD transcode tomorrow — body hash unchanged.
 
-**Provenance is bindings.** Signatures are non-identity SIGNATURE bindings. No separate record type.
+**Four objects carry a frame through its lifecycle:**
+
+- **FrameBody** — the semantic assertion itself. Identity bindings only. Content-addressed by hash. Immutable.
+- **FrameRecord** — a signed attestation envelope. Signer, timestamp, signature, plus non-identity bindings (configuration, presentation). Points at a body by hash. Multiple records can attest the same body.
+- **Endorsement** — what manifests hold. Body hash plus optional record reference.
+- **Frame** — runtime container. Body, record(s), and live instance. In-memory only.
+
+Provenance flows through FrameRecords — signed envelopes that attest a FrameBody. The same assertion can be independently attested by multiple signers, each with their own record.
 
 See [`frames.md`](docs/frames.md) for the full model, and [**The Case**](docs/the-case.md) for the theoretical foundations.
 
 ### Items: What Frames Cohere Around
 
-A single frame is rarely the whole story. A book is a TITLE frame, an AUTHORED frame, TEXT frames, a COVER_ART frame — all about the same thing. The thing they cohere around is an **item**: a signed, versioned collection of frames with stable cryptographic identity.
+A single frame is rarely the whole story. A book is a TITLE frame, an AUTHORED frame, TEXT frames, a COVER_ART frame — all about the same thing. The thing they cohere around is an **item**: a signed, versioned collection of frame endorsements with stable cryptographic identity.
 
 Items can represent anything: documents, people, groups, conversations, games, devices, languages, meanings themselves. Every item carries its own identity (IID), version history, and a manifest — a signed list of endorsements pointing to frames by body hash.
 
-**Types are sememes.** The concept "Book" is a meaning in the graph — a sememe with its own IID. It's the same "book" that exists in WordNet. Types aren't separate from meanings. They ARE meanings.
-
-```java
-@Type("cg:type/book")
-public class Book extends Item {
-    @Frame(key = {TITLE})                String title;
-    @Frame(key = {AUTHOR}, endorsed=false) ItemID author;
-    @Frame(key = {TEXT, ENGLISH})         byte[] englishText;
-    @Frame(key = {COVER_ART})            byte[] cover;
-}
-```
-
-The class is just the host-language representation of a type item that lives in the graph. `"cg:type/book"` is a deterministic IID — the same on every node.
+**Types are sememes.** The concept "Book" is a meaning in the graph — a sememe with its own IID, the same "book" that exists in WordNet. The type system and the semantic system are unified.
 
 > *"Item" is a working name. The right word will come.*
 
@@ -127,27 +104,28 @@ A folder is one way to group things — by containment in a hierarchy. Common Gr
 
 The web is a document dump with external indexing bolted on. Common Graph is a **semantic index by construction**.
 
-Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every binding has a role key that is a sememe. The graph IS the index.
+Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every binding has a role that is a sememe. The graph IS the index.
 
 ### Write-Time Resolution
 
-**Meaning is resolved at the moment of creation.** When you create a frame — whether by typing "move pawn to e4," clicking a button, or calling an API — the system resolves every concept to a globally-anchored sememe *before storage*. "Move" resolves to `cg.verb:move`. "Pawn" resolves to the chess piece item. "To" maps to the GOAL thematic role. "E4" resolves to a board position. What gets stored is not text — it's a structure of semantic references: `MOVE { (THEME) = pawn, (GOAL) = e4 }`.
+**Meaning is resolved at the moment of creation.** When you create a frame — whether by typing "move pawn to e4," clicking a button, or calling an API — the system resolves every concept to a globally-anchored sememe *before storage*. "Move" resolves to the MOVE sememe. "Pawn" resolves to the chess piece item. "To" maps to the GOAL thematic role. "E4" resolves to a board position. What gets stored is a structure of semantic references: `MOVE { THEME:[] → pawn, GOAL:[] → e4 }`.
 
 The person creating the data does the disambiguation, because they know what they mean. This is trivial at write time — you know you meant chess, not a political metaphor. It's nearly impossible at read time. This is why Common Graph doesn't need a search engine, a crawler, or a ranking algorithm.
 
 ### Sememes
 
-**Sememes are universal meaning units.** Grounded in [WordNet](https://wordnet.princeton.edu/) (~120,000 synsets) and cross-linked via [CILI](https://github.com/globalwordnet/cili) (Collaborative Interlingual Index), sememes carry:
+**Sememes are universal meaning units** — language-agnostic items that anchor meaning globally. Grounded in [WordNet](https://wordnet.princeton.edu/) (~120,000 synsets) and cross-linked via [CILI](https://github.com/globalwordnet/cili) (Collaborative Interlingual Index), each sememe has:
 
-- A part of speech (verb, noun, preposition, etc.)
-- Thematic roles (agent, theme, instrument, patient, etc.)
-- Glosses per language (each a frame: `(GLOSS, ENG) → "definition text"`)
-- Symbols for universal notation ("+", "m", "kg", "USD")
-- Tokens for language-specific resolution ("create", "crear")
+- A **stable cryptographic IID** — deterministic from a canonical key, identical on every node
+- **Symbols** for language-neutral notation ("+", "m", "kg", "USD")
+- For predicates: **declared roles** (EXPECTS) defining what bindings their frames require
+- **Glosses** per language (each a frame)
+
+Words belong to **languages**. Each language is itself an item, and its **lexemes** — the words that express sememes — carry their own grammatical features: part of speech, inflection, morphology. "Create" (English verb), "crear" (Spanish verb), and "erstellen" (German verb) are all lexemes pointing at the same sememe. A sememe's IID stays stable forever — words in any language can be added, changed, or removed without touching it.
 
 There are no reserved words. No escape characters. Disambiguation happens through more language — the same way humans do it.
 
-**Predicates ARE indexes.** When you assert `AUTHORED { (THEME) = TheHobbit, (AGENT) = Tolkien }`, the frame is indexed on TheHobbit (by AUTHORED predicate) and on Tolkien (by AGENT role). Querying "what did Tolkien author?" is a prefix scan — no full-text search, no crawling, no ranking algorithm.
+**Predicates ARE indexes.** When you assert `AUTHORED { THEME:[] → TheHobbit, AGENT:[] → Tolkien }`, the frame is indexed on TheHobbit (by AUTHORED predicate) and on Tolkien (by AGENT role). Querying "what did Tolkien author?" is a prefix scan — no full-text search, no crawling, no ranking algorithm.
 
 **Discovery fans out through the social graph.** Your librarian answers queries from its local store first. If it doesn't have the answer, it asks peers. Peers ask their peers. Trust metrics control propagation depth. Global discoverability without a global index.
 
@@ -165,7 +143,7 @@ There are no reserved words. No escape characters. Disambiguation happens throug
 
 **Trust without a moderator.** A "like" is a signed frame. A spam label is a signed frame. Everyone's trust policies produce different views of the same data — no appeals board, no opaque algorithm.
 
-**Converse across languages.** "Create" in English, "crear" in Spanish, "erstellen" in German — same sememe, same verb, same action. The interface is semantic, not syntactic.
+**Converse across languages.** "Create" in English, "crear" in Spanish, "erstellen" in German — same sememe, same action. The interface is semantic, not syntactic.
 
 **Compute with real quantities.** `5m + 3ft` → `5.9144 m`. Units are sememes with dimensional metadata. Quantities are first-class values, not strings.
 
@@ -173,7 +151,7 @@ There are no reserved words. No escape characters. Disambiguation happens throug
 
 ## Interaction: Language as Interface
 
-Every item has a prompt. You type into it, and the vocabulary system resolves your words into actions — through semantic resolution against the TokenDictionary, not through keyword matching or regex parsing.
+Every item has a prompt. You type into it, and the system resolves your words into semantic structure — through resolution against the TokenDictionary, not through keyword matching or regex parsing.
 
 ```
 alice@chess> move pawn to e4           # verb + noun + preposition + noun
@@ -187,15 +165,17 @@ The pipeline:
 
 ```
 Token (any language)
-  -> TokenDictionary (scoped lookup: language, item, user)
-    -> Sememe (language-neutral meaning, with part of speech)
-      -> Item Vocabulary (does this item handle this sememe?)
-        -> Action (dispatch verb, navigate noun, form quantity, evaluate expression...)
+  → TokenDictionary (scoped lookup: language, item, user)
+    → Sememe (language-neutral meaning)
+      → Language parsing (grammar-aware assembly into semantic frames)
+        → Frame creation (the action IS the frame — items react to new frames)
 ```
+
+Words resolve to sememes. Sememes assemble into frames. Creating a frame IS the action — items observe new frames and react accordingly. "Move pawn to e4" assembles a MOVE frame; the chess game receives it and updates its board state.
 
 Word order is flexible because resolution is semantic, not positional. "Move pawn to e4" and "move to e4 pawn" produce the same result — prepositions bind arguments by thematic role, not by position.
 
-**But you don't have to type.** Items declare their own visual presentation. A chess game renders a board you can click on. A document renders editable text. A chat room shows messages with a compose area. The vocabulary system drives both: clicking "reply" dispatches the same sememe as typing "reply."
+**But you don't have to type.** Items declare their own visual presentation. A chess game renders a board you can click on. A document renders editable text. A chat room shows messages with a compose area. Clicking "reply" creates the same frame as typing "reply."
 
 ---
 
@@ -234,16 +214,16 @@ Your Librarian connects to other Librarians the way you connect to other people 
 
 ## Storage: One Object Store, Four Indexes
 
-All data lives in a single content-addressed object store: `persist(bytes) -> CID`, `fetch(CID) -> bytes`. Manifests, frame bodies, content blobs — all stored as objects keyed by their cryptographic hash.
+All data lives in a single content-addressed object store: `persist(bytes) → CID`, `fetch(CID) → bytes`. Manifests, frame bodies, content blobs — all stored as objects keyed by their cryptographic hash.
 
 Four derived indexes make the objects queryable:
 
-| Index | Key -> Value | Purpose |
+| Index | Key → Value | Purpose |
 |---|---|---|
-| **ITEMS** | IID \| VID -> timestamp | Version history per item |
-| **FRAME_BY_ITEM** | ItemID \| Predicate \| BodyHash -> CID | Frame lookup by participant and predicate |
-| **RECORD_BY_BODY** | BodyHash \| SignerKeyID -> CID | Who attested this assertion? |
-| **HEADS** | Principal \| IID -> VID | Current version per principal per item |
+| **ITEMS** | IID \| VID → timestamp | Version history per item |
+| **FRAME_BY_ITEM** | ItemID \| Predicate \| BodyHash → CID | Frame lookup by participant and predicate |
+| **RECORD_BY_BODY** | BodyHash \| SignerKeyID → CID | Who attested this assertion? |
+| **HEADS** | Principal \| IID → VID | Current version per principal per item |
 
 Every index is rebuildable from the object store. Indexes are projections, not sources of truth.
 
@@ -253,7 +233,15 @@ Three storage backends: **RocksDB** (production), **MapDB** (lightweight), **Ski
 
 ## Presentation: One Scene, Every Surface
 
-Items declare their presentation through **scenes** — declarative, CBOR-serializable structures that renderers project onto screen. The same declaration renders as perspective 3D with physically-based lighting on a GPU, as flat 2D through Skia, or as text art in a terminal. Same items, same scene, different projections.
+Items declare their presentation through **scenes** — declarative, CBOR-serializable structures built from three primitives:
+
+- **Container** — structural: children and layout
+- **Text** — content: carries sememe references, resolved to the user's language at render time
+- **Body** — visual: model, image, shape, or glyph, with a fidelity chain from full 3D down to a Unicode symbol
+
+The same scene renders as perspective 3D with physically-based lighting on a GPU, as flat 2D through Skia, or as text art in a terminal. Same items, same scene, different projections.
+
+Text nodes carry meaning references, not hardcoded strings. A label referencing the Checkmate sememe renders as "Checkmate" in English, "将杀" in Mandarin, "Schachmatt" in German — same scene, same hash.
 
 ---
 
@@ -308,23 +296,23 @@ See [`docs/references/`](docs/references/) for the full academic bibliography wi
 This is an early-stage research project. It functions, but it is not ready for production use.
 
 **What works today:**
-- Full item lifecycle: create, edit, sign, commit, store, retrieve, verify
-- Unified frame model with compound binding keys and identity-controlled hashing
+- Full item lifecycle: create, sign, commit, store, retrieve, verify
+- Semantic frame model with role-qualified bindings, identity-controlled hashing, and signed attestation via FrameRecords
 - Content-addressed storage with unified object store and four derived indexes
-- Sememe-based vocabulary with TokenDictionary, inner-to-outer dispatch, and expression evaluation
-- Quantity expressions with unit conversion (e.g., `5m - 2ft`)
+- TokenDictionary with scoped resolution, grammar-aware frame assembly, and unit conversion
+- Quantity expressions with dimensional analysis (e.g., `5m - 2ft`)
 - CG-CBOR canonical encoding with deterministic serialization
 - Ed25519 signing and verification with KeyLog-based key history
 - 3D rendering via Filament (Metal/Vulkan), 2D via Skia, text via JLine/ANSI
-- Declarative scene system with 15+ widget types and constraint/flex layout
+- Unified scene system with three composable primitives and constraint/flex layout
 - Working games: Chess (3D Staunton pieces), Set, Minesweeper
 - P2P and Session protocols with subscriptions and relay forwarding
+- English and German WordNet import via LMF pipeline
 - English morphology engine with regular inflection + UniMorph irregular forms
 
 **What's next:**
 - Encryption (Tag 10 reserved)
-- Full WordNet/CILI import pipeline (partially implemented)
-- Multi-language support beyond English bootstrap
+- Expanding the multilingual import pipeline beyond English and German
 - Performance optimization for large libraries
 - Bridging to the existing web (ugly but necessary)
 
@@ -351,14 +339,13 @@ Requires **Java 21** (via Gradle toolchain).
 ```
 core/               # Domain model
   item/             #   Item, IDs, Manifest
-  frame/            #   Frame, FrameBody, EndorsementsTable, Binding
+  frame/            #   Frame, FrameBody, FrameRecord, Binding
   library/          #   Object store, indexes, TokenDictionary, seed vocabulary
-  runtime/          #   Graph entry point, Librarian, Session, Scheduler
+  runtime/          #   Graph entry point, Librarian, Session
   network/          #   Peer Protocol, Session Protocol, transports
-  trust/            #   Signing, verification, key management
-  policy/           #   PolicySet, PolicyEngine, AuthorityPolicy
+  language/         #   Sememe, Lexeme, Language, ThematicRole
   value/            #   Typed values, units, quantities, operators, functions
-  language/         #   Sememes, Lexicon, QueryParser
+  policy/           #   PolicySet, PolicyEngine, AuthorityPolicy
 
 english/            # English language support
   importer/         #   WordNet/LMF import, UniMorph import
@@ -374,7 +361,7 @@ ui/                 # Platform rendering
   filament/         #   Filament 3D (Metal/Vulkan/OpenGL), MSDF text
   skia/             #   Skia 2D, layout engine
   text/             #   CLI/TUI (JLine, ANSI)
-  scene/            #   Shared scene model, Surface DSL, spatial system
+  scene/            #   Scene model, three primitives, spatial system
 
 docs/               # Design documentation and academic references
 ```
@@ -391,11 +378,11 @@ Detailed specifications live in `docs/`:
 | [`frames.md`](docs/frames.md) | The frame primitive, bindings, compound keys, identity, endorsement |
 | [`item.md`](docs/item.md) | Item structure, identity, lifecycle, composition |
 | [`vocabulary.md`](docs/vocabulary.md) | Vocabulary system, dispatch, expression input |
-| [`sememes.md`](docs/sememes.md) | Meaning units, parts of speech, WordNet/CILI anchoring |
+| [`sememes.md`](docs/sememes.md) | Meaning units, WordNet/CILI anchoring |
 | [`language.md`](docs/language.md) | Languages, lexemes, thematic roles, morphology, import pipeline |
 | [`storage.md`](docs/storage.md) | Unified object store, indexes, content lifecycle |
 | [`library.md`](docs/library.md) | Library architecture, backends, bootstrap |
-| [`presentation.md`](docs/presentation.md) | Rendering pipeline, scene system, style |
+| [`presentation.md`](docs/presentation.md) | Scene system, three primitives, language resolution, rendering |
 | [`trust.md`](docs/trust.md) | Trust matrix, moderation, reactions, policy-driven views |
 | [`authentication.md`](docs/authentication.md) | Keys, signatures, signers, device-centric identity |
 | [`protocol.md`](docs/protocol.md) | Peer Protocol and Session Protocol |
