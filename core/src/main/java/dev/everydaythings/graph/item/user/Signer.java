@@ -171,74 +171,28 @@ public abstract class Signer extends Item implements Signing.Signer {
      * Path-based constructor for materialized Signers.
      *
      * <p>Creates or loads a Signer at the given filesystem path.
-     * On first boot:
-     * <ol>
-     *   <li>Vault is created with fresh keypair</li>
-     *   <li>KeyLog is created (empty)</li>
-     *   <li>CertLog is created (empty)</li>
-     *   <li>Public key is published to KeyLog</li>
-     * </ol>
+     * The librarian may be null (e.g., Librarian bootstrapping itself).
      *
-     * <p>On reload:
-     * <ol>
-     *   <li>Vault is loaded from disk</li>
-     *   <li>KeyLog is loaded from disk</li>
-     *   <li>CertLog is loaded from disk</li>
-     *   <li>Current public key is read from KeyLog</li>
-     * </ol>
-     *
-     * @param path    The filesystem path for this signer
-     * @param fallbackStore Store to use for fallback queries
+     * @param librarian     The librarian context, or null during bootstrap
+     * @param path          The filesystem path for this signer
+     * @param fallbackStore Store for type lookups during initialization
      */
-    protected Signer(Path path, ItemStore fallbackStore) {
-        super(path, fallbackStore);
-        // Vault, KeyLog, CertLog are set by Item's hydrate() via EndorsementsTable
-        // Key initialization happens in onFullyInitialized()
+    protected Signer(Librarian librarian, Path path, ItemStore fallbackStore) {
+        super(librarian, path, fallbackStore);
     }
 
     /**
      * In-memory constructor for ephemeral Signers.
      *
-     * <p>Creates a fresh Signer with in-memory storage. The Signer is fully functional
-     * but keys are lost when the JVM exits. Used for testing, demos, and temporary sessions.
+     * <p>Creates a fresh Signer with in-memory storage. Fully functional
+     * but keys are lost when the JVM exits.
+     * The librarian may be null (e.g., Librarian bootstrapping itself).
      *
-     * @param store In-memory store for type lookups and content storage
-     * @param inMemoryMarker Marker parameter to distinguish from path-based constructor
+     * @param librarian The librarian context, or null during bootstrap
+     * @param store     Store for type lookups and content storage
      */
-    protected Signer(ItemStore store, InMemoryMarker inMemoryMarker) {
-        super(store, inMemoryMarker);
-        // Vault is created via initializeFreshComponents() → @Component.Field annotation
-        // Key initialization happens in onFullyInitialized()
-    }
-
-    /**
-     * Path-based constructor with librarian reference.
-     *
-     * <p>Creates a Signer at a filesystem path with a librarian reference.
-     * Used for Users with home directories (e.g., {@code <rootPath>/users/alice/}).
-     *
-     * @param librarian The librarian (provides store access and library)
-     * @param path      The filesystem path for this signer's home directory
-     */
-    protected Signer(Librarian librarian, Path path) {
-        super(librarian, path);
-        // Vault, KeyLog, CertLog created by initializeFreshComponents()
-        // Key initialization happens in onFullyInitialized()
-    }
-
-    /**
-     * In-memory constructor with librarian reference.
-     *
-     * <p>Creates an ephemeral Signer with a librarian reference. Used for
-     * testing and in-memory user creation when no filesystem path is available.
-     *
-     * @param librarian The librarian (provides store access and library)
-     * @param marker    Marker to distinguish from other constructors
-     */
-    protected Signer(Librarian librarian, InMemoryMarker marker) {
-        super(librarian, marker);
-        // Vault is created via initializeFreshComponents()
-        // Key initialization happens in onFullyInitialized()
+    protected Signer(Librarian librarian, ItemStore store) {
+        super(librarian, store);
     }
 
     /**

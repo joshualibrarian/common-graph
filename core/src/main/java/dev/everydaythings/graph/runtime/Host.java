@@ -79,64 +79,33 @@ public class Host extends Signer {
     }
 
     /**
-     * Path-based constructor for materialized Host.
-     *
-     * <p>Creates or loads a Host at the given filesystem path.
-     * On first boot, gathers network information and initializes.
-     *
-     * @param path          The filesystem path for this host
-     * @param fallbackStore Fallback store for type lookups during construction
+     * Path-based constructor (no librarian, e.g. standalone host).
      */
     public Host(Path path, ItemStore fallbackStore) {
-        super(path, fallbackStore);
-
-        if (freshBoot) {
-            initializeNetworkInfo();
-        }
+        super(null, path, fallbackStore);
+        if (freshBoot) initializeNetworkInfo();
     }
 
-    /**
-     * Hydration constructor for loading Host type seeds from DB.
-     *
-     * <p>NOTE: This creates a non-functional Host (no storage, no networking).
-     * It's only used to hydrate the type seed so it can provide displayInfo.
-     *
-     * @param librarian The librarian performing hydration (unused for type seeds)
-     * @param manifest  The manifest to hydrate from
-     */
+    /** Hydration constructor for loading Host from manifest. */
     protected Host(Librarian librarian, Manifest manifest) {
         super(librarian, manifest);
-        // Type seeds don't need name/ipAddresses initialized
     }
 
-    /**
-     * Reference constructor for remote hosts.
-     *
-     * @param librarian The librarian (for context)
-     * @param manifest  The manifest containing the Host's public state
-     * @param publicKey The Host's public key
-     */
+    /** Reference constructor for remote hosts. */
     public Host(Librarian librarian, Manifest manifest, SigningPublicKey publicKey) {
         super(librarian, manifest, publicKey);
-        // Remote hosts have their name/ipAddresses loaded from manifest
     }
 
-    /**
-     * In-memory constructor for ephemeral Host items.
-     */
+    /** In-memory constructor for ephemeral Host items. */
     public Host(Librarian librarian) {
-        super(librarian, InMemoryMarker.INSTANCE);
+        super(librarian, librarian.library().primaryStore().orElse(null));
         initializeNetworkInfo();
     }
 
-    /**
-     * Path-based constructor for persistent Host items.
-     */
+    /** Path-based constructor with librarian. */
     public Host(Librarian librarian, Path path) {
-        super(librarian, path);
-        if (freshBoot) {
-            initializeNetworkInfo();
-        }
+        super(librarian, path, librarian.library().primaryStore().orElse(null));
+        if (freshBoot) initializeNetworkInfo();
     }
 
     /**

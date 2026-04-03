@@ -118,11 +118,10 @@ class FrameBodyTest {
         }
 
         @Test
-        @DisplayName("deprecated theme() delegates to homeId()")
-        @SuppressWarnings("deprecation")
-        void themeDelegatesToHomeId() {
+        @DisplayName("homeId() returns the owning item's IID")
+        void homeIdReturnsOwner() {
             FrameBody body = new FrameBody(TITLE, THE_HOBBIT);
-            assertThat(body.theme()).isEqualTo(body.homeId());
+            assertThat(body.homeId()).isEqualTo(THE_HOBBIT);
         }
     }
 

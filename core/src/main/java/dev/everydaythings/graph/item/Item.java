@@ -489,20 +489,20 @@ public class Item {
     /**
      * Path-based constructor for materialized items.
      *
-     * <p>If path exists (.item/ structure): loads existing item (IID from disk, components loaded)
-     * <p>If path doesn't exist: creates new item (random IID, components initialized)
+     * <p>If path exists (.item/ structure): loads existing item from disk.
+     * If path doesn't exist: creates new item with fresh frames initialized.
      *
-     * <p>This is the preferred constructor for filesystem-backed items like Librarian.
-     * It handles both "create at path" and "load from path" automatically.
+     * <p>The librarian may be null (e.g., Librarian bootstrapping itself).
      *
-     * @param path    The filesystem path for this item
-     * @param fallbackStore Store to fall back on for at least type lookups
+     * @param librarian     The librarian context, or null during bootstrap
+     * @param path          The filesystem path for this item
+     * @param fallbackStore Store for type lookups during initialization
      */
-    protected Item(Path path, ItemStore fallbackStore) {
+    protected Item(Librarian librarian, Path path, ItemStore fallbackStore) {
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(fallbackStore, "fallbackStore");
 
-        this.librarian = null;  // Path-based items don't have a librarian
+        this.librarian = librarian;
 
         // Set owner on state tables before populating them
         state.setOwner(this);
@@ -515,12 +515,10 @@ public class Item {
             this.freshBoot = false;
             this.dirty = false;
 
-            // Load component entries from store into table
-            for (dev.everydaythings.graph.frame.Frame frame : wts.loadHeadComponents()) {
+            for (Frame frame : wts.loadHeadComponents()) {
                 frames().add(frame);
             }
 
-            // Hydrate: decode all, bind fields, invoke callbacks
             hydrate();
         } else {
             // CREATE new
@@ -529,38 +527,28 @@ public class Item {
             this.freshBoot = true;
             this.dirty = true;
 
-            // Initialize fresh components (creates defaults, populates EndorsementsTable)
             initializeFreshComponents();
-
-            // Hydrate: bind fields and invoke callbacks (components already in table)
             hydrate();
         }
 
-        // Call hook after all components are initialized
         onFullyInitialized();
     }
 
     /**
      * In-memory constructor for ephemeral items.
      *
-     * <p>Creates a fresh item with in-memory storage. The item is fully functional
-     * but data is lost when the JVM exits. Used for testing, demos, and temporary sessions.
+     * <p>Creates a fresh item with in-memory storage. Fully functional
+     * but data is lost when the JVM exits. Used for testing and bootstrap.
      *
-     * <p>This constructor:
-     * <ul>
-     *   <li>Creates a random IID</li>
-     *   <li>Uses the provided store for type lookups and storage</li>
-     *   <li>Initializes fresh components</li>
-     *   <li>Calls hydrate() and onFullyInitialized()</li>
-     * </ul>
+     * <p>The librarian may be null (e.g., Librarian bootstrapping itself).
      *
-     * @param store In-memory store for type lookups and content storage
-     * @param inMemoryMarker Marker parameter to distinguish from path-based constructor
+     * @param librarian The librarian context, or null during bootstrap
+     * @param store     Store for type lookups and content storage
      */
-    protected Item(ItemStore store, InMemoryMarker inMemoryMarker) {
+    protected Item(Librarian librarian, ItemStore store) {
         Objects.requireNonNull(store, "store");
 
-        this.librarian = null;  // In-memory items don't have a librarian reference
+        this.librarian = librarian;
         this.store = store;
         this.iid = ItemID.random();
         this.freshBoot = true;
@@ -569,111 +557,8 @@ public class Item {
         // Set owner on state tables before populating them
         state.setOwner(this);
 
-        // Initialize fresh components (creates defaults, populates EndorsementsTable)
         initializeFreshComponents();
-
-        // Hydrate: bind fields and invoke callbacks (components already in table)
         hydrate();
-
-        // Call hook after all components are initialized
-        onFullyInitialized();
-    }
-
-    /**
-     * Marker class to distinguish in-memory constructor from path-based constructor.
-     * This avoids signature collision with Item(Path, ItemStore).
-     */
-    protected static final class InMemoryMarker {
-        public static final InMemoryMarker INSTANCE = new InMemoryMarker();
-        private InMemoryMarker() {}
-    }
-
-    /**
-     * Path-based constructor with librarian reference.
-     *
-     * <p>Combines librarian reference (for principal tracking, library access) with
-     * full path-based initialization (vault creation, key generation, component init).
-     * Used by User and other items that need both a librarian and a home directory.
-     *
-     * <p>If path exists (.item/ structure): loads existing item.
-     * <p>If path doesn't exist: creates new item with full component initialization.
-     *
-     * @param librarian The librarian (provides store access and library)
-     * @param path      The filesystem path for this item's home directory
-     */
-    protected Item(Librarian librarian, Path path) {
-        Objects.requireNonNull(librarian, "librarian");
-        Objects.requireNonNull(path, "path");
-
-        this.librarian = librarian;
-        ItemStore fallbackStore = librarian.library().primaryStore().orElse(null);
-
-        // Set owner on state tables before populating them
-        state.setOwner(this);
-
-        if (WorkingTreeStore.exists(path)) {
-            // LOAD existing
-            WorkingTreeStore wts = WorkingTreeStore.open(path, fallbackStore);
-            this.store = wts;
-            this.iid = wts.iid();
-            this.freshBoot = false;
-            this.dirty = false;
-
-            // Load component entries from store into table
-            for (dev.everydaythings.graph.frame.Frame frame : wts.loadHeadComponents()) {
-                frames().add(frame);
-            }
-
-            // Hydrate: decode all, bind fields, invoke callbacks
-            hydrate();
-        } else {
-            // CREATE new
-            this.iid = ItemID.random();
-            this.store = WorkingTreeStore.materialize(path, iid, fallbackStore);
-            this.freshBoot = true;
-            this.dirty = true;
-
-            // Initialize fresh components (creates defaults, populates EndorsementsTable)
-            initializeFreshComponents();
-
-            // Hydrate: bind fields and invoke callbacks (components already in table)
-            hydrate();
-        }
-
-        // Call hook after all components are initialized
-        onFullyInitialized();
-    }
-
-    /**
-     * In-memory constructor with librarian reference.
-     *
-     * <p>Combines librarian reference with full in-memory initialization
-     * (vault creation, key generation, component init). Used for creating
-     * items that need both a librarian and full component initialization
-     * but don't need a filesystem path (testing, ephemeral users).
-     *
-     * @param librarian The librarian (provides store access and library)
-     * @param marker    Marker to distinguish from other constructors
-     */
-    protected Item(Librarian librarian, InMemoryMarker marker) {
-        Objects.requireNonNull(librarian, "librarian");
-
-        this.librarian = librarian;
-        this.store = librarian.library().primaryStore().orElse(null);
-        this.iid = ItemID.random();
-        this.freshBoot = true;
-        this.dirty = true;
-
-        // Set owner on state tables before populating them
-        state.setOwner(this);
-
-        // Initialize fresh components (creates defaults, populates EndorsementsTable)
-        initializeFreshComponents();
-
-        // Hydrate: bind fields and invoke callbacks (components already in table)
-        hydrate();
-
-        // Call hook after all components are initialized
         onFullyInitialized();
     }
 
@@ -1682,27 +1567,16 @@ public class Item {
     }
 
     /**
-     * Instantiate an Item subclass, trying constructors in priority order.
+     * Instantiate an Item subclass via its {@code (Librarian)} constructor.
      */
     public static Item instantiateItem(Class<?> implClass, Librarian lib) {
         try {
             var ctor = implClass.getDeclaredConstructor(Librarian.class);
             ctor.setAccessible(true);
             return (Item) ctor.newInstance(lib);
-        } catch (NoSuchMethodException ignored) {
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
-        }
-        try {
-            Class<?> markerClass = Class.forName(
-                    "dev.everydaythings.graph.item.Item$InMemoryMarker");
-            Object markerInstance = markerClass.getField("INSTANCE").get(null);
-            var ctor = implClass.getDeclaredConstructor(Librarian.class, markerClass);
-            ctor.setAccessible(true);
-            return (Item) ctor.newInstance(lib, markerInstance);
-        } catch (NoSuchMethodException | ClassNotFoundException e) {
+        } catch (NoSuchMethodException e) {
             throw new IllegalArgumentException(
-                    implClass.getSimpleName() + " has no Librarian or (Librarian, InMemoryMarker) constructor");
+                    implClass.getSimpleName() + " has no (Librarian) constructor");
         } catch (Exception e) {
             throw new RuntimeException("Failed to create " + implClass.getSimpleName(), e);
         }

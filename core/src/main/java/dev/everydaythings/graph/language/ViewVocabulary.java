@@ -124,25 +124,4 @@ public final class ViewVocabulary {
         static final ItemID expectLocation = ThematicRole.Location.IID;
     }
 
-    // ==================================================================================
-    // BACKWARD COMPAT — old references to View.KEY and View.IID
-    // ==================================================================================
-
-    /**
-     * @deprecated Use {@link ItemView} directly. View and ItemView are the same concept.
-     */
-    @Deprecated
-    public static class View {
-        public static final String KEY = ItemView.KEY;
-        public static final ItemID IID = ItemView.IID;
-    }
-
-    /**
-     * @deprecated Use {@link ItemView#KEY} for the display predicate on Host.
-     */
-    @Deprecated
-    public static class Display {
-        public static final String KEY = "cg.sememe:display";
-        public static final ItemID IID = ItemID.fromString(KEY);
-    }
 }

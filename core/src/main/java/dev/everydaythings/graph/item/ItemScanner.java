@@ -139,7 +139,7 @@ public final class ItemScanner {
         return new FrameFieldSpec(
                 null, // no field — value is synthesized
                 frameKey, type, selfRole, valueRole,
-                "", true, false, false, true, true);
+                "", false, false, true, true);
     }
 
     // ==================================================================================
@@ -177,7 +177,6 @@ public final class ItemScanner {
 
         boolean localOnly = ann.localOnly();
         boolean stream = false;
-        boolean snapshot = !localOnly;
         boolean identity = !localOnly;
 
         String mountPath = ann.endorsement().mounts().length > 0 ? ann.endorsement().mounts()[0] : "";
@@ -187,7 +186,7 @@ public final class ItemScanner {
 
         return new FrameFieldSpec(
                 field, frameKey, type, selfRole, valueRole,
-                mountPath, snapshot, stream, localOnly, identity, endorsed);
+                mountPath, stream, localOnly, identity, endorsed);
     }
 
     // ==================================================================================

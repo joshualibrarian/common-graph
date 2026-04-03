@@ -234,13 +234,12 @@ public final class Frame implements Canonical {
     /** Create a stream frame. */
     public static Frame stream(FrameKey key, ItemID type, List<ContentID> heads, boolean identity) {
         List<Binding> bindings = new ArrayList<>();
-        List<ItemID> streamKey = List.of(
-                ThematicRole.Topic.IID, CoreVocabulary.Stream.IID);
+        List<FrameKey.FrameToken> streamQualifiers = List.of(new FrameKey.Sememe(CoreVocabulary.Stream.IID));
         if (heads != null && !heads.isEmpty()) {
-            bindings.add(Binding.compound(streamKey,
+            bindings.add(Binding.qualified(ThematicRole.Topic.IID, streamQualifiers,
                     BindingTarget.ref(heads.getFirst()), true, false));
         } else {
-            bindings.add(Binding.compound(streamKey,
+            bindings.add(Binding.qualified(ThematicRole.Topic.IID, streamQualifiers,
                     Literal.ofText(""), false, false));
         }
         FrameBody body = new FrameBody(type, bindings);
@@ -250,9 +249,8 @@ public final class Frame implements Canonical {
     /** Create a local/external resource frame (identity defaults to false). */
     public static Frame localResource(FrameKey key, ItemID type, boolean identity) {
         List<Binding> bindings = new ArrayList<>();
-        List<ItemID> externalKey = List.of(
-                ThematicRole.Topic.IID, CoreVocabulary.External.IID);
-        bindings.add(Binding.compound(externalKey,
+        List<FrameKey.FrameToken> externalQualifiers = List.of(new FrameKey.Sememe(CoreVocabulary.External.IID));
+        bindings.add(Binding.qualified(ThematicRole.Topic.IID, externalQualifiers,
                 Literal.ofText(""), false, false));
         FrameBody body = new FrameBody(type, bindings);
         return new Frame(key, type, body, null, identity);

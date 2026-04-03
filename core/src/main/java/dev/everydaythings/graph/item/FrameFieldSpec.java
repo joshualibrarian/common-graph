@@ -40,9 +40,6 @@ public class FrameFieldSpec {
     /** Mount path relative to item root (empty if not mounted). */
     private final String path;
 
-    /** Whether to store as snapshot content. */
-    private final boolean snapshot;
-
     /** Whether to store as stream content. */
     private final boolean stream;
 
@@ -65,7 +62,6 @@ public class FrameFieldSpec {
             @NonNull ItemID selfRole,
             @NonNull ItemID valueRole,
             String path,
-            boolean snapshot,
             boolean stream,
             boolean localOnly,
             boolean identity,
@@ -76,7 +72,6 @@ public class FrameFieldSpec {
         this.selfRole = selfRole;
         this.valueRole = valueRole;
         this.path = path != null ? path : "";
-        this.snapshot = snapshot;
         this.stream = stream;
         this.localOnly = localOnly;
         this.identity = identity;

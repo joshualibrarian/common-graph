@@ -72,30 +72,14 @@ public class User extends Signer {
         super(librarian, manifest);
     }
 
-    /**
-     * Path-based constructor for creating/loading a User at a home directory.
-     *
-     * <p>If the path exists, loads the existing user. If not, creates a new user
-     * with a real SoftwareVault on disk.
-     *
-     * @param librarian The librarian (provides store access and library)
-     * @param homePath  The filesystem path for this user's home directory
-     */
+    /** Path-based constructor for creating/loading a User at a home directory. */
     protected User(Librarian librarian, Path homePath) {
-        super(librarian, homePath);
+        super(librarian, homePath, librarian.library().primaryStore().orElse(null));
     }
 
-    /**
-     * In-memory constructor for testing.
-     *
-     * <p>Creates an ephemeral user with an InMemoryVault. Used when the
-     * Librarian has no rootPath (in-memory mode).
-     *
-     * @param librarian The librarian (provides store access)
-     * @param marker    Marker to distinguish from other constructors
-     */
-    protected User(Librarian librarian, InMemoryMarker marker) {
-        super(librarian, marker);
+    /** In-memory constructor for ephemeral users (testing, no filesystem). */
+    protected User(Librarian librarian) {
+        super(librarian, librarian.library().primaryStore().orElse(null));
     }
 
     // ==================================================================================
@@ -122,7 +106,7 @@ public class User extends Signer {
             Path homePath = lib.rootPath().resolve("users").resolve(name);
             user = new User(lib, homePath);
         } else {
-            user = new User(lib, InMemoryMarker.INSTANCE);
+            user = new User(lib);
         }
         user.setName(name);
         user.commit(lib);

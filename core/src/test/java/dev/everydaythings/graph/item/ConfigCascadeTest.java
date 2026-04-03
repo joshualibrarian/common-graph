@@ -61,9 +61,8 @@ class ConfigCascadeTest {
             Literal presentationLit = Literal.ofText("gold-border");
 
             FrameBody body = new FrameBody(AUTHOR_PRED, ItemID.random(), List.of(
-                    Binding.compound(
-                            List.of(ThematicRole.Config.IID,
-                                    ThematicRole.Presentation.IID),
+                    Binding.qualified(ThematicRole.Config.IID,
+                            List.of(new FrameKey.Sememe(ThematicRole.Presentation.IID)),
                             presentationLit, false, false)
             ));
 
@@ -77,9 +76,8 @@ class ConfigCascadeTest {
             Literal vocabLit = Literal.ofText("tolkien");
 
             FrameBody body = new FrameBody(AUTHOR_PRED, ItemID.random(), List.of(
-                    Binding.compound(
-                            List.of(ThematicRole.Config.IID,
-                                    ThematicRole.Vocabulary.IID),
+                    Binding.qualified(ThematicRole.Config.IID,
+                            List.of(new FrameKey.Sememe(ThematicRole.Vocabulary.IID)),
                             vocabLit, false, false)
             ));
 
@@ -100,9 +98,8 @@ class ConfigCascadeTest {
             Literal lit = Literal.ofText("per-frame-style");
 
             FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
-                    Binding.compound(
-                            List.of(ThematicRole.Config.IID,
-                                    ThematicRole.Presentation.IID),
+                    Binding.qualified(ThematicRole.Config.IID,
+                            List.of(new FrameKey.Sememe(ThematicRole.Presentation.IID)),
                             lit, false, false)
             ));
 
@@ -157,9 +154,8 @@ class ConfigCascadeTest {
             // Frame with its own (CONFIG, PRESENTATION) — should win
             Literal frameLit = Literal.ofText("per-frame-override");
             FrameBody authorBody = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
-                    Binding.compound(
-                            List.of(ThematicRole.Config.IID,
-                                    ThematicRole.Presentation.IID),
+                    Binding.qualified(ThematicRole.Config.IID,
+                            List.of(new FrameKey.Sememe(ThematicRole.Presentation.IID)),
                             frameLit, false, false)
             ));
             Frame authorFrame = new Frame(
@@ -232,9 +228,8 @@ class ConfigCascadeTest {
 
             // Build body with both old compound binding AND new config map entry
             FrameBody body = new FrameBody(AUTHOR_PRED, item.iid(), List.of(
-                    Binding.compound(
-                            List.of(ThematicRole.Config.IID,
-                                    ThematicRole.Presentation.IID),
+                    Binding.qualified(ThematicRole.Config.IID,
+                            List.of(new FrameKey.Sememe(ThematicRole.Presentation.IID)),
                             compoundLit, false, false)))
                     .withConfig(ThematicRole.Presentation.IID, configMapLit);
 

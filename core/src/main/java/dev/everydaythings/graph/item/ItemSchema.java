@@ -496,8 +496,8 @@ public class ItemSchema {
 
         // Encrypted envelope — compound key (TOPIC, ENCRYPTED)
         if (encryptedCid != null) {
-            bindings.add(dev.everydaythings.graph.frame.Binding.compound(
-                    java.util.List.of(topicId, CoreVocabulary.Encrypted.IID),
+            bindings.add(dev.everydaythings.graph.frame.Binding.qualified(
+                    topicId, java.util.List.of(new FrameKey.Sememe(CoreVocabulary.Encrypted.IID)),
                     BindingTarget.ref(encryptedCid), false, false));
         }
 

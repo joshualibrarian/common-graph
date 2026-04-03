@@ -294,16 +294,6 @@ public final class FrameBody implements Canonical {
         return new Binding(ThematicRole.Theme.IID, BindingTarget.iid(itemId));
     }
 
-    /**
-     * The owning item's IID.
-     *
-     * @deprecated Use {@link #homeId()} — theme is now a regular THEME binding.
-     */
-    @Deprecated
-    public ItemID theme() {
-        return homeId();
-    }
-
     // ==================================================================================
     // Hashing
     // ==================================================================================

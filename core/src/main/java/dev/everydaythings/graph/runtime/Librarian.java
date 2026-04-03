@@ -328,7 +328,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
         List<Item> seedItems = SeedVocabulary.bootstrap(seeds);
 
         // Create librarian using in-memory constructor
-        Librarian librarian = new Librarian(seeds, InMemoryMarker.INSTANCE);
+        Librarian librarian = new Librarian(seeds);
 
         // Cache fully-populated seed items with librarian reference set.
         for (Item seed : seedItems) {
@@ -375,39 +375,23 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      * Create or load a Librarian at the given root path.
      *
      * @param rootPath  The graph root directory
-     * @param seedStore In-memory seed store for type lookups during construction (becomes fallback)
+     * @param seedStore In-memory seed store for type lookups during construction
      */
     private Librarian(Path rootPath, ItemStore seedStore) {
-        // Path-based construction: Item handles create vs load
-        // Seed store provides type resolution during component initialization via fallback
-        super(rootPath, seedStore);
-
+        super(null, rootPath, seedStore);
         this.rootPath = rootPath;
-
-        // NOTE: Library is created in onFullyInitialized() because
-        // super() triggers onFullyInitialized() before we get here.
-
-        // Fresh boot initialization completed
+        // Library is created in onFullyInitialized() (super() calls it before we return)
     }
 
     /**
      * In-memory constructor for ephemeral Librarian.
      *
-     * <p>Creates a fully functional Librarian with no persistent storage.
-     * Used for testing, demos, and temporary sessions.
-     *
      * @param seedStore In-memory store with bootstrapped vocabulary
-     * @param marker    Marker parameter to distinguish from path-based constructor
      */
-    private Librarian(ItemStore seedStore, InMemoryMarker marker) {
-        super(seedStore, marker);
-
-        this.rootPath = null;  // No filesystem path for in-memory librarian
-
-        // NOTE: Library is created in onFullyInitialized() because
-        // super() triggers onFullyInitialized() before we get here.
-
-        // In-memory boot initialization completed
+    private Librarian(ItemStore seedStore) {
+        super(null, seedStore);
+        this.rootPath = null;
+        // Library is created in onFullyInitialized() (super() calls it before we return)
     }
 
     /**
@@ -1937,7 +1921,7 @@ public final class Librarian extends Signer implements AutoCloseable, Daemon, Ca
      */
     public Stream<ItemID> types() {
         return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
-                .map(FrameBody::theme);
+                .map(FrameBody::homeId);
     }
 
     // ==================================================================================

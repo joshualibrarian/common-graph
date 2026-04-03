@@ -2,6 +2,7 @@ package dev.everydaythings.graph.frame;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
@@ -118,9 +119,8 @@ class FrameBodyConfigTest {
         void presentationFallsBackToCompound() {
             Literal lit = Literal.ofText("old-style");
             FrameBody body = new FrameBody(PRED, List.of(
-                    Binding.compound(
-                            List.of(ThematicRole.Config.IID,
-                                    ThematicRole.Presentation.IID),
+                    Binding.qualified(ThematicRole.Config.IID,
+                            List.of(new FrameKey.Sememe(ThematicRole.Presentation.IID)),
                             lit, false, false)));
 
             assertThat(body.configPresentationPayload()).isEqualTo(lit.payload());
@@ -133,9 +133,8 @@ class FrameBodyConfigTest {
             Literal newLit = Literal.ofText("new");
 
             FrameBody body = new FrameBody(PRED, List.of(
-                    Binding.compound(
-                            List.of(ThematicRole.Config.IID,
-                                    ThematicRole.Presentation.IID),
+                    Binding.qualified(ThematicRole.Config.IID,
+                            List.of(new FrameKey.Sememe(ThematicRole.Presentation.IID)),
                             oldLit, false, false)),
                     List.of(Binding.nonIdentity(ThematicRole.Presentation.IID, newLit)));
 

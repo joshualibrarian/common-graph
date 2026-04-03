@@ -151,21 +151,6 @@ public final class Binding implements Canonical {
     }
 
     /**
-     * Backward-compatible flat key constructor — splits key[0] as role, key[1:] as Sememe qualifiers.
-     */
-    public Binding(List<ItemID> key, BindingTarget target, boolean identity, boolean index) {
-        this(
-            key != null && !key.isEmpty() ? key.getFirst() : null,
-            key != null && key.size() > 1
-                ? key.subList(1, key.size()).stream()
-                    .map(id -> (FrameToken) new FrameKey.Sememe(id))
-                    .toList()
-                : List.of(),
-            target, identity, index
-        );
-    }
-
-    /**
      * No-arg constructor for Canonical decode support.
      */
     @SuppressWarnings("unused")
@@ -321,15 +306,6 @@ public final class Binding implements Canonical {
         return new Binding(role, new BindingTarget.FrameTarget(body));
     }
 
-    /**
-     * Create a compound-key binding from a flat ItemID list.
-     *
-     * @deprecated Use {@link #qualified(ItemID, List, BindingTarget, boolean, boolean)} instead.
-     */
-    @Deprecated
-    public static Binding compound(List<ItemID> key, BindingTarget target, boolean identity, boolean index) {
-        return new Binding(key, target, identity, index);
-    }
 
     // ==================================================================================
     // CBOR Encoding
