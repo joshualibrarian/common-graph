@@ -2,7 +2,7 @@
 
 **A unified meaning-space for content, identity, and trust.**
 
-> **Fair warning:** This is an active construction site. The architecture is real, the code runs, but everything is changing constantly. If that bothers you, check back later. If that excites you, read on.
+> **Fair warning:** This is an active construction site. The architecture is real, the code runs, but everything is changing constantly. If that bothers you, check back later.
 
 ---
 
