@@ -269,7 +269,16 @@ public class SkiaSceneRenderer implements SceneRenderer {
 
         if (props.model() != null) {
             imageNode.modelResource(props.model());
-            imageNode.modelColor(-1);
+            String fill = props.fill();
+            if (fill != null && fill.startsWith("#")) {
+                try {
+                    imageNode.modelColor((int) Long.parseLong(fill.substring(1), 16));
+                } catch (NumberFormatException e) {
+                    imageNode.modelColor(-1);
+                }
+            } else {
+                imageNode.modelColor(-1);
+            }
         }
 
         applyEvents(imageNode, body);

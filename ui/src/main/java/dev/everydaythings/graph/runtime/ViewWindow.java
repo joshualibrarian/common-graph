@@ -210,7 +210,7 @@ public class ViewWindow {
         // Wire ItemView state changes to trigger re-render
         if (itemView != null) {
             itemView.setStateStore(nodeRenderer.stateStore());
-            itemView.onChange(() -> { rebuildLayout(); requestRepaint(); });
+            itemView.onChange(() -> { sceneDirty = true; rebuildLayout(); requestRepaint(); });
         }
 
         // Create per-window InputController
@@ -457,6 +457,7 @@ public class ViewWindow {
                 }
                 if (chord.isKey(SpecialKey.F10)) {
                     flatMode = !flatMode;
+                    sceneDirty = true;
                     rebuildLayout();
                     requestRepaint();
                     return;
@@ -472,6 +473,11 @@ public class ViewWindow {
 
         filamentWindow.onMouseButton((button, action, mods) -> {
             updateScale.run();
+            if (!flatMode && cameraController != null) {
+                cameraController.onMouseButton(button, action, mods);
+                requestRepaint();
+                return;
+            }
             double sx = lastCursorX * inputScale[0];
             double sy = lastCursorY * inputScale[0];
             if (resizeController.onMouseButton(button, action, lastCursorX, lastCursorY)) return;
@@ -484,6 +490,11 @@ public class ViewWindow {
         filamentWindow.onCursorPos((x, y) -> {
             lastCursorX = x;
             lastCursorY = y;
+            if (!flatMode && cameraController != null) {
+                cameraController.onCursorPos(x, y);
+                requestRepaint();
+                return;
+            }
             resizeController.onCursorPos(x, y);
             dragController.onCursorPos(x, y);
             updateScale.run();
@@ -491,6 +502,11 @@ public class ViewWindow {
         });
 
         filamentWindow.onScroll((xOffset, yOffset) -> {
+            if (!flatMode && cameraController != null) {
+                cameraController.onScroll(xOffset, yOffset);
+                requestRepaint();
+                return;
+            }
             updateScale.run();
             handleMouseScroll(lastCursorX * inputScale[0], lastCursorY * inputScale[0],
                     1.0f, xOffset, yOffset);
@@ -579,34 +595,64 @@ public class ViewWindow {
 
             if (rendererType == ViewConfig.RendererType.FILAMENT && uiPane != null && uiPane.painter() != null) {
                 uiPane.painter().clear();
-                if (flatMode) {
-                    uiPane.painter().configureForLayout(w, h, 2.0f, 1.0f);
-                    uiPane.painter().paint(tree, 0f);
-                }
+                uiPane.painter().configureForLayout(w, h, 2.0f, 1.0f);
+                uiPane.painter().paint(tree, 0f);
                 repaintGrip();
 
                 // 3D elevated rendering — same tree, 3D interpretation.
                 // Only in spatial mode (F10 toggles flatMode).
-                if (!flatMode && detailPainter != null) {
+                // Only rebuild 3D scene when content changes (sceneDirty), not every layout pass.
+                if (!flatMode && detailPainter != null && sceneDirty) {
+                    // Find the detail content subtree — only that goes to 3D,
+                    // not the full ItemView chrome (header, tree, prompt).
+                    LayoutNode.BoxNode detailNode = findNodeById(tree, "detail");
+                    if (detailNode == null) detailNode = tree; // fallback
+
                     detailPainter.clear();
-                    float worldWidth = 2.0f;
-                    float worldDepth = worldWidth * (h / w);
-                    detailPainter.configureForElevated(w, h, worldWidth, worldDepth);
-                    detailPainter.paintElevated(tree, 0f);
+                    float detailW = detailNode.width() > 0 ? detailNode.width() : w;
+                    float detailH = detailNode.height() > 0 ? detailNode.height() : h;
+                    float worldWidth = 0.6f;
+                    float worldDepth = worldWidth * (detailH / detailW);
+                    detailPainter.configureForElevated(detailW, detailH, worldWidth, worldDepth);
+                    detailPainter.paintElevated(detailNode, 0f);
 
                     // Dispatch GLB model placements to spatial renderer
                     if (sceneRenderer != null) {
                         sceneRenderer.clear();
+                        // TODO: read from @Scene.Light/@Scene.Environment on the item
+                        // once the Node path processes those annotations
+                        sceneRenderer.environment(0x1E1E2E, 0x808080, 0, 0, 0);
+                        sceneRenderer.light("sun", 0xFFF5E6, 1.0,
+                                0, 0, 0, -0.5, -1, -0.5);
                         for (var placement : detailPainter.modelPlacements()) {
                             float s = placement.scale();
+                            // Elevated painter uses (X=right, Y=height, Z=depth).
+                            // DSL convention is (X=right, Y=forward, Z=up).
+                            // Swap Y↔Z so depth becomes forward and height becomes up.
                             sceneRenderer.pushTransform(
-                                    placement.x(), placement.y(), placement.z(),
+                                    placement.x(), placement.z(), placement.y(),
                                     0, 0, 0, 1,   // identity quaternion
                                     s, s, s);      // uniform scale
                             sceneRenderer.meshBody(placement.resource(), placement.color(),
                                     1.0, "lit", null);
                             sceneRenderer.popTransform();
                         }
+                    }
+
+                    // Frame the camera to fit the scene on first render or mode switch
+                    if (sceneDirty && cameraController != null) {
+                        sceneDirty = false;
+                        // Scene extends from -worldWidth/2 to +worldWidth/2 on XZ plane
+                        float extent = Math.max(worldWidth, worldDepth);
+                        double fov = 60;
+                        double dist = extent / (2.0 * Math.tan(Math.toRadians(fov / 2.0)));
+                        // Position camera above-front, angled ~50° down at the scene center
+                        double angle = Math.toRadians(50);
+                        double eyeY = dist * Math.sin(angle);
+                        double eyeZ = dist * Math.cos(angle);
+                        cameraController.setDefaults(fov, 0.01, 100,
+                                0, eyeY, eyeZ,
+                                0, 0, 0);
                     }
                 }
             } else {
@@ -828,6 +874,18 @@ public class ViewWindow {
             scrollState.scrollBy(scrollBox.id(), delta, maxOffset);
             requestRepaint();
         }
+    }
+
+    /** Find a BoxNode by ID in the layout tree. */
+    private static LayoutNode.BoxNode findNodeById(LayoutNode.BoxNode root, String id) {
+        if (id.equals(root.id())) return root;
+        for (LayoutNode child : root.children()) {
+            if (child instanceof LayoutNode.BoxNode box) {
+                LayoutNode.BoxNode found = findNodeById(box, id);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     // ==================== Renderer Switching ====================

@@ -794,7 +794,16 @@ public final class SceneCompiler {
         String model = invokeStringGetter(obj, "modelKey");
 
         if (glyph != null || image != null || model != null) {
-            return Body.of(glyph, image, model);
+            Body body = Body.of(glyph, image, model);
+            // Duck-type modelColor() for 3D piece coloring
+            try {
+                Method m = obj.getClass().getMethod("modelColor");
+                Object result = m.invoke(obj);
+                if (result instanceof Integer color && color != -1) {
+                    body.fill(String.format("#%06X", color & 0xFFFFFF));
+                }
+            } catch (Exception ignored) {}
+            return body;
         }
         return Body.ofGlyph(obj.toString());
     }
