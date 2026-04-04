@@ -55,6 +55,15 @@ public final class HandleResolver {
         Librarian lib = item.itemLibrarian();
         if (lib == null) return null;
 
+        // Item-level bindings first — these are the item's direct semantic content
+        List<Feature> itemBindingFeatures = extractItemBindingFeatures(item, lib);
+        if (!itemBindingFeatures.isEmpty()) {
+            if (siblings == null || siblings.isEmpty()) {
+                return formatFeatures(itemBindingFeatures, itemBindingFeatures.size());
+            }
+            return disambiguate(item, itemBindingFeatures, siblings, List.of(), lib);
+        }
+
         // Get the type's EXPECTS frames (salience-ordered)
         List<Expectation> expectations = expectationsFor(item, lib);
 
@@ -83,6 +92,28 @@ public final class HandleResolver {
      */
     public static String resolve(Item item) {
         return resolve(item, List.of());
+    }
+
+    // ==================================================================================
+    // Item-level bindings
+    // ==================================================================================
+
+    /**
+     * Extract display features from an item's item-level bindings.
+     *
+     * <p>Item-level bindings are direct semantic content bound to the item itself
+     * (not frames on the item). These take priority over frame-derived features
+     * because they represent the item's core identity.
+     */
+    private static List<Feature> extractItemBindingFeatures(Item item, Librarian lib) {
+        List<Feature> features = new ArrayList<>();
+        for (Binding b : item.itemBindings()) {
+            String value = extractBindingDisplayValue(b, lib);
+            if (value != null) {
+                features.add(new Feature(b.role(), value));
+            }
+        }
+        return features;
     }
 
     // ==================================================================================

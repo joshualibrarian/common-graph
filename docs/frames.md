@@ -2,7 +2,7 @@
 
 The fundamental primitive in Common Graph is the **semantic frame** — a predicate with role-keyed bindings, grounded in a shared vocabulary of meanings. Everything is a frame. A title, a gloss, a chess move, a vault, a video, a like, a harvest record, a sensor reading — all frames. The difference between "Tolkien authored The Hobbit" and "Alice harvested 5kg of tomatoes from bed 3" is only which predicate and which bindings — structurally they are the same thing.
 
-**Frames are structured assertions, not annotations.** Every element of a frame — its predicate, every binding role, every qualifier, every target — is a globally-anchored semantic reference resolved at write time. The person or code creating the frame performs disambiguation at creation, when intent is unambiguous. What gets stored is a structure of grounded meanings, not text to be interpreted later. The data is pre-indexed by meaning at the moment of creation.
+**Frames are structured assertions, not annotations.** The structural elements of a frame — its predicate, every binding role, and in the vast majority of cases every qualifier and target — are globally-anchored semantic references resolved at write time. Some qualifiers and targets are literals: a title string, a math variable name, a file path, a quantity. But the scaffolding that gives those literals meaning — the predicate, the roles, the qualifying sememes around them — is always semantic. The person or code creating the frame performs disambiguation at creation, when intent is unambiguous. What gets stored is a structure of grounded meanings carrying literal values where appropriate, not text to be interpreted later. The data is pre-indexed by meaning at the moment of creation.
 
 ## The Frame Primitive
 
@@ -33,9 +33,41 @@ Binding {
 - **Identity**: whether this binding contributes to the FrameBody's content hash. Identity bindings define WHAT the frame IS. Non-identity bindings (config, presentation) can change without creating a new frame.
 - **Index**: whether this binding creates a reverse-lookup entry. The index behavior depends on the target type: string targets → TokenDictionary posting; ItemID targets → FRAME_BY_ITEM entry. These are mutually exclusive by target type.
 
+### Thematic Roles
+
+The roles in a binding are **thematic roles** (also called theta roles or semantic roles) — a concept from linguistics, originating in Fillmore's Case Grammar (1968) and later Frame Semantics, where participants in any event or relation play identifiable semantic functions. In "Shakespeare wrote Hamlet in London," Shakespeare is the AGENT (the doer), Hamlet is the PATIENT (the thing affected), and London is the LOCATION (where it happened). These functions are universal — every language has ways to express who did what to whom, where, and when.
+
+Common Graph adopts a core vocabulary of thematic roles, aligned with VerbNet and ISO 24617-4 (LIRICS/SemAF-SR). Each role is itself a sememe — a meaning unit with its own IID, glosses, and lexemes. The core set:
+
+| Role | Meaning |
+|------|---------|
+| AGENT | The intentional initiator of an action |
+| PATIENT | The entity affected, changed, or consumed |
+| THEME | The entity being described or moved (without change of state) |
+| EXPERIENCER | The entity perceiving or feeling |
+| STIMULUS | What triggers a perception or feeling |
+| CAUSE | A non-intentional force bringing about an event |
+| GOAL | The end state or purpose |
+| DESTINATION | Where something moves to |
+| SOURCE | Where something comes from |
+| PATH | The route or trajectory |
+| RESULT | The outcome or product |
+| RECIPIENT | Who receives a transfer |
+| BENEFICIARY | Who benefits from an action |
+| PARTNER | A co-participant |
+| INSTRUMENT | The tool or means used |
+| LOCATION | Where something is or happens |
+| TIME | When something happens |
+| TOPIC | What something is about (content reference) |
+| NAME | A name, label, or identifier |
+
+There are more (MANNER, EXTENT, ATTRIBUTE, PURPOSE, CONFIG, FOLLOWS, etc.), and the set is extensible — new roles can be added as seed vocabulary without structural changes. But these cover the vast majority of frames.
+
+The key insight: roles are not just labels. Each role carries semantic expectations about what kind of value it holds and how that value relates to the predicate. AGENT implies intentionality. PATIENT implies change of state. THEME implies reference without change. These distinctions matter for querying, inference, and UI generation.
+
 The compound key `[role, qualifier₁, qualifier₂, ...]` is the binding's **key**. The target is the binding's **value**. Every binding is a key→value pair.
 
-Qualifiers are sememes in the vast majority of cases — queryable by meaning, resolvable across languages. Literal qualifiers are the escape hatch for math variables (`NAME:["x"]→5`), developer identifiers, and cases where a concept doesn't need a vocabulary entry. The choice is meaningful: `NAME:[TAVERN]` is discoverable across languages; `NAME:["tavern"]` is an opaque string.
+Qualifiers are sememes in the vast majority of cases — queryable by meaning, resolvable across languages. Literal qualifiers are the escape hatch for math variables (`THEME:["x"]→5`), developer identifiers, and cases where a concept doesn't need a vocabulary entry. The choice is meaningful: `NAME:[TAVERN]` is discoverable across languages; `NAME:["tavern"]` is an opaque string.
 
 ### Extending the Vocabulary
 
@@ -53,10 +85,10 @@ This handles the universal integration problem: every company has their own ID s
 ```
 ACME_PRODUCT_ID  { THEME:[]→our_widget,   NAME:[]→"ACM-7742" }
 SAP_MATERIAL_ID  { THEME:[]→our_widget,   NAME:[]→"MAT-001-A" }
-CILI_ID          { THEME:[]→dog_sememe,    NAME:[]→"i77065" }
+CILI_ID          { THEME:[]→dog_sememe,    NAME:[]→"i46360" }
 ```
 
-Same pattern for enterprise integrations, scientific identifiers, government codes — any external ID system becomes a sememe, and the mapping is a frame. Queryable in both directions: "what's the Acme ID for this widget?" and "what item has Acme ID ACM-7742?"
+Same pattern for enterprise integrations, scientific identifiers, government codes — any external ID system becomes a sememe, and the mapping is a frame. Queryable in both directions: "what's the AcmeID for this widget?" and "what item has AcmeID ACM-7742?"
 
 ## Predicates as Schemas
 
@@ -79,16 +111,65 @@ Creating a frame IS entering data. Querying frames IS a database query. Piping f
 
 ### Role Declarations
 
-The predicate declares:
+The predicate is itself a sememe — a meaning unit, with an IID. It has two facets: a **definition** and an **implementation**.
+
+The **definition** is the sememe itself — language-agnostic, declarative, stored as frames:
 
 1. **Shape** — what binding roles the frame expects (its "columns")
 2. **Defaults** — which roles are identity or non-identity by default
+
+The **implementation** is code in a specific programming language, running on its appropriate runtime. It provides:
+
 3. **Parsing** — how this predicate participates in parsing via `contribute()` (precedence, fixity for operators; assigned roles for prepositions; sub-language delegation for domain notation)
 4. **Reaction** — how items respond to this frame being assembled via `onFrameAssembled()` (creating items, opening views, evaluating expressions)
 
+The link between definition and implementation is itself a frame: **IMPLEMENTS** is a predicate that declares "this code implements this sememe." The runtime resolves IMPLEMENTS frames to find the appropriate code for a given predicate on the current platform.
+
+A predicate can have a definition with no implementation — it's just a schema, a pure data template. A predicate with an implementation gets active behavior: the ADD operator knows how to evaluate arithmetic; the VIEW predicate knows how to open a window. The definition is universal; the implementation is runtime-specific. Multiple implementations can exist for the same predicate.
+
+Because the predicate is an item, it carries its own frames — glosses, lexemes, and crucially, **EXPECTS** frames. These make it discoverable, nameable in any language, and self-describing.
+
+### EXPECTS: Schema as Frames
+
+How does a predicate declare its shape? With frames. EXPECTS is a second-order predicate — a frame about what frames a type's **instances** should carry. The EXPECTS predicate uses TOPIC roles to identify the expected predicate, and additional role bindings to constrain the expectation further.
+
+A book type declares its shape entirely through EXPECTS frames on its own sememe:
+
+```
+sememe:book {
+    GLOSS     { NAME:[ENGLISH]→"a written work" }
+    EXPECTS   { TOPIC:[]→AUTHOR }
+    EXPECTS   { TOPIC:[]→TITLE }
+    EXPECTS   { TOPIC:[]→DESCRIPTION }
+}
+```
+
+This says: "instances of Book should carry AUTHOR, TITLE, and DESCRIPTION frames." No special schema language — the schema IS frames, using the same primitive as everything else.
+
+For richer types, EXPECTS frames can constrain specific roles within the expected predicate:
+
+```
+sememe:chess {
+    GLOSS     { NAME:[ENGLISH]→"the game of chess" }
+    EXPECTS   { TOPIC:[]→PLAYER,  THEME:[]→WHITE }
+    EXPECTS   { TOPIC:[]→PLAYER,  THEME:[]→BLACK }
+    EXPECTS   { TOPIC:[]→MOVE }
+    EXPECTS   { TOPIC:[]→RESIGN }
+}
+```
+
+Chess expects two PLAYER frames (distinguished by THEME — one White, one Black), plus MOVE and RESIGN frames. The constraints are semantic bindings, not a special constraint syntax.
+
+This serves double duty:
+
+- **Forward (creation guidance)** — when creating a chess item, the system knows it needs players, moves, and resignation capability. The UI can generate a creation form directly from EXPECTS.
+- **Backward (duck typing)** — if an item carries PLAYER(White), PLAYER(Black), and MOVE frames, it structurally matches "chess" whether or not anyone explicitly tagged it as such.
+
+The pattern is fully recursive: EXPECTS is itself a predicate with its own shape (it expects a TOPIC binding). Types describe their schemas using the same primitive they describe everything else with.
+
 ## Bindings: Data as Roles
 
-Fillmore's frames describe situations with role-playing participants. CG extends this: frames also **carry data**, and that data is expressed as bindings. Every piece of content — a title string, a video file, a sensor reading, a chess player — is a binding with a semantic role.
+Fillmore's frames describe situations with role-playing participants. Common Graph extends this: frames also **carry data**, and that data is expressed as bindings. Every piece of content — a title string, a video file, a sensor reading, a chess player — is a binding with a semantic role.
 
 ### Compound Binding Keys
 
@@ -127,7 +208,7 @@ EQUALS     { LOCATION:→item,  NAME:→"x", THEME:→expr} — LOCATION is the 
 AUTHORED   { THEME:→book,     AGENT:→Tolkien }         — THEME is the item
 ```
 
-The indexer indexes ALL bindings that reference items in FRAME_BY_ITEM, regardless of role.
+The indexer indexes all indexed bindings that reference items in FRAME_BY_ITEM, regardless of role — indexing is controlled by each binding's index flag.
 
 ### Identity: Per Binding
 
@@ -137,7 +218,7 @@ Every binding is either **identity** or **non-identity**:
 - **Non-identity** — this value rides alongside the assertion but doesn't affect its identity. Config, styling, derived content.
 
 The default comes from:
-1. **The role sememe** — some roles are inherently non-identity (CONFIG is never part of the body hash)
+1. **The role sememe** — some roles are inherently non-identity (CONFIG is usually not part of the body hash)
 2. **The predicate** — declares defaults for its expected roles
 
 The binding creator can always override.
@@ -289,11 +370,11 @@ Frame created → stored in object store (independent)
 
 This means:
 - You can create a frame referencing ANY item — even someone else's
-- The frame exists whether or not anyone endorses it
+- The frame exists whether anyone endorses it or not
 - Indexes make it findable by any item it references
 - Endorsement is a separate act: the item owner includes the body hash in their manifest
 
-**Creating a frame ≠ endorsing a frame.** These are separate operations with different authorization. Creation requires only a signing key. Endorsement requires ownership (or forking the item).
+**Creating a frame ≠ endorsing a frame.** These are separate operations with different authorization. Creation requires only a signing key. Endorsement requires ownership of the item (or forking it).
 
 ## Endorsed and Unendorsed
 
@@ -388,30 +469,44 @@ Queries are frames — same structure, just incomplete. Evaluation fills the hol
 
 User input at an item's prompt is always evaluated in the context of that item. There is no prompt without context — every prompt belongs to an item. The evaluation taxonomy:
 
-### Action Frames (Ephemeral)
+Every frame evaluation has two orthogonal aspects: **action** (side effects) and **persistence** (stored as a fact). A frame can be either, both, or neither. The predicate's implementation — its `onFrameAssembled()` — determines which.
 
-Frames whose purpose is their **side effect**, not their existence:
+### Pure Actions (Ephemeral)
+
+Some frames exist only for their side effect — they are evaluated, the effect happens, and the frame itself is not persisted:
 
 ```
 create chess           → CREATE { THEME:→Chess }         → new item created
-view item              → VIEW { THEME:→item }            → view opens
 5 + 2                  → ADD { THEME:→5, GOAL:→2 }       → returns 7
 ```
 
-The frame is assembled, evaluated, the effect happens, and the frame itself is not endorsed. The ActivityLog records that it happened.
+The frame is assembled, evaluated, and discarded. The ActivityLog records that it happened.
 
-### Assertion Frames (Persistent)
+### Pure Assertions (Persistent, No Side Effect)
 
-Frames whose purpose is their **existence as a fact**:
+Some frames exist purely as stored facts — their purpose is their existence, not any immediate effect:
 
 ```
-x = 5 + 2             → EQUALS { LOCATION:→item, NAME:→"x", THEME:→ADD(5,2) }
-title "The Hobbit"     → TITLE { THEME:→book, NAME:→"The Hobbit" }
+title "The Hobbit"     → TITLE { THEME:→this_book_instance, NAME:→"The Hobbit" }
+authored Tolkien       → AUTHORED { THEME:→this_book_instance, AGENT:→Tolkien }
 ```
 
-The frame is created, signed, stored in the object store, and indexed. It references the context item via its EXPECTS-declared role (LOCATION, THEME, etc.), filled automatically by context filling. On commit, the owner endorses it. On someone else's item, it remains an unendorsed FrameRecord.
+The frame is created, signed, stored in the object store, and indexed. It references the context item via its EXPECTS-declared role (LOCATION, THEME, etc.), filled automatically by context filling. On commit, the owner endorses it. On someone else's item, it remains an unendorsed Frame.
 
-The `=` / `equals` / `is` tokens are all lexemes for the same EQUALS sememe. EQUALS stores the **expression** (the formula), not the evaluated result. Querying `x` later re-evaluates the expression — live formulas, like a spreadsheet.
+### Both: Action + Assertion
+
+Some frames are both — they produce a side effect AND persist as a fact:
+
+```
+view item   → VIEW { THEME:→item }                                   → view opens + ITEM_VIEW frame persisted on session
+x = 5 + 2   → EQUALS { LOCATION:→item, NAME:→"x", THEME:→ADD(5,2) }  → evaluates to 7 + frame persisted
+```
+
+`view item` opens a window (action) and persists an ITEM_VIEW frame on the session — that's how open views are tracked and restored. `x = 5 + 2` evaluates the expression and returns the result (action) while storing the EQUALS frame as a live formula (assertion). Querying `x` later re-evaluates the expression — like a spreadsheet cell.
+
+The `=` / `equals` / `is` / `es` (Spanish) / `ist` (German) tokens are all lexemes for the same EQUALS sememe. EQUALS stores the **expression** (the formula), not the evaluated result.
+
+The distinction is not a property of the frame — it's a property of the predicate's implementation. The `onFrameAssembled()` behavior determines what happens when a frame is created. The same frame structure supports pure computation, pure storage, and everything in between.
 
 ### Incomplete Frames (Queries)
 
@@ -439,7 +534,7 @@ Operators (+, -, *, etc.) are sememes that declare parsing metadata via `contrib
 5 + 3 * 2  →  ADD { THEME:→5, GOAL:→MUL { THEME:→3, GOAL:→2 } }
 ```
 
-Mathematical notation is language-neutral — the same operators, precedence rules, and function application work across all natural languages. The FrameAssembler handles this universally; no "math language" is needed.
+Mathematical notation is language-neutral — the same operators, precedence rules, and function application work across all natural languages. The FrameAssembler handles this universally.
 
 ## Local Resources
 
@@ -454,8 +549,6 @@ VAULT {
 ```
 
 The `[LOCAL]` qualifier on TOPIC signals that the content is host-specific. Different devices have different vault frames (different LOCATION, different path). The item carries all of them; only the local one resolves on each machine.
-
-No special `localOnly` flag needed. The binding structure IS the signal.
 
 ## Storage and Indexing
 
@@ -491,10 +584,10 @@ Token indexing: NAME bindings are indexed with scope and features derived from t
 - **Endorsement is minimal**: Body hash + optional record CID + mounts.
 - **Frame is runtime**: In-memory container for body + record(s) + live instance.
 - **Selector is derived**: Computed from the body's predicate + compound key qualifiers. Not stored independently.
-- **Frames are independent entities**: A frame exists in the object store whether or not any item endorses it. Frames reference items via bindings — they are not "stored on" items.
+- **Frames are independent entities**: A frame exists in the object store whether any item endorses it or not. Frames reference items via bindings — they are not "stored on" items.
 - **Creating ≠ endorsing**: Anyone can create a frame referencing any item. Only the owner can endorse it (include it in the manifest). Unendorsed frames are independently signed FrameRecords.
 - **Item binding is semantic**: Each predicate declares which role the context item fills, with proper semantic meaning. TITLE uses THEME ("about this item"), MOVE uses LOCATION ("at this item"), EQUALS uses LOCATION ("lives on this item"). The indexer indexes all item references regardless of role.
-- **Queries are incomplete frames**: A `?` in a role turns a frame into a query. Bare sememes are queries. Bare literals self-evaluate.
+- **Queries are incomplete frames**: A `?` in a role (or simply the absence of that role) turns a frame into a query. Bare sememes are queries. Bare literals self-evaluate.
 - **Expressions are predicates**: Operators declare precedence/fixity via `contribute()`. The FrameAssembler handles precedence-climbing universally — no separate expression parser. Mathematical notation is language-neutral.
 - **Config is bindings**: `CONFIG:[PRESENTATION]→styling`. Not a separate structure. Cascades from type → item → frame.
 - **Content is CID-addressed**: Blob (small), Chain (streams), Manifest (large/swarmable). Stream roots are immutable. Heads are derived.

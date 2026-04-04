@@ -116,16 +116,16 @@ public class QueryItem extends Item {
         static final ItemID expectResult = ThematicRole.Result.IID;
     }
 
-    /** The TERM role — a search term in a query pattern. */
-    @ItemSeed(key = Term.KEY)
-    public static class Term {
-        public static final String KEY = "cg.role:term";
+    /** The QUERY_TERM role — a search term bound directly to the query item. */
+    @ItemSeed(key = QueryTerm.KEY)
+    public static class QueryTerm {
+        public static final String KEY = "cg.role:query-term";
         public static final ItemID IID = ItemID.fromString(KEY);
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY,
                                    qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "a search term in a query pattern";
+        static final String gloss = "a search term bound directly to a query item";
     }
 
     // ==================================================================================
@@ -157,7 +157,7 @@ public class QueryItem extends Item {
         for (Eval.ResolvedToken token : terms) {
             if (token instanceof Eval.ResolvedToken.Link link) {
                 patternTerms.add(link.iid());
-                addBinding(new Binding(Term.IID, BindingTarget.iid(link.iid()), true, true));
+                addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(link.iid()), true, true));
             }
         }
     }
@@ -168,12 +168,12 @@ public class QueryItem extends Item {
         this.semanticFrame = frame;
         this.patternTerms = new LinkedHashSet<>();
         patternTerms.add(frame.verb().iid());
-        addBinding(new Binding(Term.IID, BindingTarget.iid(frame.verb().iid()), true, true));
+        addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(frame.verb().iid()), true, true));
         for (var entry : frame.bindings().entrySet()) {
             ItemID valueId = extractItemId(entry.getValue());
             if (valueId != null) {
                 patternTerms.add(valueId);
-                addBinding(new Binding(Term.IID, BindingTarget.iid(valueId), true, true));
+                addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(valueId), true, true));
             }
         }
     }
@@ -425,10 +425,17 @@ public class QueryItem extends Item {
 
     @Override
     public String displayToken() {
-        int count = resultItems.size();
-        if (count > 0) return "query (" + count + " results)";
+        // Derive display from semantic content: "query: chess" or "query: chess, alice"
         Set<ItemID> pattern = extractPattern();
-        if (pattern.isEmpty()) return "query";
-        return "query (" + pattern.size() + " terms)";
+        String terms = pattern.stream()
+                .map(iid -> resolveDisplayToken(iid))
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
+        int count = resultItems.size();
+        if (!terms.isEmpty()) {
+            return terms + " (" + count + (count == 1 ? " result" : " results") + ")";
+        }
+        if (count > 0) return "query (" + count + (count == 1 ? " result" : " results") + ")";
+        return "query";
     }
 }
