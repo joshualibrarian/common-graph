@@ -142,7 +142,12 @@ public class SkiaSceneRenderer implements SceneRenderer {
                 ? Scene.Direction.HORIZONTAL
                 : Scene.Direction.VERTICAL;
 
-        List<String> styles = props.classes();
+        List<String> styles = new java.util.ArrayList<>(props.classes());
+        // Bridge Container.align property → layout engine style class
+        String align = props.align();
+        if (align != null && !align.isEmpty() && styles.stream().noneMatch(s -> s.startsWith("align-"))) {
+            styles.add("align-" + align);
+        }
         var box = new LayoutNode.BoxNode(dir, styles);
 
         if (props.id() != null) box.id(props.id());
@@ -171,6 +176,11 @@ public class SkiaSceneRenderer implements SceneRenderer {
         // Background
         if (props.background() != null && !props.background().isEmpty()) {
             box.background(props.background());
+        }
+
+        // Aspect ratio
+        if (props.aspectRatio() > 0) {
+            box.aspectRatio(props.aspectRatio());
         }
 
         // Sizing — "1fr" flows through; LayoutEngine handles fill distribution

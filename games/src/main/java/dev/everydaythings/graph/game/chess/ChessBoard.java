@@ -23,7 +23,7 @@ import java.util.List;
 @Scene.Rule(match = ".square.light", background = "#F0D9B5")
 @Scene.Rule(match = ".square.dark", background = "#B58863")
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
-@Scene.Container(id = "board-root", direction = Direction.VERTICAL, aspectRatio = "1")
+@Scene.Container(id = "board-root", direction = Direction.VERTICAL, style = "fill", aspectRatio = "1")
 public class ChessBoard {
 
     private final ChessItem game;

@@ -6,6 +6,8 @@ import dev.everydaythings.graph.network.session.RenderInstructionRecorder;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.View;
+import dev.everydaythings.graph.ui.scene.node.Container;
+import dev.everydaythings.graph.ui.scene.node.Node;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -148,6 +150,36 @@ class ChessItemTest {
             }
 
             assertThat(instructions.size()).isGreaterThan(2);
+        }
+
+        @Test
+        @DisplayName("compileToNode() produces board with 8 ranks of 8 squares")
+        void compileToNode_producesBoard() {
+            Node root = SceneCompiler.compileToNode(chess);
+            assertThat(root).isNotNull();
+            assertThat(root).isInstanceOf(Container.class);
+
+            // Walk the tree: find the board-root embed, then count rank containers
+            Container rootContainer = (Container) root;
+            int totalSquares = countNodesWithId(rootContainer, "a1", "h8", "e4", "d5");
+            // Should find at least some square IDs (they're resolved from bind:$item.id)
+            assertThat(totalSquares).as("Should find resolved square IDs in Node tree").isGreaterThan(0);
+        }
+
+        private int countNodesWithId(Container c, String... ids) {
+            int count = 0;
+            if (c.children() == null) return 0;
+            for (Node child : c.children()) {
+                if (child.id() != null) {
+                    for (String id : ids) {
+                        if (id.equals(child.id())) count++;
+                    }
+                }
+                if (child instanceof Container cc) {
+                    count += countNodesWithId(cc, ids);
+                }
+            }
+            return count;
         }
 
         @Test

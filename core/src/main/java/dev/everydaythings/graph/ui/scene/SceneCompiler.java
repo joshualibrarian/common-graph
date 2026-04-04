@@ -350,6 +350,10 @@ public final class SceneCompiler {
         if (ann.style().length > 0) c.classes(ann.style());
         if (!ann.fontSize().isEmpty()) c.fontSize(ann.fontSize());
         if (!ann.fontFamily().isEmpty()) c.fontFamily(ann.fontFamily());
+        if (!ann.aspectRatio().isEmpty()) {
+            try { c.aspectRatio(Float.parseFloat(ann.aspectRatio())); }
+            catch (NumberFormatException ignored) {}
+        }
         return c;
     }
 
@@ -415,18 +419,24 @@ public final class SceneCompiler {
         // Compile each member
         for (OrderedMember member : members) {
             try {
-                Node child = null;
                 if (member.element instanceof Class<?> n) {
-                    child = compileMember(n, data, ctx);
+                    Scene.Repeat repeat = n.getAnnotation(Scene.Repeat.class);
+                    if (repeat != null) {
+                        compileRepeatInline(n, data, parent, ctx, repeat);
+                    } else {
+                        Node child = compileMember(n, data, ctx);
+                        if (child != null) parent.add(child);
+                    }
                 } else if (member.element instanceof Field f) {
                     f.setAccessible(true);
                     Object value = Modifier.isStatic(f.getModifiers()) ? f.get(null) : f.get(data);
-                    child = wrapMemberResult(f, value, ctx);
+                    Node child = wrapMemberResult(f, value, ctx);
+                    if (child != null) parent.add(child);
                 } else if (member.element instanceof Method m) {
                     Object value = m.invoke(data);
-                    child = wrapMemberResult(m, value, ctx);
+                    Node child = wrapMemberResult(m, value, ctx);
+                    if (child != null) parent.add(child);
                 }
-                if (child != null) parent.add(child);
             } catch (Exception ignored) {}
         }
     }
@@ -512,12 +522,81 @@ public final class SceneCompiler {
         // Image
         Scene.Image image = clazz.getAnnotation(Scene.Image.class);
         if (image != null) {
-            String alt = !image.bind().isEmpty()
-                    ? ctx.resolveBinding(image.bind()) : image.alt();
-            return Body.ofGlyph(alt);
+            if (!image.bind().isEmpty()) {
+                Object resolved = ctx.resolveValue(image.bind());
+                if (resolved != null) {
+                    Body body = bodyFromObject(resolved);
+                    if (!image.size().isEmpty()) { body.width(image.size()); body.height(image.size()); }
+                    return body;
+                }
+            }
+            Body body = Body.ofGlyph(image.alt());
+            if (!image.size().isEmpty()) { body.width(image.size()); body.height(image.size()); }
+            return body;
         }
 
         return null;
+    }
+
+    /**
+     * Expand a @Scene.Repeat annotation inline — each item in the collection becomes
+     * a direct child of the parent container. Handles nested repeats, @Scene.State
+     * conditional styles, @Scene.On events, and dynamic bind: IDs.
+     */
+    private static void compileRepeatInline(Class<?> clazz, Object data, Container parent,
+                                             StructureRenderContext ctx, Scene.Repeat repeat) {
+        Object collection = ctx.resolveValue(repeat.bind());
+        if (collection == null) return;
+
+        Iterable<?> items;
+        if (collection instanceof Iterable<?> it) items = it;
+        else if (collection.getClass().isArray()) items = Arrays.asList((Object[]) collection);
+        else items = List.of(collection);
+
+        int index = 0;
+        for (Object item : items) {
+            StructureRenderContext itemCtx = ctx.withItem(
+                    item, index, repeat.itemVar(), repeat.indexVar());
+
+            // Check @Scene.If on the repeated class
+            Scene.If sceneIf = clazz.getAnnotation(Scene.If.class);
+            if (sceneIf != null && !itemCtx.evaluate(sceneIf.value())) {
+                index++;
+                continue;
+            }
+
+            // Build a container from the class's @Scene.Container annotation
+            Container c = containerFromClassAnnotation(clazz);
+            if (c == null) c = new Container("vertical");
+
+            // Resolve dynamic IDs (bind:$item.id → "e4")
+            if (c.id() != null && c.id().startsWith("bind:")) {
+                c.id(itemCtx.resolveBinding(c.id().substring(5)));
+            }
+
+            // Apply @Scene.State conditional styles
+            for (Scene.State state : clazz.getAnnotationsByType(Scene.State.class)) {
+                if (itemCtx.evaluate(state.when())) {
+                    List<String> classes = c.classes() != null
+                            ? new ArrayList<>(c.classes()) : new ArrayList<>();
+                    Collections.addAll(classes, state.style());
+                    c.classes(classes.toArray(new String[0]));
+                }
+            }
+
+            // Apply @Scene.On events with resolved targets
+            for (Scene.On on : clazz.getAnnotationsByType(Scene.On.class)) {
+                String target = on.target().contains("$")
+                        ? itemCtx.resolveBinding(on.target()) : on.target();
+                c.on(on.event(), on.action(), target);
+            }
+
+            // Recurse into children with the item context
+            compileMembers(clazz, data, c, itemCtx);
+
+            parent.add(c);
+            index++;
+        }
     }
 
     /**
@@ -702,6 +781,34 @@ public final class SceneCompiler {
     /**
      * Apply @Scene.On event declarations from an annotated element onto a node.
      */
+    /**
+     * Create a Body node from an object, using duck-typed fidelity methods.
+     *
+     * <p>If the object has {@code symbol()}, {@code imageKey()}, and/or {@code modelKey()}
+     * methods (like the Piece interface in games), they are used to build the full
+     * fidelity chain: 3D model → 2D image → Unicode glyph.
+     */
+    private static Body bodyFromObject(Object obj) {
+        String glyph = invokeStringGetter(obj, "symbol");
+        String image = invokeStringGetter(obj, "imageKey");
+        String model = invokeStringGetter(obj, "modelKey");
+
+        if (glyph != null || image != null || model != null) {
+            return Body.of(glyph, image, model);
+        }
+        return Body.ofGlyph(obj.toString());
+    }
+
+    private static String invokeStringGetter(Object obj, String methodName) {
+        try {
+            Method m = obj.getClass().getMethod(methodName);
+            Object result = m.invoke(obj);
+            return result != null ? result.toString() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static void applyEvents(AnnotatedElement element, Node target) {
         for (Scene.On on : element.getAnnotationsByType(Scene.On.class)) {
             target.on(on.event(), on.action(), on.target());

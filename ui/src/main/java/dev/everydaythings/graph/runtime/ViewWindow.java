@@ -84,7 +84,7 @@ public class ViewWindow {
     private Ref sceneContextRef;
     private boolean sceneDirty;
     private float sceneFocusExtent = Float.NaN;
-    private boolean flatMode;
+    private boolean flatMode = true;
     private SkiaPanel skiaPanel;
     private boolean filamentLayoutDirty;
 
@@ -397,6 +397,14 @@ public class ViewWindow {
                     filamentWindow.engine(), detailPane.scene(), shared.painter(), shared.fontCache());
         }
 
+        // 3D scene renderer — loads GLB models and emits 3D geometry to detailPane
+        sceneRenderer = new FilamentSpatialRenderer(filamentWindow.engine(), detailPane.scene());
+        // Elevated surface painter — renders the same layout tree as 3D geometry on detailPane
+        if (msdfFontManager != null) {
+            detailPainter = new FilamentSurfacePainter(
+                    filamentWindow.engine(), detailPane.scene(), msdfFontManager);
+        }
+
         dragController = new WindowDragController(32f, stage);
         resizeController.setStage(stage);
         resizeController.onHoverChanged(this::repaintGrip);
@@ -445,6 +453,12 @@ public class ViewWindow {
             if (chord != null) {
                 if (chord.isKey(SpecialKey.F9)) {
                     switchRenderer(ViewConfig.RendererType.SKIA);
+                    return;
+                }
+                if (chord.isKey(SpecialKey.F10)) {
+                    flatMode = !flatMode;
+                    rebuildLayout();
+                    requestRepaint();
                     return;
                 }
                 handleKeyChord(chord);
@@ -565,9 +579,36 @@ public class ViewWindow {
 
             if (rendererType == ViewConfig.RendererType.FILAMENT && uiPane != null && uiPane.painter() != null) {
                 uiPane.painter().clear();
-                uiPane.painter().configureForLayout(w, h, 2.0f, 1.0f);
-                uiPane.painter().paint(tree, 0f);
+                if (flatMode) {
+                    uiPane.painter().configureForLayout(w, h, 2.0f, 1.0f);
+                    uiPane.painter().paint(tree, 0f);
+                }
                 repaintGrip();
+
+                // 3D elevated rendering — same tree, 3D interpretation.
+                // Only in spatial mode (F10 toggles flatMode).
+                if (!flatMode && detailPainter != null) {
+                    detailPainter.clear();
+                    float worldWidth = 2.0f;
+                    float worldDepth = worldWidth * (h / w);
+                    detailPainter.configureForElevated(w, h, worldWidth, worldDepth);
+                    detailPainter.paintElevated(tree, 0f);
+
+                    // Dispatch GLB model placements to spatial renderer
+                    if (sceneRenderer != null) {
+                        sceneRenderer.clear();
+                        for (var placement : detailPainter.modelPlacements()) {
+                            float s = placement.scale();
+                            sceneRenderer.pushTransform(
+                                    placement.x(), placement.y(), placement.z(),
+                                    0, 0, 0, 1,   // identity quaternion
+                                    s, s, s);      // uniform scale
+                            sceneRenderer.meshBody(placement.resource(), placement.color(),
+                                    1.0, "lit", null);
+                            sceneRenderer.popTransform();
+                        }
+                    }
+                }
             } else {
                 currentLayout = tree;
             }

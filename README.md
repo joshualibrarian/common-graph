@@ -121,7 +121,7 @@ The person creating the data does the disambiguation, because they know what the
 - For predicates: **declared roles** (EXPECTS) defining what bindings their frames require
 - **Glosses** per language (each a frame)
 
-Words belong to **languages**. Each language is itself an item, and its **lexemes** — the words that express sememes — carry their own grammatical features: part of speech, inflection, morphology. "Create" (English verb), "crear" (Spanish verb), and "erstellen" (German verb) are all lexemes pointing at the same sememe. A sememe's IID stays stable forever — words in any language can be added, changed, or removed without touching it.
+Words belong to **languages**. Each language is itself an item, and its **lexemes** — the words that express sememes — are frames on that item, carrying their own grammatical features: part of speech, inflection, and morphology. "Create" (English verb), "crear" (Spanish verb), and "erstellen" (German verb) are all lexemes pointing at the same sememe. A sememe's IID stays stable forever — words in any language can be added, changed, or removed without touching it.
 
 There are no reserved words. No escape characters. Disambiguation happens through more language — the same way humans do it.
 
@@ -281,7 +281,7 @@ Common Graph integrates decades of prior work:
 - **Actor model** (Hewitt 1973) and **message passing** (Kay/Smalltalk) — independent entities communicating through messages
 - **Capability-based security** (Dennis & Van Horn 1966, Miller 2006) — access as unforgeable tokens
 - **Public-key cryptography** (Diffie & Hellman 1976, Bernstein/Ed25519) — identity without authority
-- **DHT and P2P systems** (Chord, Kademlia, Secure Scuttlebutt) — decentralized routing and storage
+- **DHT and P2P systems** (Freenet, Chord, Kademlia, Secure Scuttlebutt) — decentralized routing and storage
 - **CRDTs** (Shapiro 2011) and **Merkle-CRDTs** (Tschudin 2019) — convergence without coordination
 - **Local-first software** (Kleppmann 2019) — user-owned data, offline capability, collaboration without servers
 
@@ -309,12 +309,12 @@ This is an early-stage research project. It functions, but it is not ready for p
 - P2P and Session protocols with subscriptions and relay forwarding
 - English and German WordNet import via LMF pipeline
 - English morphology engine with regular inflection + UniMorph irregular forms
+- Encryption at rest and in transit
 
 **What's next:**
-- Encryption (Tag 10 reserved)
 - Expanding the multilingual import pipeline beyond English and German
 - Performance optimization for large libraries
-- Bridging to the existing web (ugly but necessary)
+- Bridging to the existing web
 
 **The cautionary context:** Projects with this level of ambition have a history of not shipping. Xanadu, Cyc, Croquet, Plan 9 — the lessons are taken seriously (see [`docs/references/README.md`](docs/references/README.md#visionary-projects-and-cautionary-tales)). The difference, hopefully, is shipping incrementally and in public rather than waiting for completeness.
 

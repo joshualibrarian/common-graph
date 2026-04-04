@@ -102,6 +102,7 @@ public class ResolvedProps {
     public String gap()        { return string("gap"); }
     public String align()      { return string("align"); }
     public String justify()    { return string("justify"); }
+    public float aspectRatio() { return (float) number("aspectRatio", 0.0); }
 
     // Text-specific
     public String text()       { return string("text"); }
@@ -175,6 +176,7 @@ public class ResolvedProps {
             if (c.gap() != null)     b.put("gap", c.gap());
             if (c.align() != null)   b.put("align", c.align());
             if (c.justify() != null) b.put("justify", c.justify());
+            if (c.aspectRatio() > 0) b.put("aspectRatio", (double) c.aspectRatio());
         } else if (node instanceof Text t) {
             if (t.text() != null) b.put("text", t.text());
             if (t.tokens() != null && !t.tokens().isEmpty()) b.put("tokens", t.tokens());

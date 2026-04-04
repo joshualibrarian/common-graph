@@ -54,6 +54,10 @@ public class Container extends Node {
     @Canon(order = 110)
     private List<Node> children;
 
+    /** Aspect ratio (width / height). */
+    @Canon(order = 108)
+    private float aspectRatio;
+
     /** Repeat expression — generate children from a data collection. */
     @Canon(order = 111)
     private String repeat;
@@ -113,6 +117,7 @@ public class Container extends Node {
     public Container wrap(boolean wrap) { this.wrap = wrap; return this; }
     public Container columns(int c) { this.columns = c; return this; }
     public Container rows(int r) { this.rows = r; return this; }
+    public Container aspectRatio(float ratio) { this.aspectRatio = ratio; return this; }
     public Container repeat(String expr) { this.repeat = expr; return this; }
     public Container childTemplate(Node template) { this.childTemplate = template; return this; }
 }

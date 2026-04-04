@@ -217,15 +217,20 @@ public class LayoutEngine {
         float contentHeight = box.height() - box.paddingTop() - box.paddingBottom()
                             - box.borderTopWidth() - box.borderBottomWidth();
         for (LayoutNode child : box.children()) {
-            if (child.height() < contentHeight) {
-                child.setBounds(child.x(), child.y(), child.width(), contentHeight);
-                // Recurse: if this stretched child is a vertical box, redistribute
-                // fill so its fill children also stretch to the new height.
-                if (child instanceof LayoutNode.BoxNode childBox
-                        && childBox.direction() == Scene.Direction.VERTICAL) {
-                    redistributeFill(childBox);
+            if (child.height() <= contentHeight) {
+                if (child.height() < contentHeight) {
+                    child.setBounds(child.x(), child.y(), child.width(), contentHeight);
                 }
-                // Check overflow for stretched children that were assigned a fixed height
+                // Recurse: children may contain fill descendants that need
+                // height redistribution with the cross-axis size — even if
+                // this child already has the right height (e.g., height="100%").
+                if (child instanceof LayoutNode.BoxNode childBox) {
+                    if (childBox.direction() == Scene.Direction.VERTICAL) {
+                        redistributeFill(childBox);
+                    } else if (childBox.direction() == Scene.Direction.HORIZONTAL) {
+                        stretchHorizontalChildren(childBox);
+                    }
+                }
                 detectOverflowAfterResize(child);
             } else if (child.height() > contentHeight
                     && child instanceof LayoutNode.BoxNode childBox

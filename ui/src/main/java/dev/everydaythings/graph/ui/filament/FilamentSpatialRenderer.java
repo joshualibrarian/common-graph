@@ -608,6 +608,35 @@ public class FilamentSpatialRenderer implements SpatialRenderer {
     /**
      * Clean up all Filament resources created by this renderer.
      */
+    /**
+     * Remove all placed entities and assets, keeping shared resources (materials, loaders).
+     * Safe to call between frames for re-rendering.
+     */
+    public void clear() {
+        for (FilamentAsset asset : loadedAssets) {
+            assetLoader.destroyAsset(asset);
+        }
+        loadedAssets.clear();
+
+        for (int entity : entities) {
+            scene.removeEntity(entity);
+            engine.destroyEntity(entity);
+        }
+        entities.clear();
+
+        for (PrimitiveMeshes.Mesh mesh : meshes) {
+            mesh.destroy(engine);
+        }
+        meshes.clear();
+
+        for (MaterialInstance mi : materialInstances) {
+            engine.destroyMaterialInstance(mi);
+        }
+        materialInstances.clear();
+
+        transformStack.clear();
+    }
+
     public void destroy() {
         // Destroy glTF assets first (they own their entities)
         for (FilamentAsset asset : loadedAssets) {
