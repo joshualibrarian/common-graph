@@ -2,7 +2,6 @@ package dev.everydaythings.graph.ui.filament;
 
 import dev.everydaythings.filament.Engine;
 import dev.everydaythings.filament.text.MsdfAtlas;
-import dev.everydaythings.graph.ui.paragraph.MsdfParagraphFactory;
 import dev.everydaythings.graph.ui.paragraph.Paragraph;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;

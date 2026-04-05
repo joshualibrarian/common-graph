@@ -82,8 +82,9 @@ public class SceneNode implements Canonical {
     @Canon(order = 13)
     private String padding;
 
+    /** Border — String "2px solid #333" → Integer 0xFF333333 (color) after presentation. */
     @Canon(order = 14)
-    private String border;
+    private Object border;
 
     /** Corner radius — String "4px" → Float 4.0f after presentation. */
     @Canon(order = 15)
@@ -164,8 +165,9 @@ public class SceneNode implements Canonical {
     @Canon(order = 50)
     private String bind;
 
+    /** Visibility — String expression → Boolean after resolution. */
     @Canon(order = 51)
-    private String visible;
+    private Object visible;
 
     // =================================================================================
     // State Declarations
@@ -285,9 +287,9 @@ public class SceneNode implements Canonical {
     @Canon(order = 311)
     private Object stroke;
 
-    /** Stroke width for shapes. */
+    /** Stroke width — String "2px" → Float 2.0f after presentation. */
     @Canon(order = 312)
-    private String strokeWidth;
+    private Object strokeWidth;
 
     /** Radius for circle/sphere shapes. */
     @Canon(order = 313)
@@ -540,6 +542,15 @@ public class SceneNode implements Canonical {
     public float gapFloat() { return asFloat(gap, 0); }
     public int fillColor() { return asInt(fill, -1); }
     public int strokeColor() { return asInt(stroke, -1); }
+    public float strokeWidthFloat() { return asFloat(strokeWidth, 0); }
+    public int borderColor() { return asInt(border, -1); }
+
+    /** Whether this node is visible. True unless explicitly set to false by the resolver. */
+    public boolean isVisible() {
+        if (visible instanceof Boolean b) return b;
+        if (visible instanceof String s) return !"false".equals(s);
+        return true;  // null or unset = visible
+    }
 
     /** Whether font weight is bold. */
     public boolean isBold() { return "bold".equals(fontWeight); }
@@ -645,7 +656,7 @@ public class SceneNode implements Canonical {
     public SceneNode height(String h) { this.height = h; return this; }
     public SceneNode margin(String m) { this.margin = m; return this; }
     public SceneNode padding(String p) { this.padding = p; return this; }
-    public SceneNode border(String b) { this.border = b; return this; }
+    public SceneNode border(Object b) { this.border = b; return this; }
     public SceneNode corner(Object c) { this.corner = c; return this; }
     public SceneNode background(Object bg) { this.background = bg; return this; }
     public SceneNode overflow(String o) { this.overflow = o; return this; }
@@ -664,7 +675,7 @@ public class SceneNode implements Canonical {
     public SceneNode capturesFocus(boolean cf) { this.capturesFocus = cf; return this; }
     public SceneNode editable(boolean e) { this.editable = e; return this; }
     public SceneNode bind(String expr) { this.bind = expr; return this; }
-    public SceneNode visible(String expr) { this.visible = expr; return this; }
+    public SceneNode visible(Object v) { this.visible = v; return this; }
     public SceneNode layout(String l) { this.layout = l; return this; }
     public SceneNode gap(Object g) { this.gap = g; return this; }
     public SceneNode align(String a) { this.align = a; return this; }
@@ -685,7 +696,7 @@ public class SceneNode implements Canonical {
     public SceneNode alt(String a) { this.alt = a; return this; }
     public SceneNode fill(Object f) { this.fill = f; return this; }
     public SceneNode stroke(Object s) { this.stroke = s; return this; }
-    public SceneNode strokeWidth(String w) { this.strokeWidth = w; return this; }
+    public SceneNode strokeWidth(Object w) { this.strokeWidth = w; return this; }
     public SceneNode radius(String r) { this.radius = r; return this; }
     public SceneNode material(String m) { this.material = m; return this; }
 

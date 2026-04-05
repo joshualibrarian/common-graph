@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.ui.skia;
 
-import dev.everydaythings.graph.ui.paragraph.SkiaParagraphFactory;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
 import dev.everydaythings.graph.ui.scene.SizeValue;
@@ -36,12 +35,12 @@ import java.util.logging.Logger;
  * the discovered fonts into Skia's {@link TypefaceFontProvider} and builds
  * {@link FontProfile} records for measurement and painting.
  */
-public class FontCache {
+public class SkiaFontManager {
 
-    private static final Logger LOG = Logger.getLogger(FontCache.class.getName());
+    private static final Logger LOG = Logger.getLogger(SkiaFontManager.class.getName());
 
     private static final float DEFAULT_BASE_FONT_SIZE = 15f;
-    private static final String[] EMOJI_PROBES = {"😀", "🧠", "🚀", "✅", "1️⃣"};
+    private static final String[] EMOJI_PROBES = {"😀", "🧠", "🚀", "✅", "1️⃣"};   //TODO: assess if we really need this macOS hack
 
     private final FontRegistry registry;
     private final FontCollection fontCollection;
@@ -59,7 +58,7 @@ public class FontCache {
      */
     public record FontProfile(String[] families, float size) {}
 
-    public FontCache(FontRegistry registry) {
+    public SkiaFontManager(FontRegistry registry) {
         this.registry = registry;
 
         // Register all fonts with byte data as typefaces in the provider

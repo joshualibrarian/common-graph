@@ -120,7 +120,7 @@ public class SceneResolver {
 
             // Evaluate visibility
             if (!evaluateVisible(node, ctx, scopeId)) {
-                node.visible("false");
+                node.visible(false);
                 return;
             }
 
@@ -210,8 +210,10 @@ public class SceneResolver {
     // =================================================================================
 
     private boolean evaluateVisible(SceneNode node, ResolveContext ctx, String scopeId) {
-        String expr = node.visible();
-        if (expr == null || expr.isEmpty()) return true;
+        Object vis = node.visible();
+        if (vis == null) return true;
+        if (vis instanceof Boolean b) return b;
+        if (!(vis instanceof String expr) || expr.isEmpty()) return true;
 
         boolean negate = false;
         if (expr.startsWith("!")) {

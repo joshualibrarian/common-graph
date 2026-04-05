@@ -1,9 +1,11 @@
-package dev.everydaythings.graph.ui.paragraph;
+package dev.everydaythings.graph.ui.filament;
 
 import com.ibm.icu.text.BreakIterator;
 import dev.everydaythings.filament.text.ColrGlyphInfo;
 import dev.everydaythings.filament.text.MsdfAtlas;
-import dev.everydaythings.graph.ui.filament.MsdfFontManager;
+import dev.everydaythings.graph.ui.paragraph.Paragraph;
+import dev.everydaythings.graph.ui.paragraph.ParagraphBuilder;
+import dev.everydaythings.graph.ui.paragraph.ParagraphFactory;
 
 import java.util.ArrayList;
 import java.util.List;

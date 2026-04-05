@@ -1,6 +1,8 @@
-package dev.everydaythings.graph.ui.paragraph;
+package dev.everydaythings.graph.ui.skia;
 
-import dev.everydaythings.graph.ui.skia.FontCache;
+import dev.everydaythings.graph.ui.paragraph.Paragraph;
+import dev.everydaythings.graph.ui.paragraph.ParagraphBuilder;
+import dev.everydaythings.graph.ui.paragraph.ParagraphFactory;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.paragraph.RectHeightMode;
 import io.github.humbleui.skija.paragraph.RectWidthMode;
@@ -21,9 +23,9 @@ import java.util.List;
  */
 public class SkiaParagraphFactory implements ParagraphFactory {
 
-    private final FontCache fontCache;
+    private final SkiaFontManager fontCache;
 
-    public SkiaParagraphFactory(FontCache fontCache) {
+    public SkiaParagraphFactory(SkiaFontManager fontCache) {
         this.fontCache = fontCache;
     }
 
@@ -37,12 +39,12 @@ public class SkiaParagraphFactory implements ParagraphFactory {
     // ==================================================================================
 
     static class SkiaParagraphBuilder implements ParagraphBuilder {
-        private final FontCache fontCache;
+        private final SkiaFontManager fontCache;
         private final List<String> paragraphStyles;
         private final List<StyledRun> runs = new ArrayList<>();
         private List<String> currentStyles;
 
-        SkiaParagraphBuilder(FontCache fontCache, List<String> paragraphStyles) {
+        SkiaParagraphBuilder(SkiaFontManager fontCache, List<String> paragraphStyles) {
             this.fontCache = fontCache;
             this.paragraphStyles = paragraphStyles;
             this.currentStyles = paragraphStyles;
@@ -83,7 +85,7 @@ public class SkiaParagraphFactory implements ParagraphFactory {
 
             // Use paragraph styles to select font profile
             String fontFamily = paragraphStyles.contains("monospace") ? "monospace" : null;
-            FontCache.FontProfile profile = fontCache.profileFor(fontFamily, 0);
+            SkiaFontManager.FontProfile profile = fontCache.profileFor(fontFamily, 0);
             int color = 0xFF000000; // Black placeholder — actual color applied by painter
 
             io.github.humbleui.skija.paragraph.Paragraph skiaPara =
@@ -101,10 +103,10 @@ public class SkiaParagraphFactory implements ParagraphFactory {
 
     static class SkiaParagraph implements Paragraph {
         private final io.github.humbleui.skija.paragraph.Paragraph delegate;
-        private final FontCache fontCache;
+        private final SkiaFontManager fontCache;
         private boolean laidOut;
 
-        SkiaParagraph(io.github.humbleui.skija.paragraph.Paragraph delegate, FontCache fontCache) {
+        SkiaParagraph(io.github.humbleui.skija.paragraph.Paragraph delegate, SkiaFontManager fontCache) {
             this.delegate = delegate;
             this.fontCache = fontCache;
         }

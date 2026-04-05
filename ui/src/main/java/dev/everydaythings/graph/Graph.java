@@ -5,7 +5,7 @@ import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import dev.everydaythings.graph.runtime.RemoteLibrarian;
-import dev.everydaythings.graph.runtime.Session;
+import dev.everydaythings.graph.ui.Session;
 import dev.everydaythings.graph.ui.host.HostPresence;
 import dev.everydaythings.graph.runtime.options.GlobalOptions;
 import dev.everydaythings.graph.runtime.options.LibrarianOptions;

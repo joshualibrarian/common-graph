@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.ui.skia;
+package dev.everydaythings.graph.ui.scene;
 
 import java.util.HashMap;
 import java.util.Map;

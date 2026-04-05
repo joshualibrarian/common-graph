@@ -69,7 +69,7 @@ public class AnsiSurfacePainter implements ScenePainter {
 
     private void paintNode(SceneNode node, boolean horizontal) {
         if (node == null) return;
-        if ("false".equals(node.visible())) return;
+        if (!node.isVisible()) return;
 
         switch (node.type()) {
             case CONTAINER -> paintContainer(node, horizontal);
@@ -85,8 +85,8 @@ public class AnsiSurfacePainter implements ScenePainter {
         boolean isHorizontal = "horizontal".equals(layout);
 
         // Border opening
-        String border = node.border();
-        if (border != null && !border.isEmpty()) {
+        Object borderVal = node.border();
+        if (borderVal instanceof String border && !border.isEmpty()) {
             BoxBorder boxBorder = BoxBorder.parse(border);
             if (boxBorder != null && boxBorder.isVisible()) {
                 appendIndent();

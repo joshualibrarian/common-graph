@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.runtime;
+package dev.everydaythings.graph.ui;
 
 import dev.everydaythings.graph.frame.TickRegistry;
 import dev.everydaythings.graph.frame.ViewConfig;
@@ -8,7 +8,7 @@ import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.parse.InputController;
-import dev.everydaythings.graph.ui.Stage;
+import dev.everydaythings.graph.runtime.LibrarianHandle;
 import dev.everydaythings.graph.ui.WindowDragController;
 import dev.everydaythings.graph.ui.WindowResizeController;
 import dev.everydaythings.graph.ui.filament.*;
@@ -122,8 +122,8 @@ public class ViewWindow {
     private final AnimationState animationState = new AnimationState();
     private volatile String pendingExpression;
     private volatile ItemID pendingNavigation;
-    private final dev.everydaythings.graph.ui.skia.ScrollState scrollState =
-            new dev.everydaythings.graph.ui.skia.ScrollState();
+    private final dev.everydaythings.graph.ui.scene.ScrollState scrollState =
+            new dev.everydaythings.graph.ui.scene.ScrollState();
     private ScheduledExecutorService liveTimer;
     private final TickRegistry tickRegistry = new TickRegistry();
 

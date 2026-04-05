@@ -1,7 +1,7 @@
-package dev.everydaythings.graph.runtime;
+package dev.everydaythings.graph.ui;
 
 import dev.everydaythings.graph.frame.TickRegistry;
-import dev.everydaythings.graph.ui.skia.FontCache;
+import dev.everydaythings.graph.ui.skia.SkiaFontManager;
 import dev.everydaythings.graph.ui.skia.SkiaKeyAdapter;
 import dev.everydaythings.graph.ui.text.FontRegistry;
 import lombok.Getter;
@@ -13,13 +13,13 @@ import lombok.Getter;
 public class SharedResources {
 
     private final FontRegistry fontRegistry;
-    private final FontCache fontCache;
+    private final SkiaFontManager fontCache;
     private final SkiaKeyAdapter keyAdapter;
     private final TickRegistry tickRegistry;
 
     public SharedResources() {
         this.fontRegistry = FontRegistry.shared();
-        this.fontCache = new FontCache(fontRegistry);
+        this.fontCache = new SkiaFontManager(fontRegistry);
         this.keyAdapter = new SkiaKeyAdapter();
         this.tickRegistry = new TickRegistry();
     }

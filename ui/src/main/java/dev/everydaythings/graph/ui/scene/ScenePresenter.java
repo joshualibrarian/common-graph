@@ -99,6 +99,12 @@ public class ScenePresenter {
             if (color != -1) node.stroke(color);
         }
 
+        // Stroke width: "2px" → 2.0f
+        if (node.strokeWidth() instanceof String sw && !sw.isEmpty()) {
+            float w = resolveSize(sw, 0, ctx);
+            node.strokeWidth(w);
+        }
+
         // Rotation: "45deg" or "45" → 45.0f
         if (node.rotation() instanceof String r && !r.isEmpty()) {
             try {
@@ -231,15 +237,18 @@ public class ScenePresenter {
     }
 
     private void resolveBorder(SceneNode node, PresentContext ctx) {
-        String spec = node.border();
-        if (spec == null || spec.isEmpty()) return;
+        if (!(node.border() instanceof String spec) || spec.isEmpty()) return;
         BoxBorder border = BoxBorder.parse(spec);
         if (border == null || !border.isVisible()) return;
-        // Parse width from the border's top side (uniform for now)
+        // Resolve width (uniform for now)
         String widthStr = border.top() != null ? border.top().width() : "1px";
         float w = resolveSize(widthStr, 0, ctx);
         if (w <= 0) w = 1;
         node.borderWidths(w, w, w, w);
+        // Resolve color and mutate border field: String → int
+        String colorStr = border.top() != null ? border.top().color() : null;
+        int color = colorStr != null ? parseColor(colorStr) : 0xFF888888;
+        node.border(color != -1 ? color : 0xFF888888);
     }
 
     // =================================================================================
@@ -249,7 +258,7 @@ public class ScenePresenter {
     private void measure(SceneNode node, float availW, float availH,
                          boolean shrinkWrap, PresentContext ctx) {
         if (node == null) return;
-        if (node.hidden() || "false".equals(node.visible())) {
+        if (node.hidden() || !node.isVisible()) {
             node.setBounds(0, 0, 0, 0);
             return;
         }
