@@ -1342,11 +1342,12 @@ public class FilamentSurfacePainter implements SurfacePainter {
         float childY = baseY;
 
         if (box.isElevated() && box.elevationSolid()) {
-            // Generic elevated behavior: extrude "down" into the body so
-            // surface-plane text and overlays remain visible above the slab.
+            // Extrude "down" from the surface. Elevation is in meters from the
+            // scene annotation (e.g., "1cm" = 0.01). Use directly as world units.
             float wh = (float) box.elevation();
             emitColoredBox(box.x(), box.y(), box.width(), box.height(), wh, baseY - wh,
                     resolveBackgroundColor(box));
+            // Children sit on the top surface of the slab (baseY), not above it
             childY = baseY + 0.001f;
         } else if (box.background() != null || box.backgroundColor() != -1) {
             // Flat colored quad on the XZ plane at baseY

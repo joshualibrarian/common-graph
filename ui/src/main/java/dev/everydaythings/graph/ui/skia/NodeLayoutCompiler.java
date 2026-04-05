@@ -35,7 +35,7 @@ import java.util.function.BiFunction;
  * <h2>Usage</h2>
  * <pre>{@code
  * // Create once per window
- * var renderer = new SkiaSceneRenderer();
+ * var renderer = new NodeLayoutCompiler();
  *
  * // Each frame:
  * renderer.environment(buildEnvironment(w, h, dpr));
@@ -45,7 +45,7 @@ import java.util.function.BiFunction;
  * painter.paint(canvas, tree);
  * }</pre>
  */
-public class SkiaSceneRenderer implements SceneRenderer {
+public class NodeLayoutCompiler implements SceneRenderer {
 
     private final Map<String, Map<String, Object>> store = new HashMap<>();
     private final Deque<String> scopeStack = new ArrayDeque<>();
@@ -58,9 +58,9 @@ public class SkiaSceneRenderer implements SceneRenderer {
     // Application action handler — receives actions not handled by state runtime
     private BiFunction<String, String, Boolean> applicationHandler;
 
-    public SkiaSceneRenderer() {}
+    public NodeLayoutCompiler() {}
 
-    public SkiaSceneRenderer(RenderEnvironment env) {
+    public NodeLayoutCompiler(RenderEnvironment env) {
         this.env = env;
     }
 

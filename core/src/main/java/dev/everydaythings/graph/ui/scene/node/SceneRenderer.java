@@ -59,7 +59,7 @@ import java.util.Set;
  *
  * <p>A platform renderer implements 4 abstract methods and provides 2 accessors:
  * <pre>{@code
- * public class SkiaSceneRenderer implements SceneRenderer {
+ * public class NodeLayoutCompiler implements SceneRenderer {
  *     private final Map<String, Map<String, Object>> store = new HashMap<>();
  *     private final RenderEnvironment env;
  *

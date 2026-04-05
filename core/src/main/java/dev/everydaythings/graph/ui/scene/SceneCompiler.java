@@ -354,6 +354,9 @@ public final class SceneCompiler {
             try { c.aspectRatio(Float.parseFloat(ann.aspectRatio())); }
             catch (NumberFormatException ignored) {}
         }
+        if (!ann.depth().isEmpty()) {
+            c.elevation(elevationToMeters(ann.depth()));
+        }
         return c;
     }
 

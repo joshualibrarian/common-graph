@@ -107,7 +107,7 @@ public class ViewWindow {
     // ==================== Per-Window UI State ====================
 
     private dev.everydaythings.graph.ui.scene.surface.item.ItemView itemView;
-    private dev.everydaythings.graph.ui.skia.SkiaSceneRenderer nodeRenderer;
+    private dev.everydaythings.graph.ui.skia.NodeLayoutCompiler nodeRenderer;
     private dev.everydaythings.graph.ui.scene.node.Node lastNodeTree;
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
@@ -200,7 +200,7 @@ public class ViewWindow {
         }
 
         // Create per-window SceneRenderer (state store persists across re-renders)
-        nodeRenderer = new dev.everydaythings.graph.ui.skia.SkiaSceneRenderer();
+        nodeRenderer = new dev.everydaythings.graph.ui.skia.NodeLayoutCompiler();
         nodeRenderer.onApplicationAction((action, target) -> {
             boolean handled = false;
             if (itemView != null) handled = itemView.handleEvent(action, target);
@@ -557,7 +557,7 @@ public class ViewWindow {
                     .renderMetrics(metrics)
                     .baseFontSize(baseFontSize)
                     .build();
-            // Node tree → SkiaSceneRenderer → LayoutNode tree
+            // Node tree → NodeLayoutCompiler → LayoutNode tree
             var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
                     .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.SKIA)
                     .viewportWidth(w).viewportHeight(h)
