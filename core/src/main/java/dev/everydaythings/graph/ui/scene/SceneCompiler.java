@@ -306,6 +306,11 @@ public class SceneCompiler {
             if (!literal.fontSize().isEmpty()) t.fontSize(literal.fontSize());
             if (!literal.fontFamily().isEmpty()) t.fontFamily(literal.fontFamily());
             if (!literal.fontWeight().isEmpty()) t.fontWeight(literal.fontWeight());
+            if (!literal.fontStyle().isEmpty()) t.fontStyle(literal.fontStyle());
+            if (!literal.textDecoration().isEmpty()) t.textDecoration(literal.textDecoration());
+            if (!literal.textAlign().isEmpty()) t.textAlign(literal.textAlign());
+            if (!literal.lineHeight().isEmpty()) t.lineHeight(literal.lineHeight());
+            if (!literal.letterSpacing().isEmpty()) t.letterSpacing(literal.letterSpacing());
             return t;
         }
 
@@ -436,6 +441,11 @@ public class SceneCompiler {
                 if (!semanticAnn.fontSize().isEmpty()) t.fontSize(semanticAnn.fontSize());
                 if (!semanticAnn.fontFamily().isEmpty()) t.fontFamily(semanticAnn.fontFamily());
                 if (!semanticAnn.fontWeight().isEmpty()) t.fontWeight(semanticAnn.fontWeight());
+                if (!semanticAnn.fontStyle().isEmpty()) t.fontStyle(semanticAnn.fontStyle());
+                if (!semanticAnn.textDecoration().isEmpty()) t.textDecoration(semanticAnn.textDecoration());
+                if (!semanticAnn.textAlign().isEmpty()) t.textAlign(semanticAnn.textAlign());
+                if (!semanticAnn.lineHeight().isEmpty()) t.lineHeight(semanticAnn.lineHeight());
+                if (!semanticAnn.letterSpacing().isEmpty()) t.letterSpacing(semanticAnn.letterSpacing());
                 wrapped = t;
             }
         }
@@ -449,6 +459,11 @@ public class SceneCompiler {
                 if (!literalAnn.fontSize().isEmpty()) t.fontSize(literalAnn.fontSize());
                 if (!literalAnn.fontFamily().isEmpty()) t.fontFamily(literalAnn.fontFamily());
                 if (!literalAnn.fontWeight().isEmpty()) t.fontWeight(literalAnn.fontWeight());
+                if (!literalAnn.fontStyle().isEmpty()) t.fontStyle(literalAnn.fontStyle());
+                if (!literalAnn.textDecoration().isEmpty()) t.textDecoration(literalAnn.textDecoration());
+                if (!literalAnn.textAlign().isEmpty()) t.textAlign(literalAnn.textAlign());
+                if (!literalAnn.lineHeight().isEmpty()) t.lineHeight(literalAnn.lineHeight());
+                if (!literalAnn.letterSpacing().isEmpty()) t.letterSpacing(literalAnn.letterSpacing());
                 wrapped = t;
             }
         }
@@ -496,11 +511,22 @@ public class SceneCompiler {
             if (!style.fontSize().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontSize", style.fontSize());
             if (!style.fontFamily().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontFamily", style.fontFamily());
             if (!style.fontWeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontWeight", style.fontWeight());
+            if (!style.fontStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontStyle", style.fontStyle());
+            if (!style.textDecoration().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "textDecoration", style.textDecoration());
+            if (!style.textAlign().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "textAlign", style.textAlign());
+            if (!style.lineHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "lineHeight", style.lineHeight());
+            if (!style.letterSpacing().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "letterSpacing", style.letterSpacing());
+            if (!style.textOverflow().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "textOverflow", style.textOverflow());
+            if (!style.whiteSpace().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "whiteSpace", style.whiteSpace());
             if (!style.opacity().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "opacity", style.opacity());
             if (!style.padding().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "padding", style.padding());
             if (!style.border().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "border", style.border());
             if (!style.radius().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "corner", style.radius());
             if (!style.rotation().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotation", style.rotation());
+            if (!style.minWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minWidth", style.minWidth());
+            if (!style.maxWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "maxWidth", style.maxWidth());
+            if (!style.minHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minHeight", style.minHeight());
+            if (!style.maxHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "maxHeight", style.maxHeight());
             if (!style.display().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "visible", "hidden".equals(style.display()) ? "false" : "true");
         }
     }

@@ -113,6 +113,32 @@ public class ScenePresenter {
             } catch (NumberFormatException ignored) {}
         }
 
+        // Line height: "1.5" or "24px" → float
+        if (node.lineHeight() instanceof String lh && !lh.isEmpty()) {
+            float resolved = resolveSize(lh, 0, ctx);
+            if (resolved > 0) node.lineHeight(resolved);
+        }
+
+        // Letter spacing: "0.5px" → float
+        if (node.letterSpacing() instanceof String ls && !ls.isEmpty()) {
+            float resolved = resolveSize(ls, 0, ctx);
+            node.letterSpacing(resolved);
+        }
+
+        // Min/max constraints: "200px", "50%" → float
+        if (node.minWidth() instanceof String s && !s.isEmpty()) {
+            node.minWidth(resolveSize(s, 0, ctx));
+        }
+        if (node.maxWidth() instanceof String s && !s.isEmpty()) {
+            node.maxWidth(resolveSize(s, 0, ctx));
+        }
+        if (node.minHeight() instanceof String s && !s.isEmpty()) {
+            node.minHeight(resolveSize(s, 0, ctx));
+        }
+        if (node.maxHeight() instanceof String s && !s.isEmpty()) {
+            node.maxHeight(resolveSize(s, 0, ctx));
+        }
+
         // Recurse
         if (node.children() != null) {
             for (SceneNode child : node.children()) resolveVisualProperties(child, ctx);
@@ -251,6 +277,29 @@ public class ScenePresenter {
         node.border(color != -1 ? color : 0xFF888888);
     }
 
+    /**
+     * Clamp explicit width/height to min/max constraints if set.
+     */
+    private void applyMinMaxConstraints(SceneNode node) {
+        float minW = node.minWidthFloat();
+        float maxW = node.maxWidthFloat();
+        float minH = node.minHeightFloat();
+        float maxH = node.maxHeightFloat();
+
+        if (minW > 0 && node.explicitWidth() > 0 && node.explicitWidth() < minW) {
+            node.explicitWidth(minW);
+        }
+        if (maxW > 0 && node.explicitWidth() > maxW) {
+            node.explicitWidth(maxW);
+        }
+        if (minH > 0 && node.explicitHeight() > 0 && node.explicitHeight() < minH) {
+            node.explicitHeight(minH);
+        }
+        if (maxH > 0 && node.explicitHeight() > maxH) {
+            node.explicitHeight(maxH);
+        }
+    }
+
     // =================================================================================
     // Measure Phase
     // =================================================================================
@@ -269,6 +318,7 @@ public class ScenePresenter {
             case CONTAINER -> measureContainer(node, availW, availH, shrinkWrap, ctx);
             case null -> {}
         }
+
     }
 
     private void measureText(SceneNode node, float maxWidth, float parentHeight, PresentContext ctx) {
@@ -346,6 +396,9 @@ public class ScenePresenter {
                 node.explicitHeight(w / ratio);
             }
         }
+
+        // Min/max constraints
+        applyMinMaxConstraints(node);
 
         // Resolve gap — mutate in place (String → Float)
         String gapSpec = node.gapSpec();

@@ -76,47 +76,91 @@ public class SceneNode implements Canonical {
     @Canon(order = 11)
     private String height;
 
+    /** Min width constraint — String "200px" → Float 200.0f after presentation. */
     @Canon(order = 12)
+    private Object minWidth;
+
+    /** Max width constraint — String "80%" → Float after presentation. */
+    @Canon(order = 13)
+    private Object maxWidth;
+
+    /** Min height constraint. */
+    @Canon(order = 14)
+    private Object minHeight;
+
+    /** Max height constraint. */
+    @Canon(order = 15)
+    private Object maxHeight;
+
+    @Canon(order = 16)
     private String margin;
 
-    @Canon(order = 13)
+    @Canon(order = 17)
     private String padding;
 
     /** Border — String "2px solid #333" → Integer 0xFF333333 (color) after presentation. */
-    @Canon(order = 14)
+    @Canon(order = 18)
     private Object border;
 
     /** Corner radius — String "4px" → Float 4.0f after presentation. */
-    @Canon(order = 15)
+    @Canon(order = 19)
     private Object corner;
 
     /** Background — String "#1E1E2E" → Integer 0xFF1E1E2E after presentation. */
-    @Canon(order = 16)
+    @Canon(order = 20)
     private Object background;
 
-    @Canon(order = 17)
+    @Canon(order = 21)
     private String overflow;
 
     // =================================================================================
     // Typography (Object fields — progressively mutated by pipeline)
     // =================================================================================
 
-    @Canon(order = 20)
+    @Canon(order = 30)
     private String fontFamily;
 
     /** Font size — String "1.2em" → Float 18.0f after presentation. */
-    @Canon(order = 21)
+    @Canon(order = 31)
     private Object fontSize;
 
-    @Canon(order = 22)
+    @Canon(order = 32)
     private String fontWeight;
 
+    /** Font style — "italic" or "normal". */
+    @Canon(order = 33)
+    private String fontStyle;
+
+    /** Text decoration — "underline", "line-through", "overline", or space-separated combination. */
+    @Canon(order = 34)
+    private String textDecoration;
+
+    /** Text alignment — "left", "center", "right", "justify". */
+    @Canon(order = 35)
+    private String textAlign;
+
+    /** Line height — String "1.5" or "24px" → Float after presentation. */
+    @Canon(order = 36)
+    private Object lineHeight;
+
+    /** Letter spacing — String "0.5px" → Float after presentation. */
+    @Canon(order = 37)
+    private Object letterSpacing;
+
+    /** Text overflow — "ellipsis", "clip". */
+    @Canon(order = 38)
+    private String textOverflow;
+
+    /** White space handling — "normal", "nowrap", "pre", "pre-wrap". */
+    @Canon(order = 39)
+    private String whiteSpace;
+
     /** Foreground color — String "#CDD6F4" → Integer 0xFFCDD6F4 after presentation. */
-    @Canon(order = 23)
+    @Canon(order = 40)
     private Object foreground;
 
     /** Opacity — String "0.8" → Float 0.8f after presentation. */
-    @Canon(order = 24)
+    @Canon(order = 41)
     private Object opacity;
 
     // =================================================================================
@@ -124,56 +168,56 @@ public class SceneNode implements Canonical {
     // =================================================================================
 
     /** Rotation — String "45deg" → Float 45.0f after presentation. */
-    @Canon(order = 30)
+    @Canon(order = 50)
     private Object rotation;
 
-    @Canon(order = 31)
+    @Canon(order = 51)
     private double scale = 1.0;
 
-    @Canon(order = 32)
+    @Canon(order = 52)
     private double elevation;
 
-    @Canon(order = 33)
+    @Canon(order = 53)
     private double posX;
 
-    @Canon(order = 34)
+    @Canon(order = 54)
     private double posY;
 
-    @Canon(order = 35)
+    @Canon(order = 55)
     private double posZ;
 
     // =================================================================================
     // Interaction
     // =================================================================================
 
-    @Canon(order = 40)
+    @Canon(order = 60)
     private List<SceneEvent> events;
 
-    @Canon(order = 41)
+    @Canon(order = 61)
     private boolean capturesFocus;
 
-    @Canon(order = 42)
+    @Canon(order = 62)
     private String cursor;
 
-    @Canon(order = 43)
+    @Canon(order = 63)
     private boolean editable;
 
     // =================================================================================
     // Data Binding
     // =================================================================================
 
-    @Canon(order = 50)
+    @Canon(order = 70)
     private String bind;
 
     /** Visibility — String expression → Boolean after resolution. */
-    @Canon(order = 51)
+    @Canon(order = 71)
     private Object visible;
 
     // =================================================================================
     // State Declarations
     // =================================================================================
 
-    @Canon(order = 60)
+    @Canon(order = 80)
     private List<StateDecl> state;
 
     /** A state declaration — the runtime holds the actual value. */
@@ -201,7 +245,7 @@ public class SceneNode implements Canonical {
     // Conditional Property Blocks
     // =================================================================================
 
-    @Canon(order = 70)
+    @Canon(order = 90)
     private Map<String, Map<String, String>> when;
 
     // =================================================================================
@@ -544,6 +588,12 @@ public class SceneNode implements Canonical {
     public int strokeColor() { return asInt(stroke, -1); }
     public float strokeWidthFloat() { return asFloat(strokeWidth, 0); }
     public int borderColor() { return asInt(border, -1); }
+    public float lineHeightFloat() { return asFloat(lineHeight, 0); }
+    public float letterSpacingFloat() { return asFloat(letterSpacing, 0); }
+    public float minWidthFloat() { return asFloat(minWidth, 0); }
+    public float maxWidthFloat() { return asFloat(maxWidth, 0); }
+    public float minHeightFloat() { return asFloat(minHeight, 0); }
+    public float maxHeightFloat() { return asFloat(maxHeight, 0); }
 
     /** Whether this node is visible. True unless explicitly set to false by the resolver. */
     public boolean isVisible() {
@@ -554,6 +604,10 @@ public class SceneNode implements Canonical {
 
     /** Whether font weight is bold. */
     public boolean isBold() { return "bold".equals(fontWeight); }
+    public boolean isItalic() { return "italic".equals(fontStyle); }
+    public boolean hasUnderline() { return textDecoration != null && textDecoration.contains("underline"); }
+    public boolean hasLineThrough() { return textDecoration != null && textDecoration.contains("line-through"); }
+    public boolean hasOverline() { return textDecoration != null && textDecoration.contains("overline"); }
 
     /** Get font size as declared string (before resolution). */
     public String fontSizeSpec() {
@@ -654,6 +708,10 @@ public class SceneNode implements Canonical {
     public SceneNode classes(List<String> classes) { this.classes = classes; return this; }
     public SceneNode width(String w) { this.width = w; return this; }
     public SceneNode height(String h) { this.height = h; return this; }
+    public SceneNode minWidth(Object w) { this.minWidth = w; return this; }
+    public SceneNode maxWidth(Object w) { this.maxWidth = w; return this; }
+    public SceneNode minHeight(Object h) { this.minHeight = h; return this; }
+    public SceneNode maxHeight(Object h) { this.maxHeight = h; return this; }
     public SceneNode margin(String m) { this.margin = m; return this; }
     public SceneNode padding(String p) { this.padding = p; return this; }
     public SceneNode border(Object b) { this.border = b; return this; }
@@ -663,6 +721,13 @@ public class SceneNode implements Canonical {
     public SceneNode fontFamily(String f) { this.fontFamily = f; return this; }
     public SceneNode fontSize(Object s) { this.fontSize = s; return this; }
     public SceneNode fontWeight(String w) { this.fontWeight = w; return this; }
+    public SceneNode fontStyle(String s) { this.fontStyle = s; return this; }
+    public SceneNode textDecoration(String d) { this.textDecoration = d; return this; }
+    public SceneNode textAlign(String a) { this.textAlign = a; return this; }
+    public SceneNode lineHeight(Object lh) { this.lineHeight = lh; return this; }
+    public SceneNode letterSpacing(Object ls) { this.letterSpacing = ls; return this; }
+    public SceneNode textOverflow(String to) { this.textOverflow = to; return this; }
+    public SceneNode whiteSpace(String ws) { this.whiteSpace = ws; return this; }
     public SceneNode foreground(Object c) { this.foreground = c; return this; }
     public SceneNode opacity(Object o) { this.opacity = o; return this; }
     public SceneNode rotation(Object r) { this.rotation = r; return this; }

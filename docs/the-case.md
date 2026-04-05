@@ -49,7 +49,7 @@ When the foundational layers were laid down in the 1970s, nodes were disconnecte
 
 **Fragmentation.** Even as these linguistic resources matured, the software industry developed in a direction hostile to the kind of collaboration a semantic layer demands. A shared vocabulary of meaning is, by definition, a collective project. But the commercial landscape of the 1990s and 2000s was defined by proprietary lock-in. Every major platform held its data models close, because controlling the data model meant controlling the ecosystem. Interoperability was a competitive threat. The kind of cross-organizational collaboration a shared semantic foundation requires was antithetical to the incentive structure.
 
-**What changed.** Three things converged. First, the computational linguistics infrastructure matured. The object problem became tractable. Second, global interconnection made a shared vocabulary both necessary and viable: the network that makes the problem acute is the same network that makes the solution practical. Third, the open source movement created the collaborative environment a semantic layer requires. The linguistic databases (WordNet, CILI, FrameNet, VerbNet) carry permissive licenses. The entire implementation stack can be built on open foundations. A semantic base layer is inherently a commons. It only works if it is shared, and it can only be shared if it is open. That commons is now possible in a way it was not during the era of proprietary platform wars.
+**What changed.** Three things converged. First, the computational linguistics infrastructure matured, making the object problem became tractable. Second, global interconnection made a shared vocabulary both necessary and viable: the network that makes the problem acute is the same network that makes the solution practical. Third, the open source movement created the collaborative environment a semantic layer requires. The linguistic databases (WordNet, CILI, FrameNet, VerbNet) carry permissive licenses. The entire implementation stack can be built on open foundations. A semantic base layer is inherently a commons. It only works if it is shared, and it can only be shared if it is open. That commons is now possible in a way it was not during the era of proprietary platform wars.
 
 ---
 
@@ -57,13 +57,13 @@ When the foundational layers were laid down in the 1970s, nodes were disconnecte
 
 The need for a semantic layer has been recognized for decades, and there have been serious, well-funded attempts to provide one. Each contributed valuable ideas. None became foundational.
 
-**The Semantic Web** is the most ambitious attempt. Berners-Lee's 2001 vision described a web in which "information is given well-defined meaning, better enabling computers and people to work in cooperation" (Berners-Lee et al., 2001). The technical realization (RDF triples, OWL ontologies, SPARQL queries) is rigorous and powerful. Twenty-five years later, RDF is widely used in specialized domains (biomedical ontologies, library science, government data) but has not become a general-purpose semantic layer. The web remains overwhelmingly opaque bytes at URLs.
+**The Semantic Web** is the most ambitious attempt. Berners-Lee's 2001 vision described a web in which "information is given well-defined meaning, better enabling computers and people to work in cooperation" ([Berners-Lee et al., 2001](references/Berners-Lee%2C%20Hendler%2C%20Lassila%202001%20-%20The%20Semantic%20Web.pdf)). The technical realization (RDF triples, OWL ontologies, SPARQL queries) is rigorous and powerful. Twenty-five years later, RDF is widely used in specialized domains (biomedical ontologies, library science, government data) but has not become a general-purpose semantic layer. The web remains overwhelmingly opaque bytes at URLs.
 
 RDF's genuine strengths are substantial: a universal graph model, formal inference via RDFS and OWL entailment, a powerful query language in SPARQL. In specialized domains where those capabilities matter, RDF has proven its value. But three structural problems kept it from becoming general-purpose.
 
 First, RDF annotates existing resources. It is layered *on top of* the web, not *built into* it. A web page can exist without any RDF. Most do. The semantic annotation is optional, which means it is absent in the vast majority of cases. The cost of creating semantic metadata falls on the producer while the benefit accrues to the consumer: a classic misaligned-incentive problem.
 
-Second, RDF requires the author to commit to an ontology (Gruber, 1993). In practice, choosing and using an ontology correctly is hard. It requires expertise that most content creators do not have and are not motivated to acquire. The Semantic Web effectively asks every web author to be a knowledge engineer.
+Second, RDF requires the author to commit to an ontology ([Gruber, 1993](references/Gruber%201993%20-%20Toward%20Principles%20for%20the%20Design%20of%20Ontologies.pdf)). In practice, choosing and using an ontology correctly is hard. It requires expertise that most content creators do not have and are not motivated to acquire. The Semantic Web effectively asks every web author to be a knowledge engineer.
 
 Third, the annotation is disconnected from the content. The RDF description of a web page is a separate artifact from the page itself. It can become stale, incorrect, or inconsistent without any mechanism to detect the divergence.
 
@@ -83,9 +83,9 @@ If a semantic base layer cannot be achieved by annotating existing layers, what 
 
 ### Grounded predicates, not strings
 
-A semantic layer requires keys that carry *meaning*, not labels. The key must refer to a concept, not a string, and that concept must be shared across systems, applications, and languages.
+A semantic layer requires keys that carry *meaning*, not just labels. The key must refer to a concept, not a string, and that concept must be shared across systems, applications, and languages.
 
-Gruber (1993) argued that shared vocabularies are essential for knowledge sharing among systems. The Semantic Web pursued this through URI-identified predicates. But URIs are locations, not meanings. They are globally unique, but they do not carry semantic content intrinsically. Two different URIs can denote the same concept (schema.org/author vs. Dublin Core's dc:creator), and nothing in the infrastructure connects them.
+Gruber argued that shared vocabularies are essential for knowledge sharing among systems. The Semantic Web pursued this through URI-identified predicates. But URIs are locations, not meanings. They are globally unique, but they do not carry semantic content intrinsically. Two different URIs can denote the same concept (`schema.org/author` vs. Dublin Core's `dc:creator`), and nothing in the infrastructure connects them.
 
 What we need are keys that refer to *meanings*: language-independent, application-independent units of semantic content with stable identities. Computational linguistics provides exactly such units. More on what those units are in section 7. For now, the requirement: keys must be grounded meanings, not strings.
 

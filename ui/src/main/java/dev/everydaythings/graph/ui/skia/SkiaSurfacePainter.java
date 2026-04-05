@@ -7,7 +7,7 @@ import io.github.humbleui.skija.Data;
 import io.github.humbleui.skija.Image;
 import io.github.humbleui.skija.Paint;
 import io.github.humbleui.skija.PaintMode;
-import io.github.humbleui.skija.Path;
+import io.github.humbleui.skija.paragraph.Paragraph;
 import io.github.humbleui.skija.svg.SVGDOM;
 import io.github.humbleui.types.RRect;
 import io.github.humbleui.types.Rect;
@@ -67,6 +67,16 @@ public class SkiaSurfacePainter implements ScenePainter {
 
         int saveCount = canvas.save();
 
+        // Common: scale
+        double scale = node.scale();
+        if (scale != 1.0) {
+            float cx = node.boundsX() + node.boundsWidth() / 2;
+            float cy = node.boundsY() + node.boundsHeight() / 2;
+            canvas.translate(cx, cy);
+            canvas.scale((float) scale, (float) scale);
+            canvas.translate(-cx, -cy);
+        }
+
         // Common: rotation (translate to center, rotate, translate back)
         float rotation = node.rotationFloat();
         if (rotation != 0) {
@@ -109,6 +119,8 @@ public class SkiaSurfacePainter implements ScenePainter {
         switch (node.type()) {
             case CONTAINER -> {
                 if (node.children() != null) {
+                    float scrollY = node.scrollOffsetY();
+                    if (scrollY != 0) canvas.translate(0, -scrollY);
                     for (SceneNode child : node.children()) {
                         paintNode(child);
                     }
@@ -129,7 +141,7 @@ public class SkiaSurfacePainter implements ScenePainter {
     private void paintBackground(SceneNode node) {
         int bg = node.backgroundColor();
         if (bg == -1) return;
-        try (var paint = new Paint().setColor(bg)) {
+        try (Paint paint = new Paint().setColor(bg)) {
             float r = node.cornerFloat();
             if (r > 0) {
                 canvas.drawRRect(RRect.makeXYWH(
@@ -152,7 +164,7 @@ public class SkiaSurfacePainter implements ScenePainter {
         float w = node.boundsWidth();
         float h = node.boundsHeight();
 
-        try (var paint = new Paint().setColor(color)) {
+        try (Paint paint = new Paint().setColor(color)) {
             float top = node.borderTopWidth();
             float right = node.borderRightWidth();
             float bottom = node.borderBottomWidth();
@@ -176,8 +188,9 @@ public class SkiaSurfacePainter implements ScenePainter {
         int color = node.foregroundColor() != -1 ? node.foregroundColor() : 0xFFCDD6F4;
 
         SkiaFontManager.FontProfile profile = fontCache.profileFor(node.fontFamily(), fontSize);
+        SkiaFontManager.TextParams params = textParamsFrom(node);
         float maxWidth = node.boundsWidth() > 0 ? node.boundsWidth() : Float.MAX_VALUE;
-        try (var para = fontCache.buildParagraph(text, profile, color, maxWidth)) {
+        try (Paragraph para = fontCache.buildParagraph(text, profile, color, maxWidth, params)) {
             para.paint(canvas, node.boundsX(), node.boundsY());
         }
     }
@@ -242,7 +255,7 @@ public class SkiaSurfacePainter implements ScenePainter {
             case "rect", "box" -> {
                 float cr = node.cornerFloat();
                 if (fillColor != -1) {
-                    try (var paint = new Paint().setColor(fillColor)) {
+                    try (Paint paint = new Paint().setColor(fillColor)) {
                         if (cr > 0) {
                             canvas.drawRRect(RRect.makeXYWH(x, y, w, h, cr), paint);
                         } else {
@@ -251,7 +264,7 @@ public class SkiaSurfacePainter implements ScenePainter {
                     }
                 }
                 if (strokeColor != -1 && strokeWidth > 0) {
-                    try (var paint = new Paint().setColor(strokeColor)
+                    try (Paint paint = new Paint().setColor(strokeColor)
                             .setMode(PaintMode.STROKE).setStrokeWidth(strokeWidth)) {
                         if (cr > 0) {
                             canvas.drawRRect(RRect.makeXYWH(x, y, w, h, cr), paint);
@@ -266,12 +279,12 @@ public class SkiaSurfacePainter implements ScenePainter {
                 float cy = y + h / 2;
                 float r = Math.min(w, h) / 2;
                 if (fillColor != -1) {
-                    try (var paint = new Paint().setColor(fillColor)) {
+                    try (Paint paint = new Paint().setColor(fillColor)) {
                         canvas.drawCircle(cx, cy, r, paint);
                     }
                 }
                 if (strokeColor != -1 && strokeWidth > 0) {
-                    try (var paint = new Paint().setColor(strokeColor)
+                    try (Paint paint = new Paint().setColor(strokeColor)
                             .setMode(PaintMode.STROKE).setStrokeWidth(strokeWidth)) {
                         canvas.drawCircle(cx, cy, r, paint);
                     }
@@ -280,7 +293,7 @@ public class SkiaSurfacePainter implements ScenePainter {
             case "line" -> {
                 float sw = strokeWidth > 0 ? strokeWidth : 1;
                 int color = strokeColor != -1 ? strokeColor : (fillColor != -1 ? fillColor : 0xFF000000);
-                try (var paint = new Paint().setColor(color)
+                try (Paint paint = new Paint().setColor(color)
                         .setMode(PaintMode.STROKE).setStrokeWidth(sw)) {
                     canvas.drawLine(x, y + h / 2, x + w, y + h / 2, paint);
                 }
@@ -304,9 +317,18 @@ public class SkiaSurfacePainter implements ScenePainter {
         int color = node.foregroundColor() != -1 ? node.foregroundColor() : 0xFFCDD6F4;
 
         SkiaFontManager.FontProfile profile = fontCache.profileFor(null, fontSize);
-        try (var para = fontCache.buildParagraph(glyph, profile, color, Float.MAX_VALUE)) {
+        SkiaFontManager.TextParams params = textParamsFrom(node);
+        try (Paragraph para = fontCache.buildParagraph(glyph, profile, color, Float.MAX_VALUE, params)) {
             para.paint(canvas, node.boundsX(), node.boundsY());
         }
+    }
+
+    private static SkiaFontManager.TextParams textParamsFrom(SceneNode node) {
+        return new SkiaFontManager.TextParams(
+                node.isBold(), node.isItalic(),
+                node.hasUnderline(), node.hasLineThrough(), node.hasOverline(),
+                node.textAlign(), node.lineHeightFloat(), node.letterSpacingFloat(),
+                node.textOverflow(), node.whiteSpace());
     }
 
     // =================================================================================

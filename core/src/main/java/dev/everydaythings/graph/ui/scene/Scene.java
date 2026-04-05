@@ -330,6 +330,27 @@ public @interface Scene {
         /** Font weight: "normal", "bold". */
         String fontWeight() default "";
 
+        /** Font style: "normal", "italic". */
+        String fontStyle() default "";
+
+        /** Text decoration: "underline", "line-through", "overline", or space-separated combination. */
+        String textDecoration() default "";
+
+        /** Text alignment: "left", "center", "right", "justify". */
+        String textAlign() default "";
+
+        /** Line height: "1.5", "24px". */
+        String lineHeight() default "";
+
+        /** Letter spacing: "0.5px", "0.1em". */
+        String letterSpacing() default "";
+
+        /** Text overflow: "ellipsis", "clip". */
+        String textOverflow() default "";
+
+        /** White space: "normal", "nowrap", "pre", "pre-wrap". */
+        String whiteSpace() default "";
+
         /** Opacity: "dim", "normal", "bright", or "0.0"-"1.0". */
         String opacity() default "";
 
@@ -350,6 +371,18 @@ public @interface Scene {
 
         /** Rotation: "90deg", "45". */
         String rotation() default "";
+
+        /** Min width: "200px", "50%". */
+        String minWidth() default "";
+
+        /** Max width: "800px", "100%". */
+        String maxWidth() default "";
+
+        /** Min height: "100px". */
+        String minHeight() default "";
+
+        /** Max height: "600px", "80%". */
+        String maxHeight() default "";
     }
 
     /** Container for multiple {@link Style} annotations on a single type. */
@@ -515,6 +548,21 @@ public @interface Scene {
 
             /** Font weight: "normal", "bold", "light". */
             String fontWeight() default "";
+
+            /** Font style: "normal", "italic". */
+            String fontStyle() default "";
+
+            /** Text decoration: "underline", "line-through", "overline". */
+            String textDecoration() default "";
+
+            /** Text alignment: "left", "center", "right", "justify". */
+            String textAlign() default "";
+
+            /** Line height: "1.5", "24px". */
+            String lineHeight() default "";
+
+            /** Letter spacing: "0.5px". */
+            String letterSpacing() default "";
         }
 
         /**
@@ -556,6 +604,21 @@ public @interface Scene {
 
             /** Font weight. */
             String fontWeight() default "";
+
+            /** Font style: "normal", "italic". */
+            String fontStyle() default "";
+
+            /** Text decoration: "underline", "line-through", "overline". */
+            String textDecoration() default "";
+
+            /** Text alignment: "left", "center", "right", "justify". */
+            String textAlign() default "";
+
+            /** Line height: "1.5", "24px". */
+            String lineHeight() default "";
+
+            /** Letter spacing: "0.5px". */
+            String letterSpacing() default "";
         }
 
         /**

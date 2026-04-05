@@ -317,6 +317,17 @@ public class SceneResolver {
             case "fontSize" -> node.fontSize(value);
             case "fontFamily" -> node.fontFamily(value);
             case "fontWeight" -> node.fontWeight(value);
+            case "fontStyle" -> node.fontStyle(value);
+            case "textDecoration" -> node.textDecoration(value);
+            case "textAlign" -> node.textAlign(value);
+            case "lineHeight" -> node.lineHeight(value);
+            case "letterSpacing" -> node.letterSpacing(value);
+            case "textOverflow" -> node.textOverflow(value);
+            case "whiteSpace" -> node.whiteSpace(value);
+            case "minWidth" -> node.minWidth(value);
+            case "maxWidth" -> node.maxWidth(value);
+            case "minHeight" -> node.minHeight(value);
+            case "maxHeight" -> node.maxHeight(value);
             case "opacity" -> node.opacity(value);
             case "overflow" -> node.overflow(value);
             case "visible" -> node.visible(value);

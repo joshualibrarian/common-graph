@@ -10,6 +10,7 @@ import io.github.humbleui.skija.ColorAlphaType;
 import io.github.humbleui.skija.ColorType;
 import io.github.humbleui.skija.Data;
 import io.github.humbleui.skija.FontMgr;
+import io.github.humbleui.skija.FontStyle;
 import io.github.humbleui.skija.ImageInfo;
 import io.github.humbleui.skija.Typeface;
 import io.github.humbleui.skija.paragraph.FontCollection;
@@ -17,6 +18,9 @@ import io.github.humbleui.skija.paragraph.Paragraph;
 import io.github.humbleui.skija.paragraph.ParagraphBuilder;
 import io.github.humbleui.skija.paragraph.ParagraphStyle;
 import io.github.humbleui.skija.paragraph.TextStyle;
+import io.github.humbleui.skija.paragraph.Alignment;
+import io.github.humbleui.skija.paragraph.DecorationLineStyle;
+import io.github.humbleui.skija.paragraph.DecorationStyle;
 import io.github.humbleui.skija.paragraph.TypefaceFontProvider;
 
 import java.util.ArrayList;
@@ -164,7 +168,30 @@ public class SkiaFontManager {
      * @param maxWidth layout width (use {@link Float#MAX_VALUE} for no wrapping)
      * @return a laid-out Paragraph (caller must close)
      */
+    /**
+     * Text styling parameters beyond font family/size/color.
+     */
+    public record TextParams(
+            boolean bold, boolean italic,
+            boolean underline, boolean lineThrough, boolean overline,
+            String textAlign, float lineHeight, float letterSpacing,
+            String textOverflow, String whiteSpace
+    ) {
+        public static final TextParams PLAIN = new TextParams(
+                false, false, false, false, false,
+                null, 0, 0, null, null);
+    }
+
     public Paragraph buildParagraph(String text, FontProfile profile, int color, float maxWidth) {
+        return buildParagraph(text, profile, color, maxWidth, TextParams.PLAIN);
+    }
+
+    /**
+     * Build a laid-out Paragraph with full text styling.
+     * <p>Caller must close the returned Paragraph when done.
+     */
+    public Paragraph buildParagraph(String text, FontProfile profile, int color, float maxWidth,
+                                     TextParams params) {
         try (TextStyle textStyle = new TextStyle();
              ParagraphStyle paraStyle = new ParagraphStyle()) {
 
@@ -172,11 +199,61 @@ public class SkiaFontManager {
                      .setFontSize(profile.size())
                      .setColor(color);
 
+            // Font style (bold/italic)
+            if (params.bold() && params.italic()) {
+                textStyle.setFontStyle(FontStyle.BOLD_ITALIC);
+            } else if (params.bold()) {
+                textStyle.setFontStyle(FontStyle.BOLD);
+            } else if (params.italic()) {
+                textStyle.setFontStyle(FontStyle.ITALIC);
+            }
+
+            // Text decoration
+            if (params.underline() || params.lineThrough() || params.overline()) {
+                DecorationStyle deco = DecorationStyle.NONE
+                        .withUnderline(params.underline())
+                        .withOverline(params.overline())
+                        .withLineThrough(params.lineThrough())
+                        .withColor(color)
+                        .withLineStyle(DecorationLineStyle.SOLID);
+                textStyle.setDecorationStyle(deco);
+            }
+
+            // Line height (as multiplier — 0 means default)
+            if (params.lineHeight() > 0) {
+                textStyle.setHeight(params.lineHeight());
+            }
+
+            // Letter spacing
+            if (params.letterSpacing() != 0) {
+                textStyle.setLetterSpacing(params.letterSpacing());
+            }
+
+            // Paragraph alignment
+            if (params.textAlign() != null) {
+                Alignment alignment = switch (params.textAlign()) {
+                    case "center" -> Alignment.CENTER;
+                    case "right" -> Alignment.RIGHT;
+                    case "justify" -> Alignment.JUSTIFY;
+                    default -> Alignment.LEFT;
+                };
+                paraStyle.setAlignment(alignment);
+            }
+
+            // Text overflow (ellipsis)
+            if ("ellipsis".equals(params.textOverflow())) {
+                paraStyle.setEllipsis("…");
+                paraStyle.setMaxLinesCount(1);
+            }
+
             try (ParagraphBuilder builder = new ParagraphBuilder(paraStyle, fontCollection)) {
                 builder.pushStyle(textStyle);
+                // White space: "pre" / "pre-wrap" preserve literal newlines and spaces
+                // "nowrap" handled via maxWidth=MAX_VALUE by caller
                 builder.addText(text);
                 Paragraph para = builder.build();
-                para.layout(maxWidth > 0 ? maxWidth : Float.MAX_VALUE);
+                float layoutWidth = "nowrap".equals(params.whiteSpace()) ? Float.MAX_VALUE : maxWidth;
+                para.layout(layoutWidth > 0 ? layoutWidth : Float.MAX_VALUE);
                 return para;  // caller must close
             }
         }
@@ -202,7 +279,7 @@ public class SkiaFontManager {
     public float[] measureText(String text, String fontFamily, float fontSize, boolean bold, float maxWidth) {
         float effectiveMaxWidth = maxWidth > 0 ? maxWidth : Float.MAX_VALUE;
         FontProfile profile = profileFor(fontFamily, fontSize);
-        try (var para = buildParagraph(text != null ? text : "", profile, 0xFF000000, effectiveMaxWidth)) {
+        try (Paragraph para = buildParagraph(text != null ? text : "", profile, 0xFF000000, effectiveMaxWidth)) {
             float w = Math.min((float) Math.ceil(para.getMaxIntrinsicWidth()), effectiveMaxWidth);
             return new float[]{w, para.getHeight()};
         }
