@@ -74,7 +74,8 @@ public class FilamentWindow implements Stage {
     private boolean dirty = true;
     private boolean sizeChanged = true; // triggers syncSizes() in render loop
 
-    // Filament core objects
+    // Filament core objects (engine/renderer are shared via FilamentContext)
+    private FilamentContext filamentContext;
     private Engine engine;
     private Renderer renderer;
     private long nativeWindow;
@@ -114,10 +115,20 @@ public class FilamentWindow implements Stage {
     }
 
     /**
-     * Initialize the window and Filament engine.
+     * @deprecated Use {@link #init(String, FilamentContext)} to share the engine.
+     */
+    @Override
+    public void init(String title) {
+        throw new UnsupportedOperationException(
+                "FilamentWindow requires a FilamentContext — use init(title, context)");
+    }
+
+    /**
+     * Initialize the window using a shared Filament engine and renderer.
+     * The engine/renderer lifecycle is managed by {@link FilamentContext}.
      * Must be called from the main thread.
      */
-    public void init(String title) {
+    public void init(String title, FilamentContext context) {
         GlfwLifecycle.acquire();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -133,41 +144,12 @@ public class FilamentWindow implements Stage {
 
         nativeWindow = nativeWindowHandle(window);
 
-        Filament.init();
-        Gltfio.init();
-
-        Engine.Config config = new Engine.Config();
-        config.driverHandleArenaSizeMB = 256;
-
-        if (get() == MACOSX) {
-            boolean forceOpenGL = Boolean.getBoolean("graph.filament.opengl");
-            if (forceOpenGL) {
-                engine = new Engine.Builder().backend(Engine.Backend.OPENGL).config(config).build();
-                if (engine == null) {
-                    log.info("OpenGL unavailable; falling back to Metal");
-                    engine = new Engine.Builder().backend(Engine.Backend.METAL).config(config).build();
-                }
-            } else {
-                engine = new Engine.Builder().backend(Engine.Backend.METAL).config(config).build();
-                if (engine == null) {
-                    log.info("Metal unavailable; falling back to OpenGL");
-                    engine = new Engine.Builder().backend(Engine.Backend.OPENGL).config(config).build();
-                }
-            }
-        } else {
-            engine = new Engine.Builder().backend(Engine.Backend.VULKAN).config(config).build();
-            if (engine == null) {
-                log.info("Vulkan not available, falling back to OpenGL");
-                engine = new Engine.Builder().backend(Engine.Backend.OPENGL).config(config).build();
-            }
-        }
-        if (engine == null) {
-            throw new RuntimeException("Failed to create Filament engine (no supported backend)");
-        }
-        log.info("Filament engine created with backend: {}", engine.getBackend());
-
+        // Use shared engine from FilamentContext; each window gets its own renderer
+        this.filamentContext = context;
+        engine = context.engine();
         renderer = engine.createRenderer();
         swapChain = engine.createSwapChainFromRawPointer(nativeWindow, 0);
+        context.acquireWindow();
 
         // Dark background — Catppuccin Mocha Base #1E1E2E
         Renderer.ClearOptions clearOptions = new Renderer.ClearOptions();
@@ -374,6 +356,10 @@ public class FilamentWindow implements Stage {
         }
         lastFrameNanos = now;
 
+        // Only render when something changed
+        if (!dirty) return true;
+        dirty = false;
+
         // Render all panes
         try {
             if (swapChain == null) return true;
@@ -466,8 +452,8 @@ public class FilamentWindow implements Stage {
     }
 
     /**
-     * Clean up all resources.
-     * Filament resources must be destroyed in the correct order.
+     * Clean up window-specific resources.
+     * Engine and renderer are shared via {@link FilamentContext} and NOT destroyed here.
      */
     public void destroy() {
         if (engine != null) {
@@ -477,10 +463,19 @@ public class FilamentWindow implements Stage {
             panes.clear();
 
             engine.flushAndWait();
-            if (renderer != null) engine.destroyRenderer(renderer);
+            if (renderer != null) {
+                engine.destroyRenderer(renderer);
+                renderer = null;
+            }
             destroySwapChain();
 
-            engine.destroy();
+            // Release window from shared context (may trigger engine shutdown if last window)
+            if (filamentContext != null) {
+                filamentContext.releaseWindow(null); // swapchain already destroyed above
+                filamentContext = null;
+            }
+
+            // Don't destroy engine — it's shared via FilamentContext
             engine = null;
         }
 

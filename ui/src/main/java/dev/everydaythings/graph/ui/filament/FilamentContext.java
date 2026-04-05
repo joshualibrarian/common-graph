@@ -5,6 +5,12 @@ import dev.everydaythings.filament.gltfio.Gltfio;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static org.lwjgl.system.Platform.*;
 
 /**
@@ -27,8 +33,8 @@ public class FilamentContext {
     private static final Logger log = LogManager.getLogger(FilamentContext.class);
 
     private Engine engine;
-    private Renderer renderer;
     private int windowCount;
+    private final Map<String, Material> materialCache = new ConcurrentHashMap<>();
 
     /**
      * Get the shared Filament Engine, initializing lazily on first call.
@@ -41,21 +47,12 @@ public class FilamentContext {
     }
 
     /**
-     * Get the shared Renderer.
-     */
-    public Renderer renderer() {
-        if (engine == null) {
-            initFilament();
-        }
-        return renderer;
-    }
-
-    /**
      * Whether the Filament Engine has been initialized.
      */
     public boolean isInitialized() {
         return engine != null;
     }
+
 
     /**
      * Register a new Filament window. Call when creating a Filament-backed ViewWindow.
@@ -100,6 +97,26 @@ public class FilamentContext {
         }
     }
 
+    /**
+     * Get or load a Material from the classpath, cached per resource path.
+     * Materials are engine-level GPU resources and safe to share across windows.
+     */
+    public Material material(String resourcePath) {
+        return materialCache.computeIfAbsent(resourcePath, path -> {
+            try (InputStream in = getClass().getClassLoader().getResourceAsStream(path)) {
+                if (in == null) throw new RuntimeException("Material not found: " + path);
+                byte[] data = in.readAllBytes();
+                ByteBuffer buf = ByteBuffer.allocateDirect(data.length).order(ByteOrder.nativeOrder());
+                buf.put(data).flip();
+                Material mat = new Material.Builder().payload(buf, buf.remaining()).build(engine());
+                log.debug("Loaded material '{}': {} bytes", path, data.length);
+                return mat;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load material: " + path, e);
+            }
+        });
+    }
+
     private void initFilament() {
         Filament.init();
         Gltfio.init();
@@ -133,24 +150,14 @@ public class FilamentContext {
             throw new RuntimeException("Failed to create Filament engine (no supported backend)");
         }
         log.info("Filament engine created with backend: {}", engine.getBackend());
-
-        renderer = engine.createRenderer();
-
-        // Dark background — Catppuccin Mocha Base #1E1E2E
-        Renderer.ClearOptions clearOptions = new Renderer.ClearOptions();
-        clearOptions.clearColor = new float[]{0x1E / 255f, 0x1E / 255f, 0x2E / 255f, 1.0f};
-        clearOptions.clearStencil = 0;
-        clearOptions.clear = true;
-        clearOptions.discard = true;
-        renderer.setClearOptions(clearOptions);
     }
 
     private void shutdown() {
-        engine.flushAndWait();
-        if (renderer != null) {
-            engine.destroyRenderer(renderer);
-            renderer = null;
+        for (Material mat : materialCache.values()) {
+            engine.destroyMaterial(mat);
         }
+        materialCache.clear();
+        engine.flushAndWait();
         engine.destroy();
         engine = null;
         windowCount = 0;

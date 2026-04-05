@@ -179,10 +179,25 @@ public class FilamentSurfacePainter implements SurfacePainter {
     // Cleared on clear() which happens before the next paint.
     private final List<ByteBuffer> pendingPixelBuffers = new ArrayList<>();
     public FilamentSurfacePainter(Engine engine, Scene scene, MsdfFontManager fontManager) {
+        this(engine, scene, fontManager, null);
+    }
+
+    /**
+     * Create a painter with shared materials from a {@link FilamentContext}.
+     * Avoids redundant material loading when multiple painters share the same engine.
+     */
+    public FilamentSurfacePainter(Engine engine, Scene scene, MsdfFontManager fontManager,
+                                  FilamentContext sharedContext) {
         this.engine = engine;
         this.scene = scene;
         this.fontManager = fontManager;
-        this.textRenderer = new MsdfTextRenderer(engine);
+        if (sharedContext != null) {
+            this.textRenderer = new MsdfTextRenderer(engine,
+                    sharedContext.material("materials/msdf_text.filamat"),
+                    sharedContext.material("materials/flat_color.filamat"));
+        } else {
+            this.textRenderer = new MsdfTextRenderer(engine);
+        }
         fallbackFontCollection.setDefaultFontManager(FontMgr.getDefault());
         fallbackFontCollection.setEnableFallback(true);
     }
@@ -812,6 +827,11 @@ public class FilamentSurfacePainter implements SurfacePainter {
         float contentY = box.y() + bt;
         float contentW = box.width() - bl - br;
         float contentH = box.height() - bt - bb;
+        if ("header".equals(box.id())) {
+            System.err.printf("[DIAG] paintBox id=%s: pos=(%.1f,%.1f) size=(%.1f,%.1f) content=(%.1f,%.1f,%.1f,%.1f) children=%d%n",
+                    box.id(), box.x(), box.y(), box.width(), box.height(),
+                    contentX, contentY, contentW, contentH, box.children().size());
+        }
         pushClip(contentX, contentY, contentW, contentH);
 
         // Apply scroll offset: shift entire subtree in pixel space so clip checks work
@@ -894,9 +914,19 @@ public class FilamentSurfacePainter implements SurfacePainter {
 
     private void paintText(LayoutNode.TextNode text, float z) {
         if (text.content().isEmpty()) return;
-        if (fontManager.defaultAtlas() == null) return;
+        if (fontManager.defaultAtlas() == null) {
+            System.err.printf("[DIAG] paintText SKIPPED (no atlas): '%s' at (%.1f,%.1f) size (%.1f,%.1f)%n",
+                    text.content(), text.x(), text.y(), text.width(), text.height());
+            return;
+        }
 
         int color = resolveTextColor(text);
+
+        if (text.y() < 40) {
+            System.err.printf("[DIAG] paintText in header: '%s' at (%.1f,%.1f) size (%.1f,%.1f) color=0x%08X para=%s%n",
+                    text.content(), text.x(), text.y(), text.width(), text.height(),
+                    color, text.paragraph() != null ? "yes" : "NO");
+        }
 
         float fontSize = fontManager.fontSizeFor(text);
 
@@ -1255,6 +1285,11 @@ public class FilamentSurfacePainter implements SurfacePainter {
     // ==================================================================================
 
     private void paintImage(LayoutNode.ImageNode image, float z) {
+        if (image.y() < 40) { // near top of window — likely header area
+            System.err.printf("[DIAG] paintImage in header area: alt='%s' resource='%s' at (%.1f,%.1f) size (%.1f,%.1f)%n",
+                    image.alt(), image.resource(), image.x(), image.y(),
+                    image.width(), image.height());
+        }
         // Draw sphere-shaded circular background if shape is "circle"
         if ("circle".equals(image.shape())) {
             int bgColor = parseColor(
@@ -2533,6 +2568,10 @@ public class FilamentSurfacePainter implements SurfacePainter {
             right = Math.min(right, parent[2]);
             bottom = Math.min(bottom, parent[3]);
         }
+        // Prevent inverted clip rectangles — an inverted rectangle
+        // would cause isClipped() to reject all children.
+        if (right < left) right = left;
+        if (bottom < top) bottom = top;
         clipStack.push(new float[]{left, top, right, bottom});
     }
 

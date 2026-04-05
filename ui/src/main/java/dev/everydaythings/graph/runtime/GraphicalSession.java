@@ -88,9 +88,9 @@ public class GraphicalSession extends Session {
             GlfwLifecycle.acquire();
             enumerateAndRegisterDisplays();
 
-            // Open initial view
-            FrameKey key = openView(ctx.iid());
-            openWindowForView(key);
+            // Open initial view — openView creates the ITEM_VIEW frame,
+            // which automatically triggers onViewOpened → openWindowForView
+            openView(ctx.iid());
             try {
                 runEventLoop();
             } finally {
@@ -119,6 +119,12 @@ public class GraphicalSession extends Session {
         while (sessionAlive) {
             org.lwjgl.glfw.GLFW.glfwPollEvents();
 
+            // Create any deferred windows before ticking
+            FrameKey pendingKey;
+            while ((pendingKey = pendingWindowCreations.poll()) != null) {
+                openWindowForView(pendingKey);
+            }
+
             var toRemove = new ArrayList<FrameKey>();
             for (var entry : windows.entrySet()) {
                 if (!entry.getValue().tick()) {
@@ -132,6 +138,12 @@ public class GraphicalSession extends Session {
 
             if (windows.isEmpty()) {
                 org.lwjgl.glfw.GLFW.glfwWaitEventsTimeout(0.1);
+            } else if (!pendingWindowCreations.isEmpty()) {
+                // Pending work — don't wait
+            } else {
+                // No pending work — wait for events instead of busy-spinning.
+                // Short timeout ensures timers and animations still tick.
+                org.lwjgl.glfw.GLFW.glfwWaitEventsTimeout(1.0 / 60.0);
             }
         }
     }
@@ -176,10 +188,14 @@ public class GraphicalSession extends Session {
             vh = vh.withConfig(updated);
         }
 
-        ViewWindow window = new ViewWindow(key, vh, this, shared, filamentContext, coordinateMapper());
-        window.init();
-        windows.put(key, window);
-        log.info("Opened ViewWindow for {} (renderer: {})", vh.target(), window.rendererType());
+        try {
+            ViewWindow window = new ViewWindow(key, vh, this, shared, filamentContext, coordinateMapper());
+            window.init();
+            windows.put(key, window);
+            log.info("Opened ViewWindow for {} (renderer: {})", vh.target(), window.rendererType());
+        } catch (Throwable t) {
+            log.error("Failed to open ViewWindow for {}: {}", vh.target(), t.getMessage(), t);
+        }
     }
 
     private void closeWindow(FrameKey key) {
@@ -369,6 +385,9 @@ public class GraphicalSession extends Session {
 
     // ==================== View Lifecycle Hooks ====================
 
+    /** Pending window creations — deferred to avoid creating windows mid-render. */
+    private final java.util.Queue<FrameKey> pendingWindowCreations = new java.util.concurrent.ConcurrentLinkedQueue<>();
+
     @Override
     protected void onViewOpened(FrameKey key) {
         if (shared != null) {
@@ -377,7 +396,9 @@ public class GraphicalSession extends Session {
                 log.debug("View {} not on local display — skipping window creation", key);
                 return;
             }
-            openWindowForView(key);
+            // Defer window creation to the next event loop iteration to avoid
+            // creating Filament swap chains during another window's render cycle.
+            pendingWindowCreations.add(key);
         }
     }
 

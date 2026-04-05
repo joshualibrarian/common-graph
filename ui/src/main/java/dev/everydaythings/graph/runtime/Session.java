@@ -536,45 +536,35 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param displayId the IID of the display (null = unassigned)
      * @return the FrameKey of the new ITEM_VIEW frame
      */
-    public FrameKey openView(ItemID target, Ref displayRef) {
-        logger.info("openView called: target={}, display={}", target.displayAtWidth(12),
-                displayRef != null ? displayRef.encodeText() : "none");
-
+    /**
+     * Open a view of an item by assembling an ITEM_VIEW frame.
+     *
+     * <p>Assembles the frame body and fires it through {@link #onFrameAssembled},
+     * which endorses the frame on this session and triggers window creation
+     * via {@link #onViewOpened}.
+     *
+     * @param target the IID of the item to view
+     */
+    public void openView(ItemID target) {
         // Check if a view already exists for this target
         ViewHandle existing = findView(target);
         if (existing != null) {
             logger.info("View already exists for {} → {}", target.displayAtWidth(12), existing.frameKey());
-            return existing.frameKey();
+            return;
         }
-
-        // Unique view ID — allows multiple views of the same item
-        String viewId = java.util.UUID.randomUUID().toString().substring(0, 8);
-        FrameKey key = FrameKey.of(ViewVocabulary.ItemView.IID, viewId);
 
         List<Binding> bindings = new java.util.ArrayList<>();
         bindings.add(Binding.ref(ThematicRole.Theme.IID, target));
+        Ref displayRef = focusedDisplay();
         if (displayRef != null) {
             bindings.add(Binding.ref(ThematicRole.Location.IID, displayRef));
         }
         FrameBody body = new FrameBody(ViewVocabulary.ItemView.IID, bindings);
 
-        Frame frame = new Frame(key, ViewVocabulary.ItemView.IID, body, null, false);
-        frames().add(frame);
-        frame.setInstance(ViewConfig.defaults());
-
-        logger.info("Created ITEM_VIEW frame {} for target {} (display: {})",
-                key, target.displayAtWidth(12), displayRef != null ? displayRef.encodeText() : "none");
-        return key;
-    }
-
-    /**
-     * Open a view of an item on the current/default display.
-     *
-     * @param target the IID of the item to view
-     * @return the FrameKey of the new ITEM_VIEW frame
-     */
-    public FrameKey openView(ItemID target) {
-        return openView(target, focusedDisplay());
+        // Fire through the assembly reaction — onFrameAssembled handles
+        // endorsement and window creation.
+        FrameAssemblyContext ctx = new FrameAssemblyContext(body, null, null, this, java.util.Map.of());
+        onFrameAssembled(ctx);
     }
 
     /**
@@ -822,7 +812,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                     updateInputState(snapshot);
                     onInputChanged(snapshot);
                 })
-                .onNavigate(this::navigateInto)
+                .onNavigate(item -> { if (item != null) { librarian.put(item); openView(item.iid()); } })
                 .onResult(result -> {
                     // Capture submitted text NOW before anything clears it
                     lastDispatchedText = inputController.lastSubmittedText();
@@ -1176,26 +1166,6 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     // ==================================================================================
 
     /**
-     * Navigate into an item (makes it the new root).
-     */
-    public void navigateInto(Ref target) {
-        if (itemView != null) {
-            itemView.navigateInto(target);
-            contextItem().ifPresent(this::onContextComponentsChanged);
-        }
-    }
-
-    /**
-     * Navigate into an Item.
-     */
-    public void navigateInto(Item item) {
-        if (item != null) {
-            librarian.put(item);
-            navigateInto(Ref.of(item.iid()));
-        }
-    }
-
-    /**
      * Select an item (changes context within current root).
      */
     public void select(Ref target) {
@@ -1263,7 +1233,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                     executeSessionVerb(item);
                     return;
                 }
-                navigateInto(item);
+                librarian.put(item);
+                openView(item.iid());
             }
             case Eval.EvalResult.Created(Item item, Item type) -> {
                 // Item was created — don't navigate the current view.
@@ -1295,14 +1266,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             }
             case Eval.EvalResult.QueryResult(var queryItem, var items, var pattern) -> {
                 librarian.put(queryItem);
-                // Open a view for the QueryItem (like actionView does)
-                var key = openView(queryItem.iid());
-                navigateInto(queryItem);
-                if (itemView != null) {
-                    var vh = findView(queryItem.iid());
-                    if (vh != null) itemView.setActiveView(vh);
-                }
-                onViewOpened(key);
+                // Open a view for the QueryItem
+                openView(queryItem.iid());
             }
         }
     }

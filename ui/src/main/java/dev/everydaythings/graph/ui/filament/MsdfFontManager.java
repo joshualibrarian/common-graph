@@ -167,6 +167,7 @@ public class MsdfFontManager implements LayoutEngine.TextMeasurer, LayoutEngine.
     @Override
     public void measure(LayoutNode.TextNode node, float maxWidth) {
         if (delegate.fallbackChain().isEmpty()) {
+            LOG.warning("MSDF fallback chain is empty — text will have zero width: '" + node.content() + "'");
             node.measuredSize(0, baseFontSize);
             return;
         }

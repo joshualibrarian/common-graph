@@ -1,8 +1,8 @@
 # Items
 
-In the Common Graph, **frames** hold all the data, indexed with semantic keys.  However, an **Item** is the fundamental unit of coherent meaning. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item.  Anything that makes sense **as a whole**.
+In the Common Graph, **frames** hold all the data, indexed with semantic keys. However, an **Item** is the fundamental unit of coherent meaning. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item. Anything that makes sense **as a whole**.
 
-An Item is a **versioned, signed, typed collection of frames with stable identity**. Every Item carries its own identity, its own history, its own type definition, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
+An Item is a **versioned, signed container of frames with stable identity**. Every Item carries its own identity, its own history, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
 
 The Item model draws from several traditions: Smalltalk's "everything is an object" with message-passing dispatch (see [references/Kay 1993](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf)), the Actor model's independent entities communicating through messages (see [references/Hewitt et al 1973](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf)), and Engelbart's vision of augmenting human intellect through integrated artifact-language-methodology systems (see [references/Engelbart 1962](references/Engelbart%201962%20-%20Augmenting%20Human%20Intellect.pdf)). Like Bush's memex (see [references/Bush 1945](references/Bush%201945%20-%20As%20We%20May%20Think.pdf)), items are found by meaning and association rather than hierarchical location.
 
@@ -14,9 +14,9 @@ An Item has exactly three parts:
 |------|-----------|
 | **IID** | Stable 32-byte identity that persists across all versions |
 | **Manifest** | Signed, immutable snapshot of a specific version |
-| **EndorsementsTable** | All endorsed content — every frame the item contains |
+| **EndorsementsTable** | All endorsed frames — every frame the item contains |
 
-Everything is in the EndorsementsTable. Text, metadata, streams, policy — all stored as frames in one table, serialized as one CBOR array in the manifest, versioned together. Vocabulary is derived at runtime from frame type verb definitions and vocabulary contributions (see [Vocabulary](vocabulary.md)).
+Everything is in the EndorsementsTable. Text, metadata, streams, policy — all stored as frames in one table, versioned together. Vocabulary is derived at runtime by scanning the item's frames for indexed string bindings.
 
 See [Frames](frames.md) for the frame primitive itself — the single data model unit that unifies all content, assertions, properties, streams, and more.
 
@@ -26,14 +26,14 @@ The **IID** (Item ID) is a 32-byte multihash identifier that:
 
 - **Persists across all versions** — edit the content, the IID stays the same
 - **Is usually random** — UUID-like uniqueness, no coordination needed
-- **Can be deterministic** — computed by hashing a canonical string like `"cg:type/item"`
+- **Can be deterministic** — computed by hashing a canonical string like `"cg.sememe:item"`
 
 Deterministic IIDs are how bootstrap vocabulary works. Two independently started nodes compute the same IID for "the concept of an Item" by hashing the same canonical string. No genesis block, no central authority.
 
 ```
-ItemID.fromString("cg:type/item")     →  always the same 32 bytes
-ItemID.fromString("cg:type/book")     →  always the same 32 bytes
-ItemID.random()                        →  unique every time
+ItemID.fromString("cg.sememe:item")     ->  always the same 32 bytes
+ItemID.fromString("cg.sememe:chess")    ->  always the same 32 bytes
+ItemID.random()                         ->  unique every time
 ```
 
 ## Versions
@@ -50,111 +50,28 @@ Versions form a history chain (or DAG, if branches exist):
 
 ```
 V1 (parent: null)
- └── V2 (parent: V1)
-      └── V3 (parent: V2)
+ +-- V2 (parent: V1)
+      +-- V3 (parent: V2)
 ```
 
 The version hash covers only BODY fields (content), not the full manifest. Signatures are non-BODY fields — the hash is computed first, then signed. BODY scope = content identity. RECORD scope = everything including signatures.
 
 ## The EndorsementsTable
 
-The EndorsementsTable is the **single source of truth** for what an Item contains. Every frame — text, streams, properties, policy — stored in one table, keyed by `FrameKey`.
+The EndorsementsTable is the **single source of truth** for what an Item contains. Every frame — text, streams, properties — stored in one table, keyed by `FrameKey`.
 
-### Structure
-
-The EndorsementsTable implements `Map<FrameKey, Frame>`:
+The table is a `Map<FrameKey, Frame>` with a parallel mount map:
 
 ```
-frames:     FrameKey → Frame          (the frame: key, type, body, bodyHash, identity)
-mounts:     FrameKey → List<Mount>    (mount metadata, separate from frames)
+frames:     FrameKey -> Frame          (the frame: key, type, body, bodyHash, identity)
+mounts:     FrameKey -> List<Mount>    (presentation positions, separate from frames)
 ```
 
-Each **Frame** carries both its serialized state and transient runtime state:
+Mounts do NOT live on Frame — they live on EndorsementsTable in a parallel map. "Where is this frame mounted?" is answered by the table, not the frame.
 
-```
-Frame {
-    key:         FrameKey       — semantic address (unique within the item)
-    type:        ItemID         — what kind of thing this is (defines codec)
-    identity:    boolean        — does this contribute to the version hash?
-    bodyHash:    ContentID      — hash of the body (for endorsement)
-    alias:       String         — human-facing shorthand (deprecated — use TokenDictionary)
+At commit time, the table builds endorsements for the manifest: each `FrameEndorsement` carries a FrameKey, bodyHash, and mounts. At hydration time, endorsements are expanded back into the runtime table.
 
-    — transient runtime fields —
-    body:        FrameBody      — the semantic assertion (predicate, theme, bindings)
-    instance:    Object         — live decoded value (e.g., the Vault, Log, or String)
-    owner:       Item           — parent item reference
-}
-```
-
-Frame content is expressed through **bindings** on the FrameBody. A binding has a compound semantic key (role + qualifiers), a target (CID, stream ref, item ref, or literal value), and two flags: `identity` (contributes to body hash?) and `index` (creates a frame index entry?).
-
-### Content Modes
-
-The content mode is determined by the bindings on the FrameBody:
-
-| Mode | What's in the body | Used for |
-|------|-----------|----------|
-| **Snapshot** | A binding targeting a CID | Immutable, content-addressed. Documents, config, images. |
-| **Stream** | A binding with a stream key | Append-only logs. Chat messages, key history, activity feeds. |
-| **Local-only** | An external binding | Never syncs. Private keys, caches, device-specific state. |
-| **Reference** | A GOAL binding targeting an ItemID | Points to another item by IID. The containment primitive. |
-
-### The identity flag
-
-The `identity` flag on each frame controls whether that frame's content contributes to the version hash. A vault (local private keys) or a cache doesn't create a new version when updated — it's registered in the table but its content doesn't affect version identity.
-
-### Mounts
-
-Frames can have **mounts** — presentation descriptors that control where a frame appears in different views:
-
-| Mount type | Purpose |
-|-----------|---------|
-| `PathMount` | Filesystem-like path (`/documents/readme.md`) |
-| `SurfaceMount` | 2D UI placement (region in a surface layout) |
-| `SpatialMount` | 3D placement (position/rotation in a space) |
-
-A frame can have multiple mounts (like hard links). Frames with no mounts are internal entries — they exist in the table but don't appear in navigation.
-
-## Endorsed and Unendorsed
-
-**Endorsed frames** are included in the item's manifest — the owner commits and signs them. Title, text, roster — these are endorsed.
-
-**Unendorsed frames** are attached by others, independently signed. Likes, annotations, spam labels, trust attestations — these are unendorsed.
-
-The structural difference is only manifest inclusion. Same frame format, same hash mechanism, same signing mechanism. See [Frames](frames.md) for details on the body/record split, cosigning, and promotion.
-
-## Item Types
-
-Every Item has a **type** — itself an Item identified by a sememe. The type is declared with `@Type`:
-
-```java
-@Type(value = "cg:type/document", glyph = "📄", color = 0x4488CC)
-public class Document extends Item { ... }
-```
-
-The type defines:
-
-| Aspect | How |
-|--------|-----|
-| **Identity** | `@Type(value = "cg:type/...")` — deterministic IID for the type item |
-| **Display** | `glyph`, `color`, `shape` — visual identity |
-| **Frames** | `@ItemFrame` on fields — what frames this type includes |
-| **Verbs** | `@Verb` on methods — what actions this type supports |
-| **Scene** | `@Scene.*` annotations — unified 2D + 3D rendering |
-
-The class is the schema. The type definition IS the Item — no separate handler, no descriptor file, no schema registry.
-
-## Item State
-
-An Item's versioned state is encapsulated in `ItemState`:
-
-```
-ItemState {
-    endorsedFrames: EndorsementsTable    — everything the item contains
-}
-```
-
-ItemState wraps the EndorsementsTable so the Manifest has a named field for "the state of this version." ItemState is shared between the live Item and the Manifest — the Item mutates its state during editing, and the Manifest snapshots it at commit time.
+See [Frames](frames.md) for the Frame/FrameBody/FrameRecord/Endorsement layering, the identity and index flags, content modes, and the endorsed/unendorsed distinction.
 
 ## The Manifest
 
@@ -162,24 +79,143 @@ A Manifest is the **signed, immutable declaration** of an Item version:
 
 ```
 Manifest {
-    version:    int               — format version (currently 1)
-    iid:        ItemID            — which item this is
-    parents:    List<ContentID>   — parent version hashes (history chain)
-    type:       ItemID            — item type
-    state:      ItemState         — all content (the EndorsementsTable)
-    ─── non-BODY fields (excluded from version hash) ───
-    authorKey:  SigningPublicKey   — who signed this
-    signature:  Signing           — the signature itself
+    version:        int                 -- format version (currently 1)
+    iid:            ItemID              -- which item this is
+    parents:        List<ContentID>     -- parent version hashes (history chain)
+    implementation: Binding             -- platform + class name (e.g., Java + "ChessItem")
+    state:          ItemState           -- all content (the EndorsementsTable)
+    bindings:       List<Binding>       -- item-level bindings (identity + non-identity)
+    --- non-BODY fields (excluded from version hash) ---
+    authorKey:      SigningPublicKey     -- who signed this
+    signature:      Signing             -- the signature itself
 }
 ```
 
-The BODY/non-BODY split: `authorKey` and `signature` are excluded from the body hash.
+The **implementation** binding replaces the old `type: ItemID` field. It records the creating platform and class name — the platform IID (e.g., Java) as the binding's role, and the class name as a literal target. The semantic relationship between a Java class and its concept lives in an IMPLEMENTS frame on the item, not on the manifest.
 
-1. Compute the version hash by hashing the BODY fields
+The BODY/non-BODY split:
+
+1. Compute the version hash by hashing the BODY fields (version, iid, parents, implementation, state, identity bindings)
 2. Sign the hash with the author's key
 3. Attach the signature as a non-BODY field
 
 The version hash is deterministic from content. The signature proves who authored that content. No circular dependency.
+
+### Item-Level Bindings
+
+Manifests carry **item-level bindings** — role-keyed values that describe the item as a whole (not a specific frame). These are split by identity flag:
+
+- **Identity bindings** — contribute to the VID. Changing them creates a new version.
+- **Non-identity bindings** — record-scope only. Config, presentation overrides, vocabulary customization. Don't affect the VID.
+
+Non-identity bindings participate in the [config cascade](#config-cascade): when resolving config for a frame, the item's manifest bindings are checked before falling back to the predicate's defaults.
+
+See [Manifests](manifest.md) for the full manifest structure, signing, and canonical encoding.
+
+## Mounts
+
+Frames can have **mounts** — presentation descriptors that control where a frame appears in different views:
+
+| Mount type | Purpose |
+|-----------|---------|
+| `PathMount` | Filesystem-like path (`/documents/readme.md`) — tree structure |
+| `SurfaceMount` | 2D UI placement (named region + ordering) |
+| `SpatialMount` | 3D placement (position + rotation quaternion) |
+
+A frame can have multiple mounts (like hard links). Frames with no mounts are internal entries — they exist in the table but don't appear in navigation.
+
+Mounts are stored on the EndorsementsTable, not on the Frame. They are serialized alongside each frame's endorsement in the manifest.
+
+## Item Types
+
+Items declare their type via two annotations:
+
+### @Implements
+
+Links a Java class to the semantic concept it implements:
+
+```java
+@Implements(ChessItem.Chess.KEY)
+public class ChessItem extends Item { ... }
+```
+
+The value is the concept's canonical key string (e.g., `"cg.sememe:chess"`). This links the class to a Sememe with that key. At runtime, `@Implements` is synthesized into an IMPLEMENTED_BY frame — the manifest records the implementation binding, and the runtime resolves the implementing class from it.
+
+### @ItemSeed
+
+Declares a seed sememe — a bootstrap concept with deterministic IID. Placed on a class (outer or inner) to define the concept that an item type implements:
+
+```java
+@ItemSeed(key = Chess.KEY)
+public static class Chess {
+    public static final String KEY = "cg.sememe:chess";
+
+    @ItemFrame(predicate = SememeGloss.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                          qualifiers = {Language.ENGLISH_KEY}))
+    static final String gloss = "the game of chess";
+
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                          qualifiers = {Language.ENGLISH_KEY,
+                                                        PartOfSpeech.Noun.KEY,
+                                                        GrammaticalFeature.Lemma.KEY}))
+    static final String word = "chess";
+}
+```
+
+Seed items have deterministic IIDs (from `ItemID.fromString(key)`), timestamp 0, and no signature. They're imported into the Library on first boot via classpath scanning.
+
+The static `@ItemFrame` fields on a seed class declare the concept's frames — glosses, lexemes, EXPECTS declarations — using the same frame annotation as instance fields.
+
+### @ItemFrame
+
+Declares a frame on an Item type. Used on both seed static fields and instance fields:
+
+```java
+// Simple: a title string
+@ItemFrame(predicate = CoreVocabulary.Title.KEY)
+private String title;
+
+// With binding metadata: field value bound with role + qualifiers
+@ItemFrame(predicate = SememeGloss.KEY,
+           fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                      qualifiers = {Language.ENGLISH_KEY}))
+private String gloss;
+```
+
+The annotation specifies:
+- **`predicate`** — the frame's predicate (canonical key string)
+- **`classAs`** — binding for the owning item/class (default: THEME)
+- **`fieldAs`** — binding for the field value (role + qualifiers via `@Bind`)
+- **`endorsement`** — whether the frame is endorsed and its mount paths
+
+### EXPECTS: Schema as Frames
+
+Predicates declare their expected shape via EXPECTS frames on the seed. See [Frames: EXPECTS](frames.md#expects-schema-as-frames) for the full explanation. A chess game declares:
+
+```java
+@ItemFrame(predicate = CoreVocabulary.Expects.KEY,
+           fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
+                   qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Player.KEY,
+                                 ColorVocabulary.White.KEY}))
+static final ItemID expectWhitePlayer = ItemID.fromString(GameVocabulary.Player.KEY);
+```
+
+This says: "instances of Chess should carry a PLAYER frame qualified with WHITE." The UI generates creation forms from EXPECTS declarations. EXPECTS also enables duck typing — if an item structurally matches, it IS that type.
+
+## Item State
+
+An Item's versioned state is encapsulated in `ItemState`:
+
+```
+ItemState {
+    endorsements:  List<FrameEndorsement>   -- for manifest serialization
+    frames:        EndorsementsTable         -- transient runtime structure
+}
+```
+
+ItemState wraps the EndorsementsTable so the Manifest has a named field for "the state of this version." At commit time, `buildEndorsements()` snapshots the table into endorsements for serialization. At decode time, endorsements are loaded back into the runtime table.
 
 ## ID Types
 
@@ -190,50 +226,51 @@ All IDs are multihash values — self-describing hashes that include the algorit
 | **ItemID** | Random or `hash(canonical_string)` | Stable identity across versions |
 | **ContentID** | `hash(content_bytes)` | Content-addresses a block of bytes. Also used as the version identifier (hash of manifest body). |
 | **FrameKey** | Sequence of Sememe/Literal tokens | Compound semantic address for a frame within an item |
+| **Ref** | `target [@version] [\frameKey]* [[selector]]` | Unified reference — can drill into a specific version, frame, and range |
 
-ItemID and ContentID inherit from `HashID`, which implements `Canonical` for serialization. ContentID also implements `BlockID` for use as keys in block storage.
-
-FrameKey is not a hash — it's a structured key composed of semantic tokens. It implements `Canonical` and `Comparable` for deterministic encoding and ordering.
+ItemID and ContentID inherit from `HashID`. FrameKey is not a hash — it's a structured key composed of semantic tokens (`Sememe(ItemID)` or `Literal(String)`). It implements `Canonical` and `Comparable` for deterministic encoding and ordering.
 
 ## Item Lifecycle
 
 ### Creation
 
 ```
-new Item(librarian)
- → random IID generated
- → ItemState created with empty EndorsementsTable
- → initializeFreshComponents():
-     for each @ItemFrame field:
-       1. Create default instance via Components.createDefault()
-       2. Build Frame (snapshot/stream/local-only) with FrameBody
-       3. Add frame to EndorsementsTable
- → onFullyInitialized():
-     1. initBuiltinComponents() — add PolicySet
-     2. buildVocabulary() — collect verb definitions, merge vocabulary contributions
+new ChessItem(librarian)
+ -> random IID generated
+ -> ItemState created with empty EndorsementsTable
+ -> initializeFreshComponents():
+     for each @ItemFrame field with @Implements type:
+       1. Create default instance
+       2. Build Frame (snapshot/stream/local-only)
+       3. Add frame + live instance to EndorsementsTable
+       4. Add mounts if declared
+ -> hydrate():
+     Bind @ItemFrame fields from table
+ -> onFullyInitialized():
+     1. populateVocabulary() -- scan frames for indexed string bindings
+     2. populateUnendorsedFrames() -- load from index
+     3. syncFieldValuesToTable() -- handle subclass field initializers
 ```
 
 ### Hydration (Loading)
 
 ```
 Item loaded from Manifest
- → Frames extracted from Manifest.state.endorsedFrames
- → hydrate():
+ -> Frames extracted from manifest's ItemState endorsements
+ -> hydrate():
      Phase 1: For each Frame:
        1. Fetch content by CID from the store
-       2. Decode via Components.decode() or Canonical.decodeBinary()
+       2. Decode via Canonical
        3. Store live instance on Frame
      Phase 2: Bind @ItemFrame fields from table
-     Phase 3: Invoke initComponent() on all Component instances
- → onFullyInitialized()
+ -> populateVocabulary()
 ```
 
 ### Editing
 
 ```
-item.edit()                    — enter edit mode
-item.addComponent(...)         — modify the EndorsementsTable
-item.component("chat").add()   — modify a live frame instance
+item.edit()                    -- enter edit mode
+item.endorseFrame(body)        -- endorse a frame body (store + add to table)
 ```
 
 Edit mode is a flag — it doesn't create a copy. You mutate the item's state directly, and `dirty` tracks that changes exist.
@@ -242,146 +279,65 @@ Edit mode is a flag — it doesn't create a copy. You mutate the item's state di
 
 ```
 item.commit(signer)
- → scanAndBindFields():
-     For each @ItemFrame field: encode value → CID → update Frame bodyHash
- → Build Manifest (iid, type, parents, state)
- → manifest.sign(signer) — sign BODY bytes with signer's key
- → storeManifest() — serialize and store via librarian
- → base = manifest.vid(), dirty = false
+ -> scanAndBindFields():
+     For each @ItemFrame field: encode value -> CID -> update Frame bodyHash
+ -> state.buildEndorsements():
+     Snapshot EndorsementsTable into List<FrameEndorsement>
+ -> Build Manifest:
+     iid, implementation(Java + className), parents, state, bindings
+ -> manifest.sign(signer) -- sign BODY bytes
+ -> storeManifest() -- serialize and store via librarian
+ -> base = manifest.vid(), dirty = false
 ```
 
-### Persist (non-versioned save)
+## Config Cascade
+
+Config is resolved by walking three levels:
 
 ```
-item.persist()
- → For each Frame:
-     1. Encode content
-     2. Store bytes in the item's store
-     3. Update frame bodyHash
- → Save metadata (no manifest, no version hash, no signature)
- → dirty = false
+Frame config binding       "This specific frame has custom styling"
+  | overridden by
+Item manifest binding      "This item's frames use a custom chart"
+  | overridden by
+Predicate frame            "Harvest records render as tables by default"
 ```
 
-Persist saves content without creating a version — for auto-save and work-in-progress.
-
-## Frame Types
-
-Frames can hold **any typed object**. The `Component` interface is optional, providing lifecycle hooks and display methods:
-
-```java
-public interface Component {
-    default void initComponent(Item owner) {}     // Called after hydration
-    default String displayToken() { ... }          // Tree label
-    default String emoji() { ... }                 // Icon
-    default boolean isExpandable() { ... }         // Has children?
-}
-```
-
-The `@Type` annotation provides type identity. `Components.encode()/decode()` handles serialization. The `Component` interface is only for frame types that need lifecycle hooks or display customization.
-
-### Built-in Frame
-
-Every Item always has one built-in frame, added during `initBuiltinComponents()`:
-
-| Frame | Key | Purpose |
-|-------|-----|---------|
-| **PolicySet** | `(POLICY)` | Per-item authorization rules |
-
-PolicySet is always `identity=true` — changing who can do what changes the version.
-
-**Vocabulary is derived at runtime.** An item's vocabulary — its linguistic surface (verbs it handles, nouns it recognizes, proper names for its frames) — is built by merging:
-1. Verb definitions on the item type (code layer)
-2. Verb definitions on each frame's type (code layer)
-3. Vocabulary contributions on each frame (persistent user layer)
-
-See [Vocabulary](vocabulary.md) for the full vocabulary system.
-
-## Field Annotations
-
-### @ItemFrame
-
-Declares a frame on an Item type. The annotation specifies:
-- **`predicate`** — the frame's predicate (canonical key string)
-- **`classAs`** / **`fieldAs`** — bindings that describe the owning item's role and the field value's role (via `@Bind` sub-annotation with `role` and `qualifiers`)
-- **`bindings`** — explicit binding specifications for complex cases
-
-```java
-// Simple: field value is bound to the frame
-@ItemFrame(predicate = CoreVocabulary.Title.KEY)
-private String title;
-
-// With binding metadata: field value bound with role + qualifiers
-@ItemFrame(predicate = SememeGloss.KEY,
-           fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                           qualifiers = {Language.ENGLISH_KEY}))
-private String gloss;
-
-// Multiple values via String array
-@ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-           fieldAs = @Bind(role = ThematicRole.Name.KEY,
-                           qualifiers = {Language.ENGLISH_KEY,
-                                         PartOfSpeech.Verb.KEY,
-                                         GrammaticalFeature.Lemma.KEY}))
-private String[] words;
-```
-
-The `predicate` identifies what kind of frame this is. The `@Bind` sub-annotation provides the role and qualifiers that form the binding's compound key. The field's value becomes the binding's target.
-
-### @Item.Seed
-
-Marks a static field as a seed instance for bootstrap vocabulary:
-
-```java
-@Item.Seed
-public static final Item ITEM_TYPE = new Item(ItemID.fromString("cg:type/item"));
-```
-
-Seed items have deterministic IIDs, timestamp 0, and no signature. They're imported into the Library on first boot via classpath scanning.
+Most frames carry no config — they inherit from item and predicate. Config bindings are non-identity, so changing config never creates a new version of the frame body. See [Frames: Config](frames.md#config-just-bindings) for how config is expressed as bindings.
 
 ## Composable Items
 
-Items compose behavior from typed frames. There are no special "chat room" or "shared folder" types baked into the system — everything is assembled from primitives:
+Items compose behavior from typed frames. There are no special "chat room" or "shared folder" types baked into the system — everything is assembled from frames:
 
 | Want | Compose |
 |------|---------|
-| Chat room | Item + Roster (stream) + Log (stream) |
-| Shared folder | Item + mounted content frames |
-| Game | Item + GameComponent (Dag stream) + Roster |
+| Chat room | Item + Roster + Log (stream) |
+| Game | Item + Player frames + Move frames |
 | User profile | Item + KeyLog (stream) + Vault (local) |
-| Document | Item + text frame + assertion frames (author, title) |
+| Document | Item + TITLE frame + AUTHORED frame |
 
-The same EndorsementsTable holds all of these. A "chat room" is just an item where one of the frames happens to be a stream-based Log.
+The same EndorsementsTable holds all of these. A "chess game" is an item whose EXPECTS declarations say it needs PLAYER and MOVE frames. A "document" is an item that expects TITLE, AUTHOR, and DESCRIPTION frames. The type IS the expected frames.
 
 ## Vocabulary
 
-Every Item has a vocabulary — its linguistic surface. Verbs, nouns, proper names for frames — all resolved through sememes:
+Every Item has a vocabulary — the tokens (words) it recognizes, derived at runtime by scanning its frames for indexed string bindings. When a frame has a binding like `NAME:[ENGLISH, VERB, LEMMA]->"create"`, that posts `"create"` to the item's token index.
 
-```
-"create" (English)  --+
-"crear"  (Spanish)  --+--> same sememe --> same verb --> ActionResult
-```
-
-The vocabulary is derived at runtime from:
-- Verb definitions on the item type and its frame types (code layer)
-- Vocabulary contributions on frames (persistent user layer)
-
-Typing into an Item's prompt dispatches through the vocabulary system. See [Vocabulary](vocabulary.md) for the full dispatch pipeline, expression input, and customization.
+This is fully automatic — the vocabulary is rebuilt from frame content, not stored separately. See [Vocabulary](vocabulary.md) for the full resolution pipeline.
 
 ## Working Tree Representation
 
-An Item can be presented as a filesystem working tree — see [Working Trees](working-tree.md):
+An Item can be materialized as a filesystem working tree — see [Working Trees](working-tree.md):
 
 ```
 my-item/
-├── README.md              # Mounted content (editable)
-├── data/
-│   └── config.json
-└── .item/
-    ├── iid                # Item identity
-    ├── head/              # Working state
-    ├── manifests/         # Immutable version snapshots
-    ├── channels/          # Named branches
-    └── content/           # Content blocks (by CID)
++-- README.md              # Mounted content (editable)
++-- data/
+|   +-- config.json
++-- .item/
+    +-- iid                # Item identity
+    +-- head/              # Working state
+    +-- manifests/         # Immutable version snapshots
+    +-- channels/          # Named branches
+    +-- content/           # Content blocks (by CID)
 ```
 
 The working tree is a view of the EndorsementsTable — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.

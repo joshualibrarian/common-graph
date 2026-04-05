@@ -229,16 +229,12 @@ public class ViewWindow {
     public boolean tick() {
         if (stage == null) return false;
 
-        // Process deferred navigation from double-click (outside GLFW callback)
+        // Process deferred view-open from double-click (outside GLFW callback).
+        // Double-click = "view <item>" = open a NEW window, never replace the current one.
         ItemID navTarget = pendingNavigation;
         if (navTarget != null) {
             pendingNavigation = null;
-            session.librarian().get(navTarget).ifPresent(item -> {
-                session.navigateInto(item);
-                if (itemView != null) itemView.navigateInto(item);
-                rebuildLayout();
-                requestRepaint();
-            });
+            session.openView(navTarget);
         }
 
         // Process deferred expression from mouse events (outside GLFW callback)
@@ -361,7 +357,7 @@ public class ViewWindow {
         }
 
         filamentWindow = new FilamentWindow();
-        filamentWindow.init(title);
+        filamentWindow.init(title, filamentContext);
         stage = filamentWindow;
 
         uiPane = filamentWindow.createPane(false);
@@ -371,26 +367,22 @@ public class ViewWindow {
         detailPane.clearFullWindow();
         detailPane.configurePerspective();
 
-        // Painters: prefer MSDF, fall back to Skia-in-Filament
+        // Painters: prefer MSDF, fall back to Skia-in-Filament.
+        // Each window needs its own MsdfFontManager because Filament atlas textures
+        // are tied to the painter/renderer lifecycle and can't be shared.
         try {
             msdfFontManager = new MsdfFontManager(filamentWindow.engine(), shared.fontRegistry());
-            boolean msdfReady = msdfFontManager.hasUsableFonts();
-            if (msdfReady) {
-                uiPane.painter(new FilamentSurfacePainter(
-                        filamentWindow.engine(), uiPane.scene(), msdfFontManager));
-                panelPainter = new FilamentPanelPainter(
-                        filamentWindow.engine(), detailPane.scene(), msdfFontManager,
-                        session.librarian());
-            } else {
-                msdfFontManager = null;
-                uiPane.painter(new SkiaSurfacePainter(
-                        filamentWindow.engine(), uiPane.scene(), shared.painter(), shared.fontCache()));
-                panelPainter = new SkiaPanelPainter(
-                        filamentWindow.engine(), detailPane.scene(), shared.painter(), shared.fontCache());
-            }
         } catch (Throwable t) {
             log.warn("MSDF initialization failed; using Skia texture fallback", t);
             msdfFontManager = null;
+        }
+        if (msdfFontManager != null && msdfFontManager.hasUsableFonts()) {
+            uiPane.painter(new FilamentSurfacePainter(
+                    filamentWindow.engine(), uiPane.scene(), msdfFontManager, filamentContext));
+            panelPainter = new FilamentPanelPainter(
+                    filamentWindow.engine(), detailPane.scene(), msdfFontManager,
+                    session.librarian());
+        } else {
             uiPane.painter(new SkiaSurfacePainter(
                     filamentWindow.engine(), uiPane.scene(), shared.painter(), shared.fontCache()));
             panelPainter = new SkiaPanelPainter(
@@ -402,7 +394,7 @@ public class ViewWindow {
         // Elevated surface painter — renders the same layout tree as 3D geometry on detailPane
         if (msdfFontManager != null) {
             detailPainter = new FilamentSurfacePainter(
-                    filamentWindow.engine(), detailPane.scene(), msdfFontManager);
+                    filamentWindow.engine(), detailPane.scene(), msdfFontManager, filamentContext);
         }
 
         dragController = new WindowDragController(32f, stage);
@@ -411,7 +403,7 @@ public class ViewWindow {
 
         if (msdfFontManager != null) {
             gripPainter = new FilamentSurfacePainter(
-                    filamentWindow.engine(), uiPane.scene(), msdfFontManager);
+                    filamentWindow.engine(), uiPane.scene(), msdfFontManager, filamentContext);
         }
 
         setupFilamentInput();
@@ -965,10 +957,8 @@ public class ViewWindow {
                     requestRepaint();
                 })
                 .onNavigate(item -> {
-                    session.navigateInto(item);
-                    if (itemView != null) itemView.navigateInto(item);
-                    rebuildLayout();
-                    requestRepaint();
+                    // Open a new view — never replace the current window's item
+                    session.openView(item.iid());
                 })
                 .onResult(result -> {
                     session.setLastDispatchedText(inputController.lastSubmittedText());

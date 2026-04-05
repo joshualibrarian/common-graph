@@ -481,19 +481,6 @@ public class ItemView {
         return resolver.apply(context.target()).orElse(null);
     }
 
-    public void navigateInto(Ref target) {
-        if (target == null) return;
-        history.add(root);
-        root = target; context = target;
-        watchFrames();
-        rebuildTree(); changed();
-    }
-
-    public void navigateInto(Item item) {
-        if (item == null) return;
-        navigateInto(Ref.of(item.iid()));
-    }
-
     public boolean goBack() {
         if (history.isEmpty()) return false;
         root = history.removeLast(); context = root;
