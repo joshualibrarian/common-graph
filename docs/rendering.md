@@ -48,13 +48,13 @@ Traverses the positioned tree and produces output. Five implementations, one int
 
 | Painter | Output | Asset Selection |
 |---------|--------|-----------------|
-| `JLineSurfacePainter` | ANSI terminal text | Text representation |
-| `CliSurfacePainter` | Plain text | Text representation |
+| `AnsiSurfacePainter` | ANSI terminal text | Text representation |
+| `PlainTextSurfacePainter` | Plain text | Text representation |
 | `SkiaSurfacePainter` | Skia canvas (CPU 2D) | 2D representation (SVG, raster) |
 | `FilamentSurfacePainter` | Filament ortho scene (GPU 2D) | 2D representation (SVG, raster) |
 | `FilamentSpatialPainter` | Filament perspective scene (3D) | 3D representation (GLB), falls back to 2D |
 
-The three graphical surface painters (Skia, Filament, Web) should produce **pixel-identical** 2D output. The spatial painter selects 3D assets where available and paints with perspective projection. The text painters (JLine, CLI) gracefully degrade — representing containers as indentation, images as alt text, depth as visual hints (box drawing, ANSI color), and 3D bodies as structured text summaries.
+The three graphical surface painters (Skia, Filament, Web) should produce **pixel-identical** 2D output. The spatial painter selects 3D assets where available and paints with perspective projection. The text painters (ANSI, plain text) gracefully degrade — representing containers as indentation, images as alt text, depth as visual hints (box drawing, ANSI color), and 3D bodies as structured text summaries.
 
 ```java
 interface ScenePainter {
