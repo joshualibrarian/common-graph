@@ -29,10 +29,10 @@ import java.util.*;
  *
  * @see MineTile
  */
-@Scene.Rule(match = ".tile.hidden", background = "#585B70")
-@Scene.Rule(match = ".tile.flagged", background = "#FAB387")
-@Scene.Rule(match = ".tile.mine", background = "#F38BA8")
-@Scene.Rule(match = ".tile.revealed", background = "#45475A")
+@Scene.Style(when = ".tile.hidden", background = "#585B70")
+@Scene.Style(when = ".tile.flagged", background = "#FAB387")
+@Scene.Style(when = ".tile.mine", background = "#F38BA8")
+@Scene.Style(when = ".tile.revealed", background = "#45475A")
 @Implements(Minesweeper.KEY)
 @ItemSeed(key = Minesweeper.KEY)
 @Scene.Container(direction = Direction.VERTICAL, padding = "0.5em", gap = "0.25em")

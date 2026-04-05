@@ -69,12 +69,12 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
  * Call commit() when ready to persist a new version.
  */
 @Log4j2
-@Scene.Rule(match = ".heading", color = "#89B4FA", fontSize = "1.33")
-@Scene.Rule(match = ".muted", color = "#6C7086", fontSize = "0.87")
-@Scene.Rule(match = ".small", fontSize = "0.87")
-@Scene.Rule(match = ".selected", background = "#313244")
-@Scene.Rule(match = ":selected", background = "reverse")
-@Scene.Rule(match = ":hover", opacity = "bright")
+@Scene.Style(when = ".heading", color = "#89B4FA", fontSize = "1.33em")
+@Scene.Style(when = ".muted", color = "#6C7086", fontSize = "0.87em")
+@Scene.Style(when = ".small", fontSize = "0.87em")
+@Scene.Style(when = ".selected", background = "#313244")
+@Scene.Style(when = "$selected", background = "#45475A")
+@Scene.Style(when = "$hover", opacity = "bright")
 @Implements(Item.KEY)
 @ItemSeed(key = Item.KEY)
 public class Item {

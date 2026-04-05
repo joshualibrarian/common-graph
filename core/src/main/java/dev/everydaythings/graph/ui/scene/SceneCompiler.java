@@ -50,6 +50,7 @@ public class SceneCompiler {
         if (root == null) root = SceneNode.vertical();
 
         applyEvents(compileFrom, root);
+        applyStyles(compileFrom, root);
         compileMembers(compileFrom, data, root, ctx);
 
         return root;
@@ -471,6 +472,37 @@ public class SceneCompiler {
 
         if (wrapped != null) applyEvents(m, wrapped);
         return wrapped;
+    }
+
+    /**
+     * Collect @Scene.Style annotations from the class hierarchy and apply
+     * them to the root SceneNode as when-blocks. The SceneResolver will
+     * match these against node classes/IDs during resolution.
+     */
+    private static void applyStyles(Class<?> clazz, SceneNode root) {
+        // Collect from entire class hierarchy (supertypes first for proper cascade)
+        List<Scene.Style> allStyles = new ArrayList<>();
+        for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+            Scene.Style[] styles = c.getAnnotationsByType(Scene.Style.class);
+            // Prepend superclass styles so they're overridden by subclass
+            allStyles.addAll(0, Arrays.asList(styles));
+        }
+
+        // Store on root node — the resolver applies them during tree walking
+        for (Scene.Style style : allStyles) {
+            String when = style.when();
+            if (!style.color().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "foreground", style.color());
+            if (!style.background().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "background", style.background());
+            if (!style.fontSize().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontSize", style.fontSize());
+            if (!style.fontFamily().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontFamily", style.fontFamily());
+            if (!style.fontWeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontWeight", style.fontWeight());
+            if (!style.opacity().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "opacity", style.opacity());
+            if (!style.padding().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "padding", style.padding());
+            if (!style.border().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "border", style.border());
+            if (!style.radius().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "corner", style.radius());
+            if (!style.rotation().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotation", style.rotation());
+            if (!style.display().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "visible", "hidden".equals(style.display()) ? "false" : "true");
+        }
     }
 
     private static SceneNode bodyFromObject(Object obj) {

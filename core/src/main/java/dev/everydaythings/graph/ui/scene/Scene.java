@@ -197,66 +197,6 @@ public @interface Scene {
     }
 
     // ===================================================================
-    // Style Rules
-    // ===================================================================
-
-    /**
-     * Declares a style rule on the class that owns the styled elements.
-     *
-     * <p>Style rules are scanned from the classpath at startup and assembled
-     * into a {@link Stylesheet}. This replaces centralized style defaults
-     * with data-on-the-type declarations.
-     *
-     * <h2>Examples</h2>
-     * <pre>{@code
-     * @Scene.Rule(match = ".heading", color = "#89B4FA", fontSize = "1.33")
-     * @Scene.Rule(match = ".square.light", background = "#F0D9B5")
-     * @Scene.Rule(match = ".chrome!tui", display = "visible", opacity = "dim")
-     * @Type(glyph = "♟")
-     * public class ChessBoard { ... }
-     * }</pre>
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    @Repeatable(Rules.class)
-    @interface Rule {
-
-        /** CSS-like selector: ".heading", ".square.light", ":selected". */
-        String match();
-
-        /** Foreground color as hex: "#89B4FA". */
-        String color() default "";
-
-        /** Background color as hex "#313244" or keyword "reverse". */
-        String background() default "";
-
-        /** Font size ratio relative to base: "1.33", "0.87". */
-        String fontSize() default "";
-
-        /** Font family: "monospace". */
-        String fontFamily() default "";
-
-        /** Font weight: "bold". */
-        String fontWeight() default "";
-
-        /** Display mode: "hidden", "visible". */
-        String display() default "";
-
-        /** Opacity: "dim", "bright". */
-        String opacity() default "";
-
-        /** Rotation: "90deg". */
-        String rotation() default "";
-    }
-
-    /** Container for multiple {@link Rule} annotations on a single type. */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    @interface Rules {
-        Rule[] value();
-    }
-
-    // ===================================================================
     // Layout Direction
     // ===================================================================
 
@@ -343,48 +283,80 @@ public @interface Scene {
      *   <li>{@code "@narrow"}, {@code "@wide"} — responsive breakpoints</li>
      * </ul>
      */
+    /**
+     * Declares visual properties, optionally conditional.
+     *
+     * <p>The single mechanism for all presentation styling. Replaces @Scene.Rule.
+     *
+     * <pre>{@code
+     * // Unconditional — always applies
+     * @Scene.Style(background = "#1E1E2E", padding = "0.3em")
+     *
+     * // Class-conditional — applies to nodes matching this class
+     * @Scene.Style(when = ".header", background = "#1E1E2E", gap = "0.5em")
+     *
+     * // Expression-conditional — applies when expression is true
+     * @Scene.Style(when = "$item.selected", background = "#FFD700")
+     * }</pre>
+     */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({})
+    @Target({ElementType.TYPE})
+    @Repeatable(Styles.class)
     @interface Style {
 
-        /** Condition for when this style applies (empty = always). */
+        /**
+         * Condition for when this style applies.
+         * <ul>
+         *   <li>Empty — always applies to the declaring node</li>
+         *   <li>Class selector ({@code ".header"}) — matches nodes with that class</li>
+         *   <li>ID selector ({@code "#board"}) — matches node with that ID</li>
+         *   <li>Expression ({@code "$item.selected"}) — matches when truthy</li>
+         * </ul>
+         */
         String when() default "";
 
-        /** Display mode: "visible", "hidden". */
-        String display() default "";
+        /** Foreground color: "#89B4FA". */
+        String color() default "";
+
+        /** Background color: "#313244", or "reverse" for inverted. */
+        String background() default "";
+
+        /** Font size: "1.33em", "20px", "80%". */
+        String fontSize() default "";
+
+        /** Font family: "monospace". */
+        String fontFamily() default "";
+
+        /** Font weight: "normal", "bold". */
+        String fontWeight() default "";
 
         /** Opacity: "dim", "normal", "bright", or "0.0"-"1.0". */
         String opacity() default "";
 
-        /** Foreground color. */
-        String color() default "";
+        /** Display mode: "visible", "hidden". */
+        String display() default "";
 
-        /** Background color, or "reverse" for inverted. */
-        String background() default "";
-
-        /** Font weight: "normal", "bold". */
-        String font() default "";
-
-        /** Text decoration: "none", "underline", "strikethrough". */
-        String decoration() default "";
-
-        /** Padding inside element: "4px", "1em", "8px 16px". */
+        /** Padding: "4px", "1em", "8px 16px". */
         String padding() default "";
 
-        /** Margin outside element: "4px", "1em", "8px 16px". */
+        /** Margin: "4px", "1em". */
         String margin() default "";
 
-        /** Border style: "none", "solid", "dashed". */
+        /** Border: "2px solid #8B4513". */
         String border() default "";
 
         /** Border radius: "4px", "50%". */
         String radius() default "";
 
-        /** Content rendering hint: "box-drawing", "ascii". */
-        String content() default "";
+        /** Rotation: "90deg", "45". */
+        String rotation() default "";
+    }
 
-        /** Icon/emoji override. */
-        String icon() default "";
+    /** Container for multiple {@link Style} annotations on a single type. */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    @interface Styles {
+        Style[] value();
     }
 
     // ===================================================================

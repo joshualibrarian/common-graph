@@ -20,8 +20,8 @@ import java.util.List;
  *
  * @see ChessItem
  */
-@Scene.Rule(match = ".square.light", background = "#F0D9B5")
-@Scene.Rule(match = ".square.dark", background = "#B58863")
+@Scene.Style(when = ".square.light", background = "#F0D9B5")
+@Scene.Style(when = ".square.dark", background = "#B58863")
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "board-root", direction = Direction.VERTICAL, style = "fill", aspectRatio = "1")
 public class ChessBoard {

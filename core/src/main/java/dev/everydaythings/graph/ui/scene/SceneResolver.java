@@ -5,6 +5,7 @@ import dev.everydaythings.graph.ui.scene.SceneNode.SemanticToken;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,10 +75,29 @@ public class SceneResolver {
      * Resolve the given SceneNode tree in place.
      */
     public void resolve(SceneNode tree, ResolveContext ctx) {
-        resolveNode(tree, ctx, new ArrayDeque<>());
+        // Collect class-based styles from root's when-blocks (compiled from @Scene.Style)
+        Map<String, Map<String, String>> classStyles = extractClassStyles(tree);
+        resolveNode(tree, ctx, new ArrayDeque<>(), classStyles);
     }
 
-    private void resolveNode(SceneNode node, ResolveContext ctx, Deque<String> scopeStack) {
+    /**
+     * Extract class-selector styles from a node's when-blocks.
+     * These are entries where the key starts with "." (class selector).
+     */
+    private Map<String, Map<String, String>> extractClassStyles(SceneNode root) {
+        Map<String, Map<String, String>> result = new LinkedHashMap<>();
+        if (root.when() == null) return result;
+        for (var entry : root.when().entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(".") || key.startsWith("#")) {
+                result.put(key, entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    private void resolveNode(SceneNode node, ResolveContext ctx, Deque<String> scopeStack,
+                             Map<String, Map<String, String>> classStyles) {
         if (node == null) return;
 
         // Push state scope if this node has an ID
@@ -95,9 +115,11 @@ public class SceneResolver {
                 ctx.state().initDeclaredState(node.id(), node.state());
             }
 
+            // Apply class-based styles from @Scene.Style annotations
+            applyClassStyles(node, classStyles);
+
             // Evaluate visibility
             if (!evaluateVisible(node, ctx, scopeId)) {
-                // Mark as invisible — presenter/painter will skip
                 node.visible("false");
                 return;
             }
@@ -117,26 +139,70 @@ public class SceneResolver {
             // Recurse into children
             if (node.children() != null) {
                 for (SceneNode child : node.children()) {
-                    resolveNode(child, ctx, scopeStack);
+                    resolveNode(child, ctx, scopeStack, classStyles);
                 }
             }
 
             // Recurse into body surfaces
             if (node.surfaces() != null) {
                 for (SceneNode surface : node.surfaces().values()) {
-                    resolveNode(surface, ctx, scopeStack);
+                    resolveNode(surface, ctx, scopeStack, classStyles);
                 }
             }
 
             // Recurse into child template
             if (node.childTemplate() != null) {
-                resolveNode(node.childTemplate(), ctx, scopeStack);
+                resolveNode(node.childTemplate(), ctx, scopeStack, classStyles);
             }
         } finally {
             if (pushedScope) {
                 scopeStack.pop();
             }
         }
+    }
+
+    // =================================================================================
+    // Class-Based Style Application
+    // =================================================================================
+
+    /**
+     * Apply class-based styles to a node. Matches the node's classes and ID
+     * against the style selectors collected from @Scene.Style annotations.
+     */
+    private void applyClassStyles(SceneNode node, Map<String, Map<String, String>> classStyles) {
+        if (classStyles.isEmpty()) return;
+
+        List<String> nodeClasses = node.classes();
+        String nodeId = node.id();
+
+        for (var entry : classStyles.entrySet()) {
+            String selector = entry.getKey();
+            if (matchesSelector(selector, nodeClasses, nodeId)) {
+                applyOverrides(node, entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * Check if a node matches a CSS-like selector.
+     * ".heading" matches nodes with class "heading".
+     * ".square.light" matches nodes with BOTH classes "square" and "light".
+     * "#board" matches the node with id "board".
+     */
+    private boolean matchesSelector(String selector, List<String> classes, String id) {
+        if (selector.startsWith("#")) {
+            return selector.substring(1).equals(id);
+        }
+        if (selector.startsWith(".")) {
+            // Split compound selectors: ".square.light" → ["square", "light"]
+            String[] parts = selector.substring(1).split("\\.");
+            if (classes == null) return false;
+            for (String part : parts) {
+                if (!classes.contains(part)) return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     // =================================================================================
