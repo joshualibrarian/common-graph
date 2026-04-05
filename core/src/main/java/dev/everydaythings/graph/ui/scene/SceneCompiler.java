@@ -331,6 +331,21 @@ public final class SceneCompiler {
     }
 
     /**
+     * Compile {@code @Scene} annotations on {@code data} into a {@link SceneNode} tree.
+     *
+     * <p>This is the new pipeline entry point. Delegates to {@link #compileToNode(Object)}
+     * and converts via {@link SceneNodeBridge}. When the migration is complete,
+     * this method will be renamed to {@code compile()} and the bridge removed.
+     *
+     * @param data the annotated object (Item subclass, SceneSchema, data model)
+     * @return the compiled SceneNode tree, or null if no compilable annotations
+     */
+    public static SceneNode compileToSceneNode(Object data) {
+        Node node = compileToNode(data);
+        return node != null ? SceneNodeBridge.fromNode(node) : null;
+    }
+
+    /**
      * Create a Container from a class-level @Scene.Container annotation.
      */
     private static Container containerFromClassAnnotation(Class<?> clazz) {

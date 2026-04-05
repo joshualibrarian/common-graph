@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-class FilamentSurfacePainterOrientationTest {
+class LegacyFilamentSurfacePainterOrientationTest {
 
     @Test
     void canonicalTopLeftUvsMatchSkiaTextureConvention() {
@@ -13,18 +13,18 @@ class FilamentSurfacePainterOrientationTest {
                 1f, 1f,
                 1f, 0f,
                 0f, 0f
-        }, FilamentSurfacePainter.canonicalQuadUvsTopLeft());
+        }, LegacyFilamentSurfacePainter.canonicalQuadUvsTopLeft());
     }
 
     @Test
     void canonicalXzQuadIndicesDefineTopFacingWinding() {
         assertArrayEquals(new short[] {0, 1, 2, 0, 2, 3},
-                FilamentSurfacePainter.canonicalXzQuadUpIndices());
+                LegacyFilamentSurfacePainter.canonicalXzQuadUpIndices());
     }
 
     @Test
     void texturedFallbackUsesTopFrontWinding() {
         assertArrayEquals(new short[] {0, 2, 1, 0, 3, 2},
-                FilamentSurfacePainter.canonicalXzQuadTopFrontIndices());
+                LegacyFilamentSurfacePainter.canonicalXzQuadTopFrontIndices());
     }
 }

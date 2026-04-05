@@ -1,6 +1,6 @@
 # Items
 
-In the Common Graph, **frames** hold all the data, indexed with semantic keys. However, an **Item** is the fundamental unit of coherent meaning. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item. Anything that makes sense **as a whole**.
+In the Common Graph, **frames** hold all the data, indexed with semantic keys. However, an **Item** is the fundamental unit of coherent meaning. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item. Anything that only makes sense **as a whole**, which frames coalesce into.
 
 An Item is a **versioned, signed container of frames with stable identity**. Every Item carries its own identity, its own history, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
 
@@ -8,21 +8,18 @@ The Item model draws from several traditions: Smalltalk's "everything is an obje
 
 ## Anatomy of an Item
 
-An Item has two parts: an **IID** and a **Manifest**.
+An **Item** is a persistent identity — an **IID** (Item ID) — with a history of **Manifests**, each a signed, immutable snapshot of a specific version. The IID persists across all versions. You find an item by its IID; you read a specific version by its manifest. An item may have multiple heads — you choose which version to work from, fork from, or build upon.
 
-| Part | What it is |
-|------|-----------|
-| **IID** | Stable 32-byte identity that persists across all versions |
-| **Manifest** | Signed, immutable snapshot of a specific version |
-
-The manifest IS the item at a point in time. It contains:
+A manifest contains:
 
 | Manifest field | What it holds |
 |----------------|---------------|
+| **IID** | Which item this version belongs to |
 | **Endorsements** | The item's frames — every endorsed assertion, keyed by FrameKey |
-| **Bindings** | Item-level properties (identity bindings affect VID; non-identity don't) |
-| **Implementation** | Platform + class name (e.g., Java + `ChessItem`) |
-| **Signature** | Author key + cryptographic signature |
+| **Bindings** | Item-level role-keyed values, each carrying an identity flag |
+| **Implementation** | Platform + type name (e.g., Java + `ChessItem`) — a distinguished binding |
+| **Parents** | Version history chain (list of prior VIDs) |
+| **Author + Signature** | Who signed this version and the cryptographic proof |
 
 Everything — text, metadata, streams, policy — is either an endorsed frame or an item-level binding. Vocabulary is derived at runtime by scanning the item's frames for indexed string bindings.
 
@@ -64,46 +61,53 @@ The version hash covers only BODY fields (content), not the full manifest. Signa
 
 ## The Manifest
 
-A Manifest is the **signed, immutable declaration** of an Item version — the item at a point in time:
+A Manifest is the **signed, immutable declaration** of an Item version. Like frames, manifests split into **body** (content identity) and **record** (attestation envelope):
 
 ```
 Manifest {
-    version:        int                 -- format version (currently 1)
-    iid:            ItemID              -- which item this is
-    parents:        List<ContentID>     -- parent version hashes (history chain)
-    implementation: Binding             -- platform + class name (e.g., Java + "ChessItem")
-    state:          ItemState           -- endorsed frames (List<FrameEndorsement>)
-    bindings:       List<Binding>       -- item-level bindings (identity + non-identity)
-    --- non-BODY fields (excluded from version hash) ---
-    authorKey:      SigningPublicKey     -- who signed this
-    signature:      Signing             -- the signature itself
+    --- BODY (hashed to produce the VID) ---
+    version:          int                     -- manifest format version (currently 1)
+    iid:              ItemID                  -- which item this is
+    parents:          List<ContentID>         -- parent version hashes (history chain)
+    implementation:   Binding                 -- platform + type name (e.g., Java + "ChessItem")
+    endorsements:     List<FrameEndorsement>  -- the item's endorsed frames
+    bindings:         List<Binding>           -- identity bindings (affect version identity)
+
+    --- RECORD (attestation envelope, excluded from VID) ---
+    bindings:         List<Binding>           -- non-identity bindings (config, presentation)
+    authorKey:        SigningPublicKey         -- who signed this
+    signature:        Signing                 -- the signature itself
 }
 ```
 
+Bindings are conceptually one set — each binding carries an identity flag. At serialization time, they split across the body/record boundary: identity bindings are BODY (they affect the VID), non-identity bindings are RECORD (config, presentation overrides — they don't change the version).
+
 ### Endorsed Frames
 
-The manifest's state holds the item's **endorsed frames** — each a `FrameEndorsement` carrying a FrameKey, bodyHash, and mounts. At runtime, endorsements are expanded into a frame table (`Map<FrameKey, Frame>`) with a parallel mount map. Mounts live on the table, not on individual frames.
+The manifest's endorsements reference the item's **endorsed frames** — each a `FrameEndorsement` carrying a FrameKey, bodyHash, and mounts. An endorsement always covers the frame body; it may optionally also endorse a specific frame record — pinning a particular presentation or config alongside the content ("I endorse THIS rendering of this frame"). At runtime, endorsements are expanded into a frame table (`Map<FrameKey, Frame>`) with a parallel mount map. Mounts live on the table, not on individual frames.
+
+Only endorsed frames appear in the manifest and affect the version. But every item may also accumulate **unendorsed frames** — annotations, comments, reactions, moderation actions, third-party metadata — created by anyone, about the item, without the item author's involvement. Unendorsed frames are free-floating, independent assertions: they reference the item but live outside its version history. They don't alter any version unless the item's author chooses to endorse them into a future manifest.
 
 See [Frames](frames.md) for the Frame/FrameBody/FrameRecord/Endorsement layering, the identity and index flags, content modes, and the endorsed/unendorsed distinction.
 
 ### Implementation
 
-The **implementation** binding tells the runtime how to instantiate this item. The binding's role is the platform (e.g., Java, Rust), and the target identifies the code:
+The **implementation** binding tells the runtime how to instantiate this item. The binding's role is the platform (e.g., Java, Rust, Python), and the target identifies the code:
 
-| Target | Meaning |
-|--------|---------|
-| **Literal** (class name) | A built-in implementation on the local runtime — e.g., `"dev.everydaythings.graph.game.chess.ChessItem"` |
-| **ItemID** | A distributed implementation — an item carrying CODE frames with the actual source or bytecode |
+| Target | Meaning                                                                                       |
+|--------|-----------------------------------------------------------------------------------------------|
+| **Literal** (type name) | A built-in implementation on the local runtime — a platform-native identifier (e.g., a Java class, a Rust struct, a Python class, etc) |
+| **ItemID** | A distributed implementation — an item carrying CODE frames with the actual source or bytecode|
 
-The literal form is the common case today: the platform ships with the class, and the manifest just names it. The ItemID form enables distributing new implementations as items — someone writes a new chess variant, packages it as an item with code frames, and any node that trusts the author can instantiate it. The code item can carry source, bytecode, or compiled native binaries for multiple architectures (x86, ARM, etc.) — whatever the target platform needs. Same binding structure, same manifest field, but the implementation travels with the data instead of being pre-installed.
+The literal form is the common case today: the platform ships with the implementation, and the manifest just names it. The ItemID form enables distributing new implementations as items — someone writes a new chess variant, packages it as an item with code frames, and any node that trusts the author can instantiate it. The code item can carry source, bytecode, or compiled native binaries for multiple architectures (x86, ARM, etc.) — whatever the target platform needs. Same binding structure, same manifest field, but the implementation travels with the data instead of being pre-installed.
 
-The semantic relationship between an implementation and the concept it implements (e.g., "this class implements chess") lives in an IMPLEMENTS frame on the item, not on the manifest. The manifest only records which code to run.
+The semantic relationship between an implementation and the concept it implements (e.g., "this code implements chess") lives in an IMPLEMENTS frame on the item, not on the manifest. The manifest only records which code to run.
 
-The BODY/non-BODY split:
+The body/record split:
 
-1. Compute the version hash by hashing the BODY fields (version, iid, parents, implementation, state, identity bindings)
+1. Compute the version hash by hashing the BODY fields (iid, parents, implementation, endorsements, identity bindings)
 2. Sign the hash with the author's key
-3. Attach the signature as a non-BODY field
+3. Attach the signature as a RECORD field
 
 The version hash is deterministic from content. The signature proves who authored that content. No circular dependency.
 
@@ -112,9 +116,11 @@ The version hash is deterministic from content. The signature proves who authore
 Manifests carry **item-level bindings** — role-keyed values that describe the item as a whole (not a specific frame). These are split by identity flag:
 
 - **Identity bindings** — contribute to the VID. Changing them creates a new version.
-- **Non-identity bindings** — record-scope only. Config, presentation overrides, vocabulary customization. Don't affect the VID.
+- **Non-identity bindings** — record-scope only. Don't affect the VID.
 
-Non-identity bindings participate in the [config cascade](#config-cascade): when resolving config for a frame, the item's manifest bindings are checked before falling back to the predicate's defaults.
+The identity flag is a per-binding choice by the author, not a structural constraint. Config and presentation bindings are conventionally non-identity, but an author can mark any binding as identity if they want changes to it to produce a new version.
+
+Config bindings participate in the [config cascade](#config-cascade): when resolving config for a frame, the item's manifest bindings are checked before falling back to the predicate's defaults.
 
 See [Manifests](manifest.md) for the full manifest structure, signing, and canonical encoding.
 
@@ -130,89 +136,33 @@ Frames can have **mounts** — presentation descriptors that control where a fra
 
 A frame can have multiple mounts (like hard links). Frames with no mounts are internal entries — they exist in the table but don't appear in navigation.
 
-Mounts are stored on the frame table, not on individual Frames. They are serialized alongside each frame's endorsement in the manifest.
+Mounts are part of the endorsement — each `FrameEndorsement` carries a FrameKey, bodyHash, and a list of mounts. In the manifest, they're serialized together. At runtime, the endorsements table holds mounts in a parallel map alongside the frames, rather than on the Frame objects themselves — a frame is pure content, and its placement is a separate concern.
 
 ## Item Types
 
-Items declare their type via two annotations:
+An item's type is declared through frames, not through any platform-specific mechanism. Two kinds of frames establish type:
 
-### @Implements
+### IMPLEMENTS
 
-Links a Java class to the semantic concept it implements:
+An item declares what concept it implements via an **IMPLEMENTS** frame — linking the item to a sememe (a universal meaning unit). A chess game item carries an IMPLEMENTS frame pointing to the Chess sememe. The manifest's implementation binding records which platform code to run; the IMPLEMENTS frame records *what concept that code is an implementation of*.
 
-```java
-@Implements(ChessItem.Chess.KEY)
-public class ChessItem extends Item { ... }
-```
+### Seed Concepts
 
-The value is the concept's canonical key string (e.g., `"cg.sememe:chess"`). This links the class to a Sememe with that key. At runtime, `@Implements` is synthesized into an IMPLEMENTED_BY frame — the manifest records the implementation binding, and the runtime resolves the implementing class from it.
+Bootstrap concepts — the foundational sememes that the system needs before any data exists — have **deterministic IIDs** computed from a canonical key string (e.g., `ItemID.fromString("cg.sememe:chess")`). Two independently started nodes arrive at the same IID for "chess" without coordination.
 
-### @ItemSeed
-
-Declares a seed sememe — a bootstrap concept with deterministic IID. Placed on a class (outer or inner) to define the concept that an item type implements:
-
-```java
-@ItemSeed(key = Chess.KEY)
-public static class Chess {
-    public static final String KEY = "cg.sememe:chess";
-
-    @ItemFrame(predicate = SememeGloss.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
-                                          qualifiers = {Language.ENGLISH_KEY}))
-    static final String gloss = "the game of chess";
-
-    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
-                                          qualifiers = {Language.ENGLISH_KEY,
-                                                        PartOfSpeech.Noun.KEY,
-                                                        GrammaticalFeature.Lemma.KEY}))
-    static final String word = "chess";
-}
-```
-
-Seed items have deterministic IIDs (from `ItemID.fromString(key)`), timestamp 0, and no signature. They're imported into the Library on first boot via classpath scanning.
-
-The static `@ItemFrame` fields on a seed class declare the concept's frames — glosses, lexemes, EXPECTS declarations — using the same frame annotation as instance fields.
-
-### @ItemFrame
-
-Declares a frame on an Item type. Used on both seed static fields and instance fields:
-
-```java
-// Simple: a title string
-@ItemFrame(predicate = CoreVocabulary.Title.KEY)
-private String title;
-
-// With binding metadata: field value bound with role + qualifiers
-@ItemFrame(predicate = SememeGloss.KEY,
-           fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
-                                      qualifiers = {Language.ENGLISH_KEY}))
-private String gloss;
-```
-
-The annotation specifies:
-- **`predicate`** — the frame's predicate (canonical key string)
-- **`classAs`** — binding for the owning item/class (default: THEME)
-- **`fieldAs`** — binding for the field value (role + qualifiers via `@Bind`)
-- **`endorsement`** — whether the frame is endorsed and its mount paths
+A seed concept is itself an item, carrying frames that define it: glosses (human-readable descriptions), lexemes (words in various languages), and EXPECTS declarations (see below). Seed items have no signature and no timestamp — they are axioms, not assertions.
 
 ### EXPECTS: Schema as Frames
 
-Predicates declare their expected shape via EXPECTS frames on the seed. See [Frames: EXPECTS](frames.md#expects-schema-as-frames) for the full explanation. A chess game declares:
+A concept declares its expected shape via **EXPECTS** frames. These say "instances of this concept should carry these frames." For example, the Chess concept carries EXPECTS frames declaring that a chess game should have a PLAYER frame qualified with WHITE and a PLAYER frame qualified with BLACK.
 
-```java
-@ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-           fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
-                   qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Player.KEY,
-                                 ColorVocabulary.White.KEY}))
-static final ItemID expectWhitePlayer = ItemID.fromString(GameVocabulary.Player.KEY);
-```
+The UI generates creation forms from EXPECTS declarations. EXPECTS also enables duck typing — if an item structurally carries the expected frames, it IS that type, regardless of what its IMPLEMENTS frame says.
 
-This says: "instances of Chess should carry a PLAYER frame qualified with WHITE." The UI generates creation forms from EXPECTS declarations. EXPECTS also enables duck typing — if an item structurally matches, it IS that type.
+See [Frames: EXPECTS](frames.md#expects-schema-as-frames) for the full explanation.
 
 ## Item State
 
-An Item's versioned state is encapsulated in `ItemState`, which the manifest serializes as a list of `FrameEndorsement` objects. At runtime, endorsements are expanded into a frame table for efficient lookup. At commit time, the table is snapshotted back into endorsements for serialization.
+An Item's versioned state is its list of endorsed frames. The manifest serializes these as `FrameEndorsement` objects. At runtime, endorsements are expanded into a frame table for efficient lookup. At commit time, the table is snapshotted back into endorsements for serialization.
 
 ## ID Types
 
@@ -234,7 +184,7 @@ ItemID and ContentID inherit from `HashID`. FrameKey is not a hash — it's a st
 ```
 new ChessItem(librarian)
  -> random IID generated
- -> ItemState created with empty frame table
+ -> empty frame table created
  -> initializeFreshComponents():
      for each @ItemFrame field with @Implements type:
        1. Create default instance
@@ -253,7 +203,7 @@ new ChessItem(librarian)
 
 ```
 Item loaded from Manifest
- -> Frames extracted from manifest's ItemState endorsements
+ -> Frames extracted from manifest's endorsements
  -> hydrate():
      Phase 1: For each Frame:
        1. Fetch content by CID from the store
@@ -278,10 +228,10 @@ Edit mode is a flag — it doesn't create a copy. You mutate the item's state di
 item.commit(signer)
  -> scanAndBindFields():
      For each @ItemFrame field: encode value -> CID -> update Frame bodyHash
- -> state.buildEndorsements():
+ -> buildEndorsements():
      Snapshot frame table into List<FrameEndorsement>
  -> Build Manifest:
-     iid, implementation(Java + className), parents, state, bindings
+     iid, implementation(Java + className), parents, endorsements, bindings
  -> manifest.sign(signer) -- sign BODY bytes
  -> storeManifest() -- serialize and store via librarian
  -> base = manifest.vid(), dirty = false

@@ -7,13 +7,16 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
-import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.ui.Stage;
 import dev.everydaythings.graph.ui.WindowDragController;
 import dev.everydaythings.graph.ui.WindowResizeController;
 import dev.everydaythings.graph.ui.filament.*;
+import dev.everydaythings.graph.ui.filament.SkiaSurfacePainter;
 import dev.everydaythings.graph.ui.scene.AnimationState;
+import dev.everydaythings.graph.ui.scene.InteractionState;
+import dev.everydaythings.graph.ui.scene.SceneNode;
+import dev.everydaythings.graph.ui.scene.SceneResolver;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
 import dev.everydaythings.graph.ui.input.KeyChord;
@@ -23,7 +26,6 @@ import dev.everydaythings.graph.ui.style.Stylesheet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -78,7 +80,7 @@ public class ViewWindow {
     private CameraController cameraController;
     private MsdfFontManager msdfFontManager;
     private FilamentSpatialRenderer sceneRenderer;
-    private FilamentSurfacePainter detailPainter;
+    private LegacyFilamentSurfacePainter detailPainter;
     private PanelPainter panelPainter;
     private dev.everydaythings.graph.ui.audio.OpenALAudio openAL;
     private Ref sceneContextRef;
@@ -97,7 +99,7 @@ public class ViewWindow {
 
     private WindowDragController dragController;
     private WindowResizeController resizeController;
-    private FilamentSurfacePainter gripPainter;
+    private LegacyFilamentSurfacePainter gripPainter;
     private double lastCursorX, lastCursorY;
 
     // ==================== Layout ====================
@@ -109,6 +111,15 @@ public class ViewWindow {
     private dev.everydaythings.graph.ui.scene.surface.item.ItemView itemView;
     private dev.everydaythings.graph.ui.skia.NodeLayoutCompiler nodeRenderer;
     private dev.everydaythings.graph.ui.scene.node.Node lastNodeTree;
+    private final InteractionState interactionState = new InteractionState();
+
+    // New pipeline (Skia mode)
+    private final SceneResolver sceneResolver = new SceneResolver();
+    private final dev.everydaythings.graph.ui.scene.ScenePresenter scenePresenter =
+            new dev.everydaythings.graph.ui.scene.ScenePresenter();
+    private dev.everydaythings.graph.ui.skia.SkiaSurfacePainter skiaSurfacePainter;
+    private SceneNode lastSceneTree;
+    private SceneNode currentSceneLayout;
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
     private volatile String pendingExpression;
@@ -205,6 +216,12 @@ public class ViewWindow {
             boolean handled = false;
             if (itemView != null) handled = itemView.handleEvent(action, target);
             return handled;
+        });
+
+        // New pipeline state management (wired alongside old for migration)
+        interactionState.onApplicationAction((nodeId, action, target) -> {
+            if (itemView != null) return itemView.handleEvent(action, target);
+            return false;
         });
 
         // Wire ItemView state changes to trigger re-render
@@ -305,7 +322,16 @@ public class ViewWindow {
                     applyAnimations(currentLayout);
                 }
             }
-            if (currentLayout != null) {
+            // New pipeline: paint SceneNode tree directly
+            if (currentSceneLayout != null) {
+                if (skiaSurfacePainter == null) {
+                    skiaSurfacePainter = new dev.everydaythings.graph.ui.skia.SkiaSurfacePainter(
+                            shared.fontCache());
+                }
+                skiaSurfacePainter.canvas(canvas);
+                skiaSurfacePainter.paint(currentSceneLayout);
+            } else if (currentLayout != null) {
+                // Legacy fallback (Filament mode)
                 shared.painter().paint(canvas, currentLayout);
             }
             paintResizeGripSkia(canvas);
@@ -377,7 +403,7 @@ public class ViewWindow {
             msdfFontManager = null;
         }
         if (msdfFontManager != null && msdfFontManager.hasUsableFonts()) {
-            uiPane.painter(new FilamentSurfacePainter(
+            uiPane.painter(new LegacyFilamentSurfacePainter(
                     filamentWindow.engine(), uiPane.scene(), msdfFontManager, filamentContext));
             panelPainter = new FilamentPanelPainter(
                     filamentWindow.engine(), detailPane.scene(), msdfFontManager,
@@ -393,7 +419,7 @@ public class ViewWindow {
         sceneRenderer = new FilamentSpatialRenderer(filamentWindow.engine(), detailPane.scene());
         // Elevated surface painter — renders the same layout tree as 3D geometry on detailPane
         if (msdfFontManager != null) {
-            detailPainter = new FilamentSurfacePainter(
+            detailPainter = new LegacyFilamentSurfacePainter(
                     filamentWindow.engine(), detailPane.scene(), msdfFontManager, filamentContext);
         }
 
@@ -402,7 +428,7 @@ public class ViewWindow {
         resizeController.onHoverChanged(this::repaintGrip);
 
         if (msdfFontManager != null) {
-            gripPainter = new FilamentSurfacePainter(
+            gripPainter = new LegacyFilamentSurfacePainter(
                     filamentWindow.engine(), uiPane.scene(), msdfFontManager, filamentContext);
         }
 
@@ -557,7 +583,6 @@ public class ViewWindow {
                     .renderMetrics(metrics)
                     .baseFontSize(baseFontSize)
                     .build();
-            // Node tree → NodeLayoutCompiler → LayoutNode tree
             var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
                     .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.SKIA)
                     .viewportWidth(w).viewportHeight(h)
@@ -570,22 +595,62 @@ public class ViewWindow {
                     .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, (double) baseFontSize * 1.4)
                     .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 1.0)
                     .build();
-            nodeRenderer.environment(env);
-            lastNodeTree = itemView.toNode();
-            nodeRenderer.renderTree(lastNodeTree);
-            LayoutNode.BoxNode tree = nodeRenderer.result();
-            if (tree == null) return;
 
-            LayoutEngine.TextMeasurer measurer = useMsdf ? msdfFontManager : shared.fontCache();
-            float bfs = useMsdf ? msdfFontManager.baseFontSize() : shared.fontCache().baseFontSize();
-            var engine = new LayoutEngine(measurer, ctx, Stylesheet.fromClasspath(), bfs);
-            engine.layout(tree, w, h);
+            if (rendererType == ViewConfig.RendererType.FILAMENT) {
+                // Filament path: keep old pipeline (LayoutNode-based painters)
+                nodeRenderer.environment(env);
+                lastNodeTree = itemView.toNode();
+                nodeRenderer.renderTree(lastNodeTree);
+                LayoutNode.BoxNode tree = nodeRenderer.result();
+                if (tree == null) return;
 
-            applyScrollState(tree);
-            applyAnimations(tree);
-            lastLayoutRoot = tree;
+                LayoutEngine.TextMeasurer measurer = useMsdf ? msdfFontManager : shared.fontCache();
+                float bfs = useMsdf ? msdfFontManager.baseFontSize() : shared.fontCache().baseFontSize();
+                var engine = new LayoutEngine(measurer, ctx, Stylesheet.fromClasspath(), bfs);
+                engine.layout(tree, w, h);
+
+                applyScrollState(tree);
+                applyAnimations(tree);
+                lastLayoutRoot = tree;
+            } else {
+                // Skia path: new pipeline (SceneNode-based)
+                SceneNode sceneTree = itemView.toSceneNode();
+                if (sceneTree == null) return;
+
+                var resolveCtx = new SceneResolver.ResolveContext(
+                        session.librarian(), env, interactionState);
+                sceneResolver.resolve(sceneTree, resolveCtx);
+
+                float finalBfs = baseFontSize;
+                LayoutEngine.TextMeasurer legacyMeasurer = useMsdf ? msdfFontManager : shared.fontCache();
+                dev.everydaythings.graph.ui.scene.ScenePresenter.TextMeasurer textMeasurer =
+                        (text, fontFamily, fontSize, bold, maxWidth) -> {
+                            // Delegate to the proven FontCache/MsdfFontManager measurer
+                            // via a simple estimation — this will be refined
+                            float charW = fontSize * 0.6f;
+                            float lineH = fontSize * 1.4f;
+                            if (text == null || text.isEmpty()) return new float[]{0, lineH};
+                            float textW = text.length() * charW;
+                            if (maxWidth > 0 && textW > maxWidth) {
+                                int lines = (int) Math.ceil(textW / maxWidth);
+                                return new float[]{maxWidth, lines * lineH};
+                            }
+                            return new float[]{textW, lineH};
+                        };
+
+                var presentCtx = new dev.everydaythings.graph.ui.scene.ScenePresenter.PresentContext(
+                        w, h, finalBfs, 96 * dpr, textMeasurer, interactionState);
+                scenePresenter.present(sceneTree, presentCtx);
+
+                lastSceneTree = sceneTree;
+                currentSceneLayout = sceneTree;
+                // Clear old LayoutNode references
+                lastLayoutRoot = null;
+                currentLayout = null;
+            }
 
             if (rendererType == ViewConfig.RendererType.FILAMENT && uiPane != null && uiPane.painter() != null) {
+                LayoutNode.BoxNode tree = lastLayoutRoot;
                 uiPane.painter().clear();
                 uiPane.painter().configureForLayout(w, h, 2.0f, 1.0f);
 
@@ -674,7 +739,8 @@ public class ViewWindow {
                     detailPane.setViewport(0, 0, 0, 0);
                 }
             } else {
-                currentLayout = tree;
+                // Skia mode: currentSceneLayout is already set above
+                // currentLayout stays null (legacy Skia path no longer used)
             }
         } catch (Exception e) {
             log.error("Layout failed", e);
@@ -699,8 +765,14 @@ public class ViewWindow {
             return;
         }
 
-        // @Scene.On key dispatch — matches key chords against event declarations
-        if (nodeRenderer != null && lastNodeTree != null
+        // @Scene.On key dispatch — new pipeline uses SceneNode tree
+        if (lastSceneTree != null) {
+            if (dispatchKeyEventSceneNode(lastSceneTree, chord.toString())) {
+                rebuildLayout();
+                requestRepaint();
+                return;
+            }
+        } else if (nodeRenderer != null && lastNodeTree != null
                 && nodeRenderer.dispatchKeyEvent(lastNodeTree, chord.toString())) {
             rebuildLayout();
             requestRepaint();
@@ -746,9 +818,29 @@ public class ViewWindow {
     // ==================== Mouse ====================
 
     private void handleMouseEvent(String eventType, double cursorX, double cursorY, float dpi) {
-        if (lastLayoutRoot == null) return;
         float x = (float) (cursorX * dpi);
         float y = (float) (cursorY * dpi);
+
+        // New pipeline: SceneNode hit testing
+        if (lastSceneTree != null) {
+            SceneNode hit = SceneNode.hitTest(lastSceneTree, x, y);
+            if (hit == null || hit.events() == null) return;
+            for (var event : hit.events()) {
+                if (eventType.equals(event.on())) {
+                    String nodeId = hit.id() != null ? hit.id() : "";
+                    boolean handled = interactionState.dispatch(nodeId, event.action(), event.target());
+                    if (!handled && itemView != null) {
+                        handled = itemView.handleEvent(event.action(), event.target());
+                    }
+                    if (handled) { rebuildLayout(); requestRepaint(); }
+                    return;
+                }
+            }
+            return;
+        }
+
+        // Legacy: LayoutNode hit testing (Filament mode)
+        if (lastLayoutRoot == null) return;
         LayoutNode.PendingEvent hit = LayoutNode.hitTest(lastLayoutRoot, x, y, eventType);
         if (hit == null) return;
 
@@ -838,6 +930,25 @@ public class ViewWindow {
         return box.id(); // this box's ID, or null if no ID
     }
 
+    /** Dispatch a key event by walking the SceneNode tree for matching @Scene.On declarations. */
+    private boolean dispatchKeyEventSceneNode(SceneNode node, String keyChord) {
+        if (node == null || keyChord == null) return false;
+        if (node.events() != null) {
+            for (var event : node.events()) {
+                if (keyChord.equals(event.on())) {
+                    String nodeId = node.id() != null ? node.id() : "";
+                    if (interactionState.dispatch(nodeId, event.action(), event.target())) return true;
+                }
+            }
+        }
+        if (node.children() != null) {
+            for (SceneNode child : node.children()) {
+                if (dispatchKeyEventSceneNode(child, keyChord)) return true;
+            }
+        }
+        return false;
+    }
+
     private void handleMouseButtonRelease(int button, double cursorX, double cursorY, float dpi) {
         String eventType = switch (button) {
             case GLFW_MOUSE_BUTTON_LEFT -> "click";
@@ -866,6 +977,8 @@ public class ViewWindow {
 
     private void handleMouseScroll(double cursorX, double cursorY, float dpi,
                                     double xOffset, double yOffset) {
+        // TODO: SceneNode scroll support (scroll containers, scroll offset)
+        if (lastLayoutRoot == null && lastSceneTree != null) return; // SceneNode mode — scroll TBD
         if (lastLayoutRoot == null) return;
         float x = (float) (cursorX * dpi);
         float y = (float) (cursorY * dpi);
@@ -933,6 +1046,8 @@ public class ViewWindow {
         }
         lastLayoutRoot = null;
         currentLayout = null;
+        lastSceneTree = null;
+        currentSceneLayout = null;
 
         rendererType = newType;
         String title = "Common Graph";

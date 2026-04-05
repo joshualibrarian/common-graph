@@ -64,7 +64,7 @@ public class FilamentPane {
      * Sets up the camera, anti-aliasing, and tone mapping for pixel-perfect UI.
      *
      * <p>The orthographic projection maps to the same coordinate space used by
-     * {@link FilamentSurfacePainter}: a 2-unit-wide region centered at (0, 1.0, 0).
+     * {@link LegacyFilamentSurfacePainter}: a 2-unit-wide region centered at (0, 1.0, 0).
      *
      * @param aspect width/height ratio of the viewport
      */

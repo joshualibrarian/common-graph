@@ -24,6 +24,7 @@ import dev.everydaythings.graph.ui.input.SpecialKey;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
+import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.node.Body;
 import dev.everydaythings.graph.ui.scene.node.Container;
 import dev.everydaythings.graph.ui.scene.node.Node;
@@ -473,6 +474,10 @@ public class ItemView {
 
     public Node toNode() {
         return SceneCompiler.compileToNode(this);
+    }
+
+    public SceneNode toSceneNode() {
+        return SceneCompiler.compileToSceneNode(this);
     }
 
     // ==================================================================================

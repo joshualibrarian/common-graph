@@ -19,13 +19,13 @@ import java.util.List;
 /**
  * Panel painter that renders 2D surfaces as direct MSDF geometry in 3D space.
  *
- * <p>Wraps {@link FilamentSurfacePainter} and creates a parent transform entity
+ * <p>Wraps {@link LegacyFilamentSurfacePainter} and creates a parent transform entity
  * to position the painted geometry at the correct world location. All entities
  * created by the plane painter are reparented under this transform entity, making
  * their panel-local coordinates relative to the world position.
  *
  * @see PanelPainter
- * @see FilamentSurfacePainter
+ * @see LegacyFilamentSurfacePainter
  */
 public class FilamentPanelPainter implements PanelPainter {
 
@@ -35,7 +35,7 @@ public class FilamentPanelPainter implements PanelPainter {
     private final Scene scene;
     private final MsdfFontManager fontManager;
     private final LibrarianHandle librarian;
-    private final List<FilamentSurfacePainter> panelPainters = new ArrayList<>();
+    private final List<LegacyFilamentSurfacePainter> panelPainters = new ArrayList<>();
     private final List<Integer> panelEntities = new ArrayList<>();
 
     public FilamentPanelPainter(Engine engine, Scene scene, MsdfFontManager fontManager,
@@ -83,7 +83,7 @@ public class FilamentPanelPainter implements PanelPainter {
 
         // 2. Create a dedicated painter for this panel so multiple face panels
         // can coexist (front/top/back/etc.) within the same body render pass.
-        FilamentSurfacePainter planePainter = new FilamentSurfacePainter(engine, scene, fontManager);
+        LegacyFilamentSurfacePainter planePainter = new LegacyFilamentSurfacePainter(engine, scene, fontManager);
         panelPainters.add(planePainter);
 
         // 3. Configure plane painter for panel-local coordinates
@@ -101,7 +101,7 @@ public class FilamentPanelPainter implements PanelPainter {
 
     @Override
     public void clear() {
-        for (FilamentSurfacePainter p : panelPainters) {
+        for (LegacyFilamentSurfacePainter p : panelPainters) {
             p.destroy();
         }
         panelPainters.clear();

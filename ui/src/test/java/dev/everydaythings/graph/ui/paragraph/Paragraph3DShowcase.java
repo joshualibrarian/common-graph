@@ -2,7 +2,7 @@ package dev.everydaythings.graph.ui.paragraph;
 
 import dev.everydaythings.filament.*;
 import dev.everydaythings.filament.gltfio.Gltfio;
-import dev.everydaythings.graph.ui.filament.FilamentSurfacePainter;
+import dev.everydaythings.graph.ui.filament.LegacyFilamentSurfacePainter;
 import dev.everydaythings.graph.ui.filament.MsdfFontManager;
 import dev.everydaythings.graph.ui.scene.surface.primitive.ContainerSurface;
 import dev.everydaythings.graph.ui.skia.*;
@@ -88,7 +88,7 @@ public class Paragraph3DShowcase {
         // =====================================================================
         MsdfFontManager fontManager = new MsdfFontManager(engine, new dev.everydaythings.graph.ui.text.FontRegistry());
 
-        FilamentSurfacePainter painter = new FilamentSurfacePainter(engine, scene, fontManager);
+        LegacyFilamentSurfacePainter painter = new LegacyFilamentSurfacePainter(engine, scene, fontManager);
 
         // Layout engine with MSDF measurer
         LayoutEngine layoutEngine = new LayoutEngine(fontManager);

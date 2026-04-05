@@ -8,7 +8,7 @@ import dev.everydaythings.graph.ui.skia.LayoutNode;
  *
  * <p>Two implementations:
  * <ul>
- *   <li>{@link FilamentSurfacePainter} — native MSDF text + colored quads</li>
+ *   <li>{@link LegacyFilamentSurfacePainter} — native MSDF text + colored quads</li>
  *   <li>{@link SkiaSurfacePainter} — Skia rasterization uploaded as a texture</li>
  * </ul>
  *

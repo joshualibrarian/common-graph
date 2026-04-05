@@ -6,9 +6,13 @@ import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.runtime.options.SessionOptions;
 import dev.everydaythings.graph.ui.input.*;
+import dev.everydaythings.graph.ui.scene.InteractionState;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
+import dev.everydaythings.graph.ui.scene.SceneNode;
+import dev.everydaythings.graph.ui.scene.SceneResolver;
 import dev.everydaythings.graph.ui.scene.View;
+import dev.everydaythings.graph.ui.scene.ScenePresenter;
 import dev.everydaythings.graph.ui.text.*;
 import lombok.extern.log4j.Log4j2;
 import org.jline.keymap.BindingReader;
@@ -56,6 +60,14 @@ public class TextSession extends Session {
     private TuiSceneRenderer lastTuiSceneRenderer;
     private CliSceneRenderer cliSceneRenderer;
     private int renderStartRow = 0;
+
+    // New pipeline
+    private final SceneResolver sceneResolver = new SceneResolver();
+    private final ScenePresenter scenePresenter = new ScenePresenter();
+    private final InteractionState interactionState = new InteractionState();
+    private AnsiSurfacePainter ansiPainter;
+    private AnsiSurfacePainter lastAnsiPainter;
+    private PlainTextSurfacePainter plainTextPainter;
 
     // Input handling
     private JLineInputRenderer inputRenderer;
@@ -316,18 +328,16 @@ public class TextSession extends Session {
         terminal.writer().print("\u001b[2J\u001b[H");
         renderStartRow = 0;
 
-        // Node tree → TuiSceneRenderer
-        if (tuiSceneRenderer == null) {
-            tuiSceneRenderer = new TuiSceneRenderer();
-            tuiSceneRenderer.onApplicationAction((action, target) -> {
-                boolean handled = false;
-                if (itemView != null) handled = itemView.handleEvent(action, target);
-                if (!handled && itemView != null) handled = itemView.handleEvent(action, target);
-                return handled;
-            });
-        }
+        // Set up interaction state application action handler
+        interactionState.onApplicationAction((nodeId, action, target) -> {
+            if (itemView != null) return itemView.handleEvent(action, target);
+            return false;
+        });
+
         int w = terminal.getWidth();
         int h = terminal.getHeight();
+
+        // Build environment for resolver
         var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
                 .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.TUI)
                 .viewportWidth(w).viewportHeight(h)
@@ -340,10 +350,26 @@ public class TextSession extends Session {
                 .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, 1.0)
                 .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 0.125)
                 .build();
-        tuiSceneRenderer.environment(env);
-        tuiSceneRenderer.renderTree(toNode());
-        terminal.writer().print(tuiSceneRenderer.result());
-        lastTuiSceneRenderer = tuiSceneRenderer;
+
+        // New pipeline: compile → resolve → present → paint
+        SceneNode tree = toSceneNode();
+        if (tree != null) {
+            var resolveCtx = new SceneResolver.ResolveContext(librarian, env, interactionState);
+            sceneResolver.resolve(tree, resolveCtx);
+
+            // Text measurer for TUI: 1 char = 1 unit
+            ScenePresenter.TextMeasurer textMeasurer = (text, fontFamily, fontSize, bold, maxWidth) ->
+                    new float[]{text != null ? text.length() : 0, 1};
+            var presentCtx = new ScenePresenter.PresentContext(w, h, 1, 96, textMeasurer, interactionState);
+            scenePresenter.present(tree, presentCtx);
+
+            if (ansiPainter == null) ansiPainter = new AnsiSurfacePainter();
+            ansiPainter.paint(tree);
+            terminal.writer().print(ansiPainter.result());
+            lastAnsiPainter = ansiPainter;
+        }
+
+        lastTuiSceneRenderer = null;
         lastRenderer = null;
 
         // Show buffered message (e.g., move result, error) above the prompt
@@ -375,14 +401,12 @@ public class TextSession extends Session {
             inputRenderer.dispose();
         }
 
-        // Node tree → CliSceneRenderer
-        if (cliSceneRenderer == null) {
-            cliSceneRenderer = new CliSceneRenderer();
-        }
+        // New pipeline: compile → resolve → present → paint
+        int cliW = terminal != null ? terminal.getWidth() : 80;
+        int cliH = terminal != null ? terminal.getHeight() : 24;
         var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
                 .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.CLI)
-                .viewportWidth(terminal != null ? terminal.getWidth() : 80)
-                .viewportHeight(terminal != null ? terminal.getHeight() : 24)
+                .viewportWidth(cliW).viewportHeight(cliH)
                 .baseFontSize(1)
                 .librarian(librarian)
                 .unit(dev.everydaythings.graph.value.Unit.CharacterWidth.IID, 1.0)
@@ -390,9 +414,22 @@ public class TextSession extends Session {
                 .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, 1.0)
                 .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 0.125)
                 .build();
-        cliSceneRenderer.environment(env);
-        cliSceneRenderer.renderTree(toNode());
-        String result = cliSceneRenderer.result();
+
+        String result = "";
+        SceneNode tree = toSceneNode();
+        if (tree != null) {
+            var resolveCtx = new SceneResolver.ResolveContext(librarian, env, interactionState);
+            sceneResolver.resolve(tree, resolveCtx);
+
+            ScenePresenter.TextMeasurer textMeasurer = (text, fontFamily, fontSize, bold, maxWidth) ->
+                    new float[]{text != null ? text.length() : 0, 1};
+            var presentCtx = new ScenePresenter.PresentContext(cliW, cliH, 1, 96, textMeasurer, interactionState);
+            scenePresenter.present(tree, presentCtx);
+
+            if (plainTextPainter == null) plainTextPainter = new PlainTextSurfacePainter();
+            plainTextPainter.paint(tree);
+            result = plainTextPainter.result();
+        }
 
         if (result != null && !result.isEmpty()) {
             if (terminal != null) {
@@ -611,11 +648,22 @@ public class TextSession extends Session {
 
         if (eventType == null) return;
 
-        // Try SceneRenderer path first (state dispatch + hit regions)
+        // New pipeline path: AnsiSurfacePainter hit regions + InteractionState dispatch
+        if (lastAnsiPainter != null) {
+            AnsiSurfacePainter.HitRegion hit = lastAnsiPainter.hitTest(hitRow, hitCol, eventType);
+            if (hit != null) {
+                boolean handled = interactionState.dispatch(
+                        hit.id() != null ? hit.id() : "", hit.action(), hit.target());
+                if (!handled) handleEvent(hit.action(), hit.target());
+                else render();
+                return;
+            }
+        }
+
+        // Legacy SceneRenderer path (kept during migration)
         if (lastTuiSceneRenderer != null) {
             TuiSceneRenderer.HitRegion hit = lastTuiSceneRenderer.hitTest(hitRow, hitCol, eventType);
             if (hit != null) {
-                // Route through state runtime first, then application
                 boolean handled = lastTuiSceneRenderer.dispatch(
                         hit.id() != null ? hit.id() : "", hit.action(), hit.target());
                 if (!handled) handleEvent(hit.action(), hit.target());
@@ -624,7 +672,7 @@ public class TextSession extends Session {
             }
         }
 
-        // Legacy path
+        // Legacy surface path
         if (lastRenderer != null) {
             TuiSurfaceRenderer.HitRegion hit = lastRenderer.hitTest(hitRow, hitCol, eventType);
             if (hit != null) {

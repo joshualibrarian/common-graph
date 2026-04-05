@@ -26,6 +26,7 @@ import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.View;
+import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.node.Node;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.ui.scene.surface.item.ItemView;
@@ -1137,6 +1138,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /** Generate the current Node tree for rendering. */
     public Node toNode() {
         return itemView != null ? itemView.toNode() : null;
+    }
+
+    /** Generate the current SceneNode tree for the new rendering pipeline. */
+    public SceneNode toSceneNode() {
+        return itemView != null ? itemView.toSceneNode() : null;
     }
 
     public Optional<Item> resolveItem(ItemID iid) {

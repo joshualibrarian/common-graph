@@ -26,7 +26,7 @@ import java.nio.ByteOrder;
  * hinting, subpixel AA, SVG, image formats) at the cost of a CPU→GPU
  * texture upload each frame.
  *
- * @see FilamentSurfacePainter
+ * @see LegacyFilamentSurfacePainter
  * @see SkiaPanel
  */
 public class SkiaSurfacePainter implements SurfacePainter {
