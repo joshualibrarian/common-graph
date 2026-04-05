@@ -81,11 +81,9 @@ public class SkiaParagraphFactory implements ParagraphFactory {
                 return new SkiaParagraph(null, fontCache);
             }
 
-            // Use paragraph styles to select profile (determines font, size)
-            // Build a synthetic TextNode to reuse FontCache.profileFor logic
-            var syntheticNode = new dev.everydaythings.graph.ui.skia.LayoutNode.TextNode(
-                    fullText, paragraphStyles);
-            FontCache.FontProfile profile = fontCache.profileFor(syntheticNode);
+            // Use paragraph styles to select font profile
+            String fontFamily = paragraphStyles.contains("monospace") ? "monospace" : null;
+            FontCache.FontProfile profile = fontCache.profileFor(fontFamily, 0);
             int color = 0xFF000000; // Black placeholder — actual color applied by painter
 
             io.github.humbleui.skija.paragraph.Paragraph skiaPara =

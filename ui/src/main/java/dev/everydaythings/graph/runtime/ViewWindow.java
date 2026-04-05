@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -77,38 +78,37 @@ public class ViewWindow {
     private FilamentPane detailPane;
     private CameraController cameraController;
     private MsdfFontManager msdfFontManager;
-    private FilamentSpatialRenderer sceneRenderer;
-    private LegacyFilamentSurfacePainter detailPainter;
-    private PanelPainter panelPainter;
+    // TODO: restore Filament 3D rendering on SceneNode
+    private FilamentSpatialPainter spatialPainter;
+
     private dev.everydaythings.graph.ui.audio.OpenALAudio openAL;
     private Ref sceneContextRef;
     private boolean sceneDirty;
     private float sceneFocusExtent = Float.NaN;
     private boolean flatMode = true;
-    private SkiaPanel skiaPanel;
     private boolean filamentLayoutDirty;
 
     // ==================== Skia Path ====================
 
     private SkiaWindow skiaWindow;
-    private LayoutNode.BoxNode currentLayout;
+    
 
     // ==================== Window Chrome ====================
 
     private WindowDragController dragController;
     private WindowResizeController resizeController;
-    private LegacyFilamentSurfacePainter gripPainter;
+    
     private double lastCursorX, lastCursorY;
 
     // ==================== Layout ====================
 
-    private LayoutNode.BoxNode lastLayoutRoot;
+    
 
     // ==================== Per-Window UI State ====================
 
     private dev.everydaythings.graph.ui.scene.surface.item.ItemView itemView;
-    private dev.everydaythings.graph.ui.skia.NodeLayoutCompiler nodeRenderer;
-    private dev.everydaythings.graph.ui.scene.node.Node lastNodeTree;
+    
+    
     private final InteractionState interactionState = new InteractionState();
 
     // New pipeline (Skia mode)
@@ -156,7 +156,7 @@ public class ViewWindow {
         };
         this.rendererType = viewHandle.config().renderer() != null
                 ? viewHandle.config().renderer()
-                : ViewConfig.RendererType.FILAMENT;
+                : ViewConfig.RendererType.SKIA;
         this.filamentAvailable = checkFilamentAvailable();
     }
 
@@ -180,6 +180,7 @@ public class ViewWindow {
         String title = targetItem != null
                 ? "Common Graph - " + targetItem.displayToken()
                 : "Common Graph";
+
 
         if (rendererType == ViewConfig.RendererType.FILAMENT && filamentAvailable) {
             initFilament(title);
@@ -208,15 +209,7 @@ public class ViewWindow {
             itemView.setRenderInputInSurface(true);
         }
 
-        // Create per-window SceneRenderer (state store persists across re-renders)
-        nodeRenderer = new dev.everydaythings.graph.ui.skia.NodeLayoutCompiler();
-        nodeRenderer.onApplicationAction((action, target) -> {
-            boolean handled = false;
-            if (itemView != null) handled = itemView.handleEvent(action, target);
-            return handled;
-        });
-
-        // New pipeline state management (wired alongside old for migration)
+        // Pipeline state management
         interactionState.onApplicationAction((nodeId, action, target) -> {
             if (itemView != null) return itemView.handleEvent(action, target);
             return false;
@@ -224,7 +217,6 @@ public class ViewWindow {
 
         // Wire ItemView state changes to trigger re-render
         if (itemView != null) {
-            itemView.setStateStore(nodeRenderer.stateStore());
             itemView.onChange(() -> { rebuildLayout(); requestRepaint(); });
         }
 
@@ -313,14 +305,7 @@ public class ViewWindow {
         resizeController.onHoverChanged(this::requestRepaint);
 
         skiaWindow.onPaint(canvas -> {
-            double dt = skiaWindow.deltaTime();
-            if (dt > 0 && animationState.isAnimating()) {
-                animationState.update(dt);
-                if (currentLayout != null) {
-                    applyAnimations(currentLayout);
-                }
-            }
-            // New pipeline: paint SceneNode tree directly
+            // Paint SceneNode tree
             if (currentSceneLayout != null) {
                 if (skiaSurfacePainter == null) {
                     skiaSurfacePainter = new dev.everydaythings.graph.ui.skia.SkiaSurfacePainter(
@@ -328,9 +313,6 @@ public class ViewWindow {
                 }
                 skiaSurfacePainter.canvas(canvas);
                 skiaSurfacePainter.paint(currentSceneLayout);
-            } else if (currentLayout != null) {
-                // Legacy fallback (Filament mode)
-                shared.painter().paint(canvas, currentLayout);
             }
             paintResizeGripSkia(canvas);
             if (animationState.isAnimating()) {
@@ -400,35 +382,15 @@ public class ViewWindow {
             log.warn("MSDF initialization failed; using Skia texture fallback", t);
             msdfFontManager = null;
         }
-        if (msdfFontManager != null && msdfFontManager.hasUsableFonts()) {
-            uiPane.painter(new LegacyFilamentSurfacePainter(
-                    filamentWindow.engine(), uiPane.scene(), msdfFontManager, filamentContext));
-            panelPainter = new FilamentPanelPainter(
-                    filamentWindow.engine(), detailPane.scene(), msdfFontManager,
-                    session.librarian());
-        } else {
-            uiPane.painter(new SkiaSurfacePainter(
-                    filamentWindow.engine(), uiPane.scene(), shared.painter(), shared.fontCache()));
-            panelPainter = new SkiaPanelPainter(
-                    filamentWindow.engine(), detailPane.scene(), shared.painter(), shared.fontCache());
-        }
-
-        // 3D scene renderer — loads GLB models and emits 3D geometry to detailPane
-        sceneRenderer = new FilamentSpatialRenderer(filamentWindow.engine(), detailPane.scene());
-        // Elevated surface painter — renders the same layout tree as 3D geometry on detailPane
-        if (msdfFontManager != null) {
-            detailPainter = new LegacyFilamentSurfacePainter(
-                    filamentWindow.engine(), detailPane.scene(), msdfFontManager, filamentContext);
-        }
+        // TODO: restore Filament painters on SceneNode
+        uiPane.painter(new FilamentSurfacePainter());
+        spatialPainter = new FilamentSpatialPainter();
 
         dragController = new WindowDragController(32f, stage);
         resizeController.setStage(stage);
         resizeController.onHoverChanged(this::repaintGrip);
 
-        if (msdfFontManager != null) {
-            gripPainter = new LegacyFilamentSurfacePainter(
-                    filamentWindow.engine(), uiPane.scene(), msdfFontManager, filamentContext);
-        }
+        // TODO: restore grip painter on SceneNode
 
         setupFilamentInput();
 
@@ -539,26 +501,13 @@ public class ViewWindow {
     // ==================== Layout ====================
 
     void rebuildLayout() {
-        if (itemView == null) return;
+        if (itemView == null) {
+            return;
+        }
 
         try {
-            boolean filamentSkiaFallback = rendererType == ViewConfig.RendererType.FILAMENT
-                    && uiPane != null
-                    && uiPane.painter() instanceof SkiaSurfacePainter;
             float w, h, dpr;
-            if (rendererType == ViewConfig.RendererType.FILAMENT) {
-                w = stage != null ? stage.width() : 800;
-                h = stage != null ? stage.height() : 600;
-                if (filamentSkiaFallback && stage != null && stage.width() > 0 && stage.height() > 0) {
-                    float vpW = uiPane != null && uiPane.viewportWidth() > 0 ? uiPane.viewportWidth() : w;
-                    float vpH = uiPane != null && uiPane.viewportHeight() > 0 ? uiPane.viewportHeight() : h;
-                    float sx = vpW / (float) stage.width();
-                    float sy = vpH / (float) stage.height();
-                    dpr = Math.max(1.0f, (sx + sy) * 0.5f);
-                } else {
-                    dpr = 1.0f;
-                }
-            } else if (stage != null) {
+            if (stage != null) {
                 w = stage.width();
                 h = stage.height();
                 dpr = (stage instanceof SkiaWindow sw) ? sw.dpi() : 1.0f;
@@ -566,179 +515,29 @@ public class ViewWindow {
                 w = 800; h = 600; dpr = 1.0f;
             }
 
-            boolean useMsdf = rendererType == ViewConfig.RendererType.FILAMENT
-                    && msdfFontManager != null && !filamentSkiaFallback;
-            RenderMetrics metrics = useMsdf ? msdfFontManager.buildMetrics() : shared.fontCache().buildMetrics();
-            float baseFontSize = useMsdf ? msdfFontManager.baseFontSize() : shared.fontCache().baseFontSize();
+            float baseFontSize = shared.fontCache().baseFontSize();
 
-            var ctx = RenderContext.builder()
-                    .renderer(RenderContext.RENDERER_SKIA)
-                    .breakpoint(RenderContext.BREAKPOINT_LG)
-                    .viewportWidth(w).viewportHeight(h)
-                    .devicePixelRatio(dpr).dpi(96 * dpr)
-                    .addCapability("color").addCapability("mouse").addCapability("images")
-                    .librarian(session.librarian())
-                    .renderMetrics(metrics)
-                    .baseFontSize(baseFontSize)
-                    .build();
-            var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
-                    .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.SKIA)
-                    .viewportWidth(w).viewportHeight(h)
-                    .dpi(96 * dpr).devicePixelRatio(dpr)
-                    .baseFontSize(baseFontSize)
-                    .librarian(session.librarian())
-                    .capabilities("color", "mouse", "images")
-                    .unit(dev.everydaythings.graph.value.Unit.Em.IID, (double) baseFontSize)
-                    .unit(dev.everydaythings.graph.value.Unit.CharacterWidth.IID, (double) baseFontSize * 0.6)
-                    .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, (double) baseFontSize * 1.4)
-                    .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 1.0)
-                    .build();
+            // SceneNode pipeline: compile → resolve → present
+            SceneNode sceneTree = itemView.toSceneNode();
+            if (sceneTree == null) return;
 
-            if (rendererType == ViewConfig.RendererType.FILAMENT) {
-                // Filament path: keep old pipeline (LayoutNode-based painters)
-                nodeRenderer.environment(env);
-                lastNodeTree = itemView.toNode();
-                nodeRenderer.renderTree(lastNodeTree);
-                LayoutNode.BoxNode tree = nodeRenderer.result();
-                if (tree == null) return;
+            var resolveCtx = new SceneResolver.ResolveContext(
+                    session.librarian(), Set.of(":skia", "color", "mouse", "images"), interactionState);
+            sceneResolver.resolve(sceneTree, resolveCtx);
 
-                LayoutEngine.TextMeasurer measurer = useMsdf ? msdfFontManager : shared.fontCache();
-                float bfs = useMsdf ? msdfFontManager.baseFontSize() : shared.fontCache().baseFontSize();
-                var engine = new LayoutEngine(measurer, ctx, Stylesheet.fromClasspath(), bfs);
-                engine.layout(tree, w, h);
+            dev.everydaythings.graph.ui.scene.ScenePresenter.TextMeasurer textMeasurer =
+                    shared.fontCache()::measureText;
 
-                applyScrollState(tree);
-                applyAnimations(tree);
-                lastLayoutRoot = tree;
-            } else {
-                // Skia path: new pipeline (SceneNode-based)
-                SceneNode sceneTree = itemView.toSceneNode();
-                if (sceneTree == null) return;
+            var presentCtx = new dev.everydaythings.graph.ui.scene.ScenePresenter.PresentContext(
+                    w, h, baseFontSize, 96 * dpr, textMeasurer, interactionState);
+            scenePresenter.present(sceneTree, presentCtx);
 
-                var resolveCtx = new SceneResolver.ResolveContext(
-                        session.librarian(), env, interactionState);
-                sceneResolver.resolve(sceneTree, resolveCtx);
+            lastSceneTree = sceneTree;
+            currentSceneLayout = sceneTree;
 
-                float finalBfs = baseFontSize;
-                LayoutEngine.TextMeasurer legacyMeasurer = useMsdf ? msdfFontManager : shared.fontCache();
-                dev.everydaythings.graph.ui.scene.ScenePresenter.TextMeasurer textMeasurer =
-                        (text, fontFamily, fontSize, bold, maxWidth) -> {
-                            // Delegate to the proven FontCache/MsdfFontManager measurer
-                            // via a simple estimation — this will be refined
-                            float charW = fontSize * 0.6f;
-                            float lineH = fontSize * 1.4f;
-                            if (text == null || text.isEmpty()) return new float[]{0, lineH};
-                            float textW = text.length() * charW;
-                            if (maxWidth > 0 && textW > maxWidth) {
-                                int lines = (int) Math.ceil(textW / maxWidth);
-                                return new float[]{maxWidth, lines * lineH};
-                            }
-                            return new float[]{textW, lineH};
-                        };
-
-                var presentCtx = new dev.everydaythings.graph.ui.scene.ScenePresenter.PresentContext(
-                        w, h, finalBfs, 96 * dpr, textMeasurer, interactionState);
-                scenePresenter.present(sceneTree, presentCtx);
-
-                lastSceneTree = sceneTree;
-                currentSceneLayout = sceneTree;
-                // Clear old LayoutNode references
-                lastLayoutRoot = null;
-                currentLayout = null;
-            }
-
+            // Filament mode: also paint to 2D chrome pane
             if (rendererType == ViewConfig.RendererType.FILAMENT && uiPane != null && uiPane.painter() != null) {
-                LayoutNode.BoxNode tree = lastLayoutRoot;
-                uiPane.painter().clear();
-                uiPane.painter().configureForLayout(w, h, 2.0f, 1.0f);
-
-                // In 3D mode, skip the detail region in the 2D chrome pane ONLY when
-                // it's showing the item's actual scene (not help, meta, or frame detail).
-                boolean show3dDetail = !flatMode && itemView != null && itemView.isShowingItemScene();
-                uiPane.painter().skipId(show3dDetail ? "detail" : null);
-
-                uiPane.painter().paint(tree, 0f);
-                repaintGrip();
-
-                // 3D elevated rendering — same tree, 3D interpretation.
-                // Active when showing the item's scene in non-flat mode.
-                if (show3dDetail && detailPainter != null) {
-                    // Find the detail content subtree — only that goes to 3D
-                    LayoutNode.BoxNode detailNode = findNodeById(tree, "detail");
-                    if (detailNode == null) detailNode = tree; // fallback
-
-                    // Set detailPane viewport to match the detail node's screen area.
-                    int vpScale = filamentWindow.viewportWidth() > 0 && filamentWindow.width() > 0
-                            ? filamentWindow.viewportWidth() / filamentWindow.width() : 1;
-                    int dvpLeft = (int) (detailNode.x() * vpScale);
-                    int dvpBottom = (int) ((h - detailNode.y() - detailNode.height()) * vpScale);
-                    int dvpW = (int) (detailNode.width() * vpScale);
-                    int dvpH = (int) (detailNode.height() * vpScale);
-                    if (dvpW > 0 && dvpH > 0) {
-                        detailPane.setViewport(dvpLeft, dvpBottom, dvpW, dvpH);
-                        detailPane.configurePerspective();
-                    }
-
-                    // Only rebuild the 3D scene when content actually changes (sceneDirty),
-                    // not on every layout pass. The scene persists across help/meta toggles.
-                    if (sceneDirty) {
-                        detailPainter.clear();
-                        float detailW = detailNode.width() > 0 ? detailNode.width() : w;
-                        float detailH = detailNode.height() > 0 ? detailNode.height() : h;
-                        float worldWidth = 0.6f;
-                        float worldDepth = worldWidth * (detailH / detailW);
-                        detailPainter.configureForElevated(detailW, detailH, worldWidth, worldDepth);
-                        // Shift detail subtree to origin (0,0) — the elevated painter
-                        // assumes pixel coords start at (0,0), but layout nodes have
-                        // absolute window coordinates.
-                        float offsetX = detailNode.x();
-                        float offsetY = detailNode.y();
-                        detailPainter.offsetSubtree(detailNode, -offsetX, -offsetY);
-                        detailPainter.paintElevated(detailNode, 0f);
-                        detailPainter.offsetSubtree(detailNode, offsetX, offsetY);
-
-                        // Dispatch GLB model placements to spatial renderer
-                        if (sceneRenderer != null) {
-                            sceneRenderer.clear();
-                            sceneRenderer.environment(0x1E1E2E, 0x808080, 0, 0, 0);
-                            sceneRenderer.light("sun", 0xFFF5E6, 1.0,
-                                    0, 0, 0, -0.5, -1, -0.5);
-                            for (var placement : detailPainter.modelPlacements()) {
-                                float s = placement.scale();
-                                sceneRenderer.pushTransform(
-                                        placement.x(), placement.z(), placement.y(),
-                                        0, 0, 0, 1,
-                                        s, s, s);
-                                sceneRenderer.meshBody(placement.resource(), placement.color(),
-                                        1.0, "lit", null);
-                                sceneRenderer.popTransform();
-                            }
-                        }
-
-                        // Frame the camera to fit the scene on first render or mode switch
-                        if (cameraController != null) {
-                            sceneDirty = false;
-                            float extent = Math.max(worldWidth, worldDepth);
-                            double fov = 60;
-                            double dist = extent / (2.0 * Math.tan(Math.toRadians(fov / 2.0)));
-                            double angle = Math.toRadians(50);
-                            double eyeY = dist * Math.sin(angle);
-                            double eyeZ = dist * Math.cos(angle);
-                            cameraController.setDefaults(fov, 0.01, 100,
-                                    0, eyeY, eyeZ,
-                                    0, 0, 0);
-                        }
-                    }
-                } else if (!show3dDetail && detailPane != null) {
-                    // Detail is showing help/meta/frame content in 2D —
-                    // hide the 3D pane so it doesn't obscure the 2D content.
-                    // DON'T clear the 3D scene — it stays built so switching
-                    // back to the item scene is instant (just restore viewport).
-                    detailPane.setViewport(0, 0, 0, 0);
-                }
-            } else {
-                // Skia mode: currentSceneLayout is already set above
-                // currentLayout stays null (legacy Skia path no longer used)
+                uiPane.painter().paint(lastSceneTree);
             }
         } catch (Exception e) {
             log.error("Layout failed", e);
@@ -763,15 +562,9 @@ public class ViewWindow {
             return;
         }
 
-        // @Scene.On key dispatch — new pipeline uses SceneNode tree
-        if (lastSceneTree != null) {
-            if (dispatchKeyEventSceneNode(lastSceneTree, chord.toString())) {
-                rebuildLayout();
-                requestRepaint();
-                return;
-            }
-        } else if (nodeRenderer != null && lastNodeTree != null
-                && nodeRenderer.dispatchKeyEvent(lastNodeTree, chord.toString())) {
+        // @Scene.On key dispatch — SceneNode tree
+        if (lastSceneTree != null
+                && dispatchKeyEventSceneNode(lastSceneTree, chord.toString())) {
             rebuildLayout();
             requestRepaint();
             return;
@@ -837,52 +630,6 @@ public class ViewWindow {
             return;
         }
 
-        // Legacy: LayoutNode hit testing (Filament mode)
-        if (lastLayoutRoot == null) return;
-        LayoutNode.PendingEvent hit = LayoutNode.hitTest(lastLayoutRoot, x, y, eventType);
-        if (hit == null) return;
-
-        // 1. Renderer-internal state mutations (toggle/set/unset/cycle)
-        boolean handled = false;
-        if (nodeRenderer != null) {
-            String nodeId = hit.target() != null && !hit.target().isEmpty()
-                    ? hit.target() : findNodeIdAtHit(lastLayoutRoot, x, y);
-            handled = nodeRenderer.dispatch(nodeId != null ? nodeId : "", hit.action(), hit.target());
-        }
-
-        // 2. ItemView internal events (toggle:help, select, etc.)
-        if (!handled && itemView != null) {
-            handled = itemView.handleEvent(hit.action(), hit.target());
-        }
-
-        // 3. Direct navigation — "view" with an IID target defers navigation
-        //    to the next tick (outside GLFW callback).
-        if (!handled && "view".equals(hit.action())
-                && hit.target() != null && hit.target().startsWith("iid:")) {
-            try {
-                pendingNavigation = ItemID.parse(hit.target());
-            } catch (Exception e) {
-                log.debug("Failed to parse IID {}: {}", hit.target(), e.getMessage());
-            }
-            handled = true;
-        }
-
-        // 4. Predicate expressions — action is a predicate, target is the argument.
-        //    Compose into an expression and defer evaluation to after the GLFW callback
-        //    returns (GLFW doesn't support nested callbacks like window creation).
-        if (!handled && hit.action() != null && !hit.action().startsWith("toggle:")
-                && !hit.action().equals("select") && !hit.action().equals("hover")) {
-            String expression = hit.target() != null && !hit.target().isEmpty()
-                    ? hit.action() + " " + hit.target()
-                    : hit.action();
-            pendingExpression = expression;
-            handled = true;
-        }
-
-        if (handled) {
-            rebuildLayout();
-            requestRepaint();
-        }
     }
 
     /**
@@ -910,23 +657,6 @@ public class ViewWindow {
      * Find the nearest node ID at a hit position by walking the LayoutNode tree.
      * Returns the ID of the deepest node containing the point that has an ID.
      */
-    private String findNodeIdAtHit(LayoutNode node, float x, float y) {
-        if (node == null) return null;
-        if (!(node instanceof LayoutNode.BoxNode box)) {
-            return node.id();
-        }
-        if (x < box.x() || x > box.x() + box.width() ||
-            y < box.y() || y > box.y() + box.height()) {
-            return null;
-        }
-        // Check children deepest-first
-        float testY = box.isScrollContainer() ? y + box.scrollOffsetY() : y;
-        for (int i = box.children().size() - 1; i >= 0; i--) {
-            String childId = findNodeIdAtHit(box.children().get(i), x, testY);
-            if (childId != null) return childId;
-        }
-        return box.id(); // this box's ID, or null if no ID
-    }
 
     /** Dispatch a key event by walking the SceneNode tree for matching @Scene.On declarations. */
     private boolean dispatchKeyEventSceneNode(SceneNode node, String keyChord) {
@@ -975,45 +705,7 @@ public class ViewWindow {
 
     private void handleMouseScroll(double cursorX, double cursorY, float dpi,
                                     double xOffset, double yOffset) {
-        // TODO: SceneNode scroll support (scroll containers, scroll offset)
-        if (lastLayoutRoot == null && lastSceneTree != null) return; // SceneNode mode — scroll TBD
-        if (lastLayoutRoot == null) return;
-        float x = (float) (cursorX * dpi);
-        float y = (float) (cursorY * dpi);
-
-        // Explicit scroll handlers first
-        LayoutNode.PendingEvent hit = LayoutNode.hitTest(lastLayoutRoot, x, y, "scroll");
-        if (hit != null) {
-            String scrollTarget = hit.target().isEmpty()
-                    ? String.format("%.1f,%.1f", xOffset, yOffset)
-                    : hit.target();
-            if (itemView != null && itemView.handleEvent(hit.action(), scrollTarget)) {
-                rebuildLayout();
-                requestRepaint();
-            }
-            return;
-        }
-
-        // Fallback: scroll nearest scroll container
-        LayoutNode.BoxNode scrollBox = findScrollContainer(lastLayoutRoot, x, y);
-        if (scrollBox != null && scrollBox.id() != null) {
-            float delta = (float) (-yOffset * SCROLL_LINE_HEIGHT);
-            float maxOffset = Math.max(0, scrollBox.contentHeight() - scrollBox.height());
-            scrollState.scrollBy(scrollBox.id(), delta, maxOffset);
-            requestRepaint();
-        }
-    }
-
-    /** Find a BoxNode by ID in the layout tree. */
-    private static LayoutNode.BoxNode findNodeById(LayoutNode.BoxNode root, String id) {
-        if (id.equals(root.id())) return root;
-        for (LayoutNode child : root.children()) {
-            if (child instanceof LayoutNode.BoxNode box) {
-                LayoutNode.BoxNode found = findNodeById(box, id);
-                if (found != null) return found;
-            }
-        }
-        return null;
+        // TODO: implement scroll on SceneNode
     }
 
     // ==================== Renderer Switching ====================
@@ -1042,8 +734,8 @@ public class ViewWindow {
                 skiaWindow = null;
             }
         }
-        lastLayoutRoot = null;
-        currentLayout = null;
+        
+        
         lastSceneTree = null;
         currentSceneLayout = null;
 
@@ -1107,57 +799,7 @@ public class ViewWindow {
                 .build();
     }
 
-    private void applyScrollState(LayoutNode node) {
-        if (node instanceof LayoutNode.BoxNode box) {
-            if (box.isScrollContainer() && box.id() != null) {
-                float viewportH = box.height();
-                float contentH = box.contentHeight();
-                float maxOffset = Math.max(0, contentH - viewportH);
-                float offset = scrollState.getScrollY(box.id());
-                offset = Math.max(0, Math.min(maxOffset, offset));
-                scrollState.setScrollY(box.id(), offset);
-                box.scrollOffsetY(offset);
-            }
-            for (LayoutNode child : box.children()) {
-                applyScrollState(child);
-            }
-        }
-    }
-
-    private void applyAnimations(LayoutNode node) {
-        if (node instanceof LayoutNode.BoxNode box) {
-            String id = box.id();
-            if (id != null && !box.transitions().isEmpty()) {
-                animationState.registerTransitions(id, box.transitions());
-                animationState.setTarget(id, "x", box.x());
-                animationState.setTarget(id, "y", box.y());
-                float animX = (float) animationState.getValue(id, "x", box.x());
-                float animY = (float) animationState.getValue(id, "y", box.y());
-                if (animX != box.x() || animY != box.y()) {
-                    box.setBounds(animX, animY, box.width(), box.height());
-                }
-            }
-            for (LayoutNode child : box.children()) {
-                applyAnimations(child);
-            }
-        }
-    }
-
-    private LayoutNode.BoxNode findScrollContainer(LayoutNode node, float x, float y) {
-        if (!(node instanceof LayoutNode.BoxNode box)) return null;
-        if (box.isScrollContainer() && box.id() != null
-                && x >= box.x() && x <= box.x() + box.width()
-                && y >= box.y() && y <= box.y() + box.height()) {
-            return box;
-        }
-        float testY = y;
-        if (box.isScrollContainer()) testY += box.scrollOffsetY();
-        for (int i = box.children().size() - 1; i >= 0; i--) {
-            LayoutNode.BoxNode found = findScrollContainer(box.children().get(i), x, testY);
-            if (found != null) return found;
-        }
-        return null;
-    }
+    // TODO: restore scroll state and animations on SceneNode
 
     private void paintResizeGripSkia(io.github.humbleui.skija.Canvas canvas) {
         if (resizeController != null && stage != null) {
@@ -1172,12 +814,7 @@ public class ViewWindow {
     }
 
     private void repaintGrip() {
-        // Filament grip overlay — only available with MSDF
-        if (gripPainter != null && stage != null) {
-            gripPainter.clear();
-            gripPainter.configureForLayout(stage.width(), stage.height(), 2.0f, 1.0f);
-            // The grip is painted by the SkiaPainter during full repaint
-        }
+        // TODO: restore Filament grip overlay on SceneNode
         requestRepaint();
     }
 
@@ -1215,10 +852,7 @@ public class ViewWindow {
     private void cleanupFilament() {
         uiPane = null;
         detailPane = null;
-        if (gripPainter != null) { gripPainter.destroy(); gripPainter = null; }
-        if (panelPainter != null) { panelPainter.destroy(); panelPainter = null; }
-        if (detailPainter != null) { detailPainter.destroy(); detailPainter = null; }
-        if (sceneRenderer != null) { sceneRenderer.destroy(); sceneRenderer = null; }
+        spatialPainter = null;
         if (msdfFontManager != null) { msdfFontManager.destroy(); msdfFontManager = null; }
         if (openAL != null) { openAL.close(); openAL = null; }
         if (filamentWindow != null) { filamentWindow.destroy(); filamentWindow = null; }

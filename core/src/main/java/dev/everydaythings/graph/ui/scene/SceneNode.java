@@ -501,62 +501,45 @@ public class SceneNode implements Canonical {
     }
 
     // =================================================================================
-    // Typed Accessors for Object fields (post-resolution)
+    // Progressive Mutation Helpers
     // =================================================================================
 
-    /** Font size as float (after ScenePresenter resolves "1.2em" → 18.0f). */
-    public float fontSizeFloat() {
-        if (fontSize instanceof Number n) return n.floatValue();
-        return 0;
+    /**
+     * Read an Object field as a float (after pipeline resolution).
+     * Returns defaultValue if the field isn't a Number.
+     */
+    public static float asFloat(Object field, float defaultValue) {
+        if (field instanceof Number n) return n.floatValue();
+        return defaultValue;
     }
 
-    /** Foreground color as ARGB int (after ScenePresenter resolves "#CDD6F4" → 0xFFCDD6F4). */
-    public int foregroundColor() {
-        if (foreground instanceof Number n) return n.intValue();
-        return -1;
+    /**
+     * Read an Object field as an int (after pipeline resolution).
+     * Returns defaultValue if the field isn't a Number.
+     */
+    public static int asInt(Object field, int defaultValue) {
+        if (field instanceof Number n) return n.intValue();
+        return defaultValue;
     }
 
-    /** Background color as ARGB int (after ScenePresenter resolves). */
-    public int backgroundColor() {
-        if (background instanceof Number n) return n.intValue();
-        return -1;
+    /**
+     * Read an Object field as a String (before resolution, or if it stayed a String).
+     * Returns null if not a String.
+     */
+    public static String asString(Object field) {
+        return field instanceof String s ? s : null;
     }
 
-    /** Corner radius as float (after ScenePresenter resolves "4px" → 4.0f). */
-    public float cornerFloat() {
-        if (corner instanceof Number n) return n.floatValue();
-        return 0;
-    }
-
-    /** Rotation as float degrees (after ScenePresenter resolves "45deg" → 45.0f). */
-    public float rotationFloat() {
-        if (rotation instanceof Number n) return n.floatValue();
-        return 0;
-    }
-
-    /** Opacity as float 0-1 (after ScenePresenter resolves "0.8" → 0.8f). */
-    public float opacityFloat() {
-        if (opacity instanceof Number n) return n.floatValue();
-        return 1.0f;
-    }
-
-    /** Gap as float pixels (after ScenePresenter resolves "0.5em" → 7.5f). */
-    public float gapFloat() {
-        if (gap instanceof Number n) return n.floatValue();
-        return 0;
-    }
-
-    /** Fill color as ARGB int (after ScenePresenter resolves). */
-    public int fillColor() {
-        if (fill instanceof Number n) return n.intValue();
-        return -1;
-    }
-
-    /** Stroke color as ARGB int (after ScenePresenter resolves). */
-    public int strokeColor() {
-        if (stroke instanceof Number n) return n.intValue();
-        return -1;
-    }
+    // Convenience accessors using the generic helpers
+    public float fontSizeFloat() { return asFloat(fontSize, 0); }
+    public int foregroundColor() { return asInt(foreground, -1); }
+    public int backgroundColor() { return asInt(background, -1); }
+    public float cornerFloat() { return asFloat(corner, 0); }
+    public float rotationFloat() { return asFloat(rotation, 0); }
+    public float opacityFloat() { return asFloat(opacity, 1.0f); }
+    public float gapFloat() { return asFloat(gap, 0); }
+    public int fillColor() { return asInt(fill, -1); }
+    public int strokeColor() { return asInt(stroke, -1); }
 
     /** Whether font weight is bold. */
     public boolean isBold() { return "bold".equals(fontWeight); }

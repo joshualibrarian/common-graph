@@ -181,8 +181,8 @@ public class GraphicalSession extends Session {
             return;
         }
 
-        // Apply default renderer if the ViewConfig doesn't specify one
-        if (vh.config().renderer() == null) {
+        // Always apply the session's default renderer — the user chose 2d or 3d mode
+        {
             ViewConfig updated = vh.config().withRenderer(defaultRenderer);
             updateViewConfig(key, updated);
             vh = vh.withConfig(updated);
@@ -192,9 +192,8 @@ public class GraphicalSession extends Session {
             ViewWindow window = new ViewWindow(key, vh, this, shared, filamentContext, coordinateMapper());
             window.init();
             windows.put(key, window);
-            log.info("Opened ViewWindow for {} (renderer: {})", vh.target(), window.rendererType());
         } catch (Throwable t) {
-            log.error("Failed to open ViewWindow for {}: {}", vh.target(), t.getMessage(), t);
+            t.printStackTrace(System.err);
         }
     }
 

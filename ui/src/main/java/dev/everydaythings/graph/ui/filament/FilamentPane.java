@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.ui.filament;
 
 import dev.everydaythings.filament.*;
+import dev.everydaythings.graph.ui.scene.ScenePainter;
 
 /**
  * A single rendering pane within a {@link FilamentWindow}.
@@ -29,7 +30,7 @@ public class FilamentPane {
     private int viewportWidth;
     private int viewportHeight;
 
-    private SurfacePainter painter;
+    private ScenePainter painter;
     private boolean fullWindow;
 
     FilamentPane(Engine engine, boolean perspective) {
@@ -111,7 +112,7 @@ public class FilamentPane {
      */
     public void destroy(Engine engine) {
         if (painter != null) {
-            painter.destroy();
+            painter.clear();
             painter = null;
         }
         engine.destroyView(view);
@@ -126,8 +127,8 @@ public class FilamentPane {
     public Camera camera() { return camera; }
     public int cameraEntity() { return cameraEntity; }
     public boolean perspective() { return perspective; }
-    public SurfacePainter painter() { return painter; }
-    public void painter(SurfacePainter painter) { this.painter = painter; }
+    public ScenePainter painter() { return painter; }
+    public void painter(ScenePainter painter) { this.painter = painter; }
     public int viewportLeft() { return viewportLeft; }
     public int viewportBottom() { return viewportBottom; }
     public int viewportWidth() { return viewportWidth; }

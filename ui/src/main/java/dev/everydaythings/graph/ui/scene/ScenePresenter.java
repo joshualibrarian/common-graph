@@ -54,11 +54,83 @@ public class ScenePresenter {
         } else {
             tree.setBounds(0, 0, tree.boundsWidth(), tree.boundsHeight());
         }
-        // Re-run flex distribution for root
         if (isVertical(tree)) {
             redistributeFill(tree);
         }
         position(tree);
+        // Resolve colors and remaining visual properties
+        resolveVisualProperties(tree, ctx);
+    }
+
+    // =================================================================================
+    // Visual Property Resolution (String → typed values)
+    // =================================================================================
+
+    private void resolveVisualProperties(SceneNode node, PresentContext ctx) {
+        if (node == null) return;
+
+        // Background: "#RRGGBB" → 0xFFRRGGBB
+        if (node.background() instanceof String bg && !bg.isEmpty()) {
+            int color = parseColor(bg);
+            if (color != -1) node.background(color);
+        }
+
+        // Foreground: "#RRGGBB" → 0xFFRRGGBB
+        if (node.foreground() instanceof String fg && !fg.isEmpty()) {
+            int color = parseColor(fg);
+            if (color != -1) node.foreground(color);
+        }
+
+        // Corner radius: "4px" → 4.0f
+        if (node.corner() instanceof String c && !c.isEmpty()) {
+            float r = resolveSize(c, 0, ctx);
+            if (r > 0) node.corner(r);
+        }
+
+        // Fill: "#RRGGBB" → 0xFFRRGGBB
+        if (node.fill() instanceof String f && !f.isEmpty()) {
+            int color = parseColor(f);
+            if (color != -1) node.fill(color);
+        }
+
+        // Stroke: "#RRGGBB" → 0xFFRRGGBB
+        if (node.stroke() instanceof String s && !s.isEmpty()) {
+            int color = parseColor(s);
+            if (color != -1) node.stroke(color);
+        }
+
+        // Rotation: "45deg" or "45" → 45.0f
+        if (node.rotation() instanceof String r && !r.isEmpty()) {
+            try {
+                String clean = r.endsWith("deg") ? r.substring(0, r.length() - 3) : r;
+                node.rotation(Float.parseFloat(clean));
+            } catch (NumberFormatException ignored) {}
+        }
+
+        // Recurse
+        if (node.children() != null) {
+            for (SceneNode child : node.children()) resolveVisualProperties(child, ctx);
+        }
+        if (node.surfaces() != null) {
+            for (SceneNode surface : node.surfaces().values()) resolveVisualProperties(surface, ctx);
+        }
+    }
+
+    /**
+     * Parse a hex color string to ARGB integer.
+     * Named colors are NOT handled here — they resolve through sememes
+     * in the SceneResolver, not as hardcoded values.
+     */
+    private static int parseColor(String color) {
+        if (color == null || !color.startsWith("#")) return -1;
+        try {
+            if (color.length() == 7) {
+                return 0xFF000000 | Integer.parseInt(color.substring(1), 16);
+            } else if (color.length() == 9) {
+                return (int) Long.parseLong(color.substring(1), 16);
+            }
+        } catch (NumberFormatException ignored) {}
+        return -1;
     }
 
     // =================================================================================

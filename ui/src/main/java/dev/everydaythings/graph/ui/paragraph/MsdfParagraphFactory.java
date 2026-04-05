@@ -43,7 +43,7 @@ public class MsdfParagraphFactory implements ParagraphFactory {
     /**
      * Build a paragraph from spans using an explicit resolved font size.
      */
-    public Paragraph fromSpans(List<dev.everydaythings.graph.ui.scene.surface.primitive.TextSpan> spans,
+    public Paragraph fromSpans(List<dev.everydaythings.graph.ui.paragraph.TextSpan> spans,
                                float fontSize, float maxWidth) {
         ParagraphBuilder b = builder(fontSize);
         for (var span : spans) {

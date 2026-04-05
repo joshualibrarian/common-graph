@@ -54,13 +54,9 @@ public class TextSession extends Session {
     private BindingReader bindingReader;
     private Attributes savedAttributes;
     private boolean mouseEnabled = false;
-    private TuiSurfaceRenderer lastRenderer;
-    private TuiSceneRenderer tuiSceneRenderer;
-    private TuiSceneRenderer lastTuiSceneRenderer;
-    private CliSceneRenderer cliSceneRenderer;
     private int renderStartRow = 0;
 
-    // New pipeline
+    // Rendering pipeline
     private final SceneResolver sceneResolver = new SceneResolver();
     private final ScenePresenter scenePresenter = new ScenePresenter();
     private final InteractionState interactionState = new InteractionState();
@@ -336,21 +332,7 @@ public class TextSession extends Session {
         int w = terminal.getWidth();
         int h = terminal.getHeight();
 
-        // Build environment for resolver
-        var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
-                .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.TUI)
-                .viewportWidth(w).viewportHeight(h)
-                .dpi(96).devicePixelRatio(1)
-                .baseFontSize(1)
-                .librarian(librarian)
-                .capabilities("color")
-                .unit(dev.everydaythings.graph.value.Unit.CharacterWidth.IID, 1.0)
-                .unit(dev.everydaythings.graph.value.Unit.Em.IID, 2.0)
-                .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, 1.0)
-                .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 0.125)
-                .build();
-
-        // New pipeline: compile → resolve → present → paint
+        // SceneNode pipeline: compile → resolve → present → paint
         SceneNode tree = toSceneNode();
         if (tree != null) {
             var resolveCtx = new SceneResolver.ResolveContext(librarian, Set.of(":tui", "color"), interactionState);
@@ -368,8 +350,6 @@ public class TextSession extends Session {
             lastAnsiPainter = ansiPainter;
         }
 
-        lastTuiSceneRenderer = null;
-        lastRenderer = null;
 
         // Show buffered message (e.g., move result, error) above the prompt
         if (pendingMessage != null) {
@@ -400,19 +380,9 @@ public class TextSession extends Session {
             inputRenderer.dispose();
         }
 
-        // New pipeline: compile → resolve → present → paint
+        // SceneNode pipeline
         int cliW = terminal != null ? terminal.getWidth() : 80;
         int cliH = terminal != null ? terminal.getHeight() : 24;
-        var env = dev.everydaythings.graph.ui.scene.node.RenderEnvironment.builder()
-                .renderer(dev.everydaythings.graph.ui.scene.node.RenderEnvironment.CLI)
-                .viewportWidth(cliW).viewportHeight(cliH)
-                .baseFontSize(1)
-                .librarian(librarian)
-                .unit(dev.everydaythings.graph.value.Unit.CharacterWidth.IID, 1.0)
-                .unit(dev.everydaythings.graph.value.Unit.Em.IID, 2.0)
-                .unit(dev.everydaythings.graph.value.Unit.LineHeight.IID, 1.0)
-                .unit(dev.everydaythings.graph.value.Unit.Pixel.IID, 0.125)
-                .build();
 
         String result = "";
         SceneNode tree = toSceneNode();
@@ -659,25 +629,6 @@ public class TextSession extends Session {
             }
         }
 
-        // Legacy SceneRenderer path (kept during migration)
-        if (lastTuiSceneRenderer != null) {
-            TuiSceneRenderer.HitRegion hit = lastTuiSceneRenderer.hitTest(hitRow, hitCol, eventType);
-            if (hit != null) {
-                boolean handled = lastTuiSceneRenderer.dispatch(
-                        hit.id() != null ? hit.id() : "", hit.action(), hit.target());
-                if (!handled) handleEvent(hit.action(), hit.target());
-                else render();
-                return;
-            }
-        }
-
-        // Legacy surface path
-        if (lastRenderer != null) {
-            TuiSurfaceRenderer.HitRegion hit = lastRenderer.hitTest(hitRow, hitCol, eventType);
-            if (hit != null) {
-                handleEvent(hit.action(), hit.target());
-            }
-        }
     }
 
     // ==================================================================================
@@ -789,10 +740,10 @@ public class TextSession extends Session {
     @Override
     protected String formatValue(Object value) {
         if (value == null) return "";
-        if (value instanceof View view && view.root() != null) {
-            CliSurfaceRenderer output = new CliSurfaceRenderer();
-            view.root().render(output);
-            return output.result();
+        if (value instanceof SceneNode sn) {
+            PlainTextSurfacePainter p = new PlainTextSurfacePainter();
+            p.paint(sn);
+            return p.result();
         }
         if (value instanceof Item item) {
             String emoji = item.emoji();

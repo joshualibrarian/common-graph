@@ -10,9 +10,7 @@ import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.session.SessionMessage;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
-import dev.everydaythings.graph.ui.scene.View;
-import dev.everydaythings.graph.ui.scene.surface.primitive.ContainerSurface;
-import dev.everydaythings.graph.ui.scene.surface.primitive.TextSurface;
+import dev.everydaythings.graph.ui.scene.SceneNode;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -260,18 +258,17 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
      * ItemModel.toSurface() → SceneCompiler.compile(). Every item is
      * renderable through its @Scene annotations.
      */
-    private View compileItemView(Item item) {
+    private SceneNode compileItemView(Item item) {
         try {
-            return SceneCompiler.compile(item);
+            SceneNode result = SceneCompiler.compile(item);
+            if (result != null) return result;
         } catch (Exception e) {
             logger.debug("Scene compilation failed for {}: {}", item.displayToken(), e.getMessage());
-            // Fallback: show item identity as text
-            return View.of(
-                    ContainerSurface.vertical()
-                            .add(TextSurface.of(item.displayToken()).style("heading"))
-                            .add(TextSurface.of(item.iid().encodeText()).style("muted"))
-            );
         }
+        // Fallback
+        return SceneNode.vertical()
+                .add(SceneNode.ofText(item.displayToken()).classes("heading"))
+                .add(SceneNode.ofText(item.iid().encodeText()).classes("muted"));
     }
 
     // =========================================================================

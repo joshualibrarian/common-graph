@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  * the discovered fonts into Skia's {@link TypefaceFontProvider} and builds
  * {@link FontProfile} records for measurement and painting.
  */
-public class FontCache implements LayoutEngine.TextMeasurer, LayoutEngine.ImageMeasurer {
+public class FontCache {
 
     private static final Logger LOG = Logger.getLogger(FontCache.class.getName());
 
@@ -142,9 +142,9 @@ public class FontCache implements LayoutEngine.TextMeasurer, LayoutEngine.ImageM
      * <p>Reads {@code node.fontFamily()} and {@code node.fontSize()} which are
      * set by {@link dev.everydaythings.graph.ui.style.StyleResolver} before layout.
      */
-    public FontProfile profileFor(LayoutNode.TextNode node) {
-        String[] families = orderFamiliesForSkia(registry.familiesFor(node.fontFamily()));
-        float size = node.fontSize() > 0 ? node.fontSize() : baseFontSize;
+    public FontProfile profileFor(String fontFamily, float fontSize) {
+        String[] families = orderFamiliesForSkia(registry.familiesFor(fontFamily));
+        float size = fontSize > 0 ? fontSize : baseFontSize;
         return new FontProfile(families, size);
     }
 
@@ -193,73 +193,19 @@ public class FontCache implements LayoutEngine.TextMeasurer, LayoutEngine.ImageM
         return paragraphFactory;
     }
 
-    // ==================== TextMeasurer ====================
+    // ==================== Text Measurement ====================
 
-    @Override
-    public void measure(LayoutNode.TextNode node, float maxWidth) {
+    /**
+     * Measure text dimensions for ScenePresenter.
+     *
+     * @return [width, height] in pixels
+     */
+    public float[] measureText(String text, String fontFamily, float fontSize, boolean bold, float maxWidth) {
         float effectiveMaxWidth = maxWidth > 0 ? maxWidth : Float.MAX_VALUE;
-
-        // Use profileFor(node) so the measurement font size matches the painting
-        // font size. Previously, measurement built a synthetic TextNode that lacked
-        // the resolved fontSize (from @Scene.Text(fontSize="80%")), causing text
-        // to be measured at the default 15px but painted at the resolved size.
-        FontProfile profile = profileFor(node);
-        try (var para = buildParagraph(node.content(), profile, 0xFF000000, effectiveMaxWidth)) {
-            // Use intrinsic width (actual content width) clamped to maxWidth.
-            // getMaxIntrinsicWidth() returns the content width, not the constraint,
-            // which is essential for shrink-wrap layouts.
-            // Ceil to avoid float precision causing last-char line wrapping when
-            // the paint path rebuilds the paragraph with this width as maxWidth.
+        FontProfile profile = profileFor(fontFamily, fontSize);
+        try (var para = buildParagraph(text != null ? text : "", profile, 0xFF000000, effectiveMaxWidth)) {
             float w = Math.min((float) Math.ceil(para.getMaxIntrinsicWidth()), effectiveMaxWidth);
-            node.measuredSize(w, para.getHeight());
-        }
-    }
-
-    // ==================== ImageMeasurer ====================
-
-    @Override
-    public void measure(LayoutNode.ImageNode image) {
-        // Size resolution based on hint
-        float px = 0;
-        if (image.size() != null) {
-            px = switch (image.size()) {
-                case "small"  -> 24;
-                case "medium" -> 36;
-                case "large"  -> 48;
-                default -> {
-                    SizeValue sv = SizeValue.parse(image.size());
-                    if (sv != null) {
-                        yield (float) sv.toPixels(RenderContext.gui());
-                    }
-                    yield 0f;
-                }
-            };
-        }
-
-        // For resource images with a size, use explicit dimensions
-        if (image.hasResource() && px > 0) {
-            image.setBounds(0, 0, px, px);
-            return;
-        }
-
-        // For shaped images (circle), use size hint as square bounding box
-        if (image.shape() != null && px > 0) {
-            image.setBounds(0, 0, px, px);
-            return;
-        }
-
-        // Fallback: measure based on alt text (emoji size)
-        String alt = image.alt();
-        try (Paragraph para = buildParagraph(alt, emoji, 0xFF000000, Float.MAX_VALUE)) {
-            float w = para.getMaxIntrinsicWidth();
-            float h = para.getHeight();
-            // If shaped, ensure square bounding box
-            if (image.shape() != null) {
-                float dim = Math.max(w, h) + 8; // padding inside shape
-                image.setBounds(0, 0, dim, dim);
-            } else {
-                image.setBounds(0, 0, w, h);
-            }
+            return new float[]{w, para.getHeight()};
         }
     }
 

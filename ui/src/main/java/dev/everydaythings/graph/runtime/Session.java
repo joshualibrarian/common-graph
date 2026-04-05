@@ -26,6 +26,7 @@ import dev.everydaythings.graph.ui.input.InputBindings;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneNode;
+import dev.everydaythings.graph.ui.scene.surface.item.ItemView;
 import dev.everydaythings.graph.frame.FrameBody;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -1132,12 +1133,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * <p>The cache preserves live instances with dynamic modifications
      * (e.g., added components) that aren't yet persisted to the store.
      */
-    /** Generate the current Node tree for rendering. */
-    public Node toNode() {
-        return itemView != null ? itemView.toNode() : null;
-    }
-
-    /** Generate the current SceneNode tree for the new rendering pipeline. */
+    /** Generate the current SceneNode tree for rendering. */
     public SceneNode toSceneNode() {
         return itemView != null ? itemView.toSceneNode() : null;
     }
@@ -1445,9 +1441,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (value == null) return;
 
         // Try to compile as a Surface-annotated object
-        View view = SceneCompiler.compile(value);
-        if (view != null && view.root() != null) {
-            output(formatValue(view));
+        SceneNode sceneView = SceneCompiler.compile(value);
+        if (sceneView != null) {
+            output(formatValue(sceneView));
             return;
         }
 
@@ -1463,9 +1459,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     protected String formatValue(Object value) {
         if (value == null) return "";
-        if (value instanceof View view && view.root() != null) {
-            // Subclasses should override for proper rendering
-            return "[View]";
+        if (value instanceof SceneNode sn) {
+            return "[SceneNode]";
         }
         if (value instanceof Item item) {
             return item.emoji() + " " + item.displayToken();

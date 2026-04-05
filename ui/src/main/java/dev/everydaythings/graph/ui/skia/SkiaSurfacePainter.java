@@ -17,12 +17,11 @@ import io.github.humbleui.skija.Canvas;
 public class SkiaSurfacePainter implements ScenePainter {
 
     private final FontCache fontCache;
-    private final SkiaPainter legacyPainter;
     private Canvas canvas;
+    private int debugDumpCount;
 
     public SkiaSurfacePainter(FontCache fontCache) {
         this.fontCache = fontCache;
-        this.legacyPainter = new SkiaPainter(fontCache);
     }
 
     /**
@@ -36,9 +35,6 @@ public class SkiaSurfacePainter implements ScenePainter {
     @Override
     public void paint(SceneNode tree) {
         if (canvas == null || tree == null) return;
-        // TODO: Port direct SceneNode painting. For now, use bridge:
-        // SceneNodeBridge.toLayoutNode(tree) → legacyPainter.paint(canvas, layoutTree)
-        // This bridge is temporary — to be replaced with direct SceneNode traversal.
         paintNode(tree);
     }
 
@@ -101,11 +97,10 @@ public class SkiaSurfacePainter implements ScenePainter {
         float fontSize = node.fontSizeFloat() > 0 ? node.fontSizeFloat() : fontCache.baseFontSize();
         int color = node.foregroundColor() != -1 ? node.foregroundColor() : 0xFFCDD6F4;
 
-        var paint = new io.github.humbleui.skija.Paint().setColor(color);
-        var font = new io.github.humbleui.skija.Font(null, fontSize);
-        canvas.drawString(text, node.boundsX(), node.boundsY() + fontSize, font, paint);
-        font.close();
-        paint.close();
+        FontCache.FontProfile profile = fontCache.profileFor(node.fontFamily(), fontSize);
+        try (var para = fontCache.buildParagraph(text, profile, color, node.boundsWidth() > 0 ? node.boundsWidth() : Float.MAX_VALUE)) {
+            para.paint(canvas, node.boundsX(), node.boundsY());
+        }
     }
 
     private void paintBody(SceneNode node) {
@@ -114,11 +109,27 @@ public class SkiaSurfacePainter implements ScenePainter {
             float fontSize = node.fontSizeFloat() > 0 ? node.fontSizeFloat() : fontCache.baseFontSize();
             int color = node.foregroundColor() != -1 ? node.foregroundColor() : 0xFFCDD6F4;
 
-            var paint = new io.github.humbleui.skija.Paint().setColor(color);
-            var font = new io.github.humbleui.skija.Font(null, fontSize);
-            canvas.drawString(glyph, node.boundsX(), node.boundsY() + fontSize, font, paint);
-            font.close();
-            paint.close();
+            FontCache.FontProfile profile = fontCache.profileFor(null, fontSize);
+            try (var para = fontCache.buildParagraph(glyph, profile, color, Float.MAX_VALUE)) {
+                para.paint(canvas, node.boundsX(), node.boundsY());
+            }
+        }
+    }
+
+    private static void dumpTree(SceneNode node, int depth) {
+        if (node == null) return;
+        String indent = "  ".repeat(depth);
+        String info = switch (node.type()) {
+            case TEXT -> "\"" + (node.text() != null ? node.text().substring(0, Math.min(30, node.text().length())) : "") + "\"";
+            case BODY -> "glyph=" + node.glyph();
+            case CONTAINER -> node.children() != null ? node.children().size() + " children" : "empty";
+            case null -> "null-type";
+        };
+        System.err.printf("[tree] %s%s id=%s (%.0f,%.0f %.0fx%.0f) %s%n",
+                indent, node.type(), node.id(),
+                node.boundsX(), node.boundsY(), node.boundsWidth(), node.boundsHeight(), info);
+        if (node.children() != null && depth < 4) {
+            for (SceneNode child : node.children()) dumpTree(child, depth + 1);
         }
     }
 

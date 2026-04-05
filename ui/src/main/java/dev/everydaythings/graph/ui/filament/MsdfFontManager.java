@@ -20,7 +20,7 @@ import java.util.logging.Logger;
  * the discovered fonts (those with byte data) into the MSDF font manager's
  * fallback chain, ensuring identical font ordering with the Skia renderer.
  */
-public class MsdfFontManager implements LayoutEngine.TextMeasurer, LayoutEngine.ImageMeasurer {
+public class MsdfFontManager {
 
     private static final Logger LOG = Logger.getLogger(MsdfFontManager.class.getName());
 
@@ -161,90 +161,30 @@ public class MsdfFontManager implements LayoutEngine.TextMeasurer, LayoutEngine.
         return paragraphFactory;
     }
 
-    @Override
-    public void measure(LayoutNode.TextNode node, float maxWidth) {
+    // ==================================================================================
+    // Text Measurement (ScenePresenter-compatible)
+    // ==================================================================================
+
+    /**
+     * Measure text dimensions.
+     *
+     * @return [width, height] in pixels
+     */
+    public float[] measureText(String text, String fontFamily, float fontSize, boolean bold, float maxWidth) {
         if (delegate.fallbackChain().isEmpty()) {
-            node.measuredSize(0, baseFontSize);
-            return;
+            return new float[]{0, baseFontSize};
         }
-
-        // Use paragraph factory for layout (handles wrapping)
-        List<TextSpan> spans = node.spans();
-        float fontSize = fontSizeFor(node);
+        float size = fontSize > 0 ? fontSize : baseFontSize;
         float effectiveMaxWidth = maxWidth > 0 ? maxWidth : Float.MAX_VALUE;
-
-        Paragraph para;
-        if (spans != null && !spans.isEmpty()) {
-            para = paragraphFactory().fromSpans(spans, fontSize, effectiveMaxWidth);
-        } else {
-            para = paragraphFactory().fromText(node.content(), fontSize, effectiveMaxWidth);
-        }
-
-        node.paragraph(para);
-        // Use intrinsic width (actual content width) clamped to maxWidth.
-        // para.width() returns the maxWidth constraint, not the content width.
+        Paragraph para = paragraphFactory().fromText(text != null ? text : "", size, effectiveMaxWidth);
         float w = Math.min(para.maxIntrinsicWidth(), effectiveMaxWidth);
-        node.measuredSize(w, para.height());
-    }
-
-    // ==================================================================================
-    // ImageMeasurer Implementation
-    // ==================================================================================
-
-    @Override
-    public void measure(LayoutNode.ImageNode image) {
-        // Resolve size hint to pixels (mirrors FontCache sizes)
-        float px = 0;
-        if (image.size() != null) {
-            px = switch (image.size()) {
-                case "small"  -> 24;
-                case "medium" -> 36;
-                case "large"  -> 48;
-                default -> {
-                    SizeValue sv = SizeValue.parse(image.size());
-                    if (sv != null) {
-                        yield (float) sv.toPixels(RenderContext.gui());
-                    }
-                    yield 0f;
-                }
-            };
-        }
-
-        // For resource images with a size, use explicit dimensions
-        if (image.hasResource() && px > 0) {
-            image.setBounds(image.x(), image.y(), px, px);
-            return;
-        }
-
-        // For shaped images (circle), use size hint as square bounding box
-        if (image.shape() != null && px > 0) {
-            image.setBounds(image.x(), image.y(), px, px);
-            return;
-        }
-
-        // Emoji fallback: measure as text using chain
-        if (image.alt() != null && !image.alt().isEmpty()) {
-            String alt = image.alt();
-            delegate.ensureGlyphs(alt);
-            float emWidth = delegate.measureWidth(alt, baseFontSize);
-            // If shaped, ensure square bounding box with padding
-            if (image.shape() != null) {
-                float dim = Math.max(emWidth, baseFontSize) + 8;
-                image.setBounds(image.x(), image.y(), dim, dim);
-            } else {
-                image.setBounds(image.x(), image.y(),
-                        Math.max(emWidth, baseFontSize), baseFontSize);
-            }
-        }
+        return new float[]{w, para.height()};
     }
 
     // ==================================================================================
     // Font Size Resolution
     // ==================================================================================
 
-    /**
-     * Set the base font size. Invalidates the cached paragraph factory.
-     */
     public void setBaseFontSize(float size) {
         this.baseFontSize = size;
         this.paragraphFactory = null;
@@ -252,13 +192,6 @@ public class MsdfFontManager implements LayoutEngine.TextMeasurer, LayoutEngine.
 
     public float baseFontSize() {
         return baseFontSize;
-    }
-
-    /**
-     * Resolve font size in pixels from a text node's resolved style fields.
-     */
-    public float fontSizeFor(LayoutNode.TextNode node) {
-        return node.fontSize() > 0 ? node.fontSize() : baseFontSize;
     }
 
     /**
