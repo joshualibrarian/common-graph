@@ -2,9 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.TickRegistry;
 import dev.everydaythings.graph.ui.skia.FontCache;
-import dev.everydaythings.graph.ui.skia.LayoutEngine;
 import dev.everydaythings.graph.ui.skia.SkiaKeyAdapter;
-import dev.everydaythings.graph.ui.skia.SkiaPainter;
 import dev.everydaythings.graph.ui.text.FontRegistry;
 import lombok.Getter;
 

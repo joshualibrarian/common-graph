@@ -9,7 +9,7 @@ import dev.everydaythings.graph.network.ProtocolError;
 import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.transport.HeartbeatHandler;
 import dev.everydaythings.graph.network.transport.TransportDetector;
-import dev.everydaythings.graph.ui.scene.View;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;

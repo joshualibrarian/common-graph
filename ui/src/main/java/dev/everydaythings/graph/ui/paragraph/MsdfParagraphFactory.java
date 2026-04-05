@@ -3,7 +3,6 @@ package dev.everydaythings.graph.ui.paragraph;
 import com.ibm.icu.text.BreakIterator;
 import dev.everydaythings.filament.text.ColrGlyphInfo;
 import dev.everydaythings.filament.text.MsdfAtlas;
-import dev.everydaythings.graph.ui.filament.LegacyFilamentSurfacePainter;
 import dev.everydaythings.graph.ui.filament.MsdfFontManager;
 
 import java.util.ArrayList;

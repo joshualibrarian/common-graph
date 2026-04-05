@@ -36,8 +36,10 @@ import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.value.ValueType;
 import dev.everydaythings.graph.ui.scene.Scene;
+import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneMode;
-import dev.everydaythings.graph.ui.scene.View;
+import dev.everydaythings.graph.ui.scene.SceneNode;
+
 import lombok.Getter;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -400,17 +402,17 @@ public class Item {
     // ==================================================================================
 
     /**
-     * Render this item as a compact handle view.
+     * Compile this item as a compact handle view.
      */
-    public View renderHandle() {
-        return View.empty();
+    public SceneNode renderHandle() {
+        return SceneNode.ofText(displayToken());
     }
 
     /**
-     * Render this item as an expanded detail view.
+     * Compile this item as an expanded detail view.
      */
-    public View renderDetail() {
-        return View.empty();
+    public SceneNode renderDetail() {
+        return SceneCompiler.compile(this);
     }
 
     // ==================================================================================

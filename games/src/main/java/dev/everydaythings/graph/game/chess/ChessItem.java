@@ -26,9 +26,8 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
-import dev.everydaythings.graph.ui.scene.View;
-import dev.everydaythings.graph.ui.scene.surface.HandleSurface;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
+import dev.everydaythings.graph.ui.scene.SceneCompiler;
+import dev.everydaythings.graph.ui.scene.SceneNode;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -527,22 +526,14 @@ public class ChessItem extends Item {
         return "Move " + fullMoveNumber();
     }
 
-    public HandleSurface whiteHandle() {
-        String subtitle = currentTurnSubtitle(Side.WHITE);
-        HandleSurface handle = subtitle != null
-                ? HandleSurface.forHeader(playerIcon(0), whiteLabel(), subtitle)
-                : HandleSurface.forHeader(playerIcon(0), whiteLabel());
-        handle.badge(!isGameOver() && sideToMove() == Side.WHITE ? "▶" : "▷");
-        return handle;
+    public SceneNode whiteHandle() {
+        String indicator = !isGameOver() && sideToMove() == Side.WHITE ? "▶ " : "";
+        return SceneNode.ofText(indicator + whiteLabel());
     }
 
-    public HandleSurface blackHandle() {
-        String subtitle = currentTurnSubtitle(Side.BLACK);
-        HandleSurface handle = subtitle != null
-                ? HandleSurface.forHeader(playerIcon(1), blackLabel(), subtitle)
-                : HandleSurface.forHeader(playerIcon(1), blackLabel());
-        handle.badge(!isGameOver() && sideToMove() == Side.BLACK ? "▶" : "▷");
-        return handle;
+    public SceneNode blackHandle() {
+        String indicator = !isGameOver() && sideToMove() == Side.BLACK ? "▶ " : "";
+        return SceneNode.ofText(indicator + blackLabel());
     }
 
     public ChessBoard chessBoard() {
@@ -582,14 +573,7 @@ public class ChessItem extends Item {
     // View Generation
     // ==================================================================================
 
-    public View view() { return viewBoard(); }
-
-    public View viewBoard() {
-        SurfaceSchema<ChessItem> schema = new SurfaceSchema<>() {};
-        schema.value(this);
-        schema.structureClass(ChessItem.class);
-        return View.of(schema);
-    }
+    public SceneNode view() { return SceneCompiler.compile(this); }
 
     // ==================================================================================
     // Board rendering (text fallback)

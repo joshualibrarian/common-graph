@@ -15,7 +15,6 @@ import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
-import dev.everydaythings.graph.ui.scene.surface.primitive.ProgressBarSurface;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -224,24 +223,17 @@ public class SystemMonitor implements Canonical {
         return "Up " + formatUptime(uptimeMs);
     }
 
-    /** Progress bar for CPU usage. */
-    public ProgressBarSurface cpuBar() {
-        return ProgressBarSurface.of(cpuLoad, thresholdColor(cpuLoad),
-                String.format("%.0f%%", cpuLoad * 100));
+    /** CPU usage ratio (0.0-1.0). */
+    public double cpuRatio() { return cpuLoad; }
+
+    /** Memory usage ratio (0.0-1.0). */
+    public double memoryRatio() {
+        return totalMemory > 0 ? (double) usedMemory / totalMemory : 0.0;
     }
 
-    /** Progress bar for memory usage. */
-    public ProgressBarSurface memoryBar() {
-        double ratio = totalMemory > 0 ? (double) usedMemory / totalMemory : 0.0;
-        return ProgressBarSurface.of(ratio, thresholdColor(ratio),
-                String.format("%.0f%%", ratio * 100));
-    }
-
-    /** Progress bar for disk usage. */
-    public ProgressBarSurface diskBar() {
-        double ratio = totalDisk > 0 ? (double) usedDisk / totalDisk : 0.0;
-        return ProgressBarSurface.of(ratio, thresholdColor(ratio),
-                String.format("%.0f%%", ratio * 100));
+    /** Disk usage ratio (0.0-1.0). */
+    public double diskRatio() {
+        return totalDisk > 0 ? (double) usedDisk / totalDisk : 0.0;
     }
 
     // ==================================================================================

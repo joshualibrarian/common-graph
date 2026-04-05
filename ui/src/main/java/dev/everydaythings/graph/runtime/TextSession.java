@@ -11,7 +11,6 @@ import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.SceneResolver;
-import dev.everydaythings.graph.ui.scene.View;
 import dev.everydaythings.graph.ui.scene.ScenePresenter;
 import dev.everydaythings.graph.ui.text.*;
 import lombok.extern.log4j.Log4j2;
@@ -354,7 +353,7 @@ public class TextSession extends Session {
         // New pipeline: compile → resolve → present → paint
         SceneNode tree = toSceneNode();
         if (tree != null) {
-            var resolveCtx = new SceneResolver.ResolveContext(librarian, env, interactionState);
+            var resolveCtx = new SceneResolver.ResolveContext(librarian, Set.of(":tui", "color"), interactionState);
             sceneResolver.resolve(tree, resolveCtx);
 
             // Text measurer for TUI: 1 char = 1 unit
@@ -418,7 +417,7 @@ public class TextSession extends Session {
         String result = "";
         SceneNode tree = toSceneNode();
         if (tree != null) {
-            var resolveCtx = new SceneResolver.ResolveContext(librarian, env, interactionState);
+            var resolveCtx = new SceneResolver.ResolveContext(librarian, Set.of(":tui", "color"), interactionState);
             sceneResolver.resolve(tree, resolveCtx);
 
             ScenePresenter.TextMeasurer textMeasurer = (text, fontFamily, fontSize, bold, maxWidth) ->

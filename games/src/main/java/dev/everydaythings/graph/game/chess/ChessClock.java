@@ -5,7 +5,6 @@ import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Tick;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
-import dev.everydaythings.graph.ui.scene.surface.primitive.ClockFace;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -200,15 +199,15 @@ public class ChessClock implements Canonical {
      * ClockFace for white's remaining time.
      * Uses minute hand for minutes and second hand for seconds.
      */
-    public ClockFace whiteFace() {
-        return new ClockFace(0, whiteMinutes, whiteSeconds, true);
+    public String whiteFace() {
+        return String.format("%d:%02d", whiteMinutes, whiteSeconds);
     }
 
     /**
-     * ClockFace for black's remaining time.
+     * Clock text for black's remaining time.
      */
-    public ClockFace blackFace() {
-        return new ClockFace(0, blackMinutes, blackSeconds, true);
+    public String blackFace() {
+        return String.format("%d:%02d", blackMinutes, blackSeconds);
     }
 
     // ==================================================================================

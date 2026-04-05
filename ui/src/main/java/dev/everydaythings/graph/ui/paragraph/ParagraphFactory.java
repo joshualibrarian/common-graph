@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.ui.paragraph;
 
-import dev.everydaythings.graph.ui.scene.surface.primitive.TextSpan;
 
 import java.util.List;
 

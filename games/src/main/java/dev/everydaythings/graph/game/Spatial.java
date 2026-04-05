@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.game;
 
-import dev.everydaythings.graph.ui.scene.View;
+import dev.everydaythings.graph.ui.scene.SceneNode;
 
 /**
  * Capability: the game has a board topology with pieces on it.
@@ -34,5 +34,5 @@ public interface Spatial<P extends Piece> {
      * Renderer-agnostic view of the current board position.
      * Works across CLI (unicode), TUI, and GUI.
      */
-    View viewBoard();
+    SceneNode viewBoard();
 }

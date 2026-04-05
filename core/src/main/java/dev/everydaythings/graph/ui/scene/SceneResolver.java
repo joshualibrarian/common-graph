@@ -1,13 +1,13 @@
 package dev.everydaythings.graph.ui.scene;
 
 import dev.everydaythings.graph.runtime.LibrarianHandle;
-import dev.everydaythings.graph.ui.scene.node.RenderEnvironment;
-import dev.everydaythings.graph.ui.scene.node.Text.SemanticToken;
+import dev.everydaythings.graph.ui.scene.SceneNode.SemanticToken;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Resolves a SceneNode tree against live state on the librarian side.
@@ -55,9 +55,14 @@ public class SceneResolver {
      * @param environment  renderer type, viewport class, capabilities
      * @param state        the per-session interaction state store
      */
+    /**
+     * @param librarian    handle for sememe resolution and config lookup
+     * @param environmentTags  active environment tags (":skia", "@lg", "mouse", etc.)
+     * @param state        the per-session interaction state store
+     */
     public record ResolveContext(
             LibrarianHandle librarian,
-            RenderEnvironment environment,
+            Set<String> environmentTags,
             InteractionState state
     ) {}
 
@@ -203,8 +208,8 @@ public class SceneResolver {
         }
         // Environment condition: :renderer, @breakpoint, capability
         else if (expr.startsWith(":") || expr.startsWith("@")
-                || (ctx.environment() != null && ctx.environment().matches(expr))) {
-            result = ctx.environment() != null && ctx.environment().matches(expr);
+                || (ctx.environmentTags() != null && ctx.environmentTags().contains(expr))) {
+            result = ctx.environmentTags() != null && ctx.environmentTags().contains(expr);
         }
         // Bare name — check declared state on nearest ancestor scope
         else if (scopeId != null) {

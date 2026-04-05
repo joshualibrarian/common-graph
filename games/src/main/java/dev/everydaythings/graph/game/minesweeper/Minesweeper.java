@@ -7,8 +7,8 @@ import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
-import dev.everydaythings.graph.ui.scene.View;
-import dev.everydaythings.graph.ui.scene.surface.SurfaceSchema;
+import dev.everydaythings.graph.ui.scene.SceneCompiler;
+import dev.everydaythings.graph.ui.scene.SceneNode;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -537,11 +537,8 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
     }
 
     @Override
-    public View viewBoard() {
-        SurfaceSchema<Minesweeper> schema = new SurfaceSchema<>() {};
-        schema.value(this);
-        schema.structureClass(Minesweeper.class);
-        return View.of(schema);
+    public SceneNode viewBoard() {
+        return SceneCompiler.compile(this);
     }
 
     // ==================================================================================

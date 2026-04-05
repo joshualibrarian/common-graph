@@ -181,61 +181,19 @@ ItemID and ContentID inherit from `HashID`. FrameKey is not a hash — it's a st
 
 ### Creation
 
-```
-new ChessItem(librarian)
- -> random IID generated
- -> empty frame table created
- -> initializeFreshComponents():
-     for each @ItemFrame field with @Implements type:
-       1. Create default instance
-       2. Build Frame (snapshot/stream/local-only)
-       3. Add frame + live instance to frame table
-       4. Add mounts if declared
- -> hydrate():
-     Bind @ItemFrame fields from table
- -> onFullyInitialized():
-     1. populateVocabulary() -- scan frames for indexed string bindings
-     2. populateUnendorsedFrames() -- load from index
-     3. syncFieldValuesToTable() -- handle subclass field initializers
-```
+A new item starts with a fresh random IID and an empty frame table. The runtime populates default frames based on the item's type (driven by its EXPECTS declarations), then derives the item's vocabulary by scanning those frames for indexed string bindings.
 
-### Hydration (Loading)
+### Loading
 
-```
-Item loaded from Manifest
- -> Frames extracted from manifest's endorsements
- -> hydrate():
-     Phase 1: For each Frame:
-       1. Fetch content by CID from the store
-       2. Decode via Canonical
-       3. Store live instance on Frame
-     Phase 2: Bind @ItemFrame fields from table
- -> populateVocabulary()
-```
+An existing item is reconstituted from a manifest. The endorsements are expanded into a frame table, and each frame's content is fetched from the store by CID and decoded. The vocabulary is then rebuilt from the loaded frames.
 
 ### Editing
 
-```
-item.edit()                    -- enter edit mode
-item.endorseFrame(body)        -- endorse a frame body (store + add to table)
-```
-
-Edit mode is a flag — it doesn't create a copy. You mutate the item's state directly, and `dirty` tracks that changes exist.
+An item enters edit mode, after which its frames can be added, removed, or modified. Edits mutate the frame table directly — there is no copy-on-write. The item tracks whether uncommitted changes exist.
 
 ### Commit
 
-```
-item.commit(signer)
- -> scanAndBindFields():
-     For each @ItemFrame field: encode value -> CID -> update Frame bodyHash
- -> buildEndorsements():
-     Snapshot frame table into List<FrameEndorsement>
- -> Build Manifest:
-     iid, implementation(Java + className), parents, endorsements, bindings
- -> manifest.sign(signer) -- sign BODY bytes
- -> storeManifest() -- serialize and store via librarian
- -> base = manifest.vid(), dirty = false
-```
+Committing snapshots the current frame table into a list of endorsements, assembles a new manifest (IID, parents, implementation, endorsements, bindings), hashes the BODY fields to produce the VID, and signs the hash. The signed manifest is then stored. The new VID becomes a head for this item.
 
 ## Config Cascade
 

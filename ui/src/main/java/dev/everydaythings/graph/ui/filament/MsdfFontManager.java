@@ -7,9 +7,6 @@ import dev.everydaythings.graph.ui.paragraph.Paragraph;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
 import dev.everydaythings.graph.ui.scene.SizeValue;
-import dev.everydaythings.graph.ui.scene.surface.primitive.TextSpan;
-import dev.everydaythings.graph.ui.skia.LayoutEngine;
-import dev.everydaythings.graph.ui.skia.LayoutNode;
 import dev.everydaythings.graph.ui.text.FontRegistry;
 
 import java.util.List;

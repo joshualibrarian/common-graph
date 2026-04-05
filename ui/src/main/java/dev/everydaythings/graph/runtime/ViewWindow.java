@@ -12,7 +12,6 @@ import dev.everydaythings.graph.ui.Stage;
 import dev.everydaythings.graph.ui.WindowDragController;
 import dev.everydaythings.graph.ui.WindowResizeController;
 import dev.everydaythings.graph.ui.filament.*;
-import dev.everydaythings.graph.ui.filament.SkiaSurfacePainter;
 import dev.everydaythings.graph.ui.scene.AnimationState;
 import dev.everydaythings.graph.ui.scene.InteractionState;
 import dev.everydaythings.graph.ui.scene.SceneNode;
@@ -22,7 +21,6 @@ import dev.everydaythings.graph.ui.scene.RenderMetrics;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
 import dev.everydaythings.graph.ui.skia.*;
-import dev.everydaythings.graph.ui.style.Stylesheet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

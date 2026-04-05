@@ -17,8 +17,6 @@ import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
-import dev.everydaythings.graph.ui.scene.SceneSchema;
-import dev.everydaythings.graph.ui.scene.ViewNode;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;

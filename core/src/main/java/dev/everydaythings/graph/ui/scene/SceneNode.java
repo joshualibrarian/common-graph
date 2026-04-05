@@ -2,7 +2,6 @@ package dev.everydaythings.graph.ui.scene;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.ui.scene.node.Text.SemanticToken;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -181,6 +180,20 @@ public class SceneNode implements Canonical {
             @Canon(order = 0) String key,
             @Canon(order = 1) String defaultValue
     ) implements Canonical {}
+
+    /** A semantic token — a sememe reference with grammatical features. */
+    @Canonical.Canonization
+    public record SemanticToken(
+            @Canon(order = 0) ItemID sememe,
+            @Canon(order = 1) List<ItemID> features
+    ) implements Canonical {
+        public static SemanticToken of(ItemID sememe) {
+            return new SemanticToken(sememe, List.of());
+        }
+        public static SemanticToken of(ItemID sememe, ItemID... features) {
+            return new SemanticToken(sememe, List.of(features));
+        }
+    }
 
     // =================================================================================
     // Conditional Property Blocks

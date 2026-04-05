@@ -91,7 +91,7 @@ public @interface Scene {
      * Can point to a SceneSchema subclass or a model class with
      * {@code @Scene.*} annotations.
      */
-    Class<?> as() default SceneSchema.class;
+    Class<?> as() default void.class;
 
     /** Rendering mode for nested items. */
     SceneMode mode() default SceneMode.FULL;
@@ -927,7 +927,7 @@ public @interface Scene {
         String indexVar() default "index";
 
         /** Optional schema class to use for each item. */
-        Class<?> as() default SceneSchema.class;
+        Class<?> as() default void.class;
 
         /**
          * Columns for grid arrangement. Items auto-wrap into rows of N.
@@ -1179,7 +1179,7 @@ public @interface Scene {
         int order() default -1;
 
         /** SceneSchema class that defines 3D body presentation. */
-        Class<?> as() default SceneSchema.class;
+        Class<?> as() default void.class;
 
         /** ID for referencing this body element. */
         String id() default "";

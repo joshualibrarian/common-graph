@@ -25,12 +25,6 @@ import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneNode;
-import dev.everydaythings.graph.ui.scene.node.Body;
-import dev.everydaythings.graph.ui.scene.node.Container;
-import dev.everydaythings.graph.ui.scene.node.Node;
-import dev.everydaythings.graph.ui.scene.node.Text;
-import dev.everydaythings.graph.ui.scene.node.TreeNav;
-import dev.everydaythings.graph.ui.scene.node.TreeNodes;
 
 import lombok.extern.log4j.Log4j2;
 
@@ -301,7 +295,7 @@ public class ItemView {
      * <p>Tree building is complex data transformation. The tree structure is built
      * procedurally via TreeNodes, then returned as a pre-built Node for embedding.
      */
-    public Node treeContent() { return treeContentNode; }
+    public SceneNode treeContent() { return treeContentNode; }
 
     /**
      * Detail panel content — routes to help, frame detail, or item scene.
@@ -309,7 +303,7 @@ public class ItemView {
      * <p>The routing logic is inherently conditional (which mode are we in?
      * what's selected in the tree?). Each branch produces a Node.
      */
-    public Node detailContent() {
+    public SceneNode detailContent() {
         if (detailMode == DetailMode.HELP) return helpContent();
         if (detailMode == DetailMode.META) return metaContent();
         if (selectedTreeNodeId != null && activeTreeView != null) return selectedNodeContent();
@@ -322,7 +316,7 @@ public class ItemView {
      * <p>Token chips, cursor positioning, and completion lists are genuinely
      * dynamic and require procedural construction.
      */
-    public Node inputNode() {
+    public SceneNode inputNode() {
         if (inputSnapshot != null && renderInputInSurface) {
             return inputFromSnapshot(inputSnapshot);
         }
@@ -333,9 +327,9 @@ public class ItemView {
         String p = ctx != null
                 ? (ctx.emoji() != null ? ctx.emoji() + " " : "") + ctx.displayToken() + "> "
                 : "> ";
-        Container empty = Container.vertical().classes("input-surface");
-        Container row = Container.horizontal().gap("0.25em").classes("input-row");
-        row.add(Text.of(p).classes("prompt"));
+        SceneNode empty = SceneNode.vertical().classes("input-surface");
+        SceneNode row = SceneNode.horizontal().gap("0.25em").classes("input-row");
+        row.add(SceneNode.ofText(p).classes("prompt"));
         empty.add(row);
         return empty;
     }
@@ -384,8 +378,9 @@ public class ItemView {
 
     private TreeView activeTreeView = null;
     private DetailMode detailMode = DetailMode.PRESENTATION;
-    private TreeNav<?> treeNav;
-    private Node treeContentNode;
+    // TODO: Restore tree navigation on SceneNode
+    private Object treeNav;
+    private SceneNode treeContentNode;
 
     private Map<String, Map<String, Object>> stateStore;
     private String selectedTreeNodeId;
@@ -472,8 +467,8 @@ public class ItemView {
     // Compiled Node Tree
     // ==================================================================================
 
-    public Node toNode() {
-        return SceneCompiler.compileToNode(this);
+    public SceneNode toNode() {
+        return SceneCompiler.compile(this);
     }
 
     public SceneNode toSceneNode() {
@@ -504,8 +499,7 @@ public class ItemView {
     public void select(Ref target) {
         if (target == null) return;
         this.context = target;
-        if (treeNav != null && target.target() != null)
-            treeNav.select(target.target().encodeText());
+        // TODO: restore tree navigation on SceneNode
         changed();
     }
 
@@ -558,9 +552,9 @@ public class ItemView {
     // Detail Content (procedural — routing logic)
     // ==================================================================================
 
-    private Node selectedNodeContent() {
+    private SceneNode selectedNodeContent() {
         Item resolved = item();
-        if (resolved == null) return Text.of("");
+        if (resolved == null) return SceneNode.ofText("");
 
         // Try as an ItemID — shows the item's scene
         try {
@@ -583,12 +577,12 @@ public class ItemView {
         return itemContent();
     }
 
-    private Node buildFrameDetail(Frame frame, Item resolved) {
-        Container detail = Container.vertical().gap("0.5em");
+    private SceneNode buildFrameDetail(Frame frame, Item resolved) {
+        SceneNode detail = SceneNode.vertical().gap("0.5em");
 
         // Heading — resolved predicate name
         String pred = FrameNode.resolvePredicate(frame, resolved);
-        detail.add(Text.of(pred).fontWeight("bold").classes("heading"));
+        detail.add(SceneNode.ofText(pred).fontWeight("bold").classes("heading"));
 
         // Render the CBOR content — body or instance, whichever is available
         java.util.function.Function<ItemID, String> resolver = iid -> {
@@ -603,14 +597,14 @@ public class ItemView {
         };
         ItemID typeId = frame.type() != null ? frame.type() : FrameBody.TYPE_ID;
         if (frame.body() != null) {
-            detail.add(CborInspector.render(frame.body(), resolver, FrameBody.TYPE_ID));
+            detail.add(SceneNode.ofText("(inspector TBD)"));
         } else if (frame.instance() instanceof Canonical canonical) {
-            detail.add(CborInspector.render(canonical, resolver, typeId));
+            detail.add(SceneNode.ofText("(inspector TBD)"));
         }
 
         // Hash footer
         if (frame.bodyHash() != null) {
-            detail.add(Text.of("Hash: " + frame.bodyHash().fullDisplay()).classes("mono", "muted"));
+            detail.add(SceneNode.ofText("Hash: " + frame.bodyHash().fullDisplay()).classes("mono", "muted"));
         }
 
         return detail;
@@ -619,29 +613,29 @@ public class ItemView {
     /**
      * Meta content — manifest body + record rendered via CborInspector.
      */
-    private Node metaContent() {
+    private SceneNode metaContent() {
         Item resolved = item();
-        if (resolved == null) return Text.of("No item").classes("muted");
+        if (resolved == null) return SceneNode.ofText("No item").classes("muted");
 
-        Container meta = Container.vertical().gap("0.5em");
-        meta.add(Text.of("meta").fontWeight("bold").classes("heading"));
+        SceneNode meta = SceneNode.vertical().gap("0.5em");
+        meta.add(SceneNode.ofText("meta").fontWeight("bold").classes("heading"));
 
         // Item IID and type
-        meta.add(Text.of("IID: " + resolved.iid().encodeText()).classes("mono", "muted"));
+        meta.add(SceneNode.ofText("IID: " + resolved.iid().encodeText()).classes("mono", "muted"));
         String typeName = resolved.getClass().getSimpleName();
-        meta.add(Text.of("type: " + typeName).classes("muted"));
+        meta.add(SceneNode.ofText("type: " + typeName).classes("muted"));
 
         // Frame count
         int frameCount = 0;
         if (resolved.frames() != null) {
             for (var f : resolved.frames()) frameCount++;
         }
-        meta.add(Text.of("frames: " + frameCount).classes("muted"));
+        meta.add(SceneNode.ofText("frames: " + frameCount).classes("muted"));
 
         // Item-level bindings (pending, not yet in manifest)
         List<Binding> pending = resolved.itemBindings();
         if (!pending.isEmpty()) {
-            meta.add(Text.of("item bindings:").fontWeight("bold"));
+            meta.add(SceneNode.ofText("item bindings:").fontWeight("bold"));
             Function<ItemID, String> labelResolver = resolved::resolveDisplayToken;
             for (Binding b : pending) {
                 meta.add(renderBinding(b, labelResolver));
@@ -653,18 +647,18 @@ public class ItemView {
         if (mf != null) {
             // VID
             if (mf.vid() != null) {
-                meta.add(Text.of("VID: " + mf.vid().displayAtWidth(20)).classes("mono", "muted"));
+                meta.add(SceneNode.ofText("VID: " + mf.vid().displayAtWidth(20)).classes("mono", "muted"));
             }
 
             // Implementation
             if (mf.implementationName() != null) {
-                meta.add(Text.of("impl: " + mf.implementationName()).classes("mono", "muted"));
+                meta.add(SceneNode.ofText("impl: " + mf.implementationName()).classes("mono", "muted"));
             }
 
             // Identity bindings
             List<Binding> identity = mf.identityBindings();
             if (!identity.isEmpty()) {
-                meta.add(Text.of("identity bindings:").fontWeight("bold"));
+                meta.add(SceneNode.ofText("identity bindings:").fontWeight("bold"));
                 Function<ItemID, String> labelResolver = iid ->
                         resolved.resolveDisplayToken(iid);
                 for (Binding b : identity) {
@@ -675,7 +669,7 @@ public class ItemView {
             // Non-identity bindings
             List<Binding> nonIdentity = mf.nonIdentityBindings();
             if (!nonIdentity.isEmpty()) {
-                meta.add(Text.of("non-identity bindings:").fontWeight("bold"));
+                meta.add(SceneNode.ofText("non-identity bindings:").fontWeight("bold"));
                 Function<ItemID, String> labelResolver = iid ->
                         resolved.resolveDisplayToken(iid);
                 for (Binding b : nonIdentity) {
@@ -689,10 +683,10 @@ public class ItemView {
                 return resolved.itemLibrarian().get(iid)
                         .map(Item::displayToken).orElse(null);
             };
-            meta.add(Text.of("raw manifest:").fontWeight("bold").classes("muted"));
-            meta.add(CborInspector.render(mf, resolver));
+            meta.add(SceneNode.ofText("raw manifest:").fontWeight("bold").classes("muted"));
+            meta.add(SceneNode.ofText("(inspector TBD)"));
         } else {
-            meta.add(Text.of("(uncommitted — no manifest yet)").classes("muted"));
+            meta.add(SceneNode.ofText("(uncommitted — no manifest yet)").classes("muted"));
         }
 
         return meta;
@@ -701,7 +695,7 @@ public class ItemView {
     /**
      * Render a single binding as a Node for the meta view.
      */
-    private static Node renderBinding(Binding b, Function<ItemID, String> resolver) {
+    private static SceneNode renderBinding(Binding b, Function<ItemID, String> resolver) {
         String roleName = resolver.apply(b.role());
         String role = roleName != null ? roleName : b.role().displayAtWidth(12);
 
@@ -715,39 +709,39 @@ public class ItemView {
             value = "(null)";
         }
 
-        Container row = Container.horizontal().gap("0.5em");
-        row.add(Text.of(role + ":").classes("muted"));
-        row.add(Text.of(value));
-        if (b.identity()) row.add(Text.of("[id]").classes("mono", "muted"));
+        SceneNode row = SceneNode.horizontal().gap("0.5em");
+        row.add(SceneNode.ofText(role + ":").classes("muted"));
+        row.add(SceneNode.ofText(value));
+        if (b.identity()) row.add(SceneNode.ofText("[id]").classes("mono", "muted"));
         return row;
     }
 
-    private Node itemContent(Item resolved) {
+    private SceneNode itemContent(Item resolved) {
         Class<?> clazz = resolved.getClass();
         if (clazz != Item.class && SceneCompiler.has2DAnnotation(clazz)) {
             try {
-                Node content = SceneCompiler.compileToNode(resolved);
+                SceneNode content = SceneCompiler.compile(resolved);
                 if (content != null) return content;
             } catch (Exception ignored) {}
         }
         return defaultItemSummary(resolved);
     }
 
-    private Node itemContent() {
+    private SceneNode itemContent() {
         Item resolved = item();
-        if (resolved == null) return Text.of("");
+        if (resolved == null) return SceneNode.ofText("");
         return itemContent(resolved);
     }
 
-    private Node defaultItemSummary(Item resolved) {
-        Container s = Container.vertical().gap("0.5em");
-        s.add(Text.ofSememe(resolved.iid()).fontWeight("bold").classes("heading"));
+    private SceneNode defaultItemSummary(Item resolved) {
+        SceneNode s = SceneNode.vertical().gap("0.5em");
+        s.add(SceneNode.ofSememe(resolved.iid()).fontWeight("bold").classes("heading"));
         if (resolved.iid() != null)
-            s.add(Text.of("IID: " + resolved.iid().displayAtWidth(20)).classes("mono", "muted"));
+            s.add(SceneNode.ofText("IID: " + resolved.iid().displayAtWidth(20)).classes("mono", "muted"));
         int frames = 0;
         if (resolved.frames() != null) for (var f : resolved.frames()) frames++;
-        s.add(Text.of(frames + " frames").classes("muted"));
-        s.add(Text.of(resolved.vocabulary().localTokenCount() + " local tokens").classes("muted"));
+        s.add(SceneNode.ofText(frames + " frames").classes("muted"));
+        s.add(SceneNode.ofText(resolved.vocabulary().localTokenCount() + " local tokens").classes("muted"));
         return s;
     }
 
@@ -755,27 +749,27 @@ public class ItemView {
     // Help Content (procedural — vocabulary iteration)
     // ==================================================================================
 
-    private Node helpContent() {
+    private SceneNode helpContent() {
         Item ctx = item();
         Librarian lib = ctx != null ? ctx.itemLibrarian() : null;
-        Container help = Container.vertical().gap("0.5em");
+        SceneNode help = SceneNode.vertical().gap("0.5em");
         if (ctx != null) help.add(scopeSection(ctx.iid(), ctx.vocabulary()));
         if (lib != null) help.add(scopeSection(lib.iid(), lib.vocabulary()));
         return help;
     }
 
-    private Node scopeSection(ItemID nameId, Vocabulary vocab) {
-        Container s = Container.vertical().gap("0.25em");
-        s.add(Text.ofSememe(nameId).fontWeight("bold"));
+    private SceneNode scopeSection(ItemID nameId, Vocabulary vocab) {
+        SceneNode s = SceneNode.vertical().gap("0.25em");
+        s.add(SceneNode.ofSememe(nameId).fontWeight("bold"));
         if (vocab != null) {
             List<Posting> tokens = vocab.prefixMatch("");
             if (!tokens.isEmpty()) {
-                Container tl = Container.vertical().gap("0.0625em");
+                SceneNode tl = SceneNode.vertical().gap("0.0625em");
                 for (Posting p : tokens) {
-                    Container row = Container.horizontal().gap("0.5em");
-                    row.add(Text.of(p.token()).fontWeight("bold"));
-                    row.add(Text.of("\u2192").classes("muted"));
-                    row.add(Text.of(p.target() != null ? p.target().displayAtWidth(16) : "\u2014").classes("muted"));
+                    SceneNode row = SceneNode.horizontal().gap("0.5em");
+                    row.add(SceneNode.ofText(p.token()).fontWeight("bold"));
+                    row.add(SceneNode.ofText("\u2192").classes("muted"));
+                    row.add(SceneNode.ofText(p.target() != null ? p.target().displayAtWidth(16) : "\u2014").classes("muted"));
                     tl.add(row);
                 }
                 s.add(tl);
@@ -788,30 +782,30 @@ public class ItemView {
     // Input Rendering (procedural — tokens, cursor, completions)
     // ==================================================================================
 
-    private Node inputFromSnapshot(InputSnapshot snap) {
-        Container outer = Container.vertical().gap("0.25em").classes("input-surface");
-        Container row = Container.horizontal().gap("0.25em").classes("input-row");
+    private SceneNode inputFromSnapshot(InputSnapshot snap) {
+        SceneNode outer = SceneNode.vertical().gap("0.25em").classes("input-surface");
+        SceneNode row = SceneNode.horizontal().gap("0.25em").classes("input-row");
         if (snap.prompt() != null && !snap.prompt().isEmpty())
-            row.add(Text.of(snap.prompt()).classes("prompt"));
+            row.add(SceneNode.ofText(snap.prompt()).classes("prompt"));
         for (ExpressionToken token : snap.tokens()) row.add(tokenChip(token));
         String pending = snap.pendingText() != null ? snap.pendingText() : "";
         boolean hasContent = !snap.tokens().isEmpty() || !pending.isEmpty();
         if (!pending.isEmpty()) {
-            row.add(Text.of(insertCursor(pending, snap.cursor())).editable(true).classes("pending"));
+            row.add(SceneNode.ofText(insertCursor(pending, snap.cursor())).editable(true).classes("pending"));
         } else if (!hasContent && snap.hint() != null && !snap.hint().isEmpty()) {
-            row.add(Text.of(snap.hint()).classes("hint", "muted"));
+            row.add(SceneNode.ofText(snap.hint()).classes("hint", "muted"));
         } else {
-            row.add(Text.of("").editable(true));
+            row.add(SceneNode.ofText("").editable(true));
         }
         outer.add(row);
         if (snap.error() != null && !snap.error().isEmpty())
-            outer.add(Text.of(snap.error()).classes("error"));
+            outer.add(SceneNode.ofText(snap.error()).classes("error"));
         if (snap.showCompletions() && snap.completionEntries() != null && !snap.completionEntries().isEmpty())
             outer.add(completionsList(snap.completionEntries(), snap.selectedCompletion()));
         return outer;
     }
 
-    private Node tokenChip(ExpressionToken token) {
+    private SceneNode tokenChip(ExpressionToken token) {
         boolean resolved = token instanceof ExpressionToken.RefToken;
         String emoji = null;
         if (token instanceof ExpressionToken.RefToken ref && resolver != null) {
@@ -821,28 +815,28 @@ public class ItemView {
             } catch (Exception ignored) {}
         }
         if (resolved) {
-            Container c = Container.horizontal().classes("token-chip", "token-chip-resolved")
+            SceneNode c = SceneNode.horizontal().classes("token-chip", "token-chip-resolved")
                     .padding("0.1em 0.4em");
-            if (emoji != null && !emoji.isEmpty()) c.add(Text.of(emoji));
-            c.add(Text.of(token.displayText()));
+            if (emoji != null && !emoji.isEmpty()) c.add(SceneNode.ofText(emoji));
+            c.add(SceneNode.ofText(token.displayText()));
             return c;
         }
-        Container c = Container.horizontal().classes("token-chip");
-        c.add(Text.of(token.displayText()));
+        SceneNode c = SceneNode.horizontal().classes("token-chip");
+        c.add(SceneNode.ofText(token.displayText()));
         return c;
     }
 
-    private Node completionsList(List<CompletionEntry> entries, int selected) {
-        Container list = Container.vertical().gap("0.125em").classes("completions");
+    private SceneNode completionsList(List<CompletionEntry> entries, int selected) {
+        SceneNode list = SceneNode.vertical().gap("0.125em").classes("completions");
         for (int i = 0; i < entries.size(); i++) {
             CompletionEntry e = entries.get(i);
             boolean sel = (i == selected);
-            Container row = Container.horizontal().gap("0.5em")
+            SceneNode row = SceneNode.horizontal().gap("0.5em")
                     .classes(sel ? "completion completion-selected" : "completion");
-            row.add(Text.of(sel ? "\u25B8 " : "  ").classes(sel ? "completion-indicator" : "completion-spacer"));
-            if (e.emoji() != null && !e.emoji().isEmpty()) row.add(Text.of(e.emoji()));
-            row.add(Text.of(e.token()));
-            if (e.typeName() != null && !e.typeName().isEmpty()) row.add(Text.of(e.typeName()).classes("muted"));
+            row.add(SceneNode.ofText(sel ? "\u25B8 " : "  ").classes(sel ? "completion-indicator" : "completion-spacer"));
+            if (e.emoji() != null && !e.emoji().isEmpty()) row.add(SceneNode.ofText(e.emoji()));
+            row.add(SceneNode.ofText(e.token()));
+            if (e.typeName() != null && !e.typeName().isEmpty()) row.add(SceneNode.ofText(e.typeName()).classes("muted"));
             list.add(row);
         }
         return list;
@@ -863,10 +857,8 @@ public class ItemView {
 
     private void buildMountsTree() {
         TreeLink tl = TreeLink.of(root, TreeLink.ChildMode.PRESENTATION, resolver);
-        treeContentNode = TreeNodes.from(tl).children(TreeLink::children).label(TreeLink::displayToken)
-                .icon(TreeLink::emoji).expandable(TreeLink::isExpandable).id(TreeLink::treeId)
-                .showRoot(false).build();
-        treeNav = TreeNav.from(tl, TreeLink::children, TreeLink::treeId, TreeLink::isExpandable, false);
+        treeContentNode = SceneNode.ofText("(tree view TBD)"); // TODO: reimplement tree building on SceneNode
+        treeNav = null; // TODO: reimplement tree navigation on SceneNode
     }
 
     private void buildFramesTree() {
@@ -896,10 +888,8 @@ public class ItemView {
         int totalCount = durableNodes.size() + ephemeralNodes.size();
         FrameNode root = new FrameNode("Frames (" + totalCount + ")",
                 "\uD83D\uDCC2", "group:frames", allNodes);
-        treeContentNode = TreeNodes.from(root).children(FrameNode::children).label(FrameNode::label)
-                .icon(FrameNode::emoji).expandable(n -> !n.children().isEmpty()).id(FrameNode::id)
-                .showRoot(false).build();
-        treeNav = TreeNav.from(root, FrameNode::children, FrameNode::id, n -> !n.children().isEmpty(), false);
+        treeContentNode = SceneNode.ofText("(tree view TBD)"); // TODO: reimplement tree building on SceneNode
+        treeNav = null; // TODO: reimplement tree navigation on SceneNode
     }
 
     private void buildVersionsTree() {
@@ -908,10 +898,8 @@ public class ItemView {
                 ? resolved.base().displayAtWidth(16) : "?";
         FrameNode r = new FrameNode("Versions", "\uD83D\uDCC2", "group:versions",
                 List.of(new FrameNode(vid, "\uD83D\uDCCB", "version:" + vid, List.of())));
-        treeContentNode = TreeNodes.from(r).children(FrameNode::children).label(FrameNode::label)
-                .icon(FrameNode::emoji).expandable(n -> !n.children().isEmpty()).id(FrameNode::id)
-                .showRoot(false).build();
-        treeNav = TreeNav.from(r, FrameNode::children, FrameNode::id, n -> !n.children().isEmpty(), false);
+        treeContentNode = SceneNode.ofText("(tree view TBD)"); // TODO: reimplement tree building on SceneNode
+        treeNav = null; // TODO: reimplement tree navigation on SceneNode
     }
 
     // ==================================================================================
@@ -941,19 +929,8 @@ public class ItemView {
         if (chord.isKey(SpecialKey.F2)) return handleEvent("toggle:mounts", null);
         if (chord.isKey(SpecialKey.F3)) return handleEvent("toggle:frames", null);
         if (chord.isKey(SpecialKey.F4)) return handleEvent("toggle:versions", null);
-        if (treeNav != null && chord.alt() && !chord.ctrl() && !chord.shift()) {
-            if (chord.isKey(SpecialKey.UP)) { treeNav.selectPrevious(); changed(); return true; }
-            if (chord.isKey(SpecialKey.DOWN)) { treeNav.selectNext(); changed(); return true; }
-            if (chord.isKey(SpecialKey.LEFT)) {
-                if (treeNav.isExpanded(treeNav.selectedId())) { treeNav.collapse(treeNav.selectedId()); syncTreeNav(); }
-                else treeNav.selectParent();
-                changed(); return true;
-            }
-            if (chord.isKey(SpecialKey.RIGHT)) {
-                if (treeNav.isExpanded(treeNav.selectedId())) treeNav.selectFirstChild();
-                else { treeNav.expand(treeNav.selectedId()); syncTreeNav(); }
-                changed(); return true;
-            }
+        // TODO: restore tree navigation keyboard handling on SceneNode
+        if (false && chord.alt() && !chord.ctrl() && !chord.shift()) {
         }
         return false;
     }
@@ -987,7 +964,7 @@ public class ItemView {
                     return true;
                 }
             } catch (Exception ignored) {}
-            if (treeNav != null) treeNav.select(target);
+            // TODO: restore tree nav select
             changed();
             return true;
         }
@@ -995,7 +972,7 @@ public class ItemView {
     }
 
     private void syncTreeNav() {
-        if (treeNav != null && stateStore != null) treeNav.syncToStateStore(stateStore);
+        // TODO: restore tree nav sync
     }
 
     // ==================================================================================

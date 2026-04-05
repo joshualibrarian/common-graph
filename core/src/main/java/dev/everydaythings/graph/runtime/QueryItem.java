@@ -18,10 +18,7 @@ import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.ui.scene.Scene;
-import dev.everydaythings.graph.ui.scene.node.Body;
-import dev.everydaythings.graph.ui.scene.node.Container;
-import dev.everydaythings.graph.ui.scene.node.Node;
-import dev.everydaythings.graph.ui.scene.node.Text;
+import dev.everydaythings.graph.ui.scene.SceneNode;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -382,36 +379,36 @@ public class QueryItem extends Item {
     // ==================================================================================
 
     @Scene.Handle
-    public Node handle() {
+    public SceneNode handle() {
         int count = resultItems.size();
-        Container h = Container.horizontal().gap("0.5em");
-        h.add(Body.ofGlyph("\uD83D\uDD0D")); // magnifying glass
-        h.add(Text.of(count > 0 ? count + " results" : "query"));
+        SceneNode h = SceneNode.horizontal().gap("0.5em");
+        h.add(SceneNode.ofGlyph("\uD83D\uDD0D")); // magnifying glass
+        h.add(SceneNode.ofText(count > 0 ? count + " results" : "query"));
         return h;
     }
 
     @Scene.Container(order = 0, direction = Scene.Direction.VERTICAL, id = "query-results",
             gap = "0.3em", padding = "0.5em")
-    public Node content() {
-        Container root = Container.vertical().gap("0.3em");
+    public SceneNode content() {
+        SceneNode root = SceneNode.vertical().gap("0.3em");
 
         // Header
         int count = resultItems.size();
-        Text header = Text.of(count + (count == 1 ? " result" : " results"));
+        SceneNode header = SceneNode.ofText(count + (count == 1 ? " result" : " results"));
         header.fontWeight("bold");
         root.add(header);
 
         if (resultItems.isEmpty()) {
-            root.add(Text.of("No matches found.").foreground("#888888"));
+            root.add(SceneNode.ofText("No matches found.").foreground("#888888"));
             return root;
         }
 
         // Result list — one handle per result item
         for (Item item : resultItems) {
-            Container row = Container.horizontal().gap("0.5em");
+            SceneNode row = SceneNode.horizontal().gap("0.5em");
             String emoji = item.emoji();
-            row.add(Body.ofGlyph(emoji != null ? emoji : ""));
-            row.add(Text.ofSememe(item.iid()));
+            row.add(SceneNode.ofGlyph(emoji != null ? emoji : ""));
+            row.add(SceneNode.ofSememe(item.iid()));
             root.add(row);
         }
 
