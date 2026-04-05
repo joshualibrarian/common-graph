@@ -4,19 +4,27 @@ In the Common Graph, **frames** hold all the data, indexed with semantic keys. H
 
 An Item is a **versioned, signed container of frames with stable identity**. Every Item carries its own identity, its own history, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
 
-The Item model draws from several traditions: Smalltalk's "everything is an object" with message-passing dispatch (see [references/Kay 1993](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf)), the Actor model's independent entities communicating through messages (see [references/Hewitt et al 1973](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf)), and Engelbart's vision of augmenting human intellect through integrated artifact-language-methodology systems (see [references/Engelbart 1962](references/Engelbart%201962%20-%20Augmenting%20Human%20Intellect.pdf)). Like Bush's memex (see [references/Bush 1945](references/Bush%201945%20-%20As%20We%20May%20Think.pdf)), items are found by meaning and association rather than hierarchical location.
+The Item model draws from several traditions: Smalltalk's "everything is an object" with message-passing dispatch (see [Kay 1993](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf)), the Actor model's independent entities communicating through messages (see [Hewitt et al 1973](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf)), and Engelbart's vision of augmenting human intellect through integrated artifact-language-methodology systems (see [Engelbart 1962](references/Engelbart%201962%20-%20Augmenting%20Human%20Intellect.pdf)). Like Bush's memex (see [Bush 1945](references/Bush%201945%20-%20As%20We%20May%20Think.pdf)), items are found by meaning and association rather than hierarchical location.
 
 ## Anatomy of an Item
 
-An Item has exactly three parts:
+An Item has two parts: an **IID** and a **Manifest**.
 
 | Part | What it is |
 |------|-----------|
 | **IID** | Stable 32-byte identity that persists across all versions |
 | **Manifest** | Signed, immutable snapshot of a specific version |
-| **EndorsementsTable** | All endorsed frames — every frame the item contains |
 
-Everything is in the EndorsementsTable. Text, metadata, streams, policy — all stored as frames in one table, versioned together. Vocabulary is derived at runtime by scanning the item's frames for indexed string bindings.
+The manifest IS the item at a point in time. It contains:
+
+| Manifest field | What it holds |
+|----------------|---------------|
+| **Endorsements** | The item's frames — every endorsed assertion, keyed by FrameKey |
+| **Bindings** | Item-level properties (identity bindings affect VID; non-identity don't) |
+| **Implementation** | Platform + class name (e.g., Java + `ChessItem`) |
+| **Signature** | Author key + cryptographic signature |
+
+Everything — text, metadata, streams, policy — is either an endorsed frame or an item-level binding. Vocabulary is derived at runtime by scanning the item's frames for indexed string bindings.
 
 See [Frames](frames.md) for the frame primitive itself — the single data model unit that unifies all content, assertions, properties, streams, and more.
 
@@ -56,26 +64,9 @@ V1 (parent: null)
 
 The version hash covers only BODY fields (content), not the full manifest. Signatures are non-BODY fields — the hash is computed first, then signed. BODY scope = content identity. RECORD scope = everything including signatures.
 
-## The EndorsementsTable
-
-The EndorsementsTable is the **single source of truth** for what an Item contains. Every frame — text, streams, properties — stored in one table, keyed by `FrameKey`.
-
-The table is a `Map<FrameKey, Frame>` with a parallel mount map:
-
-```
-frames:     FrameKey -> Frame          (the frame: key, type, body, bodyHash, identity)
-mounts:     FrameKey -> List<Mount>    (presentation positions, separate from frames)
-```
-
-Mounts do NOT live on Frame — they live on EndorsementsTable in a parallel map. "Where is this frame mounted?" is answered by the table, not the frame.
-
-At commit time, the table builds endorsements for the manifest: each `FrameEndorsement` carries a FrameKey, bodyHash, and mounts. At hydration time, endorsements are expanded back into the runtime table.
-
-See [Frames](frames.md) for the Frame/FrameBody/FrameRecord/Endorsement layering, the identity and index flags, content modes, and the endorsed/unendorsed distinction.
-
 ## The Manifest
 
-A Manifest is the **signed, immutable declaration** of an Item version:
+A Manifest is the **signed, immutable declaration** of an Item version — the item at a point in time:
 
 ```
 Manifest {
@@ -83,7 +74,7 @@ Manifest {
     iid:            ItemID              -- which item this is
     parents:        List<ContentID>     -- parent version hashes (history chain)
     implementation: Binding             -- platform + class name (e.g., Java + "ChessItem")
-    state:          ItemState           -- all content (the EndorsementsTable)
+    state:          ItemState           -- endorsed frames (List<FrameEndorsement>)
     bindings:       List<Binding>       -- item-level bindings (identity + non-identity)
     --- non-BODY fields (excluded from version hash) ---
     authorKey:      SigningPublicKey     -- who signed this
@@ -91,7 +82,15 @@ Manifest {
 }
 ```
 
-The **implementation** binding replaces the old `type: ItemID` field. It records the creating platform and class name — the platform IID (e.g., Java) as the binding's role, and the class name as a literal target. The semantic relationship between a Java class and its concept lives in an IMPLEMENTS frame on the item, not on the manifest.
+### Endorsed Frames
+
+The manifest's state holds the item's **endorsed frames** — each a `FrameEndorsement` carrying a FrameKey, bodyHash, and mounts. At runtime, endorsements are expanded into a frame table (`Map<FrameKey, Frame>`) with a parallel mount map. Mounts live on the table, not on individual frames.
+
+See [Frames](frames.md) for the Frame/FrameBody/FrameRecord/Endorsement layering, the identity and index flags, content modes, and the endorsed/unendorsed distinction.
+
+### Implementation
+
+The **implementation** binding records the creating platform and class name — the platform IID (e.g., Java) as the binding's role, and the class name as a literal target. The semantic relationship between a Java class and its concept lives in an IMPLEMENTS frame on the item, not on the manifest.
 
 The BODY/non-BODY split:
 
@@ -124,7 +123,7 @@ Frames can have **mounts** — presentation descriptors that control where a fra
 
 A frame can have multiple mounts (like hard links). Frames with no mounts are internal entries — they exist in the table but don't appear in navigation.
 
-Mounts are stored on the EndorsementsTable, not on the Frame. They are serialized alongside each frame's endorsement in the manifest.
+Mounts are stored on the frame table, not on individual Frames. They are serialized alongside each frame's endorsement in the manifest.
 
 ## Item Types
 
@@ -206,16 +205,7 @@ This says: "instances of Chess should carry a PLAYER frame qualified with WHITE.
 
 ## Item State
 
-An Item's versioned state is encapsulated in `ItemState`:
-
-```
-ItemState {
-    endorsements:  List<FrameEndorsement>   -- for manifest serialization
-    frames:        EndorsementsTable         -- transient runtime structure
-}
-```
-
-ItemState wraps the EndorsementsTable so the Manifest has a named field for "the state of this version." At commit time, `buildEndorsements()` snapshots the table into endorsements for serialization. At decode time, endorsements are loaded back into the runtime table.
+An Item's versioned state is encapsulated in `ItemState`, which the manifest serializes as a list of `FrameEndorsement` objects. At runtime, endorsements are expanded into a frame table for efficient lookup. At commit time, the table is snapshotted back into endorsements for serialization.
 
 ## ID Types
 
@@ -237,12 +227,12 @@ ItemID and ContentID inherit from `HashID`. FrameKey is not a hash — it's a st
 ```
 new ChessItem(librarian)
  -> random IID generated
- -> ItemState created with empty EndorsementsTable
+ -> ItemState created with empty frame table
  -> initializeFreshComponents():
      for each @ItemFrame field with @Implements type:
        1. Create default instance
        2. Build Frame (snapshot/stream/local-only)
-       3. Add frame + live instance to EndorsementsTable
+       3. Add frame + live instance to frame table
        4. Add mounts if declared
  -> hydrate():
      Bind @ItemFrame fields from table
@@ -282,7 +272,7 @@ item.commit(signer)
  -> scanAndBindFields():
      For each @ItemFrame field: encode value -> CID -> update Frame bodyHash
  -> state.buildEndorsements():
-     Snapshot EndorsementsTable into List<FrameEndorsement>
+     Snapshot frame table into List<FrameEndorsement>
  -> Build Manifest:
      iid, implementation(Java + className), parents, state, bindings
  -> manifest.sign(signer) -- sign BODY bytes
@@ -315,7 +305,7 @@ Items compose behavior from typed frames. There are no special "chat room" or "s
 | User profile | Item + KeyLog (stream) + Vault (local) |
 | Document | Item + TITLE frame + AUTHORED frame |
 
-The same EndorsementsTable holds all of these. A "chess game" is an item whose EXPECTS declarations say it needs PLAYER and MOVE frames. A "document" is an item that expects TITLE, AUTHOR, and DESCRIPTION frames. The type IS the expected frames.
+The same manifest holds all of these. A "chess game" is an item whose EXPECTS declarations say it needs PLAYER and MOVE frames. A "document" is an item that expects TITLE, AUTHOR, and DESCRIPTION frames. The type IS the expected frames.
 
 ## Vocabulary
 
@@ -340,4 +330,4 @@ my-item/
     +-- content/           # Content blocks (by CID)
 ```
 
-The working tree is a view of the EndorsementsTable — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.
+The working tree is a view of the manifest's endorsed frames — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.

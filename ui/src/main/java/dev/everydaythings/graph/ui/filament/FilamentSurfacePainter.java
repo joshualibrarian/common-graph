@@ -831,6 +831,8 @@ public class FilamentSurfacePainter implements SurfacePainter {
             System.err.printf("[DIAG] paintBox id=%s: pos=(%.1f,%.1f) size=(%.1f,%.1f) content=(%.1f,%.1f,%.1f,%.1f) children=%d%n",
                     box.id(), box.x(), box.y(), box.width(), box.height(),
                     contentX, contentY, contentW, contentH, box.children().size());
+            // DIAG: paint a bright red stripe across the header to test flat color visibility
+            emitColoredQuad(0, 0, box.width(), box.height(), 0xFFFF0000, boxZ + 0.1f);
         }
         pushClip(contentX, contentY, contentW, contentH);
 
@@ -947,7 +949,13 @@ public class FilamentSurfacePainter implements SurfacePainter {
         Paragraph para = text.paragraph();
         if (para != null) {
             var painter = new GlyphPaintContext(color, textZ);
+            int batchesBefore = msdfBatches.values().stream().mapToInt(b -> b.vertexCount).sum();
             para.paint(painter, text.x(), text.y());
+            int batchesAfter = msdfBatches.values().stream().mapToInt(b -> b.vertexCount).sum();
+            if (text.y() < 40) {
+                System.err.printf("[DIAG] paintText glyphs emitted for '%s': %d vertices%n",
+                        text.content(), batchesAfter - batchesBefore);
+            }
             popClip();
             flushMsdfBatches();
             return;
