@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.ui.text;
 
-import dev.everydaythings.graph.ui.scene.BoxBorder;
 import dev.everydaythings.graph.ui.scene.SceneEvent;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.ScenePainter;
@@ -85,17 +84,15 @@ public class AnsiSurfacePainter implements ScenePainter {
         boolean isHorizontal = "horizontal".equals(layout);
 
         // Border opening
-        Object borderVal = node.border();
-        if (borderVal instanceof String border && !border.isEmpty()) {
-            BoxBorder boxBorder = BoxBorder.parse(border);
-            if (boxBorder != null && boxBorder.isVisible()) {
-                appendIndent();
-                buffer.append(ANSI.DIM).append("\u250C");
-                for (int i = 0; i < 40; i++) buffer.append("\u2500");
-                buffer.append("\u2510").append(ANSI.RESET).append("\n");
-                currentRow++;
-                currentCol = 0;
-            }
+        boolean hasBorder = node.borderTopWidthFloat() > 0 || node.borderBottomWidthFloat() > 0
+                || node.borderLeftWidthFloat() > 0 || node.borderRightWidthFloat() > 0;
+        if (hasBorder) {
+            appendIndent();
+            buffer.append(ANSI.DIM).append("\u250C");
+            for (int i = 0; i < 40; i++) buffer.append("\u2500");
+            buffer.append("\u2510").append(ANSI.RESET).append("\n");
+            currentRow++;
+            currentCol = 0;
         }
 
         if (isVertical) indentLevel++;

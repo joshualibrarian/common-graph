@@ -305,9 +305,28 @@ public class SceneResolver {
      */
     private void applyProperty(SceneNode node, String property, String value) {
         switch (property) {
-            case "background" -> node.background(value);
+            case "background" -> node.backgroundColor(value);  // shorthand — sets color
+            case "backgroundColor" -> node.backgroundColor(value);
+            case "backgroundImage" -> node.backgroundImage(value);
+            case "backgroundSize" -> node.backgroundSize(value);
             case "foreground" -> node.foreground(value);
             case "border" -> node.border(value);
+            case "borderTopWidth" -> node.borderTopWidth(value);
+            case "borderRightWidth" -> node.borderRightWidth(value);
+            case "borderBottomWidth" -> node.borderBottomWidth(value);
+            case "borderLeftWidth" -> node.borderLeftWidth(value);
+            case "borderTopStyle" -> node.borderTopStyle(value);
+            case "borderRightStyle" -> node.borderRightStyle(value);
+            case "borderBottomStyle" -> node.borderBottomStyle(value);
+            case "borderLeftStyle" -> node.borderLeftStyle(value);
+            case "borderTopColor" -> node.borderTopColor(value);
+            case "borderRightColor" -> node.borderRightColor(value);
+            case "borderBottomColor" -> node.borderBottomColor(value);
+            case "borderLeftColor" -> node.borderLeftColor(value);
+            case "transitionProperty" -> node.transitionProperty(value);
+            case "transitionDuration" -> node.transitionDuration(value);
+            case "transitionEasing" -> node.transitionEasing(value);
+            case "transitionDelay" -> node.transitionDelay(value);
             case "padding" -> node.padding(value);
             case "margin" -> node.margin(value);
             case "width" -> node.width(value);
@@ -333,9 +352,17 @@ public class SceneResolver {
             case "visible" -> node.visible(value);
             case "cursor" -> node.cursor(value);
             case "fill" -> node.fill(value);
-            case "stroke" -> node.stroke(value);
+            case "strokeColor" -> node.strokeColor(value);
             case "strokeWidth" -> node.strokeWidth(value);
-            case "rotation" -> node.rotation(value);
+            case "rotation" -> node.rotation(value);  // shorthand → rotationZ
+            case "rotationX" -> node.rotationX(value);
+            case "rotationY" -> node.rotationY(value);
+            case "rotationZ" -> node.rotationZ(value);
+            case "scale" -> node.scale(value);
+            case "scaleX" -> node.scaleX(value);
+            case "scaleY" -> node.scaleY(value);
+            case "scaleZ" -> node.scaleZ(value);
+            case "transformOrigin" -> node.transformOrigin(value);
             case "align" -> node.align(value);
             case "justify" -> node.justify(value);
             case "layout" -> node.layout(value);

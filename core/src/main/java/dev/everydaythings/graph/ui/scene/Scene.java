@@ -318,8 +318,17 @@ public @interface Scene {
         /** Foreground color: "#89B4FA". */
         String color() default "";
 
-        /** Background color: "#313244", or "reverse" for inverted. */
+        /** Background shorthand — currently sets background color. */
         String background() default "";
+
+        /** Background color: "#313244". */
+        String backgroundColor() default "";
+
+        /** Background image resource path. */
+        String backgroundImage() default "";
+
+        /** Background image sizing: "fill", "cover", "contain". */
+        String backgroundSize() default "";
 
         /** Font size: "1.33em", "20px", "80%". */
         String fontSize() default "";
@@ -369,8 +378,20 @@ public @interface Scene {
         /** Border radius: "4px", "50%". */
         String radius() default "";
 
-        /** Rotation: "90deg", "45". */
+        /** Rotation shorthand (sets rotationZ): "90deg", "45". */
         String rotation() default "";
+        String rotationX() default "";
+        String rotationY() default "";
+        String rotationZ() default "";
+
+        /** Scale shorthand (sets uniform scaleX/Y/Z): "1.5". */
+        String scale() default "";
+        String scaleX() default "";
+        String scaleY() default "";
+        String scaleZ() default "";
+
+        /** Transform origin: "center", "top left", "50% 0%". */
+        String transformOrigin() default "";
 
         /** Min width: "200px", "50%". */
         String minWidth() default "";
@@ -383,6 +404,32 @@ public @interface Scene {
 
         /** Max height: "600px", "80%". */
         String maxHeight() default "";
+
+        // Border per-property shorthand (1-4 values, CSS multi-value pattern)
+        String borderWidth() default "";
+        String borderStyle() default "";
+        String borderColor() default "";
+
+        // Border per-side longhand
+        String borderTopWidth() default "";
+        String borderRightWidth() default "";
+        String borderBottomWidth() default "";
+        String borderLeftWidth() default "";
+        String borderTopStyle() default "";
+        String borderRightStyle() default "";
+        String borderBottomStyle() default "";
+        String borderLeftStyle() default "";
+        String borderTopColor() default "";
+        String borderRightColor() default "";
+        String borderBottomColor() default "";
+        String borderLeftColor() default "";
+
+        // Transition shorthand + longhand
+        String transition() default "";
+        String transitionProperty() default "";
+        String transitionDuration() default "";
+        String transitionEasing() default "";
+        String transitionDelay() default "";
     }
 
     /** Container for multiple {@link Style} annotations on a single type. */
@@ -428,8 +475,8 @@ public @interface Scene {
         /** Corner radius: "none", "small", "medium", "large", "pill", "circle", or explicit. */
         String cornerRadius() default "";
 
-        /** Background color or style. */
-        String background() default "";
+        /** Background color. */
+        String backgroundColor() default "";
 
         /** Inner spacing (padding). */
         String padding() default "";

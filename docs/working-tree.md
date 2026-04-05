@@ -114,4 +114,4 @@ But unlike Git:
 - Semantic assertions are first-class (see [Semantic Assertions](relations.md))
 - Content is globally content-addressed and deduplicated (see [Content](content.md))
 - Everything is cryptographically signed (see [Trust](trust.md))
-- Items can be presented in 2D and 3D (see [Presentation](presentation.md))
+- Items can be presented in 2D and 3D (see [Scene](scene.md))

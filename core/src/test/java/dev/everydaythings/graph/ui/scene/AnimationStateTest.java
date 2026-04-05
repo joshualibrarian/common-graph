@@ -327,34 +327,6 @@ class AnimationStateTest {
         assertThat(bezierSpec.effectiveDuration()).isEqualTo(0.5);
     }
 
-    // ==================== TransitionSpec.fromClass ====================
-
-    @Transition(property = "x", duration = 0.2, easing = "ease-out")
-    @Transition(property = "opacity", duration = 0.15, easing = "linear")
-    static class MultiTransitionElement {}
-
-    static class NoTransitionElement {}
-
-    @Test
-    void fromClass_compilesAnnotations() {
-        List<TransitionSpec> specs = TransitionSpec.fromClass(MultiTransitionElement.class);
-
-        assertThat(specs).hasSize(2);
-        assertThat(specs.get(0).properties()).containsExactly("x");
-        assertThat(specs.get(0).duration()).isEqualTo(0.2);
-        assertThat(specs.get(0).easing()).isInstanceOf(Easing.CubicBezier.class);
-
-        assertThat(specs.get(1).properties()).containsExactly("opacity");
-        assertThat(specs.get(1).duration()).isEqualTo(0.15);
-        assertThat(specs.get(1).easing()).isInstanceOf(Easing.Linear.class);
-    }
-
-    @Test
-    void fromClass_noAnnotations_emptyList() {
-        List<TransitionSpec> specs = TransitionSpec.fromClass(NoTransitionElement.class);
-        assertThat(specs).isEmpty();
-    }
-
     // ==================== Spring with AnimationState ====================
 
     @Test

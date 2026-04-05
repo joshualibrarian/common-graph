@@ -98,126 +98,171 @@ public class SceneNode implements Canonical {
     @Canon(order = 17)
     private String padding;
 
-    /** Border — String "2px solid #333" → Integer 0xFF333333 (color) after presentation. */
-    @Canon(order = 18)
-    private Object border;
+    // Border per-side longhand — decomposed from shorthand at compile time
+    @Canon(order = 18) private Object borderTopWidth;
+    @Canon(order = 19) private Object borderRightWidth;
+    @Canon(order = 20) private Object borderBottomWidth;
+    @Canon(order = 21) private Object borderLeftWidth;
+    @Canon(order = 22) private String borderTopStyle;
+    @Canon(order = 23) private String borderRightStyle;
+    @Canon(order = 24) private String borderBottomStyle;
+    @Canon(order = 25) private String borderLeftStyle;
+    @Canon(order = 26) private Object borderTopColor;
+    @Canon(order = 27) private Object borderRightColor;
+    @Canon(order = 28) private Object borderBottomColor;
+    @Canon(order = 29) private Object borderLeftColor;
 
     /** Corner radius — String "4px" → Float 4.0f after presentation. */
-    @Canon(order = 19)
+    @Canon(order = 30)
     private Object corner;
 
-    /** Background — String "#1E1E2E" → Integer 0xFF1E1E2E after presentation. */
-    @Canon(order = 20)
-    private Object background;
+    /** Background color — String "#1E1E2E" → Integer 0xFF1E1E2E after presentation. */
+    @Canon(order = 31)
+    private Object backgroundColor;
 
-    @Canon(order = 21)
+    /** Background image resource path (SVG, PNG, JPEG, WebP, GIF). */
+    @Canon(order = 32)
+    private String backgroundImage;
+
+    /** Background image sizing: "fill", "cover", "contain", or null for natural size. */
+    @Canon(order = 33)
+    private String backgroundSize;
+
+    @Canon(order = 34)
     private String overflow;
 
     // =================================================================================
     // Typography (Object fields — progressively mutated by pipeline)
     // =================================================================================
 
-    @Canon(order = 30)
+    @Canon(order = 40)
     private String fontFamily;
 
     /** Font size — String "1.2em" → Float 18.0f after presentation. */
-    @Canon(order = 31)
+    @Canon(order = 41)
     private Object fontSize;
 
-    @Canon(order = 32)
+    @Canon(order = 42)
     private String fontWeight;
 
     /** Font style — "italic" or "normal". */
-    @Canon(order = 33)
+    @Canon(order = 43)
     private String fontStyle;
 
     /** Text decoration — "underline", "line-through", "overline", or space-separated combination. */
-    @Canon(order = 34)
+    @Canon(order = 44)
     private String textDecoration;
 
     /** Text alignment — "left", "center", "right", "justify". */
-    @Canon(order = 35)
+    @Canon(order = 45)
     private String textAlign;
 
     /** Line height — String "1.5" or "24px" → Float after presentation. */
-    @Canon(order = 36)
+    @Canon(order = 46)
     private Object lineHeight;
 
     /** Letter spacing — String "0.5px" → Float after presentation. */
-    @Canon(order = 37)
+    @Canon(order = 47)
     private Object letterSpacing;
 
     /** Text overflow — "ellipsis", "clip". */
-    @Canon(order = 38)
+    @Canon(order = 48)
     private String textOverflow;
 
     /** White space handling — "normal", "nowrap", "pre", "pre-wrap". */
-    @Canon(order = 39)
+    @Canon(order = 49)
     private String whiteSpace;
 
     /** Foreground color — String "#CDD6F4" → Integer 0xFFCDD6F4 after presentation. */
-    @Canon(order = 40)
+    @Canon(order = 50)
     private Object foreground;
 
     /** Opacity — String "0.8" → Float 0.8f after presentation. */
-    @Canon(order = 41)
+    @Canon(order = 51)
     private Object opacity;
 
     // =================================================================================
     // Transform
     // =================================================================================
 
-    /** Rotation — String "45deg" → Float 45.0f after presentation. */
-    @Canon(order = 50)
-    private Object rotation;
+    // Rotation per-axis — String "45deg" → Float 45.0f after presentation
+    @Canon(order = 60) private Object rotationX;
+    @Canon(order = 61) private Object rotationY;
+    @Canon(order = 62) private Object rotationZ;
 
-    @Canon(order = 51)
-    private double scale = 1.0;
+    // Scale per-axis — String "1.5" → Float 1.5f after presentation (default 1.0)
+    @Canon(order = 63) private Object scaleX;
+    @Canon(order = 64) private Object scaleY;
+    @Canon(order = 65) private Object scaleZ;
 
-    @Canon(order = 52)
+    /** Transform origin — "center" (default), "top left", "50% 0%", "50% 50% 20px". */
+    @Canon(order = 66)
+    private String transformOrigin;
+
+    @Canon(order = 67)
     private double elevation;
 
-    @Canon(order = 53)
+    @Canon(order = 68)
     private double posX;
 
-    @Canon(order = 54)
+    @Canon(order = 69)
     private double posY;
 
-    @Canon(order = 55)
+    @Canon(order = 70)
     private double posZ;
+
+    // =================================================================================
+    // Transition longhand — individually addressable through the cascade
+    // =================================================================================
+
+    /** Transition property: "all", "backgroundColor", "opacity, backgroundColor". */
+    @Canon(order = 75)
+    private String transitionProperty;
+
+    /** Transition duration: "0.3s" → Float 0.3 after presentation. */
+    @Canon(order = 76)
+    private Object transitionDuration;
+
+    /** Transition easing: "ease-out", "spring", "cubic-bezier(...)". */
+    @Canon(order = 77)
+    private String transitionEasing;
+
+    /** Transition delay: "0.1s" → Float 0.1 after presentation. */
+    @Canon(order = 78)
+    private Object transitionDelay;
 
     // =================================================================================
     // Interaction
     // =================================================================================
 
-    @Canon(order = 60)
+    @Canon(order = 80)
     private List<SceneEvent> events;
 
-    @Canon(order = 61)
+    @Canon(order = 81)
     private boolean capturesFocus;
 
-    @Canon(order = 62)
+    @Canon(order = 82)
     private String cursor;
 
-    @Canon(order = 63)
+    @Canon(order = 83)
     private boolean editable;
 
     // =================================================================================
     // Data Binding
     // =================================================================================
 
-    @Canon(order = 70)
+    @Canon(order = 90)
     private String bind;
 
     /** Visibility — String expression → Boolean after resolution. */
-    @Canon(order = 71)
+    @Canon(order = 91)
     private Object visible;
 
     // =================================================================================
     // State Declarations
     // =================================================================================
 
-    @Canon(order = 80)
+    @Canon(order = 95)
     private List<StateDecl> state;
 
     /** A state declaration — the runtime holds the actual value. */
@@ -245,7 +290,7 @@ public class SceneNode implements Canonical {
     // Conditional Property Blocks
     // =================================================================================
 
-    @Canon(order = 90)
+    @Canon(order = 96)
     private Map<String, Map<String, String>> when;
 
     // =================================================================================
@@ -307,7 +352,7 @@ public class SceneNode implements Canonical {
     @Canon(order = 300)
     private String shape;
 
-    /** 2D image path or CID (SVG, PNG). */
+    /** 2D image path or CID (SVG, PNG, JPEG, WebP, GIF). */
     @Canon(order = 301)
     private String image;
 
@@ -329,7 +374,7 @@ public class SceneNode implements Canonical {
 
     /** Stroke color — String "#color" → Integer 0xFFcolor after presentation. */
     @Canon(order = 311)
-    private Object stroke;
+    private Object strokeColor;
 
     /** Stroke width — String "2px" → Float 2.0f after presentation. */
     @Canon(order = 312)
@@ -361,7 +406,6 @@ public class SceneNode implements Canonical {
     private transient float explicitWidth = -1;
     private transient float explicitHeight = -1;
     private transient float paddingTop, paddingRight, paddingBottom, paddingLeft;
-    private transient float borderTopWidth, borderRightWidth, borderBottomWidth, borderLeftWidth;
     private transient float measuredWidth;
     private transient float measuredHeight;
     private transient float contentHeight;
@@ -579,15 +623,29 @@ public class SceneNode implements Canonical {
     // Convenience accessors using the generic helpers
     public float fontSizeFloat() { return asFloat(fontSize, 0); }
     public int foregroundColor() { return asInt(foreground, -1); }
-    public int backgroundColor() { return asInt(background, -1); }
+    public int backgroundColorInt() { return asInt(backgroundColor, -1); }
     public float cornerFloat() { return asFloat(corner, 0); }
-    public float rotationFloat() { return asFloat(rotation, 0); }
+    public float rotationXFloat() { return asFloat(rotationX, 0); }
+    public float rotationYFloat() { return asFloat(rotationY, 0); }
+    public float rotationZFloat() { return asFloat(rotationZ, 0); }
+    public float scaleXFloat() { return asFloat(scaleX, 1.0f); }
+    public float scaleYFloat() { return asFloat(scaleY, 1.0f); }
+    public float scaleZFloat() { return asFloat(scaleZ, 1.0f); }
     public float opacityFloat() { return asFloat(opacity, 1.0f); }
     public float gapFloat() { return asFloat(gap, 0); }
     public int fillColor() { return asInt(fill, -1); }
-    public int strokeColor() { return asInt(stroke, -1); }
+    public int strokeColorInt() { return asInt(strokeColor, -1); }
     public float strokeWidthFloat() { return asFloat(strokeWidth, 0); }
-    public int borderColor() { return asInt(border, -1); }
+    public float borderTopWidthFloat() { return asFloat(borderTopWidth, 0); }
+    public float borderRightWidthFloat() { return asFloat(borderRightWidth, 0); }
+    public float borderBottomWidthFloat() { return asFloat(borderBottomWidth, 0); }
+    public float borderLeftWidthFloat() { return asFloat(borderLeftWidth, 0); }
+    public int borderTopColorInt() { return asInt(borderTopColor, -1); }
+    public int borderRightColorInt() { return asInt(borderRightColor, -1); }
+    public int borderBottomColorInt() { return asInt(borderBottomColor, -1); }
+    public int borderLeftColorInt() { return asInt(borderLeftColor, -1); }
+    public float transitionDurationFloat() { return asFloat(transitionDuration, 0); }
+    public float transitionDelayFloat() { return asFloat(transitionDelay, 0); }
     public float lineHeightFloat() { return asFloat(lineHeight, 0); }
     public float letterSpacingFloat() { return asFloat(letterSpacing, 0); }
     public float minWidthFloat() { return asFloat(minWidth, 0); }
@@ -614,9 +672,9 @@ public class SceneNode implements Canonical {
         return fontSize instanceof String s ? s : fontSize != null ? fontSize.toString() : null;
     }
 
-    /** Get background as declared string (before resolution). */
-    public String backgroundSpec() {
-        return background instanceof String s ? s : null;
+    /** Get background color as declared string (before resolution). */
+    public String backgroundColorSpec() {
+        return backgroundColor instanceof String s ? s : null;
     }
 
     /** Get foreground as declared string (before resolution). */
@@ -634,10 +692,6 @@ public class SceneNode implements Canonical {
         return corner instanceof String s ? s : null;
     }
 
-    /** Get rotation as declared string (before resolution). */
-    public String rotationSpec() {
-        return rotation instanceof String s ? s : null;
-    }
 
     // =================================================================================
     // Layout Internal Accessors
@@ -657,14 +711,6 @@ public class SceneNode implements Canonical {
         this.paddingBottom = bottom; this.paddingLeft = left;
     }
 
-    public float borderTopWidth() { return borderTopWidth; }
-    public float borderRightWidth() { return borderRightWidth; }
-    public float borderBottomWidth() { return borderBottomWidth; }
-    public float borderLeftWidth() { return borderLeftWidth; }
-    public void borderWidths(float top, float right, float bottom, float left) {
-        this.borderTopWidth = top; this.borderRightWidth = right;
-        this.borderBottomWidth = bottom; this.borderLeftWidth = left;
-    }
 
     public float measuredWidth() { return measuredWidth; }
     public float measuredHeight() { return measuredHeight; }
@@ -714,9 +760,40 @@ public class SceneNode implements Canonical {
     public SceneNode maxHeight(Object h) { this.maxHeight = h; return this; }
     public SceneNode margin(String m) { this.margin = m; return this; }
     public SceneNode padding(String p) { this.padding = p; return this; }
-    public SceneNode border(Object b) { this.border = b; return this; }
+    /** Set border shorthand — decomposes to per-side fields using BoxBorder.parse(). */
+    public SceneNode border(String shorthand) {
+        BoxBorder parsed = BoxBorder.parse(shorthand);
+        if (parsed != null && parsed.isVisible()) {
+            applyBorderSide(parsed.top(), s -> { borderTopWidth = s.width(); borderTopStyle = s.style(); borderTopColor = s.color(); });
+            applyBorderSide(parsed.right(), s -> { borderRightWidth = s.width(); borderRightStyle = s.style(); borderRightColor = s.color(); });
+            applyBorderSide(parsed.bottom(), s -> { borderBottomWidth = s.width(); borderBottomStyle = s.style(); borderBottomColor = s.color(); });
+            applyBorderSide(parsed.left(), s -> { borderLeftWidth = s.width(); borderLeftStyle = s.style(); borderLeftColor = s.color(); });
+        }
+        return this;
+    }
+    private static void applyBorderSide(BoxBorder.BorderSide side, java.util.function.Consumer<BoxBorder.BorderSide> apply) {
+        if (side != null && side.isVisible()) apply.accept(side);
+    }
+    public SceneNode borderTopWidth(Object w) { this.borderTopWidth = w; return this; }
+    public SceneNode borderRightWidth(Object w) { this.borderRightWidth = w; return this; }
+    public SceneNode borderBottomWidth(Object w) { this.borderBottomWidth = w; return this; }
+    public SceneNode borderLeftWidth(Object w) { this.borderLeftWidth = w; return this; }
+    public SceneNode borderTopStyle(String s) { this.borderTopStyle = s; return this; }
+    public SceneNode borderRightStyle(String s) { this.borderRightStyle = s; return this; }
+    public SceneNode borderBottomStyle(String s) { this.borderBottomStyle = s; return this; }
+    public SceneNode borderLeftStyle(String s) { this.borderLeftStyle = s; return this; }
+    public SceneNode borderTopColor(Object c) { this.borderTopColor = c; return this; }
+    public SceneNode borderRightColor(Object c) { this.borderRightColor = c; return this; }
+    public SceneNode borderBottomColor(Object c) { this.borderBottomColor = c; return this; }
+    public SceneNode borderLeftColor(Object c) { this.borderLeftColor = c; return this; }
+    public SceneNode transitionProperty(String p) { this.transitionProperty = p; return this; }
+    public SceneNode transitionDuration(Object d) { this.transitionDuration = d; return this; }
+    public SceneNode transitionEasing(String e) { this.transitionEasing = e; return this; }
+    public SceneNode transitionDelay(Object d) { this.transitionDelay = d; return this; }
     public SceneNode corner(Object c) { this.corner = c; return this; }
-    public SceneNode background(Object bg) { this.background = bg; return this; }
+    public SceneNode backgroundColor(Object bg) { this.backgroundColor = bg; return this; }
+    public SceneNode backgroundImage(String path) { this.backgroundImage = path; return this; }
+    public SceneNode backgroundSize(String size) { this.backgroundSize = size; return this; }
     public SceneNode overflow(String o) { this.overflow = o; return this; }
     public SceneNode fontFamily(String f) { this.fontFamily = f; return this; }
     public SceneNode fontSize(Object s) { this.fontSize = s; return this; }
@@ -730,8 +807,17 @@ public class SceneNode implements Canonical {
     public SceneNode whiteSpace(String ws) { this.whiteSpace = ws; return this; }
     public SceneNode foreground(Object c) { this.foreground = c; return this; }
     public SceneNode opacity(Object o) { this.opacity = o; return this; }
-    public SceneNode rotation(Object r) { this.rotation = r; return this; }
-    public SceneNode scale(double s) { this.scale = s; return this; }
+    /** Shorthand — sets rotationZ (the common 2D case). */
+    public SceneNode rotation(Object r) { this.rotationZ = r; return this; }
+    public SceneNode rotationX(Object r) { this.rotationX = r; return this; }
+    public SceneNode rotationY(Object r) { this.rotationY = r; return this; }
+    public SceneNode rotationZ(Object r) { this.rotationZ = r; return this; }
+    /** Shorthand — sets uniform scaleX/Y/Z. */
+    public SceneNode scale(Object s) { this.scaleX = s; this.scaleY = s; this.scaleZ = s; return this; }
+    public SceneNode scaleX(Object s) { this.scaleX = s; return this; }
+    public SceneNode scaleY(Object s) { this.scaleY = s; return this; }
+    public SceneNode scaleZ(Object s) { this.scaleZ = s; return this; }
+    public SceneNode transformOrigin(String o) { this.transformOrigin = o; return this; }
     public SceneNode elevation(double e) { this.elevation = e; return this; }
     public SceneNode position(double x, double y, double z) {
         this.posX = x; this.posY = y; this.posZ = z; return this;
@@ -760,7 +846,7 @@ public class SceneNode implements Canonical {
     public SceneNode glyph(String g) { this.glyph = g; return this; }
     public SceneNode alt(String a) { this.alt = a; return this; }
     public SceneNode fill(Object f) { this.fill = f; return this; }
-    public SceneNode stroke(Object s) { this.stroke = s; return this; }
+    public SceneNode strokeColor(Object s) { this.strokeColor = s; return this; }
     public SceneNode strokeWidth(Object w) { this.strokeWidth = w; return this; }
     public SceneNode radius(String r) { this.radius = r; return this; }
     public SceneNode material(String m) { this.material = m; return this; }

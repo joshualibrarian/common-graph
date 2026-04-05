@@ -382,7 +382,7 @@ Detailed specifications live in `docs/`:
 | [`language.md`](docs/language.md) | Languages, lexemes, thematic roles, morphology, import pipeline |
 | [`storage.md`](docs/storage.md) | Unified object store, indexes, content lifecycle |
 | [`library.md`](docs/library.md) | Library architecture, backends, bootstrap |
-| [`presentation.md`](docs/presentation.md) | Scene system, three primitives, language resolution, rendering |
+| [`scene.md`](docs/scene.md) | Scene model, properties, pipeline, style cascade, rendering |
 | [`trust.md`](docs/trust.md) | Trust matrix, moderation, reactions, policy-driven views |
 | [`authentication.md`](docs/authentication.md) | Keys, signatures, signers, device-centric identity |
 | [`protocol.md`](docs/protocol.md) | Peer Protocol and Session Protocol |

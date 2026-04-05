@@ -326,7 +326,7 @@ Left monitor: a dashboard item with nested layout. Right monitor: floating items
 
 ## References
 
-- [Presentation](presentation.md) — Surface DSL, rendering pipeline, annotation system
+- [Scene](scene.md) — Scene model, properties, pipeline, style cascade, rendering
 - [Network Architecture](network.md) — How librarians peer and sync
 - [Trust](trust.md) — Identity, signing, authentication
 - [Frames](frames.md) — Frame primitive, types, modes, mounts

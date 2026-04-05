@@ -187,7 +187,7 @@ public class SceneCompiler {
         SceneNode c = SceneNode.container(layout);
         if (!ann.id().isEmpty()) c.id(ann.id());
         if (!ann.gap().isEmpty()) c.gap(ann.gap());
-        if (!ann.background().isEmpty()) c.background(ann.background());
+        if (!ann.backgroundColor().isEmpty()) c.backgroundColor(ann.backgroundColor());
         if (!ann.padding().isEmpty()) c.padding(ann.padding());
         if (!ann.width().isEmpty()) c.width(ann.width());
         if (!ann.height().isEmpty()) c.height(ann.height());
@@ -410,7 +410,7 @@ public class SceneCompiler {
             SceneNode c = SceneNode.container(layout);
             if (!containerAnn.id().isEmpty()) c.id(containerAnn.id());
             if (!containerAnn.gap().isEmpty()) c.gap(containerAnn.gap());
-            if (!containerAnn.background().isEmpty()) c.background(containerAnn.background());
+            if (!containerAnn.backgroundColor().isEmpty()) c.backgroundColor(containerAnn.backgroundColor());
             if (!containerAnn.padding().isEmpty()) c.padding(containerAnn.padding());
             if (!containerAnn.width().isEmpty()) c.width(containerAnn.width());
             if (!containerAnn.height().isEmpty()) c.height(containerAnn.height());
@@ -507,7 +507,10 @@ public class SceneCompiler {
         for (Scene.Style style : allStyles) {
             String when = style.when();
             if (!style.color().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "foreground", style.color());
-            if (!style.background().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "background", style.background());
+            if (!style.background().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundColor", style.background());
+            if (!style.backgroundColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundColor", style.backgroundColor());
+            if (!style.backgroundImage().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundImage", style.backgroundImage());
+            if (!style.backgroundSize().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundSize", style.backgroundSize());
             if (!style.fontSize().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontSize", style.fontSize());
             if (!style.fontFamily().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontFamily", style.fontFamily());
             if (!style.fontWeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontWeight", style.fontWeight());
@@ -521,14 +524,75 @@ public class SceneCompiler {
             if (!style.opacity().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "opacity", style.opacity());
             if (!style.padding().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "padding", style.padding());
             if (!style.border().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "border", style.border());
+            if (!style.borderWidth().isEmpty()) compileBorderMultiValue(root, when, "Width", style.borderWidth());
+            if (!style.borderStyle().isEmpty()) compileBorderMultiValue(root, when, "Style", style.borderStyle());
+            if (!style.borderColor().isEmpty()) compileBorderMultiValue(root, when, "Color", style.borderColor());
+            if (!style.borderTopWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderTopWidth", style.borderTopWidth());
+            if (!style.borderRightWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderRightWidth", style.borderRightWidth());
+            if (!style.borderBottomWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderBottomWidth", style.borderBottomWidth());
+            if (!style.borderLeftWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderLeftWidth", style.borderLeftWidth());
+            if (!style.borderTopStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderTopStyle", style.borderTopStyle());
+            if (!style.borderRightStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderRightStyle", style.borderRightStyle());
+            if (!style.borderBottomStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderBottomStyle", style.borderBottomStyle());
+            if (!style.borderLeftStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderLeftStyle", style.borderLeftStyle());
+            if (!style.borderTopColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderTopColor", style.borderTopColor());
+            if (!style.borderRightColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderRightColor", style.borderRightColor());
+            if (!style.borderBottomColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderBottomColor", style.borderBottomColor());
+            if (!style.borderLeftColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderLeftColor", style.borderLeftColor());
+            if (!style.transition().isEmpty()) compileTransitionShorthand(root, when, style.transition());
+            if (!style.transitionProperty().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionProperty", style.transitionProperty());
+            if (!style.transitionDuration().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionDuration", style.transitionDuration());
+            if (!style.transitionEasing().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionEasing", style.transitionEasing());
+            if (!style.transitionDelay().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionDelay", style.transitionDelay());
             if (!style.radius().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "corner", style.radius());
             if (!style.rotation().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotation", style.rotation());
+            if (!style.rotationX().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotationX", style.rotationX());
+            if (!style.rotationY().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotationY", style.rotationY());
+            if (!style.rotationZ().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotationZ", style.rotationZ());
+            if (!style.scale().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scale", style.scale());
+            if (!style.scaleX().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleX", style.scaleX());
+            if (!style.scaleY().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleY", style.scaleY());
+            if (!style.scaleZ().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleZ", style.scaleZ());
+            if (!style.transformOrigin().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transformOrigin", style.transformOrigin());
             if (!style.minWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minWidth", style.minWidth());
             if (!style.maxWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "maxWidth", style.maxWidth());
             if (!style.minHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minHeight", style.minHeight());
             if (!style.maxHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "maxHeight", style.maxHeight());
             if (!style.display().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "visible", "hidden".equals(style.display()) ? "false" : "true");
         }
+    }
+
+    /**
+     * Expand a CSS multi-value border property (1-4 values) to per-side when-blocks.
+     * "2px" → all 4 sides. "2px 1px" → top/bottom=2px, right/left=1px. etc.
+     */
+    private static void compileBorderMultiValue(SceneNode root, String when, String suffix, String value) {
+        String w = when.isEmpty() ? "$always" : when;
+        String[] parts = value.trim().split("\\s+");
+        String top, right, bottom, left;
+        switch (parts.length) {
+            case 1 -> { top = right = bottom = left = parts[0]; }
+            case 2 -> { top = bottom = parts[0]; right = left = parts[1]; }
+            case 3 -> { top = parts[0]; right = left = parts[1]; bottom = parts[2]; }
+            default -> { top = parts[0]; right = parts[1]; bottom = parts[2]; left = parts[3]; }
+        }
+        root.when(w, "borderTop" + suffix, top);
+        root.when(w, "borderRight" + suffix, right);
+        root.when(w, "borderBottom" + suffix, bottom);
+        root.when(w, "borderLeft" + suffix, left);
+    }
+
+    /**
+     * Parse CSS transition shorthand: "property duration easing delay".
+     * E.g., "background 0.3s ease-out 0.1s" or "all 0.3s ease-out".
+     */
+    private static void compileTransitionShorthand(SceneNode root, String when, String shorthand) {
+        String w = when.isEmpty() ? "$always" : when;
+        String[] parts = shorthand.trim().split("\\s+");
+        if (parts.length >= 1) root.when(w, "transitionProperty", parts[0]);
+        if (parts.length >= 2) root.when(w, "transitionDuration", parts[1]);
+        if (parts.length >= 3) root.when(w, "transitionEasing", parts[2]);
+        if (parts.length >= 4) root.when(w, "transitionDelay", parts[3]);
     }
 
     private static SceneNode bodyFromObject(Object obj) {

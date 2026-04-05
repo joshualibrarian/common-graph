@@ -70,9 +70,9 @@ public class ScenePresenter {
         if (node == null) return;
 
         // Background: "#RRGGBB" → 0xFFRRGGBB
-        if (node.background() instanceof String bg && !bg.isEmpty()) {
+        if (node.backgroundColor() instanceof String bg && !bg.isEmpty()) {
             int color = parseColor(bg);
-            if (color != -1) node.background(color);
+            if (color != -1) node.backgroundColor(color);
         }
 
         // Foreground: "#RRGGBB" → 0xFFRRGGBB
@@ -93,10 +93,10 @@ public class ScenePresenter {
             if (color != -1) node.fill(color);
         }
 
-        // Stroke: "#RRGGBB" → 0xFFRRGGBB
-        if (node.stroke() instanceof String s && !s.isEmpty()) {
+        // Stroke color: "#RRGGBB" → 0xFFRRGGBB
+        if (node.strokeColor() instanceof String s && !s.isEmpty()) {
             int color = parseColor(s);
-            if (color != -1) node.stroke(color);
+            if (color != -1) node.strokeColor(color);
         }
 
         // Stroke width: "2px" → 2.0f
@@ -105,13 +105,15 @@ public class ScenePresenter {
             node.strokeWidth(w);
         }
 
-        // Rotation: "45deg" or "45" → 45.0f
-        if (node.rotation() instanceof String r && !r.isEmpty()) {
-            try {
-                String clean = r.endsWith("deg") ? r.substring(0, r.length() - 3) : r;
-                node.rotation(Float.parseFloat(clean));
-            } catch (NumberFormatException ignored) {}
-        }
+        // Rotation per-axis: "45deg" or "45" → 45.0f
+        resolveRotation(node.rotationX(), node::rotationX);
+        resolveRotation(node.rotationY(), node::rotationY);
+        resolveRotation(node.rotationZ(), node::rotationZ);
+
+        // Scale per-axis: "1.5" → 1.5f
+        if (node.scaleX() instanceof String s && !s.isEmpty()) node.scaleX(Float.parseFloat(s));
+        if (node.scaleY() instanceof String s && !s.isEmpty()) node.scaleY(Float.parseFloat(s));
+        if (node.scaleZ() instanceof String s && !s.isEmpty()) node.scaleZ(Float.parseFloat(s));
 
         // Line height: "1.5" or "24px" → float
         if (node.lineHeight() instanceof String lh && !lh.isEmpty()) {
@@ -262,19 +264,58 @@ public class ScenePresenter {
         }
     }
 
-    private void resolveBorder(SceneNode node, PresentContext ctx) {
-        if (!(node.border() instanceof String spec) || spec.isEmpty()) return;
-        BoxBorder border = BoxBorder.parse(spec);
-        if (border == null || !border.isVisible()) return;
-        // Resolve width (uniform for now)
-        String widthStr = border.top() != null ? border.top().width() : "1px";
-        float w = resolveSize(widthStr, 0, ctx);
-        if (w <= 0) w = 1;
-        node.borderWidths(w, w, w, w);
-        // Resolve color and mutate border field: String → int
-        String colorStr = border.top() != null ? border.top().color() : null;
-        int color = colorStr != null ? parseColor(colorStr) : 0xFF888888;
-        node.border(color != -1 ? color : 0xFF888888);
+    private void resolveBorderFields(SceneNode node, PresentContext ctx) {
+        // Resolve per-side border widths: String → Float
+        if (node.borderTopWidth() instanceof String s && !s.isEmpty()) {
+            float w = resolveSize(s, 0, ctx); node.borderTopWidth(w > 0 ? w : 1f);
+        }
+        if (node.borderRightWidth() instanceof String s && !s.isEmpty()) {
+            float w = resolveSize(s, 0, ctx); node.borderRightWidth(w > 0 ? w : 1f);
+        }
+        if (node.borderBottomWidth() instanceof String s && !s.isEmpty()) {
+            float w = resolveSize(s, 0, ctx); node.borderBottomWidth(w > 0 ? w : 1f);
+        }
+        if (node.borderLeftWidth() instanceof String s && !s.isEmpty()) {
+            float w = resolveSize(s, 0, ctx); node.borderLeftWidth(w > 0 ? w : 1f);
+        }
+        // Resolve per-side border colors: String → Integer
+        if (node.borderTopColor() instanceof String s && !s.isEmpty()) {
+            int c = parseColor(s); node.borderTopColor(c != -1 ? c : 0xFF888888);
+        }
+        if (node.borderRightColor() instanceof String s && !s.isEmpty()) {
+            int c = parseColor(s); node.borderRightColor(c != -1 ? c : 0xFF888888);
+        }
+        if (node.borderBottomColor() instanceof String s && !s.isEmpty()) {
+            int c = parseColor(s); node.borderBottomColor(c != -1 ? c : 0xFF888888);
+        }
+        if (node.borderLeftColor() instanceof String s && !s.isEmpty()) {
+            int c = parseColor(s); node.borderLeftColor(c != -1 ? c : 0xFF888888);
+        }
+        // Resolve transition duration/delay: String → Float
+        if (node.transitionDuration() instanceof String s && !s.isEmpty()) {
+            node.transitionDuration(parseDuration(s));
+        }
+        if (node.transitionDelay() instanceof String s && !s.isEmpty()) {
+            node.transitionDelay(parseDuration(s));
+        }
+    }
+
+    private static void resolveRotation(Object value, java.util.function.Consumer<Object> setter) {
+        if (value instanceof String r && !r.isEmpty()) {
+            try {
+                String clean = r.endsWith("deg") ? r.substring(0, r.length() - 3) : r;
+                setter.accept(Float.parseFloat(clean));
+            } catch (NumberFormatException ignored) {}
+        }
+    }
+
+    private static float parseDuration(String spec) {
+        if (spec.endsWith("ms")) {
+            return Float.parseFloat(spec.substring(0, spec.length() - 2)) / 1000f;
+        } else if (spec.endsWith("s")) {
+            return Float.parseFloat(spec.substring(0, spec.length() - 1));
+        }
+        try { return Float.parseFloat(spec); } catch (NumberFormatException e) { return 0; }
     }
 
     /**
@@ -409,10 +450,10 @@ public class ScenePresenter {
 
         // Resolve padding and border
         resolvePadding(node, availW, availH, ctx);
-        resolveBorder(node, ctx);
+        resolveBorderFields(node, ctx);
 
-        float padH = node.paddingLeft() + node.paddingRight() + node.borderLeftWidth() + node.borderRightWidth();
-        float padV = node.paddingTop() + node.paddingBottom() + node.borderTopWidth() + node.borderBottomWidth();
+        float padH = node.paddingLeft() + node.paddingRight() + node.borderLeftWidthFloat() + node.borderRightWidthFloat();
+        float padV = node.paddingTop() + node.paddingBottom() + node.borderTopWidthFloat() + node.borderBottomWidthFloat();
         float contentW = Math.max(0, availW - padH);
         float contentH = Math.max(0, availH - padV);
 
@@ -440,8 +481,8 @@ public class ScenePresenter {
 
     private void measureVertical(SceneNode box, float contentW, float contentH,
                                  boolean shrinkWrap, PresentContext ctx) {
-        float padH = box.paddingLeft() + box.paddingRight() + box.borderLeftWidth() + box.borderRightWidth();
-        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidth() + box.borderBottomWidth();
+        float padH = box.paddingLeft() + box.paddingRight() + box.borderLeftWidthFloat() + box.borderRightWidthFloat();
+        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidthFloat() + box.borderBottomWidthFloat();
 
         float fixedHeight = 0;
         int fillCount = 0;
@@ -495,8 +536,8 @@ public class ScenePresenter {
     // =================================================================================
 
     private void measureHorizontal(SceneNode box, float contentW, float contentH, PresentContext ctx) {
-        float padH = box.paddingLeft() + box.paddingRight() + box.borderLeftWidth() + box.borderRightWidth();
-        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidth() + box.borderBottomWidth();
+        float padH = box.paddingLeft() + box.paddingRight() + box.borderLeftWidthFloat() + box.borderRightWidthFloat();
+        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidthFloat() + box.borderBottomWidthFloat();
 
         int childCount = box.children().size();
         float totalGap = (box.gapFloat() > 0 && childCount > 1) ? (childCount - 1) * box.gapFloat() : 0;
@@ -553,8 +594,8 @@ public class ScenePresenter {
     // =================================================================================
 
     private void measureStack(SceneNode box, float contentW, float contentH, PresentContext ctx) {
-        float padH = box.paddingLeft() + box.paddingRight() + box.borderLeftWidth() + box.borderRightWidth();
-        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidth() + box.borderBottomWidth();
+        float padH = box.paddingLeft() + box.paddingRight() + box.borderLeftWidthFloat() + box.borderRightWidthFloat();
+        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidthFloat() + box.borderBottomWidthFloat();
 
         float maxChildW = 0, maxChildH = 0;
         for (SceneNode child : box.children()) {
@@ -587,7 +628,7 @@ public class ScenePresenter {
 
     private void redistributeFill(SceneNode box) {
         if (box.children() == null) return;
-        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidth() + box.borderBottomWidth();
+        float padV = box.paddingTop() + box.paddingBottom() + box.borderTopWidthFloat() + box.borderBottomWidthFloat();
         float contentH = box.boundsHeight() - padV;
 
         float fixedH = 0;
@@ -614,7 +655,7 @@ public class ScenePresenter {
     private void stretchHorizontalChildren(SceneNode box) {
         if (box.children() == null) return;
         float contentH = box.boundsHeight() - box.paddingTop() - box.paddingBottom()
-                        - box.borderTopWidth() - box.borderBottomWidth();
+                        - box.borderTopWidthFloat() - box.borderBottomWidthFloat();
         for (SceneNode child : box.children()) {
             if (child.boundsHeight() < contentH) {
                 child.setBounds(child.boundsX(), child.boundsY(), child.boundsWidth(), contentH);
@@ -635,17 +676,17 @@ public class ScenePresenter {
     }
 
     private void positionChildren(SceneNode box) {
-        float startX = box.boundsX() + box.borderLeftWidth() + box.paddingLeft();
-        float startY = box.boundsY() + box.borderTopWidth() + box.paddingTop();
+        float startX = box.boundsX() + box.borderLeftWidthFloat() + box.paddingLeft();
+        float startY = box.boundsY() + box.borderTopWidthFloat() + box.paddingTop();
         float gap = box.gapFloat();
         String dir = box.layout() != null ? box.layout() : "vertical";
         String crossAlign = box.align();
         String justify = box.justify();
 
-        float contentW = box.boundsWidth() - box.borderLeftWidth() - box.paddingLeft()
-                        - box.borderRightWidth() - box.paddingRight();
-        float contentH = box.boundsHeight() - box.borderTopWidth() - box.paddingTop()
-                        - box.borderBottomWidth() - box.paddingBottom();
+        float contentW = box.boundsWidth() - box.borderLeftWidthFloat() - box.paddingLeft()
+                        - box.borderRightWidthFloat() - box.paddingRight();
+        float contentH = box.boundsHeight() - box.borderTopWidthFloat() - box.paddingTop()
+                        - box.borderBottomWidthFloat() - box.paddingBottom();
 
         if ("stack".equals(dir)) {
             for (SceneNode child : box.children()) {
@@ -726,7 +767,8 @@ public class ScenePresenter {
 
     private void applyProperty(SceneNode node, String property, String value) {
         switch (property) {
-            case "background" -> node.background(value);
+            case "background" -> node.backgroundColor(value);  // shorthand — sets color
+            case "backgroundColor" -> node.backgroundColor(value);
             case "foreground" -> node.foreground(value);
             case "border" -> node.border(value);
             case "padding" -> node.padding(value);
@@ -743,9 +785,17 @@ public class ScenePresenter {
             case "visible" -> node.visible(value);
             case "cursor" -> node.cursor(value);
             case "fill" -> node.fill(value);
-            case "stroke" -> node.stroke(value);
+            case "strokeColor" -> node.strokeColor(value);
             case "strokeWidth" -> node.strokeWidth(value);
-            case "rotation" -> node.rotation(value);
+            case "rotation" -> node.rotation(value);  // shorthand → rotationZ
+            case "rotationX" -> node.rotationX(value);
+            case "rotationY" -> node.rotationY(value);
+            case "rotationZ" -> node.rotationZ(value);
+            case "scale" -> node.scale(value);  // shorthand → uniform scaleX/Y/Z
+            case "scaleX" -> node.scaleX(value);
+            case "scaleY" -> node.scaleY(value);
+            case "scaleZ" -> node.scaleZ(value);
+            case "transformOrigin" -> node.transformOrigin(value);
             case "align" -> node.align(value);
             case "justify" -> node.justify(value);
         }

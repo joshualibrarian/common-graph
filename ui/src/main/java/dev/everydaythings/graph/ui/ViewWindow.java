@@ -120,6 +120,7 @@ public class ViewWindow {
     private SceneNode currentSceneLayout;
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
+    private long lastPaintNanos;
     private volatile String pendingExpression;
     private volatile ItemID pendingNavigation;
     private final dev.everydaythings.graph.ui.scene.ScrollState scrollState =
@@ -305,11 +306,19 @@ public class ViewWindow {
         resizeController.onHoverChanged(this::requestRepaint);
 
         skiaWindow.onPaint(canvas -> {
+            // Advance animations
+            long now = System.nanoTime();
+            if (lastPaintNanos > 0) {
+                double deltaTime = (now - lastPaintNanos) / 1_000_000_000.0;
+                animationState.update(deltaTime);
+            }
+            lastPaintNanos = now;
+
             // Paint SceneNode tree
             if (currentSceneLayout != null) {
                 if (skiaSurfacePainter == null) {
                     skiaSurfacePainter = new dev.everydaythings.graph.ui.skia.SkiaSurfacePainter(
-                            shared.fontCache());
+                            shared.fontCache(), animationState);
                 }
                 skiaSurfacePainter.canvas(canvas);
                 skiaSurfacePainter.paint(currentSceneLayout);

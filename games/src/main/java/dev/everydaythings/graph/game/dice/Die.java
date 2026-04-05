@@ -40,7 +40,7 @@ import lombok.experimental.Accessors;
 @Scene.Body(shape = "box", width = "16mm", height = "16mm", depth = "16mm",
             color = 0xFAFAFA, shading = "lit")
 @Scene.Container(direction = Direction.STACK, width = "2.5em", height = "2.5em",
-                 style = {"die"}, cornerRadius = "0.3em", background = "#FAFAFA")
+                 style = {"die"}, cornerRadius = "0.3em", backgroundColor = "#FAFAFA")
 @Scene.State(when = "value.held", style = {"die-held"})
 public class Die implements Piece {
 
@@ -50,7 +50,7 @@ public class Die implements Piece {
 
     /** Top face of the 3D cube — shows current pip pattern. */
     @Scene.Face("top")
-    @Scene.Container(direction = Direction.VERTICAL, background = "#FAFAFA",
+    @Scene.Container(direction = Direction.VERTICAL, backgroundColor = "#FAFAFA",
                      width = "100%", height = "100%", gap = "0.15em",
                      align = "center", padding = "0.3em")
     static class TopFace {

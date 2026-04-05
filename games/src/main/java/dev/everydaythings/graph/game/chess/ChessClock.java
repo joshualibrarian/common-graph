@@ -104,7 +104,7 @@ public class ChessClock implements Canonical {
             static class BlackRow {
                 @Scene.Container(direction = Direction.HORIZONTAL, width = "96%", aspectRatio = "2.4/1",
                         shape = "rectangle", cornerRadius = "0.35em",
-                        background = "bind:value.blackButtonColor",
+                        backgroundColor = "bind:value.blackButtonColor",
                         style = {"align-center", "justify-center"})
                 @Scene.On(event = "click", action = "switchSide")
                 static class BlackButton {}
@@ -115,7 +115,7 @@ public class ChessClock implements Canonical {
             static class WhiteRow {
                 @Scene.Container(direction = Direction.HORIZONTAL, width = "96%", aspectRatio = "2.4/1",
                         shape = "rectangle", cornerRadius = "0.35em",
-                        background = "bind:value.whiteButtonColor",
+                        backgroundColor = "bind:value.whiteButtonColor",
                         style = {"align-center", "justify-center"})
                 @Scene.On(event = "click", action = "switchSide")
                 static class WhiteButton {}
