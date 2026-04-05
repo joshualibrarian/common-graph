@@ -210,7 +210,7 @@ public class ViewWindow {
         // Wire ItemView state changes to trigger re-render
         if (itemView != null) {
             itemView.setStateStore(nodeRenderer.stateStore());
-            itemView.onChange(() -> { sceneDirty = true; rebuildLayout(); requestRepaint(); });
+            itemView.onChange(() -> { rebuildLayout(); requestRepaint(); });
         }
 
         // Create per-window InputController
@@ -588,64 +588,83 @@ public class ViewWindow {
             if (rendererType == ViewConfig.RendererType.FILAMENT && uiPane != null && uiPane.painter() != null) {
                 uiPane.painter().clear();
                 uiPane.painter().configureForLayout(w, h, 2.0f, 1.0f);
+
+                // In 3D mode, skip the detail region in the 2D chrome pane ONLY when
+                // it's showing the item's actual scene (not help, meta, or frame detail).
+                boolean show3dDetail = !flatMode && itemView != null && itemView.isShowingItemScene();
+                uiPane.painter().skipId(show3dDetail ? "detail" : null);
+
                 uiPane.painter().paint(tree, 0f);
                 repaintGrip();
 
                 // 3D elevated rendering — same tree, 3D interpretation.
-                // Only in spatial mode (F10 toggles flatMode).
-                // Only rebuild 3D scene when content changes (sceneDirty), not every layout pass.
-                if (!flatMode && detailPainter != null && sceneDirty) {
-                    // Find the detail content subtree — only that goes to 3D,
-                    // not the full ItemView chrome (header, tree, prompt).
+                // Active when showing the item's scene in non-flat mode.
+                if (show3dDetail && detailPainter != null) {
+                    // Find the detail content subtree — only that goes to 3D
                     LayoutNode.BoxNode detailNode = findNodeById(tree, "detail");
                     if (detailNode == null) detailNode = tree; // fallback
 
-                    detailPainter.clear();
-                    float detailW = detailNode.width() > 0 ? detailNode.width() : w;
-                    float detailH = detailNode.height() > 0 ? detailNode.height() : h;
-                    float worldWidth = 0.6f;
-                    float worldDepth = worldWidth * (detailH / detailW);
-                    detailPainter.configureForElevated(detailW, detailH, worldWidth, worldDepth);
-                    detailPainter.paintElevated(detailNode, 0f);
+                    // Set detailPane viewport to match the detail node's screen area.
+                    int vpScale = filamentWindow.viewportWidth() > 0 && filamentWindow.width() > 0
+                            ? filamentWindow.viewportWidth() / filamentWindow.width() : 1;
+                    int dvpLeft = (int) (detailNode.x() * vpScale);
+                    int dvpBottom = (int) ((h - detailNode.y() - detailNode.height()) * vpScale);
+                    int dvpW = (int) (detailNode.width() * vpScale);
+                    int dvpH = (int) (detailNode.height() * vpScale);
+                    if (dvpW > 0 && dvpH > 0) {
+                        detailPane.setViewport(dvpLeft, dvpBottom, dvpW, dvpH);
+                        detailPane.configurePerspective();
+                    }
 
-                    // Dispatch GLB model placements to spatial renderer
-                    if (sceneRenderer != null) {
-                        sceneRenderer.clear();
-                        // TODO: read from @Scene.Light/@Scene.Environment on the item
-                        // once the Node path processes those annotations
-                        sceneRenderer.environment(0x1E1E2E, 0x808080, 0, 0, 0);
-                        sceneRenderer.light("sun", 0xFFF5E6, 1.0,
-                                0, 0, 0, -0.5, -1, -0.5);
-                        for (var placement : detailPainter.modelPlacements()) {
-                            float s = placement.scale();
-                            // Elevated painter uses (X=right, Y=height, Z=depth).
-                            // DSL convention is (X=right, Y=forward, Z=up).
-                            // Swap Y↔Z so depth becomes forward and height becomes up.
-                            sceneRenderer.pushTransform(
-                                    placement.x(), placement.z(), placement.y(),
-                                    0, 0, 0, 1,   // identity quaternion
-                                    s, s, s);      // uniform scale
-                            sceneRenderer.meshBody(placement.resource(), placement.color(),
-                                    1.0, "lit", null);
-                            sceneRenderer.popTransform();
+                    // Only rebuild the 3D scene when content actually changes (sceneDirty),
+                    // not on every layout pass. The scene persists across help/meta toggles.
+                    if (sceneDirty) {
+                        detailPainter.clear();
+                        float detailW = detailNode.width() > 0 ? detailNode.width() : w;
+                        float detailH = detailNode.height() > 0 ? detailNode.height() : h;
+                        float worldWidth = 0.6f;
+                        float worldDepth = worldWidth * (detailH / detailW);
+                        detailPainter.configureForElevated(detailW, detailH, worldWidth, worldDepth);
+                        detailPainter.paintElevated(detailNode, 0f);
+
+                        // Dispatch GLB model placements to spatial renderer
+                        if (sceneRenderer != null) {
+                            sceneRenderer.clear();
+                            sceneRenderer.environment(0x1E1E2E, 0x808080, 0, 0, 0);
+                            sceneRenderer.light("sun", 0xFFF5E6, 1.0,
+                                    0, 0, 0, -0.5, -1, -0.5);
+                            for (var placement : detailPainter.modelPlacements()) {
+                                float s = placement.scale();
+                                sceneRenderer.pushTransform(
+                                        placement.x(), placement.z(), placement.y(),
+                                        0, 0, 0, 1,
+                                        s, s, s);
+                                sceneRenderer.meshBody(placement.resource(), placement.color(),
+                                        1.0, "lit", null);
+                                sceneRenderer.popTransform();
+                            }
+                        }
+
+                        // Frame the camera to fit the scene on first render or mode switch
+                        if (cameraController != null) {
+                            sceneDirty = false;
+                            float extent = Math.max(worldWidth, worldDepth);
+                            double fov = 60;
+                            double dist = extent / (2.0 * Math.tan(Math.toRadians(fov / 2.0)));
+                            double angle = Math.toRadians(50);
+                            double eyeY = dist * Math.sin(angle);
+                            double eyeZ = dist * Math.cos(angle);
+                            cameraController.setDefaults(fov, 0.01, 100,
+                                    0, eyeY, eyeZ,
+                                    0, 0, 0);
                         }
                     }
-
-                    // Frame the camera to fit the scene on first render or mode switch
-                    if (sceneDirty && cameraController != null) {
-                        sceneDirty = false;
-                        // Scene extends from -worldWidth/2 to +worldWidth/2 on XZ plane
-                        float extent = Math.max(worldWidth, worldDepth);
-                        double fov = 60;
-                        double dist = extent / (2.0 * Math.tan(Math.toRadians(fov / 2.0)));
-                        // Position camera above-front, angled ~50° down at the scene center
-                        double angle = Math.toRadians(50);
-                        double eyeY = dist * Math.sin(angle);
-                        double eyeZ = dist * Math.cos(angle);
-                        cameraController.setDefaults(fov, 0.01, 100,
-                                0, eyeY, eyeZ,
-                                0, 0, 0);
-                    }
+                } else if (!show3dDetail && detailPane != null) {
+                    // Detail is showing help/meta/frame content in 2D —
+                    // hide the 3D pane so it doesn't obscure the 2D content.
+                    // DON'T clear the 3D scene — it stays built so switching
+                    // back to the item scene is instant (just restore viewport).
+                    detailPane.setViewport(0, 0, 0, 0);
                 }
             } else {
                 currentLayout = tree;
@@ -764,7 +783,6 @@ public class ViewWindow {
         }
 
         if (handled) {
-            sceneDirty = true;
             rebuildLayout();
             requestRepaint();
         }

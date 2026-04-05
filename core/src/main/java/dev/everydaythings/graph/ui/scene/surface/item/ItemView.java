@@ -229,6 +229,11 @@ public class ItemView {
     /** Current detail mode. */
     public DetailMode detailMode() { return detailMode; }
 
+    /** Whether the detail panel is showing the item's actual scene (not help/meta/frame detail). */
+    public boolean isShowingItemScene() {
+        return detailMode == DetailMode.PRESENTATION && selectedTreeNodeId == null;
+    }
+
     /** Whether any tree panel is visible. */
     public boolean treeVisible() { return activeTreeView != null; }
 

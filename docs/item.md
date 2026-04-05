@@ -4,7 +4,7 @@ In the Common Graph, **frames** hold all the data, indexed with semantic keys. H
 
 An Item is a **versioned, signed container of frames with stable identity**. Every Item carries its own identity, its own history, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
 
-The Item model draws from several traditions: Smalltalk's "everything is an object" with message-passing dispatch (see [Kay 1993](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf)), the Actor model's independent entities communicating through messages (see [Hewitt et al 1973](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf)), and Engelbart's vision of augmenting human intellect through integrated artifact-language-methodology systems (see [Engelbart 1962](references/Engelbart%201962%20-%20Augmenting%20Human%20Intellect.pdf)). Like Bush's memex (see [Bush 1945](references/Bush%201945%20-%20As%20We%20May%20Think.pdf)), items are found by meaning and association rather than hierarchical location.
+The Item model draws from several traditions: Smalltalk's "everything is an object" with message-passing dispatch ([Kay 1993](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf)), the Actor model's independent entities communicating through messages ([Hewitt et al 1973](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf)), and Engelbart's vision of augmenting human intellect through integrated artifact-language-methodology systems ([Engelbart 1962](references/Engelbart%201962%20-%20Augmenting%20Human%20Intellect.pdf)). Like Bush's memex ([Bush 1945](references/Bush%201945%20-%20As%20We%20May%20Think.pdf)), items are found by meaning and association rather than hierarchical location.
 
 ## Anatomy of an Item
 
@@ -51,8 +51,6 @@ Each committed version of an Item is identified by the **content hash of the man
 - **Deterministic** — same content + same metadata = same version hash
 - **Immutable** — a version hash always refers to exactly one version
 - **Verifiable** — re-hash the body and compare
-
-There is no separate VersionID type. A version is identified by a ContentID, just as content is. Manifests are stored in the object store like everything else — keyed by the hash of their bytes.
 
 Versions form a history chain (or DAG, if branches exist):
 

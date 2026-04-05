@@ -827,14 +827,12 @@ public class FilamentSurfacePainter implements SurfacePainter {
         float contentY = box.y() + bt;
         float contentW = box.width() - bl - br;
         float contentH = box.height() - bt - bb;
-        if ("header".equals(box.id())) {
-            System.err.printf("[DIAG] paintBox id=%s: pos=(%.1f,%.1f) size=(%.1f,%.1f) content=(%.1f,%.1f,%.1f,%.1f) children=%d%n",
-                    box.id(), box.x(), box.y(), box.width(), box.height(),
-                    contentX, contentY, contentW, contentH, box.children().size());
-            // DIAG: paint a bright red stripe across the header to test flat color visibility
-            emitColoredQuad(0, 0, box.width(), box.height(), 0xFFFF0000, boxZ + 0.1f);
-        }
         pushClip(contentX, contentY, contentW, contentH);
+
+        // Flush accumulated flat-color geometry (backgrounds, borders) before painting
+        // children. This ensures background entities are created before child text entities,
+        // giving Filament the correct render order (backgrounds behind text).
+        flushFlatColorBatch();
 
         // Apply scroll offset: shift entire subtree in pixel space so clip checks work
         float scrollOffset = box.isScrollContainer() ? box.scrollOffsetY() : 0;
@@ -916,19 +914,9 @@ public class FilamentSurfacePainter implements SurfacePainter {
 
     private void paintText(LayoutNode.TextNode text, float z) {
         if (text.content().isEmpty()) return;
-        if (fontManager.defaultAtlas() == null) {
-            System.err.printf("[DIAG] paintText SKIPPED (no atlas): '%s' at (%.1f,%.1f) size (%.1f,%.1f)%n",
-                    text.content(), text.x(), text.y(), text.width(), text.height());
-            return;
-        }
+        if (fontManager.defaultAtlas() == null) return;
 
         int color = resolveTextColor(text);
-
-        if (text.y() < 40) {
-            System.err.printf("[DIAG] paintText in header: '%s' at (%.1f,%.1f) size (%.1f,%.1f) color=0x%08X para=%s%n",
-                    text.content(), text.x(), text.y(), text.width(), text.height(),
-                    color, text.paragraph() != null ? "yes" : "NO");
-        }
 
         float fontSize = fontManager.fontSizeFor(text);
 
@@ -949,13 +937,7 @@ public class FilamentSurfacePainter implements SurfacePainter {
         Paragraph para = text.paragraph();
         if (para != null) {
             var painter = new GlyphPaintContext(color, textZ);
-            int batchesBefore = msdfBatches.values().stream().mapToInt(b -> b.vertexCount).sum();
             para.paint(painter, text.x(), text.y());
-            int batchesAfter = msdfBatches.values().stream().mapToInt(b -> b.vertexCount).sum();
-            if (text.y() < 40) {
-                System.err.printf("[DIAG] paintText glyphs emitted for '%s': %d vertices%n",
-                        text.content(), batchesAfter - batchesBefore);
-            }
             popClip();
             flushMsdfBatches();
             return;
@@ -1293,11 +1275,6 @@ public class FilamentSurfacePainter implements SurfacePainter {
     // ==================================================================================
 
     private void paintImage(LayoutNode.ImageNode image, float z) {
-        if (image.y() < 40) { // near top of window — likely header area
-            System.err.printf("[DIAG] paintImage in header area: alt='%s' resource='%s' at (%.1f,%.1f) size (%.1f,%.1f)%n",
-                    image.alt(), image.resource(), image.x(), image.y(),
-                    image.width(), image.height());
-        }
         // Draw sphere-shaded circular background if shape is "circle"
         if ("circle".equals(image.shape())) {
             int bgColor = parseColor(
