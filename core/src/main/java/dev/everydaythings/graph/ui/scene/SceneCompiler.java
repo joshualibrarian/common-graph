@@ -901,9 +901,12 @@ public final class SceneCompiler {
             if (boxBorder.hasRadius()) c.corner(boxBorder.radius());
         }
 
-        // Elevation
+        // Elevation (legacy) or depth (3D extrusion)
         if (vn.elevation != null && !vn.elevation.isEmpty()) {
             c.elevation(elevationToMeters(vn.elevation));
+        }
+        if (vn.depth != null && !vn.depth.isEmpty()) {
+            c.elevation(elevationToMeters(vn.depth));
         }
 
         // Events

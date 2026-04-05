@@ -2526,7 +2526,7 @@ public class FilamentSurfacePainter implements SurfacePainter {
      * Used to shift scroll container children so clip checks and position
      * calculations work correctly with absolute coordinates.
      */
-    private void offsetSubtree(LayoutNode node, float dx, float dy) {
+    public void offsetSubtree(LayoutNode node, float dx, float dy) {
         node.setBounds(node.x() + dx, node.y() + dy, node.width(), node.height());
         if (node instanceof LayoutNode.BoxNode box) {
             for (LayoutNode child : box.children()) {

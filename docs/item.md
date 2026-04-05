@@ -88,7 +88,16 @@ See [Frames](frames.md) for the Frame/FrameBody/FrameRecord/Endorsement layering
 
 ### Implementation
 
-The **implementation** binding records the creating platform and class name — the platform IID (e.g., Java) as the binding's role, and the class name as a literal target. The semantic relationship between a Java class and its concept lives in an IMPLEMENTS frame on the item, not on the manifest.
+The **implementation** binding tells the runtime how to instantiate this item. The binding's role is the platform (e.g., Java, Rust), and the target identifies the code:
+
+| Target | Meaning |
+|--------|---------|
+| **Literal** (class name) | A built-in implementation on the local runtime — e.g., `"dev.everydaythings.graph.game.chess.ChessItem"` |
+| **ItemID** | A distributed implementation — an item carrying CODE frames with the actual source or bytecode |
+
+The literal form is the common case today: the platform ships with the class, and the manifest just names it. The ItemID form enables distributing new implementations as items — someone writes a new chess variant, packages it as an item with code frames, and any node that trusts the author can instantiate it. The code item can carry source, bytecode, or compiled native binaries for multiple architectures (x86, ARM, etc.) — whatever the target platform needs. Same binding structure, same manifest field, but the implementation travels with the data instead of being pre-installed.
+
+The semantic relationship between an implementation and the concept it implements (e.g., "this class implements chess") lives in an IMPLEMENTS frame on the item, not on the manifest. The manifest only records which code to run.
 
 The BODY/non-BODY split:
 

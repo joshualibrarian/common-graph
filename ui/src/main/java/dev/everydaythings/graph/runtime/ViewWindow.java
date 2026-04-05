@@ -625,7 +625,14 @@ public class ViewWindow {
                         float worldWidth = 0.6f;
                         float worldDepth = worldWidth * (detailH / detailW);
                         detailPainter.configureForElevated(detailW, detailH, worldWidth, worldDepth);
+                        // Shift detail subtree to origin (0,0) — the elevated painter
+                        // assumes pixel coords start at (0,0), but layout nodes have
+                        // absolute window coordinates.
+                        float offsetX = detailNode.x();
+                        float offsetY = detailNode.y();
+                        detailPainter.offsetSubtree(detailNode, -offsetX, -offsetY);
                         detailPainter.paintElevated(detailNode, 0f);
+                        detailPainter.offsetSubtree(detailNode, offsetX, offsetY);
 
                         // Dispatch GLB model placements to spatial renderer
                         if (sceneRenderer != null) {
