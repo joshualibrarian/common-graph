@@ -125,6 +125,19 @@ public class SkiaSurfacePainter implements ScenePainter {
             }
         }
 
+        // TODO: Elevation drop shadow. Before paintBackground, if node.elevation() > 0,
+        // draw a drop shadow using the scene's light direction and ambient color:
+        //   - direction: opposite the light position (upper-left light → lower-right shadow)
+        //   - distance: proportional to elevation
+        //   - blur sigma: proportional to elevation
+        //   - color: scene light's ambient color
+        //   - alpha: proportional to elevation
+        // For negative elevation, use Skia's ImageFilter.makeInnerShadow or equivalent
+        // to render a recessed appearance. Skia provides ImageFilter.makeDropShadow for
+        // positive case. See docs/scene.md § Elevation and Lighting.
+        // NOTE: the scene's light needs to be accessible here — either passed through
+        // the paint context or stored on the root SceneNode.
+
         // Common: background, background image, and border (all node types)
         paintBackground(node);
         paintBackgroundImage(node);

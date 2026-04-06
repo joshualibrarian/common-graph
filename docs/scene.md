@@ -47,8 +47,8 @@ Every scene element exists across the dimensionality spectrum. The renderer expr
 | Element | Spatial (3D) | Graphical (2D) | Text |
 |---------|-------------|----------------|------|
 | Body | 3D mesh with materials | 2D image or shape | Unicode glyph or alt text |
-| Light | Positioned light source | Drop shadow, depth cue | (metadata only) |
-| Elevation | Perpendicular displacement | Shadow weight, z-ordering | Indentation depth |
+| Light | Positioned light source with real shadows | Direction and color reference for derived drop shadows | Depth hints (border weight, ANSI emphasis) |
+| Elevation | Perpendicular Z displacement (positive = raised, negative = recessed) | Drop shadow (positive) or inner shadow (negative), derived from light; z-ordering in stacks | Visual hints |
 | Camera | Viewpoint, projection, FOV | Viewport bounds | (implicit) |
 | Environment | Skybox, IBL, fog | Background color | Terminal background |
 | Audio | Positional 3D audio | Stereo playback | (silent) |
@@ -144,7 +144,7 @@ The shorthand `border: "2px solid #333"` decomposes to all 12 per-side fields. P
 | scaleX | Number | Horizontal scale |
 | scaleY | Number | Vertical scale |
 | scaleZ | Number | Depth scale (3D) |
-| elevation | Dimensional | Z-depth for 3D, shadow in 2D |
+| elevation | Dimensional | Raises (positive) or recesses (negative) the node. Drives drop shadows in 2D, real Z displacement in 3D. See [Elevation and Lighting](#elevation-and-lighting). |
 | position (x, y, z) | Numbers | 3D position |
 | transformOrigin | Position | Point around which rotation and scale apply |
 
@@ -186,6 +186,122 @@ The shorthand `transition: "background 0.3s ease-out"` decomposes to the four lo
 | steps(count) | Discrete steps |
 
 Spring easings compute their own duration from physical parameters. The declared duration is ignored.
+
+### Elevation and Lighting
+
+Elevation is a dimensional property expressing how far a node rises above (or sinks below) its parent surface. The same declaration produces meaningful visuals across every fidelity level.
+
+**Elevation values:**
+- **Positive** (e.g., `"4px"`, `"1cm"`) — raised above the surface. In 3D, literal Z displacement. In 2D, drop shadow. In text, represented as visual hints (bold borders, bright colors).
+- **Zero** — flat. No shadow.
+- **Negative** (e.g., `"-2px"`) — recessed into the surface. In 3D, literal Z depression. In 2D, inner shadow (the classic "pressed button" effect). A `when = "$active"` style can toggle between positive and negative elevation to produce tactile button feedback without any imperative code.
+
+**The scene light:**
+
+Every scene has a light. If one isn't declared, there's an implicit default: directional, positioned upper-left, neutral color, with a neutral dark ambient. Scene authors can declare their own:
+
+| Light property | Values | Notes |
+|----------------|--------|-------|
+| type | directional, point, spot | How the light radiates |
+| position | (x, y, z) | Light source position in scene space |
+| color | Color | Key light color (what the light emits) |
+| ambient | Color | Ambient/fill light — the color of light reaching shadowed areas |
+| intensity | Number | Strength multiplier |
+
+In 3D, the light is a real Filament light source — it casts physical shadows using the spatial renderer's lighting model.
+
+In 2D, the light is a direction and color reference used to derive drop shadows from elevation. No actual lighting math — just shadow parameters computed from light position relative to each elevated node.
+
+In text rendering, light contributes only to depth hints (box drawing weight, ANSI color emphasis).
+
+**Shadow derivation (2D):**
+
+Drop shadows for positive elevation are fully derived from the scene's light and the node's elevation:
+
+- **Direction** — opposite the light's position (light from upper-left → shadow falls to lower-right)
+- **Distance** — proportional to elevation (higher = shadow further from node)
+- **Blur** — proportional to elevation (higher = softer edges, reflecting how distant shadows diffuse)
+- **Color** — the ambient light color (this is what's lighting the shadowed area)
+- **Opacity** — proportional to elevation (higher = darker base shadow, attenuated by ambient brightness)
+
+For negative elevation, the same formula applies but inverted — the shadow becomes an inner shadow with direction reversed (as if light is reaching INTO the depression), giving the recessed appearance.
+
+**Why ambient determines shadow color:**
+
+Shadows in reality aren't just the absence of the key light — they're areas lit by something else (sky light, bounced light, ambient illumination). That "something else" is what gives shadows their color. Outdoor shadows on a sunny day are bluish because sunlight is warm but the sky is cool — and the sky is what's lighting the shadows.
+
+In CG's model, the designer declares this directly: the light's `ambient` property IS the shadow color. No magic formulas, no desaturation constants, no derived heuristics. Declare your lighting, get physically consistent shadows across all fidelities.
+
+**Other effects of elevation:**
+
+- **Stack-layout z-ordering:** Within a stack container, higher elevation draws on top of lower elevation, regardless of declaration order.
+- **Pressed button pattern:** `@Scene.Style(elevation = "2px")` plus `@Scene.Style(when = "$active", elevation = "-1px")` gives a raised button that depresses when pressed. Combined with a transition on elevation, the press becomes smoothly animated.
+
+### Video and Audio
+
+Video and audio are body representations alongside image, shape, glyph, and model. Unlike static content, they're continuous media — frames or samples arrive over time from a stream source.
+
+**Body fields:**
+
+| Field | Values | Notes |
+|-------|--------|-------|
+| video | Resource ref or binding | Stream reference — file, live stream, or capture device |
+| audio | Resource ref or binding | Independent of video — may exist with or without video |
+| loop | Boolean | Restart on end (prerecorded only; meaningless for live streams) |
+| muted | Boolean | Audio silenced locally (state-driven, toggleable via when blocks) |
+| volume | Float 0-1 | Audio level (state-driven, animatable via keyframes) |
+| paused | Boolean | Exists but not playing (state-driven, default unpaused) |
+
+**Independence of audio and video.** Either can exist without the other. A CCTV camera has `video` without `audio`. Voice chat has `audio` without `video`. A phone call with video has both. If both are set and reference the same source, the runtime can optimize (subscribe once, decode once) but the scene model treats them as independent.
+
+**Subscription lifecycle.** A video or audio body subscribes to its stream when it exists in the rendered scene tree, and unsubscribes when it doesn't. Navigating to a different item implicitly stops all stream subscriptions from the old tree.
+
+**Live vs. prerecorded.** Both use the same scene fields. The distinction is in the resource reference and how the runtime fetches it. Live streams are continuous and `loop` is meaningless. Prerecorded content starts from position 0 when the body enters the tree, and may `loop`.
+
+**Capture devices** are direct local references the runtime understands:
+
+- `camera:default`, `camera:front`, `camera:rear` — local cameras
+- `mic:default` — local microphone
+- `display:main` — local display (screen sharing)
+
+Like physical displays, capture devices are intrinsic to a host machine. You access them through their host, not directly from another host. To see another participant's camera, you reference a stream they are publishing (typically via a presence record they created), never their hardware directly. This gives a consent-by-construction model — each host decides what streams to publish.
+
+**Fidelity spectrum for video:**
+
+- **Spatial (3D):** Video plays on a plane mesh at the body's position. Audio plays positionally — distance attenuation and directional panning from the camera/listener's position. Body transforms (rotation, scale) apply to the video plane.
+- **Graphical (2D):** Video plays in the body's bounds. Audio plays non-positionally (stereo, full volume).
+- **Text:** Shows the `alt` description.
+
+**Stream transports are a runtime concern.** The scene model doesn't know or care whether a stream is delivered via WebRTC, CG-native peer streaming, HTTP, or local capture. It just resolves a binding to a stream reference. The painter delegates frame delivery to a stream-transport layer that knows how to fetch from the reference type. Multiple transports coexist — you could have CG-native streams, WebRTC for browser interop, and HTTP for prerecorded content all in the same scene.
+
+**Presence, meetings, and calls.** Video bodies combined with repeat bindings over presence data give real-time shared spaces for free. A "meeting room" is not a special scene concept — it's an item whose scene repeats over its presence records, rendering each as a video body with position from the presence data. When someone joins, a presence record is added, the repeat expands, a new body appears. Walking around in 3D is just updating your presence's position. Leaving the room removes the presence record, the body disappears, the stream subscription stops.
+
+"Calling" someone is asking to become present in their item — a frame request (CALL) that, when accepted, becomes a PRESENCE frame. See [Pending Frames and the Swarm](#pending-frames-and-the-swarm) for how incoming calls appear in the UI before acceptance.
+
+### Pending Frames and the Swarm
+
+*(This section describes behavior that depends on the broader mount/endorsement model, which is still being designed. What follows is the intended semantics from the scene system's perspective.)*
+
+Items accumulate incoming frames that haven't yet been endorsed. These are **pending frames** — they target the item but aren't part of its canonical content yet. Examples:
+
+- A CALL frame requesting presence in the item
+- A LIKE frame expressing a reaction
+- A COMMENT frame awaiting moderation
+- A FLAG frame marking something as spam
+
+Pending frames are transient by default — if nobody interacts with them, they fade away over time. They're notifications, reactions, and transient signals rather than persistent content.
+
+**The swarm.** Every item (even a bare handle) has an implicit "swarm" of pending frames around it. In the default rendering, pending frames appear as a cloud of notification indicators near the item — small visual tokens showing there's incoming activity. Hovering or focusing reveals the individual pending frames. Ignored ones fade away according to their age and type.
+
+**Custom handling.** An item's scene author can opt to render pending frames INSIDE the scene rather than as a swarm. A chat room might handle CALL frames as prominent "incoming call" banners with accept/decline buttons directly in the room view. A gallery might render LIKE frames as heart reactions floating above images. The default swarm is for items whose scene doesn't explicitly handle the incoming frames.
+
+**Interaction outcomes.** Interacting with a pending frame generally has one of these outcomes:
+
+- **Endorse** — the frame becomes part of the item's canonical content (accept the call → becomes a PRESENCE frame; approve the comment → becomes a regular comment).
+- **Dismiss** — the frame is removed or marked handled.
+- **Ignore** — the frame lingers until it times out and fades.
+
+The scene system treats the swarm as another rendering surface for each item. Item authors can style it, customize its placement, suppress it for certain frame types, or route specific pending frames to prominent scene positions.
 
 ### Keyframe Animation
 

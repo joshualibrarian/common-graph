@@ -30,6 +30,28 @@ import java.util.Map;
  *
  * <p>All nodes are CBOR-serializable for wire transfer between librarian
  * and window. The resolved (but not laid out) tree is the wire format.
+ * Serializes as a CBOR map with string keys — null/default fields are omitted.
+ *
+ * <p><b>TODO: NESTING REFACTOR (high priority, next major work).</b>
+ * The 100+ flat fields on this class should be grouped into nested objects:
+ * <ul>
+ *   <li>{@code Border} — 12 per-side fields (width/style/color × 4 sides)</li>
+ *   <li>{@code Transform} — rotation (3 axes), scale (3 axes), transformOrigin, elevation, position</li>
+ *   <li>{@code Typography} — fontFamily, fontSize, fontWeight, fontStyle, textDecoration, textAlign, lineHeight, letterSpacing, textOverflow, whiteSpace, foreground</li>
+ *   <li>{@code Background} — color, image, size, gradient</li>
+ *   <li>{@code Transition} — property, duration, easing, delay</li>
+ *   <li>{@code Animation} — duration, iterationCount, direction, easing, delay, fillMode, playState, keyframes</li>
+ * </ul>
+ * Each nested object becomes a proper class (not a record) with fluent accessors.
+ * This will touch every reader in ScenePresenter, SkiaSurfacePainter, SceneResolver,
+ * SceneCompiler, and tests. Approximately 50 of the flat fields collapse into 6 nested
+ * objects. Remaining ~20 top-level fields (id, classes, type, width, height, padding,
+ * margin, overflow, visible, events, state, when, children, etc.) stay flat.
+ *
+ * <p>Nested fields would be addressed in the cascade as "border.top.width",
+ * "transform.rotationZ", etc. When-block keys would follow the same dotted notation.
+ * This change should happen BEFORE implementing new visual properties (elevation+shadow,
+ * form inputs, video) to avoid churning them through the refactor.
  *
  * @see SceneResolver
  * @see ScenePainter
@@ -203,6 +225,12 @@ public class SceneNode implements Canonical {
     @Canon(order = 66)
     private String transformOrigin;
 
+    /**
+     * Raises (positive) or recesses (negative) the node above its parent surface.
+     * Drives drop shadows in 2D, real Z displacement in 3D. See docs/scene.md § Elevation and Lighting.
+     * <p>TODO: Change to {@code Object elevation} (String → Float after presentation)
+     * so it can be declared as "4px", "1cm", "-2px", etc. Currently just a raw double.
+     */
     @Canon(order = 67)
     private double elevation;
 
