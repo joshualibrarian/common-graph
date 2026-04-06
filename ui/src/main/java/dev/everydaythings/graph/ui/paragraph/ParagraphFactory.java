@@ -43,6 +43,6 @@ public interface ParagraphFactory {
      * Convenience: build a paragraph from plain text.
      */
     default Paragraph fromText(String text, List<String> paragraphStyles, float maxWidth) {
-        return fromSpans(List.of(new TextSpan(text, paragraphStyles)), paragraphStyles, maxWidth);
+        return fromSpans(List.of(new TextSpan().text(text).styles(paragraphStyles)), paragraphStyles, maxWidth);
     }
 }

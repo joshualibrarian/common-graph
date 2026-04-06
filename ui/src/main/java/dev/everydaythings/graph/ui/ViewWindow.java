@@ -13,8 +13,10 @@ import dev.everydaythings.graph.ui.WindowDragController;
 import dev.everydaythings.graph.ui.WindowResizeController;
 import dev.everydaythings.graph.ui.filament.*;
 import dev.everydaythings.graph.ui.scene.AnimationState;
+import dev.everydaythings.graph.ui.scene.KeyframeAnimator;
 import dev.everydaythings.graph.ui.scene.InteractionState;
 import dev.everydaythings.graph.ui.scene.SceneNode;
+import dev.everydaythings.graph.ui.scene.ScenePresenter;
 import dev.everydaythings.graph.ui.scene.SceneResolver;
 import dev.everydaythings.graph.ui.scene.RenderContext;
 import dev.everydaythings.graph.ui.scene.RenderMetrics;
@@ -113,13 +115,14 @@ public class ViewWindow {
 
     // New pipeline (Skia mode)
     private final SceneResolver sceneResolver = new SceneResolver();
-    private final dev.everydaythings.graph.ui.scene.ScenePresenter scenePresenter =
-            new dev.everydaythings.graph.ui.scene.ScenePresenter();
+    private final ScenePresenter scenePresenter =
+            new ScenePresenter();
     private dev.everydaythings.graph.ui.skia.SkiaSurfacePainter skiaSurfacePainter;
     private SceneNode lastSceneTree;
     private SceneNode currentSceneLayout;
     private InputController inputController;
     private final AnimationState animationState = new AnimationState();
+    private final KeyframeAnimator keyframeAnimator = new KeyframeAnimator();
     private long lastPaintNanos;
     private volatile String pendingExpression;
     private volatile ItemID pendingNavigation;
@@ -311,6 +314,7 @@ public class ViewWindow {
             if (lastPaintNanos > 0) {
                 double deltaTime = (now - lastPaintNanos) / 1_000_000_000.0;
                 animationState.update(deltaTime);
+                keyframeAnimator.update(deltaTime);
             }
             lastPaintNanos = now;
 
@@ -318,13 +322,13 @@ public class ViewWindow {
             if (currentSceneLayout != null) {
                 if (skiaSurfacePainter == null) {
                     skiaSurfacePainter = new dev.everydaythings.graph.ui.skia.SkiaSurfacePainter(
-                            shared.fontCache(), animationState);
+                            shared.fontCache(), animationState, keyframeAnimator);
                 }
                 skiaSurfacePainter.canvas(canvas);
                 skiaSurfacePainter.paint(currentSceneLayout);
             }
             paintResizeGripSkia(canvas);
-            if (animationState.isAnimating()) {
+            if (animationState.isAnimating() || keyframeAnimator.isAnimating()) {
                 skiaWindow.requestPaint();
             }
         });
@@ -530,15 +534,19 @@ public class ViewWindow {
             SceneNode sceneTree = itemView.toSceneNode();
             if (sceneTree == null) return;
 
-            var resolveCtx = new SceneResolver.ResolveContext(
-                    session.librarian(), Set.of(":skia", "color", "mouse", "images"), interactionState);
+            SceneResolver.ResolveContext resolveCtx = new SceneResolver.ResolveContext()
+                    .librarian(session.librarian())
+                    .environmentTags(Set.of(":skia", "color", "mouse", "images"))
+                    .state(interactionState);
             sceneResolver.resolve(sceneTree, resolveCtx);
 
-            dev.everydaythings.graph.ui.scene.ScenePresenter.TextMeasurer textMeasurer =
+            ScenePresenter.TextMeasurer textMeasurer =
                     shared.fontCache()::measureText;
 
-            var presentCtx = new dev.everydaythings.graph.ui.scene.ScenePresenter.PresentContext(
-                    w, h, baseFontSize, 96 * dpr, textMeasurer, interactionState);
+            ScenePresenter.PresentContext presentCtx = new ScenePresenter.PresentContext()
+                    .viewportWidth(w).viewportHeight(h)
+                    .baseFontSize(baseFontSize).dpi(96 * dpr)
+                    .textMeasurer(textMeasurer).state(interactionState);
             scenePresenter.present(sceneTree, presentCtx);
 
             lastSceneTree = sceneTree;

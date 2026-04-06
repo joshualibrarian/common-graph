@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.ui.scene;
 
 import dev.everydaythings.graph.Canonical;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /**
  * A declarative event handler for Surface elements.
@@ -37,24 +39,50 @@ import dev.everydaythings.graph.Canonical;
  * SceneEvent.click("delete", targetIid)
  * }</pre>
  */
-public record SceneEvent(
-        @Canon(order = 0) String on,
-        @Canon(order = 1) String action,
-        @Canon(order = 2) String target
-) implements Canonical {
+@Getter
+@Accessors(fluent = true)
+@Canonical.Canonization
+public class SceneEvent implements Canonical {
+
+    @Canon(order = 0) private String on;
+    @Canon(order = 1) private String action;
+    @Canon(order = 2) private String target;
+
+    public SceneEvent() {}
+
+    public SceneEvent on(String on) {
+        this.on = on;
+        return this;
+    }
+
+    public SceneEvent action(String action) {
+        this.action = action;
+        return this;
+    }
+
+    public SceneEvent target(String target) {
+        this.target = target;
+        return this;
+    }
 
     /**
      * Create an event with explicit target.
      */
     public static SceneEvent of(String on, String action, String target) {
-        return new SceneEvent(on, action, target != null ? target : "");
+        return new SceneEvent()
+                .on(on)
+                .action(action)
+                .target(target != null ? target : "");
     }
 
     /**
      * Create an event targeting self.
      */
     public static SceneEvent of(String on, String action) {
-        return new SceneEvent(on, action, "");
+        return new SceneEvent()
+                .on(on)
+                .action(action)
+                .target("");
     }
 
     // ==================================================================================

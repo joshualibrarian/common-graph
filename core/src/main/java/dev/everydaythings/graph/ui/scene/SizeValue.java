@@ -1,6 +1,9 @@
 package dev.everydaythings.graph.ui.scene;
 
 import dev.everydaythings.graph.value.Unit;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,13 +36,33 @@ import java.util.regex.Pattern;
  *   <li>{@code %} — percentage of parent dimension</li>
  * </ul>
  */
-public record SizeValue(double value, String unit) {
+@Getter
+@Accessors(fluent = true)
+@EqualsAndHashCode
+public class SizeValue {
 
     /** Explicit shrink-to-content sizing. */
-    public static final SizeValue AUTO = new SizeValue(0, "auto");
+    public static final SizeValue AUTO = new SizeValue()
+            .value(0)
+            .unit("auto");
 
     private static final Pattern SIZE_PATTERN = Pattern.compile(
             "^(-?\\d+(?:\\.\\d+)?)(px|lpx|dpx|em|ch|rem|ln|%|vw|vh|in|cm|mm|km|m|ft|pt)$", Pattern.CASE_INSENSITIVE);
+
+    private double value;
+    private String unit;
+
+    public SizeValue() {}
+
+    public SizeValue value(double value) {
+        this.value = value;
+        return this;
+    }
+
+    public SizeValue unit(String unit) {
+        this.unit = unit;
+        return this;
+    }
 
     /** True if this is an auto-sized value (shrink-to-content). */
     public boolean isAuto() { return "auto".equals(unit); }
@@ -78,16 +101,16 @@ public record SizeValue(double value, String unit) {
         // Plain number → treat as defaultUnit
         try {
             double val = Double.parseDouble(s);
-            return new SizeValue(val, defaultUnit);
+            return new SizeValue().value(val).unit(defaultUnit);
         } catch (NumberFormatException ignored) {}
 
         Matcher m = SIZE_PATTERN.matcher(s);
         if (m.matches()) {
             double val = Double.parseDouble(m.group(1));
-            String unit = m.group(2).toLowerCase();
+            String parsedUnit = m.group(2).toLowerCase();
             // Normalize lpx → px (lpx is an explicit alias for logical pixel)
-            if ("lpx".equals(unit)) unit = "px";
-            return new SizeValue(val, unit);
+            if ("lpx".equals(parsedUnit)) parsedUnit = "px";
+            return new SizeValue().value(val).unit(parsedUnit);
         }
         return null;
     }

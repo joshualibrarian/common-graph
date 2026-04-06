@@ -31,14 +31,25 @@ public class ScenePresenter {
         float[] measure(String text, String fontFamily, float fontSize, boolean bold, float maxWidth);
     }
 
-    public record PresentContext(
-            float viewportWidth,
-            float viewportHeight,
-            float baseFontSize,
-            float dpi,
-            TextMeasurer textMeasurer,
-            InteractionState state
-    ) {}
+    @lombok.Getter
+    @lombok.experimental.Accessors(fluent = true)
+    public static class PresentContext {
+        private float viewportWidth;
+        private float viewportHeight;
+        private float baseFontSize;
+        private float dpi;
+        private TextMeasurer textMeasurer;
+        private InteractionState state;
+
+        public PresentContext() {}
+
+        public PresentContext viewportWidth(float v) { this.viewportWidth = v; return this; }
+        public PresentContext viewportHeight(float v) { this.viewportHeight = v; return this; }
+        public PresentContext baseFontSize(float v) { this.baseFontSize = v; return this; }
+        public PresentContext dpi(float v) { this.dpi = v; return this; }
+        public PresentContext textMeasurer(TextMeasurer v) { this.textMeasurer = v; return this; }
+        public PresentContext state(InteractionState v) { this.state = v; return this; }
+    }
 
     // =================================================================================
     // Entry Point
@@ -139,6 +150,17 @@ public class ScenePresenter {
         }
         if (node.maxHeight() instanceof String s && !s.isEmpty()) {
             node.maxHeight(resolveSize(s, 0, ctx));
+        }
+
+        // Gradient color stops: String → Integer
+        Gradient gradient = node.backgroundGradient();
+        if (gradient != null && gradient.stops() != null) {
+            for (Gradient.ColorStop stop : gradient.stops()) {
+                if (stop.color() instanceof String s && !s.isEmpty()) {
+                    int c = parseColor(s);
+                    if (c != -1) stop.color(c);
+                }
+            }
         }
 
         // Recurse
@@ -297,6 +319,13 @@ public class ScenePresenter {
         }
         if (node.transitionDelay() instanceof String s && !s.isEmpty()) {
             node.transitionDelay(parseDuration(s));
+        }
+        // Animation duration/delay
+        if (node.animationDuration() instanceof String s && !s.isEmpty()) {
+            node.animationDuration(parseDuration(s));
+        }
+        if (node.animationDelay() instanceof String s && !s.isEmpty()) {
+            node.animationDelay(parseDuration(s));
         }
     }
 
@@ -690,6 +719,7 @@ public class ScenePresenter {
 
         if ("stack".equals(dir)) {
             for (SceneNode child : box.children()) {
+                if (child.isAnchored()) continue;
                 boolean hasExW = child.explicitWidth() > 0;
                 boolean hasExH = child.explicitHeight() > 0;
                 float w = hasExW ? child.boundsWidth() : contentW;
@@ -707,15 +737,17 @@ public class ScenePresenter {
             }
 
             float childX = startX;
-            for (int i = 0; i < box.children().size(); i++) {
-                SceneNode child = box.children().get(i);
+            boolean first = true;
+            for (SceneNode child : box.children()) {
+                if (child.isAnchored()) continue;
+                if (!first && gap > 0) childX += gap;
                 float childY = startY;
                 if ("center".equals(crossAlign)) childY = startY + (contentH - child.boundsHeight()) / 2f;
                 else if ("end".equals(crossAlign)) childY = startY + contentH - child.boundsHeight();
                 child.setBounds(childX, childY, child.boundsWidth(), child.boundsHeight());
                 position(child);
                 childX += child.boundsWidth();
-                if (gap > 0 && i < box.children().size() - 1) childX += gap;
+                first = false;
             }
         } else {
             // Vertical
@@ -728,17 +760,138 @@ public class ScenePresenter {
             }
 
             float childY = startY;
-            for (int i = 0; i < box.children().size(); i++) {
-                SceneNode child = box.children().get(i);
+            boolean first = true;
+            for (SceneNode child : box.children()) {
+                if (child.isAnchored()) continue;
+                if (!first && gap > 0) childY += gap;
                 float childX = startX;
                 if ("center".equals(crossAlign)) childX = startX + (contentW - child.boundsWidth()) / 2f;
                 else if ("end".equals(crossAlign)) childX = startX + contentW - child.boundsWidth();
                 child.setBounds(childX, childY, child.boundsWidth(), child.boundsHeight());
                 position(child);
                 childY += child.boundsHeight();
-                if (gap > 0 && i < box.children().size() - 1) childY += gap;
+                first = false;
             }
         }
+
+        // Position anchored children (out of flow)
+        positionAnchoredChildren(box, startX, startY, contentW, contentH);
+    }
+
+    private void positionAnchoredChildren(SceneNode box, float contentX, float contentY,
+                                           float contentW, float contentH) {
+        if (box.children() == null) return;
+        for (SceneNode child : box.children()) {
+            if (!child.isAnchored()) continue;
+
+            float x = contentX;
+            float y = contentY;
+            float w = child.boundsWidth();
+            float h = child.boundsHeight();
+
+            // Resolve each anchor
+            float top = resolveAnchor(child.anchorTop(), box, contentY, contentH, true);
+            float bottom = resolveAnchor(child.anchorBottom(), box, contentY, contentH, true);
+            float left = resolveAnchor(child.anchorLeft(), box, contentX, contentW, false);
+            float right = resolveAnchor(child.anchorRight(), box, contentX, contentW, false);
+
+            boolean hasTop = child.anchorTop() != null;
+            boolean hasBottom = child.anchorBottom() != null;
+            boolean hasLeft = child.anchorLeft() != null;
+            boolean hasRight = child.anchorRight() != null;
+
+            // Horizontal positioning
+            if (hasLeft && hasRight) {
+                x = left;
+                w = right - left;
+            } else if (hasLeft) {
+                x = left;
+            } else if (hasRight) {
+                x = right - w;
+            }
+
+            // Vertical positioning
+            if (hasTop && hasBottom) {
+                y = top;
+                h = bottom - top;
+            } else if (hasTop) {
+                y = top;
+            } else if (hasBottom) {
+                y = bottom - h;
+            }
+
+            child.setBounds(x, y, Math.max(0, w), Math.max(0, h));
+            position(child);
+        }
+    }
+
+    /**
+     * Resolve an anchor value to an absolute pixel position.
+     *
+     * @param anchor    the anchor spec: "10px", "50%", "#sibling-id", "#sibling-id.bottom"
+     * @param parent    the parent container (for sibling lookup)
+     * @param origin    content area origin (x or y)
+     * @param extent    content area extent (width or height)
+     * @param vertical  true for top/bottom anchors, false for left/right
+     */
+    private float resolveAnchor(String anchor, SceneNode parent,
+                                 float origin, float extent, boolean vertical) {
+        if (anchor == null) return origin;
+
+        // Sibling reference: "#id" or "#id.edge"
+        if (anchor.startsWith("#")) {
+            String ref = anchor.substring(1);
+            String siblingId;
+            String edge = null;
+            int dot = ref.indexOf('.');
+            if (dot >= 0) {
+                siblingId = ref.substring(0, dot);
+                edge = ref.substring(dot + 1);
+            } else {
+                siblingId = ref;
+            }
+
+            // Find sibling by id
+            SceneNode sibling = findChildById(parent, siblingId);
+            if (sibling != null) {
+                if (edge == null) {
+                    // Default: corresponding edge
+                    return vertical ? sibling.boundsY() : sibling.boundsX();
+                }
+                return switch (edge) {
+                    case "top" -> sibling.boundsY();
+                    case "bottom" -> sibling.boundsY() + sibling.boundsHeight();
+                    case "left" -> sibling.boundsX();
+                    case "right" -> sibling.boundsX() + sibling.boundsWidth();
+                    default -> origin;
+                };
+            }
+            return origin;
+        }
+
+        // Percentage
+        if (anchor.endsWith("%")) {
+            float pct = Float.parseFloat(anchor.substring(0, anchor.length() - 1)) / 100f;
+            return origin + extent * pct;
+        }
+
+        // Dimensional value — parse as pixel offset from origin
+        try {
+            float offset = anchor.endsWith("px")
+                    ? Float.parseFloat(anchor.substring(0, anchor.length() - 2))
+                    : Float.parseFloat(anchor);
+            return origin + offset;
+        } catch (NumberFormatException e) {
+            return origin;
+        }
+    }
+
+    private static SceneNode findChildById(SceneNode parent, String id) {
+        if (parent.children() == null) return null;
+        for (SceneNode child : parent.children()) {
+            if (id.equals(child.id())) return child;
+        }
+        return null;
     }
 
     // =================================================================================
@@ -748,9 +901,12 @@ public class ScenePresenter {
     private float totalChildExtent(SceneNode box, boolean horizontal) {
         if (box.children() == null) return 0;
         float total = 0;
-        for (SceneNode child : box.children())
+        int count = 0;
+        for (SceneNode child : box.children()) {
+            if (child.isAnchored()) continue;
             total += horizontal ? child.boundsWidth() : child.boundsHeight();
-        int count = box.children().size();
+            count++;
+        }
         if (box.gapFloat() > 0 && count > 1) total += (count - 1) * box.gapFloat();
         return total;
     }
@@ -767,7 +923,11 @@ public class ScenePresenter {
 
     private void applyProperty(SceneNode node, String property, String value) {
         switch (property) {
-            case "background" -> node.backgroundColor(value);  // shorthand — sets color
+            case "background" -> {
+                Gradient g = Gradient.parse(value);
+                if (g != null) node.backgroundGradient(g);
+                else node.backgroundColor(value);
+            }
             case "backgroundColor" -> node.backgroundColor(value);
             case "foreground" -> node.foreground(value);
             case "border" -> node.border(value);
@@ -796,6 +956,17 @@ public class ScenePresenter {
             case "scaleY" -> node.scaleY(value);
             case "scaleZ" -> node.scaleZ(value);
             case "transformOrigin" -> node.transformOrigin(value);
+            case "anchorTop" -> node.anchorTop(value);
+            case "anchorRight" -> node.anchorRight(value);
+            case "anchorBottom" -> node.anchorBottom(value);
+            case "anchorLeft" -> node.anchorLeft(value);
+            case "animationDuration" -> node.animationDuration(value);
+            case "animationIterationCount" -> node.animationIterationCount(value);
+            case "animationDirection" -> node.animationDirection(value);
+            case "animationEasing" -> node.animationEasing(value);
+            case "animationDelay" -> node.animationDelay(value);
+            case "animationFillMode" -> node.animationFillMode(value);
+            case "animationPlayState" -> node.animationPlayState(value);
             case "align" -> node.align(value);
             case "justify" -> node.justify(value);
         }

@@ -51,21 +51,34 @@ public class SceneResolver {
 
     /**
      * Context for resolution — everything the resolver needs.
-     *
-     * @param librarian    handle for sememe resolution and config lookup
-     * @param environment  renderer type, viewport class, capabilities
-     * @param state        the per-session interaction state store
      */
-    /**
-     * @param librarian    handle for sememe resolution and config lookup
-     * @param environmentTags  active environment tags (":skia", "@lg", "mouse", etc.)
-     * @param state        the per-session interaction state store
-     */
-    public record ResolveContext(
-            LibrarianHandle librarian,
-            Set<String> environmentTags,
-            InteractionState state
-    ) {}
+    @lombok.Getter
+    @lombok.experimental.Accessors(fluent = true)
+    public static class ResolveContext {
+        /** Handle for sememe resolution and config lookup. */
+        private LibrarianHandle librarian;
+        /** Active environment tags (":skia", "@lg", "mouse", etc.). */
+        private Set<String> environmentTags;
+        /** The per-session interaction state store. */
+        private InteractionState state;
+
+        public ResolveContext() {}
+
+        public ResolveContext librarian(LibrarianHandle librarian) {
+            this.librarian = librarian;
+            return this;
+        }
+
+        public ResolveContext environmentTags(Set<String> environmentTags) {
+            this.environmentTags = environmentTags;
+            return this;
+        }
+
+        public ResolveContext state(InteractionState state) {
+            this.state = state;
+            return this;
+        }
+    }
 
     // =================================================================================
     // Resolution
@@ -305,7 +318,11 @@ public class SceneResolver {
      */
     private void applyProperty(SceneNode node, String property, String value) {
         switch (property) {
-            case "background" -> node.backgroundColor(value);  // shorthand — sets color
+            case "background" -> {  // shorthand — detects gradient syntax or sets color
+                Gradient g = Gradient.parse(value);
+                if (g != null) node.backgroundGradient(g);
+                else node.backgroundColor(value);
+            }
             case "backgroundColor" -> node.backgroundColor(value);
             case "backgroundImage" -> node.backgroundImage(value);
             case "backgroundSize" -> node.backgroundSize(value);
@@ -354,6 +371,18 @@ public class SceneResolver {
             case "fill" -> node.fill(value);
             case "strokeColor" -> node.strokeColor(value);
             case "strokeWidth" -> node.strokeWidth(value);
+            case "pathData" -> node.pathData(value);
+            case "anchorTop" -> node.anchorTop(value);
+            case "anchorRight" -> node.anchorRight(value);
+            case "anchorBottom" -> node.anchorBottom(value);
+            case "anchorLeft" -> node.anchorLeft(value);
+            case "animationDuration" -> node.animationDuration(value);
+            case "animationIterationCount" -> node.animationIterationCount(value);
+            case "animationDirection" -> node.animationDirection(value);
+            case "animationEasing" -> node.animationEasing(value);
+            case "animationDelay" -> node.animationDelay(value);
+            case "animationFillMode" -> node.animationFillMode(value);
+            case "animationPlayState" -> node.animationPlayState(value);
             case "rotation" -> node.rotation(value);  // shorthand → rotationZ
             case "rotationX" -> node.rotationX(value);
             case "rotationY" -> node.rotationY(value);

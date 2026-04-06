@@ -328,6 +328,7 @@ public interface Canonical {
                 CBORObject map = CBORObject.NewMap();  // CTAP2 canonical options will sort keys
                 for (Field f : fs) {
                     Object v = f.get(o);
+                    if (isDefaultValue(v)) continue;  // omit null/default fields from MAP encoding
                     map.set(CBORObject.FromString(f.getName()), encodeValue(v, scope));
                 }
                 return map;
@@ -351,6 +352,19 @@ public interface Canonical {
      * Sort fields for deterministic encoding.
      * Uses explicit @Canon.order if all fields have it, otherwise falls back to name order.
      */
+    /**
+     * Whether a value is a default that should be omitted from MAP encoding.
+     * Null, zero primitives, false, empty collections are all default.
+     */
+    private static boolean isDefaultValue(Object v) {
+        if (v == null) return true;
+        if (v instanceof Number n && n.doubleValue() == 0.0) return true;
+        if (v instanceof Boolean b && !b) return true;
+        if (v instanceof Collection<?> c && c.isEmpty()) return true;
+        if (v instanceof Map<?, ?> m && m.isEmpty()) return true;
+        return false;
+    }
+
     static void sortFieldsForEncoding(List<Field> fs) {
         boolean anyDefaultOrder = fs.stream().anyMatch(f -> f.getAnnotation(Canon.class).order() < 0);
         if (anyDefaultOrder) {

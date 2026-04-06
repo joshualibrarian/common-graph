@@ -393,6 +393,12 @@ public @interface Scene {
         /** Transform origin: "center", "top left", "50% 0%". */
         String transformOrigin() default "";
 
+        // Anchor positioning — takes node out of flow, positions relative to parent or siblings
+        String anchorTop() default "";
+        String anchorRight() default "";
+        String anchorBottom() default "";
+        String anchorLeft() default "";
+
         /** Min width: "200px", "50%". */
         String minWidth() default "";
 
@@ -430,6 +436,15 @@ public @interface Scene {
         String transitionDuration() default "";
         String transitionEasing() default "";
         String transitionDelay() default "";
+
+        // Keyframe animation
+        String animationDuration() default "";
+        String animationIterationCount() default "";
+        String animationDirection() default "";
+        String animationEasing() default "";
+        String animationDelay() default "";
+        String animationFillMode() default "";
+        String animationPlayState() default "";
     }
 
     /** Container for multiple {@link Style} annotations on a single type. */

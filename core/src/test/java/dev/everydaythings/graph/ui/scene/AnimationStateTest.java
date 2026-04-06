@@ -39,7 +39,7 @@ class AnimationStateTest {
     void firstSetTarget_noAnimation() {
         // First time setting a target — should jump to it, not animate
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 0.3, Easing.EASE_OUT, 0)
+                new TransitionSpec().properties(List.of("x")).duration(0.3).easing(Easing.EASE_OUT).delay(0)
         ));
 
         state.setTarget("thumb", "x", 100);
@@ -50,7 +50,7 @@ class AnimationStateTest {
     @Test
     void sameTarget_noAnimation() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 0.3, Easing.EASE_OUT, 0)
+                new TransitionSpec().properties(List.of("x")).duration(0.3).easing(Easing.EASE_OUT).delay(0)
         ));
 
         state.setTarget("thumb", "x", 100);
@@ -61,7 +61,7 @@ class AnimationStateTest {
     @Test
     void changedTarget_startsAnimation() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 0.3, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("x")).duration(0.3).easing(Easing.LINEAR).delay(0)
         ));
 
         state.setTarget("thumb", "x", 0);   // first set
@@ -74,7 +74,7 @@ class AnimationStateTest {
     @Test
     void noMatchingTransition_jumpInstantly() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 0.3, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("x")).duration(0.3).easing(Easing.LINEAR).delay(0)
         ));
 
         state.setTarget("thumb", "y", 0);
@@ -87,7 +87,7 @@ class AnimationStateTest {
     @Test
     void allProperty_matchesEverything() {
         state.registerTransitions("elem", List.of(
-                new TransitionSpec(List.of("all"), 0.5, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("all")).duration(0.5).easing(Easing.LINEAR).delay(0)
         ));
 
         state.setTarget("elem", "x", 0);
@@ -101,7 +101,7 @@ class AnimationStateTest {
     @Test
     void linearInterpolation_midway() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0)
         ));
 
         state.setTarget("thumb", "x", 0);
@@ -115,7 +115,7 @@ class AnimationStateTest {
     @Test
     void linearInterpolation_complete() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 0.5, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("x")).duration(0.5).easing(Easing.LINEAR).delay(0)
         ));
 
         state.setTarget("thumb", "x", 0);
@@ -129,7 +129,7 @@ class AnimationStateTest {
     @Test
     void linearInterpolation_overshootTime() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 0.3, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("x")).duration(0.3).easing(Easing.LINEAR).delay(0)
         ));
 
         state.setTarget("thumb", "x", 0);
@@ -146,9 +146,9 @@ class AnimationStateTest {
         AnimationState eased = new AnimationState();
 
         linear.registerTransitions("e", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0)));
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0)));
         eased.registerTransitions("e", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.EASE_OUT, 0)));
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.EASE_OUT).delay(0)));
 
         linear.setTarget("e", "x", 0);
         eased.setTarget("e", "x", 0);
@@ -168,7 +168,7 @@ class AnimationStateTest {
     @Test
     void delay_holdsDuringDelayPeriod() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 0.5, Easing.LINEAR, 0.2) // 0.2s delay
+                new TransitionSpec().properties(List.of("x")).duration(0.5).easing(Easing.LINEAR).delay(0.2) // 0.2s delay
         ));
 
         state.setTarget("thumb", "x", 0);
@@ -183,7 +183,7 @@ class AnimationStateTest {
     @Test
     void delay_animatesAfterDelay() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0.5) // 0.5s delay
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0.5) // 0.5s delay
         ));
 
         state.setTarget("thumb", "x", 0);
@@ -199,7 +199,7 @@ class AnimationStateTest {
     @Test
     void interrupt_restartsFromCurrentPosition() {
         state.registerTransitions("thumb", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0)
         ));
 
         // Start moving from 0 to 100
@@ -227,8 +227,8 @@ class AnimationStateTest {
     @Test
     void multipleProperties_independentAnimation() {
         state.registerTransitions("elem", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0),
-                new TransitionSpec(List.of("opacity"), 0.5, Easing.LINEAR, 0)
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0),
+                new TransitionSpec().properties(List.of("opacity")).duration(0.5).easing(Easing.LINEAR).delay(0)
         ));
 
         state.setTarget("elem", "x", 0);
@@ -249,9 +249,9 @@ class AnimationStateTest {
     @Test
     void multipleElements_independent() {
         state.registerTransitions("a", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0)));
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0)));
         state.registerTransitions("b", List.of(
-                new TransitionSpec(List.of("x"), 0.5, Easing.LINEAR, 0)));
+                new TransitionSpec().properties(List.of("x")).duration(0.5).easing(Easing.LINEAR).delay(0)));
 
         state.setTarget("a", "x", 0);
         state.setTarget("b", "x", 0);
@@ -269,7 +269,7 @@ class AnimationStateTest {
     @Test
     void clear_removesAllState() {
         state.registerTransitions("elem", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0)));
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0)));
         state.setTarget("elem", "x", 0);
         state.setTarget("elem", "x", 100);
 
@@ -281,9 +281,9 @@ class AnimationStateTest {
     @Test
     void remove_removesOneElement() {
         state.registerTransitions("a", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0)));
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0)));
         state.registerTransitions("b", List.of(
-                new TransitionSpec(List.of("x"), 1.0, Easing.LINEAR, 0)));
+                new TransitionSpec().properties(List.of("x")).duration(1.0).easing(Easing.LINEAR).delay(0)));
 
         state.setTarget("a", "x", 0);
         state.setTarget("b", "x", 0);
@@ -298,11 +298,11 @@ class AnimationStateTest {
 
     @Test
     void transitionSpec_covers() {
-        TransitionSpec allSpec = new TransitionSpec(List.of("all"), 0.3, Easing.LINEAR, 0);
+        TransitionSpec allSpec = new TransitionSpec().properties(List.of("all")).duration(0.3).easing(Easing.LINEAR).delay(0);
         assertThat(allSpec.covers("x")).isTrue();
         assertThat(allSpec.covers("rotation")).isTrue();
 
-        TransitionSpec xSpec = new TransitionSpec(List.of("x", "y"), 0.3, Easing.LINEAR, 0);
+        TransitionSpec xSpec = new TransitionSpec().properties(List.of("x", "y")).duration(0.3).easing(Easing.LINEAR).delay(0);
         assertThat(xSpec.covers("x")).isTrue();
         assertThat(xSpec.covers("y")).isTrue();
         assertThat(xSpec.covers("z")).isFalse();
@@ -310,8 +310,8 @@ class AnimationStateTest {
 
     @Test
     void transitionSpec_effectiveDuration_spring() {
-        TransitionSpec springSpec = new TransitionSpec(
-                List.of("x"), 0.3, new Easing.Spring(), 0);
+        TransitionSpec springSpec = new TransitionSpec()
+                .properties(List.of("x")).duration(0.3).easing(new Easing.Spring()).delay(0);
 
         // Spring duration should be computed, not 0.3
         assertThat(springSpec.effectiveDuration())
@@ -321,8 +321,8 @@ class AnimationStateTest {
 
     @Test
     void transitionSpec_effectiveDuration_bezier() {
-        TransitionSpec bezierSpec = new TransitionSpec(
-                List.of("x"), 0.5, Easing.EASE_OUT, 0);
+        TransitionSpec bezierSpec = new TransitionSpec()
+                .properties(List.of("x")).duration(0.5).easing(Easing.EASE_OUT).delay(0);
 
         assertThat(bezierSpec.effectiveDuration()).isEqualTo(0.5);
     }
@@ -332,7 +332,7 @@ class AnimationStateTest {
     @Test
     void springAnimation_overshoots() {
         state.registerTransitions("elem", List.of(
-                new TransitionSpec(List.of("x"), 0, new Easing.Spring(300, 10, 1), 0)
+                new TransitionSpec().properties(List.of("x")).duration(0).easing(new Easing.Spring(300, 10, 1)).delay(0)
         ));
 
         state.setTarget("elem", "x", 0);
@@ -354,7 +354,7 @@ class AnimationStateTest {
     @Test
     void springAnimation_eventuallySettles() {
         state.registerTransitions("elem", List.of(
-                new TransitionSpec(List.of("x"), 0, new Easing.Spring(), 0)
+                new TransitionSpec().properties(List.of("x")).duration(0).easing(new Easing.Spring()).delay(0)
         ));
 
         state.setTarget("elem", "x", 0);

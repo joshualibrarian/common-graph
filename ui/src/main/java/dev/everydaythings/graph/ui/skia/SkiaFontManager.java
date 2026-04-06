@@ -22,6 +22,8 @@ import io.github.humbleui.skija.paragraph.Alignment;
 import io.github.humbleui.skija.paragraph.DecorationLineStyle;
 import io.github.humbleui.skija.paragraph.DecorationStyle;
 import io.github.humbleui.skija.paragraph.TypefaceFontProvider;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,7 +62,16 @@ public class SkiaFontManager {
     /**
      * A font fallback chain with a size. Used to build Paragraphs.
      */
-    public record FontProfile(String[] families, float size) {}
+    @Getter @Accessors(fluent = true)
+    public static class FontProfile {
+        private String[] families;
+        private float size;
+
+        public FontProfile() {}
+
+        public FontProfile families(String[] families) { this.families = families; return this; }
+        public FontProfile size(float size) { this.size = size; return this; }
+    }
 
     public SkiaFontManager(FontRegistry registry) {
         this.registry = registry;
@@ -85,9 +96,9 @@ public class SkiaFontManager {
         fontCollection.setEnableFallback(true);
 
         // Build profiles from registry chains
-        mono = new FontProfile(orderFamiliesForSkia(registry.monoFamilies()), baseFontSize);
-        proportional = new FontProfile(orderFamiliesForSkia(registry.proportionalFamilies()), baseFontSize);
-        emoji = new FontProfile(orderFamiliesForSkia(registry.emojiFamilies()), baseFontSize);
+        mono = new FontProfile().families(orderFamiliesForSkia(registry.monoFamilies())).size(baseFontSize);
+        proportional = new FontProfile().families(orderFamiliesForSkia(registry.proportionalFamilies())).size(baseFontSize);
+        emoji = new FontProfile().families(orderFamiliesForSkia(registry.emojiFamilies())).size(baseFontSize);
 
         LOG.info("Font profiles ready — mono: " + String.join(", ", mono.families())
                 + " | proportional: " + String.join(", ", proportional.families()));
@@ -108,9 +119,9 @@ public class SkiaFontManager {
     }
 
     private void rebuildProfiles() {
-        mono = new FontProfile(mono.families(), baseFontSize);
-        proportional = new FontProfile(proportional.families(), baseFontSize);
-        emoji = new FontProfile(emoji.families(), baseFontSize);
+        mono = new FontProfile().families(mono.families()).size(baseFontSize);
+        proportional = new FontProfile().families(proportional.families()).size(baseFontSize);
+        emoji = new FontProfile().families(emoji.families()).size(baseFontSize);
         paragraphFactory = null;
     }
 
@@ -148,7 +159,7 @@ public class SkiaFontManager {
     public FontProfile profileFor(String fontFamily, float fontSize) {
         String[] families = orderFamiliesForSkia(registry.familiesFor(fontFamily));
         float size = fontSize > 0 ? fontSize : baseFontSize;
-        return new FontProfile(families, size);
+        return new FontProfile().families(families).size(size);
     }
 
     /**
@@ -171,15 +182,33 @@ public class SkiaFontManager {
     /**
      * Text styling parameters beyond font family/size/color.
      */
-    public record TextParams(
-            boolean bold, boolean italic,
-            boolean underline, boolean lineThrough, boolean overline,
-            String textAlign, float lineHeight, float letterSpacing,
-            String textOverflow, String whiteSpace
-    ) {
-        public static final TextParams PLAIN = new TextParams(
-                false, false, false, false, false,
-                null, 0, 0, null, null);
+    @Getter @Accessors(fluent = true)
+    public static class TextParams {
+        private boolean bold;
+        private boolean italic;
+        private boolean underline;
+        private boolean lineThrough;
+        private boolean overline;
+        private String textAlign;
+        private float lineHeight;
+        private float letterSpacing;
+        private String textOverflow;
+        private String whiteSpace;
+
+        public static final TextParams PLAIN = new TextParams();
+
+        public TextParams() {}
+
+        public TextParams bold(boolean bold) { this.bold = bold; return this; }
+        public TextParams italic(boolean italic) { this.italic = italic; return this; }
+        public TextParams underline(boolean underline) { this.underline = underline; return this; }
+        public TextParams lineThrough(boolean lineThrough) { this.lineThrough = lineThrough; return this; }
+        public TextParams overline(boolean overline) { this.overline = overline; return this; }
+        public TextParams textAlign(String textAlign) { this.textAlign = textAlign; return this; }
+        public TextParams lineHeight(float lineHeight) { this.lineHeight = lineHeight; return this; }
+        public TextParams letterSpacing(float letterSpacing) { this.letterSpacing = letterSpacing; return this; }
+        public TextParams textOverflow(String textOverflow) { this.textOverflow = textOverflow; return this; }
+        public TextParams whiteSpace(String whiteSpace) { this.whiteSpace = whiteSpace; return this; }
     }
 
     public Paragraph buildParagraph(String text, FontProfile profile, int color, float maxWidth) {

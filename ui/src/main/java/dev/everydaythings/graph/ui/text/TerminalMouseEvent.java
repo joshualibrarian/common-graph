@@ -1,10 +1,13 @@
 package dev.everydaythings.graph.ui.text;
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 /**
  * Parsed mouse event from terminal escape sequences.
  *
  * <p>Terminals report mouse events via escape sequences when mouse tracking
- * is enabled. This record represents the parsed event data.
+ * is enabled. This class represents the parsed event data.
  *
  * <p>Mouse protocols:
  * <ul>
@@ -21,15 +24,26 @@ package dev.everydaythings.graph.ui.text;
  *   <li>SGR: {@code ESC [ < Cb ; Cx ; Cy M} (press) or {@code m} (release)</li>
  * </ul>
  */
-public record TerminalMouseEvent(
-        Type type,
-        Button button,
-        int column,    // 0-based
-        int row,       // 0-based
-        boolean shift,
-        boolean alt,
-        boolean ctrl
-) {
+@Getter @Accessors(fluent = true)
+public class TerminalMouseEvent {
+
+    private Type type;
+    private Button button;
+    private int column;    // 0-based
+    private int row;       // 0-based
+    private boolean shift;
+    private boolean alt;
+    private boolean ctrl;
+
+    public TerminalMouseEvent() {}
+
+    public TerminalMouseEvent type(Type type) { this.type = type; return this; }
+    public TerminalMouseEvent button(Button button) { this.button = button; return this; }
+    public TerminalMouseEvent column(int column) { this.column = column; return this; }
+    public TerminalMouseEvent row(int row) { this.row = row; return this; }
+    public TerminalMouseEvent shift(boolean shift) { this.shift = shift; return this; }
+    public TerminalMouseEvent alt(boolean alt) { this.alt = alt; return this; }
+    public TerminalMouseEvent ctrl(boolean ctrl) { this.ctrl = ctrl; return this; }
 
     public enum Type {
         PRESS,
@@ -168,7 +182,9 @@ public record TerminalMouseEvent(
             };
         }
 
-        return new TerminalMouseEvent(type, button, col, row, shift, alt, ctrl);
+        return new TerminalMouseEvent()
+                .type(type).button(button).column(col).row(row)
+                .shift(shift).alt(alt).ctrl(ctrl);
     }
 
     /**

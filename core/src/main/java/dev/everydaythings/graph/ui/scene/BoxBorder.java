@@ -1,5 +1,9 @@
 package dev.everydaythings.graph.ui.scene;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 import java.util.regex.Pattern;
 
 /**
@@ -25,24 +29,86 @@ import java.util.regex.Pattern;
  *     .build()
  * }</pre>
  */
-public record BoxBorder(
-        BorderSide top,
-        BorderSide right,
-        BorderSide bottom,
-        BorderSide left,
-        String radius
-) {
+@Getter
+@Accessors(fluent = true)
+@EqualsAndHashCode
+public class BoxBorder {
+
     /** No border. */
-    public static final BoxBorder NONE = new BoxBorder(
-            BorderSide.NONE, BorderSide.NONE, BorderSide.NONE, BorderSide.NONE, "none");
+    public static final BoxBorder NONE = new BoxBorder()
+            .top(BorderSide.NONE)
+            .right(BorderSide.NONE)
+            .bottom(BorderSide.NONE)
+            .left(BorderSide.NONE)
+            .radius("none");
+
+    private BorderSide top;
+    private BorderSide right;
+    private BorderSide bottom;
+    private BorderSide left;
+    private String radius;
+
+    public BoxBorder() {}
+
+    public BoxBorder top(BorderSide top) {
+        this.top = top;
+        return this;
+    }
+
+    public BoxBorder right(BorderSide right) {
+        this.right = right;
+        return this;
+    }
+
+    public BoxBorder bottom(BorderSide bottom) {
+        this.bottom = bottom;
+        return this;
+    }
+
+    public BoxBorder left(BorderSide left) {
+        this.left = left;
+        return this;
+    }
+
+    public BoxBorder radius(String radius) {
+        this.radius = radius;
+        return this;
+    }
 
     /**
      * A single side of a border.
      */
-    public record BorderSide(String style, String width, String color) {
+    @Getter
+    @Accessors(fluent = true)
+    @EqualsAndHashCode
+    public static class BorderSide {
 
         /** No border side. */
-        public static final BorderSide NONE = new BorderSide("none", "0", null);
+        public static final BorderSide NONE = new BorderSide()
+                .style("none")
+                .width("0")
+                .color(null);
+
+        private String style;
+        private String width;
+        private String color;
+
+        public BorderSide() {}
+
+        public BorderSide style(String style) {
+            this.style = style;
+            return this;
+        }
+
+        public BorderSide width(String width) {
+            this.width = width;
+            return this;
+        }
+
+        public BorderSide color(String color) {
+            this.color = color;
+            return this;
+        }
 
         /** Whether this side is visible. */
         public boolean isVisible() {
@@ -86,7 +152,10 @@ public record BoxBorder(
                 }
             }
 
-            return new BorderSide(style, width, color);
+            return new BorderSide()
+                    .style(style)
+                    .width(width)
+                    .color(color);
         }
 
         private static final Pattern WIDTH_PATTERN = Pattern.compile(
@@ -135,8 +204,12 @@ public record BoxBorder(
             return NONE;
         }
         BorderSide side = BorderSide.parse(shorthand);
-        return new BoxBorder(side, side, side, side,
-                radius != null ? radius : "none");
+        return new BoxBorder()
+                .top(side)
+                .right(side)
+                .bottom(side)
+                .left(side)
+                .radius(radius != null ? radius : "none");
     }
 
     /**
@@ -144,13 +217,12 @@ public record BoxBorder(
      * Null sides default to no border.
      */
     public static BoxBorder of(String top, String right, String bottom, String left, String radius) {
-        return new BoxBorder(
-                top != null ? BorderSide.parse(top) : BorderSide.NONE,
-                right != null ? BorderSide.parse(right) : BorderSide.NONE,
-                bottom != null ? BorderSide.parse(bottom) : BorderSide.NONE,
-                left != null ? BorderSide.parse(left) : BorderSide.NONE,
-                radius != null ? radius : "none"
-        );
+        return new BoxBorder()
+                .top(top != null ? BorderSide.parse(top) : BorderSide.NONE)
+                .right(right != null ? BorderSide.parse(right) : BorderSide.NONE)
+                .bottom(bottom != null ? BorderSide.parse(bottom) : BorderSide.NONE)
+                .left(left != null ? BorderSide.parse(left) : BorderSide.NONE)
+                .radius(radius != null ? radius : "none");
     }
 
     /**
@@ -177,11 +249,10 @@ public record BoxBorder(
 
         // Apply width/style/color shorthands to base
         if (isSet(width) || isSet(style) || isSet(color)) {
-            base = new BorderSide(
-                    isSet(style) ? style : (base.isVisible() ? base.style() : "solid"),
-                    isSet(width) ? width : (base.isVisible() ? base.width() : "1px"),
-                    isSet(color) ? color : base.color()
-            );
+            base = new BorderSide()
+                    .style(isSet(style) ? style : (base.isVisible() ? base.style() : "solid"))
+                    .width(isSet(width) ? width : (base.isVisible() ? base.width() : "1px"))
+                    .color(isSet(color) ? color : base.color());
         }
 
         // Per-side overrides
@@ -190,8 +261,12 @@ public record BoxBorder(
         BorderSide bottomSide = isSet(bottom) ? BorderSide.parse(bottom) : base;
         BorderSide leftSide = isSet(left) ? BorderSide.parse(left) : base;
 
-        return new BoxBorder(topSide, rightSide, bottomSide, leftSide,
-                isSet(radius) ? radius : "none");
+        return new BoxBorder()
+                .top(topSide)
+                .right(rightSide)
+                .bottom(bottomSide)
+                .left(leftSide)
+                .radius(isSet(radius) ? radius : "none");
     }
 
     private static boolean isSet(String s) {

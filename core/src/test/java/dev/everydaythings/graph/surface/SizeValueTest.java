@@ -490,7 +490,7 @@ class SizeValueTest {
         @Test
         @DisplayName("unknown unit symbol throws IllegalArgumentException")
         void unknownUnitThrows() {
-            SizeValue sv = new SizeValue(10.0, "zz");
+            SizeValue sv = new SizeValue().value(10.0).unit("zz");
 
             assertThatThrownBy(() -> sv.toColumns(TUI))
                     .isInstanceOf(IllegalArgumentException.class)

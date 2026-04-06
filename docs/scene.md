@@ -80,7 +80,23 @@ Every property value is an expression. Width, color, visibility, content, transi
 | backgroundImage | Resource path | SVG or raster image behind content |
 | backgroundSize | fill, cover, contain, (natural) | How the image fills the bounds |
 
-The shorthand `background` sets `backgroundColor`.
+The shorthand `background` sets `backgroundColor`, or if given CSS gradient syntax, sets `backgroundGradient`.
+
+Gradients are structured objects with a type, color stops, and geometry:
+
+**Linear gradient:** angle in degrees + color stops
+```
+background: "linear-gradient(45deg, #000, #fff)"
+background: "linear-gradient(to right, red 0%, blue 50%, green 100%)"
+```
+
+**Radial gradient:** shape + position + color stops
+```
+background: "radial-gradient(circle, #000, #fff)"
+background: "radial-gradient(ellipse at top left, red, blue)"
+```
+
+Gradient paints over `backgroundColor` when both are set. The `backgroundGradient` field carries a structured `Gradient` object in CBOR — not a string.
 
 ### Border
 
@@ -171,6 +187,36 @@ The shorthand `transition: "background 0.3s ease-out"` decomposes to the four lo
 
 Spring easings compute their own duration from physical parameters. The declared duration is ignored.
 
+### Keyframe Animation
+
+Autonomous timeline-driven property changes — pulsing, spinning, bouncing. Unlike transitions (which react to property changes), keyframe animations run on their own timeline.
+
+**Keyframes** are defined inline on the node as a list of percentage stops with property values:
+
+```
+keyframes: [
+  { at: 0,   opacity: "1.0" },
+  { at: 50,  opacity: "0.5" },
+  { at: 100, opacity: "1.0" }
+]
+```
+
+**Animation control properties:**
+
+| Property | Values | Notes |
+|----------|--------|-------|
+| animationDuration | Duration | "2s", "500ms" |
+| animationIterationCount | Count | "infinite", "3", "1" |
+| animationDirection | Keyword | "normal", "reverse", "alternate", "alternate-reverse" |
+| animationEasing | Timing function | Same functions as transition easing |
+| animationDelay | Duration | Delay before first iteration |
+| animationFillMode | Keyword | "none", "forwards", "backwards", "both" |
+| animationPlayState | Keyword | "running", "paused" |
+
+Fill mode controls what happens outside the active animation window: "forwards" holds the final keyframe values after completion, "backwards" applies the first keyframe values during the delay period, "both" does both.
+
+Keyframe animations and transitions can coexist on the same node. Keyframe values take priority — if a keyframe animation is driving `opacity`, the transition for `opacity` is bypassed.
+
 ### Body Properties
 
 | Property | Values | Notes |
@@ -252,6 +298,25 @@ Children placed in `columns` x `rows` cells. `repeat` iterates a data collection
 ### Stack
 
 Children overlap at the same position. Later children render on top. For overlays, badges, background layers.
+
+### Anchor Positioning
+
+Any child in any layout mode can be taken out of flow using anchor properties:
+
+| Property | Values | Notes |
+|----------|--------|-------|
+| anchorTop | Offset or reference | Position top edge |
+| anchorRight | Offset or reference | Position right edge |
+| anchorBottom | Offset or reference | Position bottom edge |
+| anchorLeft | Offset or reference | Position left edge |
+
+**Values:**
+- Dimensional offset from parent edge: `"0"`, `"10px"`, `"50%"`
+- Sibling edge reference: `"#sibling-id"` (corresponding edge), `"#sibling-id.bottom"` (specific edge)
+
+Setting opposing anchors stretches the child: `anchorLeft="0"` + `anchorRight="0"` fills the parent width. Setting only one anchor positions the child at that offset while keeping its intrinsic size.
+
+Anchored children do not participate in flow layout — they don't affect the position of non-anchored siblings and are not affected by gap, alignment, or justification.
 
 ## The Pipeline
 

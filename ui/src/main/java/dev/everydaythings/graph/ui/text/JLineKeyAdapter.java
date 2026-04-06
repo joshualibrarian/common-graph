@@ -238,7 +238,7 @@ public class JLineKeyAdapter {
         // Parse the key code
         SpecialKey special = parseAnsiKeyCode(keyCode);
         if (special != null) {
-            return new KeyChord(PhysicalKey.of(special), ctrl, alt, shift);
+            return new KeyChord().key(PhysicalKey.of(special)).ctrl(ctrl).alt(alt).shift(shift);
         }
 
         return null;

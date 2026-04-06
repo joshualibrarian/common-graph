@@ -36,7 +36,7 @@ import java.util.Map;
  */
 @Getter
 @Accessors(fluent = true)
-@Canonical.Canonization
+@Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
 public class SceneNode implements Canonical {
 
     // =================================================================================
@@ -128,7 +128,11 @@ public class SceneNode implements Canonical {
     @Canon(order = 33)
     private String backgroundSize;
 
+    /** Background gradient — linear or radial with color stops. */
     @Canon(order = 34)
+    private Gradient backgroundGradient;
+
+    @Canon(order = 35)
     private String overflow;
 
     // =================================================================================
@@ -232,57 +236,135 @@ public class SceneNode implements Canonical {
     private Object transitionDelay;
 
     // =================================================================================
+    // Keyframe Animation — autonomous timeline-driven property changes
+    // =================================================================================
+
+    /** Keyframe sequence — list of percentage stops with property values. */
+    @Canon(order = 79)
+    private List<Keyframe> keyframes;
+
+    /** Animation duration: "2s", "500ms" → Float after presentation. */
+    @Canon(order = 80)
+    private Object animationDuration;
+
+    /** Iteration count: "infinite", "3", "1". */
+    @Canon(order = 81)
+    private String animationIterationCount;
+
+    /** Direction: "normal", "reverse", "alternate", "alternate-reverse". */
+    @Canon(order = 82)
+    private String animationDirection;
+
+    /** Easing between keyframes — same functions as transition easing. */
+    @Canon(order = 83)
+    private String animationEasing;
+
+    /** Delay before animation starts: "0.5s" → Float after presentation. */
+    @Canon(order = 84)
+    private Object animationDelay;
+
+    /** Fill mode: "none", "forwards", "backwards", "both". */
+    @Canon(order = 85)
+    private String animationFillMode;
+
+    /** Play state: "running", "paused". */
+    @Canon(order = 86)
+    private String animationPlayState;
+
+    // =================================================================================
     // Interaction
     // =================================================================================
 
-    @Canon(order = 80)
+    @Canon(order = 90)
     private List<SceneEvent> events;
 
-    @Canon(order = 81)
+    @Canon(order = 91)
     private boolean capturesFocus;
 
-    @Canon(order = 82)
+    @Canon(order = 92)
     private String cursor;
 
-    @Canon(order = 83)
+    @Canon(order = 93)
     private boolean editable;
 
     // =================================================================================
     // Data Binding
     // =================================================================================
 
-    @Canon(order = 90)
+    @Canon(order = 100)
     private String bind;
 
     /** Visibility — String expression → Boolean after resolution. */
-    @Canon(order = 91)
+    @Canon(order = 101)
     private Object visible;
 
     // =================================================================================
     // State Declarations
     // =================================================================================
 
-    @Canon(order = 95)
+    @Canon(order = 105)
     private List<StateDecl> state;
 
-    /** A state declaration — the runtime holds the actual value. */
+    /** A keyframe in an animation timeline — percentage stop with property values. */
+    @Getter
+    @Accessors(fluent = true)
     @Canonical.Canonization
-    public record StateDecl(
-            @Canon(order = 0) String key,
-            @Canon(order = 1) String defaultValue
-    ) implements Canonical {}
+    public static class Keyframe implements Canonical {
+        @Canon(order = 0) private float at;
+        @Canon(order = 1) private Map<String, String> properties;
+
+        public Keyframe() {}
+
+        public Keyframe at(float at) { this.at = at; return this; }
+        public Keyframe properties(Map<String, String> props) { this.properties = props; return this; }
+
+        public static Keyframe of(float at, Map<String, String> properties) {
+            return new Keyframe().at(at).properties(Map.copyOf(properties));
+        }
+    }
+
+    /** A state declaration — the runtime holds the actual value. */
+    @Getter
+    @Accessors(fluent = true)
+    @Canonical.Canonization
+    public static class StateDecl implements Canonical {
+        @Canon(order = 0) private String key;
+        @Canon(order = 1) private String defaultValue;
+
+        public StateDecl() {}
+
+        public StateDecl key(String key) { this.key = key; return this; }
+        public StateDecl defaultValue(String defaultValue) { this.defaultValue = defaultValue; return this; }
+
+        public static StateDecl of(String key, String defaultValue) {
+            return new StateDecl().key(key).defaultValue(defaultValue);
+        }
+    }
 
     /** A semantic token — a sememe reference with grammatical features. */
+    @Getter
+    @Accessors(fluent = true)
     @Canonical.Canonization
-    public record SemanticToken(
-            @Canon(order = 0) ItemID sememe,
-            @Canon(order = 1) List<ItemID> features
-    ) implements Canonical {
+    public static class SemanticToken implements Canonical {
+        @Canon(order = 0) private ItemID sememe;
+        @Canon(order = 1) private List<ItemID> features;
+
+        public SemanticToken() {}
+
+        public SemanticToken sememe(ItemID sememe) { this.sememe = sememe; return this; }
+        public SemanticToken features(List<ItemID> features) { this.features = features; return this; }
+
         public static SemanticToken of(ItemID sememe) {
-            return new SemanticToken(sememe, List.of());
+            SemanticToken t = new SemanticToken();
+            t.sememe = sememe;
+            t.features = List.of();
+            return t;
         }
         public static SemanticToken of(ItemID sememe, ItemID... features) {
-            return new SemanticToken(sememe, List.of(features));
+            SemanticToken t = new SemanticToken();
+            t.sememe = sememe;
+            t.features = List.of(features);
+            return t;
         }
     }
 
@@ -290,58 +372,64 @@ public class SceneNode implements Canonical {
     // Conditional Property Blocks
     // =================================================================================
 
-    @Canon(order = 96)
+    @Canon(order = 106)
     private Map<String, Map<String, String>> when;
 
     // =================================================================================
     // Container Properties (type == CONTAINER)
     // =================================================================================
 
-    @Canon(order = 100)
+    @Canon(order = 200)
     private String layout;
 
     /** Gap — String "0.5em" → Float 7.5f after presentation. */
-    @Canon(order = 101)
+    @Canon(order = 201)
     private Object gap;
 
-    @Canon(order = 102)
+    @Canon(order = 202)
     private String align;
 
-    @Canon(order = 103)
+    @Canon(order = 203)
     private String justify;
 
-    @Canon(order = 104)
+    @Canon(order = 204)
     private boolean wrap;
 
-    @Canon(order = 105)
+    @Canon(order = 205)
     private int columns;
 
-    @Canon(order = 106)
+    @Canon(order = 206)
     private int rows;
 
-    @Canon(order = 107)
+    @Canon(order = 207)
     private float aspectRatio;
 
-    @Canon(order = 110)
+    // Anchor positioning — takes child out of flow, positions relative to parent or siblings
+    @Canon(order = 208) private String anchorTop;
+    @Canon(order = 209) private String anchorRight;
+    @Canon(order = 210) private String anchorBottom;
+    @Canon(order = 211) private String anchorLeft;
+
+    @Canon(order = 220)
     private List<SceneNode> children;
 
-    @Canon(order = 111)
+    @Canon(order = 221)
     private String repeat;
 
-    @Canon(order = 112)
+    @Canon(order = 222)
     private SceneNode childTemplate;
 
     // =================================================================================
     // Text Properties (type == TEXT)
     // =================================================================================
 
-    @Canon(order = 200)
+    @Canon(order = 300)
     private String text;
 
-    @Canon(order = 201)
+    @Canon(order = 301)
     private ItemID format;
 
-    @Canon(order = 210)
+    @Canon(order = 302)
     private List<SemanticToken> tokens;
 
     // =================================================================================
@@ -349,47 +437,51 @@ public class SceneNode implements Canonical {
     // =================================================================================
 
     /** Geometric shape: "circle", "line", "rect", "sphere", "cone", "cylinder", "box". */
-    @Canon(order = 300)
+    @Canon(order = 400)
     private String shape;
 
     /** 2D image path or CID (SVG, PNG, JPEG, WebP, GIF). */
-    @Canon(order = 301)
+    @Canon(order = 401)
     private String image;
 
     /** 3D model path or CID (GLB, GLTF). */
-    @Canon(order = 302)
+    @Canon(order = 402)
     private String model;
 
     /** Unicode glyph (single character or emoji). */
-    @Canon(order = 303)
+    @Canon(order = 403)
     private String glyph;
 
     /** Text description fallback. */
-    @Canon(order = 304)
+    @Canon(order = 404)
     private String alt;
 
     /** Fill color — String "#color" → Integer 0xFFcolor after presentation. */
-    @Canon(order = 310)
+    @Canon(order = 410)
     private Object fill;
 
     /** Stroke color — String "#color" → Integer 0xFFcolor after presentation. */
-    @Canon(order = 311)
+    @Canon(order = 411)
     private Object strokeColor;
 
     /** Stroke width — String "2px" → Float 2.0f after presentation. */
-    @Canon(order = 312)
+    @Canon(order = 412)
     private Object strokeWidth;
 
     /** Radius for circle/sphere shapes. */
-    @Canon(order = 313)
+    @Canon(order = 413)
     private String radius;
 
+    /** SVG path data (the 'd' attribute) for shape="path". */
+    @Canon(order = 414)
+    private String pathData;
+
     /** Material reference (PBR properties). */
-    @Canon(order = 320)
+    @Canon(order = 420)
     private String material;
 
     /** Named surfaces on this body's geometry (e.g., "front" → container for that face). */
-    @Canon(order = 330)
+    @Canon(order = 430)
     private Map<String, SceneNode> surfaces;
 
     // =================================================================================
@@ -569,7 +661,7 @@ public class SceneNode implements Canonical {
 
     public SceneNode declareState(String key, String defaultValue) {
         if (state == null) state = new ArrayList<>();
-        state.add(new StateDecl(key, defaultValue));
+        state.add(StateDecl.of(key, defaultValue));
         return this;
     }
 
@@ -646,6 +738,8 @@ public class SceneNode implements Canonical {
     public int borderLeftColorInt() { return asInt(borderLeftColor, -1); }
     public float transitionDurationFloat() { return asFloat(transitionDuration, 0); }
     public float transitionDelayFloat() { return asFloat(transitionDelay, 0); }
+    public float animationDurationFloat() { return asFloat(animationDuration, 0); }
+    public float animationDelayFloat() { return asFloat(animationDelay, 0); }
     public float lineHeightFloat() { return asFloat(lineHeight, 0); }
     public float letterSpacingFloat() { return asFloat(letterSpacing, 0); }
     public float minWidthFloat() { return asFloat(minWidth, 0); }
@@ -726,6 +820,11 @@ public class SceneNode implements Canonical {
         return "scroll".equals(overflow) || ("auto".equals(overflow) && overflowsY);
     }
 
+    /** Whether this node uses anchor positioning (taken out of parent flow). */
+    public boolean isAnchored() {
+        return anchorTop != null || anchorRight != null || anchorBottom != null || anchorLeft != null;
+    }
+
     public boolean hidden() { return hidden; }
     public void hidden(boolean h) { this.hidden = h; }
 
@@ -790,10 +889,19 @@ public class SceneNode implements Canonical {
     public SceneNode transitionDuration(Object d) { this.transitionDuration = d; return this; }
     public SceneNode transitionEasing(String e) { this.transitionEasing = e; return this; }
     public SceneNode transitionDelay(Object d) { this.transitionDelay = d; return this; }
+    public SceneNode keyframes(List<Keyframe> kf) { this.keyframes = kf; return this; }
+    public SceneNode animationDuration(Object d) { this.animationDuration = d; return this; }
+    public SceneNode animationIterationCount(String c) { this.animationIterationCount = c; return this; }
+    public SceneNode animationDirection(String d) { this.animationDirection = d; return this; }
+    public SceneNode animationEasing(String e) { this.animationEasing = e; return this; }
+    public SceneNode animationDelay(Object d) { this.animationDelay = d; return this; }
+    public SceneNode animationFillMode(String m) { this.animationFillMode = m; return this; }
+    public SceneNode animationPlayState(String s) { this.animationPlayState = s; return this; }
     public SceneNode corner(Object c) { this.corner = c; return this; }
     public SceneNode backgroundColor(Object bg) { this.backgroundColor = bg; return this; }
     public SceneNode backgroundImage(String path) { this.backgroundImage = path; return this; }
     public SceneNode backgroundSize(String size) { this.backgroundSize = size; return this; }
+    public SceneNode backgroundGradient(Gradient g) { this.backgroundGradient = g; return this; }
     public SceneNode overflow(String o) { this.overflow = o; return this; }
     public SceneNode fontFamily(String f) { this.fontFamily = f; return this; }
     public SceneNode fontSize(Object s) { this.fontSize = s; return this; }
@@ -835,6 +943,10 @@ public class SceneNode implements Canonical {
     public SceneNode columns(int c) { this.columns = c; return this; }
     public SceneNode rows(int r) { this.rows = r; return this; }
     public SceneNode aspectRatio(float ratio) { this.aspectRatio = ratio; return this; }
+    public SceneNode anchorTop(String a) { this.anchorTop = a; return this; }
+    public SceneNode anchorRight(String a) { this.anchorRight = a; return this; }
+    public SceneNode anchorBottom(String a) { this.anchorBottom = a; return this; }
+    public SceneNode anchorLeft(String a) { this.anchorLeft = a; return this; }
     public SceneNode repeat(String expr) { this.repeat = expr; return this; }
     public SceneNode childTemplate(SceneNode template) { this.childTemplate = template; return this; }
     public SceneNode text(String t) { this.text = t; return this; }
@@ -849,6 +961,7 @@ public class SceneNode implements Canonical {
     public SceneNode strokeColor(Object s) { this.strokeColor = s; return this; }
     public SceneNode strokeWidth(Object w) { this.strokeWidth = w; return this; }
     public SceneNode radius(String r) { this.radius = r; return this; }
+    public SceneNode pathData(String d) { this.pathData = d; return this; }
     public SceneNode material(String m) { this.material = m; return this; }
 
     // =================================================================================

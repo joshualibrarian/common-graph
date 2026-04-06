@@ -3,6 +3,8 @@ package dev.everydaythings.graph.ui.text;
 import dev.everydaythings.graph.ui.scene.SceneEvent;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.ScenePainter;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -231,8 +233,28 @@ public class AnsiSurfacePainter implements ScenePainter {
     // Hit Regions
     // =================================================================================
 
-    public record HitRegion(int startRow, int startCol, int endRow, int endCol,
-                            String eventType, String action, String target, String id) {
+    @Getter @Accessors(fluent = true)
+    public static class HitRegion {
+        private int startRow;
+        private int startCol;
+        private int endRow;
+        private int endCol;
+        private String eventType;
+        private String action;
+        private String target;
+        private String id;
+
+        public HitRegion() {}
+
+        public HitRegion startRow(int startRow) { this.startRow = startRow; return this; }
+        public HitRegion startCol(int startCol) { this.startCol = startCol; return this; }
+        public HitRegion endRow(int endRow) { this.endRow = endRow; return this; }
+        public HitRegion endCol(int endCol) { this.endCol = endCol; return this; }
+        public HitRegion eventType(String eventType) { this.eventType = eventType; return this; }
+        public HitRegion action(String action) { this.action = action; return this; }
+        public HitRegion target(String target) { this.target = target; return this; }
+        public HitRegion id(String id) { this.id = id; return this; }
+
         public boolean contains(int row, int col) {
             if (row < startRow || row > endRow) return false;
             if (row == startRow && col < startCol) return false;
@@ -245,8 +267,9 @@ public class AnsiSurfacePainter implements ScenePainter {
                                    int endRow, int endCol) {
         if (node.events() == null) return;
         for (SceneEvent e : node.events()) {
-            hitRegions.add(new HitRegion(startRow, startCol, endRow, endCol,
-                    e.on(), e.action(), e.target(), node.id()));
+            hitRegions.add(new HitRegion()
+                    .startRow(startRow).startCol(startCol).endRow(endRow).endCol(endCol)
+                    .eventType(e.on()).action(e.action()).target(e.target()).id(node.id()));
         }
     }
 

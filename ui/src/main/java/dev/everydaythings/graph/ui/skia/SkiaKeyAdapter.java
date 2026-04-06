@@ -44,7 +44,7 @@ public class SkiaKeyAdapter {
             return null;
         }
 
-        return new KeyChord(physicalKey, ctrl, alt, shift);
+        return new KeyChord().key(physicalKey).ctrl(ctrl).alt(alt).shift(shift);
     }
 
     /**
@@ -52,7 +52,7 @@ public class SkiaKeyAdapter {
      */
     public KeyChord fromChar(int codepoint) {
         char c = (char) codepoint;
-        return new KeyChord(PhysicalKey.of(c), false, false, false);
+        return new KeyChord().key(PhysicalKey.of(c)).ctrl(false).alt(false).shift(false);
     }
 
     private PhysicalKey mapKey(int glfwKey) {

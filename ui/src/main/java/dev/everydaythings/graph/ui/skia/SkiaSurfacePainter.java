@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.ui.skia;
 
 import dev.everydaythings.graph.ui.scene.AnimationState;
+import dev.everydaythings.graph.ui.scene.Gradient;
 import dev.everydaythings.graph.ui.scene.Easing;
+import dev.everydaythings.graph.ui.scene.KeyframeAnimator;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.ScenePainter;
 import dev.everydaythings.graph.ui.scene.TransitionSpec;
@@ -10,6 +12,9 @@ import io.github.humbleui.skija.Data;
 import io.github.humbleui.skija.Image;
 import io.github.humbleui.skija.Paint;
 import io.github.humbleui.skija.PaintMode;
+import io.github.humbleui.skija.Shader;
+import io.github.humbleui.skija.Path;
+import io.github.humbleui.skija.PathEffect;
 import io.github.humbleui.skija.paragraph.Paragraph;
 import io.github.humbleui.skija.svg.SVGDOM;
 import io.github.humbleui.types.RRect;
@@ -31,15 +36,18 @@ public class SkiaSurfacePainter implements ScenePainter {
 
     private final SkiaFontManager fontCache;
     private final AnimationState animationState;
+    private final KeyframeAnimator keyframeAnimator;
     private Canvas canvas;
 
     // Resource caches (classpath path → parsed resource)
     private final Map<String, SVGDOM> svgCache = new HashMap<>();
     private final Map<String, Image> imageCache = new HashMap<>();
 
-    public SkiaSurfacePainter(SkiaFontManager fontCache, AnimationState animationState) {
+    public SkiaSurfacePainter(SkiaFontManager fontCache, AnimationState animationState,
+                              KeyframeAnimator keyframeAnimator) {
         this.fontCache = fontCache;
         this.animationState = animationState;
+        this.keyframeAnimator = keyframeAnimator;
     }
 
     /**
@@ -70,8 +78,9 @@ public class SkiaSurfacePainter implements ScenePainter {
         if (!node.isVisible()) return;
         if (node.boundsWidth() <= 0 || node.boundsHeight() <= 0) return;
 
-        // Register transitions for this node if it declares them
+        // Register transitions and keyframe animations for this node
         registerTransitions(node);
+        registerKeyframeAnimation(node);
 
         int saveCount = canvas.save();
 
@@ -145,19 +154,71 @@ public class SkiaSurfacePainter implements ScenePainter {
     // =================================================================================
 
     private void paintBackground(SceneNode node) {
+        // Gradient takes priority over solid color
+        Gradient gradient = node.backgroundGradient();
+        if (gradient != null && gradient.stops() != null && gradient.stops().size() >= 2) {
+            paintGradientBackground(node, gradient);
+            return;
+        }
+
         int bg = animatedColor(node, "backgroundColor", node.backgroundColorInt());
         if (bg == -1) return;
         try (Paint paint = new Paint().setColor(bg)) {
-            float r = node.cornerFloat();
-            if (r > 0) {
-                canvas.drawRRect(RRect.makeXYWH(
-                        node.boundsX(), node.boundsY(),
-                        node.boundsWidth(), node.boundsHeight(), r), paint);
-            } else {
-                canvas.drawRect(Rect.makeXYWH(
-                        node.boundsX(), node.boundsY(),
-                        node.boundsWidth(), node.boundsHeight()), paint);
-            }
+            drawBackgroundRect(node, paint);
+        }
+    }
+
+    private void paintGradientBackground(SceneNode node, Gradient gradient) {
+        java.util.List<Gradient.ColorStop> stops = gradient.stops();
+        int[] colors = new int[stops.size()];
+        float[] positions = new float[stops.size()];
+        for (int i = 0; i < stops.size(); i++) {
+            colors[i] = stops.get(i).colorInt();
+            positions[i] = stops.get(i).at() / 100f;
+        }
+
+        float x = node.boundsX();
+        float y = node.boundsY();
+        float w = node.boundsWidth();
+        float h = node.boundsHeight();
+
+        Shader shader;
+        if ("radial".equals(gradient.type())) {
+            float cx = x + w / 2;
+            float cy = y + h / 2;
+            float radius = Math.max(w, h) / 2;
+            shader = Shader.makeRadialGradient(cx, cy, radius, colors, positions);
+        } else {
+            // Linear — angle to start/end points
+            double rad = Math.toRadians(gradient.angle() - 90);
+            float dx = (float) Math.cos(rad);
+            float dy = (float) Math.sin(rad);
+            float cx = x + w / 2;
+            float cy = y + h / 2;
+            float halfDiag = (float) (Math.abs(dx) * w / 2 + Math.abs(dy) * h / 2);
+            shader = Shader.makeLinearGradient(
+                    cx - dx * halfDiag, cy - dy * halfDiag,
+                    cx + dx * halfDiag, cy + dy * halfDiag,
+                    colors, positions);
+        }
+
+        try (Paint paint = new Paint()) {
+            paint.setShader(shader);
+            drawBackgroundRect(node, paint);
+            shader.close();
+        }
+    }
+
+    private void drawBackgroundRect(SceneNode node, Paint paint) {
+        float r = node.cornerFloat();
+        if (r > 0) {
+            canvas.drawRRect(RRect.makeXYWH(
+                    node.boundsX(), node.boundsY(),
+                    node.boundsWidth(), node.boundsHeight(), r), paint);
+        } else {
+            canvas.drawRect(Rect.makeXYWH(
+                    node.boundsX(), node.boundsY(),
+                    node.boundsWidth(), node.boundsHeight()), paint);
         }
     }
 
@@ -224,24 +285,36 @@ public class SkiaSurfacePainter implements ScenePainter {
         float w = node.boundsWidth();
         float h = node.boundsHeight();
 
-        drawBorderSide(node.borderTopColorInt(), node.borderTopWidthFloat(),
-                x, y, w, true);
-        drawBorderSide(node.borderRightColorInt(), node.borderRightWidthFloat(),
-                x + w - node.borderRightWidthFloat(), y, h, false);
-        drawBorderSide(node.borderBottomColorInt(), node.borderBottomWidthFloat(),
-                x, y + h - node.borderBottomWidthFloat(), w, true);
-        drawBorderSide(node.borderLeftColorInt(), node.borderLeftWidthFloat(),
-                x, y, h, false);
+        drawBorderSide(node.borderTopColorInt(), node.borderTopWidthFloat(), node.borderTopStyle(),
+                x, y, x + w, y);
+        drawBorderSide(node.borderRightColorInt(), node.borderRightWidthFloat(), node.borderRightStyle(),
+                x + w, y, x + w, y + h);
+        drawBorderSide(node.borderBottomColorInt(), node.borderBottomWidthFloat(), node.borderBottomStyle(),
+                x, y + h, x + w, y + h);
+        drawBorderSide(node.borderLeftColorInt(), node.borderLeftWidthFloat(), node.borderLeftStyle(),
+                x, y, x, y + h);
     }
 
-    private void drawBorderSide(int color, float width, float x, float y,
-                                 float length, boolean horizontal) {
+    private void drawBorderSide(int color, float width, String style,
+                                 float x1, float y1, float x2, float y2) {
         if (color == -1 || width <= 0) return;
-        try (Paint paint = new Paint().setColor(color)) {
+        if ("none".equals(style)) return;
+
+        try (Paint paint = new Paint().setColor(color)
+                .setMode(PaintMode.STROKE).setStrokeWidth(width)) {
+            if ("dashed".equals(style)) {
+                paint.setPathEffect(PathEffect.makeDash(new float[]{width * 3, width * 2}, 0));
+            } else if ("dotted".equals(style)) {
+                paint.setPathEffect(PathEffect.makeDash(new float[]{width, width * 2}, 0));
+            }
+            // Draw as a line centered on the edge
+            float mx = (x1 + x2) / 2;
+            float my = (y1 + y2) / 2;
+            boolean horizontal = (y1 == y2);
             if (horizontal) {
-                canvas.drawRect(Rect.makeXYWH(x, y, length, width), paint);
+                canvas.drawLine(x1, my, x2, my, paint);
             } else {
-                canvas.drawRect(Rect.makeXYWH(x, y, width, length), paint);
+                canvas.drawLine(mx, y1, mx, y2, paint);
             }
         }
     }
@@ -369,8 +442,27 @@ public class SkiaSurfacePainter implements ScenePainter {
                 }
             }
             case "path" -> {
-                // SVG path data from the 'd' property — not yet wired through SceneNode
-                // Will use Path.makeFromSVGString when available
+                String d = node.pathData();
+                if (d != null && !d.isEmpty()) {
+                    Path path = Path.makeFromSVGString(d);
+                    if (path != null) {
+                        int saveCount = canvas.save();
+                        canvas.translate(x, y);
+                        if (fillColor != -1) {
+                            try (Paint paint = new Paint().setColor(fillColor)) {
+                                canvas.drawPath(path, paint);
+                            }
+                        }
+                        if (strokeColor != -1 && strokeWidth > 0) {
+                            try (Paint paint = new Paint().setColor(strokeColor)
+                                    .setMode(PaintMode.STROKE).setStrokeWidth(strokeWidth)) {
+                                canvas.drawPath(path, paint);
+                            }
+                        }
+                        canvas.restoreToCount(saveCount);
+                        path.close();
+                    }
+                }
             }
             default -> {
                 // Unknown shape — fall through to glyph if available
@@ -394,11 +486,11 @@ public class SkiaSurfacePainter implements ScenePainter {
     }
 
     private static SkiaFontManager.TextParams textParamsFrom(SceneNode node) {
-        return new SkiaFontManager.TextParams(
-                node.isBold(), node.isItalic(),
-                node.hasUnderline(), node.hasLineThrough(), node.hasOverline(),
-                node.textAlign(), node.lineHeightFloat(), node.letterSpacingFloat(),
-                node.textOverflow(), node.whiteSpace());
+        return new SkiaFontManager.TextParams()
+                .bold(node.isBold()).italic(node.isItalic())
+                .underline(node.hasUnderline()).lineThrough(node.hasLineThrough()).overline(node.hasOverline())
+                .textAlign(node.textAlign()).lineHeight(node.lineHeightFloat()).letterSpacing(node.letterSpacingFloat())
+                .textOverflow(node.textOverflow()).whiteSpace(node.whiteSpace());
     }
 
     // =================================================================================
@@ -486,21 +578,44 @@ public class SkiaSurfacePainter implements ScenePainter {
 
         // Build a TransitionSpec from the resolved longhand fields
         String[] properties = property.split(",\\s*");
-        TransitionSpec spec = new TransitionSpec(
-                java.util.List.of(properties),
-                duration,
-                easing != null ? Easing.parse(easing) : Easing.EASE,
-                delay);
+        TransitionSpec spec = new TransitionSpec()
+                .properties(java.util.List.of(properties))
+                .duration(duration)
+                .easing(easing != null ? Easing.parse(easing) : Easing.EASE)
+                .delay(delay);
         animationState.registerTransitions(id, java.util.List.of(spec));
     }
 
+    private void registerKeyframeAnimation(SceneNode node) {
+        String id = node.id();
+        if (id == null || id.isEmpty()) return;
+
+        java.util.List<SceneNode.Keyframe> keyframes = node.keyframes();
+        if (keyframes == null || keyframes.isEmpty()) return;
+
+        keyframeAnimator.register(id, keyframes,
+                node.animationDurationFloat(),
+                node.animationIterationCount(),
+                node.animationDirection(),
+                node.animationEasing(),
+                node.animationDelayFloat(),
+                node.animationFillMode(),
+                node.animationPlayState());
+    }
+
     /**
-     * Get an animated float value. Sets the target on AnimationState and returns
-     * the current interpolated value.
+     * Get an animated float value. Checks keyframe animator first, then
+     * transition state, then returns the resolved value.
      */
     private float animatedFloat(SceneNode node, String property, float resolvedValue) {
         String id = node.id();
         if (id == null || id.isEmpty()) return resolvedValue;
+
+        // Keyframe animation takes priority
+        double kfValue = keyframeAnimator.getValue(id, property, Double.NaN);
+        if (!Double.isNaN(kfValue)) return (float) kfValue;
+
+        // Then transition
         animationState.setTarget(id, property, resolvedValue);
         return (float) animationState.getValue(id, property, resolvedValue);
     }

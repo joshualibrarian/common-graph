@@ -431,7 +431,7 @@ class BoxDrawingTest {
         @Test
         @DisplayName("invisible side maps to NONE")
         void invisibleMapsToNone() {
-            BorderSide side = new BorderSide("none", "1px", null);
+            BorderSide side = new BorderSide().style("none").width("1px").color(null);
             assertThat(BoxDrawing.weightOf(side, TUI)).isEqualTo(Weight.NONE);
         }
 

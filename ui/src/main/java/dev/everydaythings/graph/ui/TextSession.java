@@ -337,13 +337,19 @@ public class TextSession extends Session {
         // SceneNode pipeline: compile → resolve → present → paint
         SceneNode tree = toSceneNode();
         if (tree != null) {
-            var resolveCtx = new SceneResolver.ResolveContext(librarian, Set.of(":tui", "color"), interactionState);
+            SceneResolver.ResolveContext resolveCtx = new SceneResolver.ResolveContext()
+                    .librarian(librarian)
+                    .environmentTags(Set.of(":tui", "color"))
+                    .state(interactionState);
             sceneResolver.resolve(tree, resolveCtx);
 
             // Text measurer for TUI: 1 char = 1 unit
             ScenePresenter.TextMeasurer textMeasurer = (text, fontFamily, fontSize, bold, maxWidth) ->
                     new float[]{text != null ? text.length() : 0, 1};
-            var presentCtx = new ScenePresenter.PresentContext(w, h, 1, 96, textMeasurer, interactionState);
+            ScenePresenter.PresentContext presentCtx = new ScenePresenter.PresentContext()
+                    .viewportWidth(w).viewportHeight(h)
+                    .baseFontSize(1).dpi(96)
+                    .textMeasurer(textMeasurer).state(interactionState);
             scenePresenter.present(tree, presentCtx);
 
             if (ansiPainter == null) ansiPainter = new AnsiSurfacePainter();
@@ -389,12 +395,18 @@ public class TextSession extends Session {
         String result = "";
         SceneNode tree = toSceneNode();
         if (tree != null) {
-            var resolveCtx = new SceneResolver.ResolveContext(librarian, Set.of(":tui", "color"), interactionState);
+            SceneResolver.ResolveContext resolveCtx = new SceneResolver.ResolveContext()
+                    .librarian(librarian)
+                    .environmentTags(Set.of(":tui", "color"))
+                    .state(interactionState);
             sceneResolver.resolve(tree, resolveCtx);
 
             ScenePresenter.TextMeasurer textMeasurer = (text, fontFamily, fontSize, bold, maxWidth) ->
                     new float[]{text != null ? text.length() : 0, 1};
-            var presentCtx = new ScenePresenter.PresentContext(cliW, cliH, 1, 96, textMeasurer, interactionState);
+            ScenePresenter.PresentContext presentCtx = new ScenePresenter.PresentContext()
+                    .viewportWidth(cliW).viewportHeight(cliH)
+                    .baseFontSize(1).dpi(96)
+                    .textMeasurer(textMeasurer).state(interactionState);
             scenePresenter.present(tree, presentCtx);
 
             if (plainTextPainter == null) plainTextPainter = new PlainTextSurfacePainter();

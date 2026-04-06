@@ -4,6 +4,8 @@ import dev.everydaythings.filament.Box;
 import dev.everydaythings.filament.Engine;
 import dev.everydaythings.filament.IndexBuffer;
 import dev.everydaythings.filament.VertexBuffer;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -26,8 +28,20 @@ public class PrimitiveMeshes {
     /**
      * A renderable mesh with vertex and index buffers.
      */
-    public record Mesh(VertexBuffer vertexBuffer, IndexBuffer indexBuffer,
-                       int indexCount, Box boundingBox) {
+    @Getter @Accessors(fluent = true)
+    public static class Mesh {
+        private VertexBuffer vertexBuffer;
+        private IndexBuffer indexBuffer;
+        private int indexCount;
+        private Box boundingBox;
+
+        public Mesh() {}
+
+        public Mesh vertexBuffer(VertexBuffer vertexBuffer) { this.vertexBuffer = vertexBuffer; return this; }
+        public Mesh indexBuffer(IndexBuffer indexBuffer) { this.indexBuffer = indexBuffer; return this; }
+        public Mesh indexCount(int indexCount) { this.indexCount = indexCount; return this; }
+        public Mesh boundingBox(Box boundingBox) { this.boundingBox = boundingBox; return this; }
+
         public void destroy(Engine engine) {
             engine.destroyVertexBuffer(vertexBuffer);
             engine.destroyIndexBuffer(indexBuffer);
@@ -81,7 +95,7 @@ public class PrimitiveMeshes {
                 .build(engine);
         ib.setBuffer(engine, idxBuf);
 
-        return new Mesh(vb, ib, 6, new Box(0, 0, 0, hw, hh, 0.01f));
+        return new Mesh().vertexBuffer(vb).indexBuffer(ib).indexCount(6).boundingBox(new Box(0, 0, 0, hw, hh, 0.01f));
     }
 
     /**
@@ -152,7 +166,7 @@ public class PrimitiveMeshes {
                 .build(engine);
         ib.setBuffer(engine, idxBuf);
 
-        return new Mesh(vb, ib, 36, new Box(0, 0, 0, hw, hh, hd));
+        return new Mesh().vertexBuffer(vb).indexBuffer(ib).indexCount(36).boundingBox(new Box(0, 0, 0, hw, hh, hd));
     }
 
     /**
@@ -232,7 +246,7 @@ public class PrimitiveMeshes {
                 .build(engine);
         ib.setBuffer(engine, idxBuf);
 
-        return new Mesh(vb, ib, indexCount, new Box(0, 0, 0, radius, radius, radius));
+        return new Mesh().vertexBuffer(vb).indexBuffer(ib).indexCount(indexCount).boundingBox(new Box(0, 0, 0, radius, radius, radius));
     }
 
     /**
@@ -370,7 +384,7 @@ public class PrimitiveMeshes {
                 .build(engine);
         ib.setBuffer(engine, idxBuf);
 
-        return new Mesh(vb, ib, indexCount, new Box(0, 0, 0, radius, hh, radius));
+        return new Mesh().vertexBuffer(vb).indexBuffer(ib).indexCount(indexCount).boundingBox(new Box(0, 0, 0, radius, hh, radius));
     }
 
     /**
@@ -418,7 +432,7 @@ public class PrimitiveMeshes {
                 .build(engine);
         ib.setBuffer(engine, idxBuf);
 
-        return new Mesh(vb, ib, 6, new Box(0, 0, 0, hw, 0.01f, hd));
+        return new Mesh().vertexBuffer(vb).indexBuffer(ib).indexCount(6).boundingBox(new Box(0, 0, 0, hw, 0.01f, hd));
     }
 
     /**
@@ -518,7 +532,7 @@ public class PrimitiveMeshes {
                 .build(engine);
         ib.setBuffer(engine, idxBuf);
 
-        return new Mesh(vb, ib, indexCount, new Box(0, 0, 0, radius, hh, radius));
+        return new Mesh().vertexBuffer(vb).indexBuffer(ib).indexCount(indexCount).boundingBox(new Box(0, 0, 0, radius, hh, radius));
     }
 
     /**
@@ -661,7 +675,7 @@ public class PrimitiveMeshes {
         ib.setBuffer(engine, idxBuf);
 
         float totalHH = height / 2f;
-        return new Mesh(vb, ib, indexCount, new Box(0, 0, 0, radius, totalHH, radius));
+        return new Mesh().vertexBuffer(vb).indexBuffer(ib).indexCount(indexCount).boundingBox(new Box(0, 0, 0, radius, totalHH, radius));
     }
 
     // ==================== Buffer Helpers ====================

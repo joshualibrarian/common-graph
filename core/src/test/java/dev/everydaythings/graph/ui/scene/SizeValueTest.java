@@ -23,34 +23,34 @@ class SizeValueTest {
         @Test
         @DisplayName("parses physical units: in, cm, mm, pt")
         void parsesPhysicalUnits() {
-            assertThat(SizeValue.parse("1in")).isEqualTo(new SizeValue(1, "in"));
-            assertThat(SizeValue.parse("2.54cm")).isEqualTo(new SizeValue(2.54, "cm"));
-            assertThat(SizeValue.parse("10mm")).isEqualTo(new SizeValue(10, "mm"));
-            assertThat(SizeValue.parse("12pt")).isEqualTo(new SizeValue(12, "pt"));
+            assertThat(SizeValue.parse("1in")).isEqualTo(new SizeValue().value(1).unit("in"));
+            assertThat(SizeValue.parse("2.54cm")).isEqualTo(new SizeValue().value(2.54).unit("cm"));
+            assertThat(SizeValue.parse("10mm")).isEqualTo(new SizeValue().value(10).unit("mm"));
+            assertThat(SizeValue.parse("12pt")).isEqualTo(new SizeValue().value(12).unit("pt"));
         }
 
         @Test
         @DisplayName("parses viewport units: vw, vh")
         void parsesViewportUnits() {
-            assertThat(SizeValue.parse("50vw")).isEqualTo(new SizeValue(50, "vw"));
-            assertThat(SizeValue.parse("100vh")).isEqualTo(new SizeValue(100, "vh"));
+            assertThat(SizeValue.parse("50vw")).isEqualTo(new SizeValue().value(50).unit("vw"));
+            assertThat(SizeValue.parse("100vh")).isEqualTo(new SizeValue().value(100).unit("vh"));
         }
 
         @Test
         @DisplayName("parses existing units: px, em, ch, rem, ln, %")
         void parsesExistingUnits() {
-            assertThat(SizeValue.parse("200px")).isEqualTo(new SizeValue(200, "px"));
-            assertThat(SizeValue.parse("2em")).isEqualTo(new SizeValue(2, "em"));
-            assertThat(SizeValue.parse("40ch")).isEqualTo(new SizeValue(40, "ch"));
-            assertThat(SizeValue.parse("1.5rem")).isEqualTo(new SizeValue(1.5, "rem"));
-            assertThat(SizeValue.parse("3ln")).isEqualTo(new SizeValue(3, "ln"));
-            assertThat(SizeValue.parse("50%")).isEqualTo(new SizeValue(50, "%"));
+            assertThat(SizeValue.parse("200px")).isEqualTo(new SizeValue().value(200).unit("px"));
+            assertThat(SizeValue.parse("2em")).isEqualTo(new SizeValue().value(2).unit("em"));
+            assertThat(SizeValue.parse("40ch")).isEqualTo(new SizeValue().value(40).unit("ch"));
+            assertThat(SizeValue.parse("1.5rem")).isEqualTo(new SizeValue().value(1.5).unit("rem"));
+            assertThat(SizeValue.parse("3ln")).isEqualTo(new SizeValue().value(3).unit("ln"));
+            assertThat(SizeValue.parse("50%")).isEqualTo(new SizeValue().value(50).unit("%"));
         }
 
         @Test
         @DisplayName("plain number treated as px")
         void plainNumberAsPx() {
-            assertThat(SizeValue.parse("42")).isEqualTo(new SizeValue(42, "px"));
+            assertThat(SizeValue.parse("42")).isEqualTo(new SizeValue().value(42).unit("px"));
         }
 
         @Test

@@ -64,9 +64,26 @@ public class SceneCompiler {
     /**
      * Compile an annotated object to a root + handle pair.
      */
-    public record CompiledScene(SceneNode root, SceneNode handle) {
+    @lombok.Getter
+    @lombok.experimental.Accessors(fluent = true)
+    public static class CompiledScene {
+        private SceneNode root;
+        private SceneNode handle;
+
+        public CompiledScene() {}
+
+        public CompiledScene root(SceneNode root) {
+            this.root = root;
+            return this;
+        }
+
+        public CompiledScene handle(SceneNode handle) {
+            this.handle = handle;
+            return this;
+        }
+
         public static CompiledScene of(SceneNode root, SceneNode handle) {
-            return new CompiledScene(root, handle);
+            return new CompiledScene().root(root).handle(handle);
         }
     }
 
@@ -318,9 +335,9 @@ public class SceneCompiler {
         if (semantic != null) {
             List<SceneNode.SemanticToken> tokens = new ArrayList<>();
             for (Scene.Text.Token tok : semantic.value()) {
-                tokens.add(new SceneNode.SemanticToken(
-                        ItemID.fromString(tok.sememe()),
-                        Arrays.stream(tok.features()).map(ItemID::fromString).toList()));
+                tokens.add(new SceneNode.SemanticToken()
+                        .sememe(ItemID.fromString(tok.sememe()))
+                        .features(Arrays.stream(tok.features()).map(ItemID::fromString).toList()));
             }
             SceneNode t = tokens.isEmpty() ? SceneNode.ofText("") : SceneNode.ofTokens(tokens);
             if (semantic.style().length > 0) t.classes(semantic.style());
@@ -554,6 +571,17 @@ public class SceneCompiler {
             if (!style.scaleY().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleY", style.scaleY());
             if (!style.scaleZ().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleZ", style.scaleZ());
             if (!style.transformOrigin().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transformOrigin", style.transformOrigin());
+            if (!style.anchorTop().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorTop", style.anchorTop());
+            if (!style.anchorRight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorRight", style.anchorRight());
+            if (!style.anchorBottom().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorBottom", style.anchorBottom());
+            if (!style.anchorLeft().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorLeft", style.anchorLeft());
+            if (!style.animationDuration().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationDuration", style.animationDuration());
+            if (!style.animationIterationCount().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationIterationCount", style.animationIterationCount());
+            if (!style.animationDirection().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationDirection", style.animationDirection());
+            if (!style.animationEasing().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationEasing", style.animationEasing());
+            if (!style.animationDelay().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationDelay", style.animationDelay());
+            if (!style.animationFillMode().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationFillMode", style.animationFillMode());
+            if (!style.animationPlayState().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationPlayState", style.animationPlayState());
             if (!style.minWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minWidth", style.minWidth());
             if (!style.maxWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "maxWidth", style.maxWidth());
             if (!style.minHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minHeight", style.minHeight());

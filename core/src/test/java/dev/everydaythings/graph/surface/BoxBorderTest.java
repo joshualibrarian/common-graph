@@ -220,21 +220,21 @@ class BoxBorderTest {
         @Test
         @DisplayName("style='none' is not visible even with width")
         void styleNoneIsNotVisible() {
-            BorderSide side = new BorderSide("none", "1px", "blue");
+            BorderSide side = new BorderSide().style("none").width("1px").color("blue");
             assertThat(side.isVisible()).isFalse();
         }
 
         @Test
         @DisplayName("width='0' is not visible even with style")
         void widthZeroIsNotVisible() {
-            BorderSide side = new BorderSide("solid", "0", "blue");
+            BorderSide side = new BorderSide().style("solid").width("0").color("blue");
             assertThat(side.isVisible()).isFalse();
         }
 
         @Test
         @DisplayName("null style is not visible")
         void nullStyleIsNotVisible() {
-            BorderSide side = new BorderSide(null, "1px", "blue");
+            BorderSide side = new BorderSide().style(null).width("1px").color("blue");
             assertThat(side.isVisible()).isFalse();
         }
     }
@@ -626,13 +626,12 @@ class BoxBorderTest {
         @Test
         @DisplayName("hasRadius with null returns false")
         void hasRadiusWithNull() {
-            BoxBorder border = new BoxBorder(
-                    BorderSide.parse("1px solid"),
-                    BorderSide.parse("1px solid"),
-                    BorderSide.parse("1px solid"),
-                    BorderSide.parse("1px solid"),
-                    null
-            );
+            BoxBorder border = new BoxBorder()
+                    .top(BorderSide.parse("1px solid"))
+                    .right(BorderSide.parse("1px solid"))
+                    .bottom(BorderSide.parse("1px solid"))
+                    .left(BorderSide.parse("1px solid"))
+                    .radius(null);
             assertThat(border.hasRadius()).isFalse();
         }
     }

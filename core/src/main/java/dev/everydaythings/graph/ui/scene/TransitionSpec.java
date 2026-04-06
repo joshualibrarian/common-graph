@@ -1,5 +1,9 @@
 package dev.everydaythings.graph.ui.scene;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 import java.util.List;
 
 /**
@@ -9,22 +13,54 @@ import java.util.List;
  * ({@code transitionProperty}, {@code transitionDuration}, {@code transitionEasing},
  * {@code transitionDelay}). Consumed by {@link AnimationState} to drive interpolation.
  *
- * @param properties Property names this transition applies to (e.g., ["background", "opacity"] or ["all"])
- * @param duration   Duration in seconds
- * @param easing     The timing function
- * @param delay      Delay before animation starts, in seconds
- *
  * @see Easing
  * @see AnimationState
  */
-public record TransitionSpec(
-        List<String> properties,
-        double duration,
-        Easing easing,
-        double delay
-) {
+@Getter
+@Accessors(fluent = true)
+@EqualsAndHashCode
+public class TransitionSpec {
+
     /** No transition — instant property changes. */
-    public static final TransitionSpec NONE = new TransitionSpec(List.of(), 0, Easing.LINEAR, 0);
+    public static final TransitionSpec NONE = new TransitionSpec()
+            .properties(List.of())
+            .duration(0)
+            .easing(Easing.LINEAR)
+            .delay(0);
+
+    /** Property names this transition applies to (e.g., ["background", "opacity"] or ["all"]). */
+    private List<String> properties;
+
+    /** Duration in seconds. */
+    private double duration;
+
+    /** The timing function. */
+    private Easing easing;
+
+    /** Delay before animation starts, in seconds. */
+    private double delay;
+
+    public TransitionSpec() {}
+
+    public TransitionSpec properties(List<String> properties) {
+        this.properties = properties;
+        return this;
+    }
+
+    public TransitionSpec duration(double duration) {
+        this.duration = duration;
+        return this;
+    }
+
+    public TransitionSpec easing(Easing easing) {
+        this.easing = easing;
+        return this;
+    }
+
+    public TransitionSpec delay(double delay) {
+        this.delay = delay;
+        return this;
+    }
 
     /**
      * Whether this spec covers the given property name.
