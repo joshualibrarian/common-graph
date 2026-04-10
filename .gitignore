@@ -58,3 +58,6 @@ Template/
 
 # Secrets and credentials
 code.txt
+
+# Personal correspondence drafts (not part of the project)
+docs/correspondence/

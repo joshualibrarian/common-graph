@@ -291,7 +291,16 @@ Items accumulate incoming frames that haven't yet been endorsed. These are **pen
 
 Pending frames are transient by default — if nobody interacts with them, they fade away over time. They're notifications, reactions, and transient signals rather than persistent content.
 
-**The swarm.** Every item (even a bare handle) has an implicit "swarm" of pending frames around it. In the default rendering, pending frames appear as a cloud of notification indicators near the item — small visual tokens showing there's incoming activity. Hovering or focusing reveals the individual pending frames. Ignored ones fade away according to their age and type.
+**Pending vs durable is a policy, not a frame type.** Whether a frame is "pending" or "durable" is determined by its **cleanup policy**, not by being a separate kind of frame. The scene system observes whatever frames currently exist on an item; their lifetime is governed by per-frame policies the frame model enforces. Common policies:
+
+- **Time-based** — frame expires after a TTL (a TYPING frame disappearing after 30 seconds of no renewal)
+- **Replacement-based** — a newer frame of the same kind from the same author replaces older ones (the latest TYPING from a user supersedes the previous one)
+- **Side-effect-based** — a related action clears the frame (a MOVE frame in chess clears any in-progress SELECTED frames from the same author)
+- **Never** — the frame is durable and persists in the object store indefinitely (a committed move, a published comment, an endorsed reaction)
+
+The same predicate can have different policies in different contexts. The scene system doesn't care which — it renders whatever frames are currently present.
+
+**The swarm.** Every item (even a bare handle) has an implicit "swarm" of pending frames around it. In the default rendering, pending frames appear as a cloud of notification indicators near the item — small visual tokens showing there's incoming activity. Hovering or focusing reveals the individual pending frames. Ignored ones fade away according to their cleanup policy.
 
 **Custom handling.** An item's scene author can opt to render pending frames INSIDE the scene rather than as a swarm. A chat room might handle CALL frames as prominent "incoming call" banners with accept/decline buttons directly in the room view. A gallery might render LIKE frames as heart reactions floating above images. The default swarm is for items whose scene doesn't explicitly handle the incoming frames.
 
@@ -513,6 +522,8 @@ The pipeline splits at the resolver/presenter boundary. The resolved scene tree 
 
 This means the librarian does the expensive work (data resolution, language lookup, style cascade) once, and multiple windows can independently present and paint the same resolved tree with their own viewport dimensions, interaction state, and rendering backend.
 
+Events flow back across this boundary in the opposite direction. See [Events and Dispatch](#events-and-dispatch) for the event shape and dispatch chain. The `report` and `consumed` fields described there are part of the wire format — they affect what crosses the boundary and what stays renderer-local.
+
 ## The Style Cascade
 
 Every property can come from two sources:
@@ -566,6 +577,108 @@ Every scene has two forms:
 **Root** — the full scene. In 2D it renders as a panel. In 3D it renders as a space. Both are independently overridable through CONFIG.
 
 Both are stored together: `{ root: Node, handle: Node }`. A user can customize their chess handle without touching the board layout.
+
+**Handles inline in another scene are just shape.** When a Handle appears inside another item's scene tree (a Handle for a user inside a chat message, a Handle for a sememe inside a dictionary entry), the Handle's referenced item has *not* been instantiated as a view — there is no implementation in memory for it. The Handle is a SceneNode subtree owned by the host scene; click events on it bubble through the host's dispatch chain. To act on the handle's referenced item, the renderer fires a session action (`view <iid>`) which creates a new ITEM_VIEW for the referenced item. See [Views and Implementations](#views-and-implementations) and [Events and Dispatch](#events-and-dispatch).
+
+## Views and Implementations
+
+A scene is data. A **view** is a live, rendered instance of an item — what the user actually sees on screen.
+
+Every visible item is represented by an `ITEM_VIEW` frame on the current Session item. The frame records:
+
+- Which item is being viewed (the item reference)
+- The view's position, size, and other window-level configuration
+- A binding to the **implementation instance** — the runtime code that handles events, computes view-model values, and projects the item's frames into useful state
+
+### Implementations
+
+An implementation is the executable code for an item type. Items declare implementations via `IMPLEMENTS` frames pointing to runtime-specific bindings (a Java class name, a WASM module reference, etc.). Multiple implementations can exist across runtimes; at view-create time, the librarian selects one it can execute.
+
+When a view is created, the librarian:
+
+1. Looks up the item's `IMPLEMENTS` frames
+2. Selects an implementation suitable for an available runtime (defaults can be overridden per-user or per-view)
+3. Instantiates it
+4. Binds the instance to the new `ITEM_VIEW` frame
+
+The instance lives as long as the view does. When the view is closed (or the session ends), the instance is dropped. There is no caching across views — each view gets its own instance.
+
+### Multiple views, separate instances
+
+Two views of the same item create two separate implementation instances. Each holds its own runtime state — typically a model object that's a *projection* of the item's frames (a chess `Game` object built from the move history, a parsed AST built from a source file, etc.).
+
+Authoritative state always lives in the item's frame stream. View A creates a `MOVE` frame; the librarian notifies subscribers; view B's instance sees the new frame and updates its projection. Per-view runtime state (selection, scroll position, in-progress interactions) lives on the implementation instance and dies with the view.
+
+### The chrome
+
+Every view is wrapped by a **chrome** — a universal layer providing item-level affordances: header, swarm, frames panel, mounts panel, versions panel, mode bar, prompt, presence indicators, comment thread. The chrome is identical for every item type. Implementations don't see chrome events and don't know about likes, comments, or reactions — those are handled by the chrome layer.
+
+The chrome is implicit: it's always the same Java class for every view, so it's not bound per-view. Only the item-content implementation varies.
+
+The chrome's scene contains the item's content scene as a subtree. From the renderer's perspective, there's one merged scene tree per view — chrome on the outside, item content embedded inside.
+
+## Events and Dispatch
+
+User input — clicks, scrolls, key presses, hover — flows through a four-layer dispatch chain. Most input is handled instantly on the renderer side via locally-declared state mutations. Anything requiring application logic is dispatched up through the layers until something claims it.
+
+### Event Shape
+
+An event is declared on a SceneNode through its `events` list. Each entry is a tuple:
+
+| Field | Values | Notes |
+|-------|--------|-------|
+| `on` | `"click"`, `"hover"`, `"scroll"`, `"keyDown:F1"`, ... | The trigger |
+| `action` | `"toggle:expanded"`, `"select"`, `"view"`, `"scroll-position"`, ... | What to do |
+| `target` | `"iid:abc"`, `"100"`, `"self"`, ... | Action argument |
+| `report` | Boolean, default `false` | Also send a copy to the librarian when fired locally |
+| `consumed` | Boolean (set by the renderer at dispatch time) | Has a local handler already acted on this? |
+
+`report` is part of the *declared* event — set at scene-author time, in `@Scene.On` or hand-authored CBOR. It expresses dispatch policy: should this event also be observed by the implementation, even if the renderer handled it locally?
+
+`consumed` is set by the *renderer* when forwarding an event to the librarian. It tells the receiver whether the local pipeline has already acted on the event.
+
+### The Dispatch Chain
+
+When the renderer detects user input on a node, it walks the dispatch chain:
+
+**1. Scene-tree bubbling.** The renderer hit-tests to find the deepest node containing the cursor, then walks UP the SceneNode tree looking for the nearest `events` entry whose `on` matches the input type. The first node that has a matching entry claims the event. (DOM-style bubbling.)
+
+**2. Local dispatch.** The renderer dispatches the action through its local pipeline:
+
+- **Built-in actions** — `toggle:`, `set:`, `unset:`, `cycle:` are handled by [InteractionState](#interaction-state) directly. Mutates state, the resolver's interaction-state pass picks up the change, the display updates. No round-trip.
+- **Otherwise** — the action is application-level. Continues to the next layer.
+
+**3. Item implementation.** The view's bound implementation receives the action via its handler. It can claim the event (return true) or pass (return false).
+
+**4. Chrome.** If the item implementation didn't claim it, the chrome's handler gets it. The chrome handles universal affordances: F-key toggles, frames-tree clicks, mode bar interactions, swarm gestures.
+
+**5. Session.** If the chrome didn't claim it, the session's handler gets it. The session handles platform-level actions:
+
+- `view <iid>` — open a new view of an item
+- `exit` — close the current view
+
+More session actions will be added as the platform grows. Navigation is structural — there is no back button, no history stack. Closing one view and opening another is the only navigation primitive.
+
+### Reporting
+
+When `report=true` is set on an event, the renderer sends a copy of the event to the librarian over the session protocol — fire and forget, in parallel with the local dispatch. The local response is instant; the report is observed asynchronously.
+
+The reported event arrives at the implementation as a normal event (same shape, same dispatch path). The `consumed` field tells the implementation whether the local pipeline already handled the event:
+
+- `consumed=true` — a local handler already acted (this is FYI; no action required, but the implementation may still take action if it wants — for analytics, recording, downstream effects)
+- `consumed=false` — nothing was claimed locally; the implementation is expected to handle it
+
+Use cases for `report=true`:
+
+- **Hover analytics** — implementation tracks which elements are hovered without affecting the visual hover (which remains a local pseudo-state)
+- **Scroll position recording** — implementation observes scroll position without intervening in scroll smoothness; can use the position to fetch more rows when nearing the end of a window
+- **Read receipts** — when a frame becomes visible, fire a "seen" event without blocking display
+
+### Local vs. remote implementations
+
+The same Event message shape works for both local and remote implementations. When the librarian and renderer are co-located, dispatch is a direct method call within the JVM. When they're split (remote librarian, thin renderer), the Event crosses the wire via the session protocol. The implementation doesn't know which case it's in.
+
+For the local case, an event with `consumed=false` and no local handler simply continues up the dispatch chain in-process — the chrome and session layers are also in-process. For the remote case, the renderer sends the Event to the librarian, which walks the dispatch chain on the librarian side and pushes any resulting scene updates back to the renderer.
 
 ## Authoring
 

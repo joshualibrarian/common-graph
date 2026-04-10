@@ -520,79 +520,97 @@ public class SceneCompiler {
             allStyles.addAll(0, Arrays.asList(styles));
         }
 
-        // Store on root node — the resolver applies them during tree walking
+        // Store on root node — the resolver applies them during tree walking.
+        // Cascade keys are dotted to mirror the nested SceneNode structure.
         for (Scene.Style style : allStyles) {
             String when = style.when();
-            if (!style.color().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "foreground", style.color());
-            if (!style.background().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundColor", style.background());
-            if (!style.backgroundColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundColor", style.backgroundColor());
-            if (!style.backgroundImage().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundImage", style.backgroundImage());
-            if (!style.backgroundSize().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "backgroundSize", style.backgroundSize());
-            if (!style.fontSize().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontSize", style.fontSize());
-            if (!style.fontFamily().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontFamily", style.fontFamily());
-            if (!style.fontWeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontWeight", style.fontWeight());
-            if (!style.fontStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "fontStyle", style.fontStyle());
-            if (!style.textDecoration().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "textDecoration", style.textDecoration());
-            if (!style.textAlign().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "textAlign", style.textAlign());
-            if (!style.lineHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "lineHeight", style.lineHeight());
-            if (!style.letterSpacing().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "letterSpacing", style.letterSpacing());
-            if (!style.textOverflow().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "textOverflow", style.textOverflow());
-            if (!style.whiteSpace().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "whiteSpace", style.whiteSpace());
-            if (!style.opacity().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "opacity", style.opacity());
-            if (!style.padding().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "padding", style.padding());
-            if (!style.border().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "border", style.border());
+            String w = when.isEmpty() ? "$always" : when;
+
+            // Typography
+            if (!style.color().isEmpty())          root.when(w, "typography.foreground", style.color());
+            if (!style.fontSize().isEmpty())       root.when(w, "typography.fontSize", style.fontSize());
+            if (!style.fontFamily().isEmpty())     root.when(w, "typography.fontFamily", style.fontFamily());
+            if (!style.fontWeight().isEmpty())     root.when(w, "typography.fontWeight", style.fontWeight());
+            if (!style.fontStyle().isEmpty())      root.when(w, "typography.fontStyle", style.fontStyle());
+            if (!style.textDecoration().isEmpty()) root.when(w, "typography.textDecoration", style.textDecoration());
+            if (!style.textAlign().isEmpty())      root.when(w, "typography.textAlign", style.textAlign());
+            if (!style.lineHeight().isEmpty())     root.when(w, "typography.lineHeight", style.lineHeight());
+            if (!style.letterSpacing().isEmpty())  root.when(w, "typography.letterSpacing", style.letterSpacing());
+            if (!style.textOverflow().isEmpty())   root.when(w, "typography.textOverflow", style.textOverflow());
+            if (!style.whiteSpace().isEmpty())     root.when(w, "typography.whiteSpace", style.whiteSpace());
+
+            // Background
+            if (!style.background().isEmpty())      root.when(w, "background.color", style.background());
+            if (!style.backgroundColor().isEmpty()) root.when(w, "background.color", style.backgroundColor());
+            if (!style.backgroundImage().isEmpty()) root.when(w, "background.image", style.backgroundImage());
+            if (!style.backgroundSize().isEmpty())  root.when(w, "background.size", style.backgroundSize());
+
+            // Border (shorthand + multi-value + per-side longhand)
+            if (!style.border().isEmpty())      root.when(w, "border", style.border());
             if (!style.borderWidth().isEmpty()) compileBorderMultiValue(root, when, "Width", style.borderWidth());
             if (!style.borderStyle().isEmpty()) compileBorderMultiValue(root, when, "Style", style.borderStyle());
             if (!style.borderColor().isEmpty()) compileBorderMultiValue(root, when, "Color", style.borderColor());
-            if (!style.borderTopWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderTopWidth", style.borderTopWidth());
-            if (!style.borderRightWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderRightWidth", style.borderRightWidth());
-            if (!style.borderBottomWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderBottomWidth", style.borderBottomWidth());
-            if (!style.borderLeftWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderLeftWidth", style.borderLeftWidth());
-            if (!style.borderTopStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderTopStyle", style.borderTopStyle());
-            if (!style.borderRightStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderRightStyle", style.borderRightStyle());
-            if (!style.borderBottomStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderBottomStyle", style.borderBottomStyle());
-            if (!style.borderLeftStyle().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderLeftStyle", style.borderLeftStyle());
-            if (!style.borderTopColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderTopColor", style.borderTopColor());
-            if (!style.borderRightColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderRightColor", style.borderRightColor());
-            if (!style.borderBottomColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderBottomColor", style.borderBottomColor());
-            if (!style.borderLeftColor().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "borderLeftColor", style.borderLeftColor());
-            if (!style.transition().isEmpty()) compileTransitionShorthand(root, when, style.transition());
-            if (!style.transitionProperty().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionProperty", style.transitionProperty());
-            if (!style.transitionDuration().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionDuration", style.transitionDuration());
-            if (!style.transitionEasing().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionEasing", style.transitionEasing());
-            if (!style.transitionDelay().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transitionDelay", style.transitionDelay());
-            if (!style.radius().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "corner", style.radius());
-            if (!style.rotation().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotation", style.rotation());
-            if (!style.rotationX().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotationX", style.rotationX());
-            if (!style.rotationY().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotationY", style.rotationY());
-            if (!style.rotationZ().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "rotationZ", style.rotationZ());
-            if (!style.scale().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scale", style.scale());
-            if (!style.scaleX().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleX", style.scaleX());
-            if (!style.scaleY().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleY", style.scaleY());
-            if (!style.scaleZ().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "scaleZ", style.scaleZ());
-            if (!style.transformOrigin().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "transformOrigin", style.transformOrigin());
-            if (!style.anchorTop().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorTop", style.anchorTop());
-            if (!style.anchorRight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorRight", style.anchorRight());
-            if (!style.anchorBottom().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorBottom", style.anchorBottom());
-            if (!style.anchorLeft().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "anchorLeft", style.anchorLeft());
-            if (!style.animationDuration().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationDuration", style.animationDuration());
-            if (!style.animationIterationCount().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationIterationCount", style.animationIterationCount());
-            if (!style.animationDirection().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationDirection", style.animationDirection());
-            if (!style.animationEasing().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationEasing", style.animationEasing());
-            if (!style.animationDelay().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationDelay", style.animationDelay());
-            if (!style.animationFillMode().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationFillMode", style.animationFillMode());
-            if (!style.animationPlayState().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "animationPlayState", style.animationPlayState());
-            if (!style.minWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minWidth", style.minWidth());
-            if (!style.maxWidth().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "maxWidth", style.maxWidth());
-            if (!style.minHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "minHeight", style.minHeight());
-            if (!style.maxHeight().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "maxHeight", style.maxHeight());
-            if (!style.display().isEmpty()) root.when(when.isEmpty() ? "$always" : when, "visible", "hidden".equals(style.display()) ? "false" : "true");
+            if (!style.borderTopWidth().isEmpty())    root.when(w, "border.topWidth", style.borderTopWidth());
+            if (!style.borderRightWidth().isEmpty())  root.when(w, "border.rightWidth", style.borderRightWidth());
+            if (!style.borderBottomWidth().isEmpty()) root.when(w, "border.bottomWidth", style.borderBottomWidth());
+            if (!style.borderLeftWidth().isEmpty())   root.when(w, "border.leftWidth", style.borderLeftWidth());
+            if (!style.borderTopStyle().isEmpty())    root.when(w, "border.topStyle", style.borderTopStyle());
+            if (!style.borderRightStyle().isEmpty())  root.when(w, "border.rightStyle", style.borderRightStyle());
+            if (!style.borderBottomStyle().isEmpty()) root.when(w, "border.bottomStyle", style.borderBottomStyle());
+            if (!style.borderLeftStyle().isEmpty())   root.when(w, "border.leftStyle", style.borderLeftStyle());
+            if (!style.borderTopColor().isEmpty())    root.when(w, "border.topColor", style.borderTopColor());
+            if (!style.borderRightColor().isEmpty())  root.when(w, "border.rightColor", style.borderRightColor());
+            if (!style.borderBottomColor().isEmpty()) root.when(w, "border.bottomColor", style.borderBottomColor());
+            if (!style.borderLeftColor().isEmpty())   root.when(w, "border.leftColor", style.borderLeftColor());
+
+            // Transition
+            if (!style.transition().isEmpty())         compileTransitionShorthand(root, when, style.transition());
+            if (!style.transitionProperty().isEmpty()) root.when(w, "transition.property", style.transitionProperty());
+            if (!style.transitionDuration().isEmpty()) root.when(w, "transition.duration", style.transitionDuration());
+            if (!style.transitionEasing().isEmpty())   root.when(w, "transition.easing", style.transitionEasing());
+            if (!style.transitionDelay().isEmpty())    root.when(w, "transition.delay", style.transitionDelay());
+
+            // Animation
+            if (!style.animationDuration().isEmpty())       root.when(w, "animation.duration", style.animationDuration());
+            if (!style.animationIterationCount().isEmpty()) root.when(w, "animation.iterationCount", style.animationIterationCount());
+            if (!style.animationDirection().isEmpty())      root.when(w, "animation.direction", style.animationDirection());
+            if (!style.animationEasing().isEmpty())         root.when(w, "animation.easing", style.animationEasing());
+            if (!style.animationDelay().isEmpty())          root.when(w, "animation.delay", style.animationDelay());
+            if (!style.animationFillMode().isEmpty())       root.when(w, "animation.fillMode", style.animationFillMode());
+            if (!style.animationPlayState().isEmpty())      root.when(w, "animation.playState", style.animationPlayState());
+
+            // Transform
+            if (!style.rotation().isEmpty())        root.when(w, "rotation", style.rotation());  // shorthand → transform.rotationZ
+            if (!style.rotationX().isEmpty())       root.when(w, "transform.rotationX", style.rotationX());
+            if (!style.rotationY().isEmpty())       root.when(w, "transform.rotationY", style.rotationY());
+            if (!style.rotationZ().isEmpty())       root.when(w, "transform.rotationZ", style.rotationZ());
+            if (!style.scale().isEmpty())           root.when(w, "scale", style.scale());        // shorthand → uniform scaleX/Y/Z
+            if (!style.scaleX().isEmpty())          root.when(w, "transform.scaleX", style.scaleX());
+            if (!style.scaleY().isEmpty())          root.when(w, "transform.scaleY", style.scaleY());
+            if (!style.scaleZ().isEmpty())          root.when(w, "transform.scaleZ", style.scaleZ());
+            if (!style.transformOrigin().isEmpty()) root.when(w, "transform.origin", style.transformOrigin());
+
+            // Top-level (flat)
+            if (!style.opacity().isEmpty())   root.when(w, "opacity", style.opacity());
+            if (!style.padding().isEmpty())   root.when(w, "padding", style.padding());
+            if (!style.radius().isEmpty())    root.when(w, "corner", style.radius());
+            if (!style.minWidth().isEmpty())  root.when(w, "minWidth", style.minWidth());
+            if (!style.maxWidth().isEmpty())  root.when(w, "maxWidth", style.maxWidth());
+            if (!style.minHeight().isEmpty()) root.when(w, "minHeight", style.minHeight());
+            if (!style.maxHeight().isEmpty()) root.when(w, "maxHeight", style.maxHeight());
+            if (!style.anchorTop().isEmpty())    root.when(w, "anchorTop", style.anchorTop());
+            if (!style.anchorRight().isEmpty())  root.when(w, "anchorRight", style.anchorRight());
+            if (!style.anchorBottom().isEmpty()) root.when(w, "anchorBottom", style.anchorBottom());
+            if (!style.anchorLeft().isEmpty())   root.when(w, "anchorLeft", style.anchorLeft());
+            if (!style.display().isEmpty()) root.when(w, "visible", "hidden".equals(style.display()) ? "false" : "true");
         }
     }
 
     /**
      * Expand a CSS multi-value border property (1-4 values) to per-side when-blocks.
      * "2px" → all 4 sides. "2px 1px" → top/bottom=2px, right/left=1px. etc.
+     * Suffix is "Width", "Style", or "Color" — the resulting cascade key is
+     * "border.topWidth", "border.rightStyle", etc.
      */
     private static void compileBorderMultiValue(SceneNode root, String when, String suffix, String value) {
         String w = when.isEmpty() ? "$always" : when;
@@ -604,10 +622,10 @@ public class SceneCompiler {
             case 3 -> { top = parts[0]; right = left = parts[1]; bottom = parts[2]; }
             default -> { top = parts[0]; right = parts[1]; bottom = parts[2]; left = parts[3]; }
         }
-        root.when(w, "borderTop" + suffix, top);
-        root.when(w, "borderRight" + suffix, right);
-        root.when(w, "borderBottom" + suffix, bottom);
-        root.when(w, "borderLeft" + suffix, left);
+        root.when(w, "border.top" + suffix, top);
+        root.when(w, "border.right" + suffix, right);
+        root.when(w, "border.bottom" + suffix, bottom);
+        root.when(w, "border.left" + suffix, left);
     }
 
     /**
@@ -617,10 +635,10 @@ public class SceneCompiler {
     private static void compileTransitionShorthand(SceneNode root, String when, String shorthand) {
         String w = when.isEmpty() ? "$always" : when;
         String[] parts = shorthand.trim().split("\\s+");
-        if (parts.length >= 1) root.when(w, "transitionProperty", parts[0]);
-        if (parts.length >= 2) root.when(w, "transitionDuration", parts[1]);
-        if (parts.length >= 3) root.when(w, "transitionEasing", parts[2]);
-        if (parts.length >= 4) root.when(w, "transitionDelay", parts[3]);
+        if (parts.length >= 1) root.when(w, "transition.property", parts[0]);
+        if (parts.length >= 2) root.when(w, "transition.duration", parts[1]);
+        if (parts.length >= 3) root.when(w, "transition.easing", parts[2]);
+        if (parts.length >= 4) root.when(w, "transition.delay", parts[3]);
     }
 
     private static SceneNode bodyFromObject(Object obj) {

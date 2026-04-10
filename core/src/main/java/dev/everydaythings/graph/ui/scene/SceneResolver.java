@@ -315,87 +315,113 @@ public class SceneResolver {
 
     /**
      * Apply a single property override to a SceneNode.
+     *
+     * <p>Cascade property keys are dotted to mirror the nested structure on
+     * SceneNode (e.g., {@code "border.topWidth"}, {@code "transform.rotationZ"},
+     * {@code "typography.fontSize"}, {@code "layout.mode"}). Top-level fields
+     * (width, height, padding, margin, opacity, etc.) use flat keys.
+     *
+     * <p>Shorthand keys ({@code border}, {@code background}, {@code transition},
+     * {@code rotation}, {@code scale}) decompose into longhand fields.
      */
     private void applyProperty(SceneNode node, String property, String value) {
         switch (property) {
-            case "background" -> {  // shorthand — detects gradient syntax or sets color
+            // ----- Shorthand triggers -----
+            case "background" -> {  // detects gradient syntax or sets color
                 Gradient g = Gradient.parse(value);
                 if (g != null) node.backgroundGradient(g);
                 else node.backgroundColor(value);
             }
-            case "backgroundColor" -> node.backgroundColor(value);
-            case "backgroundImage" -> node.backgroundImage(value);
-            case "backgroundSize" -> node.backgroundSize(value);
-            case "foreground" -> node.foreground(value);
             case "border" -> node.border(value);
-            case "borderTopWidth" -> node.borderTopWidth(value);
-            case "borderRightWidth" -> node.borderRightWidth(value);
-            case "borderBottomWidth" -> node.borderBottomWidth(value);
-            case "borderLeftWidth" -> node.borderLeftWidth(value);
-            case "borderTopStyle" -> node.borderTopStyle(value);
-            case "borderRightStyle" -> node.borderRightStyle(value);
-            case "borderBottomStyle" -> node.borderBottomStyle(value);
-            case "borderLeftStyle" -> node.borderLeftStyle(value);
-            case "borderTopColor" -> node.borderTopColor(value);
-            case "borderRightColor" -> node.borderRightColor(value);
-            case "borderBottomColor" -> node.borderBottomColor(value);
-            case "borderLeftColor" -> node.borderLeftColor(value);
-            case "transitionProperty" -> node.transitionProperty(value);
-            case "transitionDuration" -> node.transitionDuration(value);
-            case "transitionEasing" -> node.transitionEasing(value);
-            case "transitionDelay" -> node.transitionDelay(value);
-            case "padding" -> node.padding(value);
-            case "margin" -> node.margin(value);
-            case "width" -> node.width(value);
-            case "height" -> node.height(value);
-            case "gap" -> node.gap(value);
-            case "corner" -> node.corner(value);
-            case "fontSize" -> node.fontSize(value);
-            case "fontFamily" -> node.fontFamily(value);
-            case "fontWeight" -> node.fontWeight(value);
-            case "fontStyle" -> node.fontStyle(value);
-            case "textDecoration" -> node.textDecoration(value);
-            case "textAlign" -> node.textAlign(value);
-            case "lineHeight" -> node.lineHeight(value);
-            case "letterSpacing" -> node.letterSpacing(value);
-            case "textOverflow" -> node.textOverflow(value);
-            case "whiteSpace" -> node.whiteSpace(value);
-            case "minWidth" -> node.minWidth(value);
-            case "maxWidth" -> node.maxWidth(value);
-            case "minHeight" -> node.minHeight(value);
-            case "maxHeight" -> node.maxHeight(value);
-            case "opacity" -> node.opacity(value);
-            case "overflow" -> node.overflow(value);
-            case "visible" -> node.visible(value);
-            case "cursor" -> node.cursor(value);
-            case "fill" -> node.fill(value);
+            case "rotation" -> node.rotation(value);  // → transform.rotationZ
+            case "scale" -> node.scale(value);        // → transform.scaleX/Y/Z
+
+            // ----- background.* -----
+            case "background.color"    -> node.backgroundColor(value);
+            case "background.image"    -> node.backgroundImage(value);
+            case "background.size"     -> node.backgroundSize(value);
+
+            // ----- border.* -----
+            case "border.topWidth"     -> node.borderTopWidth(value);
+            case "border.rightWidth"   -> node.borderRightWidth(value);
+            case "border.bottomWidth"  -> node.borderBottomWidth(value);
+            case "border.leftWidth"    -> node.borderLeftWidth(value);
+            case "border.topStyle"     -> node.borderTopStyle(value);
+            case "border.rightStyle"   -> node.borderRightStyle(value);
+            case "border.bottomStyle"  -> node.borderBottomStyle(value);
+            case "border.leftStyle"    -> node.borderLeftStyle(value);
+            case "border.topColor"     -> node.borderTopColor(value);
+            case "border.rightColor"   -> node.borderRightColor(value);
+            case "border.bottomColor"  -> node.borderBottomColor(value);
+            case "border.leftColor"    -> node.borderLeftColor(value);
+
+            // ----- transition.* -----
+            case "transition.property" -> node.transitionProperty(value);
+            case "transition.duration" -> node.transitionDuration(value);
+            case "transition.easing"   -> node.transitionEasing(value);
+            case "transition.delay"    -> node.transitionDelay(value);
+
+            // ----- animation.* -----
+            case "animation.duration"       -> node.animationDuration(value);
+            case "animation.iterationCount" -> node.animationIterationCount(value);
+            case "animation.direction"      -> node.animationDirection(value);
+            case "animation.easing"         -> node.animationEasing(value);
+            case "animation.delay"          -> node.animationDelay(value);
+            case "animation.fillMode"       -> node.animationFillMode(value);
+            case "animation.playState"      -> node.animationPlayState(value);
+
+            // ----- transform.* -----
+            case "transform.rotationX" -> node.rotationX(value);
+            case "transform.rotationY" -> node.rotationY(value);
+            case "transform.rotationZ" -> node.rotationZ(value);
+            case "transform.scaleX"    -> node.scaleX(value);
+            case "transform.scaleY"    -> node.scaleY(value);
+            case "transform.scaleZ"    -> node.scaleZ(value);
+            case "transform.origin"    -> node.transformOrigin(value);
+            case "transform.elevation" -> node.elevation(value);
+
+            // ----- typography.* -----
+            case "typography.fontSize"       -> node.fontSize(value);
+            case "typography.fontFamily"     -> node.fontFamily(value);
+            case "typography.fontWeight"     -> node.fontWeight(value);
+            case "typography.fontStyle"      -> node.fontStyle(value);
+            case "typography.textDecoration" -> node.textDecoration(value);
+            case "typography.textAlign"      -> node.textAlign(value);
+            case "typography.lineHeight"     -> node.lineHeight(value);
+            case "typography.letterSpacing"  -> node.letterSpacing(value);
+            case "typography.textOverflow"   -> node.textOverflow(value);
+            case "typography.whiteSpace"     -> node.whiteSpace(value);
+            case "typography.foreground"     -> node.foreground(value);
+
+            // ----- layout.* -----
+            case "layout.mode"        -> node.layout(value);
+            case "layout.gap"         -> node.gap(value);
+            case "layout.align"       -> node.align(value);
+            case "layout.justify"     -> node.justify(value);
+
+            // ----- Top-level (flat) -----
+            case "padding"     -> node.padding(value);
+            case "margin"      -> node.margin(value);
+            case "width"       -> node.width(value);
+            case "height"      -> node.height(value);
+            case "corner"      -> node.corner(value);
+            case "minWidth"    -> node.minWidth(value);
+            case "maxWidth"    -> node.maxWidth(value);
+            case "minHeight"   -> node.minHeight(value);
+            case "maxHeight"   -> node.maxHeight(value);
+            case "opacity"     -> node.opacity(value);
+            case "overflow"    -> node.overflow(value);
+            case "visible"     -> node.visible(value);
+            case "cursor"      -> node.cursor(value);
+            case "fill"        -> node.fill(value);
             case "strokeColor" -> node.strokeColor(value);
             case "strokeWidth" -> node.strokeWidth(value);
-            case "pathData" -> node.pathData(value);
-            case "anchorTop" -> node.anchorTop(value);
-            case "anchorRight" -> node.anchorRight(value);
+            case "pathData"    -> node.pathData(value);
+            case "anchorTop"    -> node.anchorTop(value);
+            case "anchorRight"  -> node.anchorRight(value);
             case "anchorBottom" -> node.anchorBottom(value);
-            case "anchorLeft" -> node.anchorLeft(value);
-            case "animationDuration" -> node.animationDuration(value);
-            case "animationIterationCount" -> node.animationIterationCount(value);
-            case "animationDirection" -> node.animationDirection(value);
-            case "animationEasing" -> node.animationEasing(value);
-            case "animationDelay" -> node.animationDelay(value);
-            case "animationFillMode" -> node.animationFillMode(value);
-            case "animationPlayState" -> node.animationPlayState(value);
-            case "rotation" -> node.rotation(value);  // shorthand → rotationZ
-            case "rotationX" -> node.rotationX(value);
-            case "rotationY" -> node.rotationY(value);
-            case "rotationZ" -> node.rotationZ(value);
-            case "scale" -> node.scale(value);
-            case "scaleX" -> node.scaleX(value);
-            case "scaleY" -> node.scaleY(value);
-            case "scaleZ" -> node.scaleZ(value);
-            case "transformOrigin" -> node.transformOrigin(value);
-            case "align" -> node.align(value);
-            case "justify" -> node.justify(value);
-            case "layout" -> node.layout(value);
-            case "text" -> node.text(value);
+            case "anchorLeft"   -> node.anchorLeft(value);
+            case "text"  -> node.text(value);
             case "image" -> node.image(value);
             case "glyph" -> node.glyph(value);
             // Ignore unknown properties silently

@@ -93,7 +93,7 @@ What we need are keys that refer to *meanings*: language-independent, applicatio
 
 A flat key-value pair (`author: Tolkien`) captures a single relationship but loses the structure that gives it meaning. Who is asserting this? About what? In what capacity?
 
-Fillmore's frame semantics (1968; 1982) provides the theoretical foundation. Fillmore observed that understanding a word like "buy" requires understanding an entire *scene*: a buyer, a seller, goods, money, a transaction. A frame, in Fillmore's sense, is "any system of concepts related in such a way that to understand any one of them you have to understand the whole structure in which it fits" (Fillmore, 1982). The participants (buyer, seller, goods, money) are not arbitrary attributes but *thematic roles*: semantic functions catalogued and standardized across decades of research.
+Frame semantics (1968; 1982) provides the theoretical foundation. Fillmore observed that understanding a word like "buy" requires understanding an entire *scene*: a buyer, a seller, goods, money, a transaction. A frame, in Fillmore's sense, is "any system of concepts related in such a way that to understand any one of them you have to understand the whole structure in which it fits" (Fillmore, 1982). The participants (buyer, seller, goods, money) are not arbitrary attributes but *thematic roles*: semantic functions catalogued and standardized across decades of research.
 
 The frame's power is connective. "I eat an apple." Three concepts (a person, an action, a fruit) that in isolation are unrelated. The frame connects them: the person is the Agent (performing the action), the apple is the Patient (being affected), and the eating is the predicate that defines how they relate. Without the frame, three separate concepts. With it, a coherent assertion.
 
@@ -130,11 +130,13 @@ A semantic layer that works only in English is an English-language metadata stan
 
 This requires a clean separation between *meanings* and *words*. Meanings (which I will call sememes, following usage in structural semantics) are language-neutral units with stable identities. Words are language-specific expressions that point to meanings. The predicate AUTHORED exists independently of the English "authored," the Spanish "escrito," or the German "verfasst." Each word, in its language, points to the same meaning.
 
+These four requirements do not name a structure. They constrain one. Whatever fits would have to be built around a meaning rather than a string, carry role-keyed values rather than flat attributes, be complete at the moment of writing, and survive translation between languages. None of these requirements is novel in isolation. What would be new is asking a single structure to satisfy all of them at once, and to do so as the foundation of a layer rather than an annotation laid over one.
+
 ---
 
 ## 5. The Frame as Primitive
 
-I propose the semantic frame as the fundamental primitive. Not the frame as Fillmore defined it for linguistic analysis, but the frame *repurposed*: extended from a tool for understanding language into a tool for structuring data.
+A structure that fits the constraints already exists in the linguistic literature, though it has never been asked to do this job. Fillmore defined it for the purpose of analyzing what sentences mean, and called it the *semantic frame*. Used as a data primitive rather than as a tool for linguistic analysis, it supplies all four requirements at once.
 
 A semantic frame, in this usage, is:
 
@@ -147,25 +149,27 @@ Frame {
 
 A predicate and its role bindings. Nothing else is structurally required. Every element of the frame (what it asserts, what it's about, who is involved, what content it carries) is expressed as a role binding on the predicate.
 
-A **title assertion**: predicate TITLE, bindings (THEME) = the-book, (NAME) = "The Hobbit". The predicate TITLE defines two roles: what is being titled and what the title is.
+A **title assertion**: predicate TITLE, bindings (THEME) = the-book, (VALUE) = "The Hobbit". The predicate TITLE defines two roles: what is being titled, and what the title is.
 
 A **chess move**: predicate MOVE, bindings (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4. Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where). A single move is a single semantic assertion.
 
-A **video**: predicate VIDEO, bindings (THEME) = the-movie, (VIDEO, MKV, UHD) = master-file, (VIDEO, MKV, HD) = transcode. Content in different formats expressed through compound role keys.
+A **video**: predicate VIDEO, bindings (THEME) = the-movie, (VALUE, MKV, UHD) = master-file, (VALUE, MKV, HD) = transcode. The same VALUE role carries content in different formats, distinguished by the qualifiers that follow it in the compound key.
 
 An **authorship assertion**: predicate AUTHORED, bindings (THEME) = The Hobbit, (AGENT) = Tolkien.
 
-These are all structurally identical: a predicate and role bindings with compound semantic keys. The predicate determines what roles the frame expects. The roles determine what the values mean.
+These are all structurally identical: a predicate and role bindings. The predicate determines what roles the frame expects; the roles determine what the values mean.
+
+The predicate is worth pausing on, because it is easy to treat it as a distinct kind of thing. It is not. It is a sememe, a unit of meaning from the shared vocabulary, acting in a particular structural role. In that role, a sememe serves as a template for the frame: it declares what bindings a frame of this kind is expected to carry and how those bindings relate. Calling a sememe a *predicate* names the role it plays, not a category it belongs to. The same vocabulary supplies everything. TOLKIEN, HOBBIT, AUTHORED, and TITLE are all meanings. Which of them naturally fits the predicate role is a matter of what each one denotes, not a structural constraint. Meanings that name relations or events (AUTHORED, TITLE, MOVE) naturally fit as predicates. Meanings that name kinds of thing (HOBBIT, TOLKIEN, CHESS_GAME) naturally fit as binding values or, as we will see, as templates for items.
 
 ### Two levels of role
 
-The ~25 universal thematic roles (Agent, Theme, Goal) are powerful because they are universal, but they are also general. In a chess game, both Fischer and Spassky are Agents. Calling them both "Agent" is correct but insufficient. We need to say they are *players*, and that one plays white and the other black.
+The ~25 universal thematic roles (Agent, Theme, Goal) are powerful because they are universal, but they are also general. In a chess game, both Fischer and Spassky are Agents. Calling them both "Agent" is correct but insufficient. We would need to say they are *players*, and that one plays white and the other black.
 
 FrameNet and VerbNet resolve this tension differently. FrameNet defines frame-specific elements: the Commerce_buy frame has Buyer, Seller, Goods, Money. VerbNet maps these back to universal roles: Buyer maps to Agent, Goods maps to Theme. Both levels are useful. The universal level enables cross-frame queries ("all frames where someone is an Agent"). The frame-specific level enables precision ("all frames where someone is a Buyer").
 
-The semantic base layer needs both, connected through the vocabulary's inheritance hierarchy. PLAYER, BUYER, and AUTHOR are all meanings in the shared vocabulary, each a *specialization* of the universal role AGENT. This relationship is expressed in the system's own terms: HYPERNYM { (THEME) = PLAYER, (GOAL) = AGENT }. PLAYER is a kind of AGENT. The vocabulary describes itself with the same primitives it uses to describe everything else.
+A layer built this way would need both levels, connected through the vocabulary's inheritance hierarchy. PLAYER, BUYER, and AUTHOR are all meanings in the shared vocabulary, each a *specialization* of the universal role AGENT. The relationship can be expressed in the vocabulary's own terms: HYPERNYM { (THEME) = PLAYER, (GOAL) = AGENT }. PLAYER is a kind of AGENT. The vocabulary describes itself with the same primitives it uses to describe everything else.
 
-So a PLAYER frame on a chess game uses the PLAYER role, not the generic Agent, because PLAYER carries the additional meaning the context needs. But because PLAYER inherits from AGENT, any query at the universal level still works: "all frames where Fischer is an AGENT" finds chess games, authorship assertions, and anything else where Fischer acts intentionally.
+A PLAYER frame on a chess game would use the PLAYER role, not the generic Agent, because PLAYER carries the additional meaning the context needs. But because PLAYER inherits from AGENT, any query at the universal level would still work: "all frames where Fischer is an AGENT" would find chess games, authorship assertions, and anything else where Fischer acts intentionally.
 
 ### Compound keys
 
@@ -173,35 +177,61 @@ Roles can be further qualified through **compound keys**: sequences of meanings 
 
 Every element of a compound key is a grounded meaning. VIDEO is not a MIME type prefix; it is the meaning "moving visual content." MKV is not a file extension; it is the meaning "Matroska multimedia container format." ENGLISH is not a locale string; it is the sememe for the English language.
 
-And every meaning in a compound key is an *opportunity for indexing*. If the system indexes frames by the meanings in their binding keys, then "show me all videos" is a simple index lookup on VIDEO. "Show me all UHD videos" narrows to frames whose keys include both VIDEO and UHD. "All MKV content" finds every frame with MKV in its key. The compound key is a multi-dimensional index built from the vocabulary itself. No separate tagging system, no search facets, no metadata catalog. The key *is* the index.
+And every meaning in a compound key is an *opportunity for indexing*. If a layer built this way indexes frames by the meanings in their binding keys, then "show me all videos" becomes a simple index lookup on VIDEO. "Show me all UHD videos" narrows to frames whose keys include both VIDEO and UHD. "All MKV content" finds every frame with MKV in its key. The compound key would function as a multi-dimensional index built from the vocabulary itself. No separate tagging system, no search facets, no metadata catalog. The key *is* the index.
 
 ### Everything is a role binding
 
 There is no fundamental distinction between "the data" and "the metadata" of a frame. A title's text, a video's master file, a chess move's destination square, a document's author: each is a role binding. Provenance is a binding. Signatures are bindings. Timestamps are bindings. What we call "data" is a value filling a role. What we call "metadata" is also a value filling a role. The distinction is conventional, not structural.
 
+### Beyond the natural-language inventory
+
+The ~25 thematic roles inherited from linguistics describe the participants in events: who did what to whom, where, when, how, why. For a frame primitive that has to stand in for everything a data layer stores, they are necessary but not quite sufficient. A few additional roles emerge as soon as the frame is asked to do work that natural language did not need to do.
+
+The first gap is already visible in the title example. The actual text "The Hobbit" is not a participant in any event. It is not an Agent, a Theme, a Goal. It is content, the value the predicate is asserting about its theme. VerbNet has a narrow role called Value (used for things like the "$5" in "She paid $5"), and the frame primitive would generalize it. **VALUE** is the role for whatever a predicate carries as its content: a name, a quantity, a measurement, a designation, a piece of text, a binary blob. In a TITLE frame, the string "The Hobbit" fills VALUE. In a GLOSS frame, the gloss text fills VALUE. In any frame whose payload is the content itself rather than a relationship between participants, VALUE is the role that carries it. This one is a generalization of an existing role rather than a new invention.
+
+The second gap is harder to see from natural language because natural language rarely has to discuss it. How should this assertion be handled, once made? Should it be replicated? Encrypted? Retained for how long? Presented in a particular way? These are not participants in the event the frame describes. They are properties of the assertion itself, governing how the layer treats it. **CONFIG** is the role for operational policy on a frame. Any frame, regardless of its predicate, can carry CONFIG bindings. Compound keys narrow what kind of configuration is meant: (CONFIG, REPLICATION), (CONFIG, PRESENTATION), (CONFIG, RETENTION), and so on. The role is structural, not participant-like, and has no direct ancestor in the linguistic inventory.
+
+The third gap is causal ordering. An assertion sometimes needs to declare that it happened after, or because of, another assertion. A chess move follows the previous move. A paragraph edit follows the edit before it. A reply follows the message it answers. These relationships are not between a verb's participants. They are between assertions themselves. **FOLLOWS** is the role for causal or temporal predecessors. Like CONFIG, it is cross-cutting: any frame can carry a FOLLOWS binding pointing at an earlier frame. And like CONFIG, it has no ancestor in the participant-role inventory, because natural language ordinarily uses tense and discourse structure to do this work, not named participant roles.
+
+Three roles, then, added to the inheritance from linguistics: VALUE (generalized), CONFIG (new), FOLLOWS (new). Each names a recurring function the linguistic literature had no need to catalog, because natural language rarely talks about the *content* of an assertion, the *handling* of an assertion, or the *causal position* of an assertion. A layer made of frames would need all three.
+
 ### Predicates carry behavior
 
-The predicate is not merely a data template. It is a behavioral specification. A predicate can declare how it participates in *parsing* (what syntax it expects, what roles it fills from context) and how it *evaluates* (what computation it performs with filled bindings).
+So far we have treated a predicate as a structural template, declaring what bindings a frame expects. A predicate can do more. It can also declare how frames of its kind behave: how they might be expressed in text or other input, how they might be evaluated if they carry a computation. These declarations would be data on the predicate itself, not rules maintained by a separate parser or interpreter.
 
-The operator `+` is a meaning in the shared vocabulary, the same kind of object as "author" or "create." As a meaning, it carries properties: it is infix, it has a precedence, it associates left-to-right. These are not grammar rules maintained by a parser. They are data on the predicate. The parser reads them. There is no separate precedence table. There is no grammar.
+Consider the token `+`. In ordinary treatment, `+` is a symbol that a language's grammar rules know how to parse. In a frame-based layer, the picture is different. `+` is not a meaning. It is a *token*, a written symbol used in some notations. Other notations use different tokens for the same idea: "plus," "más," "加える." All of them point to the same underlying meaning, the sememe ADD. That sememe, in its role as a predicate, can declare the properties a parser would need to know about it: it is infix, it has a precedence, it associates left-to-right. These properties would not be grammar rules the parser has to be told in advance. They would be data the parser reads off the predicate when it encounters one of its tokens. No separate precedence table. No grammar.
 
-This extends to structural symbols. Parentheses are meanings that declare "I open a group" and "I close a group." There is no reserved syntax. Everything (verbs, operators, functions, parentheses, commas) resolves through the shared vocabulary. Syntax is vocabulary.
+This extends to structural symbols. Parentheses are tokens whose corresponding meanings declare "I open a group" and "I close a group." There is no reserved syntax. Everything (verbs, operators, functions, parentheses, commas) would resolve through the shared vocabulary. Syntax becomes vocabulary.
 
-Any domain can bring its own notation. Chess algebraic notation ("e4," "Nf3," "O-O") is a set of meanings with their own parsing declarations. A regular expression is a set of meanings with their own parsing declarations. They are predicates that declare how they parse, resolved through the same mechanism as arithmetic operators or English prepositions. The frame primitive reaches all the way into how input is interpreted.
+Any domain can bring its own notation. Chess algebraic notation ("e4," "Nf3," "O-O") is a set of tokens whose corresponding meanings declare how they parse. A regular expression is a set of tokens whose meanings declare how they parse. The meanings are predicates; the tokens are surface forms; the parsing behavior is data on the predicates themselves, resolved through the same mechanism as arithmetic operators or English prepositions.
+
+A distinction is worth making explicit here. The predicate declares what a frame of its kind *is* and how it might be parsed and evaluated. The frame is the individual *instance* that results when the predicate is actually used. ADD is a predicate. The string `3 + 5`, resolved into the frame ADD { (THEME) = 3, (INSTRUMENT) = 5 }, is an instance of that predicate. The predicate lives in the shared vocabulary, once. Instances come into existence whenever anyone uses the predicate to make an assertion.
+
+And the behavior a predicate declares is best understood as a *contract*, not a piece of code. The contract lives with the predicate in the vocabulary. Code that satisfies the contract (an actual parser, an actual evaluator) is something else entirely, and the question of where such code comes from and how it gets attached to a predicate is one the primitive itself does not answer. That question is taken up later.
 
 ---
 
-## 6. Coherence: What Frames Cohere Around
+## 6. What Frames Cohere Around
 
 Frames are the primitive. But a single frame is rarely the whole story. A book is a TITLE frame ("The Hobbit"), an AUTHORED frame (Tolkien), TEXT frames (the chapters), a COVER_ART frame, a PUBLICATION frame (1937, Allen & Unwin), and more. Each frame is a separate assertion with its own predicate and bindings. But they are all *about the same thing*. They only make sense together.
 
-If frames can be about the same thing, they need a shared identity to point to. That identity, and the collection of frames that describe it, I call an **item**.
+If frames can be about the same thing, they need a shared identity to point to. That identity, and the collection of frames cohering around it, is what we will call an **item**.
 
-An item is not a new primitive in the way a frame is. It is an architectural choice: a stable, cryptographic identity that frames can reference to indicate "I am about *this thing*." The book is an item. Tolkien is an item. A chess game is an item. Each exists as an identity around which frames accumulate, building up a coherent, multi-faceted description. The role that carries this reference depends on the predicate: THEME for an authorship assertion (the work being described), LOCATION for a chess move (the game where it happens).
+An item is not a new primitive in the way a frame is. It is what falls out when frames need to be *about* something: a stable identity that frames can reference to indicate "I am about *this thing*." The book is an item. Tolkien is an item. A chess game is an item. Each exists as an identity around which frames accumulate, building up a coherent, multi-faceted description. The role that carries this reference depends on the predicate: THEME for an authorship assertion (the work being described), LOCATION for a chess move (the game where it happens).
 
-Entity identity uses content-addressed cryptography: an item's identity is a hash derived from its defining characteristics, making it stable, verifiable, and independent of any central registry. Identity is not assigned by an authority but established by the convergence of content. This choice has consequences, and those consequences are load-bearing parts of the architecture.
+Identity in this picture would use content-addressed cryptography: an item's identity is a hash derived from its defining characteristics, making it stable, verifiable, and independent of any central registry. Identity would not be assigned by an authority but established by the convergence of content. The choice has consequences, and those consequences are load-bearing parts of what follows.
 
-A chess game makes the pattern vivid. The game is an item with a type. But it is not a monolithic structure. It is an accumulation of signed frames.
+### The archetype
+
+What makes a particular item the kind of thing it is? A book is recognizably a book, not because some authority declares it so, but because the frames it carries are the frames a book is *expected* to have. There is a TITLE frame. There are AUTHORED frames. There are TEXT frames for the chapters. There is a PUBLICATION frame. The collection of expected frames is what makes the item, in any meaningful sense, a book.
+
+Where does that expectation live? In the same place predicates live: the shared vocabulary. BOOK is a sememe, just like AUTHORED is a sememe. But where AUTHORED, in its role as a predicate, declares what bindings a frame of its kind expects, BOOK, in a different structural role, declares what frames an item of its kind is expected to carry. Call a sememe playing this latter role an *archetype*. BOOK is an archetype. CHESS_GAME is an archetype. PERSON is an archetype. LANGUAGE is an archetype. Each is a sememe in the shared vocabulary, acting as a template for items rather than for frames.
+
+Predicate and archetype are not categories of sememe. They are functional roles a sememe can play, parallel and complementary. A predicate is a sememe acting as a template for a frame. An archetype is a sememe acting as a template for an item. The same vocabulary supplies both. Which role a particular sememe naturally fits depends on what it denotes: meanings that name relations or events fit as predicates, meanings that name kinds of thing fit as archetypes. Nothing in the system would enforce the assignment, but in practice the division falls out cleanly from the meanings themselves.
+
+There is one important asymmetry between archetypes and predicates, and it shapes how items grow. A predicate's declaration is closed: a frame using a particular predicate has the bindings the predicate calls for, no more and no less. An archetype's declaration is *open*: it lists the frames an instance is expected to carry, but instances can accumulate frames the archetype never mentioned. A book is expected to have a TITLE and AUTHORED frames. Nothing prevents anyone from also attaching a LIKE frame, a comment, a citation, a fact-check, a translation, a review, a bookmark, a personal annotation. The archetype defines what makes something a book. It does not gatekeep what others may say about it.
+
+A chess game makes the pattern vivid. The game is an item. CHESS_GAME is its archetype, declaring the frames a chess game is expected to carry: the players, the moves, the result. But the item itself is not a monolithic structure. It is an accumulation of signed frames.
 
 Players register by signing their own PLAYER frames: `PLAYER { (AGENT) = Fischer, (ROLE) = WHITE }` signed by Fischer; `PLAYER { (AGENT) = Spassky, (ROLE) = BLACK }` signed by Spassky. Each player attests their own participation. It is not assigned by a third party; it is declared by the participant and carries their signature.
 
@@ -237,9 +267,9 @@ A semantic frame is only as useful as the vocabulary it draws from. If every app
 
 This is an old problem. Gruber (1993) argued that shared ontologies are essential for knowledge sharing. Lenat's CYC (1995) attempted to solve it by hand-encoding millions of common-sense assertions, demonstrating both the importance of shared knowledge and the intractability of creating it manually. The Semantic Web attempted ontology languages (RDF, RDFS, OWL), but the proliferation of competing ontologies became a problem in itself.
 
-I propose a different anchor: the empirically documented structure of human lexical semantics.
+A different anchor is available, one that did not exist when CYC began or when the Semantic Web was proposed: the empirically documented structure of human lexical semantics.
 
-### The vocabulary of types, predicates, and roles
+### The vocabulary
 
 **WordNet** (Miller et al., 1993) organizes English into ~120,000 *synsets* (synonym sets representing distinct concepts). Each synset is a meaning, not a word. WordNet provides hierarchical relationships (dog is-a canine is-a mammal), part-whole relationships, antonymy, and other semantic relations.
 
@@ -253,11 +283,15 @@ Three additional resources provide vocabulary for the frame primitive specifical
 
 **ISO 24617-4** standardizes ~25 thematic roles sufficient for characterizing argument structure across languages. These roles, validated across VerbNet, FrameNet, and PropBank, provide the binding keys that semantic frames need.
 
-Together, three layers:
+Together, these resources supply meanings for three distinct structural roles a sememe can play:
 
-1. **Types and concepts** (WordNet/CILI): what kinds of things exist (PERSON, BOOK, GAME, LANGUAGE), organized hierarchically and linked across languages
-2. **Predicates** (WordNet verb synsets, VerbNet classes): what assertions can be made (AUTHORED, PURCHASED, TITLED), each declaring expected roles
-3. **Roles** (VerbNet, ISO 24617-4): what semantic functions participants play (Agent, Theme, Goal, Source, Instrument), the universal binding keys
+1. **Archetypes** (WordNet/CILI): meanings that name kinds of thing (PERSON, BOOK, CHESS_GAME, LANGUAGE), used as templates for items
+2. **Predicates** (WordNet verb synsets, VerbNet classes): meanings that name relations or events (AUTHORED, PURCHASED, TITLED, MOVE), used as templates for frames
+3. **Roles** (VerbNet, ISO 24617-4): meanings that name semantic functions (Agent, Theme, Goal, Source, Instrument), used as binding keys
+
+All three are the same kind of object: a sememe. The categorization is functional, not structural. WordNet does not distinguish "meanings that template items" from "meanings that template frames." It just lists meanings, organized by what they denote. The frame primitive borrows them and puts them to work in different structural positions. Which sememe naturally fits which position is not a design choice imposed from outside; it falls out from what each meaning is about.
+
+A small number of structural roles are not present in the linguistic literature, because natural language did not need them. As noted earlier, **VALUE** (generalized from VerbNet's narrower Value role), **CONFIG** (operational policy on a frame), and **FOLLOWS** (causal predecessor) are added to the inventory. Each names a function a frame-as-data-primitive needs but a frame-as-event-description does not. They are faithful in spirit to the existing inventory; they fill structural gaps the literature had no occasion to fill.
 
 ### The entity problem
 
@@ -267,7 +301,7 @@ Today, Tolkien exists as a Wikipedia page, an Amazon author page, a Goodreads en
 
 This is the hardest problem the shared meaning space must address. WordNet provides the *concept* PERSON, but not an identity for every specific person. Every previous attempt at scale entity identity has hit the same tension: centralized registries (Wikidata, Library of Congress) are fragile, political, and exclusionary. Fully decentralized naming is ambiguous.
 
-The semantic base layer takes a specific position. Entities are items: collections of frames with cryptographic identities. Tolkien is not a string or a URL or a row in a registry. He is an item carrying frames that assert his name, birth date, works, relationships. These frames are signed by the people and institutions that assert them.
+The position taken here is that entities are items: collections of frames with cryptographic identities. Tolkien, in this picture, is not a string or a URL or a row in a registry. He is an item carrying frames that assert his name, birth date, works, relationships. These frames are signed by the people and institutions that assert them.
 
 Convergence happens through the social graph. When Alice creates an AUTHORED frame binding a Tolkien entity as AGENT, she binds to a specific cryptographic identity from her trust network. If the Library of Congress publishes a SAME_AS frame linking their authority record to Alice's Tolkien entity, and Bob trusts both, Bob's system resolves them as the same entity. No central registry. Accumulation of signed assertions from trusted parties.
 
@@ -291,33 +325,35 @@ The mapping turns out to be natural.
 
 ### Arithmetic
 
-3 + 5 = 8. The operation ADD is the predicate. The operands are not Agents (they don't initiate anything) or Patients (they don't change). One is the Theme (the entity being operated on) and the other is the Instrument (the means by which the operation is performed). Natural language reveals the asymmetry: we say "add 5 *to* 3," not "add 3 and 5 symmetrically." The answer is a Result (something that comes into existence through the operation).
+3 + 5 = 8. The operation ADD is the predicate. The operands are not Agents (they don't initiate anything) or Patients (they don't change). One is the Theme (the entity being operated on) and the other is the Instrument (the means by which the operation is performed). Natural language reveals the asymmetry: we say "add 5 *to* 3," not "add 3 and 5 symmetrically."
 
 ```
-ADD { (THEME) = 3, (INSTRUMENT) = 5, (RESULT) = 8 }
+ADD { (THEME) = 3, (INSTRUMENT) = 5 }
 ```
 
-Subtraction makes the asymmetry explicit: 10 - 3 = 7. 10 is the Theme (the quantity being diminished). 3 is the Instrument. 7 is the Result.
+The frame is the input form: a predicate and its bindings, nothing more. Evaluating the frame produces a value, in this case 8. That value plays the role of Result in the cognitive structure (the thing that comes into existence through the operation), but it is not a binding on the input frame. It is what comes out the other end when the frame is run against an implementation of ADD's contract. Where that implementation comes from is taken up at the end of this section.
+
+Subtraction makes the asymmetry explicit: 10 - 3 = 7. 10 is the Theme (the quantity being diminished). 3 is the Instrument.
 
 ```
-SUBTRACT { (THEME) = 10, (INSTRUMENT) = 3, (RESULT) = 7 }
+SUBTRACT { (THEME) = 10, (INSTRUMENT) = 3 }
 ```
 
-Theme ("the thing being acted on") and Instrument ("by what means") are exactly the semantic functions these values serve. The roles were defined for natural language, but they describe the same cognitive structure.
+Evaluating produces 7 as the Result. Theme ("the thing being acted on") and Instrument ("by what means") are exactly the semantic functions the input values serve. The roles were defined for natural language, but they describe the same cognitive structure.
 
 ### Calculus
 
 The definite integral ∫₀¹ x² dx:
 
 ```
-INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx, (RESULT) = ⅓ }
+INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx }
 ```
 
-Source and Goal for the bounds of integration. These roles were defined for physical motion ("move from the house to the store") but they map onto abstract endpoints with no strain, because the cognitive structure is the same: a starting point, an ending point, a traversal.
+Source and Goal for the bounds of integration. These roles were defined for physical motion ("move from the house to the store") but they map onto abstract endpoints with no strain, because the cognitive structure is the same: a starting point, an ending point, a traversal. Evaluating the frame produces ⅓, the Result.
 
-Differentiation: d/dx(x²) = 2x becomes `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x, (RESULT) = 2x }`.
+Differentiation: d/dx(x²) = 2x becomes `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x }`, evaluating to 2x.
 
-Limits: lim(x→∞) 1/x = 0 becomes `LIMIT { (THEME) = 1/x, (GOAL) = ∞, (RESULT) = 0 }`. The variable approaches the Goal, the same directional structure as physical motion.
+Limits: lim(x→∞) 1/x = 0 becomes `LIMIT { (THEME) = 1/x, (GOAL) = ∞ }`, evaluating to 0. The variable approaches the Goal, the same directional structure as physical motion.
 
 ### The role mapping
 
@@ -332,6 +368,8 @@ Limits: lim(x→∞) 1/x = 0 becomes `LIMIT { (THEME) = 1/x, (GOAL) = ∞, (RESU
 | Degree or magnitude of change | Extent | "by how much" |
 | Path of integration (line integrals) | Path | "the route taken" |
 
+(Result here names the role for the *output* of evaluation, not an input binding on the frame. The other rows describe input bindings.)
+
 ### Why this matters
 
 The mapping is significant not because it enables a math engine (though it does: `5 meters + 3 feet` is an ADD frame whose operands are quantities with unit sememes, resolvable because METER and FOOT are both LENGTH units with known conversion factors). It is significant because it demonstrates that thematic roles are cognitive structuring principles, not linguistic artifacts.
@@ -344,11 +382,29 @@ If ~25 thematic roles can structure natural language, social interactions, and m
 
 Not only are mathematical operations frames, they constitute a *language* with its own grammar. And that grammar is data on the predicates themselves.
 
-`+` is a meaning in the shared vocabulary. It carries properties: infix, a precedence level, left-to-right associativity. The parser reads these properties from the operator, the same way it reads role expectations from a verb. There is no separate grammar for mathematical expressions. There are predicates with parsing metadata.
+`+` is a token: a written symbol used in some notations. Other notations use "plus," "más," or other tokens for the same meaning. The meaning itself is the sememe ADD. As a predicate, ADD can declare the properties any parser would need: it is infix, it has a precedence level, it associates left-to-right. The parser reads these properties from the predicate when it encounters one of `+`'s tokens, the same way it reads role expectations from a verb. There is no separate grammar for mathematical expressions. There are predicates with parsing metadata, accessible through the same vocabulary lookup as everything else.
 
 The consequence: natural language, mathematical expressions, and domain-specific notations coexist within a single input stream. "Create chess where score > sqrt(9) named rematch" mixes English ("create chess"), a mathematical sub-expression ("score > sqrt(9)"), and an auxiliary predicate ("named rematch"). One resolution pipeline, where each predicate declares its parsing behavior. The language being spoken is inferred from the tokens, not assumed.
 
 Mathematical and functional expressions are not bolted onto the side of a semantic layer. They are frames. A spreadsheet cell is a frame whose value is the result of an expression frame. The boundary between "data" and "computation" dissolves the same way "data" and "metadata" does: both are role bindings on predicates.
+
+### The contract and the code
+
+A predicate carries a *contract*. As we have seen, it declares how a frame of its kind might be parsed and evaluated, what kinds of values it expects, what kind of result it produces. The contract lives with the predicate in the shared vocabulary, alongside the predicate's glosses and lexemes and parsing properties. But the contract is not the same thing as the code that satisfies it. ADD, as a predicate, can declare that its frames take two operands and produce a sum. It cannot, by itself, actually compute the sum. Something else has to do that.
+
+Where does that something live? Once frames are asked to express computations, the question becomes unavoidable. Some piece of code, somewhere, has to read the bindings and produce a value.
+
+The answer that fits the rest of the architecture is that code is published the same way every other thing is: as items. An implementation of ADD would itself be an item, a content-addressed and signed collection of frames. One of those frames would carry the executable form: source code in some language, compiled bytes for some runtime, or a formal specification a verified compiler could consume. Other frames would declare which contract the implementation satisfies, who signed it, what runtime is needed to execute it, what trust assumptions it makes. All of this is just data, structured the same way every other item in the layer is structured. The relationship between an implementation and the predicate it satisfies is itself a frame, sitting in the implementation's manifest, indexed under both the implementation and the predicate.
+
+A predicate could have many implementations: different runtimes, different trade-offs, different authors, all coexisting. A library handed an ADD frame to evaluate would look across the implementations it has, pick one whose runtime it can execute and whose author it trusts, and run that one. The contract is the meaning. The code is the machinery. A given evaluation depends on the machinery available at the moment, but the meaning the frame asserts does not.
+
+Nobody would own the contract. ADD is a sememe in the shared vocabulary, no different from BOOK or AUTHORED in this respect. Nothing in the architecture would let any single party declare what counts as an implementation of it. Anyone could publish an implementation item, sign it, and let it propagate. Whether a particular library would actually use it would be a matter of local trust, not central authorization.
+
+Code distribution would become a special case of data distribution. Today, when software reaches a user's machine, it travels through some centralized clearinghouse: an app store, a package manager, a programming-language registry, a vendor's release server. Each is a single point of trust, with its own rules and its own failure modes. In the picture being described, code would travel through the same peer-to-peer mechanism as any other item: signed, content-addressed, replicated through trust relationships, versioned, forkable. The package manager dissolves into the same medium that carries the rest of the data. This is one of the more consequential things the architecture quietly replaces, even though it is not what the white paper is centrally about.
+
+The choice raises serious security concerns. Running code from arbitrary peers is a recipe for disaster unless the runtimes loading and executing it are properly sandboxed. Sandboxing in this picture would not be a separate special system. It would be another kind of policy attached to frames, the same way replication or retention policy would be. The problem is hard, but it is the same kind of hard as sandboxing untrusted JavaScript in a web browser, and the existing landscape of techniques (capability-based interfaces, isolated execution environments, formal verification of restricted languages) gives plenty to draw on.
+
+The deeper point is structural. Computation would not need a separate apparatus alongside the data. The contract for a piece of computation is a meaning in the vocabulary, played as a predicate. The code that satisfies the contract is an item in the graph. The link between them is a frame. Everything that has to exist for computation to happen is the same kind of object that has to exist for everything else.
 
 ---
 
