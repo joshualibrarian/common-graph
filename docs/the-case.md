@@ -124,11 +124,11 @@ This inventory is not arbitrary and it is not infinite. It reflects empirical fi
 
 This is the core inversion. Every existing system stores data first and tries to determine its meaning later. Search engines crawl. NLP systems annotate after the fact. Data integration pipelines map between schemas post-hoc. All of these are attempts to recover meaning that was present in the creator's mind but never captured in the data.
 
-A semantic base layer inverts this. Meaning is resolved *at the moment of creation*, when it is trivially easy, because the creator knows what they mean. The disambiguation that search engines and NLP pipelines struggle to perform after the fact is effortless at write time. When a user creates a relationship between a person and a book, they know whether they mean "authored," "edited," "reviewed," or "purchased." If the system captures that distinction as a grounded semantic predicate at creation time, no subsequent system ever needs to guess.
+A semantic base layer inverts this. Meaning could be resolved *at the moment of creation*, when it is trivially easy, because the creator knows what they mean. The disambiguation that search engines and NLP pipelines struggle to perform after the fact is effortless at write time. When a user creates a relationship between a person and a book, they know whether they mean "authored," "edited," "reviewed," or "purchased." If the layer captures that distinction as a grounded semantic predicate at creation time, no subsequent system ever needs to guess.
 
-The predicate, once chosen, tells the system what roles to expect. The system prompts for them, offers completions, validates inputs. The act of creating data *is* the act of resolving meaning, because selecting a predicate and filling its roles is inherently a semantic operation.
+The predicate, once chosen, tells the layer what roles to expect. The layer prompts for them, offers completions, validates inputs. The act of creating data *becomes* the act of resolving meaning, because selecting a predicate and filling its roles is inherently a semantic operation.
 
-This is not natural language understanding. The system does not parse free text and try to extract meaning. It structures the input environment so that meaning is captured as a natural consequence of creation. The user selects a predicate, fills roles, and the result is a grounded semantic structure. The hardest problem in NLP (disambiguation) is trivially solved by the person who knows what they mean.
+This is not natural language understanding. Such a layer would not parse free text and try to extract meaning. It would structure the input environment so that meaning is captured as a natural consequence of creation. The user selects a predicate, fills roles, and the result is a grounded semantic structure. The hardest problem in NLP (disambiguation) is trivially solved by the person who knows what they mean.
 
 ### Cross-lingual stability
 
@@ -229,23 +229,23 @@ Identity in this picture would use content-addressed cryptography: an item's ide
 
 ### The archetype
 
-What makes a particular item the kind of thing it is? A book is recognizably a book, not because some authority declares it so, but because the frames it carries are the frames a book is *expected* to have. There is a TITLE frame. There are AUTHORED frames. There are TEXT frames for the chapters. There is a PUBLICATION frame. The collection of expected frames is what makes the item, in any meaningful sense, a book.
+What makes a particular item the kind of thing it is? A book is recognizably a book, not because some authority declares it so, but because the frames it carries are the frames a book is *expected* to have. There are TITLE frames. There are AUTHORED frames. There are TEXT frames for the chapters. There are PUBLICATION frames. The collection of expected frames is what makes the item, in any meaningful sense, a book.
 
 Where does that expectation live? In the same place predicates live: the shared vocabulary. BOOK is a sememe, just like AUTHORED is a sememe. But where AUTHORED, in its role as a predicate, declares what bindings a frame of its kind expects, BOOK, in a different structural role, declares what frames an item of its kind is expected to carry. Call a sememe playing this latter role an *archetype*. BOOK is an archetype. CHESS_GAME is an archetype. PERSON is an archetype. LANGUAGE is an archetype. Each is a sememe in the shared vocabulary, acting as a template for items rather than for frames.
 
 Predicate and archetype are not categories of sememe. They are functional roles a sememe can play, parallel and complementary. A predicate is a sememe acting as a template for a frame. An archetype is a sememe acting as a template for an item. The same vocabulary supplies both. Which role a particular sememe naturally fits depends on what it denotes: meanings that name relations or events fit as predicates, meanings that name kinds of thing fit as archetypes. Nothing in the system would enforce the assignment, but in practice the division falls out cleanly from the meanings themselves.
 
-There is one important asymmetry between archetypes and predicates, and it shapes how items grow. A predicate's declaration is closed: a frame using a particular predicate has the bindings the predicate calls for, no more and no less. An archetype's declaration is *open*: it lists the frames an instance is expected to carry, but instances can accumulate frames the archetype never mentioned. A book is expected to have a TITLE and AUTHORED frames. Nothing prevents anyone from also attaching a LIKE frame, a comment, a citation, a fact-check, a translation, a review, a bookmark, a personal annotation. The archetype defines what makes something a book. It does not gatekeep what others may say about it.
+There is one important asymmetry between archetypes and predicates, and it shapes how items grow. A predicate's declaration is mostly closed: a frame using a particular predicate carries the bindings the predicate calls for, though cross-cutting structural roles like CONFIG can appear on any frame regardless of predicate. An archetype's declaration is *open*: it lists the frames an instance is expected to carry, but instances can accumulate frames the archetype never mentioned. A book is expected to have TITLE and AUTHORED frames. Nothing prevents anyone from also attaching a LIKE frame, a comment, a citation, a fact-check, a translation, a review, a bookmark, a personal annotation. The archetype defines what makes something a book. It does not gatekeep what others may say about it.
 
-A chess game makes the pattern vivid. The game is an item. CHESS_GAME is its archetype, declaring the frames a chess game is expected to carry: the players, the moves, the result. But the item itself is not a monolithic structure. It is an accumulation of signed frames.
+A chess game makes the pattern vivid. The game is an item. CHESS is its archetype, declaring the frames a chess game is expected to carry: the players, the moves, the result. But the item itself is not a monolithic structure. It is an accumulation of signed frames.
 
-Players register by signing their own PLAYER frames: `PLAYER { (AGENT) = Fischer, (ROLE) = WHITE }` signed by Fischer; `PLAYER { (AGENT) = Spassky, (ROLE) = BLACK }` signed by Spassky. Each player attests their own participation. It is not assigned by a third party; it is declared by the participant and carries their signature.
+Players would register by signing their own PLAYER frames: PLAYER { (AGENT) = Fischer, (ROLE) = WHITE } signed by Fischer; PLAYER { (AGENT) = Spassky, (ROLE) = BLACK } signed by Spassky. Each player attests their own participation. It is not assigned by a third party; it is declared by the participant and carries their signature.
 
-Then moves: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 }` signed by Fischer. Each move is independently meaningful, independently signed, independently verifiable. The game is the ordered sequence of these signed assertions, all cohering around the same item identity.
+Then moves: MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 } signed by Fischer. Each move is independently meaningful, independently signed, independently verifiable. The game is the ordered sequence of these signed assertions, all cohering around the same item identity.
 
-No special game engine data structure is needed. Each move is a frame, the same primitive as a title or a video. And because each move is a frame, it is queryable. "All games where someone opened with pawn to e4" is an index lookup on MOVE frames with (GOAL) = e4. "All games Fischer played" is a lookup on PLAYER frames with (AGENT) = Fischer. "Fischer's longest game" is a count of MOVE frames per game item where Fischer has a PLAYER frame.
+No special game engine data structure would be needed. Each move is a frame, the same primitive as a title or a video. And because each move is a frame, it is queryable. "All games where someone opened with pawn to e4" is an index lookup on MOVE frames with (GOAL) = e4. "All games Fischer played" is a lookup on PLAYER frames with (AGENT) = Fischer. "Fischer's longest game" is a count of MOVE frames per game item where Fischer has a PLAYER frame.
 
-This generalizes immediately. A chat room is an item where people join with signed MEMBERSHIP frames and contribute with signed MESSAGE frames. A key log is an item with KEY frames, REVOKE frames, and DELEGATE frames. An auction is an item where bidders assert signed BID frames. All the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is.
+The pattern generalizes immediately. A chat room would be an item where people join with signed MEMBERSHIP frames and contribute with signed MESSAGE frames. A key log would be an item with KEY frames, REVOKE frames, and DELEGATE frames. An auction would be an item where bidders assert signed BID frames. All the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is.
 
 ### The photograph, revisited
 
@@ -285,15 +285,15 @@ Carol asserts the photo is funny and elaborates in the VALUE binding. Dave recom
 
 A Spanish speaker looking at the same photograph sees it through Spanish lexemes. The sememe DEPICTS has a Spanish word. GRADUATION has a Spanish word. CAMPUS has a Spanish word. The frames are the same. The words that surface them differ. No translation has occurred. The meanings were language-neutral from the start.
 
-And the architecture closes a circle: even sememes themselves (the units of meaning in the shared vocabulary) are items. The sememe METER carries a GLOSS frame in English ("the base unit of length in the metric system"), a GLOSS in Spanish, a DIMENSION frame (LENGTH), CONVERSION frames to other units, a HYPERNYM frame (METER is-a LENGTH_UNIT), and a SYMBOL frame ("m"). The meaning is not a definition string. It is the structured totality of everything asserted about it.
+And the architecture closes a circle: even sememes themselves (the units of meaning in the shared vocabulary) would be items. The sememe METER carries a GLOSS frame in English ("the base unit of length in the metric system"), a GLOSS in Spanish, a DIMENSION frame (LENGTH), CONVERSION frames to other units, a HYPERNYM frame (METER is-a LENGTH_UNIT), and a SYMBOL frame ("m"). The meaning is not a definition string. It is the structured totality of everything asserted about it.
 
-The same holds for every sememe. AUTHOR has glosses, hierarchical relationships, and lexemes in every imported language. A language itself (English, Spanish, Japanese) is an item whose frames include its entire lexicon. The vocabulary lives *in* the graph, as items made of frames, using the same primitives as everything else.
+The same holds for every sememe. AUTHOR has glosses, hierarchical relationships, and lexemes in every imported language. A language itself (English, Spanish, Japanese) is an item whose frames include its entire lexicon. The vocabulary would live *in* the graph, as items made of frames, using the same primitives as everything else.
 
 This is where the analogy to files becomes concrete:
 
 | Files | Items |
 |---|---|
-| Opaque bytes; the system cannot interpret content | Typed frames; the system knows what everything means |
+| Opaque bytes; no layer interprets content | Typed frames; the layer knows what everything means |
 | Named by path in a hierarchy | Discoverable by meaning; exist in a semantic graph, not a tree |
 | No built-in authorship, versioning, or integrity | Every frame is signed, content-addressed, and verifiable |
 | Metadata is a sidecar (EXIF, xattr, .DS_Store) | Metadata IS frames, first-class and queryable |
@@ -301,7 +301,7 @@ This is where the analogy to files becomes concrete:
 | Application decides how to interpret it | Item carries its own vocabulary and presentation |
 | Search by filename or keyword | Query by meaning across the graph |
 
-The item is what replaces the file for the user. Not at the POSIX level (bytes and streams are a fine substrate for low-level I/O) but for user-facing data: the things people create, name, share, organize, search for, and care about. The item is the thing that knows what it means, because it is made of frames, and frames are meaning.
+The item is what would replace the file for the user. Not at the POSIX level (bytes and streams are a fine substrate for low-level I/O) but for user-facing data: the things people create, name, share, organize, search for, and care about. The item is the thing that knows what it means, because it is made of frames, and frames are meaning.
 
 ---
 
@@ -347,13 +347,13 @@ This is the hardest problem the shared meaning space must address. WordNet provi
 
 The position taken here is that entities are items: collections of frames with cryptographic identities. Tolkien, in this picture, is not a string or a URL or a row in a registry. He is an item carrying frames that assert his name, birth date, works, relationships. These frames are signed by the people and institutions that assert them.
 
-Convergence happens through the social graph. When Alice creates an AUTHORED frame binding a Tolkien entity as AGENT, she binds to a specific cryptographic identity from her trust network. If the Library of Congress publishes a SAME_AS frame linking their authority record to Alice's Tolkien entity, and Bob trusts both, Bob's system resolves them as the same entity. No central registry. Accumulation of signed assertions from trusted parties.
+Convergence could happen through the social graph. When Alice creates an AUTHORED frame binding a Tolkien entity as AGENT, she binds to a specific cryptographic identity from her trust network. If the Library of Congress publishes a SAME_AS frame linking their authority record to Alice's Tolkien entity, and Bob trusts both, Bob's system could resolve them as the same entity. No central registry. Accumulation of signed assertions from trusted parties.
 
 I will not pretend this is a solved problem. It trades the problems of centralized identity (political control, single points of failure) for different problems (convergence latency, conflicting identities). I believe the trade-off is correct for a decentralized semantic layer, but the entity problem remains the area where the architecture is most genuinely unproven.
 
 ### Meaning and expression
 
-The architecture separates *meaning* from *expression*: meanings are language-neutral; words belong to specific languages and point to meanings. To "translate" a concept from English to Spanish, look up the English word's meaning, then find the Spanish word for that meaning. Import English and Spanish WordNet (both linked via CILI), and you have a bidirectional dictionary covering 120,000 concepts. Not a feature. A structural consequence of separating meaning from expression.
+The architecture described here would separate *meaning* from *expression*: meanings are language-neutral; words belong to specific languages and point to meanings. To "translate" a concept from English to Spanish, look up the English word's meaning, then find the Spanish word for that meaning. Import English and Spanish WordNet (both linked via CILI), and you have a bidirectional dictionary covering 120,000 concepts. Not a feature. A structural consequence of separating meaning from expression.
 
 ### An open commons
 
@@ -454,25 +454,25 @@ The deeper point is structural. Computation would not need a separate apparatus 
 
 ## 9. What Follows
 
-If we accept the premises (computing needs a semantic base layer, it must be built in not bolted on, the frame is the right primitive, the vocabulary is anchored in empirical linguistics) then several consequences follow. They are not independent features. They are structural properties, coupled: you cannot get some without the others, and you do not need to engineer them separately.
+If we accept the premises (computing needs a semantic base layer, it must be built in not bolted on, the frame is the right primitive, the vocabulary is anchored in empirical linguistics) then a number of consequences would follow. They would not be independent features. They would be structural properties, coupled: you could not get some without the others, and you would not need to engineer them separately.
 
-**Queryability without crawling.** Every piece of data is a frame with a grounded predicate and semantically-keyed bindings. The data *is* the index. "All books authored by Tolkien" is not a text search; it is a lookup on AUTHORED frames where AGENT refers to Tolkien. Each frame is indexed by its predicate and by each meaning in its compound binding keys. For N frames with K bindings on average, the index contains O(N × K) entries. Queries resolve in O(log N). Standard data structures, richer keys.
+**Queryability without crawling.** Every piece of data would be a frame with a grounded predicate and semantically-keyed bindings. The data *would be* the index. "All books authored by Tolkien" would not be a text search; it would be a lookup on AUTHORED frames where AGENT refers to Tolkien. Each frame would be indexed by its predicate and by each meaning in its compound binding keys. For N frames with K bindings on average, the index contains O(N × K) entries. Queries resolve in O(log N). Standard data structures, richer keys.
 
-**Multilingual interoperability.** A Spanish speaker and an English speaker see the same data through their own words but operate on the same semantic structures. The system does not translate; it resolves, through different words, to the same concept.
+**Multilingual interoperability.** A Spanish speaker and an English speaker would see the same data through their own words but operate on the same semantic structures. The layer would not translate; it would resolve, through different words, to the same concept.
 
-**Trust as data.** Every frame is a signed assertion by an identified party. A "like" is a signed frame. A spam label is a signed frame. A fact-check is a signed frame. Different users, with different trust relationships, see different views of the same underlying data, not because a platform is making editorial decisions, but because trust policies (themselves data) produce different evaluations. This is Szabo's (1997) vision of formalizing relationships on public networks, realized through the frame primitive.
+**Trust as data.** Every frame would be a signed assertion by an identified party. A "like" would be a signed frame. A spam label would be a signed frame. A fact-check would be a signed frame. Different users, with different trust relationships, would see different views of the same underlying data, not because a platform is making editorial decisions, but because trust policies (themselves data) produce different evaluations. This is Szabo's (1997) vision of formalizing relationships on public networks, realized through the frame primitive.
 
-**Content-addressed identity.** Frame identity is determined by semantic content (predicate + bindings). Two identical assertions produce the same identity regardless of who makes them or when. The same principle as content-addressed storage (Merkle, 1979; Benet, 2014), applied to semantic structures rather than opaque bytes.
+**Content-addressed identity.** Frame identity would be determined by semantic content (predicate + bindings). Two identical assertions would produce the same identity regardless of who makes them or when. The same principle as content-addressed storage (Merkle, 1979; Benet, 2014), applied to semantic structures rather than opaque bytes.
 
 **Composability.** A document is frames. A chat room is frames. A chess game is frames. A trust relationship is frames. A mathematical expression is frames. There is no structural distinction between content, metadata, relationships, configuration, and computation.
 
-**Liveness.** Real-time shared presence is not a separate system. A PRESENT frame asserts "I am in this space." An AVATAR_STATE frame with a retention policy of LATEST carries position and orientation at 60Hz. Stream bindings carry video and audio. Three temporal modes (durable, ephemeral, streaming), one frame model. "Entering" a shared space is creating a PRESENT frame on that item. Other participants see it through normal subscriptions. The renderer (3D, 2D, text) handles it per fidelity. This is how Croquet's (Smith, Kay, Raab, & Reed, 2003) vision of a shared, replicated environment is realized without requiring a single runtime: the frame primitive absorbs what Croquet needed a custom collaboration protocol (TeaTime) to achieve.
+**Liveness.** Real-time shared presence would not be a separate system. A PRESENT frame asserts "I am in this space." An AVATAR_STATE frame with a retention policy of LATEST carries position and orientation at 60Hz. Stream bindings carry video and audio. Three temporal modes (durable, ephemeral, streaming), one frame model. "Entering" a shared space means creating a PRESENT frame on that item. Other participants see it through normal subscriptions. The renderer (3D, 2D, text) handles it per fidelity. This is how Croquet's (Smith, Kay, Raab, & Reed, 2003) vision of a shared, replicated environment could be realized without requiring a single runtime: the frame primitive absorbs what Croquet needed a custom collaboration protocol (TeaTime) to achieve.
 
 **Syntax as vocabulary.** Predicates carry their own parsing behavior. Operators declare precedence, functions declare grouping, prepositions declare role assignment. One resolution pipeline. Natural language, mathematics, chess notation, and any future domain syntax all flow through the same mechanism. Parsing is resolution.
 
 **Self-describing data.** A frame carries everything needed to interpret it. Its predicate says what kind of assertion it is. Its binding keys say what each value means. No external schema, no format specification, no application-specific decoder ring.
 
-**Subsumption of platforms.** A product listing is frames (PRICE, CATEGORY, LOCATION, DESCRIPTION, OFFER). A community is frames (MEMBERSHIP, MODERATION, TOPIC, MESSAGE). A review is frames (RATING, TOPIC, AGENT). A citation graph is CITES frames. A social network is frames (FOLLOW, POST, COMMENT, BLOCK). Each currently a proprietary database on a proprietary platform. In the shared meaning space, all the same primitive.
+**Subsumption of platforms.** A product listing would be frames (PRICE, CATEGORY, LOCATION, DESCRIPTION, OFFER). A community would be frames (MEMBERSHIP, MODERATION, TOPIC, MESSAGE). A review would be frames (RATING, TOPIC, AGENT). A citation graph would be CITES frames. A social network would be frames (FOLLOW, POST, COMMENT, BLOCK). Each is currently a proprietary database on a proprietary platform. In the shared meaning space, all would be the same primitive.
 
 ---
 
