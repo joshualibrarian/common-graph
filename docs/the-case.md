@@ -53,7 +53,7 @@ When the foundational layers were laid down in the 1970s, nodes were disconnecte
 
 **Fragmentation.** Even as these linguistic resources matured, the software industry developed in a direction hostile to the kind of collaboration a semantic layer demands. A shared vocabulary of meaning is, by definition, a collective project. But the commercial landscape of the 1990s and 2000s was defined by proprietary lock-in. Every major platform held its data models close, because controlling the data model meant controlling the ecosystem. Interoperability was a competitive threat. The kind of cross-organizational collaboration a shared semantic foundation requires was antithetical to the incentive structure.
 
-**What changed.** Three things converged. First, the computational linguistics infrastructure matured, making the object problem became tractable. Second, global interconnection made a shared vocabulary both necessary and viable: the network that makes the problem acute is the same network that makes the solution practical. Third, the open source movement created the collaborative environment a semantic layer requires. The linguistic databases (WordNet, CILI, FrameNet, VerbNet) carry permissive licenses. The entire implementation stack can be built on open foundations. A semantic base layer is inherently a commons. It only works if it is shared, and it can only be shared if it is open. That commons is now possible in a way it was not during the era of proprietary platform wars.
+**What changed.** Three things converged. First, the computational linguistics infrastructure matured, making the object problem tractable. Second, global interconnection made a shared vocabulary both necessary and viable: the network that makes the problem acute is the same network that makes the solution practical. Third, the open source movement created the collaborative environment a semantic layer requires. The linguistic databases (WordNet, CILI, FrameNet, VerbNet) carry permissive licenses. The entire implementation stack can be built on open foundations. A semantic base layer is inherently a commons. It only works if it is shared, and it can only be shared if it is open. That commons is now possible in a way it was not during the era of proprietary platform wars.
 
 ---
 
@@ -101,7 +101,7 @@ A flat key-value pair (`author: Tolkien`) captures a single relationship but los
 
 Frame semantics (1968; 1982) provides the theoretical foundation. Fillmore observed that understanding a word like "buy" requires understanding an entire *scene*: a buyer, a seller, goods, money, a transaction. A frame, in Fillmore's sense, is "any system of concepts related in such a way that to understand any one of them you have to understand the whole structure in which it fits" (Fillmore, 1982). The participants (buyer, seller, goods, money) are not arbitrary attributes but *thematic roles*: semantic functions catalogued and standardized across decades of research.
 
-The frame's power is connective. "I eat an apple." Three concepts (a person, an action, a fruit) that in isolation are unrelated. The frame connects them: the person is the Agent (performing the action), the apple is the Patient (being affected), and the eating is the predicate that defines how they relate. Without the frame, three separate concepts. With it, a coherent assertion.
+The frame's power is connective. "I eat an apple." Three concepts (a person, an action, a fruit) that in isolation are unrelated. The frame connects them: the person is the Agent (performing the action), the apple is the Patient (being affected), and eating is the predicate that defines how they relate. Without the frame, three separate concepts. With it, a coherent assertion.
 
 A flat key-value pair fails not just because the key is a string, but because it has no structure to express the *kind* of relationship, the *participants* and their roles, or the *context* in which the assertion holds. What we need is the frame pattern: a **predicate** that defines a structured assertion, and **role bindings** that fill its slots with values.
 
@@ -118,25 +118,25 @@ The role vocabulary comes from Fillmore's original case roles (1968), refined ov
 - **Setting roles**: Location (where), Time (when)
 - **Information roles**: Topic (subject of communication), Name (designation)
 
-This inventory is not arbitrary and it is not infinite. It reflects empirical findings about how human languages structure meaning. Every language studied, from English to Lakhota to Japanese, uses the same core set of semantic functions to describe who did what to whom, where, when, how, and why (Youn et al., 2016). The roles are universal; the words that express them vary.
+This inventory is not arbitrary and it is not infinite.  It reflects empirical findings about how human languages structure meaning. Every language studied, from English to Lakota to Japanese, uses the same core set of semantic functions to describe who did what to whom, where, when, how, and why (Youn et al., 2016). The roles are universal; the words that express them vary.
 
 ### Write-time resolution
 
-This is the core inversion. Every existing system stores data first and tries to determine its meaning later. Search engines crawl. NLP systems annotate after the fact. Data integration pipelines map between schemas post-hoc. All of these are attempts to recover meaning that was present in the creator's mind but never captured in the data.
+This is the core inversion.  Every existing system stores data first and tries to determine its meaning later.  Search engines crawl. NLP systems annotate after the fact. Data integration pipelines map between schemas post-hoc. All of these are attempts to recover meaning that was present in the creator's mind but never captured in the data.
 
 A semantic base layer inverts this. Meaning could be resolved *at the moment of creation*, when it is trivially easy, because the creator knows what they mean. The disambiguation that search engines and NLP pipelines struggle to perform after the fact is effortless at write time. When a user creates a relationship between a person and a book, they know whether they mean "authored," "edited," "reviewed," or "purchased." If the layer captures that distinction as a grounded semantic predicate at creation time, no subsequent system ever needs to guess.
 
-The predicate, once chosen, tells the layer what roles to expect. The layer prompts for them, offers completions, validates inputs. The act of creating data *becomes* the act of resolving meaning, because selecting a predicate and filling its roles is inherently a semantic operation.
+The predicate, once chosen, tells the system what roles to expect. The system can prompt for them, offer completions, validate inputs. The act of creating data *becomes* the act of resolving meaning, because selecting a predicate and filling its roles is inherently a semantic operation.
 
-This is not natural language understanding. Such a layer would not parse free text and try to extract meaning. It would structure the input environment so that meaning is captured as a natural consequence of creation. The user selects a predicate, fills roles, and the result is a grounded semantic structure. The hardest problem in NLP (disambiguation) is trivially solved by the person who knows what they mean.
+This is not natural language understanding.  Such a layer need not parse free text and try to extract meaning.  It would structure the input environment so that meaning is captured as a natural consequence of creation.  The user selects a predicate, fills roles, and the result is a grounded semantic structure.  The hardest problem in NLP (disambiguation) is trivially solved by the person who knows what they mean.
 
 ### Cross-lingual stability
 
-A semantic layer that works only in English is an English-language metadata standard, not a semantic layer. The concept that English speakers call "dog," Spanish speakers call "perro," and Japanese speakers call "inu" is the same concept. A semantic layer must represent meanings independently of the words that express them.
+A semantic layer that works only in English is an English-language metadata standard, not a semantic layer.  The concept that English speakers call "dog," Spanish speakers call "perro," and Japanese speakers call "犬" is the same concept.  A semantic layer must represent meanings independently of the words that express them.
 
-This requires a clean separation between *meanings* and *words*. Meanings (which I will call sememes, following usage in structural semantics) are language-neutral units with stable identities. Words are language-specific expressions that point to meanings. The predicate AUTHORED exists independently of the English "authored," the Spanish "escrito," or the German "verfasst." Each word, in its language, points to the same meaning.
+This requires a clean separation between *meanings* and *words*.  Meanings (which I will call "sememes", following usage in structural semantics) are language-neutral units with stable identities.  Words are language-specific expressions that point to meanings. The predicate AUTHORED exists independently of the English "authored," the Spanish "escrito," or the German "verfasst." Each word, in its language, points to the same meaning.
 
-These four requirements do not name a structure. They constrain one. Whatever fits would have to be built around a meaning rather than a string, carry role-keyed values rather than flat attributes, be complete at the moment of writing, and survive translation between languages. None of these requirements is novel in isolation. What would be new is asking a single structure to satisfy all of them at once, and to do so as the foundation of a layer rather than an annotation laid over one.
+These four requirements do not name a structure.  They constrain one.  Whatever fits would have to be built around a meaning rather than a string, carry role-keyed values rather than flat attributes, be complete at the moment of writing, and survive translation between languages.  None of these requirements is novel in isolation.  What would be new is asking a single structure to satisfy all of them at once, and to do so as the foundation of a layer rather than an annotation laid over one.
 
 ---
 
@@ -153,17 +153,17 @@ Frame {
 }
 ```
 
-A predicate and its role bindings. Nothing else is structurally required. Every element of the frame (what it asserts, what it's about, who is involved, what content it carries) is expressed as a role binding on the predicate.
+A predicate and its role bindings.  Nothing else is structurally required.  Every element of the frame (what it asserts, what it's about, who is involved, what content it carries) is expressed as a role binding on the predicate.
 
-A **title assertion**: predicate TITLE, bindings (THEME) = the-book, (VALUE) = "The Hobbit". The predicate TITLE defines two roles: what is being titled, and what the title is.
+A **title assertion**: predicate TITLE, bindings (THEME) = the-book, (VALUE) = "The Hobbit".  The predicate TITLE defines two roles: what is being titled, and what the title is.
 
-A **chess move**: predicate MOVE, bindings (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4. Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where). A single move is a single semantic assertion.
+A **chess move**: predicate MOVE, bindings (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4. Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where).  A single move is a single semantic assertion.
 
-A **video**: predicate VIDEO, bindings (THEME) = the-movie, (VALUE, MKV, UHD) = master-file, (VALUE, MKV, HD) = transcode. The same VALUE role carries content in different formats, distinguished by the qualifiers that follow it in the compound key.
+A **video**: predicate VIDEO, bindings (THEME) = the-movie, (VALUE, MKV, UHD) = master-file, (VALUE, MKV, HD) = transcode.  The same VALUE role carries content in different formats, distinguished by the qualifiers that follow it in the compound key.
 
 An **authorship assertion**: predicate AUTHORED, bindings (THEME) = The Hobbit, (AGENT) = Tolkien.
 
-These are all structurally identical: a predicate and role bindings. The predicate determines what roles the frame expects; the roles determine what the values mean.
+These are all structurally identical: a predicate and role bindings.  The predicate determines what roles the frame expects; the roles determine what the values mean.
 
 The predicate is worth pausing on, because it is easy to treat it as a distinct kind of thing. It is not. It is a sememe, a unit of meaning from the shared vocabulary, acting in a particular structural role. In that role, a sememe serves as a template for the frame: it declares what bindings a frame of this kind is expected to carry and how those bindings relate. Calling a sememe a *predicate* names the role it plays, not a category it belongs to. The same vocabulary supplies everything. TOLKIEN, HOBBIT, AUTHORED, and TITLE are all meanings. Which of them naturally fits the predicate role is a matter of what each one denotes, not a structural constraint. Meanings that name relations or events (AUTHORED, TITLE, MOVE) naturally fit as predicates. Meanings that name kinds of thing (HOBBIT, TOLKIEN, CHESS_GAME) naturally fit as binding values or, as we will see, as templates for items.
 
@@ -276,12 +276,13 @@ No crawling. No NLP. No reconstruction. The meaning was captured when the photog
 The archetype PHOTOGRAPH declares that photographs are expected to carry DEPICTS, PLACE, and CAPTURED frames. But the accumulation surface is open. Later, someone else adds:
 
 ```
-FUNNY     { (THEME) = the-photo, (AGENT) = Carol, (VALUE) = "Great shot!" }
+LIKE      { (THEME) = the-photo, (AGENT) = Carol, (VALUE) = "Great shot!" }
+FUNNY     { (THEME) = the-photo, (AGENT) = Jeff, (VALUE) = "😂" }
 RECOMMEND { (THEME) = the-photo, (AGENT) = Dave, (RECIPIENT) = Eve }
 DEPICTS   { (THEME) = the-photo, (TOPIC) = sunset }
 ```
 
-Carol asserts the photo is funny and elaborates in the VALUE binding. Dave recommends it to Eve, a directed social action with a recipient. Someone else adds a DEPICTS frame noting the sunset, contributing the same kind of semantic content the photographer did. Each is a first-class assertion with its own predicate and roles, not a flat comment or tag. The photograph accumulates reactions, recommendations, and additional descriptions the same way a chess game accumulates moves: signed assertions from identified parties, cohering around the same item identity. The PHOTOGRAPH archetype did not mention FUNNY, RECOMMEND, or a third-party DEPICTS. It did not need to.
+Carol likes the photo and elaborates with "Great shot!" in the VALUE binding. Jeff asserts it is funny, with an emoji as his VALUE. Dave recommends it to Eve, a directed social action with a recipient. Someone else adds a DEPICTS frame noting the sunset, contributing the same kind of semantic content the photographer did. Each is a first-class assertion with its own predicate and roles, not a flat comment or tag. The photograph accumulates reactions, recommendations, and additional descriptions the same way a chess game accumulates moves: signed assertions from identified parties, cohering around the same item identity. The PHOTOGRAPH archetype did not mention LIKE, FUNNY, RECOMMEND, or a third-party DEPICTS. It did not need to.
 
 A Spanish speaker looking at the same photograph sees it through Spanish lexemes. The sememe DEPICTS has a Spanish word. GRADUATION has a Spanish word. CAMPUS has a Spanish word. The frames are the same. The words that surface them differ. No translation has occurred. The meanings were language-neutral from the start.
 
