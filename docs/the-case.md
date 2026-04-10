@@ -1,7 +1,7 @@
 # Below the Application, Above the Bytes: The Case for a Semantic Base Layer
 
 **Joshua Chambers**
-*March 2026*
+*Spring 2026*
 
 ---
 
@@ -33,9 +33,13 @@ Each layer was designed for generality, and each achieves it by the same strateg
 
 The cost is immense but invisible, because it is pervasive. Every API integration is a bespoke translation between two systems that cannot describe their own contents to each other. Every search engine is a probabilistic compensation for the fact that data doesn't know what it means. Every data migration is an exercise in reconstructing meaning that was present in the creator's mind but was never captured by the infrastructure.
 
+The most recent and most expensive compensation is the large language model. The current wave of AI is, at its core, an effort to recover meaning from data that never stored it. LLMs are trained on vast corpora of human text precisely because meaning lives in the text, not in the infrastructure that holds it. The tasks they perform (classification, extraction, translation, summarization, relationship discovery) are tasks a semantic layer would make trivial, because those tasks reduce to structured lookups when data already carries its meaning. We are building ever-larger statistical models to guess at what could have been recorded directly.
+
 The key-value pair is perhaps the most fundamental pattern in computing. Configuration files, HTTP headers, database rows, JSON objects, environment variables. Yet because keys are application-defined strings, they are fractured beyond repair. One system's `author` is another's `creator`, another's `created_by`, another's `dc:creator`, another's `writtenBy`. They all mean the same thing. No layer of infrastructure knows this.
 
 What is missing is not a better search engine or a smarter parser. What is missing is a *layer* where meaning is the fundamental unit of storage, identity, and retrieval.
+
+(The term "semantic layer" is already used in the data analytics industry, where it refers to a translation layer between technical database schemas and business-friendly concepts: products, customers, revenue. Tools like Looker and dbt provide this kind of layer. What they provide is useful, but it is not what is missing here. A BI semantic layer sits above the data and translates queries. The layer that is missing would sit *with* the data, because the data would already know what it means.)
 
 ---
 
@@ -57,15 +61,17 @@ When the foundational layers were laid down in the 1970s, nodes were disconnecte
 
 The need for a semantic layer has been recognized for decades, and there have been serious, well-funded attempts to provide one. Each contributed valuable ideas. None became foundational.
 
-**The Semantic Web** is the most ambitious attempt. Berners-Lee's 2001 vision described a web in which "information is given well-defined meaning, better enabling computers and people to work in cooperation" ([Berners-Lee et al., 2001](references/Berners-Lee%2C%20Hendler%2C%20Lassila%202001%20-%20The%20Semantic%20Web.pdf)). The technical realization (RDF triples, OWL ontologies, SPARQL queries) is rigorous and powerful. Twenty-five years later, RDF is widely used in specialized domains (biomedical ontologies, library science, government data) but has not become a general-purpose semantic layer. The web remains overwhelmingly opaque bytes at URLs.
+**The Semantic Web** is the most ambitious attempt. Berners-Lee's 2001 vision described a web in which "information is given well-defined meaning, better enabling computers and people to work in cooperation" (Berners-Lee et al., 2001). The technical realization (RDF triples, OWL ontologies, SPARQL queries) is rigorous and powerful. Twenty-five years later, RDF is widely used in specialized domains (biomedical ontologies, library science, government data) but has not become a general-purpose semantic layer. The web remains overwhelmingly opaque bytes at URLs.
 
 RDF's genuine strengths are substantial: a universal graph model, formal inference via RDFS and OWL entailment, a powerful query language in SPARQL. In specialized domains where those capabilities matter, RDF has proven its value. But three structural problems kept it from becoming general-purpose.
 
 First, RDF annotates existing resources. It is layered *on top of* the web, not *built into* it. A web page can exist without any RDF. Most do. The semantic annotation is optional, which means it is absent in the vast majority of cases. The cost of creating semantic metadata falls on the producer while the benefit accrues to the consumer: a classic misaligned-incentive problem.
 
-Second, RDF requires the author to commit to an ontology ([Gruber, 1993](references/Gruber%201993%20-%20Toward%20Principles%20for%20the%20Design%20of%20Ontologies.pdf)). In practice, choosing and using an ontology correctly is hard. It requires expertise that most content creators do not have and are not motivated to acquire. The Semantic Web effectively asks every web author to be a knowledge engineer.
+Second, RDF requires the author to commit to an ontology (Gruber, 1993). In practice, choosing and using an ontology correctly is hard. It requires expertise that most content creators do not have and are not motivated to acquire. The Semantic Web effectively asks every web author to be a knowledge engineer.
 
 Third, the annotation is disconnected from the content. The RDF description of a web page is a separate artifact from the page itself. It can become stale, incorrect, or inconsistent without any mechanism to detect the divergence.
+
+Concrete systems built on the full RDF/OWL/SPARQL stack, such as the Open Semantic Framework (Structured Dynamics, 2009), confirmed these limitations in practice: technically rigorous, adopted in narrow domains, but unable to achieve the general-purpose uptake the vision required. The project went quiet after 2016.
 
 **Schema.org** addressed some of these problems by providing a single vocabulary backed by major search engines. Its adoption is broader than RDF/OWL, precisely because it is simpler and because search engines provide a direct incentive (better rankings) for using it. But Schema.org remains a metadata annotation: a sprinkle of JSON-LD in an HTML header. It describes pages *about* things, not the things themselves.
 
@@ -240,6 +246,44 @@ Then moves: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-paw
 No special game engine data structure is needed. Each move is a frame, the same primitive as a title or a video. And because each move is a frame, it is queryable. "All games where someone opened with pawn to e4" is an index lookup on MOVE frames with (GOAL) = e4. "All games Fischer played" is a lookup on PLAYER frames with (AGENT) = Fischer. "Fischer's longest game" is a count of MOVE frames per game item where Fischer has a PLAYER frame.
 
 This generalizes immediately. A chat room is an item where people join with signed MEMBERSHIP frames and contribute with signed MESSAGE frames. A key log is an item with KEY frames, REVOKE frames, and DELEGATE frames. An auction is an item where bidders assert signed BID frames. All the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is.
+
+### The photograph, revisited
+
+This paper opened with a photograph: a user saves it, and no layer of the stack knows what it is, who is in it, what occasion it documents, how it relates to other photographs or to the people depicted. In the picture being described here, a photograph would be an item. Its archetype is PHOTOGRAPH. And the information that today lives only in the user's head, or in a proprietary application's database, would be captured as frames at the moment of creation.
+
+The photographer takes a picture of Alice and Bob at Alice's graduation. The item is created, and with it, the frames:
+
+```
+IMAGE    { (THEME) = the-photo, (VALUE, JPEG) = <image data>, (VALUE, JPEG, THUMBNAIL) = <thumbnail> }
+DEPICTS  { (THEME) = the-photo, (AGENT) = Alice, (LOCATION) = [120px, 340px, 280px, 510px] }
+DEPICTS  { (THEME) = the-photo, (AGENT) = Bob, (LOCATION) = [400px, 320px, 560px, 500px] }
+OCCASION { (THEME) = the-photo, (TOPIC) = graduation }
+PLACE    { (THEME) = the-photo, (LOCATION) = [37.4275°N, 122.1697°W] }
+CAPTURED { (THEME) = the-photo, (INSTRUMENT) = iPhone, (TIME) = 2024-06-15 }
+```
+
+Each frame is a separate assertion. Each is signed by the photographer. Each is indexed by the meanings in its binding keys. The photograph does not merely *have* this information attached to it. It *is* this information, structured as grounded semantic assertions.
+
+Now the queries that no existing layer can answer become index lookups:
+
+- "All photographs of Alice" finds DEPICTS frames where (AGENT) = Alice.
+- "All graduation photos" finds OCCASION frames where (TOPIC) = graduation.
+- "Photos taken near this location" finds PLACE frames whose (LOCATION) coordinates fall within a radius.
+- "Photos taken by this device in June 2024" filters CAPTURED frames by INSTRUMENT and TIME.
+
+No crawling. No NLP. No reconstruction. The meaning was captured when the photograph was created, by the person who knew what the photograph was of.
+
+The archetype PHOTOGRAPH declares that photographs are expected to carry DEPICTS, PLACE, and CAPTURED frames. But the accumulation surface is open. Later, someone else adds:
+
+```
+FUNNY     { (THEME) = the-photo, (AGENT) = Carol, (VALUE) = "Great shot!" }
+RECOMMEND { (THEME) = the-photo, (AGENT) = Dave, (RECIPIENT) = Eve }
+DEPICTS   { (THEME) = the-photo, (TOPIC) = sunset }
+```
+
+Carol asserts the photo is funny and elaborates in the VALUE binding. Dave recommends it to Eve, a directed social action with a recipient. Someone else adds a DEPICTS frame noting the sunset, contributing the same kind of semantic content the photographer did. Each is a first-class assertion with its own predicate and roles, not a flat comment or tag. The photograph accumulates reactions, recommendations, and additional descriptions the same way a chess game accumulates moves: signed assertions from identified parties, cohering around the same item identity. The PHOTOGRAPH archetype did not mention FUNNY, RECOMMEND, or a third-party DEPICTS. It did not need to.
+
+A Spanish speaker looking at the same photograph sees it through Spanish lexemes. The sememe DEPICTS has a Spanish word. GRADUATION has a Spanish word. CAMPUS has a Spanish word. The frames are the same. The words that surface them differ. No translation has occurred. The meanings were language-neutral from the start.
 
 And the architecture closes a circle: even sememes themselves (the units of meaning in the shared vocabulary) are items. The sememe METER carries a GLOSS frame in English ("the base unit of length in the metric system"), a GLOSS in Spanish, a DIMENSION frame (LENGTH), CONVERSION frames to other units, a HYPERNYM frame (METER is-a LENGTH_UNIT), and a SYMBOL frame ("m"). The meaning is not a definition string. It is the structured totality of everything asserted about it.
 
