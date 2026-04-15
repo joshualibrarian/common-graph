@@ -318,7 +318,7 @@ A different anchor is available, one that did not exist when CYC began or when t
 
 **WordNet** (Miller et al., 1993) organizes English into ~120,000 *synsets* (synonym sets representing distinct concepts). Each synset is a meaning, not a word. WordNet provides hierarchical relationships (dog is-a canine is-a mammal), part-whole relationships, antonymy, and other semantic relations.
 
-**CILI** (the Collaborative Interlingual Index; Bond, Vossen, McCrae, & Fellbaum, 2016) extends WordNet across languages. CILI provides language-neutral concept identifiers linking synsets to their equivalents in other languages' wordnets. The English "dog," the Spanish "perro," and the Japanese "inu" share the same CILI identifier. Not a translation; an identity.
+**CILI** (the Collaborative Interlingual Index; Bond, Vossen, McCrae, & Fellbaum, 2016) extends WordNet across languages. CILI provides language-neutral concept identifiers linking synsets to their equivalents in other languages' wordnets. The English "dog," the Spanish "perro," and the Japanese "犬" share the same CILI identifier. Not a translation; an identity.
 
 Three additional resources provide vocabulary for the frame primitive specifically:
 

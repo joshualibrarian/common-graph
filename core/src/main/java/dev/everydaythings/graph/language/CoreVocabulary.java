@@ -64,14 +64,20 @@ public final class CoreVocabulary {
 
     /**
      * Declares an expectation on a sememe — either a role binding (for predicates)
-     * or a frame type (for item types).
+     * or a frame type (for archetypes).
      *
      * <p>The first qualifier on the TOPIC binding distinguishes the kind:
      * <ul>
      *   <li>ROLE ({@code cg.sememe:role}) — predicate expects a thematic role binding
      *       (e.g., ITEM_VIEW expects THEME, LOCATION)</li>
-     *   <li>FRAME ({@code cg.sememe:frame}) — type expects a frame on its instances
+     *   <li>FRAME ({@code cg.sememe:frame}) — archetype expects a frame on its instances
      *       (e.g., CHESS expects PLAYER, MOVE frames)</li>
+     * </ul>
+     *
+     * <p>Additional qualifiers on the TOPIC binding express constraints:
+     * <ul>
+     *   <li>{@link Required} — the expected binding or frame must be present</li>
+     *   <li>{@link Singular} — at most one instance is allowed</li>
      * </ul>
      */
     @ItemSeed(key = Expects.KEY)
@@ -84,8 +90,40 @@ public final class CoreVocabulary {
         static final String gloss = "declares an expectation — a role binding or a frame type";
 
         @ItemFrame(predicate = Expects.KEY,
-                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY}))
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.Topic.KEY, Required.KEY}))
         static final ItemID expectTopic = ThematicRole.Topic.IID;
+    }
+
+    /** Qualifier marking an expectation as required — the binding or frame must be present. */
+    @ItemSeed(key = Required.KEY)
+    public static class Required {
+        public static final String KEY = "cg.type:required";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "marks an expectation as required — the binding or frame must be present";
+
+        @ItemFrame(predicate = Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"required"};
+    }
+
+    /** Qualifier marking an expectation as singular — at most one instance allowed. */
+    @ItemSeed(key = Singular.KEY)
+    public static class Singular {
+        public static final String KEY = "cg.type:singular";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "marks an expectation as singular — at most one instance allowed";
+
+        @ItemFrame(predicate = Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"singular"};
     }
 
 
@@ -1051,6 +1089,54 @@ public final class CoreVocabulary {
         @ItemFrame(predicate = Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Time.KEY}))
         static final ItemID expectTime = ThematicRole.Time.IID;
+    }
+
+    /** Asserts the geographic location of something. */
+    @ItemSeed(key = Place.KEY)
+    public static class Place {
+        public static final String KEY = "cg.core:place";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "the geographic location of something";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"place", "location"};
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY, Required.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Location.KEY, Required.KEY}))
+        static final ItemID expectLocation = ThematicRole.Location.IID;
+    }
+
+    /** Asserts the occasion or event something is associated with. */
+    @ItemSeed(key = Occasion.KEY)
+    public static class Occasion {
+        public static final String KEY = "cg.core:occasion";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "the occasion or event something is associated with";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Value.KEY,
+                                   qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"occasion", "event"};
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Theme.KEY, Required.KEY}))
+        static final ItemID expectTheme = ThematicRole.Theme.IID;
+
+        @ItemFrame(predicate = Expects.KEY,
+                   fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Topic.KEY}))
+        static final ItemID expectTopic = ThematicRole.Topic.IID;
     }
 
     // ==================================================================================

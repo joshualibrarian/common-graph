@@ -67,6 +67,10 @@ dependencies {
     runtimeOnly project(':games')
     testImplementation project(':games')
 
+    // Media module (photographs, video, audio) — runtime only, discovered via classpath scanning
+    runtimeOnly project(':media')
+    testImplementation project(':media')
+
     // -------------------------------------------------------------------------
     // Terminal UI
     // -------------------------------------------------------------------------
