@@ -77,27 +77,17 @@ What is missing is not a better search engine or a smarter parser, and not a fed
 
 ---
 
-## 3. How We Got Here
+## 3. Why It Hasn't Happened
 
-Neither gap reflects a failure of imagination or a missed technical opportunity.  Each reflects the world in which computing was built and the world in which it grew up, and the reasons are related but distinct.
+Neither gap is the result of inattention.  The historical conditions that produced them have been understood for decades, and serious attempts to close them have been made on both sides.  Both deserve a closer look, because the failure patterns explain why the substrate itself, rather than another addition to it, is the only way forward.
 
-When the foundational layers were laid down in the 1970s, nodes were disconnected and bytes were precious.  Engineers were writing assembly to write bits to disk.  The byte-stream abstraction (everything is a file, a file is a sequence of bytes) was a practical triumph given the constraints.  TCP/IP, HTTP, SQL: each subsequent layer solved the problem in front of it with the resources available.  A semantic data model was not rejected, it was beyond the horizon.  The centralizing trajectory of the commercial web was even further out.
+When the foundational layers were laid down in the 1970s, nodes were disconnected and bytes were precious.The byte-stream abstraction (everything is a file, a file is a sequence of bytes) was a practical triumph given the constraints.  TCP/IP, HTTP, SQL: each subsequent layer solved the problem in front of it with the resources available.  A semantic data model was not rejected, it was beyond the horizon.  The centralizing trajectory of the commercial web was even further out.
 
-**The object problem.**  A semantic key cannot be a string.  "Author," "creator," "created_by," and "writtenBy" are four labels for the same meaning, and nothing connects them.  A semantic key must refer to a *meaning*: a stable, language-independent concept with a defined identity, a place in a hierarchy, cross-lingual equivalents, and participation in structured scenes.  Building those objects requires decades of empirical research into how meaning is structured across human languages.  The resources that make it tractable (WordNet's 120,000+ meanings, the CILI linking those meanings across languages, FrameNet's 1,200+ structured scenes, VerbNet's universal role inventory, and the cross-walks connecting them) are products of computational linguistics research that has only recently reached the maturity needed to serve as a practical foundation.
+The semantic gap persisted in part because the linguistic foundations for closing it took decades to mature.  A semantic key cannot be a string; it must refer to a stable, language-independent concept with a hierarchy, cross-lingual equivalents, and participation in structured scenes.  Building those objects requires empirical research into how meaning is structured across human languages.  The resources that make it tractable (WordNet, CILI, FrameNet, VerbNet, ISO 24617-4) are products of computational linguistics that have only recently reached the maturity needed to serve as a practical foundation.  And once they did, the commercial landscape of the 1990s and 2000s ran in the wrong direction: every major platform held its data models close because controlling the model meant controlling the ecosystem.  Interoperability was a competitive threat to the kind of cross-organizational collaboration a shared semantic foundation requires.
 
-**Fragmentation.**  Even as these linguistic resources matured, the software industry developed in a direction hostile to the kind of collaboration a semantic layer demands.  A shared vocabulary of meaning is, by definition, a collective project.  The commercial landscape of the 1990s and 2000s, though, was defined by proprietary lock-in.  Every major platform held its data models close, because controlling the data model meant controlling the ecosystem.  Interoperability was a competitive threat, and the kind of cross-organizational collaboration a shared semantic foundation requires was antithetical to the incentive structure.
+The locality gap has a different shape.  The hardware became capable enough for serious local computation by the mid-1990s and has only grown more so.  What drove computation away from users was not a technical limit but a convergence of commercial incentives: cloud hosting got cheap, network effects rewarded centralization, and the subscription business model worked perfectly for services and not for shipped software.  For any product taking shape in the 2000s and 2010s, a hosted service was easier to monetize, easier to update, easier to monitor, and easier to prevent users from leaving.  A generation of developers grew up with SaaS as the default mental model rather than as the historical anomaly it is.  Local-first and peer-to-peer architectures remained technically viable throughout this period but lacked the commercial pull, carried as a counter-current by specific communities (Kleppmann's academic work, Secure Scuttlebutt, IPFS, and others) without displacing SaaS as the industry default.
 
-**The centralization gradient.**  The locality gap has a different shape.  The hardware became capable enough for serious local computation by the mid-1990s and has only grown more so since.  What drove computation away from users was not a technical limit but a convergence of commercial and infrastructural incentives.  Cloud hosting became cheap and then progressively cheaper.  Network effects made platforms valuable in proportion to their user count, and that value accrued only to whoever operated the servers.  The subscription business model, unavailable for shrink-wrapped software, worked perfectly for services.  For any new product taking shape in the 2000s and 2010s, the choice between shipping a fat client and running a hosted service was economically uneven: the service was easier to monetize, easier to update, easier to monitor, and easier to prevent users from leaving.  A generation of developers grew up with SaaS as the default mental model for how software is built, rather than as the historical anomaly it is.
-
-Local-first and peer-to-peer architectures remained technically viable throughout this period but lacked the commercial pull.  BitTorrent demonstrated scale.  Content-addressed storage was refined through decades of work.  Signing cryptography became cheap enough in compute terms to apply freely.  Building a full local-first application that matched the user experience of a hosted service, however, meant solving distributed-state synchronization, which was hard enough that it almost always lost to the easier alternative of running a central server.  The local-first tradition grew as a counter-current, carried by specific communities (Kleppmann's academic work, the Secure Scuttlebutt practitioners, the IPFS community, and others) without displacing SaaS as the industry default.
-
-**What changed.**  Four things converged.  First, the computational linguistics infrastructure matured, making the object problem tractable.  Second, the technical infrastructure for distributed state matured as well: CRDTs have become practical, signing cryptography is cheap enough to apply at the per-message level, content-addressing is ubiquitous (every Git commit is a use of it), and local-first synchronization has moved from research topic to shipping practice.  Third, global interconnection made shared vocabularies both necessary and viable: the network that makes the semantic problem acute is the same network that makes a collaborative solution practical, and the same network over which a peer substrate would operate.  Fourth, the open source movement created the collaborative environment a commons requires.  The linguistic databases carry permissive licenses.  The cryptographic primitives are open.  The storage and networking building blocks are open.  A base layer along both pillars is inherently a commons: it only works if it is shared, and it can only be shared if it is open.  That commons is now possible in a way it was not during the era of proprietary platform wars and server-centric default architectures.
-
----
-
-## 4. Why Retrofitting Fails
-
-The need for both a semantic layer and a local-first substrate has been recognized for decades, and serious attempts at each have been made.  Each contributed valuable ideas.  None became foundational.  The failures, though different in detail, carry a common structural lesson.
+That ambient state has been the backdrop for a second history: deliberate attempts to retrofit semantic structure onto opaque substrates and decentralization onto server-centric ones.  None has become foundational.  Their failures, taken together, point at the same diagnosis.
 
 ### The semantic retrofits
 
@@ -153,9 +143,15 @@ The three patterns of retrofit converge on a single diagnosis.  Semantic retrofi
 
 The solution must be a *layer* where creating data is simultaneously creating semantic structure and locating that data in a user-controlled peer.  The two properties are not separate operations, and neither can be supplied by annotation, federation, or transport alone.
 
+### What's different now
+
+Four things have converged to make such a substrate possible now in a way it was not before.  First, the computational linguistics infrastructure matured: WordNet, CILI, FrameNet, VerbNet, and ISO 24617-4 collectively provide the grounded vocabulary the semantic pillar needs.  Second, the technical infrastructure for distributed state matured as well: CRDTs have become practical, signing cryptography is cheap enough to apply at the per-message level, content-addressing is ubiquitous (every Git commit is a use of it), and local-first synchronization has moved from research topic to shipping practice.  Third, global interconnection made shared vocabularies both necessary and viable; the network that makes the semantic problem acute is the same network that makes a collaborative solution practical, and the same network over which a peer substrate would operate.  Fourth, the open-source movement created the collaborative environment such a commons requires.  The linguistic databases carry permissive licenses.  The cryptographic foundations are open.  The storage and networking building blocks are open.  A base layer along both pillars is inherently a commons: it only works if shared, and it can only be shared if open.  That commons is now possible in a way it was not during the era of proprietary platform wars and server-centric default architectures.
+
+What such a base layer would actually require is the subject of the next section.
+
 ---
 
-## 5. What a Base Layer Requires
+## 4. What a Base Layer Requires
 
 If neither a semantic layer nor a local-first substrate can be achieved by annotating, federating, or moving bytes peer-to-peer on top of what we already have, what must a new foundation look like?  The answer has two halves.  The first concerns meaning: what must data be for any application to interpret it?  The second concerns locality: where must the data and its interpretation live?
 
@@ -171,7 +167,7 @@ What we need are keys that refer to *meanings*: language-independent, applicatio
 
 A flat key-value pair (`author: Tolkien`) captures a single relationship but loses the structure that gives it meaning. Who is asserting this? About what? In what capacity?
 
-Frame semantics (1968; 1982) provides the theoretical foundation. Fillmore observed that understanding a word like "buy" requires understanding an entire *scene*: a buyer, a seller, goods, money, a transaction. A frame, in Fillmore's sense, is "any system of concepts related in such a way that to understand any one of them you have to understand the whole structure in which it fits" (Fillmore, 1982). The participants (buyer, seller, goods, money) are not arbitrary attributes but *thematic roles*: semantic functions catalogued and standardized across decades of research.
+Frame semantics (1968; 1982) provides a theoretical foundation. Fillmore observed that understanding a word like "buy" requires understanding an entire *scene*: a buyer, a seller, goods, money, a transaction. A frame, in Fillmore's sense, is "any system of concepts related in such a way that to understand any one of them you have to understand the whole structure in which it fits" (Fillmore, 1982). The participants (buyer, seller, goods, money) are not arbitrary attributes but *thematic roles*: semantic functions catalogued and standardized across decades of research.
 
 The frame's power is connective. "I eat an apple." Three concepts (a person, an action, a fruit) that in isolation are unrelated. The frame connects them: the person is the Agent (performing the action), the apple is the Patient (being affected), and eating is the predicate that defines how they relate. Without the frame, three separate concepts. With it, a coherent assertion.
 
@@ -234,7 +230,7 @@ These requirements do not name a structure.  They constrain one.  Whatever fits 
 
 ---
 
-## 6. The Frame as Primitive
+## 5. The Frame as Primitive
 
 Earlier, we arrived at the frame as a shape that satisfies the semantic requirements.  Fillmore supplied the form for a different purpose: analyzing what sentences mean rather than structuring data.  Using it as a data primitive is the move the linguistic literature never had occasion to make.  The four locality requirements attach to the primitive and to what holds collections of frames together, which the next sections develop.
 
@@ -315,7 +311,7 @@ And the behavior a predicate declares is best understood as a *contract*, not a 
 
 ---
 
-## 7. What Frames Cohere Around
+## 6. What Frames Cohere Around
 
 Frames are the primitive. But a single frame is rarely the whole story. A book is a TITLE frame ("The Hobbit"), an AUTHORED frame (Tolkien), TEXT frames (the chapters), a COVER_ART frame, a PUBLICATION frame (1937, Allen & Unwin), and more. Each frame is a separate assertion with its own predicate and bindings. But they are all *about the same thing*. They only make sense together.
 
@@ -406,7 +402,7 @@ The item is what would replace the file for the user. Not at the POSIX level (by
 
 ---
 
-## 8. The Shared Meaning Space
+## 7. The Shared Meaning Space
 
 A semantic frame is only as useful as the vocabulary it draws from. If every application defines its own predicates and roles, frames reproduce the same fragmentation as string-keyed pairs, just with more structure.
 
@@ -462,7 +458,7 @@ The shared meaning space is not a closed vocabulary.  Domain-specific communitie
 
 ---
 
-## 9. Computation as Frames
+## 8. Computation as Frames
 
 The claim that semantic frames constitute a genuine base layer (not merely a metadata system) requires demonstrating expressiveness in domains far removed from natural language. Mathematics is the strongest test case: the most formal, least ambiguous domain of structured knowledge. If thematic roles can describe mathematical operations, they are not linguistic conveniences. They are universal structuring principles.
 
@@ -555,7 +551,7 @@ The deeper point is structural. Computation would not need a separate apparatus 
 
 ---
 
-## 10. What Follows
+## 9. What Follows
 
 If we accept the premises of both pillars, that meaning must live in the data and computation must live with the user, then a number of consequences would follow.  They would not be independent features.  They would be structural properties, coupled: you could not get some without the others, and you would not need to engineer them separately.
 
@@ -585,7 +581,7 @@ If we accept the premises of both pillars, that meaning must live in the data an
 
 ---
 
-## 11. Honest Reckoning
+## 10. Honest Reckoning
 
 I am not the first to propose an ambitious rethinking of how computing handles information. The history of such proposals is largely a history of instructive failures, and I would be foolish to ignore it.
 
