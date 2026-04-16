@@ -286,7 +286,7 @@ Items accumulate incoming frames that haven't yet been endorsed. These are **pen
 
 - A CALL frame requesting presence in the item
 - A LIKE frame expressing a reaction
-- A COMMENT frame awaiting moderation
+- A CRITIQUE frame awaiting moderation
 - A FLAG frame marking something as spam
 
 Pending frames are transient by default — if nobody interacts with them, they fade away over time. They're notifications, reactions, and transient signals rather than persistent content.

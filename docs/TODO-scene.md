@@ -126,7 +126,7 @@ The mount system — how endorsed frames weave into item scenes — is still bei
   - Every item has an implicit "swarm" of pending frames — by default rendered as a cloud of transient notifications around the item
   - Item scene authors can OPT to render pending frames inside the scene rather than in the swarm (e.g., a chat room rendering CALL frames as prominent banners)
   - Interaction outcomes: endorse (becomes canonical), dismiss, or ignore (times out)
-  - CALL, LIKE, FLAG, COMMENT, REACTION are all examples of pending frames
+  - CALL, LIKE, FLAG, CRITIQUE, SUGGESTION are all examples of pending frames
 - *Pending vs durable is a cleanup-policy property of the frame*, not a separate frame type. Policies: time-based (TTL), replacement-based (newer-of-same-kind supersedes), side-effect-based (a related action clears it), never (durable). The scene system observes whatever frames currently exist.
 - *Reactions are universal across all items*, handled by the chrome layer. Item implementations don't see them and don't need to know about them.
 - *Views and Implementations*: every visible item is an `ITEM_VIEW` frame. The frame binds to a runtime implementation instance, selected at view-create time, lifetime tied to the view. Multiple views of the same item have separate instances. Frames are the shared source of truth; runtime model state is a per-instance projection.
