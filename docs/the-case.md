@@ -1,4 +1,4 @@
-# Below the Application, Above the Bytes: The Case for a Semantic Base Layer
+# Below the Application, Above the Bytes: A Base Layer for Meaning and Ownership
 
 **Joshua Chambers**
 *Spring 2026*
@@ -41,8 +41,6 @@ Exporting data is therefore possible but insufficient.  Standard export mechanis
 
 A semantic base layer would alter this equation at its foundation.  If data carries its own meaning at the moment of creation, any application that understands the shared vocabulary can interpret it, so exit cost approaches zero and the application becomes interchangeable.  The bundle of data, schema, interface, social graph, and moderation that platforms sell as one thing unbundles, because each component becomes expressible in the same substrate.  What we call the platform's moat, the structural advantage that makes leaving impractical, does not survive that unbundling; it dissolves not through regulation or competition but because there is nothing bundle-specific left to own.
 
-(The term "semantic layer" is already used in the data analytics industry, where it refers to a translation layer between technical database schemas and business-friendly concepts: products, customers, revenue.  Tools like Looker and dbt provide this kind of layer.  What they provide is useful, but it is not what is missing here.  A BI semantic layer sits above the data and translates queries.  The layer that is missing would sit *with* the data, because the data would already know what it means.)
-
 That is the first of two structural gaps that together produce the platform era.  The other operates at a different layer of the stack, and its emergence is more recent.  The next section turns to where the software that interprets your data has gone.
 
 ---
@@ -77,9 +75,9 @@ What is missing is not a better search engine or a smarter parser, and not a fed
 
 ---
 
-## 3. Why It Hasn't Happened
+## 3. How We Got Here
 
-Neither gap is the result of inattention.  The historical conditions that produced them have been understood for decades, and serious attempts to close them have been made on both sides.  Both deserve a closer look, because the failure patterns explain why the substrate itself, rather than another addition to it, is the only way forward.
+Neither gap is the result of inattention.  The historical conditions that produced them have been understood for decades, and serious attempts to close them have been made on both sides.  Each deserves a closer look, because the failure patterns explain why the substrate itself, rather than another addition to it, is the only way forward.
 
 When the foundational layers were laid down in the 1970s, nodes were disconnected and bytes were precious.The byte-stream abstraction (everything is a file, a file is a sequence of bytes) was a practical triumph given the constraints.  TCP/IP, HTTP, SQL: each subsequent layer solved the problem in front of it with the resources available.  A semantic data model was not rejected, it was beyond the horizon.  The centralizing trajectory of the commercial web was even further out.
 
@@ -139,7 +137,7 @@ Two structural lessons emerge, mirroring but distinct from the semantic one.
 
 ### The common lesson
 
-The three patterns of retrofit converge on a single diagnosis.  Semantic retrofits failed because annotation is always optional and always external to the data.  Federation retrofits failed because distributing servers did not remove the client-server boundary that creates platform power.  Peer-to-peer protocols failed as general-purpose substrates because transport without meaning leaves each a narrow solution.  All three are additions to an architecture whose shape is wrong for the job.  Closing either gap requires a different substrate, not another addition to this one.
+The three patterns of retrofit converge on a single diagnosis: additions cannot compensate for a substrate whose shape is wrong for the job.  Annotation does not make opaque layers semantic.  Federation does not remove the client-server boundary.  Peer-to-peer transport does not carry meaning.  Each is an addition to an architecture that was not built for what the addition requires, and each fails in the specific way the underlying architecture leaves no room for it to succeed.  Closing either gap requires a different substrate, not another addition to this one.
 
 The solution must be a *layer* where creating data is simultaneously creating semantic structure and locating that data in a user-controlled peer.  The two properties are not separate operations, and neither can be supplied by annotation, federation, or transport alone.
 
@@ -153,7 +151,9 @@ What such a base layer would actually require is the subject of the next section
 
 ## 4. What a Base Layer Requires
 
-If neither a semantic layer nor a local-first substrate can be achieved by annotating, federating, or moving bytes peer-to-peer on top of what we already have, what must a new foundation look like?  The answer has two halves.  The first concerns meaning: what must data be for any application to interpret it?  The second concerns locality: where must the data and its interpretation live?
+If neither a semantic layer nor a local-first substrate can be achieved by annotating, federating, or moving bytes peer-to-peer on top of what we already have, what must a new foundation look like?  The missing layer sits above the raw byte substrate that filesystems and networks already provide, and below the application that currently monopolizes interpretation; hence the title.  The answer to what it requires has two halves.  The first concerns meaning: what must data be for any application to interpret it?  The second concerns locality: where must the data and its interpretation live?
+
+(A note on terminology: "semantic layer" is already used in the data analytics industry to mean a translation layer between database schemas and business concepts, as in tools like Looker and dbt.  What is meant here is different.  A BI semantic layer sits above the data and translates queries; the layer proposed here would sit *with* the data, because the data would already know what it means.)
 
 ### Grounded predicates, not strings
 
@@ -161,32 +161,13 @@ A semantic layer requires keys that carry *meaning*, not just labels. The key mu
 
 The problem of vocabulary sharing across systems was formalized in foundational ontology research.  Tom Gruber (1993) argued that systems cannot meaningfully share knowledge without committing to shared vocabularies whose terms have agreed-upon meanings, and laid out design principles (clarity, coherence, minimal ontological commitment, and others) for the ontologies such sharing requires.  The Semantic Web pursued this insight through URI-identified predicates.  URIs, however, are locations, not meanings.  They are globally unique, but they do not carry semantic content intrinsically.  Two different URIs can denote the same concept (`schema.org/author` vs. Dublin Core's `dc:creator`), and nothing in the infrastructure connects them.
 
-What we need are keys that refer to *meanings*: language-independent, application-independent units of semantic content with stable identities. Computational linguistics provides exactly such units. More on what those units are in section 7. For now, the requirement: keys must be grounded meanings, not strings.
+What we need are keys that refer to *meanings*: language-independent, application-independent units of semantic content with stable identities.  Computational linguistics provides exactly such units, developed in detail in sections 5 and 7.  For now, the requirement: keys must be grounded meanings, not strings.
 
 ### Structured assertions
 
-A flat key-value pair (`author: Tolkien`) captures a single relationship but loses the structure that gives it meaning. Who is asserting this? About what? In what capacity?
+A flat key-value pair (`author: Tolkien`) captures a single relationship but loses the structure that gives it meaning.  Who is asserting this?  About what?  In what capacity?  A key-value pair has no structure to express the *kind* of relationship, the *participants* and their roles, or the *context* in which the assertion holds.
 
-Frame semantics (1968; 1982) provides a theoretical foundation. Fillmore observed that understanding a word like "buy" requires understanding an entire *scene*: a buyer, a seller, goods, money, a transaction. A frame, in Fillmore's sense, is "any system of concepts related in such a way that to understand any one of them you have to understand the whole structure in which it fits" (Fillmore, 1982). The participants (buyer, seller, goods, money) are not arbitrary attributes but *thematic roles*: semantic functions catalogued and standardized across decades of research.
-
-The frame's power is connective. "I eat an apple." Three concepts (a person, an action, a fruit) that in isolation are unrelated. The frame connects them: the person is the Agent (performing the action), the apple is the Patient (being affected), and eating is the predicate that defines how they relate. Without the frame, three separate concepts. With it, a coherent assertion.
-
-A flat key-value pair fails not just because the key is a string, but because it has no structure to express the *kind* of relationship, the *participants* and their roles, or the *context* in which the assertion holds. What we need is the frame pattern: a **predicate** that defines a structured assertion, and **role bindings** that fill its slots with values.
-
-**FrameNet** (Baker, Fillmore, & Lowe, 1998), developed at Berkeley as the direct computational realization of Fillmore's theory, defines over 1,200 semantic frames, each with frame-specific roles. Its Commerce_buy frame defines Buyer, Seller, Goods, Money. Its Authorship frame defines Author and Work.
-
-**VerbNet** (Palmer, Gildea, & Kingsbury, 2005) takes a complementary approach, organizing ~300 verb classes by shared syntactic and semantic behavior and mapping FrameNet's frame-specific roles to a smaller set of universal thematic roles (Agent, Theme, Goal) standardized by ISO 24617-4. Both resources are linked to WordNet synsets, and **SemLink** (Bonial et al.) provides cross-walks between them.
-
-The role vocabulary comes from Fillmore's original case roles (1968), refined over decades into the ~25 thematic roles standardized by VerbNet and ISO 24617-4:
-
-- **Core participant roles**: Agent (intentional initiator), Patient (affected entity), Theme (existing/located entity), Experiencer (perceiver), Cause (non-intentional initiator)
-- **Directional roles**: Goal (endpoint), Source (origin), Destination (physical endpoint), Path (route)
-- **Transfer roles**: Recipient (receiver), Beneficiary (one who benefits), Partner (co-participant)
-- **Manner roles**: Instrument (tool), Manner (how), Extent (degree), Purpose (intended outcome)
-- **Setting roles**: Location (where), Time (when)
-- **Information roles**: Topic (subject of communication), Name (designation)
-
-This inventory is not arbitrary and it is not infinite.  It reflects empirical findings about how human languages structure meaning. Every language studied, from English to Lakhota to Japanese, uses the same core set of semantic functions to describe who did what to whom, where, when, how, and why (Youn et al., 2016). The roles are universal; the words that express them vary.
+What we need is the frame pattern: a **predicate** that defines a structured assertion, and **role bindings** that fill its slots with values.  The theoretical foundation for this pattern comes from Fillmore's frame semantics (1968; 1982), and the empirical grounding comes from decades of computational-linguistics research (FrameNet, VerbNet, ISO 24617-4) that has catalogued and standardized the ~25 universal thematic roles human languages use to describe who did what to whom, where, when, how, and why (Youn et al., 2016).  The next section develops the primitive in detail; for now, the requirement is the shape: predicates and role bindings, not flat key-value pairs.
 
 ### Write-time resolution
 
@@ -202,7 +183,7 @@ This is not natural language understanding.  Such a layer need not parse free te
 
 A semantic layer that works only in English is an English-language metadata standard, not a semantic layer.  The concept that English speakers call "dog," Spanish speakers call "perro," and Japanese speakers call "犬" is the same concept.  A semantic layer must represent meanings independently of the words that express them.
 
-This requires a clean separation between *meanings* and *words*.  Meanings (which I will call "sememes", following usage in structural semantics) are language-neutral units with stable identities.  Words are language-specific expressions that point to meanings. The predicate AUTHORED exists independently of the English "authored" or "author", the Spanish "escrito," or the German "verfasst." Each word, in its language, points to the same meaning.
+This requires a clean separation between *meanings* and *words*.  Meanings (which I will call **sememes**, following usage in structural semantics) are language-neutral units with stable identities.  Words, in their role as language-specific expressions that point to meanings, are called **lexemes**.  Each lexeme belongs to a particular language and carries the morphological apparatus of that language (inflection, conjugation, case, gender, tense).  Multiple lexemes across languages can point at the same sememe: the English "authored," the Spanish "escrito," and the German "verfasst" are three lexemes, one sememe.  The predicate AUTHORED exists independently of any of them.
 
 The four requirements above describe data.  Four more describe where the data lives and who runs the code that interprets it.
 
@@ -216,11 +197,17 @@ Data would be identified by what it is, a hash of its content, rather than by wh
 
 ### Trust-based routing
 
-Data would reach a user because the user trusts someone who has it, or trusts someone who trusts someone who has it.  There would be no central broker choosing what to route to whom.  The network topology would be the social graph.
+Identity is a keypair and data is content-addressed, yet neither on its own answers a practical question: how does a specific piece of data reach a specific user?  Something has to decide where data goes.  In a centralized architecture, the server knows, because it holds both the data and the user's connection to it.  A substrate without servers cannot use that answer.
 
-This is a departure from both sides of the current landscape.  Users of today's services do route by trust, in a sense, except that the trust is implicit and usually not chosen: Google, Amazon, whichever cloud provider an employer uses, the social platform where the relevant people already are.  That trust is inherited from where the data happens to live and from what the user's peers already use, not from a deliberate decision.  Peer-to-peer systems go in a different direction: they typically route by arbitrary distance metrics, XOR distance in Kademlia and similar, that have no relationship to who the user actually trusts.
+Peer-to-peer systems have historically routed by arbitrary distance metrics over a hash space (Freenet, Kademlia, Chord, Pastry and their descendants).  A peer is "close to" a content ID not because it cares about the content but because of a mathematical property of the ID.  This works technically but treats all peers as interchangeable and all content as equally relevant, which is rarely true in practice.
 
-Trust-based routing would replace both defaults.  Each peer would choose which other peers it trusts and for what kinds of data, and data would flow along those chosen relationships rather than along topological neighbors or inherited commercial ones.  The arrangement would serve as both a routing mechanism (reaching the data you need through relationships you already have) and a privacy mechanism (data flows only to peers trusted along the path), and it would be closer to how information actually propagates among humans in the first place: through people who know each other, with trust built from history rather than assigned by default.
+Data is not uniformly relevant.  Every person cares about specific data: their own work, data from people they know, data about topics or places or communities they follow.  Every organization is the same, caring about its own operations and about data from specific partners, customers, and peers.  Relevance follows **relationships** - between individuals, between organizations, between communities, between devices and the people who use them.  A routing mechanism that respects relationship structure would carry data between parties that actually have some connection to it, rather than between peers that happen to share a hash-space neighborhood.
+
+Relationships are not the same as trust.  You can have a relationship with your bank without wanting its marketing, with a public figure without believing everything they say, with a computer without granting it authority over your data.  Relationships form the social graph; **trust** is how each edge of that graph gets configured.  Trust in this substrate means the declarations a peer makes about what it accepts from whom: whose data to receive, whose relays to use, whose endorsements to count, whose assertions about third parties to weigh.  It is granular (per-peer, per-topic, per-kind-of-data), revocable, and itself expressed as signed frames like everything else.  Relationships carry data; trust decides what gets through.
+
+Users of today's centralized services route through relationships and trust that were inherited rather than chosen: the employer's cloud, the default search engine, the platform where the relevant people already happen to be.  None of these were deliberate trust decisions, yet they shape every interaction.  Replacing inherited structure with deliberate choice, expressed in the substrate itself, is the shift.
+
+Each peer would choose which other peers it trusts and for what kinds of data, and data would flow along those chosen relationships.  The arrangement serves as both a routing mechanism (reaching the data you need through relationships you already have) and a privacy mechanism (data flows only to peers trusted along the path).
 
 ### Local execution
 
@@ -313,13 +300,15 @@ And the behavior a predicate declares is best understood as a *contract*, not a 
 
 ## 6. What Frames Cohere Around
 
-Frames are the primitive. But a single frame is rarely the whole story. A book is a TITLE frame ("The Hobbit"), an AUTHORED frame (Tolkien), TEXT frames (the chapters), a COVER_ART frame, a PUBLICATION frame (1937, Allen & Unwin), and more. Each frame is a separate assertion with its own predicate and bindings. But they are all *about the same thing*. They only make sense together.
+Frames are the primitive, yet a single frame is rarely the whole story.  A book is a TITLE frame ("The Hobbit"), an AUTHORED frame (Tolkien), TEXT frames (the chapters), a COVER_ART frame, a PUBLICATION frame (1937, Allen & Unwin), and more.  Each frame is a separate assertion with its own predicate and bindings, and they are all *about the same thing*.  They only make sense together.
 
 If frames can be about the same thing, they need a shared identity to point to. That identity, and the collection of frames cohering around it, is what we will call an **item**.
 
 An item is not a new primitive in the way a frame is. It is what falls out when frames need to be *about* something: a stable identity that frames can reference to indicate "I am about *this thing*." The book is an item. Tolkien is an item. A chess game is an item. Each exists as an identity around which frames accumulate, building up a coherent, multi-faceted description. The role that carries this reference depends on the predicate: THEME for an authorship assertion (the work being described), LOCATION for a chess move (the game where it happens).
 
 Identity in this picture would use content-addressed cryptography: an item's identity is a hash derived from its defining characteristics, making it stable, verifiable, and independent of any central registry.  Identity is not assigned by an authority but established by the convergence of content.  An item can live on any device, or on many, and still be recognized as the same item; the book, the chess game, the photograph are not located in any particular database but identifiable wherever they happen to be stored.  The choice has consequences, and those consequences are load-bearing parts of what follows.
+
+Items change over time: a book gains a new edition, a chess game accumulates moves, a photograph acquires reactions.  Each change produces a new version, identified by the hash of the item's current manifest (the signed list of frames it endorses at that point).  The item's identity (IID) is stable across versions; each version (VID) is a snapshot.  Version history is a chain of manifests, each pointing at its predecessor.  Peers holding the same item may hold different versions, and synchronization is a matter of exchanging the manifests and frames each is missing.  Conflict resolution when two peers have diverged is an area of active design, informed by CRDT research and by the practical experience of systems like Git that manage divergent histories.
 
 ### The archetype
 
@@ -404,35 +393,11 @@ The item is what would replace the file for the user. Not at the POSIX level (by
 
 ## 7. The Shared Meaning Space
 
-A semantic frame is only as useful as the vocabulary it draws from. If every application defines its own predicates and roles, frames reproduce the same fragmentation as string-keyed pairs, just with more structure.
+A semantic frame is only as useful as the vocabulary it draws from.  If every application defines its own predicates and roles, frames reproduce the same fragmentation as string-keyed pairs, just with more structure.
 
-This is an old problem. Gruber (1993) argued that shared ontologies are essential for knowledge sharing. Lenat's CYC (1995) attempted to solve it by hand-encoding millions of common-sense assertions, demonstrating both the importance of shared knowledge and the intractability of creating it manually. The Semantic Web attempted ontology languages (RDF, RDFS, OWL), but the proliferation of competing ontologies became a problem in itself.
+Previous sections have named the linguistic resources the vocabulary is anchored in: WordNet's 120,000 synsets, CILI's cross-lingual concept identifiers, FrameNet's 1,200+ frame definitions, VerbNet's verb-class-to-role mappings, ISO 24617-4's standardized role inventory, and the three structural additions (VALUE, CONFIG, FOLLOWS) that adapt the linguistic inventory to the needs of a data primitive.  Those resources are not repeated here.  What this section addresses is how the vocabulary works as a *shared space*: how it handles specific entities, how it relates meaning to expression across languages, and how it grows.
 
-A different anchor is available, one that did not exist when CYC began or when the Semantic Web was proposed: the empirically documented structure of human lexical semantics.
-
-### The vocabulary
-
-**WordNet** (Miller et al., 1993) organizes English into ~120,000 *synsets* (synonym sets representing distinct concepts). Each synset is a meaning, not a word. WordNet provides hierarchical relationships (dog is-a canine is-a mammal), part-whole relationships, antonymy, and other semantic relations.
-
-**CILI** (the Collaborative Interlingual Index; Bond, Vossen, McCrae, & Fellbaum, 2016) extends WordNet across languages. CILI provides language-neutral concept identifiers linking synsets to their equivalents in other languages' wordnets. The English "dog," the Spanish "perro," and the Japanese "犬" share the same CILI identifier. Not a translation; an identity.
-
-Three additional resources provide vocabulary for the frame primitive specifically:
-
-**FrameNet** (Baker, Fillmore, & Lowe, 1998; Ruppenhofer et al., 2006) provides over 1,200 frame definitions with named roles, hierarchical relationships, and annotated examples. It is, in a direct sense, a library of data templates.
-
-**VerbNet** (Palmer, Gildea, & Kingsbury, 2005) organizes ~300 verb classes by shared behavior, mapping FrameNet's frame-specific roles to universal thematic roles. VerbNet entries include WordNet sense keys, bridging concept to role expectations.
-
-**ISO 24617-4** standardizes ~25 thematic roles sufficient for characterizing argument structure across languages. These roles, validated across VerbNet, FrameNet, and PropBank, provide the binding keys that semantic frames need.
-
-Together, these resources supply meanings for three distinct structural roles a sememe can play:
-
-1. **Archetypes** (WordNet/CILI): meanings that name kinds of thing (PERSON, BOOK, CHESS_GAME, LANGUAGE), used as templates for items
-2. **Predicates** (WordNet verb synsets, VerbNet classes): meanings that name relations or events (AUTHORED, PURCHASED, TITLED, MOVE), used as templates for frames
-3. **Roles** (VerbNet, ISO 24617-4): meanings that name semantic functions (Agent, Theme, Goal, Source, Instrument), used as binding keys
-
-All three are the same kind of object: a sememe. The categorization is functional, not structural. WordNet does not distinguish "meanings that template items" from "meanings that template frames." It just lists meanings, organized by what they denote. The frame primitive borrows them and puts them to work in different structural positions. Which sememe naturally fits which position is not a design choice imposed from outside; it falls out from what each meaning is about.
-
-A small number of structural roles are not present in the linguistic literature, because natural language did not need them. As noted earlier, **VALUE** (generalized from VerbNet's narrower Value role), **CONFIG** (operational policy on a frame), and **FOLLOWS** (causal predecessor) are added to the inventory. Each names a function a frame-as-data-primitive needs but a frame-as-event-description does not. They are faithful in spirit to the existing inventory; they fill structural gaps the literature had no occasion to fill.
+The shared vocabulary solves a problem that prior efforts struggled with.  Gruber (1993) argued that shared ontologies are essential for knowledge sharing; Lenat's CYC (1995) tried to build one by hand-encoding millions of common-sense assertions, demonstrating both the importance and the intractability of that approach; the Semantic Web's ontology languages (RDF, RDFS, OWL) produced a proliferation of competing ontologies that became a problem in itself.  The anchor available now is different: not hand-authored axioms or ontology-language constructs, but the empirically documented structure of human lexical semantics, built and validated by the computational linguistics community over decades.
 
 ### The entity problem
 
