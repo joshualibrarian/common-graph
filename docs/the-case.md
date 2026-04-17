@@ -345,7 +345,9 @@ PLACE    { (THEME) = the-photo, (LOCATION) = [37.4275°N, 122.1697°W] }
 CAPTURED { (THEME) = the-photo, (INSTRUMENT) = iPhone, (TIME) = 2024-06-15 }
 ```
 
-Each frame is a separate assertion. Each is signed by the photographer. Each is indexed by the meanings in its binding keys. The photograph does not merely *have* this information attached to it. It *is* this information, structured as grounded semantic assertions.
+Each frame is a separate assertion, signed by the photographer and indexed by the meanings in its binding keys.  The photograph does not merely *have* this information attached to it.  It *is* this information, structured as grounded semantic assertions.
+
+The photograph lives on the photographer's device.  Alice and Bob, who were depicted, have a relationship with the photographer; her Librarian (the local runtime) replicates the photograph to their devices because they are in her relationships.  Alice's mother, who follows Alice, sees the photograph arrive on her own device because Alice chose to include her.  No upload to a central server occurred.  No platform decided who should see it.  The photograph flowed along relationships, the same way the chess game's moves flowed between the two players, and it landed on each recipient's device as a local copy they hold and control.
 
 Now the queries that no existing layer can answer become index lookups:
 
@@ -365,7 +367,7 @@ RECOMMEND { (THEME) = the-photo, (AGENT) = Dave, (RECIPIENT) = Eve }
 DEPICTS   { (THEME) = the-photo, (TOPIC) = sunset }
 ```
 
-Each is a first-class assertion with its own predicate and roles, not a flat comment or tag.  The photograph accumulates reactions, recommendations, and additional descriptions the same way a chess game accumulates moves: signed assertions from identified parties, cohering around the same item identity.  The PHOTOGRAPH archetype did not mention LIKE, FUNNY, RECOMMEND, or a third-party DEPICTS.  It did not need to.
+Each is a first-class assertion with its own predicate and roles, not a flat comment or tag.  Carol's LIKE travels back to the photographer along the same relationship the photograph traveled to Carol.  Dave's RECOMMEND reaches Eve directly, because Dave included Eve in his relationships; the photographer need not be involved.  The photograph accumulates reactions, recommendations, and additional descriptions the same way a chess game accumulates moves: signed assertions from identified parties, cohering around the same item identity, without a platform brokering any of it.  The PHOTOGRAPH archetype did not mention LIKE, FUNNY, RECOMMEND, or a third-party DEPICTS.  It did not need to.
 
 A Spanish speaker sees the same photograph through Spanish lexemes.  The frames are the same; the words that surface them differ.  No translation has occurred.  The meanings were language-neutral from the start.
 
