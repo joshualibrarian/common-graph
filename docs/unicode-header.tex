@@ -1,0 +1,8 @@
+\usepackage{fontspec}
+\setmainfont{Noto Serif}
+\setmonofont{Noto Sans Mono}
+\usepackage{luatexja-fontspec}
+\setmainjfont{Noto Serif CJK JP}
+\usepackage{newunicodechar}
+\newfontfamily\emojifont{NotoColorEmoji}[Path=/usr/share/fonts/truetype/noto/, Extension=.ttf, Renderer=HarfBuzz]
+\newunicodechar{😂}{{\emojifont 😂}}
