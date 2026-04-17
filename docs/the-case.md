@@ -111,23 +111,23 @@ The structural lesson from these efforts is crisp: **you cannot make a semantica
 
 A parallel set of attempts has tried to retrofit decentralization and user control onto an infrastructure whose business model depends on their absence.  Each of these efforts was built by thoughtful practitioners and has adoption within specific communities.  None has become the default.
 
-**XMPP** (originally Jabber, 1999 onward) was an earlier federation attempt focused on messaging and presence.  An open protocol with a mature ecosystem and broad interoperability, XMPP saw significant adoption in the 2000s and was used as the transport for Google Talk and the early Facebook Chat.  That adoption proved instructive: once the largest deployments sat in proprietary hands, those operators could and did withdraw, leaving the ecosystem without the network effects that had made federation useful.  XMPP survives in specific communities (gaming, some enterprise IM) but did not become the default chat protocol because the business incentives of dominant players ran against interoperability.  The pattern became a cautionary tale about relying on large commercial adopters to carry a federated protocol.
+**XMPP** (originally Jabber, 1999 onward) was an earlier federation attempt focused on messaging and presence.  It saw significant adoption in the 2000s, including as the transport for Google Talk and early Facebook Chat.  That adoption proved instructive: once the largest deployments sat in proprietary hands, those operators withdrew, leaving the ecosystem without the network effects that had made federation useful.  A cautionary tale about relying on large commercial adopters to carry a federated protocol.
 
 **The Fediverse** (Mastodon, Pleroma, and other ActivityPub-based systems) provides a federated alternative to centralized social media.  Users choose an instance, and their accounts interact across instances via ActivityPub.  The model genuinely decentralizes operation: there is no single company whose servers must run for the network to function.  Its adoption grew substantially after high-profile disruptions at centralized platforms.  ActivityPub is a federation protocol, however, not a local-first substrate.  User data lives on the chosen instance's servers.  Moving between instances is an operation that often loses history or followers.  The instance operator remains a gatekeeper for the user's experience; this approach has distributed the gatekeepers, not removed them.
 
-**Solid** (Berners-Lee and collaborators, 2016 onward) proposed personal data "pods": user-controlled storage that applications request read or write access to.  The conceptual direction is correct, and the architectural ideas are influential.  Solid layers atop the same HTTP and OAuth-style access model as the web it sought to improve, however, and applications still carry proprietary schemas for what the pods hold.  Without a semantic substrate underneath, the pod becomes another storage location rather than a genuine reorientation of where data and meaning live.  Adoption has remained small.
+**Solid** (Berners-Lee and collaborators, 2016 onward) proposed personal data "pods": user-controlled storage that applications request access to.  The direction is correct, but Solid layers atop HTTP and OAuth, and applications still carry proprietary schemas for what the pods hold.  Without a semantic substrate underneath, the pod is another storage location rather than a reorientation of where meaning lives.
 
 **Secure Scuttlebutt** (Tarr et al., 2019) demonstrated a fully peer-to-peer social protocol with cryptographic identity and append-only signed logs.  Technically it is closer to what a local-first substrate should do.  Adoption required users to manage their own identities and accept a user experience shaped by a research-grade protocol, however.  The community that embraced it has been small and committed, and SSB has not displaced mainstream social software.
 
 **FreeNet** (Clarke et al., 2001) was one of the earliest sustained attempts at a peer-to-peer substrate for publishing and retrieval.  It introduced content-addressed storage routed through a distributed overlay, on the premise that data could be held by peers without any central server knowing where it lived.  Its design directly influenced much of what followed, and its continued development across more than two decades, including a substantial recent rewrite, demonstrates both that the technical approach is viable and that it still rewards fresh thinking.  FreeNet has not reached the mainstream because its user experience, content model, and threat-model trade-offs shaped it for a specific community, anonymity-focused publishing, rather than for general-purpose use.
 
-**BitTorrent** (Cohen, 2001) demonstrated at massive scale that peer-to-peer distribution works when the architecture fits the problem.  Files are split into chunks, peers exchange chunks directly, and a client becomes a server for the parts it already has; in its trackerless form, using a Kademlia DHT, BitTorrent operates without any central coordinator at all.  It has been responsible for significant fractions of global internet traffic for over two decades and remains the standard for distributing large datasets where the sender cannot afford to be the only source.  It solves one slice of the locality problem, bulk file transfer, extremely well.  It does not attempt to be a substrate: files remain opaque, applications built on top share no common data model, and there is no notion of identity, trust, or semantic structure beyond what a given file happens to contain.
+**BitTorrent** (Cohen, 2003) demonstrated at massive scale that peer-to-peer distribution works when the architecture fits the problem.  In its trackerless form, using a Kademlia DHT, it operates without any central coordinator at all, and it has carried significant fractions of global internet traffic for over two decades.  It solves bulk file transfer extremely well, but does not attempt to be a substrate: files remain opaque, with no common data model, identity, or semantic structure.
 
 **Git** (2005) is the most widely used distributed system in the world and an instructive case: technical decentralization can survive while cultural centralization takes hold anyway.  Each clone is a full repository; content-addressing via SHA-1 (migrating to SHA-256) making every object identifiable by its content; any repository can sync with any other over any transport; no single server is architecturally required.  Yet the surrounding workflow (pull requests, issue tracking, CI, code search, discovery) became the value proposition of GitHub and a handful of similar platforms (GitLab, BitBucket, and others), and the developer community centralized around them despite Git itself being fully distributed.  The lesson cuts against complacency about technical decentralization: it is necessary but not sufficient.  If the workflow and social layers around the artifact become the real center of gravity, those layers become the point of centralization, and the underlying tool's distributedness does not save users from a new gatekeeper.
 
 **IPFS** (Benet, 2014) builds on FreeNet's lineage, on BitTorrent's chunked-distribution model, and on the broader distributed-hash-table research tradition (Chord, Kademlia, Pastry, Tapestry and their descendants) that made decentralized lookup practical at scale.  It provides content-addressed storage and a peer-to-peer distribution network, solving the real problem of moving bytes between peers without a coordinating server.  IPFS on its own, however, is a storage layer.  The data moving through it is still opaque.  Without a semantic substrate, a file retrieved from IPFS is the same bytes one would retrieve from any CDN, with the same interpretation problem.
 
-**The AT Protocol** (underlying Bluesky) and **Matrix** take different approaches to federation, each with their own trade-offs around identity portability and server decentralization.  Both move the needle relative to earlier centralized platforms.  Neither carries data with meaning in the sense this paper means; both remain at the layer of a federated service rather than a reoriented substrate.
+**The AT Protocol** (underlying Bluesky) and **Matrix** take different approaches to federation with real trade-offs around identity portability and decentralization.  Neither carries data with meaning in the sense this paper means; both remain federated services rather than a reoriented substrate.
 
 Two structural lessons emerge, mirroring but distinct from the semantic one.
 
@@ -195,25 +195,27 @@ Identity would need to be a keypair rather than a row in a registry.  A user sho
 
 Data would be identified by what it is, a hash of its content, rather than by where it lives.  The same data retrieved from any source would then be recognizably the same data, and its integrity verifiable locally.  Content-addressing (Merkle, 1979; Benet, 2014) is what decouples identity from storage location, which is in turn what makes data portable between peers without losing its meaning, provenance, or relationship to other data.  Storage would become commodity; hosting would become a user-revocable choice rather than a platform commitment.
 
-### Trust-based routing
+### "Social networking"
 
 Identity is a keypair and data is content-addressed, yet neither on its own answers a practical question: how does a specific piece of data reach a specific user?  Something has to decide where data goes.  In a centralized architecture, the server knows, because it holds both the data and the user's connection to it.  A substrate without servers cannot use that answer.
 
 Peer-to-peer systems have historically routed by arbitrary distance metrics over a hash space (Freenet, Kademlia, Chord, Pastry and their descendants).  A peer is "close to" a content ID not because it cares about the content but because of a mathematical property of the ID.  This works technically but treats all peers as interchangeable and all content as equally relevant, which is rarely true in practice.
 
-Data is not uniformly relevant.  Every person cares about specific data: their own work, data from people they know, data about topics or places or communities they follow.  Every organization is the same, caring about its own operations and about data from specific partners, customers, and peers.  Relevance follows **relationships** - between individuals, between organizations, between communities, between devices and the people who use them.  A routing mechanism that respects relationship structure would carry data between parties that actually have some connection to it, rather than between peers that happen to share a hash-space neighborhood.
+Data is not uniformly relevant.  Every person cares about specific data: their own work, data from people they know, data about topics or places or communities they follow.  Every organization is the same, caring about its own operations and about data from specific partners, customers, and peers.  Relevance follows relationships, between individuals, between organizations, between communities, between devices and the people who use them.
 
-Relationships are not the same as trust.  You can have a relationship with your bank without wanting its marketing, with a public figure without believing everything they say, with a computer without granting it authority over your data.  Relationships form the social graph; **trust** is how each edge of that graph gets configured.  Trust in this substrate means the declarations a peer makes about what it accepts from whom: whose data to receive, whose relays to use, whose endorsements to count, whose assertions about third parties to weigh.  It is granular (per-peer, per-topic, per-kind-of-data), revocable, and itself expressed as signed frames like everything else.  Relationships carry data; trust decides what gets through.
+A routing mechanism that respects this structure would carry data along the relationships that make it relevant.  Sociologists have studied such structures under the name *social networks* for more than half a century (Barnes, 1954 and the social-network-analysis tradition that followed), as the shape through which information, influence, and resources actually flow among humans.  The commercial platforms that adopted the phrase "social networking" in the late 1990s and 2000s built closed enclosures around a small slice of this phenomenon and sold access to it.  The substrate proposed here is aimed at the underlying structure rather than any particular enclosure of it: a network whose topology is the social graph itself, not a product that owns and resells it.
 
-Users of today's centralized services route through relationships and trust that were inherited rather than chosen: the employer's cloud, the default search engine, the platform where the relevant people already happen to be.  None of these were deliberate trust decisions, yet they shape every interaction.  Replacing inherited structure with deliberate choice, expressed in the substrate itself, is the shift.
+The claim that social structure suffices for routing is not just philosophical.  Human social networks empirically exhibit *small-world* properties (Milgram, 1967; Watts & Strogatz, 1998): despite their sparseness, most pairs of people are connected through a small number of intermediate relationships.  Data routed along the social graph can therefore reach any particular user through a handful of hops on average, even at scale.  The efficiency is not an algorithmic property of the substrate but an empirical property of the network the substrate traces.
 
-Each peer would choose which other peers it trusts and for what kinds of data, and data would flow along those chosen relationships.  The arrangement serves as both a routing mechanism (reaching the data you need through relationships you already have) and a privacy mechanism (data flows only to peers trusted along the path).
+Users of today's centralized services route through relationships inherited rather than chosen: the employer's cloud, the default search engine, the platform where the relevant people already happen to be.  Replacing inherited structure with deliberate choice, expressed in the substrate itself, is the shift.  What individual users and applications decide about those relationships - which peers to accept data from, whose relays to use, whose endorsements to credit - is a trust question.  Trust is large enough to be its own subject, and the substrate surfaces it without pretending to settle it.  What the substrate provides is the primitive underneath: signed, content-addressed assertions carried along deliberately-chosen relationships.
+
+The arrangement serves as both a routing mechanism (data reaches the peers who actually care about it) and a privacy mechanism (data flows only along peers deliberately included in the path).
 
 ### Local execution
 
 The runtime that interprets data and acts on it would run on the user's machine.  A protocol describes how bytes move; a substrate is also the thing that runs on both ends to turn those bytes into meaningful action.  The user's device would be a full participant rather than a renderer, and the computation that turns data into experience would happen there.
 
-These requirements do not name a structure.  They constrain one.  Whatever fits has to be built around meaning rather than strings, carry role-keyed values rather than flat attributes, be complete at the moment of writing, survive translation between languages, be identified by content rather than location, be signed rather than anonymous, route by trust rather than by central authority, and execute locally rather than remotely.  None of these requirements is individually novel.  What would be new is asking a single structure to satisfy all of them at once, and to do so as the foundation of a layer rather than an annotation or federation laid over one.
+These requirements do not name a structure.  They constrain one.  Whatever fits has to be built around meaning rather than strings, carry role-keyed values rather than flat attributes, be complete at the moment of writing, survive translation between languages, be identified by content rather than location, be signed rather than anonymous, route along deliberately-chosen relationships rather than through central brokers, and execute locally rather than remotely.  None of these requirements is individually novel.  What would be new is asking a single structure to satisfy all of them at once, and to do so as the foundation of a layer rather than an annotation or federation laid over one.
 
 ---
 
@@ -252,7 +254,7 @@ FrameNet and VerbNet resolve this tension differently. FrameNet defines frame-sp
 
 A layer built this way would need both levels, connected through the vocabulary's inheritance hierarchy. PLAYER, BUYER, and AUTHOR are all meanings in the shared vocabulary, each a *specialization* of the universal role AGENT. The relationship can be expressed in the vocabulary's own terms: HYPERNYM { (THEME) = PLAYER, (GOAL) = AGENT }. PLAYER is a kind of AGENT. The vocabulary describes itself with the same primitives it uses to describe everything else.
 
-A PLAYER frame on a chess game would use the PLAYER role, not the generic Agent, because PLAYER carries the additional meaning the context needs. But because PLAYER inherits from AGENT, any query at the universal level would still work: "all frames where Fischer is an AGENT" would find chess games, authorship assertions, and anything else where Fischer acts intentionally.
+A PLAYER frame on a chess game would use the PLAYER role, not the generic Agent, because PLAYER carries the additional meaning the context needs.  Because PLAYER inherits from AGENT, however, any query at the universal level would still work: "all frames where Fischer is an AGENT" would find chess games, authorship assertions, and anything else where Fischer acts intentionally.
 
 ### Compound keys
 
@@ -270,13 +272,13 @@ There is no fundamental distinction between "the data" and "the metadata" of a f
 
 The ~25 thematic roles inherited from linguistics describe the participants in events: who did what to whom, where, when, how, why. For a frame primitive that has to stand in for everything a data layer stores, they are necessary but not quite sufficient. A few additional roles emerge as soon as the frame is asked to do work that natural language did not need to do.
 
-The first gap is already visible in the title example. The actual text "The Hobbit" is not a participant in any event. It is not an Agent, a Theme, a Goal. It is content, the value the predicate is asserting about its theme. VerbNet has a narrow role called Value (used for things like the "$5" in "She paid $5"), and the frame primitive would generalize it. **VALUE** is the role for whatever a predicate carries as its content: a name, a quantity, a measurement, a designation, a piece of text, a binary blob. In a TITLE frame, the string "The Hobbit" fills VALUE. In a GLOSS frame, the gloss text fills VALUE. In any frame whose payload is the content itself rather than a relationship between participants, VALUE is the role that carries it. This one is a generalization of an existing role rather than a new invention.
+The first gap is already visible in the title example.  The actual text "The Hobbit" is not an Agent, a Theme, or a Goal; it is content, the value the predicate asserts about its theme.  **VALUE** generalizes VerbNet's narrow Value role into the role for whatever a predicate carries as its payload: a name, a quantity, a measurement, a piece of text, a binary blob.
 
-The second gap is harder to see from natural language because natural language rarely has to discuss it. How should this assertion be handled, once made? Should it be replicated? Encrypted? Retained for how long? Presented in a particular way? These are not participants in the event the frame describes. They are properties of the assertion itself, governing how the layer treats it. **CONFIG** is the role for operational policy on a frame. Any frame, regardless of its predicate, can carry CONFIG bindings. Compound keys narrow what kind of configuration is meant: (CONFIG, REPLICATION), (CONFIG, PRESENTATION), (CONFIG, RETENTION), and so on. The role is structural, not participant-like, and has no direct ancestor in the linguistic inventory.
+The second gap is operational.  How should an assertion be handled once made?  Replicated?  Encrypted?  Retained for how long?  **CONFIG** is the role for policy on the assertion itself: (CONFIG, REPLICATION), (CONFIG, PRESENTATION), (CONFIG, RETENTION), and so on.  Any frame can carry CONFIG bindings regardless of its predicate.
 
-The third gap is causal ordering. An assertion sometimes needs to declare that it happened after, or because of, another assertion. A chess move follows the previous move. A paragraph edit follows the edit before it. A reply follows the message it answers. These relationships are not between a verb's participants. They are between assertions themselves. **FOLLOWS** is the role for causal or temporal predecessors. Like CONFIG, it is cross-cutting: any frame can carry a FOLLOWS binding pointing at an earlier frame. And like CONFIG, it has no ancestor in the participant-role inventory, because natural language ordinarily uses tense and discourse structure to do this work, not named participant roles.
+The third gap is causal ordering.  A chess move follows the previous move; a paragraph edit follows the edit before it; a reply follows the message it answers.  **FOLLOWS** is the role for causal or temporal predecessors, and like CONFIG it is cross-cutting: any frame can carry a FOLLOWS binding pointing at an earlier frame.
 
-Three roles, then, added to the inheritance from linguistics: VALUE (generalized), CONFIG (new), FOLLOWS (new). Each names a recurring function the linguistic literature had no need to catalog, because natural language rarely talks about the *content* of an assertion, the *handling* of an assertion, or the *causal position* of an assertion. A layer made of frames would need all three.
+Three roles added to the linguistic inheritance: VALUE (generalized), CONFIG (new), FOLLOWS (new).  Each names a function the linguistic literature had no need to catalog.
 
 ### Frames as portable units
 
@@ -290,11 +292,9 @@ Consider the token `+`. In ordinary treatment, `+` is a symbol that a language's
 
 This extends to structural symbols. Parentheses are tokens whose corresponding meanings declare "I open a group" and "I close a group." There is no reserved syntax. Everything (verbs, operators, functions, parentheses, commas) would resolve through the shared vocabulary. Syntax becomes vocabulary.
 
-Any domain can bring its own notation. Chess algebraic notation ("e4," "Nf3," "O-O") is a set of tokens whose corresponding meanings declare how they parse. A regular expression is a set of tokens whose meanings declare how they parse. The meanings are predicates; the tokens are surface forms; the parsing behavior is data on the predicates themselves, resolved through the same mechanism as arithmetic operators or English prepositions.
+Any domain can bring its own notation.  Chess algebraic notation, regular expressions, mathematical symbols: each is a set of tokens whose corresponding predicates declare how they parse, resolved through the same mechanism as arithmetic operators or English prepositions.
 
-A distinction is worth making explicit here. The predicate declares what a frame of its kind *is* and how it might be parsed and evaluated. The frame is the individual *instance* that results when the predicate is actually used. ADD is a predicate. The string `3 + 5`, resolved into the frame ADD { (THEME) = 3, (INSTRUMENT) = 5 }, is an instance of that predicate. The predicate lives in the shared vocabulary, once. Instances come into existence whenever anyone uses the predicate to make an assertion.
-
-And the behavior a predicate declares is best understood as a *contract*, not a piece of code. The contract lives with the predicate in the vocabulary. Code that satisfies the contract (an actual parser, an actual evaluator) is something else entirely, and the question of where such code comes from and how it gets attached to a predicate is one the primitive itself does not answer. That question is taken up later.
+The behavior a predicate declares is best understood as a *contract*, not a piece of code.  The contract lives with the predicate in the vocabulary; code that satisfies the contract (an actual parser, an actual evaluator) is something else entirely.  Where such code comes from and how it gets attached to a predicate is a question the primitive itself does not answer.  That question is taken up later.
 
 ---
 
@@ -306,7 +306,7 @@ If frames can be about the same thing, they need a shared identity to point to. 
 
 An item is not a new primitive in the way a frame is. It is what falls out when frames need to be *about* something: a stable identity that frames can reference to indicate "I am about *this thing*." The book is an item. Tolkien is an item. A chess game is an item. Each exists as an identity around which frames accumulate, building up a coherent, multi-faceted description. The role that carries this reference depends on the predicate: THEME for an authorship assertion (the work being described), LOCATION for a chess move (the game where it happens).
 
-Identity in this picture would use content-addressed cryptography: an item's identity is a hash derived from its defining characteristics, making it stable, verifiable, and independent of any central registry.  Identity is not assigned by an authority but established by the convergence of content.  An item can live on any device, or on many, and still be recognized as the same item; the book, the chess game, the photograph are not located in any particular database but identifiable wherever they happen to be stored.  The choice has consequences, and those consequences are load-bearing parts of what follows.
+Identity in this picture uses content-addressed cryptography: an item's identity is a hash derived from its defining characteristics, making it stable, verifiable, and independent of any central registry.  Identity is not assigned by an authority but established by the convergence of content.  An item can live on any device, or on many, and still be recognized as the same item; the book, the chess game, the photograph are not located in any particular database but identifiable wherever they happen to be stored.  The choice has consequences, and those consequences are load-bearing parts of what follows.
 
 Items change over time: a book gains a new edition, a chess game accumulates moves, a photograph acquires reactions.  Each change produces a new version, identified by the hash of the item's current manifest (the signed list of frames it endorses at that point).  The item's identity (IID) is stable across versions; each version (VID) is a snapshot.  Version history is a chain of manifests, each pointing at its predecessor.  Peers holding the same item may hold different versions, and synchronization is a matter of exchanging the manifests and frames each is missing.  Conflict resolution when two peers have diverged is an area of active design, informed by CRDT research and by the practical experience of systems like Git that manage divergent histories.
 
@@ -314,27 +314,25 @@ Items change over time: a book gains a new edition, a chess game accumulates mov
 
 What makes a particular item the kind of thing it is? A book is recognizably a book, not because some authority declares it so, but because the frames it carries are the frames a book is *expected* to have. There are TITLE frames. There are AUTHORED frames. There are TEXT frames for the chapters. There are PUBLICATION frames. The collection of expected frames is what makes the item, in any meaningful sense, a book.
 
-Where does that expectation live? In the same place predicates live: the shared vocabulary. BOOK is a sememe, just like AUTHORED is a sememe. But where AUTHORED, in its role as a predicate, declares what bindings a frame of its kind expects, BOOK, in a different structural role, declares what frames an item of its kind is expected to carry. Call a sememe playing this latter role an *archetype*. BOOK is an archetype. CHESS_GAME is an archetype. PERSON is an archetype. LANGUAGE is an archetype. Each is a sememe in the shared vocabulary, acting as a template for items rather than for frames.
+Where does that expectation live?  In the same place predicates live: the shared vocabulary.  BOOK is a sememe, just like AUTHORED is a sememe.  Where AUTHORED, in its role as a predicate, declares what bindings a frame of its kind expects, BOOK, in a different structural role, declares what frames an item of its kind is expected to carry. Call a sememe playing this latter role an *archetype*. BOOK is an archetype. CHESS_GAME is an archetype. PERSON is an archetype. LANGUAGE is an archetype. Each is a sememe in the shared vocabulary, acting as a template for items rather than for frames.
 
 Predicate and archetype are not categories of sememe. They are functional roles a sememe can play, parallel and complementary. A predicate is a sememe acting as a template for a frame. An archetype is a sememe acting as a template for an item. The same vocabulary supplies both. Which role a particular sememe naturally fits depends on what it denotes: meanings that name relations or events fit as predicates, meanings that name kinds of thing fit as archetypes. Nothing in the system would enforce the assignment, but in practice the division falls out cleanly from the meanings themselves.
 
 There is one important asymmetry between archetypes and predicates, and it shapes how items grow. A predicate's declaration is mostly closed: a frame using a particular predicate carries the bindings the predicate calls for, though cross-cutting structural roles like CONFIG can appear on any frame regardless of predicate. An archetype's declaration is *open*: it lists the frames an instance is expected to carry, but instances can accumulate frames the archetype never mentioned. A book is expected to have TITLE and AUTHORED frames. Nothing prevents anyone from also attaching a LIKE frame, a comment, a citation, a fact-check, a translation, a review, a bookmark, a personal annotation. The archetype defines what makes something a book. It does not gatekeep what others may say about it.
 
-A chess game makes the pattern vivid. The game is an item. CHESS is its archetype, declaring the frames a chess game is expected to carry: the players, the moves, the result. But the item itself is not a monolithic structure. It is an accumulation of signed frames.
+A chess game makes the pattern vivid. The game is an item. CHESS is its archetype, declaring the frames a chess game is expected to carry: the players, the moves, the result.  The item itself, however, is not a monolithic structure. It is an accumulation of signed frames.
 
 Players would register by signing their own PLAYER frames: PLAYER { (AGENT) = Fischer, (ROLE) = WHITE } signed by Fischer; PLAYER { (AGENT) = Spassky, (ROLE) = BLACK } signed by Spassky. Each player attests their own participation. It is not assigned by a third party; it is declared by the participant and carries their signature.
 
 Then moves: MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 } signed by Fischer. Each move is independently meaningful, independently signed, independently verifiable. The game is the ordered sequence of these signed assertions, all cohering around the same item identity.
 
-Because each move is a self-contained signed frame, the game can be played peer-to-peer: each move travels from the player who made it to the other, through whatever connection they share.  No referee server is required, no hosted backend, no central authority to validate plays.  The game item exists on both devices, and both see the same frames because the frames are content-addressed.  The game is recorded by being signed; it does not need any third party to become real.
+Because each move is a self-contained signed frame, the game can be played peer-to-peer: each move travels directly from the player who made it to the other, with no referee server, no hosted backend, no central authority.  The game is recorded by being signed; it does not need any third party to become real.  And because each move is a frame, it is queryable: "all games where someone opened e4" is an index lookup on MOVE frames with (GOAL) = e4.
 
-No special game engine data structure would be needed. Each move is a frame, the same primitive as a title or a video. And because each move is a frame, it is queryable. "All games where someone opened with pawn to e4" is an index lookup on MOVE frames with (GOAL) = e4. "All games Fischer played" is a lookup on PLAYER frames with (AGENT) = Fischer. "Fischer's longest game" is a count of MOVE frames per game item where Fischer has a PLAYER frame.
-
-The pattern generalizes immediately. A chat room would be an item where people join with signed MEMBERSHIP frames and contribute with signed MESSAGE frames. A key log would be an item with KEY frames, REVOKE frames, and DELEGATE frames. An auction would be an item where bidders assert signed BID frames. All the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is.
+The pattern generalizes immediately.  A chat room would be an item with signed MEMBERSHIP and MESSAGE frames.  A key log would be KEY, REVOKE, and DELEGATE frames.  An auction would be signed BID frames.  All the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is.
 
 ### The photograph, revisited
 
-This paper opened with a photograph: a user saves it, and no layer of the stack knows what it is, who is in it, what occasion it documents, how it relates to other photographs or to the people depicted. In the picture being described here, a photograph would be an item. Its archetype is PHOTOGRAPH. And the information that today lives only in the user's head, or in a proprietary application's database, would be captured as frames at the moment of creation.
+This paper opened with a photograph: a user saves it, and no layer of the stack knows what it is, who is in it, what occasion it documents, how it relates to other photographs or to the people depicted. In the picture being described here, a photograph is an item.  Its archetype is PHOTOGRAPH.  The information that today lives only in the user's head, or in a proprietary application's database, would be captured as frames at the moment of creation.
 
 The photographer takes a picture of Alice and Bob at Alice's graduation. The item is created, and with it, the frames:
 
@@ -358,7 +356,7 @@ Now the queries that no existing layer can answer become index lookups:
 
 No crawling. No NLP. No reconstruction. The meaning was captured when the photograph was created, by the person who knew what the photograph was of.
 
-The archetype PHOTOGRAPH declares that photographs are expected to carry DEPICTS, PLACE, and CAPTURED frames. But the accumulation surface is open. Later, someone else adds:
+The archetype PHOTOGRAPH declares that photographs are expected to carry DEPICTS, PLACE, and CAPTURED frames.  The accumulation surface is open regardless. Later, someone else adds:
 
 ```
 LIKE      { (THEME) = the-photo, (AGENT) = Carol, (VALUE) = "Great shot!" }
@@ -367,13 +365,11 @@ RECOMMEND { (THEME) = the-photo, (AGENT) = Dave, (RECIPIENT) = Eve }
 DEPICTS   { (THEME) = the-photo, (TOPIC) = sunset }
 ```
 
-Carol likes the photo and elaborates with "Great shot!" in the VALUE binding. Jeff asserts it is funny, with an emoji as his VALUE. Dave recommends it to Eve, a directed social action with a recipient. Someone else adds a DEPICTS frame noting the sunset, contributing the same kind of semantic content the photographer did. Each is a first-class assertion with its own predicate and roles, not a flat comment or tag. The photograph accumulates reactions, recommendations, and additional descriptions the same way a chess game accumulates moves: signed assertions from identified parties, cohering around the same item identity. The PHOTOGRAPH archetype did not mention LIKE, FUNNY, RECOMMEND, or a third-party DEPICTS. It did not need to.
+Each is a first-class assertion with its own predicate and roles, not a flat comment or tag.  The photograph accumulates reactions, recommendations, and additional descriptions the same way a chess game accumulates moves: signed assertions from identified parties, cohering around the same item identity.  The PHOTOGRAPH archetype did not mention LIKE, FUNNY, RECOMMEND, or a third-party DEPICTS.  It did not need to.
 
-A Spanish speaker looking at the same photograph sees it through Spanish lexemes. The sememe DEPICTS has a Spanish word. GRADUATION has a Spanish word. CAMPUS has a Spanish word. The frames are the same. The words that surface them differ. No translation has occurred. The meanings were language-neutral from the start.
+A Spanish speaker sees the same photograph through Spanish lexemes.  The frames are the same; the words that surface them differ.  No translation has occurred.  The meanings were language-neutral from the start.
 
-And the architecture closes a circle: even sememes themselves (the units of meaning in the shared vocabulary) would be items. The sememe METER carries a GLOSS frame in English ("the base unit of length in the metric system"), a GLOSS in Spanish, a DIMENSION frame (LENGTH), CONVERSION frames to other units, a HYPERNYM frame (METER is-a LENGTH_UNIT), and a SYMBOL frame ("m"). The meaning is not a definition string. It is the structured totality of everything asserted about it.
-
-The same holds for every sememe. AUTHOR has glosses, hierarchical relationships, and lexemes in every imported language. A language itself (English, Spanish, Japanese) is an item whose frames include its entire lexicon. The vocabulary would live *in* the graph, as items made of frames, using the same primitives as everything else.  Your local runtime carries the parts of the vocabulary you have used or encountered; when you encounter a sememe you have not seen, you fetch it from peers who have it, the same way you fetch any other item.  There is no central dictionary service to consult.
+The architecture closes a circle: even sememes themselves would be items.  The sememe METER carries a GLOSS frame in English, a GLOSS in Spanish, a DIMENSION frame (LENGTH), CONVERSION frames to other units, a HYPERNYM frame (METER is-a LENGTH_UNIT), and a SYMBOL frame ("m").  The meaning is not a definition string but the structured totality of everything asserted about it.  A language itself (English, Spanish, Japanese) is an item whose frames include its entire lexicon.  The vocabulary lives *in* the graph, as items made of frames, using the same primitives as everything else.  Your local runtime carries the vocabulary you have encountered; when you meet a sememe you have not seen, you fetch it from peers who have it, the same way you fetch any other item.
 
 This is where the analogy to files becomes concrete:
 
@@ -401,7 +397,7 @@ The shared vocabulary solves a problem that prior efforts struggled with.  Grube
 
 ### The entity problem
 
-The AUTHORED example: predicate AUTHORED, (THEME) = The Hobbit, (AGENT) = Tolkien. AUTHORED is a shared meaning. PERSON is a shared meaning. BOOK is a shared meaning. But what about Tolkien *himself*?
+The AUTHORED example: predicate AUTHORED, (THEME) = The Hobbit, (AGENT) = Tolkien.  AUTHORED is a shared meaning.  PERSON is a shared meaning.  BOOK is a shared meaning.  What about Tolkien *himself*?
 
 Today, Tolkien exists as a Wikipedia page, an Amazon author page, a Goodreads entry, a TMDB profile, a Library of Congress authority record, a Wikidata entry, and countless other disconnected representations. None is the canonical Tolkien that every system could use as the AGENT binding.
 
@@ -439,13 +435,7 @@ ADD { (THEME) = 3, (INSTRUMENT) = 5 }
 
 The frame is the input form: a predicate and its bindings, nothing more. Evaluating the frame produces a value, in this case 8. That value plays the role of Result in the cognitive structure (the thing that comes into existence through the operation), but it is not a binding on the input frame. It is what comes out the other end when the frame is run against an implementation of ADD's contract. Where that implementation comes from is taken up at the end of this section.
 
-Subtraction makes the asymmetry explicit: 10 - 3 = 7. 10 is the Theme (the quantity being diminished). 3 is the Instrument.
-
-```
-SUBTRACT { (THEME) = 10, (INSTRUMENT) = 3 }
-```
-
-Evaluating produces 7 as the Result. Theme ("the thing being acted on") and Instrument ("by what means") are exactly the semantic functions the input values serve. The roles were defined for natural language, but they describe the same cognitive structure.
+Subtraction confirms the asymmetry: `SUBTRACT { (THEME) = 10, (INSTRUMENT) = 3 }` evaluates to 7.  Theme ("the thing being acted on") and Instrument ("by what means") are exactly the semantic functions the input values serve.  The roles were defined for natural language, but they describe the same cognitive structure.
 
 ### Calculus
 
@@ -457,9 +447,7 @@ INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx }
 
 Source and Goal for the bounds of integration. These roles were defined for physical motion ("move from the house to the store") but they map onto abstract endpoints with no strain, because the cognitive structure is the same: a starting point, an ending point, a traversal. Evaluating the frame produces ⅓, the Result.
 
-Differentiation: d/dx(x²) = 2x becomes `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x }`, evaluating to 2x.
-
-Limits: lim(x→∞) 1/x = 0 becomes `LIMIT { (THEME) = 1/x, (GOAL) = ∞ }`, evaluating to 0. The variable approaches the Goal, the same directional structure as physical motion.
+Differentiation and limits follow the same pattern: `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x }` evaluates to 2x; `LIMIT { (THEME) = 1/x, (GOAL) = ∞ }` evaluates to 0, the variable approaching the Goal the same way a physical object approaches a destination.
 
 ### The role mapping
 
@@ -486,27 +474,19 @@ If ~25 thematic roles can structure natural language, social interactions, and m
 
 ### Mathematics as a language
 
-Not only are mathematical operations frames, they constitute a *language* with its own grammar. And that grammar is data on the predicates themselves.
+As noted in section 5, predicates carry parsing behavior: `+` is a token whose corresponding sememe ADD declares itself as infix with a precedence and associativity.  The consequence for mathematics specifically is that natural language, mathematical expressions, and domain-specific notations coexist within a single input stream.  "Create chess where score > sqrt(9) named rematch" mixes English, a mathematical sub-expression, and an auxiliary predicate.  One resolution pipeline; the language being spoken is inferred from the tokens, not assumed.
 
-`+` is a token: a written symbol used in some notations. Other notations use "plus," "más," or other tokens for the same meaning. The meaning itself is the sememe ADD. As a predicate, ADD can declare the properties any parser would need: it is infix, it has a precedence level, it associates left-to-right. The parser reads these properties from the predicate when it encounters one of `+`'s tokens, the same way it reads role expectations from a verb. There is no separate grammar for mathematical expressions. There are predicates with parsing metadata, accessible through the same vocabulary lookup as everything else.
-
-The consequence: natural language, mathematical expressions, and domain-specific notations coexist within a single input stream. "Create chess where score > sqrt(9) named rematch" mixes English ("create chess"), a mathematical sub-expression ("score > sqrt(9)"), and an auxiliary predicate ("named rematch"). One resolution pipeline, where each predicate declares its parsing behavior. The language being spoken is inferred from the tokens, not assumed.
-
-Mathematical and functional expressions are not bolted onto the side of a semantic layer. They are frames. A spreadsheet cell is a frame whose value is the result of an expression frame. The boundary between "data" and "computation" dissolves the same way "data" and "metadata" does: both are role bindings on predicates.
+Mathematical expressions are not bolted onto the side of a semantic layer.  They are frames.  A spreadsheet cell is a frame whose value is the result of an expression frame.  The boundary between "data" and "computation" dissolves the same way "data" and "metadata" does: both are role bindings on predicates.
 
 ### The contract and the code
 
-A predicate carries a *contract*. As we have seen, it declares how a frame of its kind might be parsed and evaluated, what kinds of values it expects, what kind of result it produces. The contract lives with the predicate in the shared vocabulary, alongside the predicate's glosses and lexemes and parsing properties. But the contract is not the same thing as the code that satisfies it. ADD, as a predicate, can declare that its frames take two operands and produce a sum. It cannot, by itself, actually compute the sum. Something else has to do that.
+A predicate carries a *contract*: it declares what values it expects, what result it produces, and how it might be parsed and evaluated.  The contract, however, is not the code that satisfies it.  ADD can declare that it takes two operands and produces a sum; it cannot, by itself, compute the sum.
 
-Where does that something live? Once frames are asked to express computations, the question becomes unavoidable. Some piece of code, somewhere, has to read the bindings and produce a value.
+The answer that fits the rest of the architecture is that code is published the same way every other thing is: as items.  An implementation of ADD would itself be an item, carrying the executable form (source code, compiled bytes, or a formal specification) alongside frames declaring which contract it satisfies, who signed it, and what runtime is needed.  The relationship between an implementation and the predicate it satisfies is itself a frame.
 
-The answer that fits the rest of the architecture is that code is published the same way every other thing is: as items. An implementation of ADD would itself be an item, a content-addressed and signed collection of frames. One of those frames would carry the executable form: source code in some language, compiled bytes for some runtime, or a formal specification a verified compiler could consume. Other frames would declare which contract the implementation satisfies, who signed it, what runtime is needed to execute it, what trust assumptions it makes. All of this is just data, structured the same way every other item in the layer is structured. The relationship between an implementation and the predicate it satisfies is itself a frame, sitting in the implementation's manifest, indexed under both the implementation and the predicate.
+A predicate could have many implementations: different runtimes, different trade-offs, different authors, all coexisting.  A runtime evaluating an ADD frame would pick an implementation it can execute and whose author it trusts.  The contract is the meaning; the code is the machinery.  Nobody would own the contract.  ADD is a sememe in the shared vocabulary, no different from BOOK or AUTHORED.  Anyone could publish an implementation item, sign it, and let it propagate; whether a particular runtime uses it would be a matter of local trust, not central authorization.
 
-A predicate could have many implementations: different runtimes, different trade-offs, different authors, all coexisting. A library handed an ADD frame to evaluate would look across the implementations it has, pick one whose runtime it can execute and whose author it trusts, and run that one. The contract is the meaning. The code is the machinery. A given evaluation depends on the machinery available at the moment, but the meaning the frame asserts does not.
-
-Nobody would own the contract. ADD is a sememe in the shared vocabulary, no different from BOOK or AUTHORED in this respect. Nothing in the architecture would let any single party declare what counts as an implementation of it. Anyone could publish an implementation item, sign it, and let it propagate. Whether a particular library would actually use it would be a matter of local trust, not central authorization.
-
-Code distribution would become a special case of data distribution. Today, when software reaches a user's machine, it travels through some centralized clearinghouse: an app store, a package manager, a programming-language registry, a vendor's release server. Each is a single point of trust, with its own rules and its own failure modes. In the picture being described, code would travel through the same peer-to-peer mechanism as any other item: signed, content-addressed, replicated through trust relationships, versioned, forkable. The package manager dissolves into the same medium that carries the rest of the data. This is one of the more consequential things the architecture quietly replaces, even though it is not what the white paper is centrally about.
+Code distribution would become a special case of data distribution.  Today, software reaches users through centralized clearinghouses: app stores, package managers, vendor release servers.  In the picture being described, code would travel the same peer-to-peer mechanism as any other item: signed, content-addressed, replicated through relationships, versioned, forkable.  The package manager dissolves into the same medium that carries the rest of the data.
 
 The choice raises serious security concerns. Running code from arbitrary peers is a recipe for disaster unless the runtimes loading and executing it are properly sandboxed. Sandboxing in this picture would not be a separate special system. It would be another kind of policy attached to frames, the same way replication or retention policy would be. The problem is hard, but it is the same kind of hard as sandboxing untrusted JavaScript in a web browser, and the existing landscape of techniques (capability-based interfaces, isolated execution environments, formal verification of restricted languages) gives plenty to draw on.
 
@@ -526,23 +506,23 @@ If we accept the premises of both pillars, that meaning must live in the data an
 
 **Trust as data.** Every frame would be a signed assertion by an identified party. A "like" would be a signed frame. A spam label would be a signed frame. A fact-check would be a signed frame. Different users, with different trust relationships, would see different views of the same underlying data, not because a platform is making editorial decisions, but because trust policies (themselves data) produce different evaluations. This is Szabo's (1997) vision of formalizing relationships on public networks, realized through the frame primitive.
 
-**Content-addressed identity.** Frame identity would be determined by semantic content (predicate + bindings). Two identical assertions would produce the same identity regardless of who makes them or when. The same principle as content-addressed storage (Merkle, 1979; Benet, 2014), applied to semantic structures rather than opaque bytes.
+**Content-addressed identity.** Frame identity would be determined by semantic content (predicate + bindings).  Two identical assertions produce the same identity regardless of who makes them or when.  Content-addressing (Merkle, 1979; Benet, 2014) applied to semantic structures rather than opaque bytes.
 
 **Composability.** A document is frames. A chat room is frames. A chess game is frames. A trust relationship is frames. A mathematical expression is frames. There is no structural distinction between content, metadata, relationships, configuration, and computation.
 
-**Liveness.** Real-time shared presence would not be a separate system. A PRESENT frame asserts "I am in this space." An AVATAR_STATE frame with a retention policy of LATEST carries position and orientation at 60Hz. Stream bindings carry video and audio. Three temporal modes (durable, ephemeral, streaming), one frame model. "Entering" a shared space means creating a PRESENT frame on that item. Other participants see it through normal subscriptions. The renderer (3D, 2D, text) handles it per fidelity. This is how Croquet's (Smith, Kay, Raab, & Reed, 2003) vision of a shared, replicated environment could be realized without requiring a single runtime: the frame primitive absorbs what Croquet needed a custom collaboration protocol (TeaTime) to achieve.
+**Liveness.** Real-time shared presence would not be a separate system.  A PRESENT frame asserts "I am in this space"; an AVATAR_STATE frame with a LATEST retention policy carries position at 60Hz; stream bindings carry video and audio.  Three temporal modes (durable, ephemeral, streaming), one frame model.  This is how Croquet's (Smith, Kay, Raab, & Reed, 2003) vision of shared, replicated environments could be realized without a single runtime.
 
 **Syntax as vocabulary.** Predicates carry their own parsing behavior. Operators declare precedence, functions declare grouping, prepositions declare role assignment. One resolution pipeline. Natural language, mathematics, chess notation, and any future domain syntax all flow through the same mechanism. Parsing is resolution.
 
-**Self-describing data.** A frame carries everything needed to interpret it. Its predicate says what kind of assertion it is. Its binding keys say what each value means. No external schema, no format specification, no application-specific decoder ring.
+**Self-describing data.** A frame carries everything needed to interpret it: its predicate names the kind of assertion, its binding keys name what each value means.  No external schema, no application-specific decoder ring.
 
 **Subsumption of platforms.** A product listing would be frames (PRICE, CATEGORY, LOCATION, DESCRIPTION, OFFER). A community would be frames (MEMBERSHIP, MODERATION, TOPIC, ANNOUNCEMENT, QUESTION). A review would be frames (RATING, TOPIC, AGENT). A citation graph would be CITES frames. A social network would be frames (FOLLOW, LIKE, CRITIQUE, RECOMMEND, BLOCK). Each is currently a proprietary database on a proprietary platform. In the shared meaning space, all would be the same primitive.
 
 **Applications without platforms.**  An email client, a document editor, a social feed, a project tracker would be applications over frames.  Any runtime that understands the shared vocabulary could serve as the application; competing clients would read the same data.  No user would be locked in to an interface because their data is readable only by its author's binaries.  The user picks the client; the data does not belong to the client.
 
-**Offline by default.**  A local runtime with local data is trivially offline-capable.  Without a network, the user can still read, edit, compose, and query; when a network returns, changes propagate to peers.  The offline story is not a feature to be engineered but a consequence of where data and computation live.  This is the structural inverse of the SaaS default, where nothing is usable without connection.
+**Offline by default.**  A local runtime with local data is trivially offline-capable.  When a network returns, changes propagate to peers.  Offline is a consequence of where data and computation live, not a feature to be engineered.
 
-**Resilience to vendor disappearance.**  No vendor could take down the data.  Items live on the users' devices and on the peers who have replicated them.  A company that shut down, was acquired, or chose to stop running a service would lose the ability to ship updates, but the existing data, the existing tools, and the existing network of peers would remain.  The "long now" property that Kleppmann et al. name in local-first software is a structural consequence of the substrate, not an engineering feature.
+**Resilience to vendor disappearance.**  Items live on users' devices and on the peers who have replicated them.  A company that shut down or was acquired would lose the ability to ship updates, but the data, the tools, and the peer network would remain.  The "long now" property that Kleppmann et al. name in local-first software is a structural consequence, not an engineering feature.
 
 ---
 
@@ -568,13 +548,13 @@ The word "ownership" invites confusion because it borrows from property law what
 
 I am not the first to propose an ambitious rethinking of how computing handles information. The history of such proposals is largely a history of instructive failures, and I would be foolish to ignore it.
 
-**Xanadu** (Nelson, 1974) envisioned a global, versioned, bidirectional-linking document system with micropayments and transclusion. It got content addressing, versioning, and bidirectional links right (concepts that took decades to resurface in Git and IPFS). It failed because it demanded solving everything simultaneously before shipping anything. After sixty years, it remains unfinished. Lesson: scope ambition ruthlessly. Ship incremental function, not a complete vision.
+**Xanadu** (Nelson, 1974) envisioned a global, versioned, bidirectional-linking document system.  It got content addressing, versioning, and bidirectional links right (concepts that took decades to resurface in Git and IPFS).  It failed because it demanded solving everything simultaneously before shipping anything.  Lesson: ship incremental function, not a complete vision.
 
-**CYC** (Lenat, 1995) set out to encode all of common-sense knowledge as logical assertions. It got the diagnosis right: computers need world knowledge, not just data. It stalled because hand-authoring millions of axioms does not scale. Lenat himself noted the project's dependence on "a large team of knowledge enterers." Lesson: do not try to encode all knowledge by hand. Anchor in existing resources and let meaning emerge from use.
+**CYC** (Lenat, 1995) set out to encode all common-sense knowledge as logical assertions.  It got the diagnosis right: computers need world knowledge, not just data.  It stalled because hand-authoring millions of axioms does not scale.  Lesson: anchor in existing resources and let meaning emerge from use.
 
-**Croquet** (Smith, Kay, Raab, & Reed, 2003), Alan Kay's vision of a shared, replicated 3D environment where all computation is transparent and collaborative, got replicated state, late-binding, and seamless collaboration right. It faded because it required a complete runtime (Squeak Smalltalk), could not interoperate with existing software, and presented an interface that was ahead of its time. Lesson: platforms that cannot meet users where they already are face adoption cliffs that no technical elegance can overcome.
+**Croquet** (Smith, Kay, Raab, & Reed, 2003), Alan Kay's vision of shared, replicated 3D environments, got replicated state and seamless collaboration right.  It faded because it required a complete runtime (Squeak Smalltalk) and could not interoperate with existing software.  Lesson: platforms that cannot meet users where they already are face adoption cliffs no technical elegance can overcome.
 
-**Plan 9** (Pike et al., 1995) pushed Unix's "everything is a file" to its logical conclusion: all resources accessible as file trees via 9P. Technically superior to Unix in almost every way. It failed to displace Unix because it required abandoning the entire Unix ecosystem. No migration path, no backwards compatibility, no critical mass. Lesson: even a cleaner design loses to an entrenched ecosystem unless it provides a bridge.
+**Plan 9** (Pike et al., 1995) pushed Unix's "everything is a file" to its logical conclusion.  Technically superior to Unix in almost every way, it failed to displace it because it required abandoning the entire Unix ecosystem.  Lesson: even a cleaner design loses to an entrenched ecosystem unless it provides a bridge.
 
 **The Semantic Web** (Berners-Lee et al., 2001) got the diagnosis exactly right: the web needs machine-readable semantics. It built a rigorous stack that works in specialized domains. It did not become general-purpose because it was layered *on top of* the web rather than built into it. Lesson: a semantic layer that is optional will remain marginal.
 
@@ -606,6 +586,8 @@ Whether it works is an empirical question. I offer it not as a certainty but as 
 
 Baker, C. F., Fillmore, C. J., & Lowe, J. B. (1998). The Berkeley FrameNet Project. In *Proceedings of ACL/COLING*, 86-90.
 
+Barnes, J. A. (1954). Class and Committees in a Norwegian Island Parish. *Human Relations*, 7(1), 39-58.
+
 Benet, J. (2014). IPFS — Content Addressed, Versioned, P2P File System. arXiv:1407.3561.
 
 Berners-Lee, T., Hendler, J., & Lassila, O. (2001). The Semantic Web. *Scientific American*, May 2001.
@@ -619,6 +601,10 @@ Bond, F. & Foster, R. (2013). Linking and Extending an Open Multilingual Wordnet
 Bonial, C., Stowe, K., & Palmer, M. (2011). Renewing and Revising SemLink. In *Proceedings of the 2nd Workshop on Linked Data in Linguistics*.
 
 Bush, V. (1945). As We May Think. *The Atlantic Monthly*, July 1945.
+
+Clarke, I., Sandberg, O., Wiley, B., & Hong, T. W. (2001). Freenet: A Distributed Anonymous Information Storage and Retrieval System. In *Designing Privacy Enhancing Technologies*, Springer, 46-66.
+
+Cohen, B. (2003). Incentives Build Robustness in BitTorrent. In *Workshop on Economics of Peer-to-Peer Systems*.
 
 Engelbart, D. C. (1962). Augmenting Human Intellect: A Conceptual Framework. SRI Summary Report AFOSR-3223.
 
@@ -639,6 +625,8 @@ Kleppmann, M., Wiggins, A., van Hardenberg, P., & McGranaghan, M. (2019). Local-
 Lenat, D. B. (1995). CYC: A Large-Scale Investment in Knowledge Infrastructure. *Communications of the ACM*, 38(11), 33-38.
 
 Merkle, R. C. (1979). *Secrecy, Authentication, and Public Key Systems*. Ph.D. dissertation, Stanford University.
+
+Milgram, S. (1967). The Small-World Problem. *Psychology Today*, 1(1), 61-67.
 
 Miller, G. A. et al. (1993). Introduction to WordNet: An On-line Lexical Database. Princeton University.
 
@@ -661,5 +649,7 @@ Szabo, N. (1997). Formalizing and Securing Relationships on Public Networks. *Fi
 Tarr, D., Lavoie, E., Meyer, A., & Tschudin, C. (2019). Secure Scuttlebutt: An Identity-Centric Protocol for Subjective and Decentralized Applications. In *ACM ICN '19*.
 
 Vossen, P. (1998). EuroWordNet: A Multilingual Database with Lexical Semantic Networks. *Computational Linguistics*, 25(4).
+
+Watts, D. J., & Strogatz, S. H. (1998). Collective Dynamics of 'Small-World' Networks. *Nature*, 393(6684), 440-442.
 
 Youn, H. et al. (2016). On the Universal Structure of Human Lexical Semantics. *PNAS*, 113(7), 1766-1771.
