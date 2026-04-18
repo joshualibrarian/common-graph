@@ -1,8 +1,28 @@
 \usepackage{fontspec}
 \setmainfont{Noto Serif}
-\setmonofont{Noto Sans Mono}
+\setmonofont{Noto Sans Mono}[Scale=0.85]
 \usepackage{luatexja-fontspec}
 \setmainjfont{Noto Serif CJK JP}
+% Prevent CJK engine from treating Cyrillic, Greek, punctuation, and
+% symbols as CJK characters (fixes apostrophe/quote spacing)
+\ltjsetparameter{jacharrange={-2,-3,-6,-7,-8,-9}}
+
 \usepackage{newunicodechar}
 \newfontfamily\emojifont{NotoColorEmoji}[Path=/usr/share/fonts/truetype/noto/, Extension=.ttf, Renderer=HarfBuzz]
 \newunicodechar{😂}{{\emojifont 😂}}
+
+% Center title block
+\usepackage{titling}
+\pretitle{\begin{center}\LARGE\bfseries}
+\posttitle{\par\end{center}}
+\preauthor{\begin{center}\large}
+\postauthor{\par\end{center}}
+\predate{\begin{center}\large}
+\postdate{\par\end{center}\vskip 2em}
+
+% Tables: alternating row shading for visual separation
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\rowcolors{2}{gray!8}{white}
+\renewcommand{\arraystretch}{1.3}

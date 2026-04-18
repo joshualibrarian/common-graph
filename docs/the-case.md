@@ -1,8 +1,8 @@
-# Below the Application, Above the Bytes
-
-**Joshua Chambers**
-*Spring 2026*
-
+---
+title: "Below the Application, Above the Bytes"
+subtitle: "A Base Layer for Meaning and Ownership"
+author: "Joshua Chambers"
+date: "Spring 2026"
 ---
 
 ## Abstract
@@ -402,7 +402,7 @@ This is where the analogy to files becomes concrete:
 | Lives on a server or a single device | Lives on your device, replicated to chosen peers |
 | Disappears when the service shuts down | Persists as long as any peer holds it |
 
-The item is what would replace the file for the user.  Not at the POSIX level (bytes and streams are a fine substrate for low-level I/O) but for user-facing data: the things people create, name, share, organize, search for, and care about.  The item knows what it means, because it is described by frames, and frames are meaning.
+The item is what would replace the file for the user.  Not at the POSIX level (bytes and streams are a fine substrate for low-level I/O) but for user-facing data: the things people create, name, share, organize, search for, and care about.  The item is interpretable by any runtime that holds the shared vocabulary, because it is described by frames, and frames are meaning.
 
 ---
 
@@ -448,7 +448,7 @@ Trust is **transitive**, and the strongest form requires no explicit endorsement
 
 The user always retains the ability to override computed values, and the trust algorithms themselves are implementations (items in the graph) that can be replaced with alternatives.
 
-Each Librarian computes its own trust matrix **locally**.  There is no global trust score, no universal reputation number, no platform-computed ranking.  Two users looking at the same content may see different things because their trust matrices differ.  This is Szabo's (1997) vision of formalizing relationships on public networks: not a single view imposed by a platform, but overlapping views produced by overlapping trust relationships.  The trust model is still being refined; the dimensions, the decay functions, and the weighting of transitive paths are areas of active design.  The structural commitment is clear: trust is local, multi-dimensional, computed from the data the system already produces, and expressed through the same primitives as everything else.
+Each Librarian computes its own trust matrix **locally**.  There is no global trust score, no universal reputation number, no platform-computed ranking.  Two users looking at the same content may see different things because their trust matrices differ.  This is Szabo's (1997) vision of formalizing relationships on public networks: not a single view imposed by a platform, but overlapping views produced by overlapping trust relationships.
 
 ---
 
@@ -503,7 +503,7 @@ The mapping is significant not because it enables a math engine (though it does:
 
 Mathematics and natural language both express: what is being operated on (Theme), by what means (Instrument), where we start (Source), where we end (Goal), by how much (Extent), and what results (Result). The roles are the same because the underlying cognitive operations are the same.
 
-If 25 thematic roles can structure natural language, social interactions, and mathematical expressions, those roles are genuinely universal. A base layer built on them is as general as meaning itself.
+If the same small set of thematic roles can structure natural language, social interactions, and mathematical expressions, those roles are genuinely universal. A base layer built on them is as general as meaning itself.
 
 ### Mathematics as a language
 
@@ -523,7 +523,9 @@ Code distribution would become a special case of data distribution.  Today, soft
 
 The choice raises serious security concerns.  Running code from arbitrary peers is a recipe for disaster unless the runtimes loading and executing it are properly sandboxed.  Sandboxing in this picture would not be a separate special system; it would be another kind of policy attached to frames, the same way replication or retention policy would be.  The problem is hard, but it is the same kind of hard as sandboxing untrusted JavaScript in a web browser, and the existing landscape of techniques (capability-based interfaces, isolated execution environments, formal verification of restricted languages) gives plenty to draw on.
 
-An expected objection is that social trust is insufficient for authorizing code execution.  The objection deserves a precise answer: all code distribution already relies on social trust.  When you install software from the Google Play Store, you are trusting Google's review process.  When you install a package from apt, you are trusting the Debian maintainers.  When you download from the Apple App Store, you are trusting Apple.  All of this is still "social" in a very real, society-wide sense.  Even reproducible builds only verify that the build is reproducible, not that the code is safe; someone still has to audit it, and you still have to trust whoever did.  Supply-chain attacks like SolarWinds and the xz backdoor demonstrate that centralized trust intermediaries are not immune to compromise.  What this proposal changes is not whether code execution depends on trust, but who is being trusted: a personally-chosen network of peers whose reputations are visible and whose endorsements are signed, rather than an opaque corporate process whose incentives may not align with your safety.  Nothing prevents Google or Apple from publishing their own code items in the graph, or their own signed reviews and recommendations of other applications.  Users who trust their judgment can continue to rely on it.  The difference is that Google stands alongside every other reviewer rather than occupying a privileged gatekeeping position that no one else can fill.
+An expected objection is that social trust is insufficient for authorizing code execution.  The objection deserves a precise answer: all code distribution already relies on social trust.  When you install software from the Google Play Store, you are trusting Google's review process.  When you install a package from apt, you are trusting the Debian maintainers.  When you download from the Apple App Store, you are trusting Apple.  All of this is still "social" in a very real, society-wide sense.  Even reproducible builds only verify that the build is reproducible, not that the code is safe; someone still has to audit it, and you still have to trust whoever did.  Supply-chain attacks like SolarWinds and the xz backdoor demonstrate that centralized trust intermediaries are not immune to compromise.
+
+What this proposal changes is not whether code execution depends on trust, but who is being trusted: a personally-chosen network of peers whose reputations are visible and whose endorsements are signed, rather than an opaque corporate process whose incentives may not align with your safety.  Nothing prevents Google or Apple from publishing their own code items in the graph, complete with signed reviews and recommendations of other applications.  Users who trust their judgment can continue to rely on it.  The difference is that Google stands alongside every other reviewer rather than occupying a privileged gatekeeping position that no one else can fill.
 
 Because code is an item and data is an item, one of the main structural rationales for SaaS centralization dissolves.  Most software became a service in part because the operator held both the code and the data, and running the code required their infrastructure.  Here, both travel through the same peer substrate, and execution happens wherever the user has a runtime, most naturally on their own device.  The server farm, the subscription, the operator as gatekeeper: these arrangements lose the structural basis that made them seem like the only option.
 
