@@ -17,7 +17,7 @@ The result is a base layer where data is self-describing and queryable by meanin
 
 ## 1. The Semantic Void
 
-In 1945, Vannevar Bush described the central problem of information management: "The summation of human experience is being expanded at a prodigious rate, and the means we use for threading through the consequent maze to the momentarily important item is the same as was used in the days of square-rigged ships" (Bush, 1945).  Eighty years later, the maze is incomparably larger, and the threading, while faster, is no less indirect.  The reason is structural.  It sits below every tool we build on top of it, and it has been there since the foundational layers of modern computing were laid down.
+In 1945, Vannevar Bush described the central problem of information management: "The summation of human experience is being expanded at a prodigious rate, and the means we use for threading through the consequent maze to the momentarily important item is the same as was used in the days of square-rigged ships" (Bush, 1945).  Eighty years later, the maze is incomparably larger, and the threading, while faster, is no less indirect.  The reason is structural: it sits below every tool we build on top of it, and it has been there since the foundational layers of modern computing were laid down.
 
 Consider what happens when a user saves a photograph.  The filesystem records bytes at a path.  The operating system tracks the file's size, its modification time, its location on disk.  The image format encodes pixels and, sometimes, a small amount of EXIF metadata: camera model, GPS coordinates, exposure settings.  Yet no layer of the stack knows what the photograph *is*.  Who is in it.  What occasion it documents.  How it relates to other photographs, to the people depicted, to the day it was taken.  That knowledge exists only in the user's head, or in the proprietary database of whichever application the user happens to use.  The stack has stored the photograph without storing any of what makes the photograph matter.
 
@@ -187,7 +187,7 @@ The preceding sections used "identity" to describe the stable referent of a mean
 
 In practice, this means a participant's identity would be a cryptographic keypair rather than a row in a registry.  The paradigm is not new: Pretty Good Privacy (PGP; Zimmermann, 1995) established the foundational design thirty years ago, in which identity is a keypair, trust is a web of signed endorsements rather than a certificate authority, and no central registry is required.  What PGP demonstrated for email, a base layer would generalize to all assertions.  A user should not need to register with a service or keep an account active on a server to exist as a participant.  The keypair is something the user holds, generates locally, and presents when they sign an assertion or establish a relationship.  No authority grants it; no authority can revoke it (though peers can choose to stop trusting it, which is a social decision, not an architectural one).
 
-This is the minimum condition for agency without a gatekeeper, and the foundation on which everything else in the locality pillar rests.  Signatures depend on the signer having a key.  Relationships depend on the parties being identifiable.  Content attribution depends on the assertion being linked to a verifiable identity.  Each of these builds on identity being a thing users hold rather than a thing services grant.
+This is the minimum condition for agency without a gatekeeper, and the foundation on which everything else in the locality pillar rests.  Signatures depend on the signer having a key, relationships depend on the parties being identifiable, and content attribution depends on the assertion being linked to a verifiable identity.  All of these build on identity being a thing users hold rather than a thing services grant.
 
 ### Content-addressed data
 
@@ -279,7 +279,7 @@ A frame is an assertion when every binding is filled, and a query when at least 
 
 ### Everything is a role binding
 
-There is no fundamental distinction between "the data" and "the metadata" of a frame. A title's text, a video's master file, a chess move's destination square, a document's author: each is a role binding. Provenance is a binding. Signatures are bindings. Timestamps are bindings. What we call "data" is a value filling a role. What we call "metadata" is also a value filling a role. The distinction is conventional, not structural.
+There is no fundamental distinction between "the data" and "the metadata" of a frame. A title's text, a video's master file, a chess move's destination square, a document's author: each is a role binding. Provenance, signatures, and timestamps are all bindings.  What we call "data" is a value filling a role; what we call "metadata" is also a value filling a role.  The distinction is conventional, not structural.
 
 ### Beyond the natural-language inventory
 
@@ -452,6 +452,8 @@ The user always retains the ability to override computed values, and the trust a
 
 Each Librarian computes its own trust matrix **locally**.  There is no global trust score, no universal reputation number, no platform-computed ranking.  Two users looking at the same content may see different things because their trust matrices differ.  This is Szabo's (1997) vision of formalizing relationships on public networks: not a single view imposed by a platform, but overlapping views produced by overlapping trust relationships.
 
+A trust model that requires trust to function raises an obvious bootstrapping question: how does a new user get started?  The answer is the same as in any social system.  You arrive through someone you already know, a friend who peers with you, a community node that accepts newcomers, or a public gateway that offers initial connectivity.  Trust starts small and grows through interaction.  This is not a limitation unique to the architecture; it is how human social networks have always worked.  You do not arrive in a new city knowing everyone.  You start with a few contacts and expand.
+
 ---
 
 ## 9. Computation as Frames
@@ -519,7 +521,7 @@ A predicate carries a *contract*: it declares what values it expects, what resul
 
 The answer that fits the rest of the architecture is that code is published the same way every other thing is: as items.  An implementation of ADD would itself be an item, carrying the executable form (source code, compiled bytes, or a formal specification) alongside frames declaring which contract it satisfies, who signed it, and what runtime is needed.  The relationship between an implementation and the predicate it satisfies is itself a frame.
 
-A predicate could have many implementations: different runtimes, different trade-offs, different authors, all coexisting.  A runtime evaluating an ADD frame would pick an implementation it can execute and whose author it trusts.  The contract is the meaning; the code is the machinery.  Nobody would own the contract.  ADD is a sememe in the shared vocabulary, no different from BOOK or AUTHORED.  Anyone could publish an implementation item, sign it, and let it propagate; whether a particular runtime uses it would be a matter of local trust, not central authorization.
+A predicate could have many implementations: different runtimes, different trade-offs, different authors, all coexisting.  A runtime evaluating an ADD frame would pick an implementation it can execute and whose author it trusts.  The contract is the meaning; the code is the machinery.  Nobody would own the contract, because ADD is a sememe in the shared vocabulary, no different from BOOK or AUTHORED.  Anyone could publish an implementation item, sign it, and let it propagate; whether a particular runtime uses it would be a matter of local trust, not central authorization.
 
 Code distribution would become a special case of data distribution.  Today, software reaches users through centralized clearinghouses: app stores, package managers, vendor release servers.  In the picture being described, code would travel the same peer-to-peer mechanism as any other item: signed, content-addressed, replicated through relationships, versioned, forkable.  The package manager dissolves into the same medium that carries the rest of the data.
 
@@ -531,25 +533,118 @@ What this proposal changes is not whether code execution depends on trust, but w
 
 Because code is an item and data is an item, one of the main structural rationales for SaaS centralization dissolves.  Most software became a service in part because the operator held both the code and the data, and running the code required their infrastructure.  Here, both travel through the same peer substrate, and execution happens wherever the user has a runtime, most naturally on their own device.  The server farm, the subscription, the operator as gatekeeper: these arrangements lose the structural basis that made them seem like the only option.
 
-The deeper point is structural. Computation would not need a separate apparatus alongside the data. The contract for a piece of computation is a meaning in the vocabulary, played as a predicate. The code that satisfies the contract is an item in the graph. The link between them is a frame. Everything that has to exist for computation to happen is the same kind of object that has to exist for everything else.
+The deeper point is structural: computation would not need a separate apparatus alongside the data.  The contract for a piece of computation is a meaning in the vocabulary, played as a predicate; the code that satisfies the contract is an item in the graph; and the link between them is a frame.  Everything that has to exist for computation to happen is the same kind of object that has to exist for everything else.
 
 ---
 
-## 10. What Changes
+## 10. Sanity Check
+
+An architecture that stores meaning in every assertion, signs every frame, and indexes every semantic binding invites an obvious question: does this scale?  And a peer-to-peer substrate with no central authority invites another: what does the attack surface look like?  Both deserve direct answers.
+
+### Scaling
+
+The indexing concern is the most immediate.  Every frame creates index entries for each binding whose target is an item or another frame, enabling reverse lookup from any participant.  Each entry is compact: a 102-byte key (target ID, predicate, body hash) and a 34-byte value (storage reference), for 136 bytes per entry.  Not every binding is indexed.  Literal payloads (image bytes, pixel coordinates, definition text) and policy bindings carry no useful reverse-lookup value.  Each binding carries a flag that controls whether it is indexed, and the archetype for a given item type provides sensible defaults.  Timestamps and geographic coordinates do carry query value ("everything from June 2024," "everything near this location"), but the queries they serve are range scans and spatial lookups, not the exact-match reverse lookups the fan-out index provides.  These warrant dedicated indexes of their own, specialized structures serving specific query patterns.
+
+A photograph makes the cost concrete.  The photograph from section 6, with six frames (image data, two DEPICTS assertions, an occasion, a place, a capture record), creates 14 index entries: two per DEPICTS frame (the photograph and the person depicted), and one or two per remaining frame (the photograph as theme).  Total index cost: under 2 kilobytes.  A book with a title, an author, and 50 chapters creates roughly 110 entries, about 15 kilobytes.  A chess game with 30 moves and two players creates about 65 entries, under 9 kilobytes.  A simple social post with three frames creates 6 entries, under a kilobyte.  In every case the absolute index cost is small.  Critically, indexing cost grows linearly with the number of frames, not with content size.  A one-megabyte photograph and a ten-gigabyte movie with the same six descriptive frames produce the same index cost.  A user with 10,000 photographs, 500 books, and 1,000 social posts would have roughly 170,000 index entries, occupying about 23 megabytes.
+
+The critical question is what happens at the extremes.  Social media engagement follows a steep power-law distribution: the vast majority of posts receive single-digit reactions, a small fraction receive thousands, and a handful per year reach into the millions.  Research on over 50 million posts confirms that median engagement is roughly four interactions per post (Buffer, 2026), while the all-time record is 74 million likes on a single Instagram post (Messi's 2022 World Cup photograph).
+
+| Engagement tier | Reactions per post | Share of all posts |
+|---|---|---|
+| Zero or near-zero | 0-5 | ~90% |
+| Normal | 5-100 | ~8-9% |
+| Popular | 100-10,000 | ~1% |
+| Viral | 10,000-1,000,000 | ~0.01% |
+| Mega-viral | 1,000,000+ | a handful per year globally |
+
+For the typical case, the indexing cost is invisible.  A post with five reactions generates ten index entries and roughly one kilobyte of index data.  A popular post with ten thousand reactions generates roughly three megabytes.
+
+For the extreme case, consider a viral post with five million reactions.  Roughly 70% are simple reactions (a predicate and two bindings, no text, ~200 bytes per frame body), 25% carry short comments (~350 bytes), 4% carry longer comments (~700 bytes), and 1% carry substantial text (~2,500 bytes).  Add second-order reactions (replies to comments, roughly 500,000 additional frames) and the total comes to approximately 5.5 million frames.
+
+| Component | Calculation | Size |
+|---|---|---|
+| Frame bodies (content-addressed) | 5.5M frames, weighted average ~320 bytes | ~1.8 GB |
+| Signing envelopes (ed25519 signature + key ID + timestamp) | 5.5M × ~126 bytes | ~690 MB |
+| Fan-out index | 5.5M × 2 entries × 136 bytes | ~1.5 GB |
+| Attestation index | 5.5M × 102 bytes | ~560 MB |
+| **Total** | | **~4.5 GB** |
+
+4.5 gigabytes for the most extreme case in the distribution.  That is the total across the entire network.  The peer-to-peer model distributes this cost.  In a centralized system, one server cluster holds every reaction to a viral post.  In this architecture, no single node needs to hold all the reactions, though any node that wants to can reach across the graph to accumulate them.  Each Librarian's index reflects its own social reach.
+
+| Node type | Reactions held | Total storage |
+|---|---|---|
+| Casual viewer (few hundred peers) | 50-200 | ~150 KB |
+| Active participant (few thousand peers) | 2,000-5,000 | 3-7 MB |
+| Popular creator (500K followers, 10% react) | ~50,000 | ~40 MB |
+| Community hub or relay node | 100K-500K | 80-400 MB |
+| Analytics company (wide social reach) | 1-3M | 1-2.5 GB |
+| Full aggregator (near-complete) | 5M+ | ~4.5 GB |
+
+The social graph is a natural shard boundary, and the per-node cost is bounded by that node's actual relationships.
+
+Signing performance is also worth addressing, since every frame carries a cryptographic signature.  Ed25519, the signing primitive, performs roughly 50,000 signatures per second and 15,000 verifications per second on commodity hardware.  Even the five-million-reaction extreme case represents roughly 100 seconds of signing work distributed across millions of users each signing their own reactions, and about five minutes of sequential verification work for a single node that wanted to verify every signature.  Signing is not a bottleneck.
+
+The distributed model raises its own question: how do you count reactions you do not hold?  If no single node has seen every reaction to a viral post, how does anyone report "1.2 million likes"?  This problem only arises for items that accumulate reactions beyond what any single node's social graph delivers, a small fraction of all items given the power-law distribution described above.  The vast majority of items never need aggregation at all.  For those that do, the solution comes from distributed cardinality estimation.  HyperLogLog (Flajolet, Fusy, Gandouet, & Meunier, 2007) is a near-optimal probabilistic algorithm for exactly this problem, widely deployed in production systems (Redis, PostgreSQL, BigQuery, and others).  Each node maintains a compact probabilistic sketch (a HyperLogLog register, roughly 16 kilobytes regardless of the underlying count) that summarizes the reactions it has seen.  These sketches are mergeable: combining sketches from multiple peers produces an estimate that correctly deduplicates reactions seen by more than one peer, even when social graphs overlap arbitrarily.  The merged result has bounded error, typically within two percent.  The sketch itself is just another frame, signed and replicated through the same trust graph as everything else.
+
+Text search raises a separate scaling concern.  The token dictionary holds two fundamentally different kinds of text.  The first is **vocabulary**: lexemes from language imports, mapping words to their meanings.  This component is effectively bounded.  A language has a finite number of words, catalogued in resources like WordNet, and the cost of importing a language is fixed and known in advance.  Languages do grow over time, and users can coin arbitrary terms, but the rate of vocabulary growth is trivial relative to the base.  The second is **user content**: titles, proper names, and other text from VALUE bindings that users create over time.  This component is unbounded, growing linearly with the items indexed.  The two have different scaling profiles and are worth examining separately.
+
+The resolution pipeline that serves both uses a lattice of overlapping candidate spans (single words, two-word windows, three-word windows) scored by a Viterbi path (Viterbi, 1967) to find the best interpretation.  Multi-word phrases ("the shawshank redemption") are indexed as single tokens alongside their individual content words, so that both exact-match and partial-match queries work.  This windowed approach, designed for multi-word expressions in English, turns out to be exactly the algorithm that Chinese and Japanese word segmentation requires: overlapping character windows resolved against a dictionary.  One tokenizer, all languages.
+
+The vocabulary component is bounded by the linguistic resources it draws from.  Each language adds a fixed cost to the token dictionary:
+
+| Language | Synsets | Lexeme entries (with inflections) | Token dictionary size |
+|---|---|---|---|
+| English (OEWN 2025) | 117,000 | ~600-700K | ~35 MB |
+| German | 36,000 | ~150K + morphological forms | ~20 MB |
+| Chinese (Mandarin) | ~60-80K | ~70K (no inflections) | ~4 MB |
+| Japanese | ~50-70K | ~200K (verb/adjective forms) | ~12 MB |
+| Typical language | 30-80K | ~200-500K | 10-25 MB |
+
+A polyglot user loading five languages would have a vocabulary index of roughly 100 megabytes.  Loading every language for which resources exist (100+) would reach single-digit gigabytes.  Both are routine on commodity hardware.
+
+User-generated content (titles, proper names) grows linearly with the items indexed.  Each token dictionary entry carries 41 bytes of fixed overhead (content hash, binding index, weight) plus the token text itself, so entries range from under 50 bytes for short words to over 100 for long multi-word titles.  A node carrying ten million titles (the scale of IMDB) averaging four indexed words each would add roughly 40 million entries, on the order of two gigabytes.  Function words (articles, prepositions, conjunctions) that carry no discriminating value for search can be excluded from individual-word indexing at the direction of the language item itself, which participates in parsing and knows which of its word categories are worth indexing.  This reduces the entry count by roughly 30-40%, since function words are disproportionately common in titles.
+
+The scaling picture is, on balance, comfortable.  Index growth is linear in the number of semantic assertions, the social graph bounds per-node cost, probabilistic aggregation handles the counting problem, text search scales with content, and signing is fast.  No component exhibits superlinear growth.  All estimates above are uncompressed; practical storage backends apply key-prefix compression and block compression that would only improve them.
+
+### Attack surface
+
+The absence of a central server changes the economics of attack.  In a centralized system, DDoS works because there is a single point of failure: overwhelm one target and the service goes down for everyone.  This architecture has no such target.  Each user runs an independent Librarian, and taking one down affects one user; everyone else is unaffected.  Larger institutional nodes (a major catalog provider, a community hub) are more visible targets, and an attack on one could be noticed.  But because their data has already been replicated across the peers who accessed it, the impact is attenuated: some users might notice degraded freshness, but most will continue operating against local copies without interruption.  The time-to-impact window stretches from seconds (in the centralized case) to hours or longer, depending on how widely the data has propagated.
+
+The social graph doubles as an access-control boundary.  A Librarian accepts connections from peers it has trust relationships with.  An unknown party with no trust path cannot connect, let alone flood.  This is not a firewall rule that must be maintained; it is a structural property of how the network is organized.
+
+Several attack patterns that threaten conventional peer-to-peer systems are naturally mitigated.
+
+**Sybil attacks** (creating masses of fake identities to overwhelm a network) depend on new identities being granted influence by default.  In hash-distance-based systems like Kademlia, a new node is assigned a position in the network and immediately participates in routing.  Here, a new identity starts with zero trust and must build relationships through sustained, assessable behavior.  Mass-creating identities does not help because none of them have trust, and trust cannot be manufactured without the interactions that produce it.
+
+**Eclipse attacks** (surrounding a target with attacker-controlled nodes to isolate it) require the attacker to control the target's peers.  In systems where peers are assigned by network topology or hash distance, this is achievable by positioning nodes strategically.  Here, peers are chosen through deliberate trust relationships, not assigned by algorithm.  An attacker would need to compromise the target's actual social relationships, which is a fundamentally different and harder problem.
+
+**Frame flooding through compromised trust paths** is the closest analog to conventional DDoS.  An attacker who has a trust relationship with you (or a path through mutual peers) could send large volumes of junk frames.  Every frame, however, is signed: the source is immediately and cryptographically attributable.  The trust matrix degrades the attacker's score as junk accumulates, and the Librarian stops accepting frames from them.  The attack is self-limiting because it burns the trust relationship it depends on.
+
+**Content poisoning** (publishing frames with false or malicious content) is attributable for the same reason.  The liar is identified by their signature, and content-addressing means data cannot be tampered with in transit since the recipient verifies the hash locally.  The trust matrix adjusts, and other peers who trust the recipient's moderation judgment see the adjustment propagate.
+
+**Network-layer attacks** remain possible.  CG operates above the transport layer and does not change the physics of TCP/IP.  An attacker can still saturate a specific machine's bandwidth.  The consequence, however, is limited to that machine.  Because every item a user has previously accessed is persisted locally (not cached ephemerally, but held as a durable local copy), even taking a popular node offline for hours may go unnoticed by users who already hold the data they need.
+
+The attack surface that remains is key compromise: if an attacker obtains a user's private key, they can sign frames as that user.  This is the hardest unsolved problem in the architecture, and no purely software-based substrate can fully address it, because the threat model includes physical access to the device where the key is stored.  A sister project, Keymaster (github.com/joshualibrarian/keymaster), is developing open hardware specifically for this problem: a dedicated key-storage device designed to resist both device compromise and coercion.
+
+The fundamental shift is economic.  Generating network traffic is cheap; building fake social trust is expensive, slow, and self-defeating.  Every attack that depends on trust must first earn it, and every abuse of trust is signed, attributable, and self-correcting through the trust matrix.  The architecture does not claim to eliminate attacks, but it changes what is required to mount one and ensures that the cost of attacking scales with the trust the attacker must build and then burn.
+
+---
+
+## 11. What Changes
 
 The architecture described in the preceding sections has consequences that extend beyond the technical.  Several are worth naming because they are not obvious from the primitives alone.
 
 The most visible change is the **subsumption of platforms**.  A product listing, a community forum, a social feed, a review, a citation graph: each of these is currently a proprietary database on a proprietary platform, and each would be expressible as frames in the shared vocabulary.  The platform-specific data model that locks users in dissolves, because the data model is shared.  Applications become interchangeable runtimes over the same data: an email client, a document editor, a social feed, a project tracker would all be applications over frames.  The user picks the client; the data does not belong to it.  Competing clients would read the same data, and no user would be locked in to an interface because their data is readable only by its author's binaries.
 
-**The economics of the internet do not disappear.**  Businesses still want customers.  Individuals still want to find information and buy services.  Hosting remains relevant, especially for commercial interests that want an always-available presence.  What disappears is the ability to monetize user entrapment: the platform business model built on lock-in.  The hosting and service business model, where providers compete on quality, reliability, and price rather than on the structural impossibility of leaving, remains entirely viable.
+**The economics of the internet do not disappear.**  Businesses still want customers, individuals still want to find information and buy services, and hosting remains relevant for commercial interests that want an always-available presence.  What disappears is the ability to monetize user entrapment: the platform business model built on lock-in.  The hosting and service business model, where providers compete on quality, reliability, and price rather than on the structural impossibility of leaving, remains entirely viable.
 
 Two properties of the locality pillar deserve explicit mention because they are structural consequences rather than features to be engineered.  **Offline capability** is trivial when the runtime and the data are both local; when a network returns, changes propagate to peers.  **Resilience to vendor disappearance** is equally structural: items live on users' devices and on the peers who have replicated them, so a company that shut down or was acquired would lose the ability to ship updates, but the data, the tools, and the peer network would remain.  Kleppmann et al. call this the "long now" property of local-first software; here it is a consequence of the substrate, not a feature built on top of it.
 
 ---
 
-## 11. Authorship, Not Ownership
+## 12. Authorship, Not Ownership
 
-A popular slogan in the decentralization and crypto communities is "own your data."  The phrase evokes the right sentiment.  The lopsided relationship between users and platforms is unjust.  Something must change.  Users deserve agency over their own contributions.  The word "ownership" applied to data, however, promises more than any technical system can deliver, and it is worth stating plainly what this proposal does and does not accomplish.
+A popular slogan in the decentralization and crypto communities is "own your data."  The phrase evokes the right sentiment: the lopsided relationship between users and platforms is unjust, something must change, and users deserve agency over their own contributions.  The word "ownership" applied to data, however, promises more than any technical system can deliver, and it is worth stating plainly what this proposal does and does not accomplish.
 
 Ownership, in every meaningful sense, implies control.  A thing I own is a thing I can exclude others from, a thing I can hold or withhold, a thing that is mine and not yours.  These properties hold for physical objects because matter occupies space and cannot be in two places at once.  They hold for artificially scarce digital assets like cryptocurrency tokens because the network's rules enforce the scarcity.  They do not hold for ordinary data, and they cannot.  Once I have given you a copy, I have no technical means of revoking it.  You can keep it, forward it, publish it, transform it, or forget it.  My wishes have no technical weight.  This is not a failure of the substrate proposed here, or of any honest substrate; it is a property of copyable information, and any system that preserves human agency must accept it.
 
@@ -557,7 +652,7 @@ Before going further, a distinction worth naming.  What the substrate technicall
 
 What this proposal can accomplish is closer to the *spirit* of what people mean when they say "own your data," without claiming the part that cannot be delivered.  You hold your own keys, and nobody can sign as you.  You author your own assertions, and nobody can forge them.  You keep local custody of your data, and no vendor can revoke your access to work you already have.  You choose which peers you share with going forward, and you do so through deliberate trust relationships rather than by default exposure to whoever hosts your platform.  These are real, technically enforceable properties.  They are not ownership of data.  They are ownership of your *participation* in a network: your keys, your authorship, your custody, your consent to new copies.
 
-What the proposal cannot do, nor should any honest proposal claim to do, is compel other parties to honor your wishes about copies they already hold.  If you share risqué photographs with a trusted partner and the relationship goes wrong, no substrate can un-share what is already shared.  The partial solution is social, not technical.  A trust paradigm is what you have when you can *choose* whom to share with, and when the act of sharing is deliberate rather than default.  If someone violates that trust, you can stop trusting them, and the trust graph as a whole responds: others who trust you see your revised posture and may update their own relationships with the offender.  This is how human communities have always handled the problem.  The substrate does not replace that social mechanism.  It returns computing to a state where social mechanisms can actually function, because sharing stops being a default and becomes a choice.
+What the proposal cannot do, nor should any honest proposal claim to do, is compel other parties to honor your wishes about copies they already hold.  If you share risqué photographs with a trusted partner and the relationship goes wrong, no substrate can un-share what is already shared.  The partial solution is social, not technical.  A trust paradigm is what you have when you can *choose* whom to share with, and when the act of sharing is deliberate rather than default.  If someone violates that trust, you can stop trusting them, and the trust graph as a whole responds: others who trust you see your revised posture and may update their own relationships with the offender.  This is how human communities have always handled the problem.  The substrate does not replace that social mechanism; it returns computing to a state where social mechanisms can actually function, because sharing stops being a default and becomes a choice.
 
 Legal frameworks, contracts, and commercial licenses compose naturally with all of this, and the primitives CG provides (signed assertions, key-based identity, content-addressed verification) make them easier to encode when they apply.  Nothing here displaces them.
 
@@ -565,7 +660,7 @@ The word "ownership" invites confusion because it borrows from property law what
 
 ---
 
-## 12. Honest Reckoning
+## 13. Honest Reckoning
 
 I am not the first to propose an ambitious rethinking of how computing handles information. The history of such proposals is largely a history of instructive failures, and I would be foolish to ignore it.
 
@@ -591,11 +686,11 @@ What do these teach?
 
 **Neither pillar can be optional.** This is the deepest lesson from the Semantic Web on one side and from local-first retrofits on the other.  If creating semantic structure is a separate step from creating data, most people skip it.  If local control is a separate feature to opt into, most people stay with the hosted default.  The design must make creating data *be* creating semantic, user-held structure, the way writing a sentence *is* expressing meaning, not writing sounds and then separately annotating what they mean.
 
-Can this proposal avoid the fates of its predecessors?  Honestly: I do not know.  The ambition is large, the history is cautionary, and the engineering challenges are real.  The linguistic resources now exist, however.  WordNet has 120,000 synsets.  CILI links them across languages.  VerbNet classifies 300 verb classes with role declarations.  ISO 24617-4 standardizes the role inventory.  UniMorph provides morphological data for 100+ languages.  These resources represent decades of cumulative scholarly work.  They did not exist when CYC began, when the Semantic Web was proposed, or when Croquet was built.
+Can this proposal avoid the fates of its predecessors?  Honestly: I do not know.  The ambition is large, the history is cautionary, and the engineering challenges are real.  The linguistic resources now exist, however.  WordNet has 120,000 synsets, CILI links them across languages, VerbNet classifies 300 verb classes with role declarations, ISO 24617-4 standardizes the role inventory, and UniMorph provides morphological data for 100+ languages.  These resources represent decades of cumulative scholarly work.  They did not exist when CYC began, when the Semantic Web was proposed, or when Croquet was built.
 
-Neither did the technical infrastructure for the locality pillar.  Modern signing cryptography (ed25519 and related primitives) is cheap enough to apply at the per-message level.  Content-addressing is ubiquitous (every Git commit is a use of it).  CRDTs have moved from research to shipping practice.  Open-source P2P transport stacks (libp2p, modern QUIC implementations) are mature.  A local-first substrate in 2026 is not conjuring machinery from nothing; it is composing pieces that have all shipped, some many times over.
+Neither did the technical infrastructure for the locality pillar.  Modern signing cryptography (ed25519 and related primitives) is cheap enough to apply at the per-message level.  Content-addressing is ubiquitous (every Git commit is a use of it), CRDTs have moved from research to shipping practice, and open-source P2P transport stacks (libp2p, modern QUIC implementations) are mature.  A local-first substrate in 2026 is not conjuring machinery from nothing; it is composing pieces that have all shipped, some many times over.
 
-And, worth stating plainly: AI assistance has compressed what was previously decades of solo implementation work into feasible timescales, and sustained dialogue with it has contributed to the clarity of the model as a whole.  The bottleneck for ambitious software projects has always been the sheer volume of code required.  That bottleneck has narrowed dramatically.  This does not guarantee success, but it changes the economics of ambition.
+And, worth stating plainly: AI assistance has compressed what was previously decades of solo implementation work into feasible timescales, and sustained dialogue with it has contributed to the clarity of the model as a whole.  The bottleneck for ambitious software projects has always been the sheer volume of code required, and that bottleneck has narrowed dramatically.  This does not guarantee success, but it changes the economics of ambition.
 
 The path forward is incremental: frames as a local data format; a shared vocabulary seeded from WordNet and CILI; a local runtime that stores, queries, and resolves data by meaning; and a peer-to-peer network where that data is exchanged between nodes connected by trust.  Each step independently useful.  Together, the semantic and local-first base layer that computing has been missing since the networked era began.
 
@@ -621,6 +716,8 @@ Bond, F. & Foster, R. (2013). Linking and Extending an Open Multilingual Wordnet
 
 Bonial, C., Stowe, K., & Palmer, M. (2011). Renewing and Revising SemLink. In *Proceedings of the 2nd Workshop on Linked Data in Linguistics*.
 
+Buffer (2026). The State of Social Media Engagement in 2026: 52M+ Posts Analyzed. https://buffer.com/resources/state-of-social-media-engagement-2026/
+
 Bush, V. (1945). As We May Think. *The Atlantic Monthly*, July 1945.
 
 Clarke, I., Sandberg, O., Wiley, B., & Hong, T. W. (2001). Freenet: A Distributed Anonymous Information Storage and Retrieval System. In *Designing Privacy Enhancing Technologies*, Springer, 46-66.
@@ -632,6 +729,8 @@ Engelbart, D. C. (1962). Augmenting Human Intellect: A Conceptual Framework. SRI
 Fillmore, C. J. (1968). The Case for Case. In Bach, E. & Harms, R. T. (Eds.), *Universals in Linguistic Theory*, 1-88. Holt, Rinehart & Winston.
 
 Fillmore, C. J. (1982). Frame Semantics. In *Linguistics in the Morning Calm*, 111-137. Seoul: Hanshin Publishing.
+
+Flajolet, P., Fusy, É., Gandouet, O., & Meunier, F. (2007). HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm. In *Proceedings of the 2007 Conference on Analysis of Algorithms (AofA)*, DMTCS.
 
 Gruber, T. R. (1993). Toward Principles for the Design of Ontologies Used for Knowledge Sharing. Technical Report KSL 93-04, Stanford University. *Knowledge Acquisition*, 5(2), 199-220.
 
@@ -668,6 +767,8 @@ Smith, D. A., Kay, A., Raab, A., & Reed, D. P. (2003). Croquet — A Collaborati
 Szabo, N. (1997). Formalizing and Securing Relationships on Public Networks. *First Monday*, 2(9).
 
 Tarr, D., Lavoie, E., Meyer, A., & Tschudin, C. (2019). Secure Scuttlebutt: An Identity-Centric Protocol for Subjective and Decentralized Applications. In *ACM ICN '19*.
+
+Viterbi, A. J. (1967). Error Bounds for Convolutional Codes and an Asymptotically Optimum Decoding Algorithm. *IEEE Transactions on Information Theory*, 13(2), 260-269.
 
 Vossen, P. (1998). EuroWordNet: A Multilingual Database with Lexical Semantic Networks. *Computational Linguistics*, 25(4).
 

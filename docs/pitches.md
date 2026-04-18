@@ -96,6 +96,70 @@ You do not rip and replace Epic.  You start with a CG-backed patient-facing laye
 
 The interoperability line item stops being an ongoing tax and starts being an occasional vocabulary-extension cost.  The HIE patchwork, the clearinghouses, the FHIR adapters that every new integration requires: most of it becomes unnecessary for new work.  Your CIO stops pricing interoperability as a recurring operational expense and starts pricing it as a property of the substrate.
 
+## Media databases (IMDB, TMDB, and similar)
+
+**The question they will ask.**  "Our catalog is our competitive advantage.  Why would we make it portable?"
+
+**The honest answer.**
+
+Your catalog is already being replicated.  TMDB, Letterboxd, Rotten Tomatoes, Trakt, and dozens of smaller services maintain partially-overlapping copies of your data, scraped or independently assembled.  Wikipedia has a substantial fraction of it.  Your lock-in is real but it is leaking, and you are spending engineering effort on a defensive posture that is not fully working.
+
+What you actually have that nobody else has is trust.  Your catalog is the most comprehensive, the most carefully curated, the most widely cited.  That curation work is genuinely valuable.  On Common Graph, that value stops being bundled with data hostage-taking and starts standing on its own.
+
+**What changes for your infrastructure.**
+
+Your data becomes frames in the shared vocabulary: TITLE, DIRECTOR, CAST, RELEASE, GENRE, RATING frames on movie items, each signed by your key.  Every user who looks up a movie holds a local copy of those frames.  Your catalog replicates across the network through the peers who access it.  You maintain the authoritative seed; the network handles distribution.
+
+The consequence for resilience is dramatic.  If your service goes down for hours, probably no one notices.  Every user who has previously accessed a movie has those frames locally.  They are not cached in the browser sense (ephemeral, evicted under pressure).  They are persisted items on the user's device, as durable as anything else in their library.  Your availability becomes a property of the network, not of your server farm.
+
+**What changes for your reach.**
+
+Today your data surfaces on imdb.com and in your app.  On CG, any application can consume your frames.  A theater's booking system, a film school's curriculum tool, a home media server, a social watchlist app, a recommendation engine: all using IMDB frames, all attributing IMDB as the source.  Your competitive advantage stops being "the only place to find this data" and becomes "the most trusted source, available everywhere."
+
+**What changes for your revenue.**
+
+IMDB Pro subscriptions (industry professional tools) are unchanged.  Premium curation and professional features are services, and services compete on quality.  Amazon purchase and streaming links become PURCHASE and AVAILABLE_AT bindings on movie items, surfaced by any application that displays those items.  Your reach for commerce grows because the frames travel further than your website does.  Advertising becomes SPONSORED or PROMOTED frames: users who trust your recommendations see them, and that trust-based targeting is arguably more effective than impression-based display ads.
+
+**What you lose.**
+
+The ability to monetize user entrapment specifically.  Users who stay will stay because your curation is the best, not because their watchlists are trapped.  If your curation is genuinely the best, that is a stronger position than lock-in, because it is earned rather than imposed and it does not erode the way lock-in does.
+
+**The transition.**
+
+You publish your catalog as CG items alongside your existing service.  Your website becomes a CG-backed application rather than a proprietary database frontend.  User reviews and ratings, currently hosted on your servers, become frames signed by users and replicated through the peer network.  Your infrastructure cost for hosting user-generated content drops as the network absorbs it.  Nothing breaks.  Your existing web presence continues to function.  The catalog underneath becomes portable, and you become the most-trusted node in the movie-data graph rather than the only node.
+
+## Reading platforms (Goodreads, LibraryThing, and similar)
+
+**The question they will ask.**  "Our users' reading histories and reviews are our core asset.  What happens to that?"
+
+**The honest answer.**
+
+Your users' reading histories and reviews are not your asset.  They are your users' assets that you are holding.  Your users know this, and many of them resent it.  Goodreads is widely criticized for stagnant development, poor search, and a user experience that has not meaningfully improved in years.  Users stay because their reading histories, reviews, shelves, and social connections are trapped.  Competitors (StoryGraph, Literal, Hardcover) struggle to get traction not because their products are worse but because they cannot get the data.
+
+This is a defensible position today.  It is not a durable one.  The longer the gap between what users want and what you deliver, the more pressure builds for a migration event that will be painful for everyone.
+
+**What changes for your users.**
+
+Their reading history becomes frames on their own Librarian: READ frames, RATING frames, REVIEW frames, SHELVED frames, each signed by the user.  They hold their own data.  If they want to try a competitor, they do not lose their history.  If they want to use multiple reading apps simultaneously, the data is the same underneath.  This is what users have been asking for.
+
+**What changes for you.**
+
+You compete on discovery, social features, and reading experience rather than on data hostage-taking.  Your book catalog (sourced from publishers, libraries, and community contributions) becomes a set of CG items: TITLE, AUTHOR, PUBLICATION, COVER_ART, ISBN frames.  You are the most comprehensive, most trusted source for book metadata, and that trust is your moat.
+
+User-generated content (reviews, ratings, shelves) lives on users' devices and flows to you through the trust graph.  Your infrastructure cost for hosting that content drops.  The content you receive is richer: semantic frames with grounded predicates rather than flat text and star ratings.  A REVIEW frame with an INSIGHTFUL predicate from a user whose taste overlaps with mine is more valuable than a 4-star rating from a stranger.
+
+**What changes for Amazon.**
+
+Book purchase links become PURCHASE bindings on book items, surfaced by any application that displays those items.  A user browsing books on StoryGraph, Literal, or any other CG-backed reading app still sees the Amazon purchase link because it is a frame on the book, not a feature of your website.  Amazon's reach for book commerce expands beyond the Goodreads walled garden.  More surfaces, more sales.
+
+**What you lose.**
+
+The captive audience specifically.  Users who leave will leave.  Users who stay will stay because your product is the best, not because leaving is too expensive.  If your product is not the best, that is a product problem, not a data-portability problem.
+
+**The transition.**
+
+You publish your book catalog as CG items.  User data remains on your servers initially but is mirrored to users' Librarians as CG frames.  Users who opt in hold their own reading histories.  Your website becomes a CG-backed application.  New social features (book clubs, reading challenges, recommendation engines) are built on CG frames from the start, interoperable with any other reading app on the substrate.  Your development team stops maintaining a proprietary data model and starts building features on a shared one.
+
 ---
 
 *Future pitches to draft as target industries come into focus: libraries and archives, academic research / scientific publishing, journalism and content provenance, gaming (item portability), museums and cultural heritage, legal tech, enterprise knowledge management.*

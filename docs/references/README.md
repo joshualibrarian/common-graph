@@ -292,8 +292,16 @@ Common Graph's CG-CBOR encoding (deterministic, tagged, no floats) builds on CBO
 
 ---
 
-## Formal Languages and Syntax
+## Formal Languages, Syntax, and Algorithms
 
 - **Scowen 1996 - EBNF A Notation to Describe Syntax.pdf** — Scowen, R. S. (1996). "EBNF: A Notation to Describe Syntax." ISO/IEC 14977. *The standard notation for describing formal language syntax.*
+
+- **Viterbi 1967 - Error Bounds for Convolutional Codes.pdf** — Viterbi, A. J. (1967). "Error Bounds for Convolutional Codes and an Asymptotically Optimum Decoding Algorithm." *IEEE Transactions on Information Theory*, 13(2), 260-269. *Introduces the Viterbi algorithm — dynamic programming over a trellis to find the optimal path.  Used in Common Graph's TokenLattice for scoring overlapping candidate spans (single words, multi-word windows) to find the best tokenization of input text.*
+
+---
+
+## Probabilistic Data Structures
+
+- **Flajolet et al 2007 - HyperLogLog Near-Optimal Cardinality Estimation.pdf** — Flajolet, P., Fusy, É., Gandouet, O., & Meunier, F. (2007). "HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm." In *Proceedings of the 2007 Conference on Analysis of Algorithms (AofA)*, DMTCS. *Near-optimal probabilistic cardinality estimation using sub-linear space (~1.5 KB for billions of elements, ~2% error).  Used in Common Graph's TALLY frames for distributed aggregation of reaction counts across overlapping social graphs without double-counting.  Sketches are mergeable, making them ideal for gossip-based propagation between peers.*
 
 ---
