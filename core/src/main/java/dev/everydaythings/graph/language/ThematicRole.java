@@ -46,10 +46,20 @@ public class ThematicRole extends Sememe {
     public static final String KEY = "cg.sememe:role";
 
     // ==================================================================================
-    // SEED INSTANCES — core participant roles
+    // SEED INSTANCES — standard thematic roles (from VerbNet 3.x / ISO 24617-4)
     //
+    // 22 roles drawn from established computational-linguistics inventories.
     // Aligned with VerbNet 3.x and ISO 24617-4 (LIRICS/SemAF-SR).
     // No CILIs — thematic roles are frame-theoretic concepts, not WordNet synsets.
+    //
+    // Core participant:  Agent, Patient, Theme, Experiencer, Stimulus, Pivot, Cause
+    // Endpoint/direction: Goal, Destination, Source, Path, Result
+    // Transfer:           Recipient, Beneficiary, Partner
+    // Circumstantial:     Instrument, Manner, Extent, Attribute, Purpose
+    // Setting:            Location, Time
+    //
+    // Plus 3 CG extensions at the end of this file: Value, Config, Follows.
+    // Total: 25 roles.
     // ==================================================================================
 
     /** The intentional initiator of an action. [VN: Agent, LIRICS: Agent] */
@@ -421,10 +431,27 @@ public class ThematicRole extends Sememe {
     }
 
     // ==================================================================================
-    // SEED INSTANCES — information and naming roles
+    // BINDING-KEY CONSTANTS — not strict thematic roles
+    //
+    // The following are used extensively as binding-key constants throughout the
+    // codebase but are NOT thematic roles in the VerbNet/ISO 24617-4 sense.
+    // They live here for convenience until a future refactor moves them to a
+    // more appropriate home.
+    //
+    //   Topic        — VerbNet classifies this as Theme + information_content;
+    //                  CG does not treat it as a separate role (use Theme or Value
+    //                  instead).  Retained here because the KEY constant is
+    //                  referenced throughout FrameBody, Binding, CoreVocabulary,
+    //                  and other vocabulary files.
+    //   Referent     — used only as a qualifier in CoreVocabulary.  Not a thematic
+    //                  role.  Retained for the same reason.
+    //   Presentation — a CONFIG qualifier sememe (compound key: CONFIG, PRESENTATION),
+    //                  not a thematic role.  Retained for the same reason.
+    //   Vocabulary   — a CONFIG qualifier sememe (compound key: CONFIG, VOCABULARY),
+    //                  not a thematic role.  Retained for the same reason.
     // ==================================================================================
 
-    /** The subject of communication or information transfer. [VN: Topic] */
+    /** @deprecated Not a thematic role; use Theme or Value. Retained as a binding-key constant for existing code. */
     @ItemSeed(key = Topic.KEY)
     public static class Topic {
         public static final String KEY = "cg.role:topic";
@@ -440,59 +467,7 @@ public class ThematicRole extends Sememe {
         static final String[] words = {"topic"};
     }
 
-    /** The content asserted by a predicate about its theme — a name, quantity, measurement, or any value. [CG extension, generalizes VerbNet Value] */
-    @ItemSeed(key = Value.KEY)
-    public static class Value {
-        public static final String KEY = "cg.role:value";
-        public static final ItemID IID = ItemID.fromString(KEY);
-
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "the content asserted by a predicate — a name, quantity, measurement, or designation";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
-        static final String[] words = {"value"};
-    }
-
-    /** The concept being referred to in a metalinguistic frame. [CG extension] */
-    @ItemSeed(key = Referent.KEY)
-    public static class Referent {
-        public static final String KEY = "cg.role:referent";
-        public static final ItemID IID = ItemID.fromString(KEY);
-
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "the concept being referred to or expressed";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
-        static final String[] words = {"referent"};
-    }
-
-    // ==================================================================================
-    // SEED INSTANCES — frame-structural role (CG extension)
-    // ==================================================================================
-
-    /** The configuration governing a frame's behavior (policy, scene, settings). [CG extension] */
-    @ItemSeed(key = Config.KEY)
-    public static class Config {
-        public static final String KEY = "cg.role:config";
-        public static final ItemID IID = ItemID.fromString(KEY);
-
-        @ItemFrame(predicate = SememeGloss.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "configuration governing a frame's behavior — policy, scene, settings";
-
-        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
-                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
-                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
-        static final String[] words = {"config"};
-    }
-
-    /** Rendering overrides — scene, skin, style. Narrows CONFIG. [CG extension] */
+    /** @deprecated Not a thematic role; CONFIG qualifier sememe. Retained as a binding-key constant for existing code. */
     @ItemSeed(key = Presentation.KEY)
     public static class Presentation {
         public static final String KEY = "cg.role:presentation";
@@ -508,7 +483,23 @@ public class ThematicRole extends Sememe {
         static final String[] words = {"presentation"};
     }
 
-    /** Token declarations — aliases, proper nouns, verb contributions. Narrows CONFIG. [CG extension] */
+    /** @deprecated Not a thematic role; only used as a qualifier. Retained as a binding-key constant for existing code. */
+    @ItemSeed(key = Referent.KEY)
+    public static class Referent {
+        public static final String KEY = "cg.role:referent";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "the concept being referred to or expressed";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"referent"};
+    }
+
+    /** @deprecated Not a thematic role; CONFIG qualifier sememe. Retained as a binding-key constant for existing code. */
     @ItemSeed(key = Vocabulary.KEY)
     public static class Vocabulary {
         public static final String KEY = "cg.role:vocabulary";
@@ -525,10 +516,58 @@ public class ThematicRole extends Sememe {
     }
 
     // ==================================================================================
-    // SEED INSTANCES — causal ordering role (CG extension)
+    // SEED INSTANCES — CG extensions (genuine thematic roles beyond standard inventories)
+    //
+    // Three roles added beyond VerbNet/ISO.  Each fills a function that natural-language
+    // frame semantics had no need to catalog because natural language rarely talks about
+    // the content, policy, or causal position of an assertion.
+    //
+    //   VALUE   — the content/payload a predicate asserts (generalizes VerbNet's
+    //             narrow scalar-endpoint Value into a general-purpose content role)
+    //   CONFIG  — operational policy on a frame (replication, retention, encryption,
+    //             presentation, etc.)
+    //   FOLLOWS — causal/temporal predecessor: this frame follows or is caused by
+    //             an earlier frame
     // ==================================================================================
 
-    /** Causal ordering — this frame follows/is-caused-by an earlier frame. [CG extension] */
+    /** The content/payload asserted by a predicate. Generalizes VerbNet's narrow scalar-endpoint
+     *  Value into a general-purpose content role: designations, quantities, measurements,
+     *  text, binary blobs. [CG extension, generalizes VerbNet Value] */
+    @ItemSeed(key = Value.KEY)
+    public static class Value {
+        public static final String KEY = "cg.role:value";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "the content asserted by a predicate — a designation, quantity, measurement, text, or binary payload";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"value"};
+    }
+
+    /** Operational policy on a frame: replication, retention, encryption, presentation.
+     *  Qualifiers (REPLICATION, RETENTION, PRESENTATION, VOCABULARY, etc.) are sememes
+     *  used in compound keys, not separate roles. [CG extension] */
+    @ItemSeed(key = Config.KEY)
+    public static class Config {
+        public static final String KEY = "cg.role:config";
+        public static final ItemID IID = ItemID.fromString(KEY);
+
+        @ItemFrame(predicate = SememeGloss.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+        static final String gloss = "operational policy on a frame — replication, retention, encryption, presentation";
+
+        @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
+                   fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
+                                             qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+        static final String[] words = {"config"};
+    }
+
+    /** Causal/temporal predecessor: this frame follows or is caused by the target frame.
+     *  Cross-cutting: any frame can carry a FOLLOWS binding regardless of predicate. [CG extension] */
     @ItemSeed(key = Follows.KEY)
     public static class Follows {
         public static final String KEY = "cg.role:follows";
@@ -536,7 +575,7 @@ public class ThematicRole extends Sememe {
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
-        static final String gloss = "causal predecessor — this frame follows/is-caused-by the target frame";
+        static final String gloss = "causal predecessor — this frame follows or is caused by the target frame";
 
         @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY,
                    fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY,
