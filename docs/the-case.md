@@ -256,6 +256,25 @@ The title and gloss examples above demonstrate compound keys in action: `(VALUE,
 
 Every such meaning is an opportunity for indexing.  A layer that indexes frames by the meanings in their binding keys gets multi-dimensional search as a structural consequence: "show me all videos" is a lookup on frames with VIDEO in their keys; "all UHD videos" narrows to frames with both VIDEO and UHD.  No separate tagging system, no search facets, no metadata catalog.  The key *is* the index.
 
+### Queries are frames
+
+The indexing infrastructure described above has a natural consequence: queries are not a separate mechanism.  A query is an incomplete frame, a frame with one or more bindings left unfilled, and the unfilled bindings indicate what you are asking for.
+
+`AUTHORED { (AGENT) = Tolkien }` with no THEME binding asks "what did Tolkien author?"  `DEPICTS { (VALUE) = sunset }` asks "what depicts a sunset?"  `MOVE { (LOCATION) = the-game }` asks "what moves were made in this game?"  In each case, the system matches the filled bindings against the index and returns frames that complete the pattern.
+
+Any binding in a query can hold an **expression**: a sub-frame that evaluates rather than matching literally.  `LISTING { (THEME) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }` uses a LESS_THAN sub-frame as a filter on the price binding.  The sub-frame is itself a frame with its own predicate and bindings, composed the same way assertions are composed.
+
+Queries can also be **compound**: multiple incomplete frames joined by shared references.  "Find books authored by Tolkien that have a listing under $20 USD" requires two pattern frames, because the book and its listing are different items:
+
+```
+AUTHORED { (AGENT) = Tolkien, (THEME) = book }
+LISTING  { (THEME) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }
+```
+
+The shared reference `book` joins the two patterns: the first finds books Tolkien authored, the second filters to those with a listing under $20.  The query machinery finds assignments to `book` that satisfy both patterns simultaneously.
+
+A frame is an assertion when every binding is filled, and a query when at least one is left open.  There is no separate query language, no SQL, no SPARQL, no GraphQL.  The frame IS the query, the shared vocabulary IS the schema, and the compound-key index IS the query engine.  This is arguably the most powerful consequence of using a single semantic primitive for everything: the ability to ask questions about data is not a feature bolted on after the data model is defined, but a structural property of the data model itself.
+
 ### Everything is a role binding
 
 There is no fundamental distinction between "the data" and "the metadata" of a frame. A title's text, a video's master file, a chess move's destination square, a document's author: each is a role binding. Provenance is a binding. Signatures are bindings. Timestamps are bindings. What we call "data" is a value filling a role. What we call "metadata" is also a value filling a role. The distinction is conventional, not structural.
@@ -324,7 +343,7 @@ Then moves: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-paw
 
 Because each move is a self-contained signed frame, the game can be played peer-to-peer: each move travels directly from the player who made it to the other, with no referee server, no hosted backend, no central authority.  The game is recorded by being signed; it does not need any third party to become real.  And because each move is a frame, it is queryable: "all games where someone opened e4" is a lookup on MOVE frames with (GOAL) = e4 whose FOLLOWS binding points at the game's initial state (meaning it was the first move).
 
-The pattern generalizes immediately.  A chat room would be an item with signed MEMBERSHIP and MESSAGE frames.  A key log would be KEY, REVOKE, and DELEGATE frames.  An auction would be signed BID frames.  All the same pattern: an item exists, people make signed assertions on it, and those assertions collectively define what it is.
+The pattern generalizes immediately.  A chat room would be an item with signed MEMBERSHIP and MESSAGE frames.  A key log would be KEY, REVOKE, and DELEGATE frames.  An auction would be signed BID frames.  Even real-time shared presence fits: a PRESENT frame asserts "I am in this space," an AVATAR_STATE frame with a LATEST retention policy carries position at 60Hz, and stream bindings carry video and audio.  Three temporal modes (durable, ephemeral, streaming), one frame model.  All the same pattern: an item exists, people make signed assertions about it, and those assertions collectively define what it is.
 
 ### The photograph, revisited
 
@@ -415,7 +434,37 @@ The shared meaning space is not a closed vocabulary.  Domain-specific communitie
 
 ---
 
-## 8. Computation as Frames
+## 8. The Trust Matrix
+
+Every frame carries meaning in its predicate.  A FUNNY frame is not a generic "reaction"; it is a specific semantic assertion that its target is funny.  HILARIOUS and AMUSING are related but distinct assertions, and because they are all sememes in the same vocabulary hierarchy, they cluster naturally under a common ancestor (something like HUMOR).  SPAM, ASTROTURF, and JUNK cluster similarly.  INSIGHTFUL, CLARIFYING, and WELL_ARGUED cluster under a different branch.  These clusters are not engineered categories; they fall out of the vocabulary's existing structure.
+
+An important structural point: frames can target other frames, not just items.  A SPAM frame's THEME binding can point at another frame rather than at an item, meaning "this specific assertion is spam."  A FUNNY frame can target another frame, meaning "this specific assertion is funny."  Assessments of assertions are themselves assertions, made with the same primitive, signed by identified parties, subject to the same trust evaluation as everything else.
+
+Trust is what emerges from the accumulation of these assessments.  If Alice consistently reacts to Bob's content with FUNNY, INSIGHTFUL, or AGREE, her Librarian can compute a trust in Bob's judgment in those domains from the pattern of her reactions alone.  If Carol's Librarian has been reliably relaying Alice's messages and storing her data, Alice's Librarian can compute infrastructure trust from its own operational history.  The trust is the pattern; the pattern is the data.
+
+Explicit trust declarations are also possible (a signed frame stating "I trust Bob for content moderation"), but the computed, emergent form is the common case.  Most trust accumulates naturally from the history of interactions the system already records, without anyone having to stop and declare it.
+
+Trust is not a single number.  It is a **matrix**: multi-dimensional, with separate assessments for separate domains.  I might trust Alice's taste in music without trusting her political judgment.  I might trust Bob's Librarian for reliable message relay without trusting Bob's content assessments.  Even identity verification, how confident am I that this key represents the person I think it does, is one dimension among many, extending the web-of-trust concept that PGP introduced into a richer, domain-aware structure.
+
+**Moderation** falls out of the trust matrix without requiring a separate system.  If I mark several of your assertions as SPAM, my trust in your content decreases.  Others who trust my judgment as a moderator will see my SPAM assessments and may lower their own trust in your content accordingly; others who do not trust my moderation will be unaffected.  No moderator was appointed.  No appeals board was convened.  Two different domains are at work simultaneously: your trustworthiness as a content creator, and my trustworthiness as a moderator.
+
+This plays out in practice as a conversation in frames.  I mark your posts as SPAM.  James disagrees and marks my SPAM frames with DISAGREE (frames targeting frames, the same mechanism).  Perhaps a discussion ensues, with others chiming in.  Each participant's trust in each other, across the relevant domains, influences the net result: for some users, your posts survive because they trust James's judgment over mine; for others, your posts effectively disappear because they trust my moderation more.  No single outcome is imposed.  The trust matrix produces a different resolution for each user, from the same underlying data.
+
+Crucially, the user always retains the ability to override computed trust values.  If the accumulated assessments produce a result that feels wrong, the user can adjust it directly.  The trust computation itself should be transparent and user-configurable; the algorithms that compute trust scores from accumulated frames are themselves implementations, items in the graph like any other, replaceable with alternatives that weight the inputs differently.  The substrate provides the data; how that data is aggregated into trust is a choice the user and their Librarian make together.
+
+Trust is **transitive**, and the strongest form of transitive trust requires no explicit endorsement at all.  If Alice, Bob, and I independently react positively to the same restaurants, our Librarians can compute an overlap in taste from the convergence of our independent assertions about the same targets.  Nobody endorsed anyone.  Nobody clicked "helpful."  The trust emerged from the pattern of agreement across independently-authored frames.  This convergent-taste signal is more reliable than explicit endorsement, because it cannot be faked without faking the underlying reactions themselves.
+
+Where reactions are visible, a secondary signal is available: if Alice is in my relationships and I can see her public reactions, my Librarian can observe her patterns and compute trust in her judgment from them directly.
+
+When neither convergence nor visible reactions are available (perhaps Alice's reactions are private), an explicit trust query is possible: an incomplete frame like `TRUST { (THEME) = Bob, (ATTRIBUTE) = RESTAURANT }` sent to Alice's Librarian, which evaluates it against its computed trust matrix and returns the result as a response.  This follows the same pattern as any other query in the system: an incomplete frame whose unfilled bindings indicate what you are asking for, with the answer returned separately.  Nothing about trust is special-cased.
+
+Each Librarian computes its own trust matrix **locally**.  There is no global trust score, no universal reputation number, no platform-computed ranking.  Two users looking at the same content may see different things because their trust matrices differ.  This is Szabo's (1997) vision of formalizing relationships on public networks: not a single view imposed by a platform, but overlapping views produced by overlapping trust relationships.
+
+The trust model is still being refined.  The dimensions, the decay functions, the weighting of transitive paths, the interaction between implicit computation and explicit declaration: these are areas of active design.  The structural commitment is clear: trust is local, multi-dimensional, computed from the data the system already produces, and expressed through the same primitives as everything else.  The specific algorithms will evolve.
+
+---
+
+## 9. Computation as Frames
 
 The claim that semantic frames constitute a genuine base layer (not merely a metadata system) requires demonstrating expressiveness in domains far removed from natural language. Mathematics is the strongest test case: the most formal, least ambiguous domain of structured knowledge. If thematic roles can describe mathematical operations, they are not linguistic conveniences. They are universal structuring principles.
 
@@ -423,13 +472,13 @@ The mapping turns out to be natural.
 
 ### Arithmetic
 
-3 + 5 = 8. The operation ADD is the predicate. The operands are not Agents (they don't initiate anything) or Patients (they don't change). One is the Theme (the entity being operated on) and the other is the Instrument (the means by which the operation is performed). Natural language reveals the asymmetry: we say "add 5 *to* 3," not "add 3 and 5 symmetrically."
+Take the expression: 3 + 5 = 8. The operation ADD is the predicate. The operands are not Agents (they don't initiate anything) or Patients (they don't change). One is the Theme (the entity being operated on) and the other is the Instrument (the means by which the operation is performed). Natural language reveals the asymmetry: we say "add 5 *to* 3," not "add 3 and 5 symmetrically."
 
 ```
 ADD { (THEME) = 3, (INSTRUMENT) = 5 }
 ```
 
-The frame is the input form: a predicate and its bindings, nothing more. Evaluating the frame produces a value, in this case 8. That value plays the role of Result in the cognitive structure (the thing that comes into existence through the operation), but it is not a binding on the input frame. It is what comes out the other end when the frame is run against an implementation of ADD's contract. Where that implementation comes from is taken up at the end of this section.
+The frame is the input form: a predicate and its bindings, nothing more. Evaluating the frame produces a value, in this case 8. That value plays the role of Result in the cognitive structure (the thing that comes into existence through the operation), but it is not a binding on the input frame. It is what comes out the other end when the frame is run against an implementation of ADD's contract.
 
 Subtraction confirms the asymmetry: `SUBTRACT { (THEME) = 10, (INSTRUMENT) = 3 }` evaluates to 7.  Theme ("the thing being acted on") and Instrument ("by what means") are exactly the semantic functions the input values serve.  The roles were defined for natural language, but they describe the same cognitive structure.
 
@@ -470,7 +519,7 @@ If 25 thematic roles can structure natural language, social interactions, and ma
 
 ### Mathematics as a language
 
-As noted in section 5, predicates carry parsing behavior: `+` is a token whose corresponding sememe ADD declares itself as infix with a precedence and associativity.  The consequence for mathematics specifically is that natural language, mathematical expressions, and domain-specific notations coexist within a single input stream.  "Create chess where score > sqrt(9) named rematch" mixes English, a mathematical sub-expression, and an auxiliary predicate.  One resolution pipeline; the language being spoken is inferred from the tokens, not assumed.
+As noted in section 5, predicates may carry parsing behavior: `+` is a token whose corresponding sememe ADD declares itself as infix with a precedence and associativity.  The consequence for mathematics specifically is that natural language, mathematical expressions, and domain-specific notations coexist within a single input stream.  "find books authored by Tolkien where price < 20 dollars" mixes English with a mathematical comparison, and both resolve through the same pipeline.  "Show games where Fischer opened 1. e4 e5 2. Nf3 and won in under 30 moves" mixes English with chess algebraic notation and a numeric filter.  "5 feet + 30cm in meters" mixes unit-bearing arithmetic across two measurement systems.  In each case, every token resolves to a sememe, every sememe declares its parsing behavior, and the language being spoken is inferred from the tokens rather than assumed.
 
 Mathematical expressions are not bolted onto the side of a semantic layer.  They are frames.  A spreadsheet cell is a frame whose value is the result of an expression frame.  The boundary between "data" and "computation" dissolves the same way "data" and "metadata" does: both are role bindings on predicates.
 
@@ -486,7 +535,7 @@ Code distribution would become a special case of data distribution.  Today, soft
 
 The choice raises serious security concerns.  Running code from arbitrary peers is a recipe for disaster unless the runtimes loading and executing it are properly sandboxed.  Sandboxing in this picture would not be a separate special system; it would be another kind of policy attached to frames, the same way replication or retention policy would be.  The problem is hard, but it is the same kind of hard as sandboxing untrusted JavaScript in a web browser, and the existing landscape of techniques (capability-based interfaces, isolated execution environments, formal verification of restricted languages) gives plenty to draw on.
 
-A reasonable objection is that social trust is insufficient for authorizing code execution.  The objection deserves a precise answer: all code distribution already relies on social trust.  When you install software from the Google Play Store, you are trusting Google's review process.  When you install a package from apt, you are trusting the Debian maintainers.  When you download from the Apple App Store, you are trusting Apple.  Even reproducible builds only verify that the build is reproducible, not that the code is safe; someone still has to audit it, and you still have to trust whoever did.  Supply-chain attacks like SolarWinds and the xz backdoor demonstrate that centralized trust intermediaries are not immune to compromise.  What this proposal changes is not whether code execution depends on trust, but who is being trusted: a personally-chosen network of peers whose reputations are visible and whose endorsements are signed, rather than an opaque corporate process whose incentives may not align with your safety.
+An expected objection is that social trust is insufficient for authorizing code execution.  The objection deserves a precise answer: all code distribution already relies on social trust.  When you install software from the Google Play Store, you are trusting Google's review process.  When you install a package from apt, you are trusting the Debian maintainers.  When you download from the Apple App Store, you are trusting Apple.  All of this is still "social" in a very real, society-wide sense.  Even reproducible builds only verify that the build is reproducible, not that the code is safe; someone still has to audit it, and you still have to trust whoever did.  Supply-chain attacks like SolarWinds and the xz backdoor demonstrate that centralized trust intermediaries are not immune to compromise.  What this proposal changes is not whether code execution depends on trust, but who is being trusted: a personally-chosen network of peers whose reputations are visible and whose endorsements are signed, rather than an opaque corporate process whose incentives may not align with your safety.  Nothing prevents Google or Apple from publishing their own code items in the graph, or their own signed reviews and recommendations of other applications.  Users who trust their judgment can continue to rely on it.  The difference is that Google stands alongside every other reviewer rather than occupying a privileged gatekeeping position that no one else can fill.
 
 Because code is an item and data is an item, one of the main structural rationales for SaaS centralization dissolves.  Most software became a service in part because the operator held both the code and the data, and running the code required their infrastructure.  Here, both travel through the same peer substrate, and execution happens wherever the user has a runtime, most naturally on their own device.  The server farm, the subscription, the operator as gatekeeper: these arrangements lose the structural basis that made them seem like the only option.
 
@@ -494,39 +543,19 @@ The deeper point is structural. Computation would not need a separate apparatus 
 
 ---
 
-## 9. What Follows
+## 10. What Changes
 
-If we accept the premises of both pillars, that meaning must live in the data and computation must live with the user, then a number of consequences would follow.  They would not be independent features.  They would be structural properties, coupled: you could not get some without the others, and you would not need to engineer them separately.
+The architecture described in the preceding sections has consequences that extend beyond the technical.  Several are worth naming because they are not obvious from the primitives alone.
 
-**Queryability without crawling.** Every piece of data would be a frame with a grounded predicate and semantically-keyed bindings. The data *would be* the index. "All books authored by Tolkien" would not be a text search; it would be a lookup on AUTHORED frames where AGENT refers to Tolkien. Each frame would be indexed by its predicate and by each meaning in its compound binding keys. For N frames with K bindings on average, the index contains O(N × K) entries. Queries resolve in O(log N). Standard data structures, richer keys.
+The most visible change is the **subsumption of platforms**.  A product listing, a community forum, a social feed, a review, a citation graph: each of these is currently a proprietary database on a proprietary platform, and each would be expressible as frames in the shared vocabulary.  The platform-specific data model that locks users in dissolves, because the data model is shared.  Applications become interchangeable runtimes over the same data: an email client, a document editor, a social feed, a project tracker would all be applications over frames.  The user picks the client; the data does not belong to it.  Competing clients would read the same data, and no user would be locked in to an interface because their data is readable only by its author's binaries.
 
-**Multilingual interoperability.** A Spanish speaker and an English speaker would see the same data through their own words but operate on the same semantic structures. The layer would not translate; it would resolve, through different words, to the same concept.
+**The economics of the internet do not disappear.**  Businesses still want customers.  Individuals still want to find information and buy services.  Hosting remains relevant, especially for commercial interests that want an always-available presence.  What disappears is the ability to monetize user entrapment: the platform business model built on lock-in.  The hosting and service business model, where providers compete on quality, reliability, and price rather than on the structural impossibility of leaving, remains entirely viable.
 
-**Trust as data.** Every frame would be a signed assertion by an identified party. A "like" would be a signed frame. A spam label would be a signed frame. A fact-check would be a signed frame. Different users, with different trust relationships, would see different views of the same underlying data, not because a platform is making editorial decisions, but because trust policies (themselves data) produce different evaluations. This is Szabo's (1997) vision of formalizing relationships on public networks, realized through the frame primitive.
-
-**Content-addressed identity.** Frame identity would be determined by semantic content (predicate + bindings).  Two identical assertions produce the same identity regardless of who makes them or when.  Content-addressing (Merkle, 1979; Benet, 2014) applied to semantic structures rather than opaque bytes.
-
-**Composability.** A document is frames. A chat room is frames. A chess game is frames. A trust relationship is frames. A mathematical expression is frames. There is no structural distinction between content, metadata, relationships, configuration, and computation.
-
-**Liveness.** Real-time shared presence would not be a separate system.  A PRESENT frame asserts "I am in this space"; an AVATAR_STATE frame with a LATEST retention policy carries position at 60Hz; stream bindings carry video and audio.  Three temporal modes (durable, ephemeral, streaming), one frame model.  This is how Croquet's (Smith, Kay, Raab, & Reed, 2003) vision of shared, replicated environments could be realized without a single runtime.
-
-**Syntax as vocabulary.** Predicates carry their own parsing behavior. Operators declare precedence, functions declare grouping, prepositions declare role assignment. One resolution pipeline. Natural language, mathematics, chess notation, and any future domain syntax all flow through the same mechanism. Parsing is resolution.
-
-**Self-describing data.** A frame carries everything needed to interpret it: its predicate names the kind of assertion, its binding keys name what each value means.  No external schema, no application-specific decoder ring.
-
-**Subsumption of platforms.** A product listing would be frames (PRICE, CATEGORY, LOCATION, DESCRIPTION, OFFER). A community would be frames (MEMBERSHIP, MODERATION, TOPIC, ANNOUNCEMENT, QUESTION). A review would be frames (RATING, TOPIC, AGENT). A citation graph would be CITES frames. A social network would be frames (FOLLOW, LIKE, CRITIQUE, RECOMMEND, BLOCK). Each is currently a proprietary database on a proprietary platform. In the shared meaning space, all would be the same primitive.
-
-**Applications without platforms.**  An email client, a document editor, a social feed, a project tracker would be applications over frames.  Any runtime that understands the shared vocabulary could serve as the application; competing clients would read the same data.  No user would be locked in to an interface because their data is readable only by its author's binaries.  The user picks the client; the data does not belong to the client.
-
-**The economics do not disappear.**  Businesses still want customers.  Individuals still want to find information and buy services.  Hosting remains relevant, especially for commercial interests that want an always-available presence.  What disappears is the ability to monetize user entrapment: the platform business model built on lock-in.  The hosting and service business model, where providers compete on quality, reliability, and price rather than on the structural impossibility of leaving, remains entirely viable.
-
-**Offline by default.**  A local runtime with local data is trivially offline-capable.  When a network returns, changes propagate to peers.  Offline is a consequence of where data and computation live, not a feature to be engineered.
-
-**Resilience to vendor disappearance.**  Items live on users' devices and on the peers who have replicated them.  A company that shut down or was acquired would lose the ability to ship updates, but the data, the tools, and the peer network would remain.  The "long now" property that Kleppmann et al. name in local-first software is a structural consequence, not an engineering feature.
+Two properties of the locality pillar deserve explicit mention because they are structural consequences rather than features to be engineered.  **Offline capability** is trivial when the runtime and the data are both local; when a network returns, changes propagate to peers.  **Resilience to vendor disappearance** is equally structural: items live on users' devices and on the peers who have replicated them, so a company that shut down or was acquired would lose the ability to ship updates, but the data, the tools, and the peer network would remain.  Kleppmann et al. call this the "long now" property of local-first software; here it is a consequence of the substrate, not a feature built on top of it.
 
 ---
 
-## 10. Authorship, Not Ownership
+## 11. Authorship, Not Ownership
 
 A popular slogan in the decentralization and crypto communities is "own your data."  The phrase evokes the right sentiment.  The lopsided relationship between users and platforms is unjust.  Something must change.  Users deserve agency over their own contributions.  The word "ownership" applied to data, however, promises more than any technical system can deliver, and it is worth stating plainly what this proposal does and does not accomplish.
 
@@ -544,7 +573,7 @@ The word "ownership" invites confusion because it borrows from property law what
 
 ---
 
-## 11. Honest Reckoning
+## 12. Honest Reckoning
 
 I am not the first to propose an ambitious rethinking of how computing handles information. The history of such proposals is largely a history of instructive failures, and I would be foolish to ignore it.
 
