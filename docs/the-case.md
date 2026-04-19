@@ -1,6 +1,6 @@
 ---
-title: "Below the Application, Above the Bytes"
-subtitle: "A Base Layer for Meaning and Ownership"
+title: "Frames All The Way Down"
+subtitle: "The Missing Layer"
 author: "Joshua Chambers"
 date: "Spring 2026"
 ---
