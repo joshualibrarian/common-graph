@@ -9,7 +9,7 @@
 
 ### Talk Summary
 
-Meaning is absent from every layer of the modern computing stack, and the software that interprets your data has migrated onto machines you do not control.  This talk presents a base layer that closes both gaps: a shared semantic commons and a local-first peer-to-peer substrate, unified in a single architecture.  The semantic primitive is the frame, drawn from computational linguistics, where keys are grounded meanings rather than strings.  The substrate is a peer network of local runtimes holding content-addressed, cryptographically signed assertions, finally realizing the web of trust that PGP envisioned thirty years ago which never quite stuck.  In the resulting architecture, applications become interchangeable interfaces, moderation is social rather than corporate, onion routing is a per-frame policy rather than a separate network, a phone call is just a frame, and the spam arms race stops.
+Meaning is absent from every layer of the modern computing stack, and the software that interprets your data has migrated onto machines you do not control.  This talk presents a base layer that closes both gaps: a shared semantic commons and a local-first peer-to-peer substrate, unified in a single architecture.  The semantic primitive is the frame, drawn from computational linguistics, where keys are grounded meanings rather than strings.  The substrate is a peer network of local runtimes holding content-addressed, cryptographically signed assertions, finally realizing and vastly expanding on the web of trust that PGP envisioned thirty years ago that never really took hold.  In the resulting architecture, applications become interchangeable interfaces, moderation is social rather than corporate, onion routing is a per-frame policy rather than a separate network, a phone call is just a frame, and the spam arms race dissolves.
 
 A full paper (~30 pages) accompanies this talk and will be available in print at the session.
 
@@ -22,7 +22,7 @@ The opening names the structural cause of platform lock-in.  This audience alrea
 ### A. The semantic void (2 minutes)
 
    1. No layer of the computing stack has any concept of what data means.
-      a. Filesystem: bytes at paths.
+      a. Filesystem: bytes at paths, maybe an few characters of extension.
       b. OS: processes and memory pages.
       c. Network: packets with addresses.  HTTP adds content-type headers — *format*, never *meaning*.
       d. Database: rows and columns, schema local to the application.
@@ -61,7 +61,7 @@ The opening names the structural cause of platform lock-in.  This audience alrea
       a. Semantic data trapped on servers is no more portable than opaque data on servers.
       b. Local compute on opaque data is no more useful than remote compute on opaque data.
    2. Both gaps must close in the same layer, or neither closure is effective.
-   3. Transition: "What's missing is not a better search engine, a different platform, or a smarter parser.  What's missing is a layer where meaning is the fundamental unit, and that layer lives on hardware you control.  Let me show you what that looks like."
+   3. Transition: "What's missing is not a better search engine, a different platform, or a smarter parser.  What's missing is a layer where meaning is the fundamental unit, and that layer lives on hardware you control."
 
 ## II. Why Retrofits Fail (4 minutes)
 
@@ -86,13 +86,13 @@ Quick pass through the pattern of failure.  This audience knows these systems.  
       b. The instance operator is still a gatekeeper.
       c. The problem was never the number of servers; it was the architectural privilege of being one.
    2. **P2P transport** (FreeNet, BitTorrent, IPFS, SSB).
-      a. Solves the real problem of moving bytes without a central coordinator.  Genuinely well.
+      a. Solves the real problem of moving data without a central coordinator.  Genuinely well.
       b. BitTorrent's DHT has operated with tens of millions of nodes.  Foundational contributions: content addressing, DHTs, incentive-compatible chunk exchange, append-only signed logs.
       c. But: hash-distance routing treats all data as homogeneous and all peers as interchangeable.
          i. A peer holds data because of a mathematical property of its ID, not because it cares.
          ii. Costs compound at scale: O(log N) lookup latency (30 round-trips for a billion nodes), nodes storing data they have no interest in, constant churn maintenance, phones and servers treated as equivalent.
          iii. More fundamentally: hash-distance routing consumes the flexibility you'd need to route different data to different people based on who cares about it.
-      d. A chess move matters to the players.  A photograph matters to the people depicted.  A medical record matters to the patient and their doctor.
+      d. A chess move matters to the players.  A photograph matters to the people depicted and those that know them.  A medical record matters to the patient and their doctor.
    3. **Git**: technically fully distributed, culturally centralized around GitHub.  Technical decentralization is necessary but not sufficient.
    4. **The lesson**: federation does not remove the client-server boundary.  P2P transport routes all data as though it is the same and all peers as though they are interchangeable.
 
@@ -102,9 +102,9 @@ Quick pass through the pattern of failure.  This audience knows these systems.  
    2. The solution must be a *layer* where creating data simultaneously creates semantic structure and places it on a user-controlled peer.
    3. Transition: "So let me show you the primitive, and then the substrate that carries it."
 
-## III. The Frame Primitive (10 minutes)
+## III. The Semantic Frame Primitive (10 minutes)
 
-This is the core of the talk.  The single data structure from which everything else is built.  The semantic requirements (grounded predicates, structured assertions, write-time resolution, cross-lingual stability) are introduced here as they are satisfied, not listed separately.
+This is the core of the talk.  The single data structure from which everything else is built.
 
 ### A. What a frame is (3 minutes)
 
@@ -114,6 +114,7 @@ This is the core of the talk.  The single data structure from which everything e
    2. The frame primitive.
       a. A **predicate** (a grounded meaning: what kind of assertion) and **bindings** (compound-key → value pairs: the semantic content).  Nothing else is structurally required.
       b. The predicate is a sememe — a unit of meaning from the shared vocabulary — acting in a structural role.  It declares what bindings the frame expects.
+      c. This is NOT a key-value pair with extra structure.  It is a coherent assertion whose roles are determined by its predicate.  A title requires something being titled and the title itself.  An authorship assertion requires a work and an author.  A chess move requires a game, a player, a piece, an origin, and a destination.  Remove any of them and the assertion does not make sense — the way "John gave" does not make sense without knowing what and to whom.  The predicate determines what roles are needed; the roles are not arbitrary.
       c. The same vocabulary supplies everything: predicates (AUTHORED, TITLE, MOVE), archetypes (BOOK, CHESS_GAME, PERSON), and binding values (TOLKIEN, ENGLISH, CELSIUS).  They are all meanings.
    3. Compound keys.
       a. Each binding key is a sequence of one or more grounded meanings.
@@ -122,7 +123,7 @@ This is the core of the talk.  The single data structure from which everything e
    4. Cross-lingual stability is built in, not bolted on.
       a. Meanings are language-independent (sememes).  Words are language-specific (lexemes) that point at them.
       b. The concept DOG exists independently of "dog," "perro," and "犬" (inu).
-      c. The predicate AUTHORED exists independently of "authored," "escrito," and "verfasst."
+      c. The sememe AUTHORED encompasses all forms of the meaning: "author," "authored," "authoring," "authorship" — those are all lexemes pointing at one sememe.  And that same sememe exists across languages: "escrito" in Spanish, "verfasst" in German.  One meaning, many words.
       d. A Spanish speaker sees the same data through Spanish lexemes.  No translation occurs.
    5. Write-time resolution.
       a. Meaning is resolved at the moment of creation, when the creator knows what they mean.
@@ -167,8 +168,8 @@ This is the core of the talk.  The single data structure from which everything e
    1. **Queries are incomplete frames.**
       a. `AUTHORED { (AGENT) = Tolkien }` with no THEME asks "what did Tolkien author?"
       b. `MOVE { (LOCATION) = the-game }` asks "what moves in this game?"
-      c. `DEPICTS { (AGENT) = Alice }` asks "what depicts Alice?" — photographs, drawings, movies, anything with a DEPICTS frame binding to Alice.
-      d. Expressions as sub-frames: `LISTING { (THEME) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }`.
+      c. `DEPICTS { (ANY) = Alice }` asks "what depicts Alice?" — ANY is a sememe meaning "any role."  Photographs, drawings, movies, anything with a DEPICTS frame that references Alice in any binding.  You don't need to know which role she fills; you just ask for her.
+      d. Bindings can hold expressions: `CAPTURED { (TIME) = BEFORE { (VALUE) = 2020 } }` asks "what was captured before 2020?"  The sub-frame BEFORE is itself a frame with its own predicate and bindings.
       e. No SQL, no SPARQL, no GraphQL.  The frame IS the query, the shared vocabulary IS the schema, and the compound-key index IS the query engine.
    2. **Compound keys are the index.**
       a. Every meaning in a compound key is an indexing opportunity.
@@ -194,7 +195,7 @@ The locality requirements (cryptographic identity, content-addressing, social-gr
 
    1. A single frame is rarely the whole story.
       a. A book has TITLE, AUTHORED, TEXT, COVER_ART, PUBLICATION frames.  All about the same thing.
-      b. An **item** is a stable anchor that frames reference.  The book is an item.  Tolkien is an item.  A chess game is an item.  A phone call is an item.
+      b. An **item** is a stable anchor that frames reference.  The book is an item.  Tolkien is an item.  A chess game is an item.  A conversation between you and a friend is an item — your shared space where calls, messages, and reactions happen.
    2. **Item ID (IID)**: stable, location-independent, not assigned by any registry.
       a. The same IID is recognized by any peer, on any device, without coordination.
       b. This is content-addressing applied to identity: the item is named by what it is, not where it lives.
@@ -211,10 +212,11 @@ The locality requirements (cryptographic identity, content-addressing, social-gr
 
 ### B. Cryptographic identity and the social graph (2 minutes)
 
-   1. **Identity is a keypair.**
-      a. Not an account, not a username.  You generate it locally.
-      b. No authority grants it; no authority can revoke it.
-      c. PGP established this for email thirty years ago.  This layer takes the core insight — identity without a central authority, trust as a web of signed endorsements — and builds it into the foundation of the entire architecture, where trust drives not just key verification but routing, moderation, code execution, discovery, and replication.
+   1. **A user is an item.**
+      a. Not an account, not a username, not a row in a database.  A user is an item, the same primitive as a book or a chess game, described by frames (NAME, AVATAR, PUBLIC_KEY), referenced by other frames (every AGENT binding that names you), versioned through manifests.
+      b. Identity is a keypair.  You generate it locally.  No authority grants it; no authority can revoke it.
+      c. Your Librarian — the local runtime that stores your items, signs your frames, and manages your peer connections — is itself an item.
+      d. PGP established keypair identity for email thirty years ago.  This layer takes the core insight — identity without a central authority, trust as a web of signed endorsements — and builds it into the foundation of the entire architecture, where trust drives not just key verification but routing, moderation, code execution, discovery, and replication.
    2. **Every assertion is signed.**
       a. Provenance and integrity are properties of the primitive, not features added later.
       b. Content-addressing means integrity is verifiable locally — you check the hash, not the transport.
@@ -302,7 +304,7 @@ Where the security audience should feel most at home.
 
    1. If data is frames and frames are signed, what about code?
    2. Code is an item carrying executable form alongside frames declaring:
-      a. Which contract (predicate) it satisfies.
+      a. Which contract it satisfies — a predicate's contract (how to evaluate it) or an archetype's contract (how to render and interact with items of that type).
       b. Who signed it.
       c. What runtime is needed.
    3. A predicate carries a *contract* — what it expects, what it produces.
@@ -319,11 +321,11 @@ Where the security audience should feel most at home.
       a. Google Play Store: you trust Google's review.
       b. `apt install`: you trust the Debian maintainers.
       c. App Store: you trust Apple.
-      d. All of this is "social" in a very real sense.
-   2. SolarWinds and the xz backdoor demonstrated that centralized trust intermediaries are not immune.
-   3. What changes: not *whether* execution depends on trust, but *who* is being trusted.
-      a. A personally chosen network of peers whose reputations are visible and whose endorsements are signed.
-      b. Rather than an opaque corporate process whose incentives may not align with your safety.
+      d. All of this is "social" in a very real sense.  But it is *implicit* social trust.  You never consciously chose to trust Google's review process or Debian's maintainer vetting.  You can't inspect those trust relationships, can't see their track records, can't choose to trust some links in the chain and not others.  The trust is invisible and all-or-nothing.
+   2. SolarWinds and the xz backdoor demonstrated that centralized, implicit trust intermediaries are not immune.  SolarWinds: attackers compromised the build system and shipped a backdoor through the official, signed update channel.  xz: an attacker spent two years earning maintainer trust, then inserted a backdoor weeks from shipping in every major Linux distribution.
+   3. What changes: not *whether* execution depends on trust, but whether that trust is implicit or explicit.
+      a. In CG, every link in the chain is a signed, visible, assessable relationship.  Who signed the code, who reviewed it, who endorsed the reviewer, what their track record looks like across the trust matrix.
+      b. The trust is still social — it has to be — but it is explicit, inspectable, and granular rather than invisible, opaque, and binary.
    4. Nothing prevents Google or Apple from publishing signed code items.
       a. They stand alongside every other reviewer rather than occupying a privileged gatekeeping position.
    5. **Sandboxing** is required.
@@ -340,31 +342,33 @@ Where the security audience should feel most at home.
 
 ### A. Does it scale? (3 minutes)
 
-   1. **Indexing is compact and linear.**
+   1. **The data is still the data.**  A photograph is the same megabytes whether it's stored as a file or as a frame binding.  CG doesn't make data bigger; it makes it meaningful.  The overhead of wrapping content in frames and items is trivial — a few hundred bytes of structure around content that may be megabytes or gigabytes.  The scaling question is really about the *indexing*, not the data itself.
+   2. **Indexing is compact and linear.**
       a. Each indexed binding: 136 bytes (102-byte key + 34-byte value).
       b. Not every binding is indexed — literals, payloads, policy bindings are skipped.
       c. Cost is linear in semantic assertions, not in content size.
       d. A 1 MB photo and a 10 GB movie with the same six descriptive frames produce the same index cost.
       e. 10,000 photos + 500 books + 1,000 posts = ~170,000 index entries, ~23 MB.
-   2. **The power law is your friend.**
+   3. **The power law is your friend.**
       a. Research on 52M+ posts (Buffer, 2026): median engagement is ~4 interactions.
       b. 90%+ of items: trivial cost (a few frames, under a kilobyte of index).
       c. The extreme tail (millions of reactions): a handful of posts per year globally.
-   3. **Social-graph sharding for the extreme case.**
+   4. **Social-graph sharding for the extreme case.**
       a. Viral post with 5M reactions: ~4.5 GB total across the entire network.
       b. Casual viewer: ~150 KB.  Popular creator: ~40 MB.  Full aggregator: ~4.5 GB.
-      c. The social graph is a natural shard boundary.
+      c. Each node only holds what reached it through its own trust relationships.  The data distributes itself across the network without anyone designing a sharding strategy.
       d. 4.5 GB is less than a USB stick you'd lose in your couch cushions.
-   4. **Distributed counting: HyperLogLog.**
+   5. **Distributed counting: HyperLogLog.**
       a. Most items never need aggregation.
       b. For the small fraction that do: mergeable sketches, ~16 KB each, ~2% error, deduplicate across overlapping social graphs.
       c. The sketch is just another frame.
-   5. **Text search scales linearly.**
-      a. Vocabulary: bounded (~35 MB for English, ~4 MB for Mandarin).
+   6. **Text indexing scales linearly.**
+      a. Two kinds of text in the token dictionary.  Vocabulary (lexemes from language imports, mapping words to meanings) is effectively bounded — a language has a finite number of words.  ~35 MB for all of English including inflected forms, ~4 MB for Mandarin (no inflections at all).  A polyglot loading five languages: ~100 MB.  Loading every language for which resources exist: single-digit gigabytes.  All routine.
       b. User content: 10M titles (IMDB scale) ≈ ~2 GB of token dictionary.
       c. One tokenizer handles all languages, including CJK, through windowed resolution.
-   6. **Signing**: ~50K signs/sec, ~15K verifies/sec.  Not a bottleneck.
-   7. All estimates uncompressed.  Storage backends add compression.
+   7. **Signing**: ~50K signs/sec, ~15K verifies/sec.  Not a bottleneck.
+   8. **Serialization is binary, not text.**  Frames are encoded in CBOR (Concise Binary Object Representation), not JSON.  No repeated key strings, no whitespace, no quoting overhead.  A frame that would be 500 bytes as JSON might be 150 as CBOR.  At millions of frames, this matters.
+   9. All estimates uncompressed.  Storage backends add compression on top of that.
 
 ### B. What about attacks? (2 minutes)
 
@@ -396,7 +400,7 @@ Concrete consequences.  This is where the vision gets tangible.
 
 ### A. Platform subsumption
 
-   1. Product listings, forums, social feeds, reviews, citation graphs: each expressible as frames.
+   1. Product listings, forums, social feeds, reviews, citation graphs: each expressible as items and frames.
    2. Applications become interchangeable interfaces.  Switching costs approach zero.
    3. Economics don't disappear.  Lock-in disappears.
 
@@ -408,7 +412,7 @@ Concrete consequences.  This is where the vision gets tangible.
    2. In this architecture, all collapse into one primitive.
       a. A license: a signed frame from a rights-holder.
       b. An escrow: a Librarian holding one frame until a corresponding frame arrives.
-      c. A lien: a frame governing an item's CONFIG policies.
+      c. A lien: Szabo envisioned a car whose cryptographic keys revert to the bank if you stop making payments.  Whether you'd want to drive that car is another question — but the substrate supports it.  The bank signs a LIEN frame on the vehicle item; the rest is policy.
       d. A transaction: a chain of signed frames (order, confirmation, payment, shipment, delivery) — each party attesting their own role.
    3. He described the protocols; this is the substrate they share.
    4. [If the Szabo/Satoshi speculation comes up, don't force it, but don't avoid it either.]
@@ -422,7 +426,7 @@ Concrete consequences.  This is where the vision gets tangible.
    3. Streams flow direct (HOPS=0) or relayed (HOPS=N, IP hidden).  Same frame, different routing policy.
    4. Telephony bridge: a device with your SIM card, running a small Librarian, connecting legacy phones to CG.
       a. Someone calls your number; the bridge wraps it as a CALL frame and forwards through CG.
-      b. Your real phone doesn't need cellular service, just data.
+      b. Your real phone doesn't need a phone number, just data service.
 
 ### D. Structural consequences
 
@@ -436,7 +440,7 @@ Honesty about what this does and does not deliver.  This audience will see throu
 
 ### A. What you get
 
-   1. **Provable authorship**: you hold your keys, nobody can sign as you.
+   1. **Provable attribution**: every assertion carries a cryptographic link to the key that signed it.  You hold your keys, nobody can sign as you.  Attribution is the technical mechanism; authorship is the human concept it stands in for.
    2. **Local custody**: no vendor can revoke access to work you already have.
    3. **Consent to new copies**: you choose which peers you share with.
 
@@ -460,13 +464,16 @@ Honesty about what this does and does not deliver.  This audience will see throu
 
 ### B. Why now (1 minute)
 
-   1. **Linguistic resources matured.**
+   1. **Linguistic resources matured — and they're open.**
       a. WordNet (120K synsets), CILI (cross-lingual), VerbNet (300 verb classes), ISO 24617-4, UniMorph (100+ languages).
       b. Decades of cumulative scholarly work.  Did not exist when CYC or the Semantic Web were proposed.
-   2. **Technical infrastructure matured.**
-      a. Ed25519 cheap per-message, content-addressing ubiquitous (Git), CRDTs in production, P2P stacks (libp2p, QUIC) mature.
+      c. Critically, these carry permissive licenses.  The vocabulary that makes the semantic pillar possible is freely available to anyone.
+   2. **The open-source ecosystem matured.**
+      a. Ed25519 cheap per-message, content-addressing ubiquitous (Git), CRDTs in production, P2P transport stacks (libp2p, QUIC) mature.
+      b. The entire CG stack is built on available open-source libraries: RocksDB for storage, ed25519 for signing, Filament for 3D rendering, Skia for 2D, JLine for terminal, CBOR for serialization.  Every layer of the implementation draws on battle-tested open-source infrastructure that did not exist or was not mature a decade ago.
+      c. A base layer like this is inherently a commons — it only works if shared, and it can only be shared if open.  The open-source movement created the collaborative environment such a commons requires.
    3. **AI compressed the timeline.**
-      a. The bottleneck was always code volume.  That bottleneck has narrowed.
+      a. The bottleneck for ambitious software projects has always been the sheer volume of code required, and that bottleneck has narrowed dramatically.  This does not guarantee success, but it changes the economics of ambition.
 
 ### C. What's built (0.5 minutes)
 
