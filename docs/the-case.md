@@ -262,6 +262,15 @@ The predicate is worth pausing on, because it is easy to treat it as a distinct 
 
 The title and gloss examples above demonstrate compound keys in action: `(VALUE, ENGLISH)` and `(VALUE, RUSSIAN)` use a language qualifier to distinguish bindings that share the same base role.  The same mechanism extends to any domain: `(VIDEO, MKV, UHD)` and `(VIDEO, MKV, HD)` would distinguish video resolutions within the same container format; `(CONFIG, REPLICATION)` and `(CONFIG, RETENTION)` would distinguish policy types.  Every element of a compound key is a grounded sememe, not an arbitrary string.
 
+There is one controlled exception.  The first element of a compound key must always be a sememe, grounding the binding in the shared vocabulary.  Subsequent elements, however, can be **literals**: user-defined names that serve as qualifiers within the scope of the item.  A binding keyed `(VALUE, x)` uses the sememe VALUE as its grounded root and the literal `x` to distinguish this particular value from others on the same item.  The literal `x` has no global meaning; it is scoped to the item that carries it, the same way a variable name is scoped to the function that declares it.  This is what makes variable binding, cell addressing, and local naming possible within the frame model.  A small example shows how this works in practice:
+
+```
+EQUALS { (VALUE, x) = 5 }
+EQUALS { (VALUE, y) = ADD { (THEME) = x, (INSTRUMENT) = 3 } }
+```
+
+Two frames on the same item.  The first binds the literal name `x` to 5; the second defines `y` as `x + 3`, referencing `x` by name.  `x` and `y` are literals scoped to this item — arbitrary variable names that no vocabulary would catalog.  VALUE, EQUALS, ADD, THEME, and INSTRUMENT are sememes from the shared vocabulary.  The local names let you build up computations that reference each other; the semantic roots ensure that the structure is always grounded.  The consequence is that every item is, in a sense, a spreadsheet: a structured workspace where named values can reference each other, with the semantic root ensuring that the *kind* of value is always grounded even when the *name* is local.
+
 Every such meaning is an opportunity for indexing.  A layer that indexes frames by the meanings in their binding keys gets multi-dimensional search as a structural consequence: "show me all videos" is a lookup on frames with VIDEO in their keys; "all UHD videos" narrows to frames with both VIDEO and UHD.  No separate tagging system, no search facets, no metadata catalog.  The key *is* the index.
 
 ### Queries are frames
@@ -272,14 +281,15 @@ The indexing infrastructure described above has a natural consequence: queries a
 
 Any binding in a query can hold an **expression**: a sub-frame that evaluates rather than matching literally.  `LISTING { (THEME) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }` uses a LESS_THAN sub-frame as a filter on the price binding.  The sub-frame is itself a frame with its own predicate and bindings, composed the same way assertions are composed.
 
-Queries can also be **compound**: multiple incomplete frames joined by shared references.  "Find books authored by Tolkien that have a listing under $20 USD" requires two pattern frames, because the book and its listing are different items:
+Queries can also be **compound**: multiple incomplete frames joined by shared references.  "Find books authored by Tolkien that have a listing under $20 USD" requires defining a variable, constraining it with two patterns, and letting the query machinery find what satisfies both:
 
 ```
-AUTHORED { (AGENT) = Tolkien, (THEME) = book }
-LISTING  { (THEME) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }
+EQUALS   { (VALUE, book) = ANY { } }
+AUTHORED { (AGENT) = Tolkien, (ANY) = book }
+LISTING  { (ANY) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }
 ```
 
-The shared reference `book` joins the two patterns: the first finds books Tolkien authored, the second filters to those with a listing under $20.  The query machinery finds assignments to `book` that satisfy both patterns simultaneously.
+The first line defines `book` as a literal variable (using the same literal-key mechanism described above) bound to ANY.  ANY is not special syntax; it is a sememe in the shared vocabulary, a meaning that resolves to "match anything" the same way LESS_THAN resolves to a comparison.  Any expression could appear in its place to constrain the match differently.  The second line constrains the variable: `book` must appear in an AUTHORED frame where Tolkien is the AGENT.  The third constrains it further: the same `book` must appear in a LISTING frame with a price under $20.  ANY as a role means "I don't care which binding — just find frames that reference this item."  The query machinery finds assignments to `book` that satisfy both patterns simultaneously.
 
 A frame is an assertion when every binding is filled, and a query when at least one is left open.  There is no separate query language, no SQL, no SPARQL, no GraphQL.  The frame IS the query, the shared vocabulary IS the schema, and the compound-key index IS the query engine.  This is arguably the most powerful consequence of using a single semantic primitive for everything: the ability to ask questions about data is not a feature bolted on after the data model is defined, but a structural property of the data model itself.
 
@@ -491,6 +501,8 @@ INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx }
 Source and Goal for the bounds of integration. These roles were defined for physical motion ("move from the house to the store") but they map onto abstract endpoints with no strain, because the cognitive structure is the same: a starting point, an ending point, a traversal. Evaluating the frame produces 1/3, the Result.
 
 Differentiation and limits follow the same pattern: `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x }` evaluates to 2x; `LIMIT { (THEME) = 1/x, (GOAL) = ∞ }` evaluates to 0, the variable approaching the Goal the same way a physical object approaches a destination.
+
+The `x` in these examples is a literal key element, as described in section 5: a user-defined name rather than a vocabulary meaning.  Variable binding (`x = 5`, or `EQUALS { (THEME, x) = 5 }`) uses a literal in the compound key to name the variable.  This is what allows the frame model to express computation with variables, not just fixed values.
 
 ### The role mapping
 
