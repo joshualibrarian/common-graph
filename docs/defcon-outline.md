@@ -9,286 +9,477 @@
 
 ### Talk Summary
 
-Platform ownership is not a policy problem.  It is a structural property of a computing stack where no layer stores meaning and the software that interprets your data runs on someone else's machines.  This talk presents a base layer that closes both gaps with a single primitive: the semantic frame, drawn from computational linguistics, deployed on a local-first peer-to-peer substrate where cryptographic identity, content-addressed storage, and trust-based routing replace accounts, servers, and platforms.  The result is infrastructure where data is self-describing, applications are interchangeable, moderation is social rather than corporate, onion routing is a per-frame policy rather than a separate network, and a phone call is just a frame.
+Meaning is absent from every layer of the modern computing stack, and the software that interprets your data has migrated onto machines you do not control.  This talk presents a base layer that closes both gaps: a shared semantic commons and a local-first peer-to-peer substrate, unified in a single architecture.  The semantic primitive is the frame, drawn from computational linguistics, where keys are grounded meanings rather than strings.  The substrate is a peer network of local runtimes holding content-addressed, cryptographically signed assertions, finally realizing the web of trust that PGP envisioned thirty years ago which never quite stuck.  In the resulting architecture, applications become interchangeable interfaces, moderation is social rather than corporate, onion routing is a per-frame policy rather than a separate network, a phone call is just a frame, and the spam arms race stops.
 
-A full paper accompanies this talk and will be available in print at the session.
+A full paper (~30 pages) accompanies this talk and will be available in print at the session.
 
 ---
 
 ## I. The Two Gaps (5 minutes)
 
-The opening compresses the paper's diagnosis into a framing this audience already lives inside.  The goal is not to convince them the problem exists but to name the structural cause precisely enough that the solution feels inevitable.
+The opening names the structural cause of platform lock-in.  This audience already lives inside the problem; the goal is to frame it precisely enough that the solution feels inevitable.
 
-### A. The semantic void
+### A. The semantic void (2 minutes)
 
-   1. No layer of the computing stack stores meaning.  Filesystem sees bytes at paths.  OS sees processes and memory pages.  Network sees packets.  Database sees rows.  The web sees pages at URLs.
-   2. Meaning lives exclusively in application code.  The application's schema is the only route from bytes to anything a user cares about.
-   3. Consequence: your data is meaningless without the application that wrote it.  Export gives you bytes and a proprietary schema.  You can leave nominally but not practically.
-   4. The key-value pair, the most fundamental composable pattern in computing, is fractured beyond repair: `author`, `creator`, `created_by`, `dc:creator`, `writtenBy` all mean the same thing.  Nothing in the infrastructure connects them.
-   5. LLMs are the most expensive compensation yet: statistical models trained on human text to recover meaning that could have been recorded directly.
+   1. No layer of the computing stack has any concept of what data means.
+      a. Filesystem: bytes at paths.
+      b. OS: processes and memory pages.
+      c. Network: packets with addresses.  HTTP adds content-type headers — *format*, never *meaning*.
+      d. Database: rows and columns, schema local to the application.
+      e. Web: pages at URLs.  Search engines exist because the web cannot answer "what is this about?"
+      f. Each layer achieves generality the same way: treat data as opaque, leave interpretation to the layer above.
+   2. Meaning lives exclusively in application code.
+      a. The application's schema is the only route from bytes to anything a user cares about.
+      b. Whoever holds the code that interprets the data holds the thing users actually value.
+      c. Data without the application is bytes without value.
+   3. The cost is everywhere and attributed nowhere.
+      a. Every API integration: bespoke translation between systems that cannot describe themselves to each other.
+      b. Every search engine: probabilistic compensation for the fact that data doesn't know what it means.
+      c. Every data migration: reconstructing meaning that was in the creator's head but never in the infrastructure.
+      d. LLMs are the most expensive compensation yet: statistical models trained on human text to recover meaning that could have been recorded directly.
+   4. The key-value fragmentation.
+      a. `author`, `creator`, `created_by`, `dc:creator`, `writtenBy` — all the same thing, nothing connects them.
+      b. And one of the great unsolved problems of the digital age: how to store a physical address.  [pause]  `address1`, `address2`, `city`, `state`, `zip` — falls apart for Japan (prefecture, district, block), Germany (number after the name), rural areas (no street numbers at all).  Decades of software engineering.  Still unsolved.  [knowing laughter]  The problem isn't the schema.  The problem is that each component of an address is a *meaning*, and no layer can represent meanings.
 
-### B. The SaaS migration
+### B. The SaaS migration (2 minutes)
 
-   1. Consumer hardware has never been more powerful.  Phones in 2026 exceed 1970s mainframes in every dimension.  Nearly all of that power is spent rendering what a server farm computes.
-   2. Applications migrated from local programs to hosted services not because of a technical limit but because of a business model: subscriptions, network effects, and centralized data created lock-in.
-   3. Running the computation is how you own the decisions.  Recommendation, curation, moderation, feed ranking, price discrimination, A/B testing: all happen on servers, inside code users cannot inspect, on data users cannot access.
+   1. The hardware is not the problem.
+      a. The phone in your pocket exceeds 1970s mainframes in every dimension.
+      b. Nearly all of that power is spent rendering what a server farm computes.
+      c. The most capable consumer hardware ever built serves as little more than rendering terminals.
+   2. The business model is the problem.
+      a. Applications migrated to hosted services not because of a technical limit but because subscriptions, network effects, and centralized data created lock-in.
+      b. A generation of developers grew up with SaaS as the default mental model rather than the historical anomaly it is.
+   3. Running the computation is how you own the decisions.
+      a. Recommendation order, feed curation, content moderation, search ranking, fraud detection, A/B testing, price discrimination — all happen on servers.
+      b. Inside code users cannot inspect, on data users cannot access, subject to policies users did not agree to.
+      c. Platforms own not just the meaning of data but the agency over it.
 
-### C. The compound problem
+### C. The compound problem (1 minute)
 
-   1. Semantic data trapped on servers is no more portable than opaque data on servers.  Local compute on opaque data is no more useful than remote compute on opaque data.
+   1. Fixing only one gap is insufficient.
+      a. Semantic data trapped on servers is no more portable than opaque data on servers.
+      b. Local compute on opaque data is no more useful than remote compute on opaque data.
    2. Both gaps must close in the same layer, or neither closure is effective.
-   3. Transition: "What's missing is not a better search engine, a different platform, or a smarter parser.  What's missing is a layer where meaning is the fundamental unit, and that layer lives on hardware you control."
+   3. Transition: "What's missing is not a better search engine, a different platform, or a smarter parser.  What's missing is a layer where meaning is the fundamental unit, and that layer lives on hardware you control.  Let me show you what that looks like."
 
-## II. Why Retrofits Fail (5 minutes)
+## II. Why Retrofits Fail (4 minutes)
 
-A quick pass through the pattern of failure, not a detailed history.  The audience knows these systems.  The point is the *structural lesson*, not the individual stories.  Hard copies of the paper will have the full treatment for anyone who wants the details.
+Quick pass through the pattern of failure.  This audience knows these systems.  The point is the *structural lesson*, not the individual stories.  Hard copies of the paper have the full treatment.
 
-### A. The semantic retrofits (2 minutes)
+### A. The semantic retrofits (1.5 minutes)
 
-   1. **The Semantic Web**: rigorous, powerful, adopted in narrow domains.  Three structural problems kept it from becoming general-purpose: it annotates existing resources (optional, so absent in practice), it requires ontology expertise from every author, and the annotation is disconnected from the content it describes.
-   2. **Schema.org, Dublin Core, EXIF, ID3, OpenGraph**: each solves a narrow problem.  They do not compose.  A photograph with EXIF and a document with Dublin Core cannot be queried together.
-   3. **The structural lesson**: you cannot make a semantically inert layer semantic by annotating it.  The annotation is always optional, always disconnected, always maintained by a separate process.
+   1. **The Semantic Web** (Berners-Lee, 2001).
+      a. Rigorous, powerful, adopted in narrow domains.
+      b. Three structural problems:
+         i. Annotates existing resources — optional, so absent in practice.
+         ii. Requires ontology expertise from every author.
+         iii. Annotation is disconnected from the content it describes.
+      c. The incentive is misaligned: cost falls on the producer, benefit accrues to the consumer.
+   2. **Schema.org, Dublin Core, EXIF, ID3, OpenGraph**: each solves a narrow problem, they do not compose.
+   3. **The lesson**: you cannot make a semantically inert layer semantic by annotating it.
 
-### B. The locality retrofits (2 minutes)
+### B. The locality retrofits (1.5 minutes)
 
-   1. **Federation** (Fediverse, Solid, AT Protocol, Matrix): distributes the servers but preserves the client-server boundary.  Data still lives on servers.  The instance operator is still a gatekeeper.  The problem was never the number of servers; it was the architectural privilege of being one.
-   2. **P2P transport** (FreeNet, BitTorrent, IPFS, SSB): solves the real problem of moving bytes between peers without a central coordinator.  Each treats all data as homogeneous.  A chess move, a medical record, a photograph, and a movie are the same kind of thing: opaque bytes to store and retrieve.
-   3. **Git**: the most instructive case.  Technically fully distributed; culturally centralized around GitHub.  Technical decentralization is necessary but not sufficient.
-   4. **The structural lesson**: federation does not remove the client-server boundary.  P2P transport does not carry meaning.
+   1. **Federation** (Fediverse, Solid, AT Protocol, Matrix).
+      a. Distributes the servers but preserves the client-server boundary.
+      b. The instance operator is still a gatekeeper.
+      c. The problem was never the number of servers; it was the architectural privilege of being one.
+   2. **P2P transport** (FreeNet, BitTorrent, IPFS, SSB).
+      a. Solves the real problem of moving bytes without a central coordinator.  Genuinely well.
+      b. BitTorrent's DHT has operated with tens of millions of nodes.  Foundational contributions: content addressing, DHTs, incentive-compatible chunk exchange, append-only signed logs.
+      c. But: hash-distance routing treats all data as homogeneous and all peers as interchangeable.
+         i. A peer holds data because of a mathematical property of its ID, not because it cares.
+         ii. Costs compound at scale: O(log N) lookup latency (30 round-trips for a billion nodes), nodes storing data they have no interest in, constant churn maintenance, phones and servers treated as equivalent.
+         iii. More fundamentally: hash-distance routing consumes the flexibility you'd need to route different data to different people based on who cares about it.
+      d. A chess move matters to the players.  A photograph matters to the people depicted.  A medical record matters to the patient and their doctor.
+   3. **Git**: technically fully distributed, culturally centralized around GitHub.  Technical decentralization is necessary but not sufficient.
+   4. **The lesson**: federation does not remove the client-server boundary.  P2P transport routes all data as though it is the same and all peers as though they are interchangeable.
 
 ### C. The common diagnosis (1 minute)
 
-   1. Additions cannot compensate for a substrate whose shape is wrong.  Annotation, federation, and transport each fails in the specific way the underlying architecture leaves no room for it to succeed.
+   1. Additions cannot compensate for a substrate whose shape is wrong.
    2. The solution must be a *layer* where creating data simultaneously creates semantic structure and places it on a user-controlled peer.
-   3. Transition: "So what does such a layer actually look like?"
+   3. Transition: "So let me show you the primitive, and then the substrate that carries it."
 
-## III. What a Base Layer Requires (3 minutes)
+## III. The Frame Primitive (10 minutes)
 
-A rapid enumeration of the eight properties, four semantic and four locality, serving as the checklist the rest of the talk fills in.  Each gets one sentence.
+This is the core of the talk.  The single data structure from which everything else is built.  The semantic requirements (grounded predicates, structured assertions, write-time resolution, cross-lingual stability) are introduced here as they are satisfied, not listed separately.
 
-### A. Semantic requirements
+### A. What a frame is (3 minutes)
 
-   1. **Grounded predicates**: keys that refer to meanings, not strings.  Drawn from empirically validated computational linguistics (WordNet, CILI, FrameNet, VerbNet, ISO 24617-4).
-   2. **Structured assertions**: not flat key-value pairs but predicate-role structures that capture who did what to whom.
-   3. **Write-time resolution**: meaning resolved at the moment of creation, when the creator knows what they mean, not guessed at later by crawlers and NLP pipelines.
-   4. **Cross-lingual stability**: meanings are language-independent sememes; words are language-specific lexemes that point at them.  The concept DOG exists independently of "dog," "perro," and "犬."
+   1. The semantic void exists because keys are strings.  The fix requires keys that refer to *meanings*.
+      a. Decades of computational linguistics have produced the raw material: WordNet (120,000 catalogued meanings), the Collaborative Interlingual Index (cross-lingual links), FrameNet and VerbNet (structured role declarations), ISO 24617-4 (standardized role inventory).
+      b. These resources were not available when earlier attempts were made.
+   2. The frame primitive.
+      a. A **predicate** (a grounded meaning: what kind of assertion) and **bindings** (compound-key → value pairs: the semantic content).  Nothing else is structurally required.
+      b. The predicate is a sememe — a unit of meaning from the shared vocabulary — acting in a structural role.  It declares what bindings the frame expects.
+      c. The same vocabulary supplies everything: predicates (AUTHORED, TITLE, MOVE), archetypes (BOOK, CHESS_GAME, PERSON), and binding values (TOLKIEN, ENGLISH, CELSIUS).  They are all meanings.
+   3. Compound keys.
+      a. Each binding key is a sequence of one or more grounded meanings.
+      b. `(VALUE, ENGLISH)` vs. `(VALUE, RUSSIAN)` — the language qualifier distinguishes translations.
+      c. `(VALUE, TEMPERATURE, CELSIUS)` — a temperature reading.  Every element is a sememe.
+   4. Cross-lingual stability is built in, not bolted on.
+      a. Meanings are language-independent (sememes).  Words are language-specific (lexemes) that point at them.
+      b. The concept DOG exists independently of "dog," "perro," and "犬" (inu).
+      c. The predicate AUTHORED exists independently of "authored," "escrito," and "verfasst."
+      d. A Spanish speaker sees the same data through Spanish lexemes.  No translation occurs.
+   5. Write-time resolution.
+      a. Meaning is resolved at the moment of creation, when the creator knows what they mean.
+      b. The disambiguation that search engines and NLP pipelines struggle with after the fact is effortless at write time.
+      c. The hardest problem in NLP becomes trivial when you ask the person who knows what they mean.
 
-### B. Locality requirements
+### B. Body and record (1 minute)
 
-   1. **Cryptographic identity**: a keypair, not an account.  PGP's web-of-trust generalized to all assertions.
-   2. **Content-addressed data**: named by what it is (a hash), not where it lives (a path or URL).  Move or copy it; it's still recognizably the same thing.
-   3. **Social-graph routing**: data lives with peers who care about it, travels along trust relationships, surfaces through shared connections.  Routing policy attaches at any granularity (frame, item, session) and composes naturally, from direct connection to multi-hop onion routing.
-   4. **Local execution**: the runtime lives on your machine.  Remote computation is an explicit delegation, not the default.
+   1. Each binding carries independent flags:
+      a. **Identity**: does it affect the content hash?
+      b. **Index**: should it create a reverse-lookup entry?
+   2. A frame has two layers:
+      a. **Body**: the assertion itself — predicate and identity-flagged bindings.  Its content hash is the frame's identity.  The same assertion always produces the same hash, regardless of who signs it.
+      b. **Record**: the signing envelope — signature, signer's key ID, timestamp, and any non-identity bindings (CONFIG policies, presentation hints, per-signer data).
+   3. This separation matters: the same fact attested by ten people is recognizably the same assertion, signed ten ways.  Why that matters will be clear when we get to items.
 
-   Transition: "Those are the constraints.  Here is the primitive that satisfies all eight."
+### C. Live examples (3 minutes)
 
-## IV. The Frame Primitive (8 minutes)
+   Show each on screen.  The audience should feel the structural identity across domains:
 
-This is the core of the talk.  The single data structure from which everything else is built.
+   1. **A title**: `TITLE { (THEME) = the-book, (VALUE, ENGLISH) = "The Hobbit" }`.
+      a. A separate frame carries the Russian title: `TITLE { (THEME) = the-book, (VALUE, RUSSIAN) = "Хоббит" }`.
+      b. Each is independently signed — a translator does not need the original author's key.
+   2. **A chess move**: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 }`.
+      a. Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where).
+      b. Signed by the player who made it.
+   3. **A mathematical expression**: `ADD { (THEME) = 3, (INSTRUMENT) = 5 }` evaluates to 8.
+      a. `INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx }` evaluates to 1/3.
+      b. Theme, Instrument, Source, Goal — the same roles used for natural language.
+      c. They map onto math because they are cognitive structuring principles, not linguistic artifacts.  "Add 5 *to* 3" — the preposition tells you which is which.
+   4. **A phone call**: `CALL { (AGENT) = caller, (RECIPIENT) = callee, (VALUE, AUDIO) = <stream>, (CONFIG, RETENTION) = PRESENCE }`.
+      a. Same primitive.  The call is a signed assertion; the audio is content in a VALUE binding.
+      b. When the call ends, PRESENCE retention discards it — unless both parties agreed to record.
+   5. **An address** [callback to the earlier laugh]:
+      a. US: `ADDRESS { (VALUE, STREET_NUMBER) = "742", (VALUE, STREET_NAME) = "Evergreen Terrace", (VALUE, CITY) = Springfield }`.
+      b. Japan: `ADDRESS { (VALUE, PREFECTURE) = Tokyo, (VALUE, DISTRICT) = "神宮前", (VALUE, BLOCK) = "1" }`.
+      c. Same predicate, different bindings.  Each component is a meaning.  The great unsolved problem: solved by compound keys.
+   6. Emphasize: all structurally identical.  A predicate and role bindings.  The same primitive describes a book title, a chess move, a definite integral, a phone call, and a physical address.
 
-### A. What a frame is (2 minutes)
+### D. Queries, indexing, and CONFIG (3 minutes)
 
-   1. A **predicate** (a grounded meaning: what kind of assertion) and **bindings** (compound-key to value pairs: the semantic content).  Nothing else is structurally required.
-   2. The predicate is a sememe, a unit of meaning from the shared vocabulary, acting in a structural role.  It declares what bindings the frame expects.
-   3. Each binding key is a sequence of one or more grounded meanings.  `(VALUE, ENGLISH)` vs. `(VALUE, RUSSIAN)` distinguishes translations through the language qualifier.  Every element is a sememe, not an arbitrary string.
-   4. Each binding carries independent flags: **identity** (does it affect the content hash?) and **index** (should it be discoverable via reverse lookup?).  The content hash of the frame body is computed from identity-flagged bindings only, which means multiple signers attesting the same assertion produce the same body hash with different signing envelopes.
+   1. **Queries are incomplete frames.**
+      a. `AUTHORED { (AGENT) = Tolkien }` with no THEME asks "what did Tolkien author?"
+      b. `MOVE { (LOCATION) = the-game }` asks "what moves in this game?"
+      c. `DEPICTS { (AGENT) = Alice }` asks "what depicts Alice?" — photographs, drawings, movies, anything with a DEPICTS frame binding to Alice.
+      d. Expressions as sub-frames: `LISTING { (THEME) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }`.
+      e. No SQL, no SPARQL, no GraphQL.  The frame IS the query, the shared vocabulary IS the schema, and the compound-key index IS the query engine.
+   2. **Compound keys are the index.**
+      a. Every meaning in a compound key is an indexing opportunity.
+      b. "All videos" = lookup on frames with VIDEO in their keys.  "All UHD videos" = narrow to VIDEO and UHD.
+      c. No tagging system, no search facets.  The key *is* the index.
+      d. Not every binding is indexed — image bytes, pixel coordinates, policy settings carry no useful reverse-lookup value.  The archetype provides defaults.
+   3. **No data/metadata distinction.**
+      a. A title's text, a video's file, a chess move's destination square, provenance, signatures, timestamps: all role bindings.
+      b. The distinction is conventional, not structural.
+   4. **CONFIG is cross-cutting policy.**
+      a. Any frame can carry CONFIG bindings governing how it is handled.
+      b. Retention: keep all, keep only the latest, keep the chain.
+      c. Routing: direct, relayed, onion-routed.
+      d. Replication, encryption.
+      e. A chess move is retained permanently.  An avatar position is discarded when a newer one arrives.  A video feed binds to a content stream whose blocks are consumed and released.
+      f. The difference is a CONFIG binding, not a separate mechanism.
 
-### B. Live examples (3 minutes)
+## IV. Items, Identity, and the Social Graph (6 minutes)
 
-   Walk through concrete frames, showing structural identity across wildly different domains:
+The locality requirements (cryptographic identity, content-addressing, social-graph routing, local execution) are introduced here as they are satisfied.
 
-   1. **A title**: `TITLE { (THEME) = the-book, (VALUE, ENGLISH) = "The Hobbit" }`.  A separate frame carries the Russian title: `TITLE { (THEME) = the-book, (VALUE, RUSSIAN) = "Хоббит" }`.  Each is independently signed because a translator should not need the original author's key.
-   2. **A chess move**: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 }`.  Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where).
-   3. **An authorship assertion**: `AUTHORED { (THEME) = The Hobbit, (AGENT) = Tolkien }`.
-   4. **A mathematical expression**: `ADD { (THEME) = 3, (INSTRUMENT) = 5 }` evaluates to 8.  `INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx }` evaluates to 1/3.  The thematic roles (Theme, Instrument, Source, Goal) are the same ones used for natural language; they map onto math because they are cognitive structuring principles, not linguistic artifacts.
-   5. **A phone call**: `CALL { (AGENT) = caller, (RECIPIENT) = callee, (VALUE, AUDIO) = <stream>, (CONFIG, RETENTION) = PRESENCE }`.  Same primitive.  The call is a signed assertion; the audio is content in a VALUE binding.
-   6. Emphasize: all structurally identical.  A predicate and role bindings.  The same primitive describes a book title, a chess move, a definite integral, and a phone call.
+### A. What frames cohere around (2 minutes)
 
-### C. Queries are incomplete frames (1.5 minutes)
+   1. A single frame is rarely the whole story.
+      a. A book has TITLE, AUTHORED, TEXT, COVER_ART, PUBLICATION frames.  All about the same thing.
+      b. An **item** is a stable anchor that frames reference.  The book is an item.  Tolkien is an item.  A chess game is an item.  A phone call is an item.
+   2. **Item ID (IID)**: stable, location-independent, not assigned by any registry.
+      a. The same IID is recognized by any peer, on any device, without coordination.
+      b. This is content-addressing applied to identity: the item is named by what it is, not where it lives.
+   3. **Manifests and versions.**
+      a. The set of frames an item endorses is recorded in its **manifest** — a signed list.
+      b. The manifest's hash is the **version ID (VID)**.
+      c. A manifest endorsement always includes the frame body (content hash).  It CAN also pin a specific record (signing envelope), but the body is the required part.
+      d. This is where body/record separation pays off: the manifest endorses *what was said* without necessarily caring *who said it*.
+      e. New frames → new manifest → new VID.  IID stays stable.  Version history is a directed graph, structurally similar to Git commits.  Fork and merge work the same way.
+   4. **Archetypes.**
+      a. What makes a book a book?  BOOK is a sememe acting as an **archetype** — it declares what frames an item of its kind is expected to endorse.
+      b. The declaration is *open*: BOOK says "expect TITLE, AUTHORED, TEXT."  Nothing prevents someone from signing a LIKE, a review, a citation, a fact-check.
+      c. The archetype defines the identity; it does not gatekeep what others may say.
 
-   1. A query is a frame with unfilled bindings.  `AUTHORED { (AGENT) = Tolkien }` with no THEME asks "what did Tolkien author?"  `MOVE { (LOCATION) = the-game }` asks "what moves in this game?"
-   2. Expressions as sub-frames: `LISTING { (THEME) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }` filters by price.
-   3. No separate query language.  No SQL, no SPARQL, no GraphQL.  The frame IS the query, the shared vocabulary IS the schema, and the compound-key index IS the query engine.
+### B. Cryptographic identity and the social graph (2 minutes)
 
-### D. Compound keys, indexing, and CONFIG (1.5 minutes)
+   1. **Identity is a keypair.**
+      a. Not an account, not a username.  You generate it locally.
+      b. No authority grants it; no authority can revoke it.
+      c. PGP established this for email thirty years ago.  This layer takes the core insight — identity without a central authority, trust as a web of signed endorsements — and builds it into the foundation of the entire architecture, where trust drives not just key verification but routing, moderation, code execution, discovery, and replication.
+   2. **Every assertion is signed.**
+      a. Provenance and integrity are properties of the primitive, not features added later.
+      b. Content-addressing means integrity is verifiable locally — you check the hash, not the transport.
+   3. **The social graph organizes the network.**
+      a. Data lives with peers who care about it, travels along trust relationships, surfaces through shared connections.
+      b. Contrast with hash-distance P2P: you hold data because you *chose to*, not because a hash function said you should.
+      c. Human social networks exhibit small-world properties (Milgram, Watts & Strogatz): most pairs connected through a handful of hops.  The efficiency is empirical, not algorithmic.
 
-   1. Every meaning in a compound key is an indexing opportunity.  "Show me all videos" is a lookup on frames with VIDEO in their keys.  "All UHD videos" narrows to VIDEO and UHD.  No separate tagging system, no search facets.  The key *is* the index.
-   2. There is no data/metadata distinction.  A title's text, a video's file, a chess move's destination square, provenance, signatures, and timestamps are all role bindings.  The distinction is conventional, not structural.
-   3. **CONFIG** is a cross-cutting role that any frame can carry.  It governs policy: retention (keep all, keep only the latest, keep the chain), routing (direct, relayed, onion-routed), replication, encryption.  A chess move is retained permanently; an avatar position is discarded when a newer one arrives; a video feed binds to a content stream whose blocks are consumed and released.  The difference is CONFIG, not a separate mechanism.
+### C. Routing privacy at any granularity (2 minutes)
 
-## V. Items: What Frames Cohere Around (4 minutes)
+   1. Because data travels through chosen trust relationships, routing privacy is a natural property.
+   2. Routing policy attaches at whatever granularity fits:
+      a. A single frame, an item, a session, a user's entire Librarian.
+      b. These compose: a frame inherits its item's posture unless it carries its own.
+   3. Configurations of one primitive:
+      a. **Direct connection**: the default.  Peer to peer, no intermediary.
+      b. **Relay through a trusted peer**: structurally identical to a VPN.  The VPN service is just a Librarian that relays messages.  One primitive; the $50 billion VPN industry becomes a commodity relay market.  [let that sink in]
+      c. **Multi-hop with layered encryption**: onion routing.  Each intermediate peer decrypts enough to know where to forward, sees neither origin nor destination.  Tor's capability, as a configuration, not a separate network.
+      d. **Mix networks**: batching and timing policies at each hop for traffic-analysis resistance.
+   4. VPN, Tor, proxy, mix network — not different systems.  Configurations of one routing primitive, governed by the same trust relationships.
+   5. Local execution.
+      a. The runtime lives on your machine.  Your device is a full participant, not a renderer.
+      b. Remote computation is an explicit delegation, not the default.
 
-### A. The anchor (1.5 minutes)
+## V. The Trust Matrix (5 minutes)
 
-   1. A single frame is rarely the whole story.  A book has TITLE frames, AUTHORED frames, TEXT frames, COVER_ART frames, PUBLICATION frames.  They are all about the same thing.
-   2. An **item** is a stable anchor that frames reference.  The book is an item.  Tolkien is an item.  A chess game is an item.  A phone call is an item.
-   3. **Item ID (IID)**: stable, location-independent, not assigned by a registry.  The same IID is recognized by any peer without coordination.
-   4. **Content ID**: SHA-256 hash of content.  Used for version IDs and content addressing.
-
-### B. Versions and manifests (1 minute)
-
-   1. The set of frames an item endorses is recorded in its **manifest**: a signed list of frame endorsements.  The manifest's hash is the **version ID (VID)**.
-   2. The manifest endorses frame bodies (content hashes), not specific signing envelopes.  This means two people attesting the same fact produce the same body hash, and the manifest can endorse the assertion without caring who signed it.
-   3. New frames, new manifest, new VID.  IID stays stable.  Version history is a directed graph of manifests, structurally similar to Git's commit graph.  Fork and merge work the same way.
-
-### C. Archetypes (1.5 minutes)
-
-   1. What makes a book a book?  BOOK is a sememe in the shared vocabulary.  As an **archetype**, it declares what frames an item of its kind is expected to endorse.
-   2. The declaration is *open*.  BOOK says "expect TITLE, AUTHORED, TEXT."  Nothing prevents someone from signing a LIKE, a review, a citation, a fact-check, or a translation that binds to the same book.  The archetype defines the identity; it does not gatekeep what others may say.
-   3. Example: a chess game.  CHESS is the archetype.  Players register with signed PLAYER frames.  Moves are signed MOVE frames linked by FOLLOWS.  The game is played peer-to-peer: each move travels directly from the player who made it.  No referee server.  The game is recorded by being signed.
-
-## VI. The Trust Matrix (5 minutes)
-
-This section is where the security audience should feel most at home.
+Where the security audience should feel most at home.
 
 ### A. Assessments are frames (1.5 minutes)
 
-   1. Every reaction, moderation action, and endorsement is a semantic frame signed by an identified party.  A FUNNY frame asserts something is funny.  A SPAM frame asserts something is spam.
-   2. Frames can target other frames, not just items.  A SPAM frame whose THEME points at another frame means "I assert this specific assertion is spam."
-   3. These semantic reactions cluster naturally in the vocabulary hierarchy: FUNNY, HILARIOUS, AMUSING under HUMOR; SPAM, ASTROTURF, JUNK under a different branch.  The clustering is structural, not engineered.
+   1. Every reaction, moderation action, and endorsement is a semantic frame signed by an identified party.
+      a. A FUNNY frame asserts something is funny.  A SPAM frame asserts something is spam.
+      b. The predicate carries the meaning — these are not generic "reactions."
+   2. Frames can target other frames, not just items.
+      a. A SPAM frame targeting another frame: "I assert this assertion is spam."
+      b. A DISAGREE frame targeting a SPAM frame: "I disagree with that moderation call."
+   3. Semantic reactions cluster naturally in the vocabulary hierarchy.
+      a. FUNNY, HILARIOUS, AMUSING under HUMOR.
+      b. SPAM, ASTROTURF, JUNK under another branch.
+      c. The clustering is structural, not engineered.
 
 ### B. Trust is computed, not declared (1.5 minutes)
 
-   1. Trust emerges from accumulated assertions.  If Alice consistently reacts to Bob's content with INSIGHTFUL and AGREE, her Librarian computes trust in Bob's judgment from the pattern.
-   2. Trust is not a single number but a **matrix**: multi-dimensional, per-domain.  Trust Alice's music taste without trusting her political judgment.  Trust Bob's relay infrastructure without trusting Bob's content.
-   3. Each Librarian computes its own trust matrix **locally**.  There is no global reputation score.  Two users viewing the same content may see different things because their trust matrices differ.
+   1. Trust emerges from accumulated assertions.
+      a. Alice consistently reacts to Bob's content with INSIGHTFUL and AGREE → her Librarian computes trust in Bob's judgment from the pattern.
+      b. Carol's Librarian reliably relays messages → Alice computes infrastructure trust from operational history.
+      c. The trust is the pattern; the pattern is the data.
+   2. Trust is a **matrix**: multi-dimensional, per-domain.
+      a. Trust Alice's music taste without trusting her political judgment.
+      b. Trust Bob's relay infrastructure without trusting Bob's content.
+      c. Even identity verification is one dimension among many.
+   3. Each Librarian computes its own matrix **locally**.
+      a. No global reputation score.  No universal ranking.
+      b. Two users viewing the same content may see different things.
+      c. Szabo's (1997) vision: overlapping views, not a single view imposed by a platform.
+      d. The vision has never lacked advocates — the Rebooting the Web of Trust community has spent a decade on decentralized identity — but it has lacked a substrate where trust is the organizing principle rather than a bolt-on.
 
 ### C. Moderation without moderators (1.5 minutes)
 
-   1. Mark several posts as SPAM.  Your trust in that poster decreases.  James disagrees, marks your SPAM frames with DISAGREE.  Others weigh in.
-   2. For users who trust your moderation judgment, the posts disappear.  For users who trust James, they survive.  No moderator appointed, no appeals board, no single outcome imposed.
-   3. **Transitive trust**: strongest form requires no explicit endorsement.  If Alice, Bob, and I independently react positively to the same restaurants, our Librarians compute overlapping taste from convergent independent assertions.  Cannot be faked without faking the underlying reactions.
-   4. This is Szabo's (1997) vision: formalizing relationships on public networks as overlapping views, not a single view imposed by a platform.
+   1. Scenario:
+      a. I mark your posts as SPAM.  My trust in your content decreases.
+      b. James disagrees, marks my SPAM frames with DISAGREE.
+      c. Others weigh in.
+   2. Outcome:
+      a. Users who trust my moderation: your posts disappear.
+      b. Users who trust James: they survive.
+      c. No moderator appointed, no appeals board, no single outcome imposed.
+   3. **Transitive trust**: the strongest form.
+      a. Alice, Bob, and I independently rate the same restaurants positively → our Librarians compute overlapping taste from convergent assertions about the same targets.
+      b. Cannot be faked without faking the underlying reactions.
+   4. Trust algorithms are themselves items that can be replaced with alternatives.
 
-### D. Bootstrapping trust (0.5 minutes)
+### D. Bootstrapping (0.5 minutes)
 
-   1. A trust model that requires trust raises a bootstrapping question: how does a new user get started?
-   2. The same way any social system works.  You arrive through someone you know: a friend who peers with you, a community node that accepts newcomers, or a public gateway that offers initial connectivity.  Trust starts small and grows through interaction.
+   1. How does a new user get started if trust is required?
+   2. The same way any social system works: you arrive through someone you know.
+      a. A friend who peers with you.
+      b. A community node that accepts newcomers.
+      c. A public gateway.
+   3. Trust starts small and grows through interaction.
 
-## VII. Routing, Privacy, and Code Trust (10 minutes)
+## VI. Code Trust and Supply Chains (4 minutes)
 
-The security-specific section.  This is where the talk goes beyond the paper's emphasis and into territory this audience cares about most.
+### A. Code is an item (1.5 minutes)
 
-### A. Routing policy at any granularity (3 minutes)
+   1. If data is frames and frames are signed, what about code?
+   2. Code is an item carrying executable form alongside frames declaring:
+      a. Which contract (predicate) it satisfies.
+      b. Who signed it.
+      c. What runtime is needed.
+   3. A predicate carries a *contract* — what it expects, what it produces.
+      a. The code that satisfies the contract is a separate item.
+      b. The link between them is a frame.
+      c. A predicate can have many implementations: different runtimes, different trade-offs, different authors.
+   4. A runtime evaluating a frame picks an implementation it can execute *and whose author it trusts*.
 
-   1. Because data travels between peers through chosen trust relationships, routing privacy is a natural property of the social graph.
-   2. Routing policy attaches at whatever granularity fits: a single frame, an item, a user's entire Librarian, or a particular session.  These compose naturally: a frame inherits its item's posture unless it carries its own, an item inherits its Librarian's default unless it specifies otherwise.
-   3. Your public blog post, your private medical records, and a single sensitive assertion within an otherwise-public item can each carry fundamentally different routing postures.
-   4. **Direct connection**: the default for most traffic.  Peer to peer, no intermediary.
-   5. **Relay through a trusted peer**: structurally identical to a VPN.  The VPN service is just a Librarian that relays messages.  One primitive; the $50B VPN industry becomes a commodity relay market.
-   6. **Multi-hop with layered encryption**: onion routing.  Each intermediate peer decrypts enough to know where to forward next but sees neither origin nor destination.  Tor's capability as a configuration, not a separate network.
-   7. **Mix networks**: same mechanism with batching and timing policies at each hop for traffic-analysis resistance.
-   8. The key insight: these are not different systems.  They are configurations of one routing primitive, expressed in the same substrate, governed by the same trust relationships.
+### B. The supply-chain argument (2.5 minutes)
 
-### B. Cryptographic identity and signed assertions (3 minutes)
+   [This will resonate with this audience.]
 
-   1. Identity is a keypair.  Not an account, not a username, not a row in a database.  You generate it locally.  No authority grants it; no authority can revoke it.
-   2. Every assertion is signed.  Provenance and integrity are properties of the primitive, not features added later.
-   3. Content-addressing means the same data from any source produces the same fingerprint.  Integrity is verifiable locally.  No certificate authority, no HTTPS chain, no trust in the transport.
-   4. The web-of-trust model, generalized beyond PGP's email-and-keys scope to cover all assertions.  Trust is not binary (trusted/untrusted) but a multi-dimensional matrix computed from observed behavior.
-   5. Peers can stop trusting a key (social decision), but no one can revoke it architecturally.  The distinction matters.
-   6. Key compromise remains the hardest unsolved problem.  A sister project, Keymaster (open hardware), addresses device compromise and coercion at the hardware level.
+   1. All code distribution already relies on social trust.
+      a. Google Play Store: you trust Google's review.
+      b. `apt install`: you trust the Debian maintainers.
+      c. App Store: you trust Apple.
+      d. All of this is "social" in a very real sense.
+   2. SolarWinds and the xz backdoor demonstrated that centralized trust intermediaries are not immune.
+   3. What changes: not *whether* execution depends on trust, but *who* is being trusted.
+      a. A personally chosen network of peers whose reputations are visible and whose endorsements are signed.
+      b. Rather than an opaque corporate process whose incentives may not align with your safety.
+   4. Nothing prevents Google or Apple from publishing signed code items.
+      a. They stand alongside every other reviewer rather than occupying a privileged gatekeeping position.
+   5. **Sandboxing** is required.
+      a. Same kind of hard as browser JavaScript sandboxing.
+      b. Capability-based interfaces, isolated execution, formal verification.
+   6. **Key compromise** remains the hardest unsolved problem.
+      a. No software substrate fully solves device-level threats.
+      b. **Keymaster** (github.com/joshualibrarian/keymaster): open hardware for key storage, designed to resist device compromise and coercion.
+   7. The structural consequence: most software became a service because the operator held both code and data.  When both travel through the same peer substrate, that rationale dissolves.
 
-### C. Code distribution and supply-chain trust (4 minutes)
+## VII. Sanity Check (5 minutes)
 
-   1. Code is an item.  An implementation of ADD is an item carrying executable form alongside frames declaring which contract it satisfies, who signed it, and what runtime is needed.
-   2. The link between an implementation and the predicate it satisfies is a frame.  A predicate can have many implementations: different runtimes, different trade-offs, different authors.
-   3. A runtime evaluating a frame picks an implementation it can execute *and whose author it trusts*.  Trust, not a gatekeeper, determines what runs.
-   4. **The supply-chain argument**: all code distribution already relies on social trust.  Google Play Store: you trust Google's review.  apt: you trust Debian maintainers.  App Store: you trust Apple.  SolarWinds and the xz backdoor demonstrate that centralized trust intermediaries are not immune to compromise.
-   5. What changes: not *whether* code execution depends on trust, but *who* is being trusted.  A personally chosen network of peers whose reputations are visible and whose endorsements are signed, rather than an opaque corporate process.
-   6. Nothing prevents Google or Apple from publishing signed code items.  They stand alongside every other reviewer rather than occupying a privileged gatekeeping position.
-   7. **Sandboxing**: running code from arbitrary peers requires proper isolation.  Same kind of hard as sandboxing untrusted JavaScript in browsers.  Capability-based interfaces, isolated execution, formal verification of restricted languages.
-   8. The structural consequence: the main rationale for SaaS (operator holds both code and data, running the code requires their infrastructure) dissolves when both travel through the same peer substrate.
-
-## VIII. Sanity Check (5 minutes)
-
-Directly addressing the two objections any systems person will raise.  This section is what separates a hand-wavy proposal from an engineering argument.
+"I know what you're thinking.  Does this actually work at scale?  And what does the attack surface look like?"
 
 ### A. Does it scale? (3 minutes)
 
-   1. Every frame creates index entries for each indexed binding (136 bytes per entry).  Not every binding is indexed — literals, payloads, and policy bindings are skipped.  Indexing cost is linear in the number of semantic assertions, not in content size.  A 1 MB photo and a 10 GB movie with the same six descriptive frames produce the same index cost.
-   2. **The power law is your friend.**  Research on 52M+ posts: median engagement is ~4 interactions.  90%+ of items have trivial indexing cost (a few frames, under a kilobyte of index).  The extreme tail (millions of reactions) is a handful of posts per year globally.
-   3. **Social-graph sharding for the extreme case.**  A viral post with 5M reactions totals ~4.5 GB across the entire network.  No single node holds it all.  A casual viewer holds ~150 KB (reactions from friends); a popular creator holds ~40 MB (reactions from followers); a full aggregator holds all ~4.5 GB.  The social graph is a natural shard boundary.
-   4. **Distributed counting via HyperLogLog.**  For items popular enough to need aggregation (a small fraction), nodes maintain mergeable probabilistic sketches (~16 KB each) that deduplicate across overlapping social graphs with ~2% error.  The sketch is just another frame, gossiped like everything else.
-   5. **Text search scales linearly.**  Vocabulary is bounded by linguistic resources (~35 MB for English, ~4 MB for Mandarin).  User content (titles, proper names) grows linearly with items indexed.  10 million titles (IMDB scale) costs roughly 2 GB of token dictionary.  Function words are excluded from individual indexing at the direction of the language item itself.
-   6. **Ed25519 signing**: ~50K signs/sec, ~15K verifies/sec on commodity hardware.  Not a bottleneck even at extreme scale.
-   7. All estimates are uncompressed.  Real storage backends add compression that only improves them.
+   1. **Indexing is compact and linear.**
+      a. Each indexed binding: 136 bytes (102-byte key + 34-byte value).
+      b. Not every binding is indexed — literals, payloads, policy bindings are skipped.
+      c. Cost is linear in semantic assertions, not in content size.
+      d. A 1 MB photo and a 10 GB movie with the same six descriptive frames produce the same index cost.
+      e. 10,000 photos + 500 books + 1,000 posts = ~170,000 index entries, ~23 MB.
+   2. **The power law is your friend.**
+      a. Research on 52M+ posts (Buffer, 2026): median engagement is ~4 interactions.
+      b. 90%+ of items: trivial cost (a few frames, under a kilobyte of index).
+      c. The extreme tail (millions of reactions): a handful of posts per year globally.
+   3. **Social-graph sharding for the extreme case.**
+      a. Viral post with 5M reactions: ~4.5 GB total across the entire network.
+      b. Casual viewer: ~150 KB.  Popular creator: ~40 MB.  Full aggregator: ~4.5 GB.
+      c. The social graph is a natural shard boundary.
+      d. 4.5 GB is less than a USB stick you'd lose in your couch cushions.
+   4. **Distributed counting: HyperLogLog.**
+      a. Most items never need aggregation.
+      b. For the small fraction that do: mergeable sketches, ~16 KB each, ~2% error, deduplicate across overlapping social graphs.
+      c. The sketch is just another frame.
+   5. **Text search scales linearly.**
+      a. Vocabulary: bounded (~35 MB for English, ~4 MB for Mandarin).
+      b. User content: 10M titles (IMDB scale) ≈ ~2 GB of token dictionary.
+      c. One tokenizer handles all languages, including CJK, through windowed resolution.
+   6. **Signing**: ~50K signs/sec, ~15K verifies/sec.  Not a bottleneck.
+   7. All estimates uncompressed.  Storage backends add compression.
 
 ### B. What about attacks? (2 minutes)
 
-   1. **No single point of failure.**  Each user runs an independent Librarian.  Taking one down affects one user.  Institutional nodes are higher-value targets, but their data is already replicated across peers.  Time-to-impact stretches from seconds (centralized) to hours (distributed).
-   2. **The social graph is the firewall.**  No trust path, no connection.  Not a firewall rule; a structural property.
-   3. **Sybil-resistant by default.**  New identities start at zero trust, must build relationships through sustained behavior.  Mass-creating identities doesn't help because none have trust.
-   4. **Eclipse-resistant.**  Peers are chosen through trust relationships, not assigned by hash distance.  Compromising someone's peers means compromising their actual social relationships.
-   5. **Frame flooding is self-limiting.**  Every frame is signed and attributable.  Junk frames degrade the sender's trust score.  The attack burns the trust relationship it depends on.
-   6. **Key compromise is the hard problem.**  No software substrate fully solves device-level threats.  The Keymaster open-hardware project (github.com/joshualibrarian/keymaster) addresses this directly.
-   7. **The economic shift**: generating traffic is cheap; building fake social trust is expensive, slow, and self-defeating.
+   1. **No single point of failure.**
+      a. Each user runs an independent Librarian.
+      b. Institutional nodes are higher-value targets, but their data is already replicated.
+      c. Time-to-impact stretches from seconds (centralized) to hours (distributed).
+   2. **The social graph is the firewall.**
+      a. No trust path, no connection.
+      b. Not a firewall rule — a structural property.
+   3. **Sybil-resistant.**
+      a. New identities start at zero trust.
+      b. Must build relationships through sustained behavior.
+      c. Mass-creating identities doesn't help — none have trust.
+   4. **Eclipse-resistant.**
+      a. Peers are chosen through trust relationships, not assigned by hash distance.
+      b. Compromising peers means compromising actual social relationships.
+   5. **Frame flooding is self-limiting.**
+      a. Every frame is signed and attributable.
+      b. Junk degrades the sender's trust score.
+      c. The attack burns the trust it depends on.
+   6. **The economic shift** [close with this]:
+      a. Generating traffic is cheap.
+      b. Building fake social trust is expensive, slow, and self-defeating.
 
-## IX. What Changes (3 minutes)
+## VIII. What Changes (4 minutes)
 
-Concrete consequences, stated plainly.
+Concrete consequences.  This is where the vision gets tangible.
 
 ### A. Platform subsumption
 
-   1. A product listing, a community forum, a social feed, a review, a citation graph: each is currently a proprietary database.  Each is expressible as frames in the shared vocabulary.
-   2. Applications become interchangeable runtimes over the same data.  The user picks the client; the data does not belong to it.
-   3. The economics of the internet do not disappear.  Businesses still want customers; hosting remains relevant.  What disappears is the ability to monetize user entrapment.
+   1. Product listings, forums, social feeds, reviews, citation graphs: each expressible as frames.
+   2. Applications become interchangeable interfaces.  Switching costs approach zero.
+   3. Economics don't disappear.  Lock-in disappears.
 
-### B. Real-time communication
+### B. Szabo's smart contracts, realized
 
-   1. A phone call is a CALL frame.  A video meeting is an item with STREAMING frames from each participant.  Signaling that WebRTC handles out-of-band becomes in-band, because the frame IS the signal.
-   2. Phone numbers become unnecessary when identity is cryptographic.  Spam calls become structurally impossible: no trust path, no ring.  Users who want cold calls lower their threshold; the trust matrix still provides a gradient that spoofable phone numbers never could.
-   3. Video/audio streams can flow direct (HOPS=0, lowest latency) or relayed through peers (HOPS=N, IP hidden).  Same frame, different routing policy.  The participant chooses.
-   4. The phone industry's radio infrastructure remains valuable as transport.  A telephony bridge (a device with your SIM card running a small Librarian) connects the legacy phone network to CG during the transition.
+   [The crypto-literate audience will light up here.]
 
-### C. Structural consequences
+   1. Szabo (1997) described bearer certificates, escrow, smart liens, accounting controls, content rights — each as a separate protocol family.
+   2. In this architecture, all collapse into one primitive.
+      a. A license: a signed frame from a rights-holder.
+      b. An escrow: a Librarian holding one frame until a corresponding frame arrives.
+      c. A lien: a frame governing an item's CONFIG policies.
+      d. A transaction: a chain of signed frames (order, confirmation, payment, shipment, delivery) — each party attesting their own role.
+   3. He described the protocols; this is the substrate they share.
+   4. [If the Szabo/Satoshi speculation comes up, don't force it, but don't avoid it either.]
+
+### C. Real-time communication
+
+   1. A phone call is a CALL frame.  A video meeting is an item with STREAMING frames.
+   2. Phone numbers become unnecessary.  The spam arms race stops: no trust path, no ring.
+      a. Users who want cold calls lower their threshold.
+      b. The trust matrix provides a gradient spoofable phone numbers never could.
+   3. Streams flow direct (HOPS=0) or relayed (HOPS=N, IP hidden).  Same frame, different routing policy.
+   4. Telephony bridge: a device with your SIM card, running a small Librarian, connecting legacy phones to CG.
+      a. Someone calls your number; the bridge wraps it as a CALL frame and forwards through CG.
+      b. Your real phone doesn't need cellular service, just data.
+
+### D. Structural consequences
 
    1. **Offline capability**: trivial when runtime and data are both local.
-   2. **Resilience to vendor disappearance**: items live on users' devices and peers.  A company shuts down; the data, the tools, and the peer network remain.
-   3. **The vocabulary is the commons**: extensible from the edges, not the center.
+   2. **Resilience to vendor disappearance**: items live on users' devices.  Company shuts down; data and tools remain.
+   3. **The vocabulary is the commons**: extensible from the edges, no permission required.
 
-## X. Authorship, Not Ownership (2 minutes)
+## IX. Authorship, Not Ownership (2 minutes)
 
-Honesty about what this does and does not deliver.  This audience respects candor.
+Honesty about what this does and does not deliver.  This audience will see through overclaiming.
 
 ### A. What you get
 
-   1. **Provable authorship**: you hold your keys, nobody can sign as you.  Every assertion is attributable.
+   1. **Provable authorship**: you hold your keys, nobody can sign as you.
    2. **Local custody**: no vendor can revoke access to work you already have.
-   3. **Consent to new copies**: you choose which peers you share with, through deliberate trust relationships.
+   3. **Consent to new copies**: you choose which peers you share with.
 
 ### B. What you do not get
 
-   1. Ownership of data in the property-law sense.  Once you give someone a copy, you cannot technically revoke it.  This is a property of copyable information, not a failure of any honest substrate.
-   2. The partial solution is social, not technical.  A trust paradigm lets you *choose* whom to share with.  If someone violates that trust, you stop trusting them, and the trust graph responds.
-   3. "The word 'ownership' borrows from property law what the medium cannot enforce.  A more honest vocabulary is authorship, custody, and consent."
+   1. Ownership in the property-law sense.  Once you give someone a copy, you cannot technically revoke it.
+      a. This is a property of copyable information, not a failure of any honest substrate.
+      b. Any system that claims otherwise is lying to you.
+   2. The partial solution is social: choose whom to share with, and the trust graph responds when trust is violated.
+   3. "A more honest vocabulary is authorship, custody, and consent."
 
-## XI. Honest Reckoning (3 minutes)
+## X. Honest Reckoning (3 minutes)
 
 ### A. Predecessors and their lessons (1.5 minutes)
 
-   1. **Xanadu**: got content addressing and versioning right.  Failed by demanding completeness before shipping anything.  Lesson: incremental delivery.
-   2. **CYC**: got the diagnosis right (computers need world knowledge).  Failed because hand-authoring axioms does not scale.  Lesson: anchor in existing empirical resources.
-   3. **Plan 9**: technically superior to Unix.  Failed because it required abandoning the Unix ecosystem.  Lesson: provide a bridge.
-   4. **The Semantic Web**: got the diagnosis exactly right.  Did not become general-purpose because it was optional.  Lesson: the semantic layer cannot be a separate step.
-   5. **Local-first software**: the tradition directly upstream.  Has not displaced SaaS because the centralized path has been easier.  Lesson: make local-first the easier path, not just the more virtuous one.
+   1. **Xanadu**: got content addressing right.  Demanded completeness before shipping.  Lesson: incremental delivery.
+   2. **CYC**: got the diagnosis right.  Hand-authoring axioms doesn't scale.  Lesson: anchor in existing resources.
+   3. **Plan 9**: technically superior to Unix.  Required abandoning the ecosystem.  Lesson: provide a bridge.
+   4. **The Semantic Web**: got the diagnosis exactly right.  Optional means absent.  Lesson: semantics cannot be a separate step.
+   5. **Local-first software**: the tradition directly upstream.  Centralized path has been easier.  Lesson: make local-first the easier path.
 
 ### B. Why now (1 minute)
 
-   1. The computational linguistics infrastructure matured: WordNet (120,000 synsets), CILI (cross-lingual links), VerbNet (300 verb classes), ISO 24617-4 (standardized role inventory), UniMorph (100+ languages).
-   2. The technical infrastructure matured: ed25519 is cheap per-message, content-addressing is ubiquitous (Git), CRDTs ship in production, P2P transport stacks (libp2p, QUIC) are mature.
-   3. AI has compressed what was previously decades of solo implementation.  The bottleneck for ambitious projects was always the volume of code required.  That bottleneck has narrowed.
+   1. **Linguistic resources matured.**
+      a. WordNet (120K synsets), CILI (cross-lingual), VerbNet (300 verb classes), ISO 24617-4, UniMorph (100+ languages).
+      b. Decades of cumulative scholarly work.  Did not exist when CYC or the Semantic Web were proposed.
+   2. **Technical infrastructure matured.**
+      a. Ed25519 cheap per-message, content-addressing ubiquitous (Git), CRDTs in production, P2P stacks (libp2p, QUIC) mature.
+   3. **AI compressed the timeline.**
+      a. The bottleneck was always code volume.  That bottleneck has narrowed.
 
 ### C. What's built (0.5 minutes)
 
-   1. Brief description of the current state: local runtime (Librarian), frame storage and querying, vocabulary seeded from WordNet/CILI, working applications (chess, other games) as proof-of-concept, Skia 2D and Filament 3D rendering.
-   2. Open source.  The paper is available.  Hard copies at the session.
+   1. Working local runtime (Librarian), frame storage over RocksDB, vocabulary from WordNet/CILI, English and German language imports, working applications (chess, set, minesweeper), Skia 2D and Filament 3D rendering, JLine terminal.
+   2. Open source: github.com/joshualibrarian/common-graph.
+   3. Hard copies of the paper at the session.
 
-## XII. Close (2 minutes)
+## XI. Close (2 minutes)
 
-   1. Return to the opening: two structural gaps, one primitive that closes both.
-   2. "The path forward is incremental: frames as a local data format; a shared vocabulary seeded from WordNet and CILI; a local runtime that stores, queries, and resolves data by meaning; and a peer-to-peer network where that data is exchanged between nodes connected by trust.  Each step independently useful.  Together, the semantic and local-first base layer that computing has been missing since the networked era began."
-   3. Questions.
+   1. Return to the opening: meaning is absent from every layer of the stack, and the applications that hold it run on machines you don't control.  Two gaps.  One layer.
+   2. "The path forward is incremental: frames as a local data format; a shared vocabulary seeded from decades of linguistic research; a local runtime that stores, queries, and resolves data by meaning; and a peer-to-peer network where that data is exchanged between nodes connected by trust.  Each step independently useful.  Together, the base layer that computing has been missing since the networked era began."
+   3. "The linguistic resources exist.  The cryptographic tools exist.  The engineering infrastructure exists.  The time to build it is now."
+   4. Questions.
 
 ---
 
