@@ -369,8 +369,8 @@ The photographer takes a picture of Alice and Bob at Alice's graduation. The ite
 
 ```
 IMAGE    { (THEME) = the-photo, (VALUE, JPEG) = <image data>, (VALUE, JPEG, THUMBNAIL) = <thumbnail> }
-DEPICTS  { (THEME) = the-photo, (AGENT) = Alice, (LOCATION) = [120px, 340px, 280px, 510px] }
-DEPICTS  { (THEME) = the-photo, (AGENT) = Bob, (LOCATION) = [400px, 320px, 560px, 500px] }
+DEPICTS  { (THEME) = the-photo, (VALUE) = Alice, (LOCATION) = [120px, 340px, 280px, 510px] }
+DEPICTS  { (THEME) = the-photo, (VALUE) = Bob, (LOCATION) = [400px, 320px, 560px, 500px] }
 OCCASION { (THEME) = the-photo, (VALUE) = graduation }
 PLACE    { (THEME) = the-photo, (LOCATION) = [37.4275°N, 122.1697°W] }
 CAPTURED { (THEME) = the-photo, (INSTRUMENT) = iPhone, (TIME) = 2024-06-15 }
@@ -382,12 +382,13 @@ The photograph lives on the photographer's device, managed by her **Librarian**:
 
 Now the queries that no existing layer can answer become index lookups:
 
-- "All photographs of Alice" finds DEPICTS frames where (AGENT) = Alice.
+- "Everything depicting Alice" finds DEPICTS frames where (VALUE) = Alice — photographs, drawings, movies, anything with a DEPICTS frame referencing Alice.
+- "Photographs of Alice specifically" narrows further by the item's archetype: only items whose manifest declares PHOTOGRAPH.
 - "All graduation photos" finds OCCASION frames where (VALUE) = graduation.
 - "Photos taken near this location" finds PLACE frames whose (LOCATION) coordinates fall within a radius.
 - "Photos taken by this device in June 2024" filters CAPTURED frames by INSTRUMENT and TIME.
 
-No crawling. No NLP. No reconstruction. The meaning was captured when the photograph was created, by the person who knew what the photograph was of.
+The frame query and the archetype constraint compose naturally: the frame index finds items by their semantic content, the manifest identifies what kind of item each is, and the two intersect.  No crawling.  No NLP.  No reconstruction.  The meaning was captured when the photograph was created, by the person who knew what the photograph was of.
 
 The archetype PHOTOGRAPH declares that photographs are expected to carry DEPICTS, PLACE, and CAPTURED frames.  The accumulation surface is open regardless. Later, someone else adds:
 
@@ -650,7 +651,7 @@ The fundamental shift is economic.  Generating network traffic is cheap; buildin
 
 The architecture described in the preceding sections has consequences that extend beyond the technical.  Several are worth naming because they are not obvious from the primitives alone.
 
-The most visible change is the **subsumption of platforms**.  A product listing, a community forum, a social feed, a review, a citation graph: each of these is currently a proprietary database on a proprietary platform, and each would be expressible as frames in the shared vocabulary.  The platform-specific data model that locks users in dissolves, because the data model is shared.  Applications no longer own the data they operate on.  An email client, a document editor, a social feed, a project tracker would all be applications over frames, and any application that understands the archetype can read the same data.  Switching applications does not mean losing your work, because the data is self-describing and the applications are bound by the archetype's contract.
+The most visible change is the **subsumption of platforms**.  A product listing, a community forum, a social feed, a review, a citation graph: each of these is currently a row in a proprietary database on a proprietary platform, and each would be expressible as frames in the shared vocabulary.  The platform-specific data model that locks users in dissolves, because the data model is shared.  Applications no longer own the data they operate on.  An email client, a document editor, a social feed, a project tracker would all be applications over frames, and any application that understands the archetype can read the same data.  Switching applications does not mean losing your work, because the data is self-describing and the applications are bound by the archetype's contract.
 
 **The economics of the internet do not disappear.**  Businesses still want customers, individuals still want to find information and buy services, and hosting remains relevant for commercial interests that want an always-available presence.  What disappears is the ability to monetize user entrapment: the platform business model built on lock-in.  The hosting and service business model, where providers compete on quality, reliability, and price rather than on the structural impossibility of leaving, remains entirely viable.
 
