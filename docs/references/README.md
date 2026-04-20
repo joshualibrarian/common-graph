@@ -218,6 +218,24 @@ Common Graph's signing model (Ed25519, device keys, key logs) and trust policies
 
 ---
 
+## Self-Sovereign Identity
+
+Common Graph's identity layer builds on the self-sovereign identity movement, which generalizes PGP's keypair-based identity into a complete framework for lifetime-portable digital identity that depends on no central authority.
+
+- **Allen 2016 - The Path to Self-Sovereign Identity.pdf** — Allen, C. (2016). "The Path to Self-Sovereign Identity." *Life With Alacrity*, April 26, 2016. *The foundational essay that named "self-sovereign identity" as a movement. Lays out the historical evolution from centralized identity through federated and user-centric models to self-sovereign, and enumerates ten principles for SSI. The direct conceptual ancestor of Common Graph's approach to identity: a user-held keypair is the root of participation, no central authority issues or revokes it, and trust is built from signed relationships rather than asserted by gatekeepers. The Rebooting the Web of Trust community and the W3C's Decentralized Identifiers and Verifiable Credentials standards all trace back to this essay.*
+
+---
+
+## Recommender Systems and Collaborative Filtering
+
+Common Graph's trust matrix inherits the mathematical lineage of collaborative filtering — weighted-endorsement computations over graphs of user assessments — while relocating the computation from platform servers to user-held Librarians, and replacing platform objectives with user preferences as what the computation is tuned toward.
+
+- **Goldberg et al 1992 - Using Collaborative Filtering to Weave an Information Tapestry.pdf** — Goldberg, D., Nichols, D., Oki, B. M., & Terry, D. (1992). "Using collaborative filtering to weave an information tapestry." *Communications of the ACM*, 35(12), 61-70. *The paper that coined the term "collaborative filtering." Describes Tapestry, a Xerox PARC system that filtered email and Usenet using endorsements from other users: predict what you'll want based on what others you trust have valued. The direct origin of the technique Common Graph's trust matrix generalizes.*
+
+- **Resnick et al 1994 - GroupLens Open Architecture for Collaborative Filtering of Netnews.pdf** — Resnick, P., Iacovou, N., Suchak, M., Bergstrom, P., & Riedl, J. (1994). "GroupLens: An open architecture for collaborative filtering of netnews." In *Proceedings of CSCW '94*, 175-186. *The first automated collaborative-filtering system, and the start of the GroupLens research program at the University of Minnesota that developed much of what became the recommender-systems field. Introduces the neighborhood-based approach (find users similar to you, aggregate their ratings) which parallels Common Graph's trust matrix most closely — weights are explicit per-peer values rather than the opaque latent factors of later matrix-factorization approaches.*
+
+---
+
 ## Capability-Based Security
 
 Common Graph's trust model — where items carry capabilities and access is mediated by signed relations — draws from capability-based security.
