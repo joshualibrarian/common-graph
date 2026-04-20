@@ -13,7 +13,7 @@ This paper argues that both gaps — the absence of meaning from the infrastruct
 
 In the resulting architecture, applications no longer own the data they operate on, and switching between them does not mean losing your work.  Moderation emerges from a trust matrix rather than corporate policy.  Routing privacy, from direct connection to multi-hop onion routing, becomes a policy on the data itself rather than a separate network.  A phone call is a signed frame, and the spam arms race stops.  The architecture scales linearly, shards naturally along the social graph, and changes the economics of attack by replacing anonymous network traffic with signed, attributable assertions.
 
-Neither pillar is novel in isolation; semantic structuring and local-first software each have decades of history.  What is new is the claim that both belong in the same layer, as an open commons.  The linguistic resources, cryptographic infrastructure, and engineering tools to build it exist now in a way they did not a decade ago.  This paper develops the architecture, honestly examines what remains unproven, and makes the case that the time to build it is now.
+Neither pillar is novel in isolation; semantic structuring and local-first software each have decades of history.  The contribution of this paper is the synthesis.  What is new is the claim that both belong in the same layer, as an open commons.  The linguistic resources, cryptographic infrastructure, and engineering tools to build it exist now in a way they did not a decade ago.  This paper develops the architecture, honestly examines what remains unproven, and makes the case that the time to build it is now.
 
 ---
 
@@ -79,7 +79,7 @@ Neither gap is the result of inattention.  The historical conditions that produc
 
 When the foundational layers were laid down in the 1970s, nodes were disconnected and bytes were precious.  The byte-stream abstraction (everything is a file, a file is a sequence of bytes) was a practical triumph given the constraints.  TCP/IP, HTTP, SQL: each subsequent layer solved the problem in front of it with the resources available.  A semantic data model was not rejected, it was beyond the horizon.  The centralizing trajectory of the commercial web was even further out.
 
-The semantic gap persisted in part because the linguistic foundations for closing it took decades to mature.  A semantic key cannot be a string; it must refer to a stable, language-independent concept with a hierarchy, cross-lingual equivalents, and participation in structured scenes.  Building those objects requires empirical research into how meaning is structured across human languages.  The resources that make it tractable (WordNet, CILI, FrameNet, VerbNet, ISO 24617-4) are products of computational linguistics that have only recently reached the maturity needed to serve as a practical foundation.  And once they did, the commercial landscape of the 1990s and 2000s ran in the wrong direction: every major platform held its data models close because controlling the model meant controlling the ecosystem.  Interoperability was a competitive threat to the kind of cross-organizational collaboration a shared semantic foundation requires.
+The semantic gap persisted in part because the linguistic foundations for closing it took decades to mature.  A semantic key cannot be a string; it must refer to a stable, language-independent concept with a hierarchy, cross-lingual equivalents, and participation in structured scenes.  Building those objects requires empirical research into how meaning is structured across human languages.  The resources that make it tractable — WordNet (Miller et al., 1993), CILI (Bond et al., 2016), FrameNet (Baker, Fillmore, & Lowe, 1998), VerbNet, and ISO 24617-4 — are products of computational linguistics that have only recently reached the maturity needed to serve as a practical foundation.  And once they did, the commercial landscape of the 1990s and 2000s ran in the wrong direction: every major platform held its data models close because controlling the model meant controlling the ecosystem.  Interoperability was a competitive threat to the kind of cross-organizational collaboration a shared semantic foundation requires.
 
 The locality gap has a different shape.  The hardware became capable enough for serious local computation by the mid-1990s and has only grown more so.  What drove computation away from users was not a technical limit but a convergence of commercial incentives: cloud hosting got cheap, network effects rewarded centralization, and the subscription business model worked perfectly for services and not for shipped software.  For any product taking shape in the 2000s and 2010s, a hosted service was easier to monetize, easier to update, easier to monitor, and easier to prevent users from leaving.  A generation of developers grew up with SaaS as the default mental model rather than as the historical anomaly it is.  Local-first and peer-to-peer architectures remained technically viable throughout this period but lacked the commercial pull, carried as a counter-current by specific communities (Kleppmann's academic work, Freenet, Secure Scuttlebutt, IPFS, and others) without displacing SaaS as the industry default.
 
@@ -117,13 +117,13 @@ A parallel set of attempts has tried to retrofit decentralization and user contr
 
 **Secure Scuttlebutt** (Tarr et al., 2019) demonstrated a fully peer-to-peer social protocol with cryptographic identity and append-only signed logs.  Technically it is closer to what a local-first substrate should do.  Adoption required users to manage their own identities and accept a user experience shaped by a research-grade protocol, however.  The community that embraced it has been small and committed, and SSB has not displaced mainstream social software.
 
-**FreeNet** (Clarke et al., 2001) was one of the earliest sustained attempts at a peer-to-peer substrate for publishing and retrieval.  It introduced content-addressed storage routed through a distributed overlay, on the premise that data could be held by peers without any central server knowing where it lived.  Its design directly influenced much of what followed, and its continued development across more than two decades, including a substantial recent rewrite, demonstrates both that the technical approach is viable and that it still rewards fresh thinking.  FreeNet has not reached the mainstream because its user experience, content model, and threat-model trade-offs shaped it for a specific community, anonymity-focused publishing, rather than for general-purpose use.
+**Freenet** (Clarke et al., 2001) was one of the earliest sustained attempts at a peer-to-peer substrate for publishing and retrieval.  It introduced content-addressed storage routed through a distributed overlay, on the premise that data could be held by peers without any central server knowing where it lived.  Its design directly influenced much of what followed, and its continued development across more than two decades, including a substantial recent rewrite, demonstrates both that the technical approach is viable and that it still rewards fresh thinking.  Freenet has not reached the mainstream because its user experience, content model, and threat-model trade-offs shaped it for a specific community, anonymity-focused publishing, rather than for general-purpose use.
 
 **BitTorrent** (Cohen, 2003) demonstrated at massive scale that peer-to-peer distribution works when the architecture fits the problem.  In its trackerless form, using a DHT, it operates without any central coordinator at all, and it has carried significant fractions of global internet traffic for over two decades.  It solves bulk file transfer extremely well, but does not attempt to be a substrate: files remain opaque, with no common data model, identity, or semantic structure.
 
 **Git** (2005) is the most widely used distributed system in the world and an instructive case: technical decentralization can survive while cultural centralization takes hold anyway.  Each clone is a full repository; content-addressing via SHA-1 (migrating to SHA-256) making every object identifiable by its content; any repository can sync with any other over any transport; no single server is architecturally required.  Yet the surrounding workflow (pull requests, issue tracking, CI, code search, discovery) became the value proposition of GitHub and a handful of similar platforms (GitLab, BitBucket, and others), and the developer community centralized around them despite Git itself being fully distributed.  The lesson cuts against complacency about technical decentralization: it is necessary but not sufficient.  If the workflow and social layers around the artifact become the real center of gravity, those layers become the point of centralization, and the underlying tool's distributedness does not save users from a new gatekeeper.
 
-**IPFS** (Benet, 2014) builds on FreeNet's lineage, on BitTorrent's chunked-distribution model, and on the broader distributed-hash-table research tradition (Chord, Kademlia, Pastry, Tapestry and their descendants) that made decentralized lookup practical at scale.  It provides content-addressed storage and a peer-to-peer distribution network, solving the real problem of moving bytes between peers without a coordinating server.  IPFS on its own, however, is a storage layer.  The data moving through it is still opaque.  Without a semantic substrate, a file retrieved from IPFS is the same bytes one would retrieve from any CDN, with the same interpretation problem.
+**IPFS** (Benet, 2014) builds on Freenet's lineage, on BitTorrent's chunked-distribution model, and on the broader distributed-hash-table research tradition (Chord, Kademlia, Pastry, Tapestry and their descendants) that made decentralized lookup practical at scale.  It provides content-addressed storage and a peer-to-peer distribution network, solving the real problem of moving bytes between peers without a coordinating server.  IPFS on its own, however, is a storage layer.  The data moving through it is still opaque.  Without a semantic substrate, a file retrieved from IPFS is the same bytes one would retrieve from any CDN, with the same interpretation problem.
 
 **The AT Protocol** (underlying Bluesky) and **Matrix** take different approaches to federation with real trade-offs around identity portability and decentralization.  Neither carries data with meaning in the sense this paper means; both remain federated services rather than a reoriented substrate.
 
@@ -131,7 +131,7 @@ Two structural lessons emerge, mirroring but distinct from the semantic one.
 
 **You cannot make a server-centric layer local-first by federating it.**  Federation (Fediverse, Solid, AT Protocol, Matrix) distributes the servers but preserves the client-server boundary.  The data still lives on servers; interpretation still requires application code that lives on servers; agency over what happens to the data still belongs to whoever operates the server.  The problem was never the number of servers; it was the architectural privilege of being a server.
 
-**Peer-to-peer transport solves a real problem, genuinely well.**  FreeNet, BitTorrent, SSB, and IPFS each made real contributions: content addressing, distributed hash tables, incentive-compatible chunk exchange, append-only signed logs.  The problem of moving bytes between peers without a central coordinator is solved by them.  Their limitation is not in execution but in routing assumption: each treats all data as homogeneous and all peers as interchangeable.  Data is stored on nodes whose IDs are mathematically "close" to the content's hash and found by navigating toward that hash through successive hops.  A peer is responsible for a piece of data not because it cares about the content but because of a mathematical property of its ID.  This works technically, and at impressive scale (BitTorrent's DHT has operated with tens of millions of nodes).  But the costs grow with ambition: lookup latency scales as O(log N) hops, each a network round-trip; nodes store data they have no interest in because the hash says they should; churn requires constant routing-table maintenance; and the model assumes all nodes are equivalent when real devices range from phones to servers.  More fundamentally, hash-distance routing treats all data the same way regardless of what it is or who cares about it, and in doing so it consumes the flexibility a substrate would need to route different data to different people based on their relationships.  Real data is not uniformly relevant.  A chess move matters to the players.  A photograph matters to the people depicted.  A medical record matters to the patient and their doctor.  A substrate that cannot see these differences remains a transport layer, not a foundation on which applications become interchangeable.
+**Peer-to-peer transport solves a real problem, genuinely well.**  Freenet, BitTorrent, SSB, and IPFS each made real contributions: content addressing, distributed hash tables, incentive-compatible chunk exchange, append-only signed logs.  The problem of moving bytes between peers without a central coordinator is solved by them.  Their limitation is not in execution but in routing assumption: each treats all data as homogeneous and all peers as interchangeable.  Data is stored on nodes whose IDs are mathematically "close" to the content's hash and found by navigating toward that hash through successive hops.  A peer is responsible for a piece of data not because it cares about the content but because of a mathematical property of its ID.  This works technically, and at impressive scale (BitTorrent's DHT has operated with tens of millions of nodes).  But the costs grow with ambition: lookup latency scales as O(log N) hops, each a network round-trip; nodes store data they have no interest in because the hash says they should; churn requires constant routing-table maintenance; and the model assumes all nodes are equivalent when real devices range from phones to servers.  More fundamentally, hash-distance routing treats all data the same way regardless of what it is or who cares about it, and in doing so it consumes the flexibility a substrate would need to route different data to different people based on their relationships.  Real data is not uniformly relevant.  A chess move matters to the players.  A photograph matters to the people depicted.  A medical record matters to the patient and their doctor.  A substrate that cannot see these differences remains a transport layer, not a foundation on which applications become interchangeable.
 
 ### The common lesson
 
@@ -141,7 +141,7 @@ The solution must be a *layer* where creating data is simultaneously creating se
 
 ### What's different now
 
-Four things have converged to make such a substrate possible now in a way it was not before.  First, the computational linguistics infrastructure matured: WordNet, CILI, FrameNet, VerbNet, and ISO 24617-4 collectively provide the grounded vocabulary the semantic pillar needs.  Second, the technical infrastructure for distributed state matured as well: CRDTs have become practical, signing cryptography is cheap enough to apply at the per-message level, content-addressing is ubiquitous (every Git commit is a use of it), and local-first synchronization has moved from research topic to shipping practice.  Third, global interconnection made shared vocabularies both necessary and viable; the network that makes the semantic problem acute is the same network that makes a collaborative solution practical, and the same network over which a peer substrate would operate.  Fourth, the open-source movement created the collaborative environment such a commons requires.  The linguistic databases carry permissive licenses.  The cryptographic foundations are open.  The storage and networking building blocks are open.  A base layer along both pillars is inherently a commons: it only works if shared, and it can only be shared if open.  That commons is now possible in a way it was not during the era of proprietary platform wars and server-centric default architectures.
+Four things have converged to make such a substrate possible now in a way it was not before.  First, the computational linguistics infrastructure matured: WordNet, CILI, FrameNet, VerbNet, and ISO 24617-4 collectively provide the grounded vocabulary the semantic pillar needs.  Second, the technical infrastructure for distributed state matured as well: CRDTs (Shapiro et al., 2011) have become practical, signing cryptography is cheap enough to apply at the per-message level, content-addressing is ubiquitous (every Git commit is a use of it), and local-first synchronization has moved from research topic to shipping practice.  Third, global interconnection made shared vocabularies both necessary and viable; the network that makes the semantic problem acute is the same network that makes a collaborative solution practical, and the same network over which a peer substrate would operate.  Fourth, the open-source movement created the collaborative environment such a commons requires.  The linguistic databases carry permissive licenses.  The cryptographic foundations are open.  The storage and networking building blocks are open.  A base layer along both pillars is inherently a commons: it only works if shared, and it can only be shared if open.  That commons is now possible in a way it was not during the era of proprietary platform wars and server-centric default architectures.
 
 What such a base layer would actually require is the subject of the next section.
 
@@ -165,21 +165,21 @@ What we need are keys that refer to *meanings*: language-independent, applicatio
 
 A flat key-value pair (`author: Tolkien`) captures a single relationship, a simple assertion, but loses the structure that gives it meaning.  Who is asserting this?  About what?  In what capacity?  A key-value pair has no structure to express the *kind* of relationship, the *participants* and their roles, or the *context* in which the assertion holds.
 
-What we need is the frame pattern: a **predicate** that defines a structured assertion, and **role bindings** that fill its slots with values.  The theoretical foundation for this pattern comes from Fillmore's frame semantics (1968; 1982), and the empirical grounding comes from computational-linguistics research (FrameNet, VerbNet, ISO 24617-4) that has catalogued and standardized the 25 universal thematic roles human languages use to describe who did what to whom, where, when, how, and why (Youn et al., 2016).
+What we need is the frame pattern: a **predicate** that defines a structured assertion, and **role bindings** that fill its slots with values.  The theoretical foundation for this pattern comes from Fillmore's frame semantics (1968; 1982), and the empirical grounding comes from computational-linguistics research — FrameNet (Baker, Fillmore, & Lowe, 1998), VerbNet, and ISO 24617-4 — that has catalogued and standardized the thematic roles human languages use to describe who did what to whom, where, when, how, and why.
 
 ### Write-time resolution
 
 This is the core inversion.  The dominant pattern in computing is to store data first and try to determine its meaning later.  Some systems capture partial structure through schemas, but those schemas are local to the application; the meaning does not travel with the data.  Search engines crawl, natural language processing systems annotate after the fact, data integration pipelines map between schemas post-hoc.  All of these are attempts to recover meaning that was present in the creator's mind but never fully captured in the infrastructure.
 
-A semantic base layer reverses this. Meaning could be resolved *at the moment of creation*, when it is trivially easy, because the creator knows what they mean. The disambiguation that search engines and NLP pipelines struggle to perform after the fact is effortless at write time. When a user creates a relationship between a person and a book, they know whether they mean "authored," "edited," "reviewed," or "purchased." If the layer captures that distinction as a grounded semantic predicate at creation time, no subsequent system ever needs to guess.
+A semantic base layer reverses this.  Meaning could be resolved *at the moment of creation*, when it is trivially easy, because the creator knows what they mean.  The disambiguation that search engines and NLP pipelines struggle to perform after the fact is effortless at write time.  When a user creates a relationship between a person and a book, they know whether they mean "authored," "edited," "reviewed," or "purchased." If the layer captures that distinction as a grounded semantic predicate at creation time, no subsequent system ever needs to guess.
 
-The predicate, once chosen, tells the system what roles to expect. The system can prompt for them, offer completions, validate inputs. The act of creating data *becomes* the act of resolving meaning, because selecting a predicate and filling its roles is inherently a semantic operation.
+The predicate, once chosen, tells the system what roles to expect.  The system can prompt for them, offer completions, validate inputs.  The act of creating data *becomes* the act of resolving meaning, because selecting a predicate and filling its roles is inherently a semantic operation.
 
 This is not natural language understanding.  Such a layer need not parse free text and try to extract meaning.  It would structure the input environment so that meaning is captured as a natural consequence of creation.  The user selects a predicate, fills roles, and the result is a grounded semantic structure.  The hardest problem in NLP (disambiguation) is trivially solved at write time by the person who knows what they mean.
 
 ### Cross-lingual stability
 
-A semantic layer that works only in English is an English-language metadata standard, not a semantic layer.  The concept that English speakers call "dog," Spanish speakers call "perro," and Japanese speakers call "犬" is the same concept.  A semantic layer must represent meanings independently of the words that express them.
+A semantic layer that works only in English is an English-language metadata standard, not a semantic layer.  The concept that English speakers call "dog," Spanish speakers call "perro," and Japanese speakers call "犬" is the same concept.  A semantic layer must represent meanings independently of the words that express them.  That meaning has universal structure across unrelated languages is not merely a philosophical premise: cross-linguistic studies of polysemy have found that the network of which concepts tend to share words is remarkably consistent across unrelated language families, suggesting the organization of meaning is, to a substantial degree, universal (Youn et al., 2016).
 
 This requires a clean separation between *meanings* and *words*.  Meanings (which I will call **sememes**, following usage in structural semantics) are language-neutral units with stable identities.  Words, in their role as language-specific expressions that point to meanings, are called **lexemes**.  Each lexeme belongs to a particular language and carries the morphological apparatus of that language (inflection, conjugation, case, gender, tense).  Multiple lexemes across languages can point at the same sememe: the English "authored," the Spanish "escrito," and the German "verfasst" are three lexemes, one sememe.  So are "author," "authoring," and "authorship" within English, and "verfasst," "verfassen," "Verfasser," and "Verfasserschaft" within German — different word forms, all pointing at the same meaning.  The predicate AUTHORED exists independently of any of them.
 
@@ -187,9 +187,9 @@ The four requirements above describe data.  Four more describe where the data li
 
 ### Cryptographic identity
 
-The preceding sections used "identity" to describe the stable referent of a meaning in the vocabulary: the concept DOG is identifiable across languages and systems because it refers to one meaning, not a string.  A different kind of identity is needed for the locality pillar: the identity of *participants*.  Users, organizations, devices, services, anything that signs assertions or holds data must be identifiable without depending on a central authority to assign or revoke that identification.
+Meanings have identity: the concept DOG is the same concept across languages and systems.  Participants need identity too, but of a different kind.  Users, organizations, devices, services — anything that signs assertions or holds data must be identifiable without depending on a central authority to assign or revoke that identification.
 
-In practice, this means a participant's identity would be a cryptographic keypair rather than a row in a registry.  The paradigm is not new: Pretty Good Privacy (PGP; Zimmermann, 1995) established the foundational design thirty years ago, in which identity is a keypair, trust is a web of signed endorsements rather than a certificate authority, and no central registry is required.  What PGP demonstrated for email, a base layer would generalize to all assertions.  A user should not need to register with a service or keep an account active on a server to exist as a participant.  The keypair is something the user holds, generates locally, and presents when they sign an assertion or establish a relationship.  No authority grants it; no authority can revoke it (though peers can choose to stop trusting it, which is a social decision, not an architectural one).
+In practice, this means a participant's identity would be a cryptographic keypair rather than a row in some registry.  The paradigm is not new: Pretty Good Privacy (PGP; Zimmermann, 1995) established the foundational design thirty years ago, in which identity is a keypair, trust is a web of signed endorsements rather than a certificate authority, and no central registry is required.  What PGP demonstrated for email, a base layer could generalize to all assertions.  A user should not need to register with a service or keep an account active on a server to exist as a participant.  The keypair is something the user holds, generates locally, and presents when they sign an assertion or establish a relationship.  No authority grants it; no authority can revoke it (though peers can choose to stop trusting it, which is a social decision, not an architectural one).
 
 This is the minimum condition for agency without a gatekeeper, and the foundation on which everything else in the locality pillar rests.  Signatures depend on the signer having a key, relationships depend on the parties being identifiable, and content attribution depends on the assertion being linked to a verifiable identity.  All of these build on identity being a thing users hold rather than a thing services grant.
 
@@ -203,7 +203,7 @@ Content-addressing (Merkle, 1979; Benet, 2014) reverses this.  Data would be nam
 
 Identity is a keypair and data is content-addressed, yet neither on its own determines the shape of the network.  Where does data live?  How does it reach the people who care about it?  How do users find data they do not yet know exists?  Who can see what?  In a centralized architecture, a server answers all of these: it stores the data, routes requests, curates discovery, and gates access.  A substrate without servers needs a different organizing principle.
 
-As section 3 described, peer-to-peer systems have answered these questions through hash-distance routing, which works technically but treats all data as homogeneous and all peers as interchangeable.  A different organizing principle is needed, one that reflects a basic fact: data is not uniformly relevant.  Every person cares about specific data — their own work, data from people they know, data about topics or places or communities they follow.  Relevance follows relationships, between individuals, between organizations, between communities, between devices and the people who use them.
+As described earlier, peer-to-peer systems have answered these questions through hash-distance routing, which works technically but treats all data as homogeneous and all peers as interchangeable.  A different organizing principle is needed, one that reflects a basic fact: data is not uniformly relevant.  Every person cares about specific data — their own work, data from people they know, data about topics or places or communities they follow.  Relevance follows relationships, between individuals, between organizations, between communities, between devices and the people who use them.
 
 If relevance follows relationships, then relationships should organize the network.  Data would live with the peers who care about it, travel along the connections that make it relevant, and surface to new users through shared relationships rather than algorithmic curation.  Access would follow from whom the holder chose to include.  Sociologists have studied such structures under the name *social networks* for more than half a century (Barnes, 1954 and the social-network-analysis tradition that followed), as the shape through which information, influence, and resources actually flow among humans.  The commercial platforms that adopted the phrase "social networking" in the late 1990s and 2000s built closed enclosures around a small slice of this phenomenon and sold access to it.  The substrate proposed here is aimed at the underlying structure rather than any particular enclosure of it: a network whose topology is the social graph itself, not a product that owns and resells it.
 
@@ -246,7 +246,7 @@ A frame is not a key-value pair with extra structure.  It is a coherent assertio
 
 A **title assertion**: `TITLE { (THEME) = the-book, (VALUE, ENGLISH) = "The Hobbit" }`.  A separate frame carries the Russian title: `TITLE { (THEME) = the-book, (VALUE, RUSSIAN) = "Хоббит" }`.  These are two independent assertions, each separately signable, because a translator should not need the original signer's key to add a translation.  The compound key `(VALUE, RUSSIAN)` distinguishes the binding from `(VALUE, ENGLISH)` through the language qualifier.
 
-A **chess move**: predicate MOVE, bindings (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4. Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where).  A single move is a single semantic assertion.
+A **chess move**: predicate MOVE, bindings (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4.  Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where).  A single move is a single semantic assertion.
 
 A **definition**: `GLOSS { (THEME) = the-sememe, (VALUE, ENGLISH) = "a domesticated canine" }` and separately `GLOSS { (THEME) = the-sememe, (VALUE, SPANISH) = "un canino domesticado" }`.  Same pattern as the title: each language's gloss is its own independently-authored frame.
 
@@ -254,7 +254,7 @@ An **authorship assertion**: predicate AUTHORED, bindings (THEME) = The Hobbit, 
 
 These are all structurally identical: a predicate and role bindings.  The predicate determines what roles the frame expects; the roles determine what the values mean.
 
-The predicate is worth pausing on, because it is easy to treat it as a distinct kind of thing. It is not. It is a sememe, a unit of meaning from the shared vocabulary, acting in a particular structural role. In that role, a sememe serves as a template or schema for the frame: it declares what bindings a frame of this kind is expected to carry and how those bindings relate. Calling a sememe a *predicate* names the role it plays, not a category it belongs to. The same vocabulary must supply everything. TOLKIEN, HOBBIT, AUTHORED, DOG, and TITLE are all meanings. Which of them naturally fits the predicate role is a matter of what each one denotes, not a structural constraint. Meanings that name relations or events (AUTHORED, TITLE, MOVE) naturally fit as predicates. Meanings that name kinds of things or instances thereof (HOBBIT, TOLKIEN, CHESS, DOG) naturally fit as binding values or as templates for items.
+The predicate is worth pausing on, because it is easy to treat it as a distinct kind of thing.  It is not.  It is a sememe, a unit of meaning from the shared vocabulary, acting in a particular structural role.  In that role, a sememe serves as a template or schema for the frame: it declares what bindings a frame of this kind is expected to carry and how those bindings relate.  Calling a sememe a *predicate* names the role it plays, not a category it belongs to.  AUTHORED, TITLE, MOVE, BOOK, and DOG are all sememes, and which of them naturally fits the predicate role is a matter of what each one denotes, not a structural constraint.  Sememes that name relations or events (AUTHORED, TITLE, MOVE) naturally fit as predicates.  Sememes that name kinds of thing (BOOK, DOG, CHESS) fit instead as templates for items, a role discussed in the next section.  A specific instance (J. R. R. Tolkien, a particular dog named Rover, a single chess game played on a Tuesday) is an item in the graph but not a sememe: it references a sememe through its archetype rather than being a meaning in its own right.
 
 ### Compound keys and indexing
 
@@ -267,9 +267,9 @@ EQUALS { (THEME, x) = 5 }
 EQUALS { (THEME, y) = ADD { (THEME) = x, (INSTRUMENT) = 3 } }
 ```
 
-Two frames on the same item.  The first defines the variable `x` as 5; the second defines `y` as `x + 3`, referencing `x` by name.  THEME is the correct root because `x = 5` is *about* x — x is the subject being defined, not a payload being carried.  `x` and `y` are literals scoped to this item — arbitrary variable names that no vocabulary would catalog.  EQUALS, ADD, THEME, and INSTRUMENT are sememes from the shared vocabulary.  The local names let you build up computations that reference each other; the semantic roots ensure that the structure is always grounded.  The consequence is that every item is, in a sense, a spreadsheet: a structured workspace where named values can reference each other, with the semantic root ensuring that the *kind* of value is always grounded even when the *name* is local.
+Two frames on the same item.  The first defines the variable `x` as 5; the second defines `y` as `x + 3`, referencing `x` by name.  THEME is the root because `x = 5` is *about* x — x is the subject being defined.  `x` and `y` are literals scoped to this item — arbitrary variable names that no vocabulary would catalog.  EQUALS, ADD, THEME, and INSTRUMENT are sememes from the shared vocabulary.  The local names let you build up computations that reference each other; the semantic roots ensure that the structure is always grounded.  The consequence is that every item is, in a sense, a spreadsheet: a structured workspace where named values can reference each other, with the semantic root ensuring that the *kind* of value is always grounded even when the *name* is local.
 
-Every such meaning is an opportunity for indexing.  A layer that indexes frames by the meanings in their binding keys gets multi-dimensional search as a structural consequence: "show me all videos" is a lookup on frames with VIDEO in their keys; "all UHD videos" narrows to frames with both VIDEO and UHD.  No separate tagging system, no search facets, no metadata catalog.  The key *is* the index.
+Every sememe in a compound key is an opportunity for indexing (literal keys, being locally scoped, are not indexed globally).  A layer that indexes frames by the grounded meanings in their binding keys gets multi-dimensional search as a structural consequence: "show me all videos" is a lookup on frames with VIDEO in their keys; "all UHD videos" narrows to frames with both VIDEO and UHD.  No separate tagging system, no search facets, no metadata catalog.  The key *is* the index.
 
 ### Queries are frames
 
@@ -293,7 +293,7 @@ A frame is an assertion when every binding is filled, and a query when at least 
 
 ### Everything is a role binding
 
-There is no fundamental distinction between "the data" and "the metadata" of a frame. A title's text, a video's master file, a chess move's destination square, a document's author: each is a role binding. Provenance, signatures, and timestamps are all bindings.  What we call "data" is a value filling a role; what we call "metadata" is also a value filling a role.  The distinction is conventional, not structural.
+There is no fundamental distinction between "the data" and "the metadata" of a frame.  A title's text, a video's master file, a chess move's destination square, a document's author: each is a role binding.  Provenance, signatures, and timestamps are all bindings.  What we call "data" is a value filling a role; what we call "metadata" is also a value filling a role.  The distinction is conventional, not structural.
 
 ### Beyond the natural-language inventory
 
@@ -315,11 +315,11 @@ A frame retrieved from any source is legible on arrival to any runtime that hold
 
 ### Predicates carry behavior
 
-So far we have treated a predicate as a structural template, declaring what bindings a frame expects. A predicate can do more. It can also declare how frames of its kind behave: how they might be expressed in text or other input, how they might be evaluated if they carry a computation. These declarations would be data on the predicate itself, not rules maintained by a separate parser or interpreter.
+So far we have treated a predicate as a structural template, declaring what bindings a frame expects.  A predicate can do more.  It can also declare how frames of its kind behave: how they might be expressed in text or other input, how they might be evaluated if they carry a computation.  These declarations would be data on the predicate itself, not rules maintained by a separate parser or interpreter.
 
-Consider the token `+`. In ordinary treatment, `+` is a symbol that a language's grammar rules know how to parse. In a frame-based layer, the picture is different. `+` is not a meaning. It is a *token*, a written symbol used in some notations. Other notations use different tokens for the same idea: "plus," "más," "加える." All of them point to the same underlying meaning, the sememe ADD. That sememe, in its role as a predicate, can declare the properties a parser would need to know about it: it is infix, it has a precedence, it associates left-to-right. These properties would not be grammar rules the parser has to be told in advance. They would be data the parser reads off the sememe once it resolves it from a token. No separate precedence table. No grammar.
+Consider the token `+`.  In ordinary treatment, `+` is a symbol that a language's grammar rules know how to parse.  In a frame-based layer, the picture is different. `+` is not a meaning.  It is a *token*, a written symbol used in some notations.  Other notations use different tokens for the same idea: "plus," "más," "加える." All of them point to the same underlying meaning, the sememe ADD.  That sememe, in its role as a predicate, can declare the properties a parser would need to know about it: it is infix, it has a precedence, it associates left-to-right.  These properties would not be grammar rules the parser has to be told in advance.  They would be data the parser reads off the sememe once it resolves it from a token.  No separate precedence table.  No grammar.
 
-This extends to structural symbols. Parentheses are tokens whose corresponding meanings declare "I open a group" and "I close a group." There is no reserved syntax. Everything (verbs, operators, functions, parentheses, commas) would resolve through the shared vocabulary. Syntax becomes vocabulary.
+This extends to structural symbols.  Parentheses are tokens whose corresponding meanings declare "I open a group" and "I close a group." There is no reserved syntax.  Everything (verbs, operators, functions, parentheses, commas) would resolve through the shared vocabulary.  Syntax becomes vocabulary.
 
 Any domain can bring its own notation.  Chess algebraic notation, regular expressions, mathematical symbols: each is a set of tokens whose corresponding predicates declare how they parse, resolved through the same mechanism as arithmetic operators or English prepositions.
 
@@ -345,11 +345,11 @@ The set of frames an item endorses at any point in time is recorded in its **man
 
 What makes a particular item the kind of thing it is?  A book is recognizably a book, not because some authority declares it so, but because the frames that describe it are the frames a book is *expected* to have.  There are TEXT frames for the chapters, there are AUTHORED frames, there are TITLE frames, there are PUBLICATION frames.  The collection of expected frames is what makes the item, in any meaningful sense, a book.
 
-Where does that expectation live?  In the same place predicates live: the shared vocabulary.  BOOK is a sememe, just like AUTHORED is a sememe.  Where AUTHORED, in its role as a predicate, declares what bindings a frame of its kind expects, BOOK, in a different structural role, declares what frames an item of its kind is expected to endorse. Call a sememe playing this latter role an *archetype*.  BOOK, CHESS_GAME, PERSON, LANGUAGE, and DOG (which might expect NAME, BREED, and OWNER frames) are all archetypes: sememes in the shared vocabulary acting as templates for items rather than for frames.
+Where does that expectation live?  In the same place predicates live: the shared vocabulary.  BOOK is a sememe, just like AUTHORED is a sememe.  Where AUTHORED, in its role as a predicate, declares what bindings a frame of its kind expects, BOOK, in a different structural role, declares what frames an item of its kind is expected to endorse.  Call a sememe playing this latter role an *archetype*.  BOOK, CHESS_GAME, PERSON, LANGUAGE, and DOG (which might expect NAME, BREED, and OWNER frames) are all archetypes: sememes in the shared vocabulary acting as templates for items rather than for frames.
 
-Predicate and archetype are not categories of sememe. They are functional roles a sememe can play, parallel and complementary. A predicate is a sememe acting as a template for a frame. An archetype is a sememe acting as a template for an item. The same vocabulary supplies both. Which role a particular sememe naturally fits depends on what it denotes: meanings that name relations or events fit as predicates, meanings that name kinds of thing fit as archetypes. Nothing in the system would enforce the assignment, but in practice the division falls out cleanly from the meanings themselves.
+Predicate and archetype are not categories of sememe.  They are functional roles a sememe can play, parallel and complementary.  A predicate is a sememe acting as a template for a frame.  An archetype is a sememe acting as a template for an item.  The same vocabulary supplies both.  Which role a particular sememe naturally fits depends on what it denotes: meanings that name relations or events fit as predicates, meanings that name kinds of thing fit as archetypes.  Nothing in the system would enforce the assignment, but in practice the division falls out cleanly from the meanings themselves.
 
-There is one important asymmetry between archetypes and predicates, and it shapes how items grow. A predicate's declaration is mostly closed: a frame using a particular predicate carries the bindings the predicate calls for, though cross-cutting structural roles like CONFIG can appear on any frame regardless of predicate.  An archetype's declaration is *open*: it lists the frames an instance is expected to endorse, but anyone can assert additional frames that bind to the item without the archetype having defined them.  A book is expected to endorse TEXT, TITLE, and AUTHORED frames.  Nothing prevents someone else from signing a LIKE frame, a citation, a fact-check, a translation, or a review that binds to the same book.  The archetype defines what makes something a book. It does not gatekeep what others may say about it.
+There is one important asymmetry between archetypes and predicates, and it shapes how items grow.  A predicate's declaration is mostly closed: a frame using a particular predicate carries the bindings the predicate calls for, though cross-cutting structural roles like CONFIG can appear on any frame regardless of predicate.  An archetype's declaration is *open*: it lists the frames an instance is expected to endorse, but anyone can assert additional frames that bind to the item without the archetype having defined them.  A book is expected to endorse TEXT, TITLE, and AUTHORED frames.  Nothing prevents someone else from signing a LIKE frame, a citation, a fact-check, a translation, or a review that binds to the same book.  The archetype defines what makes something a book.  It does not gatekeep what others may say about it.
 
 A chess game makes the pattern vivid.  The game is an item.  CHESS is its archetype, declaring the frames a chess game is expected to endorse: the players, the moves, the result.  The item itself, however, is not a monolithic structure.  It is an anchor around which signed frames cohere.
 
@@ -363,9 +363,9 @@ The pattern generalizes immediately.  A chat room would be an item with signed M
 
 ### The photograph, revisited
 
-This paper opened with a photograph: a user saves it, and no layer of the stack knows what it is, who is in it, what occasion it documents, how it relates to other photographs or to the people depicted. In the picture being described here, a photograph is an item.  Its archetype is PHOTOGRAPH.  The information that today lives only in the user's head, or in a proprietary application's database, would be captured as frames at the moment of creation.
+This paper opened with a photograph: a user saves it, and no layer of the stack knows what it is, who is in it, what occasion it documents, how it relates to other photographs or to the people depicted.  In the picture being described here, a photograph is an item.  Its archetype is PHOTOGRAPH.  The information that today lives only in the user's head, or in a proprietary application's database, would be captured as frames at the moment of creation.
 
-The photographer takes a picture of Alice and Bob at Alice's graduation. The item is created, and with it, the frames:
+The photographer takes a picture of Alice and Bob at Alice's graduation.  The item is created, and with it, the frames:
 
 ```
 IMAGE    { (THEME) = the-photo, (VALUE, JPEG) = <image data>, (VALUE, JPEG, THUMBNAIL) = <thumbnail> }
@@ -390,7 +390,7 @@ Now the queries that no existing layer can answer become index lookups:
 
 The frame query and the archetype constraint compose naturally: the frame index finds items by their semantic content, the manifest identifies what kind of item each is, and the two intersect.  No crawling.  No NLP.  No reconstruction.  The meaning was captured when the photograph was created, by the person who knew what the photograph was of.
 
-The archetype PHOTOGRAPH declares that photographs are expected to carry DEPICTS, PLACE, and CAPTURED frames.  The accumulation surface is open regardless. Later, someone else adds:
+The archetype PHOTOGRAPH declares that photographs are expected to carry DEPICTS, PLACE, and CAPTURED frames.  The accumulation surface is open regardless.  Later, someone else adds:
 
 ```
 LIKE      { (THEME) = the-photo, (AGENT) = Carol, (VALUE) = "Great shot!" }
@@ -431,7 +431,7 @@ The vocabulary described in previous sections provides shared meanings for predi
 
 The AUTHORED example: predicate AUTHORED, (THEME) = The Hobbit, (AGENT) = Tolkien.  AUTHORED is a shared meaning.  PERSON is a shared meaning.  BOOK is a shared meaning.  What about Tolkien *himself*?
 
-Today, Tolkien exists as a Wikipedia page, an Amazon author page, a Goodreads entry, a TMDB profile, a Library of Congress authority record, a Wikidata entry, and countless other disconnected representations. None is the canonical Tolkien that every system could use as the AGENT binding.
+Today, Tolkien exists as a Wikipedia page, an Amazon author page, a Goodreads entry, a TMDB profile, a Library of Congress authority record, a Wikidata entry, and countless other disconnected representations.  None is the canonical Tolkien that every system could use as the AGENT binding.
 
 This is the hardest problem the shared meaning space must address.  WordNet provides the *concept* PERSON, but not a unique identifier for every specific person.  Every previous attempt to solve this has faced the same dilemma: centralized registries (Wikidata, Library of Congress) work but create gatekeepers, while fully decentralized naming avoids gatekeepers but introduces ambiguity.
 
@@ -473,19 +473,19 @@ A trust model that requires trust to function raises an obvious bootstrapping qu
 
 ## 9. Computation as Frames
 
-The claim that semantic frames constitute a genuine base layer (not merely a metadata system) requires demonstrating expressiveness in domains far removed from natural language. Mathematics is the strongest test case: the most formal, least ambiguous domain of structured knowledge. If thematic roles can describe mathematical operations, they are not linguistic conveniences. They are universal structuring principles.
+The claim that semantic frames constitute a genuine base layer (not merely a metadata system) requires demonstrating expressiveness in domains far removed from natural language.  Mathematics is the strongest test case: the most formal, least ambiguous domain of structured knowledge.  If thematic roles can describe mathematical operations, they are not linguistic conveniences.  They are universal structuring principles.
 
 The mapping turns out to be natural.
 
 ### Arithmetic
 
-Take the expression: 3 + 5 = 8. The operation ADD is the predicate. The operands are not Agents (they don't initiate anything) or Patients (they don't change). One is the Theme (the entity being operated on) and the other is the Instrument (the means by which the operation is performed). Natural language reveals the asymmetry: we say "add 5 *to* 3," not "add 3 and 5 symmetrically."
+Take the expression: 3 + 5 = 8.  The operation ADD is the predicate.  The operands are not Agents (they don't initiate anything) or Patients (they don't change).  One is the Theme (the entity being operated on) and the other is the Instrument (the means by which the operation is performed).  Natural language reveals the asymmetry: we say "add 5 *to* 3," not "add 3 and 5 symmetrically."
 
 ```
 ADD { (THEME) = 3, (INSTRUMENT) = 5 }
 ```
 
-The frame is the input form: a predicate and its bindings, nothing more. Evaluating the frame produces a value, in this case 8. That value plays the role of Result in the cognitive structure (the thing that comes into existence through the operation), but it is not a binding on the input frame. It is what comes out the other end when the frame is run against an implementation of ADD's contract.
+The frame is the input form: a predicate and its bindings, nothing more.  Evaluating the frame produces a value, in this case 8.  That value plays the role of Result in the cognitive structure (the thing that comes into existence through the operation), but it is not a binding on the input frame.  It is what comes out the other end when the frame is run against an implementation of ADD's contract.
 
 Subtraction confirms the asymmetry: `SUBTRACT { (THEME) = 10, (INSTRUMENT) = 3 }` evaluates to 7.  Theme ("the thing being acted on") and Instrument ("by what means") are exactly the semantic functions the input values serve.  The roles were defined for natural language, but they describe the same cognitive structure.
 
@@ -497,7 +497,7 @@ The definite integral of x² from 0 to 1:
 INTEGRATE { (THEME) = x², (SOURCE) = 0, (GOAL) = 1, (INSTRUMENT) = dx }
 ```
 
-Source and Goal for the bounds of integration. These roles were defined for physical motion ("move from the house to the store") but they map onto abstract endpoints with no strain, because the cognitive structure is the same: a starting point, an ending point, a traversal. Evaluating the frame produces 1/3, the Result.
+Source and Goal for the bounds of integration.  These roles were defined for physical motion ("move from the house to the store") but they map onto abstract endpoints with no strain, because the cognitive structure is the same: a starting point, an ending point, a traversal.  Evaluating the frame produces 1/3, the Result.
 
 Differentiation and limits follow the same pattern: `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x }` evaluates to 2x; `LIMIT { (THEME) = 1/x, (GOAL) = ∞ }` evaluates to 0, the variable approaching the Goal the same way a physical object approaches a destination.
 
@@ -516,19 +516,19 @@ The `x` in these examples is a literal key element, as described in section 5: a
 | Degree or magnitude of change | Extent | "by how much" |
 | Path of integration (line integrals) | Path | "the route taken" |
 
-(Result here names the role for the *output* of evaluation, not an input binding on the frame. The other rows describe input bindings.)
+(Result here names the role for the *output* of evaluation, not an input binding on the frame.  The other rows describe input bindings.)
 
 ### Why this matters
 
-The mapping is significant not because it enables a math engine (though it does: `5 meters + 3 feet` is an ADD frame whose operands are quantities with unit sememes, resolvable because METER and FOOT are both LENGTH units with known conversion factors). It is significant because it demonstrates that thematic roles are cognitive structuring principles, not linguistic artifacts.
+The mapping is significant not because it enables a math engine (though it does: `5 meters + 3 feet` is an ADD frame whose operands are quantities with unit sememes, resolvable because METER and FOOT are both LENGTH units with known conversion factors).  It is significant because it demonstrates that thematic roles are cognitive structuring principles, not linguistic artifacts.
 
-Mathematics and natural language both express: what is being operated on (Theme), by what means (Instrument), where we start (Source), where we end (Goal), by how much (Extent), and what results (Result). The roles are the same because the underlying cognitive operations are the same.
+Mathematics and natural language both express: what is being operated on (Theme), by what means (Instrument), where we start (Source), where we end (Goal), by how much (Extent), and what results (Result).  The roles are the same because the underlying cognitive operations are the same.
 
-If the same small set of thematic roles can structure natural language, social interactions, and mathematical expressions, those roles are genuinely universal. A base layer built on them is as general as meaning itself.
+If the same small set of thematic roles can structure natural language, social interactions, and mathematical expressions, those roles are genuinely universal.  A base layer built on them is as general as meaning itself.
 
 ### Mathematics as a language
 
-As noted in section 5, predicates may carry parsing behavior: `+` is a token whose corresponding sememe ADD declares itself as infix with a precedence and associativity.  The consequence for mathematics specifically is that natural language, mathematical expressions, and domain-specific notations coexist within a single input stream.  "find books authored by Tolkien where price < 20 dollars" mixes English with a mathematical comparison, and both resolve through the same pipeline.  "Show games where Fischer opened 1. e4 e5 2. Nf3 and won in under 30 moves" mixes English with chess algebraic notation and a numeric filter.  "5 feet + 30cm in meters" mixes unit-bearing arithmetic across two measurement systems.  In each case, every token resolves to a sememe, every sememe declares its parsing behavior, and the language being spoken is inferred from the tokens rather than assumed.
+As noted in section 5, predicates may carry parsing behavior: `+` is a token whose corresponding sememe ADD declares itself as infix with a precedence and associativity.  The consequence for mathematics specifically is that natural language, mathematical expressions, and domain-specific notations coexist within a single input stream.  "find books authored by Tolkien where price < 20 dollars" mixes English with a mathematical comparison, and both resolve through the same pipeline.  "Show games where Fischer opened 1. e4 e5 2.  Nf3 and won in under 30 moves" mixes English with chess algebraic notation and a numeric filter.  "5 feet + 30cm in meters" mixes unit-bearing arithmetic across two measurement systems.  In each case, every token resolves to a sememe, every sememe declares its parsing behavior, and the language being spoken is inferred from the tokens rather than assumed.
 
 Mathematical expressions are not bolted onto the side of a semantic layer.  They are frames.  A spreadsheet cell is a frame whose value is the result of an expression frame.  The boundary between "data" and "computation" dissolves the same way "data" and "metadata" does: both are role bindings on predicates.
 
@@ -560,11 +560,11 @@ An architecture that stores meaning in every assertion, signs every frame, and i
 
 ### Scaling
 
-The first concern is the overhead of the data itself.  Wrapping content in frames rather than storing it as raw bytes adds structure: a predicate, binding keys, signing envelopes.  This overhead is kept small by encoding frames in CBOR (Concise Binary Object Representation; Bormann & Hoffman, 2013), a binary serialization format that avoids the redundancy of text-based formats like JSON — no repeated key strings, no whitespace, no quoting overhead.  A frame that would be several hundred bytes as JSON is typically under half that in CBOR.  The content itself (an image, a document, a video) is unchanged; the semantic wrapper is compact.  The overhead of knowing what data means is measured in bytes per frame, not in any proportion of the content it describes.
+The first concern is the overhead of the data itself.  Wrapping content in frames rather than storing it as raw bytes adds structure: a predicate, binding keys, signing envelopes.  This overhead is kept small by encoding frames in CBOR (Concise Binary Object Representation; Bormann & Hoffman, 2013), a binary serialization format that avoids the redundancy of text-based formats like JSON — no repeated key strings, no whitespace, no quoting overhead.  A frame that would be several hundred bytes as JSON is typically under half that in CBOR.  All identifiers (item IDs, content hashes) are 34-byte multihashes (a 2-byte type prefix followed by a 32-byte SHA-256 hash).  The content itself (an image, a document, a video) is unchanged; the semantic wrapper is compact.  The overhead of knowing what data means is measured in bytes per frame, not in any proportion of the content it describes.
 
 The more interesting scaling question is indexing.  Every frame creates index entries for each binding whose target is an item or another frame, enabling reverse lookup from any participant.  Each entry is compact: a 102-byte key (target ID, predicate, body hash) and a 34-byte value (storage reference), for 136 bytes per entry.  Not every binding is indexed.  Literal payloads (image bytes, pixel coordinates, definition text) and policy bindings carry no useful reverse-lookup value.  Each binding carries a flag that controls whether it is indexed, and the archetype for a given item type provides sensible defaults.  Timestamps and geographic coordinates do carry query value ("everything from June 2024," "everything near this location"), but the queries they serve are range scans and spatial lookups, not the exact-match reverse lookups the fan-out index provides.  These warrant dedicated indexes of their own, specialized structures serving specific query patterns.
 
-A photograph makes the cost concrete.  The photograph from section 6, with six frames (image data, two DEPICTS assertions, an occasion, a place, a capture record), creates 14 index entries: two per DEPICTS frame (the photograph and the person depicted), and one or two per remaining frame (the photograph as theme).  Total index cost: under 2 kilobytes.  A book with a title, an author, and 50 chapters creates roughly 110 entries, about 15 kilobytes.  A chess game with 30 moves and two players creates about 65 entries, under 9 kilobytes.  A simple social post with three frames creates 6 entries, under a kilobyte.  In every case the absolute index cost is small.  Critically, indexing cost grows linearly with the number of frames, not with content size.  A one-megabyte photograph and a ten-gigabyte movie with the same six descriptive frames produce the same index cost.  A user with 10,000 photographs, 500 books, and 1,000 social posts would have roughly 170,000 index entries, occupying about 23 megabytes.
+A photograph makes the cost concrete.  The photograph from section 6, with six frames (image data, two DEPICTS assertions, an occasion, a place, a capture record), creates 10 index entries: two per DEPICTS frame (the photograph and the person depicted), plus one or two per remaining frame (the photograph as theme, with an extra entry when a binding points to another item such as the graduation occasion or the capturing device).  Total index cost: under 1.5 kilobytes.  A book with a title, an author, and 50 chapters creates roughly 100 entries, about 14 kilobytes.  A chess game with 30 moves and two players, indexing each move by game, player, destination square, and predecessor move, creates roughly 125 entries, about 17 kilobytes.  A simple social post with three frames creates 6 entries, under a kilobyte.  In every case the absolute index cost is small.  Critically, indexing cost grows linearly with the number of frames, not with content size.  A one-megabyte photograph and a ten-gigabyte movie with the same six descriptive frames produce the same index cost.  A user with 10,000 photographs, 500 books, and 1,000 social posts would have roughly 160,000 index entries, occupying about 22 megabytes.
 
 The critical question is what happens at the extremes.  Social media engagement follows a steep power-law distribution: the vast majority of posts receive single-digit reactions, a small fraction receive thousands, and a handful per year reach into the millions.  Research on over 50 million posts confirms that median engagement is roughly four interactions per post (Buffer, 2026), while the all-time record is 74 million likes on a single Instagram post (Messi's 2022 World Cup photograph).
 
@@ -576,28 +576,28 @@ The critical question is what happens at the extremes.  Social media engagement 
 | Viral | 10,000-1,000,000 | ~0.01% |
 | Mega-viral | 1,000,000+ | a handful per year globally |
 
-For the typical case, the indexing cost is invisible.  A post with five reactions generates ten index entries and roughly one kilobyte of index data.  A popular post with ten thousand reactions generates roughly three megabytes.
+For the typical case, the indexing cost is invisible.  A post with five reactions generates ten index entries and roughly one kilobyte of index data.  A popular post with ten thousand reactions generates roughly three megabytes of index data.
 
 For the extreme case, consider a viral post with five million reactions.  Roughly 70% are simple reactions (a predicate and two bindings, no text, ~200 bytes per frame body), 25% carry short comments (~350 bytes), 4% carry longer comments (~700 bytes), and 1% carry substantial text (~2,500 bytes).  Add second-order reactions (replies to comments, roughly 500,000 additional frames) and the total comes to approximately 5.5 million frames.
 
 | Component | Calculation | Size |
 |---|---|---|
-| Frame bodies (content-addressed) | 5.5M frames, weighted average ~320 bytes | ~1.8 GB |
+| Frame bodies (content-addressed) | 5.5M frames, weighted average ~290 bytes | ~1.6 GB |
 | Signing envelopes (ed25519 signature + key ID + timestamp) | 5.5M × ~126 bytes | ~690 MB |
 | Fan-out index | 5.5M × 2 entries × 136 bytes | ~1.5 GB |
 | Attestation index | 5.5M × 102 bytes | ~560 MB |
-| **Total** | | **~4.5 GB** |
+| **Total** | | **~4.3 GB** |
 
-4.5 gigabytes for the most extreme case in the distribution.  That is the total across the entire network.  The peer-to-peer model distributes this cost.  In a centralized system, one server cluster holds every reaction to a viral post.  In this architecture, no single node needs to hold all the reactions, though any node that wants to can reach across the graph to accumulate them.  Each Librarian's index reflects its own social reach.
+4.3 gigabytes for the most extreme case in the distribution.  That is the total across the entire network.  The peer-to-peer model distributes this cost.  In a centralized system, one server cluster holds every reaction to a viral post.  In this architecture, no single node needs to hold all the reactions, though any node that wants to can reach across the graph to accumulate them.  Each Librarian's index reflects its own social reach.
 
 | Node type | Reactions held | Total storage |
 |---|---|---|
 | Casual viewer (few hundred peers) | 50-200 | ~150 KB |
-| Active participant (few thousand peers) | 2,000-5,000 | 3-7 MB |
+| Active participant (few thousand peers) | 2,000-5,000 | 1.5-4 MB |
 | Popular creator (500K followers, 10% react) | ~50,000 | ~40 MB |
 | Community hub or relay node | 100K-500K | 80-400 MB |
 | Analytics company (wide social reach) | 1-3M | 1-2.5 GB |
-| Full aggregator (near-complete) | 5M+ | ~4.5 GB |
+| Full aggregator (near-complete) | 5M+ | ~4.3 GB |
 
 The social graph is a natural shard boundary, and the per-node cost is bounded by that node's actual relationships.
 
@@ -622,6 +622,21 @@ The vocabulary component is bounded by the linguistic resources it draws from.  
 A polyglot user loading five languages would have a vocabulary index of roughly 100 megabytes.  Loading every language for which resources exist (100+) would reach single-digit gigabytes.  Both are routine on commodity hardware.
 
 User-generated content (titles, proper names) grows linearly with the items indexed.  Each token dictionary entry carries 41 bytes of fixed overhead (content hash, binding index, weight) plus the token text itself, so entries range from under 50 bytes for short words to over 100 for long multi-word titles.  A node carrying ten million titles (the scale of IMDB) averaging four indexed words each would add roughly 40 million entries, on the order of two gigabytes.  Function words (articles, prepositions, conjunctions) that carry no discriminating value for search can be excluded from individual-word indexing at the direction of the language item itself, which participates in parsing and knows which of its word categories are worth indexing.  This reduces the entry count by roughly 30-40%, since function words are disproportionately common in titles.
+
+A comprehensive worked example puts these numbers in perspective.  Consider a complete film database at the scale of IMDB: 10 million titles (movies, television series, episodes, shorts) and 12 million person entries (actors, directors, writers, producers, crew).  Each title carries not just a title frame but genre assignments, release dates, ratings, synopses, and the relationships that make a film database useful: an average of 12 cast members and 10 crew members per title, each a signed frame binding the person to the title in a specific role.  Each person entry carries name, biography, and photograph frames.  The full accounting:
+
+| Component | Calculation | Size |
+|---|---|---|
+| Title frames (metadata, genres, dates, ratings, synopses) | 10M titles × ~10 frames × ~200 bytes | ~20 GB |
+| Cast and crew frames | 10M titles × ~22 people × ~200 bytes | ~44 GB |
+| Person entries | 12M people × ~5 frames × ~200 bytes | ~12 GB |
+| Signing envelopes (all frames) | ~380M × ~126 bytes | ~48 GB |
+| Fan-out index (FRAME_BY_TARGET) | ~380M × ~2 entries × 136 bytes | ~103 GB |
+| Attestation index (RECORD_BY_BODY) | ~380M × 102 bytes | ~39 GB |
+| Token dictionary (titles + person names) | ~65M entries | ~3 GB |
+| **Total for the entire database** | | **~270 GB** |
+
+270 gigabytes for the entirety of one of the largest publicly accessible structured databases on the internet, fully indexed, every assertion signed, every relationship queryable by meaning.  That is a single commodity hard drive.  And as with the viral-post example, no single node needs to hold all of it: a casual movie fan who has looked up a few hundred films holds a few tens of megabytes, while the institutional node that maintains the authoritative catalog holds the full 270 GB.
 
 The scaling picture is, on balance, comfortable.  Index growth is linear in the number of semantic assertions, the social graph bounds per-node cost, probabilistic aggregation handles the counting problem, text search scales with content, and signing is fast.  No component exhibits superlinear growth.  All estimates above are uncompressed; practical storage backends apply key-prefix compression and block compression that would only improve them.
 
@@ -659,7 +674,7 @@ The most visible change is the **subsumption of platforms**.  A product listing,
 
 **Formalized relationships** between parties on public networks are expressible in the same substrate.  Szabo's (1997) vision extended well beyond the trust and reputation systems discussed in the previous section.  He described bearer certificates, escrow protocols, smart liens, accounting controls with segregation of duties, content rights management, and credit instruments, each as a separate protocol family requiring its own design.  In the architecture described here, all of these collapse into one primitive: signed frames with semantic predicates, exchanged between identified parties through trust relationships.  A license is a signed frame.  An escrow arrangement is a Librarian holding one frame until a corresponding frame arrives.  A lien is a frame from a lender governing an item's CONFIG policies.  A commercial transaction is a chain of frames (order, confirmation, payment authorization, shipment, delivery) signed by the respective parties, each attesting their own role, with the full picture emerging from the composition.  What Szabo envisioned as distinct cryptographic protocols become patterns of use within a single substrate.
 
-**Real-time communication** is another consequence rather than a separate system.  A phone call is a CALL frame with audio in a VALUE binding, streamed through the peer network.  A video meeting is an item whose participants each contribute STREAMING frames with video and audio bindings.  The signaling that protocols like WebRTC handle out-of-band (who is calling whom, what codecs, what endpoints) becomes in-band, because the frame IS the signal.  Phone numbers become unnecessary when identity is cryptographic and routing follows trust paths.  Spam calls become structurally impossible in the default posture: no trust path, no ring.  Users who want to accept cold calls (a business, a support line) lower their threshold; the trust matrix still provides a gradient between "known friend" and "complete stranger" that the spoofable phone number never could.  The phone industry's radio infrastructure remains valuable as transport, but the $1.5 trillion built on top of it (carrier lock-in, number portability battles, robocall mitigation) simplifies dramatically when a call is just a frame routed through peers.
+**Real-time communication** is another consequence rather than a separate system.  A phone call is a CALL frame with audio in a VALUE binding, streamed through the peer network.  A video meeting is an item whose participants each contribute STREAMING frames with video and audio bindings.  The signaling that protocols like WebRTC handle out-of-band (who is calling whom, what codecs, what endpoints) becomes in-band, because the frame IS the signal.  Phone numbers become unnecessary when identity is cryptographic and routing follows trust paths.  Spam calls become structurally impossible in the default posture: no trust path, no ring.  Users who want to accept cold calls (a business, a support line) lower their threshold; the trust matrix still provides a gradient between "known friend" and "complete stranger" that the spoofable phone number never could.  The phone industry's radio infrastructure remains valuable as transport, but the vast economic superstructure built on top of it (carrier lock-in, number portability battles, robocall mitigation) simplifies dramatically when a call is just a frame routed through peers.
 
 Two properties of the locality pillar deserve explicit mention because they are structural consequences rather than features to be engineered.  **Offline capability** is trivial when the runtime and the data are both local; when a network returns, changes propagate to peers.  **Resilience to vendor disappearance** is equally structural: items live on users' devices and on the peers who have replicated them, so a company that shut down or was acquired would lose the ability to ship updates, but the data, the tools, and the peer network would remain.  Kleppmann et al. call this the "long now" property of local-first software; here it is a consequence of the substrate, not a feature built on top of it.
 
@@ -685,7 +700,7 @@ The word "ownership" invites confusion because it borrows from property law what
 
 ## 13. Honest Reckoning
 
-I am not the first to propose an ambitious rethinking of how computing handles information. The history of such proposals is largely a history of instructive failures, and I would be foolish to ignore it.
+I am not the first to propose an ambitious rethinking of how computing handles information.  The history of such proposals is largely a history of instructive failures, and I would be foolish to ignore it.
 
 **Xanadu** (Nelson, 1974) envisioned a global, versioned, bidirectional-linking document system.  It got content addressing, versioning, and bidirectional links right (concepts that took decades to resurface in Git and IPFS).  It failed because it demanded solving everything simultaneously before shipping anything.  Lesson: ship incremental function, not a complete vision.
 
@@ -695,15 +710,15 @@ I am not the first to propose an ambitious rethinking of how computing handles i
 
 **Plan 9** (Pike et al., 1995) pushed Unix's "everything is a file" to its logical conclusion.  Technically superior to Unix in almost every way, it failed to displace it because it required abandoning the entire Unix ecosystem.  Lesson: even a cleaner design loses to an entrenched ecosystem unless it provides a bridge.
 
-**The Semantic Web** (Berners-Lee et al., 2001) got the diagnosis exactly right: the web needs machine-readable semantics. It built a rigorous stack that works in specialized domains. It did not become general-purpose because it was layered *on top of* the web rather than built into it. Lesson: a semantic layer that is optional will remain marginal.
+**The Semantic Web** (Berners-Lee et al., 2001) got the diagnosis exactly right: the web needs machine-readable semantics.  It built a rigorous stack that works in specialized domains.  It did not become general-purpose because it was layered *on top of* the web rather than built into it.  Lesson: a semantic layer that is optional will remain marginal.
 
 **Local-first software** (Kleppmann et al., 2019) is the tradition directly upstream of this paper's second pillar.  Its seven ideal properties describe applications that live on the user's device, work offline, sync peer-to-peer, and retain user ownership and control.  The tradition is healthy in research and in niche commercial software but has not displaced the SaaS default, because solving sync and interoperability without a central coordinator, while preserving user experience, has been hard enough that most teams took the easier centralized path.  Lesson: the technical problems are now serviceable with current tools; what is missing is a substrate that makes local-first the easier path, not just a more virtuous one.
 
 What do these teach?
 
-**Incremental delivery is non-negotiable.** A system that requires completeness before it provides value will never reach completeness. Each increment must be useful on its own.
+**Incremental delivery is non-negotiable.** A system that requires completeness before it provides value will never reach completeness.  Each increment must be useful on its own.
 
-**Build on existing resources.** CYC tried to encode all knowledge manually. The Semantic Web required ontology engineering for every domain. I would rather anchor in WordNet, CILI, VerbNet, and ISO 24617-4: resources built and validated over decades by the computational linguistics community. I am not inventing a vocabulary; I am giving an existing, empirically validated vocabulary a new job.
+**Build on existing resources.** CYC tried to encode all knowledge manually.  The Semantic Web required ontology engineering for every domain.  I would rather anchor in WordNet, CILI, VerbNet, and ISO 24617-4: resources built and validated over decades by the computational linguistics community.  I am not inventing a vocabulary; I am giving an existing, empirically validated vocabulary a new job.
 
 **Provide a bridge.**  Plan 9 and Croquet demanded that users abandon their ecosystems.  A semantic base layer must coexist with files, filesystems, and the web.  POSIX is a reasonable base layer for byte handling; it was never intended to be a base layer for meaning.  On the web side, this means a gateway: a Librarian that accepts remote clients and renders items as web pages, so that people can discover the system's content through a browser before they install a Librarian of their own.  The bridge is how users arrive; the local runtime is where they stay.
 
@@ -717,7 +732,11 @@ And, worth stating plainly: AI assistance has compressed what was previously dec
 
 The path forward is incremental: frames as a local data format; a shared vocabulary seeded from WordNet and CILI; a local runtime that stores, queries, and resolves data by meaning; and a peer-to-peer network where that data is exchanged between nodes connected by trust.  Each step independently useful.  Together, the semantic and local-first base layer that computing has been missing since the networked era began.
 
-Whether it works is an empirical question. I offer it not as a certainty but as a proposal, grounded in established theory and validated resources, that the time is right to try.
+---
+
+Every element in this proposal exists somewhere else.  Semantic frames and participant-role theory come from decades of work in linguistics.  Grounded, language-independent vocabularies come from the WordNet family of lexical-semantic databases.  Content-addressing comes from Merkle trees and their many descendants.  Identity without a central authority, and trust as a web of signed endorsements, come from PGP.  Distributed state that survives reconciliation comes from CRDT research.  The local-first approach has a named tradition and its own seven ideals.  Peer-to-peer networking runs through a lineage from Freenet through BitTorrent, IPFS, and Secure Scuttlebutt.  The notion that social relationships can organize networks draws on small-world network theory.  What this paper proposes is a specific synthesis: which of these pieces belong together, in what relationship, as the substrate of a single layer.  The claim of originality is the composition, not any of the components.
+
+Whether it succeeds remains to be seen.  I offer it not as a certainty but as a proposal, grounded in established theory and validated resources, that the time is right to try.
 
 ---
 
@@ -731,13 +750,7 @@ Benet, J. (2014). IPFS — Content Addressed, Versioned, P2P File System. arXiv:
 
 Berners-Lee, T., Hendler, J., & Lassila, O. (2001). The Semantic Web. *Scientific American*, May 2001.
 
-Bizer, C., Heath, T., & Berners-Lee, T. (2009). Linked Data — The Story So Far. *International Journal on Semantic Web and Information Systems*, 5(3).
-
 Bond, F., Vossen, P., McCrae, J., & Fellbaum, C. (2016). CILI: the Collaborative Interlingual Index. In *Proceedings of the 8th Global WordNet Conference*, 50-57.
-
-Bond, F. & Foster, R. (2013). Linking and Extending an Open Multilingual Wordnet. In *Proceedings of ACL*, 1352-1362.
-
-Bonial, C., Stowe, K., & Palmer, M. (2011). Renewing and Revising SemLink. In *Proceedings of the 2nd Workshop on Linked Data in Linguistics*.
 
 Bormann, C. & Hoffman, P. (2013). Concise Binary Object Representation (CBOR). RFC 7049.
 
@@ -749,8 +762,6 @@ Clarke, I., Sandberg, O., Wiley, B., & Hong, T. W. (2001). Freenet: A Distribute
 
 Cohen, B. (2003). Incentives Build Robustness in BitTorrent. In *Workshop on Economics of Peer-to-Peer Systems*.
 
-Engelbart, D. C. (1962). Augmenting Human Intellect: A Conceptual Framework. SRI Summary Report AFOSR-3223.
-
 Fillmore, C. J. (1968). The Case for Case. In Bach, E. & Harms, R. T. (Eds.), *Universals in Linguistic Theory*, 1-88. Holt, Rinehart & Winston.
 
 Fillmore, C. J. (1982). Frame Semantics. In *Linguistics in the Morning Calm*, 111-137. Seoul: Hanshin Publishing.
@@ -758,12 +769,6 @@ Fillmore, C. J. (1982). Frame Semantics. In *Linguistics in the Morning Calm*, 1
 Flajolet, P., Fusy, É., Gandouet, O., & Meunier, F. (2007). HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm. In *Proceedings of the 2007 Conference on Analysis of Algorithms (AofA)*, DMTCS.
 
 Gruber, T. R. (1993). Toward Principles for the Design of Ontologies Used for Knowledge Sharing. Technical Report KSL 93-04, Stanford University. *Knowledge Acquisition*, 5(2), 199-220.
-
-Hewitt, C., Bishop, P., & Steiger, R. (1973). A Universal Modular ACTOR Formalism for Artificial Intelligence. In *IJCAI'73*, 235-245.
-
-Hogan, A. et al. (2021). Knowledge Graphs. *ACM Computing Surveys*, 54(4).
-
-Kay, A. C. (1993). The Early History of Smalltalk. In *HOPL-II: History of Programming Languages*. ACM.
 
 Kleppmann, M., Wiggins, A., van Hardenberg, P., & McGranaghan, M. (2019). Local-First Software: You Own Your Data, in spite of the Cloud. In *Onward! 2019*, ACM.
 
@@ -775,15 +780,9 @@ Milgram, S. (1967). The Small-World Problem. *Psychology Today*, 1(1), 61-67.
 
 Miller, G. A. et al. (1993). Introduction to WordNet: An On-line Lexical Database. Princeton University.
 
-Montague, R. (1973). The Proper Treatment of Quantification in Ordinary English. In *Approaches to Natural Language*, 221-242. Reidel.
-
 Nelson, T. (1974). *Computer Lib / Dream Machines*. Self-published.
 
-Palmer, M., Gildea, D., & Kingsbury, P. (2005). The Proposition Bank: An Annotated Corpus of Semantic Roles. *Computational Linguistics*, 31(1), 71-106.
-
 Pike, R. et al. (1995). Plan 9 from Bell Labs. *Computing Systems*, 8(3), 221-254.
-
-Ruppenhofer, J. et al. (2006). FrameNet II: Extended Theory and Practice. ICSI Berkeley.
 
 Shapiro, M. et al. (2011). Conflict-free Replicated Data Types. In *SSS 2011*, Springer.
 
@@ -795,10 +794,8 @@ Tarr, D., Lavoie, E., Meyer, A., & Tschudin, C. (2019). Secure Scuttlebutt: An I
 
 Viterbi, A. J. (1967). Error Bounds for Convolutional Codes and an Asymptotically Optimum Decoding Algorithm. *IEEE Transactions on Information Theory*, 13(2), 260-269.
 
-Vossen, P. (1998). EuroWordNet: A Multilingual Database with Lexical Semantic Networks. *Computational Linguistics*, 25(4).
-
 Watts, D. J., & Strogatz, S. H. (1998). Collective Dynamics of 'Small-World' Networks. *Nature*, 393(6684), 440-442.
 
-Zimmermann, P. R. (1995). *The Official PGP User's Guide*. MIT Press.
-
 Youn, H. et al. (2016). On the Universal Structure of Human Lexical Semantics. *PNAS*, 113(7), 1766-1771.
+
+Zimmermann, P. R. (1995). *The Official PGP User's Guide*. MIT Press.
