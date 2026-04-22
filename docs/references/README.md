@@ -42,6 +42,10 @@ The vocabulary system's `SemanticFrame` + `ThematicRole` bindings descend direct
 
 - **Ruppenhofer et al 2006 - FrameNet II Extended Theory and Practice.pdf** — Ruppenhofer, J., Ellsworth, M., Petruck, M. R. L., Johnson, C. R., & Scheffczyk, J. (2006). *FrameNet II: Extended Theory and Practice*. ICSI Berkeley. *Comprehensive manual for FrameNet annotation theory and practice.*
 
+- **Kipper-Schuler 2005 - VerbNet.pdf** — Kipper-Schuler, K. (2005). *VerbNet: A Broad-Coverage, Comprehensive Verb Lexicon*. Ph.D. dissertation, University of Pennsylvania. *The canonical presentation of VerbNet, a classification of English verbs into syntactically and semantically coherent classes, each with explicit thematic role declarations. Common Graph's ThematicRole inventory descends directly from VerbNet's role set; the argument structure a predicate carries in the vocabulary mirrors the structure VerbNet formalized for verbs.*
+
+- **ISO 24617-4 2014 - Semantic Roles SemAF-SR.pdf** — ISO 24617-4:2014. *Language Resource Management — Semantic Annotation Framework (SemAF) — Part 4: Semantic Roles (SemAF-SR)*. International Organization for Standardization, Geneva. *International standard codifying a consensual inventory of semantic roles for annotation. Gives Common Graph's role set standards-track grounding alongside the empirical grounding from VerbNet and FrameNet.*
+
 - **Gildea, Jurafsky 2002 - Automatic Labeling of Semantic Roles.pdf** — Gildea, D. & Jurafsky, D. (2002). "Automatic Labeling of Semantic Roles." *Computational Linguistics*, 28(3), 245-288. *Automatic semantic role labeling using FrameNet data — the computational bridge between frame theory and NLP.*
 
 ---
@@ -63,6 +67,8 @@ Common Graph seeds its sememes from WordNet via CILI identifiers, enabling langu
 - **Navigli, Ponzetto 2010 - BabelNet.pdf** — Navigli, R. & Ponzetto, S. P. (2010). "BabelNet: Building a Very Large Multilingual Semantic Network." In *Proceedings of ACL*, pp. 216-225. *Automatic construction of a multilingual semantic network integrating WordNet and Wikipedia.*
 
 - **Youn et al 2016 - Universal Structure of Human Lexical Semantics.pdf** — Youn, H. et al. (2016). "On the Universal Structure of Human Lexical Semantics." *PNAS*. *Cross-linguistic evidence that semantic networks share universal structure — empirical support for Common Graph's language-neutral sememe layer.*
+
+- **Batsuren 2022 - UniMorph 4.0.pdf** — Batsuren, K. et al. (2022). "UniMorph 4.0: Universal Morphology." In *Proceedings of the 13th Language Resources and Evaluation Conference (LREC 2022)*, 840-855. ELRA. *Broad-coverage normalized morphological inflection tables for 100+ languages with a shared feature schema. Common Graph uses UniMorph data to handle morphological variation when resolving inflected lexemes to sememes across languages — a lexeme's surface forms map back to its lemma through UniMorph-style feature bundles.*
 
 - **Snow, Jurafsky, Ng 2006 - Semantic Taxonomy Induction.pdf** — Snow, R., Jurafsky, D., & Ng, A. Y. (2006). "Semantic Taxonomy Induction from Heterogeneous Evidence." In *Proceedings of ACL*. *Automatic taxonomy construction from multiple knowledge sources.*
 
@@ -216,6 +222,8 @@ Common Graph's signing model (Ed25519, device keys, key logs) and trust policies
 
 - **Nathan 2005 - Visualizing the PGP Web of Trust.doc** — Nathan, D. (2005). "Visualizing the PGP Web of Trust." *Visualization of decentralized trust networks — relevant to Common Graph's trust model.*
 
+- **Shamir 1979 - How to Share a Secret.pdf** — Shamir, A. (1979). "How to Share a Secret." *Communications of the ACM*, 22(11), 612-613. *The foundational threshold-cryptography paper.  Shows how to split a secret into n shares such that any k of them suffice to reconstruct it, while fewer than k shares reveal nothing.  The mathematical basis for social-recovery schemes where a user's key can be distributed across trusted peers and reconstructed from a sufficient subset — directly applicable to Common Graph's custody-and-transition story, where the same social graph that mediates trust also mediates key recovery.*
+
 ---
 
 ## Self-Sovereign Identity
@@ -306,7 +314,7 @@ Common Graph's protocol design exists in dialogue with the dominant network arch
 
 Common Graph's CG-CBOR encoding (deterministic, tagged, no floats) builds on CBOR.
 
-- **Bormann, Hoffman 2013 - CBOR Concise Binary Object Representation RFC 7049.txt** — Bormann, C. & Hoffman, P. (2013). "Concise Binary Object Representation (CBOR)." RFC 7049. *The base serialization format that CG-CBOR extends with custom tags and deterministic encoding rules.*
+- **Bormann, Hoffman 2020 - CBOR RFC 8949.txt** — Bormann, C. & Hoffman, P. (2020). "Concise Binary Object Representation (CBOR)." RFC 8949 / STD 94. *The base serialization format that CG-CBOR extends with custom tags and deterministic encoding rules. RFC 8949 obsoletes RFC 7049, promoting CBOR to Internet Standard and replacing the old "Canonical CBOR" rules with simpler lexicographic Core Deterministic Encoding, while preserving wire-format compatibility.*
 
 ---
 
