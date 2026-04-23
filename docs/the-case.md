@@ -7,11 +7,11 @@ date: "Spring 2026"
 
 ## Abstract
 
-Meaning is absent from every layer of the modern computing stack.  It lives exclusively in application code, making the application the only route from bytes to anything a user cares about.  The applications themselves have migrated off users' devices and onto corporate server farms: the code runs on infrastructure users do not own or control, and the most capable consumer hardware ever built serves as little more than rendering terminals.  Users cannot leave because their data is meaningless without the application, and the application is not something they even run.
+Meaning is absent from every infrastructure layer of the modern computing stack.  It lives exclusively in application code, making that the only route from bytes to anything a user cares about.  Applications themselves have migrated off users' devices and onto corporate server farms: the code runs on infrastructure users do not own or control, and the most capable consumer hardware ever built serves as little more than rendering terminals.  Users cannot leave because their data is meaningless without the application, which is not something they run.
 
-This paper argues that both gaps — the absence of meaning from the infrastructure and the absence of computation from the user's device — must be closed in the same layer.  It proposes a base layer built on two co-equal pillars: a shared semantic commons and a local-first peer-to-peer substrate.  The semantic primitive is the *frame*, a predicate-role structure from computational linguistics where keys are grounded meanings rather than strings.  The substrate is a peer network of local runtimes holding content-addressed, cryptographically signed assertions, taking PGP's core insight — identity without a central authority, trust as a web of signed endorsements — and building it into the foundation of the architecture, where trust drives not just key verification but routing, moderation, code execution, discovery, and replication.
+This paper argues that both gaps — the absence of meaning from the infrastructure and the absence of computation from the user's device — must be closed in the same layer.  It proposes a base layer built on two co-equal pillars: a shared semantic commons and a local-first peer-to-peer substrate.  The semantic primitive is the *frame*, a predicate-role structure from computational linguistics where keys are grounded meanings rather than strings.  The substrate is a peer network of local runtimes holding content-addressed, cryptographically signed assertions.  It builds on the foundations of public-key cryptography's promise of identity without a central authority, and PGP's web of trust for establishing that identity peer-to-peer.  Both are built into the architecture itself, where trust drives not just key verification but routing, moderation, code execution, discovery, and replication.
 
-In the resulting architecture, applications no longer own the data they operate on, and switching between them does not mean losing your work.  Moderation emerges from a trust matrix rather than corporate policy.  Routing privacy, from direct connection to multi-hop onion routing, becomes a policy on the data itself rather than a separate network.  Calls, emails, and messages are signed frames, and the economics of spam largely collapse.  The architecture scales linearly, shards naturally along the social graph, and changes the economics of attack by replacing anonymous network traffic with signed, attributable assertions.
+In the resulting architecture, applications no longer own the data they operate on, and switching between them does not mean losing your work.  Moderation emerges from a trust matrix rather than corporate policy.  Routing privacy, from direct connection to multi-hop onion routing, becomes a policy on the data itself rather than a separate network.  Calls, emails, and messages are signed frames, and the economics of spam largely collapse.  The architecture scales linearly, shards naturally along the social graph, and changes the cost of attack by replacing anonymous network traffic with signed, attributable assertions.
 
 Neither pillar is novel in isolation; semantic structuring and local-first software each have decades of history.  The contribution of this paper is the synthesis.  What is new is the claim that both belong in the same layer, as an open commons.  The linguistic resources, cryptographic infrastructure, and engineering tools to build it exist now in a way they did not a decade ago.  This paper develops the architecture, honestly examines what remains unproven, and makes the case that the time to build it is now.
 
@@ -19,7 +19,7 @@ Neither pillar is novel in isolation; semantic structuring and local-first softw
 
 ## 1. The Semantic Void
 
-In 1945, Vannevar Bush described the central problem of information management: "The summation of human experience is being expanded at a prodigious rate, and the means we use for threading through the consequent maze to the momentarily important item is the same as was used in the days of square-rigged ships" (Bush, 1945).  Eighty years later, the maze is incomparably larger, and the threading, while faster, is no less indirect.  The reason is structural: it sits below every tool we build on top of it, and it has been there since the foundational layers of modern computing were laid down.
+More than 80 years ago, Vannevar Bush described the central problem of information management: "The summation of human experience is being expanded at a prodigious rate, and the means we use for threading through the consequent maze to the momentarily important item is the same as was used in the days of square-rigged ships" (Bush, 1945).  Today, the maze is incomparably larger, and the threading, while faster, is no less indirect.  The reason is structural: it sits below every tool we build on top of it, and it has been there since the foundational layers of modern computing were laid down.
 
 Consider what happens when a user saves a photograph.  The filesystem records bytes at a path.  The operating system tracks the file's size, its modification time, its location on disk.  The image format encodes pixels and, sometimes, a small amount of EXIF metadata: camera model, GPS coordinates, exposure settings.  Yet no layer of the stack knows what the photograph *is*.  Who is in it.  What occasion it documents.  How it relates to other photographs, to the people depicted, to the day it was taken.  That knowledge exists only in the user's head, or in the proprietary database of whichever application the user happens to use.  The stack has stored the photograph without storing any of what makes the photograph matter.
 
@@ -79,7 +79,7 @@ Neither gap is the result of inattention.  The historical conditions that produc
 
 When the foundational layers were laid down in the 1970s, nodes were disconnected and bytes were precious.  The byte-stream abstraction (everything is a file, a file is a sequence of bytes) was a practical triumph given the constraints.  TCP/IP, HTTP, SQL: each subsequent layer solved the problem in front of it with the resources available.  A semantic data model was not rejected, it was beyond the horizon.  The centralizing trajectory of the commercial web was even further out.
 
-The semantic gap persisted in part because the linguistic foundations for closing it took decades to mature.  A semantic key cannot be a string; it must refer to a stable, language-independent concept with a hierarchy, cross-lingual equivalents, and participation in structured scenes.  Building those objects requires empirical research into how meaning is structured across human languages.  The resources that make it tractable — WordNet (Miller et al., 1993), CILI (Bond et al., 2016), FrameNet (Baker, Fillmore, & Lowe, 1998), VerbNet (Kipper-Schuler, 2005), and ISO 24617-4 (2014) — are products of computational linguistics that have only recently reached the maturity needed to serve as a practical foundation.  And once they did, the commercial landscape of the 1990s and 2000s ran in the wrong direction: every major platform held its data models close because controlling the model meant controlling the ecosystem.  Interoperability was a competitive threat to the kind of cross-organizational collaboration a shared semantic foundation requires.
+The semantic gap persisted in part because the linguistic foundations for closing it took decades to mature.  A semantic key cannot be a string; it must refer to a stable, language-independent concept with a hierarchy and participation in structured relationships (what Fillmore called "scenes").  Building those objects requires empirical research into how meaning is structured across human languages.  The resources that make it tractable — WordNet (Miller et al., 1993), CILI (Bond et al., 2016), FrameNet (Baker, Fillmore, & Lowe, 1998), VerbNet (Kipper-Schuler, 2005), and ISO 24617-4 (2014) — are products of computational linguistics that have only recently reached the maturity needed to serve as a practical foundation.  And once they did, the commercial landscape of the 1990s and 2000s ran in the wrong direction: every major platform held its data models close because controlling the model meant controlling the ecosystem.  Interoperability was a competitive threat to the kind of cross-organizational collaboration a shared semantic foundation requires.
 
 The locality gap has a different shape.  The hardware became capable enough for serious local computation by the mid-1990s and has only grown more so.  What drove computation away from users was not a technical limit but a convergence of commercial incentives: cloud hosting got cheap, network effects rewarded centralization, and the subscription business model worked perfectly for services and not for shipped software.  For any product taking shape in the 2000s and 2010s, a hosted service was easier to monetize, easier to update, easier to monitor, and easier to prevent users from leaving.  A generation of developers grew up with SaaS as the default mental model rather than as the historical anomaly it is.  Local-first and peer-to-peer architectures remained technically viable throughout this period but lacked the commercial pull, carried as a counter-current by specific communities (Kleppmann's academic work, Freenet, Secure Scuttlebutt, IPFS, and others) without displacing SaaS as the industry default.
 
@@ -87,7 +87,7 @@ That ambient state has been the backdrop for a second history: deliberate attemp
 
 ### The semantic retrofits
 
-**The Semantic Web** is the most ambitious attempt on the semantic side.  Berners-Lee's 2001 vision described a web in which "information is given well-defined meaning, better enabling computers and people to work in cooperation" (Berners-Lee et al., 2001).  The technical realization (RDF triples, OWL ontologies, SPARQL queries) is rigorous and powerful.  Twenty-five years later, RDF is widely used in specialized domains (biomedical ontologies, library science, government data) but has not become a general-purpose semantic layer.  The web remains overwhelmingly opaque bytes at URLs.
+**The Semantic Web** is the most ambitious attempt on the semantic side.  Berners-Lee's vision described a web in which "information is given well-defined meaning, better enabling computers and people to work in cooperation" (Berners-Lee et al., 2001).  The technical realization (RDF triples, OWL ontologies, SPARQL queries) is rigorous and powerful.  Twenty-five years later, RDF is widely used in specialized domains (biomedical ontologies, library science, government data) but has not become a general-purpose semantic layer.  The web remains overwhelmingly opaque bytes at URLs.
 
 RDF's genuine strengths are substantial: a universal graph model, formal inference via RDFS and OWL entailment, a powerful query language in SPARQL.  In specialized domains where those capabilities matter, RDF has proven its value.  Three structural problems kept it from becoming general-purpose.
 
@@ -99,7 +99,7 @@ Third, the annotation is disconnected from the content.  The RDF description of 
 
 Concrete systems built on the full RDF/OWL/SPARQL stack, such as the Open Semantic Framework developed by Structured Dynamics from 2009 onward, confirmed these limitations in practice: technically rigorous, adopted in narrow domains, but unable to achieve the general-purpose uptake the vision required.  The project went quiet after 2016.
 
-**Schema.org** addressed some of these problems by providing a single vocabulary backed by major search engines.  Its adoption is broader than RDF/OWL, precisely because it is simpler and because search engines provide a direct incentive (better rankings) for using it.  Schema.org remains a metadata annotation regardless: JSON-LD embedded in an HTML header.  It describes pages *about* things, not the things themselves.
+**Schema.org** addressed some of these problems by providing a single vocabulary backed by major search engines.  Its adoption is broader than RDF/OWL, precisely because it is simpler and because search engines provide a direct incentive (better rankings) for using it.  Schema.org remains a metadata annotation regardless: typically JSON-LD embedded in a page's HTML head.  It describes pages *about* things, not the things themselves.
 
 **Dublin Core**, **EXIF**, **ID3 tags**, **OpenGraph**, and dozens of other metadata standards each solve a narrow problem.  They do not compose.  A photograph with EXIF data and a document with Dublin Core metadata cannot be queried together because they share no vocabulary, no addressing scheme, and no common notion of what "subject" or "creator" means.
 
@@ -163,7 +163,7 @@ What we need are keys that refer to *meanings*: language-independent, applicatio
 
 A flat key-value pair (`author: Tolkien`) captures a single relationship, a simple assertion, but loses the structure that gives it meaning.  Who is asserting this?  About what?  In what capacity?  A key-value pair has no structure to express the *kind* of relationship, the *participants* and their roles, or the *context* in which the assertion holds.
 
-What we need is the frame pattern: a **predicate** that defines a structured assertion, and **role bindings** that fill its slots with values.  The theoretical foundation for this pattern comes from Fillmore's frame semantics (1968; 1982), and the empirical grounding comes from computational-linguistics research — FrameNet (Baker, Fillmore, & Lowe, 1998), VerbNet (Kipper-Schuler, 2005), and ISO 24617-4 (2014) — that has catalogued and standardized the thematic roles human languages use to describe who did what to whom, where, when, how, and why.
+What we need is the frame pattern: a **predicate** that defines a structured assertion, and **role bindings** that fill its slots with values.  The theoretical foundation for this pattern comes from Fillmore's frame semantics (1968; 1982), and the empirical grounding comes from computational-linguistics research — FrameNet (Baker, Fillmore, & Lowe, 1998), VerbNet (Kipper-Schuler, 2005), and ISO 24617-4 (2014) — that has cataloged and standardized the thematic roles human languages use to describe who did what to whom, where, when, how, and why.
 
 ### Write-time resolution
 
@@ -246,11 +246,11 @@ A frame is not a key-value pair with extra structure.  It is a coherent assertio
 
 A **title assertion**: `TITLE { (THEME) = the-book, (VALUE, ENGLISH) = "The Hobbit" }`.  A separate frame carries the Russian title: `TITLE { (THEME) = the-book, (VALUE, RUSSIAN) = "Хоббит" }`.  These are two independent assertions, each separately signable, because a translator should not need the original signer's key to add a translation.  The compound key `(VALUE, RUSSIAN)` distinguishes the binding from `(VALUE, ENGLISH)` through the language qualifier.
 
-A **chess move**: predicate MOVE, bindings (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4.  Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where).  A single move is a single semantic assertion.
+A **chess move**: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-pawn, (SOURCE) = e2, (GOAL) = e4 }`.  Location (which game), Agent (who moved), Theme (what piece), Source (from where), Goal (to where).  A single move is a single semantic assertion.
 
 A **definition**: `GLOSS { (THEME) = the-sememe, (VALUE, ENGLISH) = "a domesticated canine" }` and separately `GLOSS { (THEME) = the-sememe, (VALUE, SPANISH) = "un canino domesticado" }`.  Same pattern as the title: each language's gloss is its own independently-authored frame.
 
-An **authorship assertion**: predicate AUTHORED, bindings (THEME) = The Hobbit, (AGENT) = Tolkien.
+An **authorship assertion**: `AUTHORED { (THEME) = The Hobbit, (AGENT) = Tolkien }`.
 
 These are all structurally identical: a predicate and role bindings.  The predicate determines what roles the frame expects; the roles determine what the values mean.
 
@@ -282,7 +282,7 @@ Any binding in a query can hold an **expression**: a sub-frame that evaluates ra
 Queries can also be **compound**: multiple incomplete frames joined by shared references.  "Find books authored by Tolkien that have a listing under $20 USD" requires defining a variable, constraining it with two patterns, and letting the query machinery find what satisfies both:
 
 ```
-EQUALS   { (VALUE, book) = ANY }
+EQUALS   { (THEME, book) = ANY }
 AUTHORED { (AGENT) = Tolkien, (ANY) = book }
 LISTING  { (ANY) = book, (VALUE, PRICE, USD) = LESS_THAN { (VALUE) = 20 } }
 ```
@@ -335,7 +335,7 @@ If frames can be about the same thing, they need a shared anchor to point to.  T
 
 An item is not a new primitive in the way a frame is.  It is what falls out when frames need to be *about* something: a stable anchor that frames can reference to indicate "I am about *this thing*."  The book is an item.  Tolkien is an item.  Chess as a concept is an item, and so is each individual chess game.  A user is an item, described by NAME, AVATAR, and PUBLIC_KEY frames, referenced as the AGENT in every assertion they sign.  The Librarian itself (the local runtime that manages a user's items and peer connections) is an item.  There is no separate notion of "user account"; there are only items with keypairs.  Each exists as an anchor around which frames cohere, building up a coherent, multi-faceted description.  Any binding on a frame can reference an item, and all such references are equal: THEME in an authorship assertion, LOCATION in a chess move, AGENT in a player registration, RECIPIENT in a recommendation.  The frame relates to each referenced item through whatever role the binding carries.
 
-Section 4 required that data be named by what it is rather than where it lives, and items satisfy this requirement.  Each item has a stable, location-independent identifier, its **Item ID (IID)**, that functions the same way regardless of where the item is stored.  The IID is not assigned by a central registry; in most cases it is generated as a unique random value, though a small number of foundational vocabulary items use deterministic IIDs derived from canonical keys so they can be referenced in code.  In either case, the same IID is recognized on any device, by any peer, without coordination.  The same item can exist in many places and still be identifiable as the same item.
+Earlier we required that data be named by what it is rather than where it lives, and items satisfy this requirement.  Each item has a stable, location-independent identifier, its **Item ID (IID)**, that functions the same way regardless of where the item is stored.  The IID is not assigned by a central registry; in most cases it is generated as a unique random value, though a small number of foundational vocabulary items use deterministic IIDs derived from canonical keys so they can be referenced in code.  In either case, the same IID is recognized on any device, by any peer, without coordination.  The same item can exist in many places and still be identifiable as the same item.
 
 New frames bind to an item over time.  Some are assertions the item's maintainer chooses to endorse (a new chapter in a book, a new move in a chess game); others are assertions by third parties that bind to the item without being endorsed (a reaction, a review, a fact-check).  Both kinds reference the same IID; endorsement is a separate decision.
 
@@ -345,7 +345,7 @@ The set of frames an item endorses at any point in time is recorded in its **man
 
 What makes a particular item the kind of thing it is?  A book is recognizably a book, not because some authority declares it so, but because the frames that describe it are the frames a book is *expected* to have: a title, one or more authors, chapters of text, publication history.  That collection of expectations is what "book" means as a category of item.
 
-Section 5 described how a sememe playing the predicate role serves as a template for a frame.  BOOK, CHESS_GAME, PERSON, LANGUAGE, and DOG play a parallel role at the item level: they serve as templates for items, declaring what frames an instance is expected to endorse.  Call a sememe playing this role an *archetype*.  Predicate and archetype are the two functional roles a sememe can play, both drawn from the same vocabulary.
+As described earlier, a sememe playing the predicate role serves as a template for a frame.  BOOK, CHESS_GAME, PERSON, LANGUAGE, and DOG play a parallel role at the item level: they serve as templates for items, declaring what frames an instance is expected to endorse.  Call a sememe playing this role an *archetype*.  Predicate and archetype are the two functional roles a sememe can play, both drawn from the same vocabulary.
 
 One important asymmetry between them shapes how items grow.  A predicate's declaration is mostly closed: a frame using a particular predicate carries the bindings the predicate calls for, though cross-cutting structural roles like CONFIG can appear on any frame regardless of predicate.  An archetype's declaration is *open*: it lists the frames an instance is expected to endorse, but anyone can assert additional frames that bind to the item without the archetype having defined them.  A book is expected to endorse TEXT, TITLE, and AUTHORED frames.  Nothing prevents someone else from signing a LIKE frame, a citation, a fact-check, a translation, or a review that binds to the same book.  The archetype defines what makes something a book.  It does not gatekeep what others may say about it.
 
@@ -357,7 +357,7 @@ Then moves: `MOVE { (LOCATION) = the-game, (AGENT) = Fischer, (THEME) = king-paw
 
 Because each move is a self-contained signed frame, the game can be played peer-to-peer: each move travels directly from the player who made it to the other, with no referee server, no hosted backend, no central authority.  The game is recorded by being signed; it does not need any third party to become real.  And because each move is a frame, it is queryable: "all games where someone opened e4" is a lookup on MOVE frames with (GOAL) = e4 whose FOLLOWS binding points at the game's initial state (meaning it was the first move).
 
-The pattern generalizes immediately.  A chat room would be an item with signed MEMBERSHIP and MESSAGE frames.  A key log would be KEY, REVOKE, and DELEGATE frames.  An auction would be signed BID frames.  Even real-time shared presence fits: a PRESENT frame asserts "I am in this space," and an AVATAR_STATE frame whose CONFIG policy says "keep only the latest" carries position at 60Hz, replacing the previous one each time rather than accumulating.  A chess move is retained permanently; an avatar position is discarded when a newer one arrives; a video feed binds to a content stream whose blocks are consumed and released.  The difference is the CONFIG policy on the frame, not a separate mechanism.  All the same pattern: an item exists, people make signed assertions about it, and those assertions collectively define what it is.
+The pattern generalizes immediately.  A chat room would be an item with signed MEMBERSHIP and MESSAGE frames.  A key log would be KEY, REVOKE, and DELEGATE frames.  An auction would be signed BID frames.  Even real-time shared presence fits: a PRESENT frame asserts "I am in this space," and an AVATAR_STATE frame whose CONFIG policy says "keep only the latest" carries position at 60Hz, replacing the previous one each time rather than accumulating.  A chess move is retained permanently; an avatar position is discarded when a newer one arrives; a video feed binds to a content stream whose blocks are consumed and released.  The difference is the CONFIG policy on the frame, not a separate mechanism.  All follow the same pattern: an item exists, people make signed assertions about it, and those assertions collectively define what it is.
 
 ### The photograph, revisited
 
@@ -366,9 +366,21 @@ This paper opened with a photograph: a user saves it, and no layer of the stack 
 The photographer takes a picture of Alice and Bob at Alice's graduation.  The item is created, and with it, the frames:
 
 ```
-IMAGE    { (THEME) = the-photo, (VALUE, JPEG) = <image data>, (VALUE, JPEG, THUMBNAIL) = <thumbnail> }
-DEPICTS  { (THEME) = the-photo, (VALUE) = Alice, (LOCATION) = [120px, 340px, 280px, 510px] }
-DEPICTS  { (THEME) = the-photo, (VALUE) = Bob, (LOCATION) = [400px, 320px, 560px, 500px] }
+IMAGE {
+    (THEME) = the-photo,
+    (VALUE, JPEG) = <image data>,
+    (VALUE, JPEG, THUMBNAIL) = <thumbnail>
+}
+DEPICTS {
+    (THEME) = the-photo,
+    (VALUE) = Alice,
+    (LOCATION) = [120px, 340px, 280px, 510px]
+}
+DEPICTS {
+    (THEME) = the-photo,
+    (VALUE) = Bob,
+    (LOCATION) = [400px, 320px, 560px, 500px]
+}
 OCCASION { (THEME) = the-photo, (VALUE) = graduation }
 PLACE    { (THEME) = the-photo, (LOCATION) = [37.4275°N, 122.1697°W] }
 CAPTURED { (THEME) = the-photo, (INSTRUMENT) = iPhone, (TIME) = 2024-06-15 }
@@ -499,7 +511,7 @@ Source and Goal for the bounds of integration.  These roles were defined for phy
 
 Differentiation and limits follow the same pattern: `DIFFERENTIATE { (THEME) = x², (INSTRUMENT) = x }` evaluates to 2x; `LIMIT { (THEME) = 1/x, (GOAL) = ∞ }` evaluates to 0, the variable approaching the Goal the same way a physical object approaches a destination.
 
-The `x` in these examples is a literal key element, as described in section 5: a user-defined name rather than a vocabulary meaning.  Variable binding (`x = 5`, or `EQUALS { (THEME, x) = 5 }`) uses a literal in the compound key to name the variable.  This is what allows the frame model to express computation with variables, not just fixed values.
+The `x` in these examples is a literal key element, as described earlier: a user-defined name rather than a vocabulary meaning.  Variable binding (`x = 5`, or `EQUALS { (THEME, x) = 5 }`) uses a literal in the compound key to name the variable.  This is what allows the frame model to express computation with variables, not just fixed values.
 
 ### The role mapping
 
@@ -526,7 +538,7 @@ If the same small set of thematic roles can structure natural language, social i
 
 ### Mathematics as a language
 
-As noted in section 5, predicates may carry parsing behavior: `+` is a token whose corresponding sememe ADD declares itself as infix with a precedence and associativity.  The consequence for mathematics specifically is that natural language, mathematical expressions, and domain-specific notations coexist within a single input stream.  "find books authored by Tolkien where price < 20 dollars" mixes English with a mathematical comparison, and both resolve through the same pipeline.  "Show games where Fischer opened 1. e4 e5 2.  Nf3 and won in under 30 moves" mixes English with chess algebraic notation and a numeric filter.  "5 feet + 30 cm in meters" mixes unit-bearing arithmetic across two measurement systems.  In each case, every token resolves to a sememe, every sememe declares its parsing behavior, and the language being spoken is inferred from the tokens rather than assumed.
+As noted earlier, predicates may carry parsing behavior: `+` is a token whose corresponding sememe ADD declares itself as infix with a precedence and associativity.  The consequence for mathematics specifically is that natural language, mathematical expressions, and domain-specific notations coexist within a single input stream.  "find books authored by Tolkien where price < 20 dollars" mixes English with a mathematical comparison, and both resolve through the same pipeline.  "Show games where Fischer opened 1. e4 e5 2. Nf3 and won in under 30 moves" mixes English with chess algebraic notation and a numeric filter.  "5 feet + 30 cm in meters" mixes unit-bearing arithmetic across two measurement systems.  In each case, every token resolves to a sememe, every sememe declares its parsing behavior, and the language being spoken is inferred from the tokens rather than assumed.
 
 Mathematical expressions are not bolted onto the side of a semantic layer.  They are frames.  A spreadsheet cell is a frame whose value is the result of an expression frame.  The boundary between "data" and "computation" dissolves the same way "data" and "metadata" does: both are role bindings on predicates.
 
@@ -552,70 +564,56 @@ The deeper point is structural: computation would not need a separate apparatus 
 
 ---
 
-## 10. Custody and Transition
+## 10. Sanity Check
 
-Users have been conditioned over decades to offload identity management to platforms.  "Forgot password?" flows, federated logins, and cloud-hosted credentials train users to treat their accounts as things a service holds on their behalf.  The substrate's promise reverses this: the keypair belongs to the user, and no central authority can grant or revoke it.  Architecturally this is a strength; practically it is an adoption challenge, because users who have never managed their own keys cannot reasonably be asked to start doing so overnight under threat of losing their entire history if they fail.  The question is not whether the architecture supports self-sovereign keys — it does — but how users arrive at self-custody from where they currently are.
-
-The answer is a spectrum of custody, not a single model.  The substrate supports every level on it; users migrate along it as comfort with key responsibility grows.
-
-1. **Gateway-custodial.** A bank, email provider, or access gateway holds keys on the user's behalf — functionally similar to today's custodial relationship with platforms, but with data in the substrate's semantics, so it remains portable if the user later migrates.  This is where most users will enter: onboarding costs no more than creating any other account, and from day one the user's data is substrate-native rather than trapped in an application-specific silo.
-
-2. **Device-bound with platform recovery.** Keys live in the device's secure enclave (Apple's Secure Enclave, Windows TPM, Android Keystore, or equivalent) and sync via the platform's credential infrastructure.  This is the model that passkeys and platform keychains have already made familiar to mainstream users.  The user trusts their platform vendor for recovery, which is roughly the trust level they already have; the substrate's portability means that trust is bounded and revocable rather than total.
-
-3. **Social recovery.** The user's key is split via a threshold scheme (Shamir, 1979) into N shares distributed across trusted peers; any M of them can reconstruct the key if direct access is lost.  The approach requires a set of trusted peers to exist, which is precisely what the substrate's trust graph already provides.  Threshold secret-sharing has been operational in cryptocurrency wallets for years and transfers directly.
-
-4. **Hardware-based self-custody.** A dedicated device holds the key offline; signing happens on-device over a limited interface.  Existing hardware security tokens and cold-storage wallets can serve, though they were built for adjacent purposes (web authentication, cryptocurrency custody) and address device compromise without fully addressing coercion.  Keymaster (Chambers, 2025), a sister project, is purpose-built for this role.  It is designed to be everyday-carried like a physical key on a keyring, affordable enough to be standard rather than specialist, and the only hardware answer to both device compromise and coerced disclosure (threats software alone cannot fully address).  The same model scales upward.  Multiple devices, air-gapped signing, policy-enforced workflows, and multi-party approval support users and organizations with the highest threat models: effectively impossible to compromise, deliberately inconvenient, and suited to high-value assets or sensitive institutional use.  Under this vision, hardware-based custody becomes the long-term default for ordinary users: not a specialist tool for those with high-value assets, but something you carry the way you carry your house keys.
-
-Custodial entry and progressive sovereignty are complementary rather than contradictory.  Identity persists across moves up the spectrum; only the custody relationship changes.  A user can start at level 1 with their bank holding their keys, move to level 2 when they set up a passkey-equipped device, add level 3 recovery once they have built trust relationships, and reach level 4 if their circumstances warrant.  The substrate's portability is what makes this migratable — at each level the keys control the same identity, because identity in the substrate is a keypair, not an account at a service.
-
-Two mechanisms complement the spectrum.  Delegated session keys let a primary key authorize per-device session keys that are individually revocable, usable at any level: losing a laptop revokes a session key rather than the primary.  Graceful degradation handles the worst case of irrecoverable loss: the user creates a new identity and their community re-endorses them under the new key — "this is the same person, whose previous key is retired" — which is how identity actually works when someone changes a name or phone number.  None of these mechanisms is new; what the architecture contributes is a substrate where they compose naturally with the trust graph already in use.  The remaining hard case — coerced key disclosure, where the user is physically compelled to sign — is what Keymaster is designed to address, and is the only part of the custody problem that substrate-level software cannot solve on its own.
-
----
-
-## 11. Sanity Check
-
-An architecture that stores meaning in every assertion, signs every frame, and indexes every semantic binding invites an obvious question: does this scale?  And a peer-to-peer substrate with no central authority invites another: what does the attack surface look like?  Both deserve direct answers.
+The architecture is ambitious: every assertion stores meaning, every frame is signed, every semantic binding is indexed, and the whole substrate runs peer-to-peer without central servers.  Reasonable readers will have questions.  Three stand out: does it scale, what does the attack surface look like, and how do users actually come to hold the keys this requires?  All three deserve direct answers.
 
 ### Scaling
+
+Scaling in a peer-to-peer substrate is a different question than scaling a centralized service.  No single server's capacity caps the network; each node carries its own indexing burden, growing with the assertions it has reason to track.  The substantive questions are how that per-node cost behaves under each pressure: the overhead frames add to raw content, how indexing cost grows under engagement and distributes across the network, what language and text impose, and what the cumulative figures look like at the scale of a complete real-world database.
+
+#### Frame overhead
 
 The first concern is the overhead of the data itself.  Wrapping content in frames rather than storing it as raw bytes adds structure: a predicate, binding keys, signing envelopes.  This overhead is kept small by encoding frames in CBOR (Concise Binary Object Representation; Bormann & Hoffman, 2020), a binary serialization format that avoids the redundancy of text-based formats like JSON — no repeated key strings, no whitespace, no quoting overhead.  A frame that would be several hundred bytes as JSON is typically under half that in CBOR.  All identifiers (item IDs, content hashes) are 34-byte multihashes (a 2-byte type prefix followed by a 32-byte SHA-256 hash).  The content itself (an image, a document, a video) is unchanged; the semantic wrapper is compact.  The overhead of knowing what data means is measured in bytes per frame, not in any proportion of the content it describes.
 
 The more interesting scaling question is indexing.  Every frame creates entries in a fan-out index for each binding whose target is an item or another frame, enabling reverse lookup from any participant.  Each entry is compact: a 102-byte key (target ID, predicate, body hash) and a 34-byte value (storage reference), for 136 bytes per entry.  A second index records which signer attested each frame body, enabling provenance queries ("who signed this assertion?"); its entries are smaller, a 68-byte key plus the same 34-byte storage reference, for 102 bytes per entry.  Not every binding is indexed.  Literal payloads (image bytes, pixel coordinates, definition text) and policy bindings carry no useful reverse-lookup value.  Each binding carries a flag that controls whether it is indexed, and the archetype for a given item type provides sensible defaults.  Timestamps and geographic coordinates do carry query value ("everything from June 2024," "everything near this location"), but the queries they serve are range scans and spatial lookups, not the exact-match reverse lookups the fan-out index provides.  These warrant dedicated indexes of their own, specialized structures serving specific query patterns.
 
-A photograph makes the cost concrete.  The photograph from section 6, with six frames (image data, two DEPICTS assertions, an occasion, a place, a capture record), creates 10 index entries: two per DEPICTS frame (the photograph and the person depicted), plus one or two per remaining frame (the photograph as theme, with an extra entry when a binding points to another item such as the graduation occasion or the capturing device).  Total index cost: under 1.5 kilobytes.  A book with a title, an author, and 50 chapters creates roughly 100 entries, about 14 kilobytes.  A chess game with 30 moves and two players, indexing each move by game, player, destination square, and predecessor move, creates roughly 125 entries, about 17 kilobytes.  A simple social post with three frames creates 6 entries, under a kilobyte.  In every case the absolute index cost is small.  Critically, indexing cost grows linearly with the number of frames, not with content size.  A one-megabyte photograph and a ten-gigabyte movie with the same six descriptive frames produce the same index cost.  A user with 10,000 photographs, 500 books, and 1,000 social posts would have roughly 160,000 index entries, occupying about 22 megabytes.
+A photograph makes the cost concrete.  The graduation photograph from earlier, with six frames (image data, two DEPICTS assertions, an occasion, a place, a capture record), creates 10 index entries: two per DEPICTS frame (the photograph and the person depicted), plus one or two per remaining frame (the photograph as theme, with an extra entry when a binding points to another item such as the graduation occasion or the capturing device).  Total index cost: under 1.5 kilobytes.  A book with a title, an author, and 50 chapters creates roughly 100 entries, about 14 kilobytes.  A chess game with 30 moves and two players, indexing each move by game, player, destination square, and predecessor move, creates roughly 125 entries, about 17 kilobytes.  A simple social post with three frames creates 6 entries, under a kilobyte.  In every case the absolute index cost is small.  Critically, indexing cost grows linearly with the number of frames, not with content size.  A one-megabyte photograph and a ten-gigabyte movie with the same six descriptive frames produce the same index cost.  A user with 10,000 photographs, 500 books, and 1,000 social posts would have roughly 160,000 index entries, occupying about 22 megabytes.
 
-The critical question is what happens at the extremes.  Social media engagement follows a steep power-law distribution: the vast majority of posts receive single-digit reactions, a small fraction receive thousands, and a handful per year reach into the millions.  Buffer's 2026 analysis of 52 million posts across ten platforms found median engagement in the low single digits per post on text-centric networks (around four interactions per post on Bluesky, three on Mastodon), with comparable patterns on the larger platforms measured as engagement rates (Buffer, 2026).  The all-time record is 74 million likes on a single Instagram post (Messi's 2022 World Cup photograph).
+#### Indexing and aggregation
+
+The critical question is what happens at the extremes.  Social media engagement follows a steep power-law distribution: the vast majority of posts receive single-digit reactions, a small fraction receive thousands, and a handful per year reach into the millions.  Buffer's analysis of more than 52 million posts across ten platforms found median engagement in the low single digits per post on text-centric networks (around four interactions per post on Bluesky, three on Mastodon), and median engagement rates between 2.5% and 6.2% on larger platforms like Instagram, Facebook, and LinkedIn (Buffer, 2026).  The all-time record is 74 million likes on a single Instagram post (Messi's 2022 World Cup photograph).
 
 | Engagement tier | Reactions per post | Share of all posts |
 |---|---|---|
-| Zero or near-zero | 0-5 | ~90% |
-| Normal | 5-100 | ~8-9% |
-| Popular | 100-10,000 | ~1% |
-| Viral | 10,000-1,000,000 | ~0.01% |
+| Zero or near-zero | 0-5 | ≈90% |
+| Normal | 5-100 | ≈8-9% |
+| Popular | 100-10,000 | ≈1% |
+| Viral | 10,000-1,000,000 | ≈0.01% |
 | Mega-viral | 1,000,000+ | a handful per year globally |
 
 For the typical case, the indexing cost is invisible.  A post with five reactions generates ten index entries and roughly one kilobyte of index data.  A popular post with ten thousand reactions generates roughly three megabytes of index data.
 
-For the extreme case, consider a viral post with five million reactions.  Roughly 70% are simple reactions (a predicate and two bindings, no text, ~200 bytes per frame body), 25% carry short comments (~350 bytes), 4% carry longer comments (~700 bytes), and 1% carry substantial text (~2,500 bytes).  Add second-order reactions (replies to comments, roughly 500,000 additional frames) and the total comes to approximately 5.5 million frames.
+For the extreme case, consider a viral post with five million reactions.  70% are simple reactions (a predicate and two bindings, no text, ≈200 bytes per frame body), 25% carry short comments (≈350 bytes), 4% carry longer comments (≈700 bytes), and 1% carry substantial text (≈2,500 bytes).  Add second-order reactions (replies to comments, ≈500,000 additional frames) and the total comes to ≈5.5 million frames.
 
 | Component | Calculation | Size |
 |---|---|---|
-| Frame bodies (content-addressed) | 5.5M frames, weighted average ~290 bytes | ~1.6 GB |
-| Signing envelopes (ed25519 signature + key ID + timestamp + CBOR framing) | 5.5M × ~126 bytes | ~690 MB |
-| Fan-out index | 5.5M × 2 entries × 136 bytes | ~1.5 GB |
-| Record index | 5.5M × 102 bytes | ~560 MB |
-| **Total** | | **~4.3 GB** |
+| Frame bodies (content-addressed) | 5.5M frames, weighted average ≈290 bytes | ≈1.6 GB |
+| Signing envelopes (Ed25519 signature + key ID + timestamp + CBOR framing) | 5.5M × ≈126 bytes | ≈690 MB |
+| Fan-out index | 5.5M × 2 entries × 136 bytes | ≈1.5 GB |
+| Record index | 5.5M × 102 bytes | ≈560 MB |
+| **Total** | | **≈4.3 GB** |
 
-4.3 gigabytes for the most extreme case in the distribution.  That is the total across the entire network.  The peer-to-peer model distributes this cost.  In a centralized system, one server cluster holds every reaction to a viral post.  In this architecture, no single node needs to hold all the reactions, though any node that wants to can reach across the graph to accumulate them.  Each Librarian's index reflects its own social reach.
+≈4.3 gigabytes for the most extreme case in the distribution.  That is the total across the entire network.  The peer-to-peer model distributes this cost.  In a centralized system, one server cluster holds every reaction to a viral post.  In this architecture, no single node needs to hold all the reactions, though any node that wants to can reach across the graph to accumulate them.  Each Librarian's index reflects its own social reach.
 
 | Node type | Reactions held | Total storage |
 |---|---|---|
-| Casual viewer (few hundred peers) | 50-200 | ~150 KB |
+| Casual viewer (few hundred peers) | 50-200 | ≈150 KB |
 | Active participant (few thousand peers) | 2,000-5,000 | 1.5-4 MB |
-| Popular creator (500K followers, 10% react) | ~50,000 | ~40 MB |
+| Popular creator (500K followers, 10% react) | ≈50,000 | ≈40 MB |
 | Community hub or relay node | 100K-500K | 80-400 MB |
 | Analytics company (wide social reach) | 1-3M | 1-2.5 GB |
-| Full aggregator (near-complete) | 5M+ | ~4.3 GB |
+| Full aggregator (near-complete) | 5M+ | ≈4.3 GB |
 
 The social graph is a natural shard boundary, and the per-node cost is bounded by that node's actual relationships.
 
@@ -623,40 +621,72 @@ Signing performance is also worth addressing, since every frame carries a crypto
 
 The distributed model raises its own question: how do you count reactions you do not hold?  If no single node has seen every reaction to a viral post, how does anyone report "1.2 million likes"?  This problem only arises for items that accumulate reactions beyond what any single node's social graph delivers, a small fraction of all items given the power-law distribution described above.  The vast majority of items never need aggregation at all.  For those that do, the solution comes from distributed cardinality estimation.  HyperLogLog (Flajolet, Fusy, Gandouet, & Meunier, 2007) is a near-optimal probabilistic algorithm for exactly this problem, widely deployed in production systems (Redis, PostgreSQL, BigQuery, and others).  Each node maintains a compact probabilistic sketch (a HyperLogLog register, roughly 16 kilobytes regardless of the underlying count) that summarizes the reactions it has seen.  These sketches are mergeable: combining sketches from multiple peers produces an estimate that correctly deduplicates reactions seen by more than one peer, even when social graphs overlap arbitrarily.  The merged result has bounded error, typically within two percent.  The sketch itself is just another frame, signed and replicated through the same trust graph as everything else.
 
-Text search raises a separate scaling concern.  The token dictionary holds two fundamentally different kinds of text.  The first is **vocabulary**: lexemes from language imports, mapping words to their meanings.  This component is effectively bounded.  A language has a finite number of words, catalogued in resources like WordNet, and the cost of importing a language is fixed and known in advance.  Languages do grow over time, and users can coin arbitrary terms, but the rate of vocabulary growth is trivial relative to the base.  The second is **user content**: titles, proper names, and other text from VALUE bindings that users create over time.  This component is unbounded, growing linearly with the items indexed.  The two have different scaling profiles and are worth examining separately.
+#### Language and text indexing
+
+Text handling raises a separate scaling concern.  The token dictionary holds two fundamentally different kinds of text.  The first is **vocabulary**: lexemes from language imports, mapping words to their meanings.  This component is effectively bounded.  A language has a finite number of words, cataloged in resources like WordNet, and the cost of importing a language is fixed and known in advance.  Languages do grow over time, and users can coin arbitrary terms, but the rate of vocabulary growth is trivial relative to the base.  The second is **user content**: titles, proper names, and other text from VALUE bindings that users create over time.  This component is unbounded, growing linearly with the items indexed.  The two have different scaling profiles and are worth examining separately.
 
 The resolution pipeline that serves both uses a lattice of overlapping candidate spans (single words, two-word windows, three-word windows) scored by a Viterbi path (Viterbi, 1967) to find the best interpretation.  Multi-word phrases ("the shawshank redemption") are indexed as single tokens alongside their individual content words, so that both exact-match and partial-match queries work.  This windowed approach, designed for multi-word expressions in English, turns out to be exactly the algorithm that Chinese and Japanese word segmentation requires: overlapping character windows resolved against a dictionary.  One tokenizer, all languages.
 
-The vocabulary component is bounded by the linguistic resources it draws from.  Each language adds a fixed cost to the token dictionary:
+The vocabulary component is bounded by the linguistic resources it draws from.  Loading a language has two parts: the **token dictionary** (the lookup index from text to sememe references) and the **semantic graph** (each sememe's frames carrying its hypernym, hyponym, meronym, antonym, similar-to, gloss, example, and source-identifier relationships).
 
-| Language | Synsets | Lexeme entries (with inflections) | Token dictionary size |
-|---|---|---|---|
-| English (OEWN 2025) | 117,000 | ~600-700K | ~35 MB |
-| German | 36,000 | ~150K + morphological forms | ~20 MB |
-| Chinese (Mandarin) | ~60-80K | ~70K (no inflections) | ~4 MB |
-| Japanese | ~50-70K | ~200K (verb/adjective forms) | ~12 MB |
-| Typical language | 30-80K | ~200-500K | 10-25 MB |
+The token dictionary cost per language:
 
-A polyglot user loading five languages would have a vocabulary index of roughly 100 megabytes.  Loading every language for which resources exist (100+) would reach single-digit gigabytes.  Both are routine on commodity hardware.
+| Language | Source synsets | Lexeme entries (with inflections) | Token dictionary size |
+|---|----------------|---|---|
+| English (OEWN) | ≈108,000       | 600-700K | ≈80 MB |
+| German (OdeNet) | ≈36,000        | 800K-1.2M | ≈190 MB |
+| Mandarin (COW) | ≈42,000        | ≈62K | ≈4 MB |
+| Japanese (JWN) | ≈57,000        | 300-400K | ≈55 MB |
+| Typical language | 30-80K         | 200-700K | 10-130 MB |
+
+Source synset counts are per-language wordnet sizes; through CILI, most concepts overlap across languages, so loading multiple languages does not multiply unique-sememe counts linearly.  Lexemes and token dictionary size, by contrast, are additive — each language adds its own word forms pointing at the (mostly shared) sememes.
+
+The semantic graph adds significant additional cost on top of the token dictionary.  At an average of ~11 frames per sememe (relationships, glosses, examples, source identifiers) with full overhead (frame bodies ≈200 bytes, per-frame signing ≈126 bytes, fan-out and record index entries, manifest contribution), each sememe item costs roughly 9 KB.  For English (108K sememes), the full semantic graph is ≈970 MB; including the token dictionary, the complete English vocabulary is roughly 1 GB.
+
+The picture for additional languages is more favorable thanks to CILI: the semantic relationships (hypernym hierarchy, source identifiers, structural cross-references) are mostly shared across languages and counted only once.  Each additional language adds primarily its own token dictionary plus per-language glosses and examples, averaging roughly 250 megabytes.
+
+A polyglot user loading five languages would have a complete vocabulary of roughly 2 gigabytes.  Loading every language for which resources exist (100+) would reach about 9 gigabytes, with the marginal cost per language dropping as smaller languages are added.  Both are routine on commodity hardware.
 
 User-generated content (titles, proper names) grows linearly with the items indexed.  Each token dictionary entry carries 41 bytes of fixed overhead (content hash, binding index, weight) plus the token text itself, so entries range from under 50 bytes for short words to over 100 for long multi-word titles.  A node carrying ten million titles (the scale of IMDB) averaging four indexed words each would add roughly 40 million entries, on the order of two gigabytes.  Function words (articles, prepositions, conjunctions) that carry no discriminating value for search can be excluded from individual-word indexing at the direction of the language item itself, which participates in parsing and knows which of its word categories are worth indexing.  This reduces the entry count by roughly 30-40%, since function words are disproportionately common in titles.
 
-A comprehensive worked example puts these numbers in perspective.  Consider a complete film database at the scale of IMDB: 10 million titles (movies, television series, episodes, shorts) and 12 million person entries (actors, directors, writers, producers, crew).  Each title carries not just a title frame but genre assignments, release dates, ratings, synopses, and the relationships that make a film database useful: an average of 12 cast members and 10 crew members per title, each a signed frame binding the person to the title in a specific role.  Each person entry carries name, biography, and photograph frames.  The full accounting:
+#### A complete database example
+
+A worked example puts these numbers in perspective.  Consider a complete film database at the scale of IMDB — the structured semantic content only.  Long-form content (full synopses, biographies, user reviews, photographs, posters, trailers) is addressed by hash and stored separately; that cost is identical in any architecture and so is excluded from this analysis.  The semantic structure consists of ≈10 million titles (movies, television series, episodes, shorts) and ≈12 million person entries (actors, directors, writers, producers, crew).  Each title carries frames for title strings, genres, release dates, ratings, and runtimes, plus the relationships that make a film database useful: an average of 12 cast members and 10 crew members per title, each a signed frame binding the person to the title in a specific role.  Each person entry carries frames for name, birth/death dates, birthplace, and profession.  The full accounting:
 
 | Component | Calculation | Size |
 |---|---|---|
-| Title frames (metadata, genres, dates, ratings, synopses) | 10M titles × ~10 frames × ~200 bytes | ~20 GB |
-| Cast and crew frames | 10M titles × ~22 people × ~200 bytes | ~44 GB |
-| Person entries | 12M people × ~5 frames × ~200 bytes | ~12 GB |
-| Signing envelopes (all frames) | ~380M × ~126 bytes | ~48 GB |
-| Fan-out index (FRAME_BY_TARGET) | ~380M × ~2 entries × 136 bytes | ~103 GB |
-| Record index (RECORD_BY_BODY) | ~380M × 102 bytes | ~39 GB |
-| Token dictionary (titles + person names) | ~65M entries | ~3 GB |
-| **Total for the entire database** | | **~270 GB** |
+| Title frames (titles, genres, dates, ratings, runtimes) | 10M titles × ≈10 frames × ≈200 bytes | ≈20 GB |
+| Cast and crew relationship frames | 10M titles × ≈22 people × ≈200 bytes | ≈44 GB |
+| Person frames (names, birth/death dates, birthplaces, professions) | 12M people × ≈5 frames × ≈200 bytes | ≈12 GB |
+| Signing envelopes (all frames) | ≈380M × ≈126 bytes | ≈48 GB |
+| Item manifests (signed endorsement lists) | 22M items × varying | ≈45 GB |
+| Fan-out index (FRAME_BY_TARGET) | ≈380M × ≈2 entries × 136 bytes | ≈103 GB |
+| Record index (RECORD_BY_BODY) | ≈380M × 102 bytes | ≈39 GB |
+| Token dictionary (titles + person names) | ≈65M entries | ≈3 GB |
+| **Total for the entire database** | | **≈315 GB** |
 
-270 gigabytes for the entirety of one of the largest publicly accessible structured databases on the internet, fully indexed, every assertion signed, every relationship queryable by meaning.  That is a single commodity hard drive.  And as with the viral-post example, no single node needs to hold all of it: a casual movie fan who has looked up a few hundred films holds a few tens of megabytes, while the institutional node that maintains the authoritative catalog holds the full 270 GB.
+≈315 gigabytes for the entire semantic structure of a major publicly accessible structured database — every assertion signed, every relationship queryable by meaning.  That is a single commodity hard drive.  And as with the viral-post example, the cost falls only where the data is wanted: a casual movie fan who has looked up a few hundred films holds a few tens of megabytes, while only the institutional node that maintains the authoritative catalog holds the full 315 GB.
 
-The scaling picture is, on balance, comfortable.  Index growth is linear in the number of semantic assertions, the social graph bounds per-node cost, probabilistic aggregation handles the counting problem, text search scales with content, and signing is fast.  No component exhibits superlinear growth.  All estimates above are uncompressed; practical storage backends apply key-prefix compression and block compression that would only improve them.
+In a typical relational database (PostgreSQL, MySQL), an equivalent dataset with conventional indexing would occupy roughly 50 GB.  The substrate's 315 GB is roughly 6× larger, in exchange for architectural properties the relational version cannot match.  The breakdown separates indexing-to-indexing comparison from data-side overhead:
+
+| Component | Relational DB | Frame substrate |
+|---|---|---|
+| Data (rows / frames) | 25-30 GB | ≈76 GB |
+| Cryptographic signing envelopes (per-record attribution) | not present | ≈48 GB |
+| Item manifests (signed endorsement lists) | not present | ≈45 GB |
+| Standard query indexes | ≈20 GB | (subsumed by universal index below) |
+| Text search (names only) | ≈3 GB | ≈3 GB |
+| Universal reverse-lookup (any participant → any frame) | not provided | ≈103 GB |
+| Provenance lookup (signer → frame) | not present | ≈39 GB |
+| **Total** | **≈50 GB** | **≈315 GB** |
+
+The proposed substrate spends ≈281 GB beyond the relational architecture, in five categories.  On the **data side**: ≈46 GB for **frame structure overhead** (each assertion self-describes its own roles rather than relying on a fixed table schema, which is what allows third parties to add new kinds of frames about existing items without coordination), ≈48 GB for **per-record cryptographic signing** (every assertion individually verifiable by its author's key), and ≈45 GB for **item manifests** (signed endorsement lists that record which frames each item officially includes, providing item-level versioning and integrity).  On the **indexing side**: ≈103 GB for **universal reverse-lookup** (any participant in any frame is queryable as the target of every assertion that names it; an RDB matches this only by adding bespoke indexes per relationship type, with costs that grow as queries multiply), and ≈39 GB for **provenance lookup** (signer → frame, enabling "who attested this?" queries).
+
+The ≈48 GB signing figure is a conservative upper bound: in practice, many frames would be endorsed via signed item manifests rather than individually signed, which would reduce the actual attribution overhead substantially below this number.
+
+The ≈6× total is the price of cryptographic provenance, universal queryability, decomposable structure, and item-level versioning together.  On commodity hardware in 2026, both totals fit comfortably on a (not even particularly large) single drive.
+
+The scaling picture is, on balance, comfortable — and what makes it comfortable is not just that the absolute numbers are small, but that those numbers buy substantially more functionality than the architectures they replace.  The substrate's storage cost is several times that of a relational equivalent, but in exchange every assertion is cryptographically attributable, every relationship is reverse-queryable without per-query index design, and every item is a portable, application-agnostic object that any runtime can interpret.  Index growth is linear in the number of semantic assertions, the social graph bounds per-node cost, probabilistic aggregation handles the counting problem, text search scales with content, and signing is fast.  No component exhibits superlinear growth.  All estimates above are uncompressed, and would only improve under the key-prefix and block compression that practical storage backends apply.
 
 ### Attack surface
 
@@ -676,13 +706,31 @@ Several attack patterns that threaten conventional peer-to-peer systems are natu
 
 **Network-layer attacks** remain possible.  The substrate operates above the transport layer and does not change the physics of TCP/IP.  An attacker can still saturate a specific machine's bandwidth.  The consequence, however, is limited to that machine.  Because every item a user has previously accessed is persisted locally (not cached ephemerally, but held as a durable local copy), even taking a popular node offline for hours may go unnoticed by users who already hold the data they need.
 
-The attack surface that remains is key compromise: if an attacker obtains a user's private key, they can sign frames as that user.  No purely software-based substrate can fully address this, because the threat model includes physical access to the device where the key is stored.  The custody spectrum described in Section 10 addresses it progressively, with hardware-based self-custody as the strongest defense.
+The attack surface that remains is key compromise: if an attacker obtains a user's private key, they can sign frames as that user.  No purely software-based substrate can fully address this, because the threat model includes physical access to the device where the key is stored.  The custody spectrum described earlier addresses it progressively, with hardware-based self-custody as the strongest defense.
 
 The fundamental shift is economic.  Generating network traffic is cheap; building fake social trust is expensive, slow, and self-defeating.  Every attack that depends on trust must first earn it, and every abuse of trust is signed, attributable, and self-correcting through the trust matrix.  The architecture does not claim to eliminate attacks, but it changes what is required to mount one and ensures that the cost of attacking scales with the trust the attacker must build and then burn.
 
+### Custody and transition
+
+Users have been conditioned over decades to offload identity management to platforms.  "Forgot password?" flows, federated logins, and cloud-hosted credentials train users to treat their accounts as things a service holds on their behalf.  The substrate's promise reverses this: the keypair belongs to the user, and no central authority can grant or revoke it.  Architecturally this is a strength; practically it is an adoption challenge, because users who have never managed their own keys cannot reasonably be asked to start doing so overnight under threat of losing their entire history if they fail.  The question is not whether the architecture supports self-sovereign keys — it does — but how users arrive at self-custody from where they currently are.
+
+The answer is a spectrum of custody, not a single model.  The substrate supports every level on it; users migrate along it as comfort with key responsibility grows.
+
+1. **Gateway-custodial.** A bank, email provider, or access gateway holds keys on the user's behalf — functionally similar to today's custodial relationship with platforms, but with data in the substrate's semantics, so it remains portable if the user later migrates.  This is where most users will enter: onboarding costs no more than creating any other account, and from day one the user's data is substrate-native rather than trapped in an application-specific silo.
+
+2. **Device-bound with platform recovery.** Keys live in the device's secure enclave (Apple's Secure Enclave, Windows TPM, Android Keystore, or equivalent) and sync via the platform's credential infrastructure.  This is the model that passkeys and platform keychains have already made familiar to mainstream users.  The user trusts their platform vendor for recovery, which is roughly the trust level they already have; the substrate's portability means that trust is bounded and revocable rather than total.
+
+3. **Social recovery.** The user's key is split via a threshold scheme (Shamir, 1979) into N shares distributed across trusted peers; any M of them can reconstruct the key if direct access is lost.  The approach requires a set of trusted peers to exist, which is precisely what the substrate's trust graph already provides.  Threshold secret-sharing has been operational in cryptocurrency wallets for years and transfers directly.
+
+4. **Hardware-based self-custody.** A dedicated device holds the key offline; signing happens on-device over a limited interface.  Existing hardware security tokens and cold-storage wallets can serve, though they were built for adjacent purposes (web authentication, cryptocurrency custody) and address device compromise without fully addressing coercion.  Keymaster (Chambers, 2025), a sister project, is purpose-built for this role.  It is designed to be everyday-carried like a physical key on a keyring, affordable enough to be standard rather than specialist, and the only hardware answer to both device compromise and coerced disclosure (threats software alone cannot fully address).  The same model scales upward.  Multiple devices, air-gapped signing, policy-enforced workflows, and multi-party approval support users and organizations with the highest threat models: effectively impossible to compromise, deliberately inconvenient, and suited to high-value assets or sensitive institutional use.  Under this vision, hardware-based custody becomes the long-term default for ordinary users: not a specialist tool for those with high-value assets, but something you carry the way you carry your house keys.
+
+Custodial entry and progressive sovereignty are complementary rather than contradictory.  Identity persists across moves up the spectrum; only the custody relationship changes.  A user can start at level 1 with their bank holding their keys, move to level 2 when they set up a passkey-equipped device, add level 3 recovery once they have built trust relationships, and ultimately reach level 4.  The substrate's portability is what makes this migratable — at each level the keys control the same identity, because identity in the substrate is a keypair, not an account at a service.
+
+Two mechanisms complement the spectrum.  Delegated session keys let a primary key authorize per-device session keys that are individually revocable, usable at any level: losing a laptop revokes a session key rather than the primary.  Graceful degradation handles the worst case of irrecoverable loss: the user creates a new identity and their community re-endorses them under the new key — "this is the same person, whose previous key is retired" — which is how identity actually works when someone changes a name or phone number.  None of these mechanisms is new; what the architecture contributes is a substrate where they compose naturally with the trust graph already in use.  The remaining hard case — coerced key disclosure, where the user is physically compelled to sign — is what Keymaster is designed to address, and is the only part of the custody problem that substrate-level software cannot solve on its own.
+
 ---
 
-## 12. What Changes
+## 11. What Changes
 
 The architecture described in the preceding sections has consequences that extend beyond the technical.  Several are worth naming because they are not obvious from the primitives alone.
 
@@ -700,7 +748,7 @@ Two properties of the locality pillar deserve explicit mention because they are 
 
 ---
 
-## 13. Authorship, Not Ownership
+## 12. Authorship, Not Ownership
 
 A popular slogan in the decentralization and crypto communities is "own your data."  The phrase evokes the right sentiment: the lopsided relationship between users and platforms is unjust, something must change, and users deserve agency over their own contributions.  The word "ownership" applied to data, however, promises more than any technical system can deliver, and it is worth stating plainly what this proposal does and does not accomplish.
 
@@ -718,7 +766,7 @@ The word "ownership" invites confusion because it borrows from property law what
 
 ---
 
-## 14. Honest Reckoning
+## 13. Honest Reckoning
 
 I am not the first to propose an ambitious rethinking of how computing handles information.  The history of such proposals is rich in cautionary lessons, and I would be foolish to ignore them.
 
@@ -744,9 +792,9 @@ What do these teach?
 
 **Neither pillar can be optional.** This is the deepest lesson from the Semantic Web on one side and from local-first retrofits on the other.  If creating semantic structure is a separate step from creating data, most people skip it.  If local control is a separate feature to opt into, most people stay with the hosted default.  The design must make creating data *be* creating semantic, user-held structure, the way writing a sentence *is* expressing meaning, not writing sounds and then separately annotating what they mean.
 
-Can this proposal avoid the fates of its predecessors?  Honestly: I do not know.  The ambition is large, the history is cautionary, and the engineering challenges are real.  The linguistic resources now exist, however.  WordNet has 120,000 synsets, CILI links them across languages, VerbNet classifies 300 verb classes with role declarations, ISO 24617-4 standardizes the role inventory, and UniMorph provides morphological data for 100+ languages.  These resources represent decades of cumulative scholarly work.  They did not exist when CYC began, when the Semantic Web was proposed, or when Croquet was built.
+Can this proposal avoid the fates of its predecessors?  Honestly: I do not know.  The ambition is large, the history is cautionary, and the engineering challenges are real.  The linguistic resources now exist, however.  WordNet has ≈108,000 synsets, CILI links them across languages, VerbNet classifies 300 verb classes with role declarations, ISO 24617-4 standardizes the role inventory, and UniMorph (Batsuren et al., 2022) provides morphological data for 100+ languages.  These resources represent decades of cumulative scholarly work.  They did not exist when CYC began, when the Semantic Web was proposed, or when Croquet was built.
 
-Neither did the technical infrastructure for the locality pillar.  Modern signing cryptography (ed25519 and related primitives) is cheap enough to apply at the per-message level.  Content-addressing is ubiquitous (every Git commit is a use of it), CRDTs have moved from research to shipping practice, and open-source P2P transport stacks (libp2p, modern QUIC implementations) are mature.  A local-first substrate in 2026 is not conjuring machinery from nothing; it is composing pieces that have all shipped, some many times over.
+Neither did the technical infrastructure for the locality pillar.  Modern signing cryptography (Ed25519 and related primitives) is cheap enough to apply at the per-message level.  Content-addressing is ubiquitous (every Git commit is a use of it), CRDTs have moved from research to shipping practice, and open-source P2P transport stacks (libp2p, modern QUIC implementations) are mature.  A local-first substrate in 2026 is not conjuring machinery from nothing; it is composing pieces that have all shipped, some many times over.
 
 And, worth stating plainly: AI assistance has compressed what was previously decades of solo implementation work into feasible timescales, and sustained dialogue with it has contributed to the clarity of the model as a whole.  The bottleneck for ambitious software projects has always been the sheer volume of code required, and that bottleneck has narrowed dramatically.  This does not guarantee success, but it changes the economics of ambition.
 

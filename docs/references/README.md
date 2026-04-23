@@ -68,7 +68,7 @@ Common Graph seeds its sememes from WordNet via CILI identifiers, enabling langu
 
 - **Youn et al 2016 - Universal Structure of Human Lexical Semantics.pdf** — Youn, H. et al. (2016). "On the Universal Structure of Human Lexical Semantics." *PNAS*. *Cross-linguistic evidence that semantic networks share universal structure — empirical support for Common Graph's language-neutral sememe layer.*
 
-- **Batsuren 2022 - UniMorph 4.0.pdf** — Batsuren, K. et al. (2022). "UniMorph 4.0: Universal Morphology." In *Proceedings of the 13th Language Resources and Evaluation Conference (LREC 2022)*, 840-855. ELRA. *Broad-coverage normalized morphological inflection tables for 100+ languages with a shared feature schema. Common Graph uses UniMorph data to handle morphological variation when resolving inflected lexemes to sememes across languages — a lexeme's surface forms map back to its lemma through UniMorph-style feature bundles.*
+- **Batsuren et al 2022 - UniMorph 4.0 Universal Morphology.pdf** — Batsuren, K. et al. (2022). "UniMorph 4.0: Universal Morphology." In *Proceedings of the 13th Language Resources and Evaluation Conference (LREC 2022)*, 840-855. ELRA. *Broad-coverage normalized morphological inflection tables for 100+ languages with a shared feature schema. Common Graph uses UniMorph data to handle morphological variation when resolving inflected lexemes to sememes across languages — a lexeme's surface forms map back to its lemma through UniMorph-style feature bundles.*
 
 - **Snow, Jurafsky, Ng 2006 - Semantic Taxonomy Induction.pdf** — Snow, R., Jurafsky, D., & Ng, A. Y. (2006). "Semantic Taxonomy Induction from Heterogeneous Evidence." In *Proceedings of ACL*. *Automatic taxonomy construction from multiple knowledge sources.*
 
