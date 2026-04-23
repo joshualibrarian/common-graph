@@ -584,14 +584,6 @@ A photograph makes the cost concrete.  The graduation photograph from earlier, w
 
 The critical question is what happens at the extremes.  Social media engagement follows a steep power-law distribution: the vast majority of posts receive single-digit reactions, a small fraction receive thousands, and a handful per year reach into the millions.  Buffer's analysis of more than 52 million posts across ten platforms found median engagement in the low single digits per post on text-centric networks (around four interactions per post on Bluesky, three on Mastodon), and median engagement rates between 2.5% and 6.2% on larger platforms like Instagram, Facebook, and LinkedIn (Buffer, 2026).  The all-time record is 74 million likes on a single Instagram post (Messi's 2022 World Cup photograph).
 
-| Engagement tier | Reactions per post | Share of all posts |
-|---|---|---|
-| Zero or near-zero | 0-5 | ≈90% |
-| Normal | 5-100 | ≈8-9% |
-| Popular | 100-10,000 | ≈1% |
-| Viral | 10,000-1,000,000 | ≈0.01% |
-| Mega-viral | 1,000,000+ | a handful per year globally |
-
 For the typical case, the indexing cost is invisible.  A post with five reactions generates ten index entries and roughly one kilobyte of index data.  A popular post with ten thousand reactions generates roughly three megabytes of index data.
 
 For the extreme case, consider a viral post with five million reactions.  70% are simple reactions (a predicate and two bindings, no text, ≈200 bytes per frame body), 25% carry short comments (≈350 bytes), 4% carry longer comments (≈700 bytes), and 1% carry substantial text (≈2,500 bytes).  Add second-order reactions (replies to comments, ≈500,000 additional frames) and the total comes to ≈5.5 million frames.
