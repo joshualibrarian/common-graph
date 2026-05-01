@@ -122,7 +122,8 @@ public interface RocksStore<E extends Enum<E> & ColumnSchema> extends ByteStore<
         ColumnFamilyOptions opts = new ColumnFamilyOptions()
                 .setTableFormatConfig(table)
                 .setLevelCompactionDynamicLevelBytes(true);
-        if (schema.prefixLen() != null) opts.useFixedLengthPrefixExtractor(schema.prefixLen());
+        // Fixed-length prefix extraction is not used: keys contain self-delimiting
+        // multihashes whose length is not constant across hash algorithms.
 
         ColumnFamilyDescriptor desc =
                 new ColumnFamilyDescriptor(schema.schemaName().getBytes(StandardCharsets.UTF_8), opts);

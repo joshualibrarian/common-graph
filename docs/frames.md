@@ -8,21 +8,24 @@ The fundamental primitive in Common Graph is the **semantic frame** — a predic
 
 A frame is a **predicate** and a list of **bindings**. That's it.
 
+A frame's body is a **Datum** — the unified structural primitive of Common Graph. See `datum.md` for the full specification of the Datum primitive and its encoding. The short version:
+
 ```
-FrameBody {
-    predicate:  ItemID          // what kind of assertion
-    bindings:   [Binding...]    // role-keyed values filling the predicate's slots
+Body Datum {
+    head-reference:  Tag-6( @<predicate-IID> )    // what kind of assertion (a meaning)
+    bindings:        [Binding...]                  // role-keyed values filling the predicate's slots
 }
 ```
 
-Each binding has five parts:
+The head reference uses the `@` prefix because predicates are items (referenced by IID). For a manifest body, the head reference uses `@<archetype-IID>` instead.
+
+Each binding has three parts:
 
 ```
 Binding {
     role:        ItemID              // semantic function (NAME, THEME, AGENT, RESULT, ...)
-    qualifiers:  [FrameToken]       // narrowing + constraints (sememes or literal values)
+    qualifiers:  [FrameToken]        // narrowing + constraints (sememes or literal values)
     target:      BindingTarget       // the bound value (item ref, literal, content CID)
-    identity:    boolean             // does this binding affect the body hash?
     index:       boolean             // should this binding be indexed for reverse lookup?
 }
 ```
@@ -30,8 +33,9 @@ Binding {
 - **Role**: what KIND of binding — the semantic function this value plays (always a sememe)
 - **Qualifiers**: WHICH variant of that role — narrows the binding and constrains valid inputs. Can be sememes (ENGLISH, VERB, QUANTITY) or literals ("x", "tavern") for developer/math identifiers.
 - **Target**: what's actually bound — the data
-- **Identity**: whether this binding contributes to the FrameBody's content hash. Identity bindings define WHAT the frame IS. Non-identity bindings (config, presentation) can change without creating a new frame.
 - **Index**: whether this binding creates a reverse-lookup entry. The index behavior depends on the target type: string targets → TokenDictionary posting; ItemID targets → FRAME_BY_ITEM entry. These are mutually exclusive by target type.
+
+The body Datum's CID is computed from its full encoded form — head reference plus all bindings. Bodies do not carry signatures; signatures live on Record Datums (see *Records* below).
 
 ### Thematic Roles
 
@@ -210,19 +214,6 @@ AUTHORED   { THEME:→book,     AGENT:→Tolkien }         — THEME is the item
 
 The indexer indexes all indexed bindings that reference items in FRAME_BY_ITEM, regardless of role — indexing is controlled by each binding's index flag.
 
-### Identity: Per Binding
-
-Every binding is either **identity** or **non-identity**:
-
-- **Identity** — this value IS part of the assertion. Changing it changes the body hash. A title's text. The players in a chess game. The crop in a harvest record.
-- **Non-identity** — this value rides alongside the assertion but doesn't affect its identity. Config, styling, derived content.
-
-The default comes from:
-1. **The role sememe** — some roles are inherently non-identity (CONFIG is usually not part of the body hash)
-2. **The predicate** — declares defaults for its expected roles
-
-The binding creator can always override.
-
 ### Index: Per Binding
 
 Every binding is either **indexed** or **non-indexed**:
@@ -230,43 +221,53 @@ Every binding is either **indexed** or **non-indexed**:
 - **Indexed** — creates a reverse-lookup entry in the FRAME_BY_ITEM index. If `AGENT:[]→Tolkien` is indexed, querying "frames involving Tolkien" finds this frame.
 - **Non-indexed** — only reachable through the frame itself.
 
-The two flags are orthogonal:
+| index | Example |
+|-------|---------|
+| true | `AGENT:[]→Tolkien` — discoverable from Tolkien |
+| true | `AGENT:[PLAYER, WHITE]→Fischer` — game state, indexed so you find games by player |
+| false | `NAME:[]→"The Hobbit"` — title text, not indexed by string |
+| false | `NAME:[MKV, SD]→transcode_CID` — derived content, not indexed |
 
-| identity | index | Example |
-|----------|-------|---------|
-| true | true | `AGENT:[]→Tolkien` — IS the assertion, discoverable from Tolkien |
-| true | false | `NAME:[]→"The Hobbit"` — IS the title, not indexed by string |
-| false | true | `AGENT:[PLAYER, WHITE]→Fischer` — game state, but indexed so you find games by player |
-| false | false | `NAME:[MKV, SD]→transcode_CID` — derived content, not indexed |
+## Body, Record, Endorsement, Frame
 
-## Four Objects: Body, Record, Endorsement, Frame
+Bodies and Records are configurations of the unified **Datum** primitive (see `datum.md`). A Frame is a runtime container holding a body Datum and zero or more record Datums attesting it.
 
-### FrameBody — The Assertion
+### Body — The Assertion
 
-The immutable, content-addressed semantic fact. Contains ONLY identity bindings. The body hash = `hash(predicate + identity bindings)`. Two identical assertions from different people produce the same body hash — stored once.
+The immutable, content-addressed semantic fact. Its head reference points at the predicate (a meaning, via `@<predicate-IID>`). Two identical assertions from different people produce the same body CID — stored once.
 
 ```
-FrameBody {
-    predicate:  ItemID
-    bindings:   [Binding...]    // all identity
+Body Datum {
+    head-reference:  Tag-6( @<predicate-IID> )
+    bindings:        [Binding...]    // the assertion content
 }
+
+Body CID = hash(encoded Datum)
 ```
 
-### FrameRecord — The Attestation
+Bodies do not carry signatures. They are pure assertions. Anyone fetching by body CID gets bit-identical content.
 
-Who said it, when, with proof — plus non-identity bindings (config, styling). Points at ONE FrameBody by hash. Multiple records can attest the same body (same fact, different signers, different config).
+### Record — The Attestation
+
+Who said it, when, with cryptographic proof. Its head reference points at the body's CID (via `#<body-CID>`). Multiple records can attest the same body (same fact, different signers, different per-record config).
 
 ```
-FrameRecord {
-    bodyHash:   ContentID       // which fact
-    signer:     SigningPublicKey
-    timestamp:  Instant
-    signature:  bytes
-    bindings:   [Binding...]    // all non-identity (config, presentation)
+Record Datum {
+    head-reference:  Tag-6( #<body-CID> )
+    bindings:        [Binding...]    // signer (AGENT:[SIGNER]), timestamp (TIME:[SIGNED]),
+                                     // optional CONFIG, etc. — semantic bindings using
+                                     // the same vocabulary as bodies
+    signature:       bytes           // varsig-formatted (algo prefix + sig bytes)
+                                     // structurally distinct from bindings
 }
+
+Record CID = hash(full encoded Datum, including signature)
+Signing payload = hash(encoded form WITHOUT signature)
 ```
 
-A frame = body + record(s). The body is the shared fact. The record is everything else. Don't like someone's config? Create your own record pointing at the same body hash with your own bindings. Same fact, your presentation.
+The signature signs over the head reference + bindings (everything except itself). The record's own CID covers the full content including the signature. Because the signature signs the body via the head reference plus the record's bindings, tampering with any of these invalidates verification.
+
+A frame = body + record(s). The body is the shared fact. Records carry everything else: who attests it, when, with what proof, and any per-attestation config or presentation choices.
 
 ### Endorsement — What Manifests Hold
 
@@ -284,7 +285,7 @@ Most endorsements: just bodyHash + mounts. With recordCid: "I pin this record's 
 
 ### Frame — Runtime Container
 
-In-memory only. Holds the body, record(s), and the live decoded instance. Not serialized. The lookup key (selector) is derived from the body.
+In-memory only. Holds the body Datum, record Datum(s), and the live decoded instance. Not serialized as a single unit — bodies and records are stored independently in the object store. The lookup key (selector) is derived from the body.
 
 ## Selector: Derived Key
 
@@ -342,7 +343,13 @@ CONFIG:[PRESENTATION]        → styling/display
 CONFIG:[REPLICATION]         → sync policy
 ```
 
-Config bindings are non-identity — they go on the **FrameRecord** (the asserter's choices about how to present the fact). The assertion itself (FrameBody) is pure.
+Config bindings can live in three places, depending on what kind of config:
+
+- **Type-level CONFIG** (defaults for all instances of a predicate) — frames on the predicate item itself
+- **Per-instance CONFIG that's part of the assertion** — bindings on the body Datum (included in the body's CID)
+- **Per-signer CONFIG** — bindings on the record Datum (each signer can specify their own preferences)
+
+In all cases, CONFIG bindings are real semantic bindings, included in their Datum's content hash. There is no separate "non-identity" category — bodies hash all their bindings; records hash all their bindings plus the signature.
 
 ### Config Cascade
 
@@ -351,7 +358,7 @@ Type defaults              "Harvest records render as tables by default"
   | overridden by
 Item manifest config       "THIS garden's harvest records use a custom chart"
   | overridden by
-Frame record config        "THIS specific record has special highlighting"
+Frame record config        "THIS specific record (signer's choice) has special highlighting"
 ```
 
 Most frames carry no config — they inherit from item and type.
@@ -574,21 +581,22 @@ Token indexing: NAME bindings are indexed with scope and features derived from t
 ## Design Principles
 
 - **One primitive**: Frame = predicate + role-keyed bindings. That's the entire data model.
+- **One structural primitive**: Body and Record are configurations of the **Datum** primitive (`reference + bindings [+ signature]`). See `datum.md`.
 - **Predicates are schemas**: Designing a predicate IS designing a database, a form, a spreadsheet. Roles are columns. Qualifiers constrain and distinguish.
 - **Predicates carry behavior**: Every predicate declares parsing behavior via `contribute()` and reaction behavior via `onFrameAssembled()`. No switch statements on predicate IDs.
 - **Everything is a binding**: Content, references, local paths, config — all role-keyed bindings with compound keys.
-- **Three parts per binding**: Role (always a sememe), qualifiers (sememes or literals — narrowing + constraints), target (the value).
-- **Identity per binding**: Each binding chooses whether it affects the body hash. Non-identity bindings ride on the FrameRecord.
-- **Body is pure assertion**: FrameBody = identity bindings only. Content-addressed. Immutable.
-- **Record is attestation + choices**: FrameRecord = signature + non-identity bindings (config, presentation).
+- **Three parts per binding**: Role (always a sememe), qualifiers (sememes or literals — narrowing + constraints), target (the value). One per-binding flag: `index`.
+- **Body is pure assertion**: A body Datum's head reference is to a meaning (predicate IID). Body CID = hash of full encoded form. No signature.
+- **Record is attestation**: A record Datum's head reference is to content (`#<body-CID>`). Carries signer, timestamp, per-record CONFIG as semantic bindings. Signature is structurally distinct (varsig-formatted bytes), excluded from the signing payload.
+- **Bodies are content-addressed**: Same assertion → same body CID, regardless of who attests it. Multiple signers produce multiple records pointing at one body.
 - **Endorsement is minimal**: Body hash + optional record CID + mounts.
 - **Frame is runtime**: In-memory container for body + record(s) + live instance.
 - **Selector is derived**: Computed from the body's predicate + compound key qualifiers. Not stored independently.
-- **Frames are independent entities**: A frame exists in the object store whether any item endorses it or not. Frames reference items via bindings — they are not "stored on" items.
-- **Creating ≠ endorsing**: Anyone can create a frame referencing any item. Only the owner can endorse it (include it in the manifest). Unendorsed frames are independently signed FrameRecords.
+- **Frames are independent entities**: A frame's body and records are stored content-addressed, independently of any item. Frames reference items via bindings — they are not "stored on" items.
+- **Creating ≠ endorsing**: Anyone can create a frame referencing any item. Only the owner can endorse it (include it in the manifest). Unendorsed frames have records signed by their creator but are not in any item's manifest.
 - **Item binding is semantic**: Each predicate declares which role the context item fills, with proper semantic meaning. TITLE uses THEME ("about this item"), MOVE uses LOCATION ("at this item"), EQUALS uses LOCATION ("lives on this item"). The indexer indexes all item references regardless of role.
 - **Queries are incomplete frames**: A `?` in a role (or simply the absence of that role) turns a frame into a query. Bare sememes are queries. Bare literals self-evaluate.
 - **Expressions are predicates**: Operators declare precedence/fixity via `contribute()`. The FrameAssembler handles precedence-climbing universally — no separate expression parser. Mathematical notation is language-neutral.
-- **Config is bindings**: `CONFIG:[PRESENTATION]→styling`. Not a separate structure. Cascades from type → item → frame.
+- **Config is bindings**: `CONFIG:[PRESENTATION]→styling`. Not a separate structure. Lives on the predicate item (type defaults), the body (per-instance), or records (per-signer). All are real bindings included in their Datum's hash.
 - **Content is CID-addressed**: Blob (small), Chain (streams), Manifest (large/swarmable). Stream roots are immutable. Heads are derived.
 - **Lifecycle is per-predicate**: Predicates declare lifecycle policies — retention (ALL, LATEST, CHAIN), persistence (FULL, NONE), lifetime (PERMANENT, PRESENCE, CONNECTION), signing requirement (REQUIRED, CONNECTION_AUTHENTICATED). This enables three temporal modes from one frame model: **durable** frames (persisted, signed, endorsed — a chess move, a message), **ephemeral** frames (LATEST retention, in-memory only, discarded on disconnect — avatar position, typing indicator, cursor), and **streaming** frames (TOPIC bindings pointing to Chains — video, audio, screen share). All use the same vocabulary, roles, subscriptions, and rendering. The Library handles them differently based on the predicate's declared lifecycle.

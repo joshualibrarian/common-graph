@@ -2,6 +2,7 @@ package dev.everydaythings.graph.library.dictionary;
 
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.library.Service;
@@ -22,9 +23,12 @@ import java.util.stream.Stream;
  *
  * <p>Storage format:
  * <pre>
- *   Key:   [token_utf8][0x00][body_hash_34bytes][binding_index_2bytes]
+ *   Key:   [token_utf8][0x00][body_hash_multihash][binding_index_2bytes]
  *   Value: [weight_4bytes]
  * </pre>
+ *
+ * <p>The body_hash is a self-delimiting multihash (algorithm + length + digest),
+ * so its length is determined by the multihash header rather than fixed.
  *
  * <p>The body hash is the {@link ContentID} of the source {@link FrameBody}.
  * The binding index identifies which binding within the body produced this token.
@@ -44,7 +48,6 @@ public interface TokenDictionary extends Service {
     // ==================================================================================
 
     byte NULL_TERMINATOR = 0x00;
-    int CID_SIZE = 34;  // SHA2-256 multihash: varint(0x12) + varint(32) + 32 bytes
     int BINDING_INDEX_SIZE = 2;
     int WEIGHT_SCALE = 1000;
 
@@ -274,16 +277,23 @@ public interface TokenDictionary extends Service {
         }
 
         String token = new String(key, 0, nullPos, StandardCharsets.UTF_8);
-        int remaining = key.length - nullPos - 1;
+        int hashStart = nullPos + 1;
+        int remaining = key.length - hashStart;
 
-        if (remaining == CID_SIZE + BINDING_INDEX_SIZE) {
-            // Frame-backed format: [body_hash_34][binding_index_2]
-            int hashStart = nullPos + 1;
-            byte[] bodyHashBytes = Arrays.copyOfRange(key, hashStart, hashStart + CID_SIZE);
-            ContentID bodyHash = new ContentID(bodyHashBytes);
-            int bindingIndex = ((key[hashStart + CID_SIZE] & 0xFF) << 8)
-                             | (key[hashStart + CID_SIZE + 1] & 0xFF);
-            return new ParsedKey(token, bodyHash, bindingIndex);
+        // Frame-backed format: [body_hash_multihash][binding_index_2]
+        if (remaining > BINDING_INDEX_SIZE) {
+            try {
+                HashID.Slice slice = HashID.splitLeadingMultihashFromByteArray(key, hashStart);
+                int afterHash = slice.next();
+                if (key.length - afterHash == BINDING_INDEX_SIZE) {
+                    ContentID bodyHash = new ContentID(slice.bytes());
+                    int bindingIndex = ((key[afterHash] & 0xFF) << 8)
+                                     | (key[afterHash + 1] & 0xFF);
+                    return new ParsedKey(token, bodyHash, bindingIndex);
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Falls through to token-only return below
+            }
         }
 
         // Unrecognized format — return token-only

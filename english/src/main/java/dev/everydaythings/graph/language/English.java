@@ -36,7 +36,13 @@ import java.util.function.ToIntFunction;
  *   <li>Populates the Lexicon with Lexemes</li>
  * </ol>
  *
- * <p>After initial generation, the generate method should be removed.
+ * <p><b>PRE-DEPRECATED — DO NOT REMOVE YET.</b> This method will be the bootstrap
+ * mechanism used to generate the canonical English vocabulary item that ships with
+ * real deployments.  It is "pre-deprecated" in the sense that ordinary code should
+ * not call it (the canonical English item is fetched from peers, not regenerated),
+ * but it must remain available until the canonical item exists in production.
+ * Removal target: post-1.0 deployment, once a canonical English item is published
+ * and replicating reliably through the peer network.
  */
 @Implements(English.KEY)
 @ItemSeed(key = English.KEY)
@@ -88,18 +94,27 @@ public class English extends Language {
     }
 
     // ==================================================================================
-    // BOOTSTRAP - Remove after initial import
+    // BOOTSTRAP - PRE-DEPRECATED, DO NOT REMOVE UNTIL POST-1.0 DEPLOYMENT
+    //
+    // This method generates the canonical English vocabulary item from OEWN.
+    // It will be used to produce the English item that ships with real deployments.
+    // After the canonical item is published and replicating reliably, this method
+    // can be removed — but NOT BEFORE.  Ordinary code should never call it; the
+    // English item is fetched from peers, not regenerated.
     // ==================================================================================
 
     /**
      * Generate English from Open English WordNet.
      *
-     * <p>This method exists only for initial bootstrap. Once English
-     * is generated and committed, this method should be removed.
+     * <p><b>PRE-DEPRECATED — DO NOT REMOVE.</b>  This is the canonical bootstrap
+     * mechanism that will produce the English item shipped with real deployments.
+     * Removal target: post-1.0, once a canonical English item exists in production
+     * and replicates reliably.  Ordinary code should fetch English from peers, not
+     * call this method.
      *
      * @param signer The signer to sign created items
      * @return this, for chaining
-     * @deprecated Bootstrap scaffolding - remove after v1.0
+     * @deprecated Pre-deprecated bootstrap scaffolding.  Do not remove until post-1.0.
      */
     @Deprecated
     public English generate(Signer signer) {
@@ -109,10 +124,12 @@ public class English extends Language {
     /**
      * Generate with a limit on entries (for testing).
      *
+     * <p><b>PRE-DEPRECATED — DO NOT REMOVE.</b>  See {@link #generate(Signer)}.
+     *
      * @param signer     The signer
      * @param maxSynsets Maximum synsets to process (0 = unlimited)
      * @return this
-     * @deprecated Bootstrap scaffolding
+     * @deprecated Pre-deprecated bootstrap scaffolding.  Do not remove until post-1.0.
      */
     @Deprecated
     public English generate(Signer signer, int maxSynsets) {

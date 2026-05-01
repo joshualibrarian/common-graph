@@ -286,7 +286,7 @@ public interface ItemDirectory extends Service {
     @Getter
     enum Column implements ColumnSchema {
         DEFAULT("default", null, null, KeyEncoder.RAW),
-        LOCATIONS("item.locations", 32, 10, KeyEncoder.ID);
+        LOCATIONS("item.locations", null, 10, KeyEncoder.ID);
 
         private final String schemaName;
         private final Integer prefixLen;

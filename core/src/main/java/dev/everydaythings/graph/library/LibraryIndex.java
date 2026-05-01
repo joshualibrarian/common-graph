@@ -4,6 +4,7 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBody;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
@@ -91,18 +92,18 @@ public interface LibraryIndex extends Service {
 
         ContentID bestVid = null;
         long bestTimestamp = Long.MIN_VALUE;
-        final int idSize = 34;
 
         try (var it = store().iterate(Column.ITEMS, prefix)) {
             while (it.hasNext()) {
                 var kv = it.next();
                 byte[] key = kv.key();
 
-                // Key is IID(34) | VID(34) = 68 bytes
-                if (key.length < idSize * 2) continue;
+                // Key is IID-multihash | VID-multihash. The IID's length is the prefix length;
+                // whatever follows is the VID multihash.
+                if (key.length <= prefix.length) continue;
 
-                byte[] vidBytes = new byte[idSize];
-                System.arraycopy(key, idSize, vidBytes, 0, idSize);
+                byte[] vidBytes = new byte[key.length - prefix.length];
+                System.arraycopy(key, prefix.length, vidBytes, 0, vidBytes.length);
 
                 // Value is timestamp (8 bytes)
                 byte[] value = kv.value();
@@ -178,12 +179,13 @@ public interface LibraryIndex extends Service {
             while (it.hasNext()) {
                 var kv = it.next();
                 byte[] key = kv.key();
-                final int idSize = 34;
 
-                if (key.length < idSize * 2) continue;
+                // Key is bodyHash-multihash | signerKeyId-multihash.
+                // The bodyHash occupies the prefix; the rest is the signerKeyId.
+                if (key.length <= prefix.length) continue;
 
-                byte[] signerKeyIdBytes = new byte[idSize];
-                System.arraycopy(key, idSize, signerKeyIdBytes, 0, idSize);
+                byte[] signerKeyIdBytes = new byte[key.length - prefix.length];
+                System.arraycopy(key, prefix.length, signerKeyIdBytes, 0, signerKeyIdBytes.length);
                 ContentID signerKeyId = new ContentID(signerKeyIdBytes);
 
                 byte[] value = kv.value();
@@ -206,11 +208,12 @@ public interface LibraryIndex extends Service {
     /**
      * Extract FrameRefs from fan-out index entries.
      *
-     * <p>The body hash is extracted from the last 34 bytes of the key.
-     * The storage CID is stored as the value.
+     * <p>Keys are concatenations of self-delimiting multihashes; the body hash
+     * is the final multihash in the key. We parse multihashes from the start
+     * until we run out — the last one read is the body hash. The storage CID
+     * is stored as the value.
      */
     private Stream<FrameRef> streamFrameRefsWithPrefix(Column cf, byte[] prefix) {
-        final int idSize = 34;
         List<FrameRef> results = new ArrayList<>();
 
         try (var it = store().iterate(cf, prefix)) {
@@ -218,11 +221,14 @@ public interface LibraryIndex extends Service {
                 var kv = it.next();
                 byte[] key = kv.key();
 
-                if (key.length < idSize) continue;
-
-                byte[] hashBytes = new byte[idSize];
-                System.arraycopy(key, key.length - idSize, hashBytes, 0, idSize);
-                ContentID bodyHash = new ContentID(hashBytes);
+                ContentID bodyHash = null;
+                int pos = 0;
+                while (pos < key.length) {
+                    HashID.Slice slice = HashID.splitLeadingMultihashFromByteArray(key, pos);
+                    bodyHash = new ContentID(slice.bytes());
+                    pos = slice.next();
+                }
+                if (bodyHash == null) continue;
 
                 byte[] value = kv.value();
                 if (value != null && value.length > 0) {
@@ -383,8 +389,12 @@ public interface LibraryIndex extends Service {
                 var kv = it.next();
                 byte[] key = kv.key();
 
-                byte[] iidBytes = new byte[34];
-                System.arraycopy(key, 34, iidBytes, 0, 34);
+                // Key is principal-multihash | iid-multihash. The principal
+                // occupies the prefix; the rest is the iid.
+                if (key.length <= prefix.length) continue;
+
+                byte[] iidBytes = new byte[key.length - prefix.length];
+                System.arraycopy(key, prefix.length, iidBytes, 0, iidBytes.length);
                 ItemID iid = new ItemID(iidBytes);
 
                 ContentID vid = new ContentID(kv.value());
@@ -433,20 +443,20 @@ public interface LibraryIndex extends Service {
          * Version history: IID | VID → timestamp (8 bytes).
          * Prefix scan by IID returns all versions. Latest by highest timestamp.
          */
-        ITEMS("item.index", 34, 10, KeyEncoder.ID, KeyEncoder.ID),
+        ITEMS("item.index", null, 10, KeyEncoder.ID, KeyEncoder.ID),
 
         /**
          * Unified frame index by participant.
          * Key: itemIID | predicate | bodyHash → storageCid bytes.
          * Predicates indexed as their own participant (predicate | predicate | bodyHash).
          */
-        FRAME_BY_ITEM("frame.item.index", 34, 10, KeyEncoder.ID, KeyEncoder.ID, KeyEncoder.ID),
+        FRAME_BY_ITEM("frame.item.index", null, 10, KeyEncoder.ID, KeyEncoder.ID, KeyEncoder.ID),
 
         /** Records by body: bodyHash | signerKeyId → storageCid bytes. */
-        RECORD_BY_BODY("record.body.index", 34, 10, KeyEncoder.ID, KeyEncoder.ID),
+        RECORD_BY_BODY("record.body.index", null, 10, KeyEncoder.ID, KeyEncoder.ID),
 
         /** Current version per principal: principal | IID → VID bytes. */
-        HEADS("heads", 34, 10, KeyEncoder.ID, KeyEncoder.ID);
+        HEADS("heads", null, 10, KeyEncoder.ID, KeyEncoder.ID);
 
         private final String schemaName;
         private final Integer prefixLen;

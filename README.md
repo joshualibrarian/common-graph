@@ -34,43 +34,40 @@ When you query "red shirt," you're not searching for the *words* "red" and "shir
 
 The entire data model is built from one structure: the **semantic frame** — a structured assertion grounded in shared meaning.
 
-A frame has a **predicate** — what kind of assertion this is — and **bindings** that fill the predicate's semantic slots. Each binding maps a **role** (the semantic function: NAME, THEME, AGENT, GOAL...) through optional **qualifiers** (narrowing constraints: a language, a format, a unit) to a **target** value. Two flags — **identity** and **index** — control whether the binding affects the body hash and whether it's indexed for queries.
+A frame has a **predicate** — what kind of assertion this is — and **bindings** that fill the predicate's semantic slots. Each binding maps a **role** (the semantic function: NAME, THEME, AGENT, GOAL...) through optional **qualifiers** (narrowing constraints: a language, a format, a unit) to a **target** value, with an **index** flag controlling reverse-lookup.
 
 A predicate declares the roles it expects — the semantic slots that must be filled to make the assertion complete. Qualifiers both **distinguish** multiple bindings of the same role and **constrain** valid inputs:
 
 ```
 TITLE frame:
-  NAME:[] → "The Hobbit"                              [identity]
+  NAME:[] → "The Hobbit"
 
 PLAYER frame (on a chess game):
-  AGENT:[] → fischer                                   [identity]
-  ROLE:[]  → WHITE                                     [identity]
+  AGENT:[] → fischer
+  ROLE:[]  → WHITE
 
 MOVE frame (on the same game):
-  AGENT:[]  → fischer                                  [identity]
-  THEME:[]  → king-pawn                                [identity]
-  SOURCE:[] → e2                                       [identity]
-  GOAL:[]   → e4                                       [identity]
+  AGENT:[]  → fischer
+  THEME:[]  → king-pawn
+  SOURCE:[] → e2
+  GOAL:[]   → e4
 
 VIDEO frame:
-  NAME:[MKV, UHD] → cid:master-4k                     [identity]
-  NAME:[MKV, HD]  → cid:hd-transcode                  [non-identity]
+  NAME:[MKV, UHD] → cid:master-4k
+  NAME:[MKV, HD]  → cid:hd-transcode
 ```
 
 Every meaning in a binding is an opportunity for indexing. Query "all videos" — index lookup on the VIDEO predicate. Query "all UHD videos" — narrow with qualifiers. The structure *is* the index.
 
-**Identity bindings control versioning.** The body hash is computed from predicate + identity bindings only. Non-identity bindings (cached transcodes, configuration, presentation) live on the frame without affecting its hash. Replace an HD transcode tomorrow — body hash unchanged.
+**Bodies and Records: configurations of the same primitive.** Both are **Datums** (`reference + bindings [+ signature]`):
 
-**Four objects carry a frame through its lifecycle:**
+- **Body** — the semantic assertion itself. Head reference points at a meaning (predicate or archetype IID). Bindings carry the assertion content. Content-addressed by hash. Immutable.
+- **Record** — a signed attestation. Head reference points at a body's CID. Bindings carry signer, timestamp, and any per-record configuration. Signature is structurally distinct.
+- **Frame** — runtime container holding a body Datum and zero or more record Datums.
 
-- **FrameBody** — the semantic assertion itself. Identity bindings only. Content-addressed by hash. Immutable.
-- **FrameRecord** — a signed attestation envelope. Signer, timestamp, signature, plus non-identity bindings (configuration, presentation). Points at a body by hash. Multiple records can attest the same body.
-- **Endorsement** — what manifests hold. Body hash plus optional record reference.
-- **Frame** — runtime container. Body, record(s), and live instance. In-memory only.
+The same assertion can be independently attested by multiple signers, each producing their own record Datum pointing at the shared body's CID. The body's identity is stable regardless of who signs it.
 
-Provenance flows through FrameRecords — signed envelopes that attest a FrameBody. The same assertion can be independently attested by multiple signers, each with their own record.
-
-See [`frames.md`](docs/frames.md) for the full model, and [**The Case**](docs/the-case.md) for the theoretical foundations.
+See [`datum.md`](docs/datum.md) for the unified primitive, [`frames.md`](docs/frames.md) for the frame model, and [**The Case**](docs/the-case.md) for the theoretical foundations.
 
 ### Items: What Frames Cohere Around
 
@@ -249,7 +246,9 @@ Text nodes carry meaning references, not hardcoded strings. A label referencing 
 
 All data uses **CG-CBOR** — a profile of [CBOR (RFC 8949)](https://www.rfc-editor.org/rfc/rfc8949.html) with custom tags and strict deterministic encoding:
 
-- **Self-describing tags** in the 1-byte range: item references (Tag 6), typed values (Tag 7), signed envelopes (Tag 8), quantities with units (Tag 9)
+- **Universal references via Tag 6** with three structural prefixes: `@` for items, `~` for raw content, `#` for frames (with optional binding-key and portion-spec drilling)
+- **Multiformats throughout**: multihash (self-describing hash algorithm), multibase (text encoding), multikey (public keys), varsig (signatures). The encoding stays algorithm-agile.
+- **Other tags**: typed values (Tag 7), quantities with units (Tag 9), inline frames (Tag 23)
 - **No IEEE 754 floats** — non-deterministic across platforms. CG-CBOR uses exact types: rationals, decimals, quantities with unit references
 - **Deterministic encoding** — sorted keys, minimal integer encoding, no indefinite lengths. Identical content always produces identical bytes.
 
@@ -375,6 +374,7 @@ Detailed specifications live in `docs/`:
 | Document | Covers |
 |----------|--------|
 | [**`the-case.md`**](docs/the-case.md) | **The theoretical argument for a semantic base layer** |
+| [**`datum.md`**](docs/datum.md) | **The unified Datum primitive — Body, Record, references, encoding** |
 | [`frames.md`](docs/frames.md) | The frame primitive, bindings, compound keys, identity, endorsement |
 | [`item.md`](docs/item.md) | Item structure, identity, lifecycle, composition |
 | [`vocabulary.md`](docs/vocabulary.md) | Vocabulary system, dispatch, expression input |
@@ -387,6 +387,7 @@ Detailed specifications live in `docs/`:
 | [`authentication.md`](docs/authentication.md) | Keys, signatures, signers, device-centric identity |
 | [`protocol.md`](docs/protocol.md) | Peer Protocol and Session Protocol |
 | [`network.md`](docs/network.md) | Network architecture, discovery, routing, replication |
+| [`bridges.md`](docs/bridges.md) | Bridges to email, web, federated systems, identity standards |
 | [`cg-cbor.md`](docs/cg-cbor.md) | CG-CBOR encoding specification |
 | [`content.md`](docs/content.md) | Content addressing, storage, deduplication |
 | [`manifest.md`](docs/manifest.md) | Versioning, manifest format, signing |
