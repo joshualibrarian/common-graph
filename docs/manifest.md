@@ -6,26 +6,48 @@ A Manifest is a runtime container around a body Datum (with archetype as head re
 
 ## Structure
 
+A Manifest is a **serialized wrapper** that packages a Datum with the item's identity.  Unlike a Frame (which is just a runtime aggregate), a Manifest is itself a stored, content-addressed structure with its own CID — the **VID** (Version ID).
+
 ```
-Manifest {
-    body:     Body Datum       # The version's content — head ref is the archetype IID
-    records:  [Record Datum]   # Zero or more signed attestations of the body
+Manifest (serialized, content-addressed):
+    iid:      IID              # the item's identity (structural anchor)
+    body:     Body Datum       # the version's content
+    records:  [Record Datum]   # zero or more signed attestations of the body
 }
+
+Manifest CID = VID
 ```
 
-The body Datum's head reference points at the item's archetype (a sememe IID, e.g., `cg.archetype:item` or a more specific archetype like `cg.archetype:chess-game`). The bindings on the body carry the version's content:
+Frames and Manifests differ in nature:
+
+- **Frame** is a runtime aggregate.  Body and records are stored independently (each by its own CID); the Frame is just the in-memory grouping when you fetch them together.  Frames are not serialized as a single object.
+- **Manifest** is a serialized wrapper.  It IS a stored object with its own VID.  It wraps a Datum and packages the IID at the wrapper level.
+
+The IID lives on the wrapper, not on the Datum inside.  The Datum itself is just `head reference + bindings` — clean, uniform with frame bodies.  The wrapper provides the long-lived item identity that successive versions share.
+
+The body Datum inside a Manifest is a normal Datum — head reference + bindings — with no special slots:
 
 ```
-Body Datum (manifest body) {
-    head-reference: @<archetype-IID>
+Manifest's body Datum {
+    head-reference: @<archetype-IID>     # what kind of item — the IS_A
     bindings: [
-        THEME    → item-IID            # which item this is a version of
-        FOLLOWS  → previous-VID         # zero or more parents
-        ENDORSES → [body-CID, ...]      # the endorsed frame bodies
-        ...                             # additional archetype-specific bindings
+        FOLLOWS         → previous-VID                # zero or more parents
+        ENDORSES        → [body-CID, ...]             # endorsed frame bodies
+        IMPLEMENTATION  → @<impl-item>[#<vid>]        # which implementation created this version
+        CONFIG:[QUERY]  → strategy-item               # query strategy override
+        CONFIG:[RETENTION] → policy                   # retention policy
+        ...                                           # other archetype-specific bindings
     ]
 }
 ```
+
+### Why the IID is on the container, not the Datum
+
+The IID is the item's identity, not data describing the manifest body.  Multiple versions of an item share the same IID; only their body CIDs (the VIDs) differ.  The IID is what makes successive manifests "versions of the same item" rather than separate signed things.
+
+If the IID lived as a binding, changing it would produce a different VID — but nothing structural would distinguish "next version of item X" from "different item Y entirely."  Placing the IID on the Manifest container ensures that a manifest is always anchored to a specific item; forking into a new item is an explicit, structural action.
+
+The Datum primitive itself stays clean — head reference + bindings, optionally + signature.  The container handles the long-lived identity that makes a manifest specifically a manifest.
 
 Common bindings:
 

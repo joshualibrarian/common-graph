@@ -12,11 +12,42 @@ A **Datum** is:
 Datum = head-reference + bindings [+ signature]
 ```
 
-- A **head reference** identifies what this Datum is *about*.  It is always a Tag 6 reference (see *References* below).
-- **Bindings** carry the Datum's content.  Each binding has a role, optional qualifiers, and a target.
-- A **signature** is an optional cryptographic attestation, structurally distinct from bindings.
+- A **head reference** identifies what kind of thing this Datum is.  Always a Tag 6 reference.  For frames the head is the predicate; for manifests the head is the archetype.  Both express the implicit IS_A relation.
+- **Bindings** carry the Datum's content.  Each binding has a key (CompoundKey: head sememe + qualifiers) and a target.
+- An optional **signature** appears only on records — cryptographic attestation, structurally distinct from bindings.
 
-Bodies have head reference + bindings.  Records have head reference + bindings + signature.  These are the same primitive in different configurations.
+Two configurations:
+
+- **Body** — head reference + bindings
+- **Record** — head reference + bindings + signature
+
+The signature is a structural slot on records, not a binding — it is foundational to what the Record IS (a cryptographic attestation), not data the Record carries.
+
+## How Datums are grouped: Frames and Manifests
+
+Datums don't exist alone — they're grouped with their attestations.  But Frame and Manifest play different roles:
+
+**A Frame is a runtime aggregate.**  It's not a serialized structure; it doesn't have its own CID.  The body Datum is stored independently in the object store (by its CID), each record Datum is stored independently (by its CID), and "the Frame" is just the in-memory aggregate of fetching them together.
+
+```
+Frame (runtime only) = body Datum + zero-or-more record Datums
+                       (each stored independently in the object store)
+```
+
+**A Manifest is a serialized wrapper.**  It IS a stored structure with its own CID — the **VID** (Version ID).  The IID lives at the wrapper level as a structural element.  The wrapper packages the body Datum and any records into a single content-addressed object.
+
+```
+Manifest (serialized, content-addressed):
+    iid:      IID                # the item's identity (structural)
+    body:     Body Datum         # encoded inline
+    records:  [Record Datum]     # encoded inline (or referenced by CID)
+
+Manifest CID = VID
+```
+
+The IID lives on the **Manifest wrapper**, not inside the Datum.  A Datum is just `head reference + bindings [+ signature]`, period — it doesn't know which item it belongs to.  The manifest wrapper provides that anchor.
+
+This asymmetry is honest: frames are a runtime convenience for grouping independent assertions; manifests are stored versioned things with their own structural identity.
 
 ## Bodies and records
 

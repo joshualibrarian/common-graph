@@ -34,7 +34,7 @@ When you query "red shirt," you're not searching for the *words* "red" and "shir
 
 The entire data model is built from one structure: the **semantic frame** — a structured assertion grounded in shared meaning.
 
-A frame has a **predicate** — what kind of assertion this is — and **bindings** that fill the predicate's semantic slots. Each binding maps a **role** (the semantic function: NAME, THEME, AGENT, GOAL...) through optional **qualifiers** (narrowing constraints: a language, a format, a unit) to a **target** value, with an **index** flag controlling reverse-lookup.
+A frame has a **predicate** — what kind of assertion this is — and **bindings** that fill the predicate's semantic slots. Each binding maps a **thematic role** (the semantic function: NAME, THEME, AGENT, GOAL...) through optional **qualifiers** (narrowing constraints: a language, a format, a unit) to a **target** value, with an **index** flag controlling reverse-lookup.
 
 A predicate declares the roles it expects — the semantic slots that must be filled to make the assertion complete. Qualifiers both **distinguish** multiple bindings of the same role and **constrain** valid inputs:
 
