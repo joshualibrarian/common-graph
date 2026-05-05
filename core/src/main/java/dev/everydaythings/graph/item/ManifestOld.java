@@ -98,16 +98,12 @@ public final class ManifestOld implements Signing.Target {
         this.implementation = implementation;
         this.state = state != null ? state : new ItemState();
 
-        // Split bindings by identity flag for body/record encoding
+        // Old code path: identity flag has been removed from Binding. Treat all
+        // bindings as identity-bearing — the new model uses Body vs Record membership
+        // instead, and ManifestOld is being phased out.
         if (bindings != null && !bindings.isEmpty()) {
-            List<Binding> identity = new java.util.ArrayList<>();
-            List<Binding> nonIdentity = new java.util.ArrayList<>();
-            for (Binding b : bindings) {
-                if (b.identity()) identity.add(b);
-                else nonIdentity.add(b);
-            }
-            this.identityBindingsList = identity.isEmpty() ? null : List.copyOf(identity);
-            this.nonIdentityBindingsList = nonIdentity.isEmpty() ? null : List.copyOf(nonIdentity);
+            this.identityBindingsList = List.copyOf(bindings);
+            this.nonIdentityBindingsList = null;
         }
 
         // Precompute caches for newly-built instances

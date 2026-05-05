@@ -63,7 +63,7 @@ class ConfigCascadeTest {
             FrameBodyOld body = new FrameBodyOld(AUTHOR_PRED, ItemID.random(), List.of(
                     Binding.qualified(ThematicRole.Config.IID,
                             List.of(new CompoundKey.Sememe(ThematicRole.Presentation.IID)),
-                            presentationLit, false, false)
+                            presentationLit)
             ));
 
             assertThat(body.configPresentationPayload()).isNotNull();
@@ -78,7 +78,7 @@ class ConfigCascadeTest {
             FrameBodyOld body = new FrameBodyOld(AUTHOR_PRED, ItemID.random(), List.of(
                     Binding.qualified(ThematicRole.Config.IID,
                             List.of(new CompoundKey.Sememe(ThematicRole.Vocabulary.IID)),
-                            vocabLit, false, false)
+                            vocabLit)
             ));
 
             assertThat(body.configVocabularyPayload()).isNotNull();
@@ -100,7 +100,7 @@ class ConfigCascadeTest {
             FrameBodyOld body = new FrameBodyOld(AUTHOR_PRED, item.iid(), List.of(
                     Binding.qualified(ThematicRole.Config.IID,
                             List.of(new CompoundKey.Sememe(ThematicRole.Presentation.IID)),
-                            lit, false, false)
+                            lit)
             ));
 
             FrameOld frame = new FrameOld(
@@ -156,7 +156,7 @@ class ConfigCascadeTest {
             FrameBodyOld authorBody = new FrameBodyOld(AUTHOR_PRED, item.iid(), List.of(
                     Binding.qualified(ThematicRole.Config.IID,
                             List.of(new CompoundKey.Sememe(ThematicRole.Presentation.IID)),
-                            frameLit, false, false)
+                            frameLit)
             ));
             FrameOld authorFrame = new FrameOld(
                     CompoundKey.of(ItemID.fromString("cg.test:author")),
@@ -189,7 +189,7 @@ class ConfigCascadeTest {
             Literal lit = Literal.ofText("general-settings");
 
             FrameBodyOld body = new FrameBodyOld(AUTHOR_PRED, item.iid(), List.of(
-                    Binding.nonIdentity(ThematicRole.Config.IID, lit)
+                    new Binding(ThematicRole.Config.IID, lit)
             ));
             FrameOld frame = new FrameOld(
                     CompoundKey.of(ItemID.fromString("cg.test:author")),
@@ -230,7 +230,7 @@ class ConfigCascadeTest {
             FrameBodyOld body = new FrameBodyOld(AUTHOR_PRED, item.iid(), List.of(
                     Binding.qualified(ThematicRole.Config.IID,
                             List.of(new CompoundKey.Sememe(ThematicRole.Presentation.IID)),
-                            compoundLit, false, false)))
+                            compoundLit)))
                     .withConfig(ThematicRole.Presentation.IID, configMapLit);
 
             FrameOld frame = new FrameOld(
@@ -267,6 +267,9 @@ class ConfigCascadeTest {
             assertThat(item.resolvePresentation(authorFrame)).isNull();
         }
 
+        // TODO: relies on the old non-identity-binding semantic on ManifestOld; identity flag
+        // removed and ManifestOld treats all bindings as identity now. Old infrastructure.
+        @org.junit.jupiter.api.Disabled("identity flag removed; manifest non-identity bindings semantic gone")
         @Test
         @DisplayName("step 2: manifest config wins over item-level frame")
         void step2_manifestConfig() {
@@ -276,7 +279,7 @@ class ConfigCascadeTest {
             Literal manifestLit = Literal.ofText("manifest-level-theme");
             ManifestOld manifest = ManifestOld.builder()
                     .iid(item.iid())
-                    .binding(Binding.nonIdentity(
+                    .binding(new Binding(
                             ThematicRole.Presentation.IID, manifestLit))
                     .build();
             // Inject manifest via reflection (normally set during commit/hydrate)

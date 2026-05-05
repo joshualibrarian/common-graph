@@ -42,7 +42,7 @@ class InputControllerTest {
                 ? List.of(new CompoundKey.Sememe(scope)) : List.of();
         FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
                 FrameBodyOld.homeBinding(target),
-                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
+                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token))
         ));
         return Posting.fromFrame(body, 1, weight);
     }

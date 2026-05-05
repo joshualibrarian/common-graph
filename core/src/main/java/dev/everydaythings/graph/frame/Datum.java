@@ -7,6 +7,8 @@ import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.Reference;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,7 +46,25 @@ public sealed abstract class Datum implements Canonical permits Body, Record {
 
     protected Datum(Reference head, List<Binding> bindings) {
         this.head = Objects.requireNonNull(head, "head");
-        this.bindings = List.copyOf(Objects.requireNonNull(bindings, "bindings"));
+        Objects.requireNonNull(bindings, "bindings");
+        this.bindings = canonicalSort(bindings);
+    }
+
+    /**
+     * Canonicalize a binding list by sorting on each binding's BODY-scope CBOR encoding
+     * (lexicographic byte comparison). Bindings are a multiset by role+qualifiers+target —
+     * order in which the caller assembled them must not affect identity.
+     *
+     * <p>Each binding's qualifiers are themselves already canonically sorted at
+     * Binding construction, so this single sort yields a deterministic encoding.
+     */
+    private static List<Binding> canonicalSort(List<Binding> bindings) {
+        if (bindings.size() < 2) return List.copyOf(bindings);
+        List<Binding> sorted = new ArrayList<>(bindings);
+        sorted.sort((a, b) -> Arrays.compareUnsigned(
+                a.toCborTree(Scope.BODY).EncodeToBytes(),
+                b.toCborTree(Scope.BODY).EncodeToBytes()));
+        return List.copyOf(sorted);
     }
 
     /** The head reference. */

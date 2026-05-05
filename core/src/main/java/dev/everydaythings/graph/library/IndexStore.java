@@ -54,15 +54,28 @@ public interface IndexStore extends ByteStore<IndexStore.Column> {
         DEFAULT("default", null, null, KeyEncoder.RAW),
 
         /**
-         * Forward binding index: key = {@code role-IID | qualifiers... | target-bytes | body-CID},
+         * Forward binding index: key =
+         * {@code role-IID | qual-count | qualifiers... | target-bytes | datum-CID},
          * value = empty.
          *
-         * <p>For role-and-qualifier-driven queries. Prefix-scan with the role + a
-         * qualifier prefix returns all bindings narrowing on those qualifiers; the
-         * trailing body-CID makes keys unique and lets callers fetch the body directly.
+         * <p>Layout components, all self-delimiting:
+         * <ul>
+         *   <li>role-IID: leading multihash of the binding's role sememe.</li>
+         *   <li>qual-count: 1 byte counting the qualifiers that follow (0 for simple keys).</li>
+         *   <li>qualifiers: each one CBOR-encoded ({@code FrameToken.toCbor}); back-to-back.</li>
+         *   <li>target-bytes: normalized target encoding. For reference-typed targets (IidTarget,
+         *       RefTarget wrapping a simple ItemRef), this is the bare multihash of the referenced
+         *       hash — prefix bytes and versions stripped, so different binding-construction
+         *       styles index identically.</li>
+         *   <li>datum-CID: trailing multihash of the body or record carrying the binding.</li>
+         * </ul>
          *
-         * <p>Keys are composed by the indexing logic from variable-length parts;
-         * {@link KeyEncoder#RAW} pass-through lets the indexer manage the layout.
+         * <p>Prefix-scan with {@code role | 0x00 | target} returns all body-CIDs whose binding
+         * has that role (no qualifiers) and that reference target — the lookup that powers
+         * "manifests by item-IID" via the {@code ITEM_ID} role.
+         *
+         * <p>Phase 1 implementation indexes only reference-typed targets; literal and inline-frame
+         * targets are deferred. The layout supports them when the encoding is settled.
          */
         FORWARD_BINDINGS("forward_bindings", null, 10, KeyEncoder.RAW),
 

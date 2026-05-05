@@ -3,6 +3,8 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.frame.Body;
 import dev.everydaythings.graph.frame.Datum;
 import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.Record;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -14,6 +16,7 @@ import com.upokecenter.cbor.CBORObject;
 import lombok.Getter;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -112,15 +115,13 @@ public class Librarian extends Signer {
      * Fetch and decode a Frame (body + records aggregate) by its body CID.
      *
      * <p>Returns empty if the body bytes aren't found locally OR if they decode as
-     * something other than a 2-element body array.
-     *
-     * <p>TODO: records associated with this body are not yet loaded. Once the
-     * RECORDS_BY_BODY head-index is wired, this method will look up record CIDs
-     * by the body's CID and decode each into the returned Frame's records list.
-     * Today every returned Frame has empty records.
+     * something other than a 2-element body array. The Frame's records list is
+     * populated from the RECORDS_BY_BODY index — any records persisted against
+     * this body via {@link #persist} are included; missing record bytes are
+     * silently dropped.
      */
     public Optional<Frame> fetchFrame(ContentID cid) {
-        return fetchBody(cid).map(Frame::of);
+        return fetchBody(cid).map(body -> Frame.of(body, loadRecords(cid)));
     }
 
     /**
@@ -128,14 +129,12 @@ public class Librarian extends Signer {
      *
      * <p>Returns empty if the body bytes aren't found locally, decode as a Record
      * rather than a Body, or decode as a non-archetypal body (no ITEM_ID binding).
-     *
-     * <p>TODO: records — same caveat as {@link #fetchFrame}. Empty records list
-     * until the RECORDS_BY_BODY head-index lands.
+     * Records are loaded the same way as {@link #fetchFrame}.
      */
     public Optional<Manifest> fetchManifest(ContentID cid) {
         return fetchBody(cid).flatMap(body -> {
             try {
-                return Optional.of(Manifest.of(body));
+                return Optional.of(Manifest.of(body, loadRecords(cid)));
             } catch (IllegalArgumentException e) {
                 return Optional.empty();
             }
@@ -147,6 +146,26 @@ public class Librarian extends Signer {
         return library.has(cid);
     }
 
+    /**
+     * Load an Item by IID, hydrating it with its current manifest from local storage.
+     *
+     * <p>Returns empty if no manifest is locally indexed for the given IID. When
+     * multiple manifest versions exist for the same item, picks the first one the
+     * index returns (HEAD selection logic is not yet wired).
+     */
+    public Optional<Item> fetchItem(ItemID iid) {
+        Objects.requireNonNull(iid, "iid");
+        List<ContentID> manifestCids = library.manifestCidsForItem(iid);
+        if (manifestCids.isEmpty()) return Optional.empty();
+        // TODO: when HEAD logic exists, pick the right manifest. For now, take the first.
+        ContentID chosen = manifestCids.getFirst();
+        return fetchManifest(chosen).map(manifest -> {
+            Item item = new Item(iid, this);
+            item.bindManifest(manifest);
+            return item;
+        });
+    }
+
     private Optional<Body> fetchBody(ContentID cid) {
         return fetch(cid).flatMap(bytes -> {
             try {
@@ -156,5 +175,23 @@ public class Librarian extends Signer {
                 return Optional.empty();
             }
         });
+    }
+
+    private Optional<Record> fetchRecord(ContentID cid) {
+        return fetch(cid).flatMap(bytes -> {
+            try {
+                CBORObject node = CBORObject.DecodeFromBytes(bytes);
+                return Optional.of(Record.fromCborTree(node));
+            } catch (RuntimeException e) {
+                return Optional.empty();
+            }
+        });
+    }
+
+    private List<Record> loadRecords(ContentID bodyCid) {
+        return library.recordCidsForBody(bodyCid).stream()
+                .map(this::fetchRecord)
+                .flatMap(Optional::stream)
+                .toList();
     }
 }

@@ -121,7 +121,7 @@ class QueryItemsTest {
     private void storeFrame(LibraryOld lib, ItemID predicate, ItemID home, ItemID relatedItem) {
         FrameBodyOld body = new FrameBodyOld(predicate, List.of(
                 FrameBodyOld.homeBinding(home),
-                new Binding(ThematicRole.Theme.IID, BindingTarget.iid(relatedItem), true, true)
+                new Binding(ThematicRole.Theme.IID, BindingTarget.iid(relatedItem))
         ));
         lib.storeFrameBody(body);
     }

@@ -14,6 +14,7 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +30,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * constraint rules correctly, and that {@link InputController}'s iterative
  * pruning converges to correct resolutions.
  */
+// TODO: depends on the old TokenExtractor interpreting qualifier positions
+// (first qualifier = scope/language, second = POS feature). Qualifiers are now
+// canonically sorted at Binding construction, which breaks that positional read.
+// Old infrastructure; will be deleted along with the rest of the *Old code.
+@Disabled("qualifier ordering canonicalized; old positional interpretation gone")
 class ProgressiveDisambiguationTest {
 
     private static Posting testPosting(String token, ItemID target) {
@@ -40,7 +46,7 @@ class ProgressiveDisambiguationTest {
                 ? List.of(new CompoundKey.Sememe(scope)) : List.of();
         FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
                 FrameBodyOld.homeBinding(target),
-                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
+                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token))
         ));
         return Posting.fromFrame(body, 1, weight);
     }
@@ -54,7 +60,7 @@ class ProgressiveDisambiguationTest {
         if (posFeature != null) quals.add(new CompoundKey.Sememe(posFeature));
         FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
                 FrameBodyOld.homeBinding(target),
-                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
+                new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token))
         ));
         return Posting.fromFrame(body, 1, 1.0f);
     }

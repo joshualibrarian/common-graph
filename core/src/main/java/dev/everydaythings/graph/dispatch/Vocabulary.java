@@ -62,7 +62,6 @@ public class Vocabulary {
             List<Binding> bindings = body.frameBindings();
             for (int i = 0; i < bindings.size(); i++) {
                 Binding b = bindings.get(i);
-                if (!b.index()) continue;
                 if (!(b.target() instanceof Literal lit)) continue;
                 if (!Literal.TYPE_TEXT.equals(lit.valueType())) continue;
 

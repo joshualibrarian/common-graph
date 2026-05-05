@@ -219,8 +219,7 @@ public final class FrameOld implements Canonical {
     public static FrameOld snapshot(CompoundKey key, ItemID type, ContentID cid, boolean identity) {
         List<Binding> bindings = new ArrayList<>();
         if (cid != null) {
-            bindings.add(new Binding(ThematicRole.Topic.IID,
-                    BindingTarget.ref(cid), true, false));
+            bindings.add(new Binding(ThematicRole.Topic.IID, BindingTarget.ref(cid)));
         }
         FrameBodyOld body = new FrameBodyOld(type, bindings);
         return new FrameOld(key, type, body, null, identity);
@@ -237,10 +236,10 @@ public final class FrameOld implements Canonical {
         List<CompoundKey.FrameToken> streamQualifiers = List.of(new CompoundKey.Sememe(CoreVocabulary.Stream.IID));
         if (heads != null && !heads.isEmpty()) {
             bindings.add(Binding.qualified(ThematicRole.Topic.IID, streamQualifiers,
-                    BindingTarget.ref(heads.getFirst()), true, false));
+                    BindingTarget.ref(heads.getFirst())));
         } else {
             bindings.add(Binding.qualified(ThematicRole.Topic.IID, streamQualifiers,
-                    Literal.ofText(""), false, false));
+                    Literal.ofText("")));
         }
         FrameBodyOld body = new FrameBodyOld(type, bindings);
         return new FrameOld(key, type, body, null, identity);
@@ -251,7 +250,7 @@ public final class FrameOld implements Canonical {
         List<Binding> bindings = new ArrayList<>();
         List<CompoundKey.FrameToken> externalQualifiers = List.of(new CompoundKey.Sememe(CoreVocabulary.External.IID));
         bindings.add(Binding.qualified(ThematicRole.Topic.IID, externalQualifiers,
-                Literal.ofText(""), false, false));
+                Literal.ofText("")));
         FrameBodyOld body = new FrameBodyOld(type, bindings);
         return new FrameOld(key, type, body, null, identity);
     }
@@ -265,8 +264,7 @@ public final class FrameOld implements Canonical {
     public static FrameOld reference(CompoundKey key, ItemID type, ItemID target) {
         Objects.requireNonNull(target, "reference target");
         List<Binding> bindings = new ArrayList<>();
-        bindings.add(new Binding(ThematicRole.Goal.IID,
-                BindingTarget.iid(target), true, false));
+        bindings.add(new Binding(ThematicRole.Goal.IID, BindingTarget.iid(target)));
         FrameBodyOld body = new FrameBodyOld(type, bindings);
         return new FrameOld(key, type, body, null, false);
     }
@@ -275,8 +273,7 @@ public final class FrameOld implements Canonical {
     public static FrameOld reference(CompoundKey key, ItemID type, ItemID target, boolean identity) {
         Objects.requireNonNull(target, "reference target");
         List<Binding> bindings = new ArrayList<>();
-        bindings.add(new Binding(ThematicRole.Goal.IID,
-                BindingTarget.iid(target), true, false));
+        bindings.add(new Binding(ThematicRole.Goal.IID, BindingTarget.iid(target)));
         FrameBodyOld body = new FrameBodyOld(type, bindings);
         return new FrameOld(key, type, body, null, identity);
     }
@@ -286,8 +283,7 @@ public final class FrameOld implements Canonical {
         CompoundKey key = CompoundKey.of(predicate, cid != null ? cid.encodeText() : "?");
         List<Binding> bindings = new ArrayList<>();
         if (cid != null) {
-            bindings.add(new Binding(ThematicRole.Topic.IID,
-                    BindingTarget.ref(cid), true, false));
+            bindings.add(new Binding(ThematicRole.Topic.IID, BindingTarget.ref(cid)));
         }
         FrameBodyOld body = new FrameBodyOld(predicate, bindings);
         return new FrameOld(key, predicate, body, null, identity);
@@ -333,7 +329,7 @@ public final class FrameOld implements Canonical {
 
     private static boolean hasIdentityBindings(FrameBodyOld body) {
         if (body.frameBindings() == null) return true;
-        return body.frameBindings().stream().anyMatch(Binding::identity);
+        return !body.frameBindings().isEmpty();
     }
 
     private static String formatPredicate(ItemID predicate) {

@@ -153,7 +153,7 @@ public class QueryItem extends ItemOld {
         for (Eval.ResolvedToken token : terms) {
             if (token instanceof Eval.ResolvedToken.Link link) {
                 patternTerms.add(link.iid());
-                addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(link.iid()), true, true));
+                addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(link.iid())));
             }
         }
     }
@@ -164,12 +164,12 @@ public class QueryItem extends ItemOld {
         this.semanticFrame = frame;
         this.patternTerms = new LinkedHashSet<>();
         patternTerms.add(frame.verb().iid());
-        addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(frame.verb().iid()), true, true));
+        addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(frame.verb().iid())));
         for (var entry : frame.bindings().entrySet()) {
             ItemID valueId = extractItemId(entry.getValue());
             if (valueId != null) {
                 patternTerms.add(valueId);
-                addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(valueId), true, true));
+                addBinding(new Binding(QueryTerm.IID, BindingTarget.iid(valueId)));
             }
         }
     }
@@ -295,7 +295,7 @@ public class QueryItem extends ItemOld {
         for (ItemID resultId : results) {
             FrameBodyOld resultFrame = new FrameBodyOld(Result.IID, List.of(
                     FrameBodyOld.homeBinding(iid()),
-                    new Binding(ThematicRole.Result.IID, BindingTarget.iid(resultId), true, true)
+                    new Binding(ThematicRole.Result.IID, BindingTarget.iid(resultId))
             ));
             endorseFrame(resultFrame);
         }

@@ -64,7 +64,6 @@ public final class TokenExtractor {
         List<Binding> bindings = body.frameBindings();
         for (int i = 0; i < bindings.size(); i++) {
             Binding b = bindings.get(i);
-            if (!b.index()) continue;
             if (!ThematicRole.Value.IID.equals(b.role())) continue;
             if (!(b.target() instanceof Literal lit)) continue;
 

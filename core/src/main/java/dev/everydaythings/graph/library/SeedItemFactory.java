@@ -148,7 +148,9 @@ public final class SeedItemFactory {
         for (Object v : values) {
             BindingTarget target = encodeValue(v);
             if (target != null) {
-                bindings.add(Binding.qualified(valueRole, qualifiers, target, ann.fieldAs().identity(), ann.fieldAs().index()));
+                // TODO: ann.fieldAs().identity() / .index() are no-ops — annotation properties
+                // remain on @ItemFrame.Bind for compat but Binding no longer has those flags.
+                bindings.add(Binding.qualified(valueRole, qualifiers, target));
             }
         }
         if (bindings.size() < 2) return; // no value bindings created

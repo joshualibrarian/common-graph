@@ -711,7 +711,6 @@ public class ItemView {
         SceneNode row = SceneNode.horizontal().gap("0.5em");
         row.add(SceneNode.ofText(role + ":").classes("muted"));
         row.add(SceneNode.ofText(value));
-        if (b.identity()) row.add(SceneNode.ofText("[id]").classes("mono", "muted"));
         return row;
     }
 

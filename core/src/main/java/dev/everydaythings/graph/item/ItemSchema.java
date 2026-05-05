@@ -488,23 +488,23 @@ public class ItemSchema {
 
         ItemID topicId = ThematicRole.Topic.IID;
 
-        // Content — Topic role (identity binding)
+        // Content — Topic role
         if (snapshotCid != null) {
             bindings.add(new dev.everydaythings.graph.frame.Binding(
-                    topicId, BindingTarget.ref(snapshotCid), true, false));
+                    topicId, BindingTarget.ref(snapshotCid)));
         }
 
         // Encrypted envelope — compound key (TOPIC, ENCRYPTED)
         if (encryptedCid != null) {
             bindings.add(dev.everydaythings.graph.frame.Binding.qualified(
                     topicId, java.util.List.of(new CompoundKey.Sememe(CoreVocabulary.Encrypted.IID)),
-                    BindingTarget.ref(encryptedCid), false, false));
+                    BindingTarget.ref(encryptedCid)));
         }
 
-        // Config — Config role (non-identity, CBOR Literal)
+        // Config — Config role
         if (existingConfig != null && existingConfig.policy() != null) {
             byte[] configBytes = existingConfig.encodeBinary(Canonical.Scope.RECORD);
-            bindings.add(dev.everydaythings.graph.frame.Binding.nonIdentity(
+            bindings.add(new dev.everydaythings.graph.frame.Binding(
                     ThematicRole.Config.IID,
                     new Literal(Literal.TYPE_CBOR, configBytes)));
         }

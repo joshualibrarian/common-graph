@@ -253,7 +253,7 @@ public final class FrameBodyOld implements Canonical {
     public FrameBodyOld withConfig(ItemID qualifier, BindingTarget target) {
         List<Binding> newConfig = new ArrayList<>(config());
         newConfig.removeIf(b -> b.isSimpleKey() && qualifier.equals(b.role()));
-        newConfig.add(Binding.nonIdentity(qualifier, target));
+        newConfig.add(new Binding(qualifier, target));
         return new FrameBodyOld(predicate, frameBindings, newConfig);
     }
 
@@ -339,7 +339,6 @@ public final class FrameBodyOld implements Canonical {
         CBORObject bindingsArray = CBORObject.NewArray();
         if (frameBindings != null) {
             for (Binding b : frameBindings) {
-                if (scope == Scope.BODY && !b.identity()) continue;
                 bindingsArray.Add(b.toCborTree(scope));
             }
         }
@@ -824,21 +823,21 @@ public final class FrameBodyOld implements Canonical {
             this.predicate = Objects.requireNonNull(predicate, "predicate");
         }
 
-        /** Short form — item ref, identity=true, index=true, no qualifiers. */
+        /** Short form — item ref, no qualifiers. */
         public Builder bind(ItemID role, ItemID target) {
-            bindings.add(new Binding(role, BindingTarget.iid(target), true, true));
+            bindings.add(new Binding(role, BindingTarget.iid(target)));
             return this;
         }
 
-        /** Short form — text literal, identity=true, index=true, no qualifiers. */
+        /** Short form — text literal, no qualifiers. */
         public Builder bind(ItemID role, String text) {
-            bindings.add(new Binding(role, Literal.ofText(text), true, true));
+            bindings.add(new Binding(role, Literal.ofText(text)));
             return this;
         }
 
-        /** Short form — explicit BindingTarget, identity=true, index=true, no qualifiers. */
+        /** Short form — explicit BindingTarget, no qualifiers. */
         public Builder bind(ItemID role, BindingTarget target) {
-            bindings.add(new Binding(role, target, true, true));
+            bindings.add(new Binding(role, target));
             return this;
         }
 
@@ -867,8 +866,6 @@ public final class FrameBodyOld implements Canonical {
         private final ItemID role;
         private final List<CompoundKey.FrameToken> qualifiers = new ArrayList<>();
         private BindingTarget target;
-        private boolean identity = true;
-        private boolean index = true;
 
         private BindingBuilder(Builder parent, ItemID role) {
             this.parent = parent;
@@ -901,18 +898,6 @@ public final class FrameBodyOld implements Canonical {
             return this;
         }
 
-        /** Set identity flag (default true). */
-        public BindingBuilder identity(boolean identity) {
-            this.identity = identity;
-            return this;
-        }
-
-        /** Set index flag (default true). */
-        public BindingBuilder index(boolean index) {
-            this.index = index;
-            return this;
-        }
-
         /** Complete this binding and return to the parent builder. */
         public Builder bind(ItemID nextRole, ItemID nextTarget) {
             finish();
@@ -939,7 +924,7 @@ public final class FrameBodyOld implements Canonical {
 
         private void finish() {
             Objects.requireNonNull(target, "binding target must be set via to()");
-            parent.addBinding(new Binding(role, qualifiers, target, identity, index));
+            parent.addBinding(new Binding(role, qualifiers, target));
         }
     }
 }
