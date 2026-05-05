@@ -1,350 +1,160 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.item.user.SignerTest;
-import dev.everydaythings.graph.library.Library;
-import org.junit.jupiter.api.*;
+import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.item.user.Signer;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
-import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Tests for Librarian - the root Item that hosts a graph.
- *
- * <p>Inherits:
- * <ul>
- *   <li>All universal Item tests from {@link dev.everydaythings.graph.item.ItemTest}</li>
- *   <li>All Signer tests from {@link SignerTest}</li>
- * </ul>
- *
- * <p>Plus Librarian-specific functionality tests.
- */
-@DisplayName("Librarian") @Disabled
-class LibrarianTest extends SignerTest {
-
-    // Typed reference to the librarian (same instance as 'item' and signer())
-    private Librarian librarian;
-
-    @Override
-    protected Item createItem(Path tempDir) {
-        librarian = Librarian.open(tempDir);
-        return librarian;
-    }
-
-    @Override
-    protected void closeItem() throws Exception {
-        if (librarian != null) {
-            librarian.close();
-        }
-    }
-
-    // ==================================================================================
-    // Librarian Identity
-    // ==================================================================================
+class LibrarianTest {
 
     @Nested
-    @DisplayName("Librarian Identity")
-    class LibrarianIdentity {
+    @DisplayName("Hierarchy")
+    class Hierarchy {
 
         @Test
-        @DisplayName("is a fresh boot on first creation")
-        void isFreshBootOnFirstCreation() {
-            assertThat(librarian.freshBoot())
-                    .as("First boot should be fresh")
-                    .isTrue();
+        @DisplayName("Librarian extends Signer (and therefore Item)")
+        void extendsSigner() {
+            Librarian lib = Librarian.inMemory();
+            assertThat(lib).isInstanceOf(Signer.class);
+            assertThat(lib).isInstanceOf(Item.class);
         }
 
         @Test
-        @DisplayName("preserves identity across reopen")
-        void preservesIdentityAcrossReopen() {
-            ItemID originalIid = librarian.iid();
-            Path rootPath = librarian.rootPath();
-
-            // Close and reopen
-            librarian.close();
-            librarian = Librarian.open(rootPath);
-
-            assertThat(librarian.iid())
-                    .as("IID should be preserved")
-                    .isEqualTo(originalIid);
-
-            assertThat(librarian.freshBoot())
-                    .as("Reopen should not be fresh boot")
-                    .isFalse();
+        @DisplayName("Librarian carries an iid")
+        void carriesIid() {
+            Librarian lib = Librarian.inMemory();
+            assertThat(lib.iid()).isNotNull();
         }
 
         @Test
-        @DisplayName("preserves public key across reopen")
-        void publicKeyPreservedAcrossReopen() {
-            byte[] originalKeyBytes = librarian.publicKey().spki();
-            Path rootPath = librarian.rootPath();
-
-            librarian.close();
-            librarian = Librarian.open(rootPath);
-
-            assertThat(librarian.publicKey().spki())
-                    .as("Public key should be preserved")
-                    .isEqualTo(originalKeyBytes);
+        @DisplayName("Librarian KEY is the archetype canonical key")
+        void keyMatches() {
+            assertThat(Librarian.KEY).isEqualTo("cg.archetype:librarian");
         }
     }
 
-    // ==================================================================================
-    // Library Component
-    // ==================================================================================
-
     @Nested
-    @DisplayName("Library Component")
-    class LibraryComponent {
+    @DisplayName("In-memory factory")
+    class InMemoryFactory {
 
         @Test
-        @DisplayName("has a library")
-        void hasLibrary() {
-            assertThat(librarian.library())
-                    .as("Library component")
-                    .isNotNull();
+        @DisplayName("inMemory() produces a usable Librarian with a Library")
+        void inMemory() {
+            Librarian lib = Librarian.inMemory();
+            assertThat(lib.library()).isNotNull();
+            assertThat(lib.rootPath()).isEmpty();
         }
 
         @Test
-        @DisplayName("library is accessible via component lookup")
-        void libraryAccessibleViaComponentLookup() {
-            Object comp = librarian.component("library");
-
-            assertThat(comp)
-                    .as("Library via component()")
-                    .isNotNull()
-                    .isInstanceOf(Library.class);
-        }
-
-        @Test
-        @DisplayName("library has primary store")
-        void libraryHasPrimaryStore() {
-            assertThat(librarian.library().primaryStore())
-                    .as("Primary store")
-                    .isPresent();
-        }
-
-        @Test
-        @DisplayName("library can execute queries")
-        void libraryCanExecuteQueries() {
-            // Library owns the index internally; we verify via query API
-            // Query for implemented-by relations (should return types)
-            var results = librarian.library().byPredicate(
-                    dev.everydaythings.graph.language.CoreVocabulary.ImplementedBy.IID).toList();
-            assertThat(results)
-                    .as("Library should have indexed implementedBy relations")
-                    .isNotEmpty();
+        @DisplayName("each inMemory() produces a fresh, independent Librarian")
+        void eachFresh() {
+            Librarian a = Librarian.inMemory();
+            Librarian b = Librarian.inMemory();
+            assertThat(a.iid()).isNotEqualTo(b.iid());
+            assertThat(a.library()).isNotSameAs(b.library());
         }
     }
 
-
-    // ==================================================================================
-    // Type Registry
-    // ==================================================================================
-
     @Nested
-    @DisplayName("Type Registry")
-    class TypeRegistry {
+    @DisplayName("Storage delegation")
+    class StorageDelegation {
 
         @Test
-        @DisplayName("can list types")
-        void canListTypes() {
-            List<ItemID> types = librarian.types().toList();
+        @DisplayName("persist returns CID; fetch returns the bytes")
+        void persistAndFetch() {
+            Librarian lib = Librarian.inMemory();
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:test")),
+                    List.of()
+            );
 
-            assertThat(types)
-                    .as("Types list")
-                    .isNotEmpty();
+            ContentID cid = lib.persist(body);
+            assertThat(cid).isEqualTo(body.cid());
+
+            Optional<byte[]> fetched = lib.fetch(cid);
+            assertThat(fetched).isPresent();
+            assertThat(lib.has(cid)).isTrue();
         }
 
         @Test
-        @DisplayName("Item type is registered")
-        void itemTypeIsRegistered() {
-            List<ItemID> types = librarian.types().toList();
+        @DisplayName("fetchFrame returns the stored body wrapped as a Frame (records empty until index lands)")
+        void fetchFrame() {
+            Librarian lib = Librarian.inMemory();
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(
+                            ItemID.fromString("cg.role:theme"),
+                            ItemID.fromString("hobbit")))
+            );
 
-            assertThat(types)
-                    .as("Types should include Item")
-                    .contains(ItemID.fromString(Item.KEY));
+            ContentID cid = lib.persist(body);
+            Optional<Frame> decoded = lib.fetchFrame(cid);
+            assertThat(decoded).isPresent();
+            assertThat(decoded.get().body()).isEqualTo(body);
+            assertThat(decoded.get().records()).isEmpty();
         }
 
         @Test
-        @DisplayName("can get Item type seed")
-        void canGetItemTypeSeed() {
-            var itemType = librarian.get(ItemID.fromString(Item.KEY), Item.class);
+        @DisplayName("fetchManifest returns archetypal bodies wrapped as a Manifest")
+        void fetchManifest() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.fromString("doc");
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(Binding.ref(Manifest.ITEM_ID, iid))
+            );
 
-            assertThat(itemType)
-                    .as("Item type seed")
-                    .isPresent();
-        }
-    }
-
-    // ==================================================================================
-    // Item Creation via Librarian
-    // ==================================================================================
-
-    @Nested
-    @DisplayName("Item Creation")
-    class ItemCreation {
-
-        @Test
-        @DisplayName("can create plain items")
-        void canCreatePlainItems() {
-            Item newItem = Item.create(librarian);
-
-            assertThat(newItem)
-                    .as("Created item")
-                    .isNotNull();
-            assertThat(newItem.iid())
-                    .as("New item IID")
-                    .isNotNull();
-            assertThat(newItem.dirty())
-                    .as("New item should be dirty")
-                    .isTrue();
-        }
-
-    }
-
-    // ==================================================================================
-    // Relations via Librarian
-    // ==================================================================================
-
-    @Nested
-    @DisplayName("Relations via Librarian")
-    class RelationsViaLibrarian {
-
-        @Test
-        @DisplayName("items can create frames via builder")
-        void itemsCanCreateFrames() {
-            Item author = Item.create(librarian);
-            Item book = Item.create(librarian);
-            ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
-
-            FrameBody body = FrameBody.builder(wroteId)
-                    .bind(ThematicRole.Theme.IID, author.iid())
-                    .bind(ThematicRole.Goal.IID, book.iid())
-                    .build();
-            librarian.storeFrame(body);
-
-            assertThat(body)
-                    .as("Created frame body")
-                    .isNotNull();
-            assertThat(body.homeId())
-                    .isEqualTo(author.iid());
-            assertThat(body.predicate())
-                    .isEqualTo(wroteId);
+            ContentID cid = lib.persist(manifestBody);
+            Optional<Manifest> decoded = lib.fetchManifest(cid);
+            assertThat(decoded).isPresent();
+            assertThat(decoded.get().itemId()).isEqualTo(iid);
+            assertThat(decoded.get().records()).isEmpty();
         }
 
         @Test
-        @DisplayName("frames are queryable from subject")
-        void framesQueryableFromSubject() {
-            Item author = Item.create(librarian);
-            Item book = Item.create(librarian);
-            ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
-
-            librarian.storeFrame(FrameBody.builder(wroteId)
-                    .bind(ThematicRole.Theme.IID, author.iid())
-                    .bind(ThematicRole.Goal.IID, book.iid())
-                    .build());
-
-            List<FrameBody> relations = author.relations().toList();
-
-            assertThat(relations)
-                    .as("Relations from author")
-                    .hasSize(1);
+        @DisplayName("fetchManifest returns empty for non-archetypal bodies (no ITEM_ID binding)")
+        void fetchManifestNonArchetypal() {
+            Librarian lib = Librarian.inMemory();
+            Body propositional = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of()
+            );
+            ContentID cid = lib.persist(propositional);
+            assertThat(lib.fetchManifest(cid)).isEmpty();
         }
 
         @Test
-        @DisplayName("frames are queryable to object")
-        void framesQueryableToObject() {
-            Item author = Item.create(librarian);
-            Item book = Item.create(librarian);
-            ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
-
-            librarian.storeFrame(FrameBody.builder(wroteId)
-                    .bind(ThematicRole.Theme.IID, author.iid())
-                    .bind(ThematicRole.Goal.IID, book.iid())
-                    .build());
-
-            List<FrameBody> relations = book.relations().toList();
-
-            assertThat(relations)
-                    .as("Relations to book")
-                    .hasSize(1);
+        @DisplayName("fetch returns empty for unknown CID")
+        void fetchEmpty() {
+            Librarian lib = Librarian.inMemory();
+            ContentID unknown = ContentID.of("never-stored".getBytes());
+            assertThat(lib.fetch(unknown)).isEmpty();
+            assertThat(lib.has(unknown)).isFalse();
         }
 
         @Test
-        @DisplayName("multiple frames can be created")
-        void multipleFramesCanBeCreated() {
-            Item author = Item.create(librarian);
-            Item book1 = Item.create(librarian);
-            Item book2 = Item.create(librarian);
-            ItemID wroteId = ItemID.fromString("cg.predicate:wrote");
+        @DisplayName("persistContent stores raw bytes addressable by CID")
+        void persistContent() {
+            Librarian lib = Librarian.inMemory();
+            byte[] bytes = "hello world".getBytes();
+            ContentID cid = lib.persistContent(bytes);
 
-            librarian.storeFrame(FrameBody.builder(wroteId)
-                    .bind(ThematicRole.Theme.IID, author.iid())
-                    .bind(ThematicRole.Goal.IID, book1.iid())
-                    .build());
-            librarian.storeFrame(FrameBody.builder(wroteId)
-                    .bind(ThematicRole.Theme.IID, author.iid())
-                    .bind(ThematicRole.Goal.IID, book2.iid())
-                    .build());
-
-            List<FrameBody> relations = author.relations(wroteId).toList();
-
-            assertThat(relations)
-                    .as("Relations with 'wrote' predicate")
-                    .hasSize(2);
-        }
-    }
-
-    // ==================================================================================
-    // Version Management
-    // ==================================================================================
-
-    @Nested
-    @DisplayName("Version Management")
-    class VersionManagement {
-
-        @Test
-        @DisplayName("has base version after first boot")
-        void hasBaseVersionAfterFirstBoot() {
-            // Librarian commits on first boot
-            assertThat(librarian.base())
-                    .as("Base version")
-                    .isNotNull();
-        }
-
-        @Test
-        @DisplayName("is not dirty after first boot commit")
-        void notDirtyAfterFirstBootCommit() {
-            assertThat(librarian.dirty())
-                    .as("Should not be dirty after first boot")
-                    .isFalse();
-        }
-
-        @Test
-        @DisplayName("items can be committed")
-        void itemsCanBeCommitted() {
-            Item newItem = Item.create(librarian);
-
-            assertThat(newItem.base()).isNull();
-            assertThat(newItem.dirty()).isTrue();
-
-            var vid = newItem.commit(librarian);
-
-            assertThat(vid)
-                    .as("Commit returns VID")
-                    .isNotNull();
-            assertThat(newItem.base())
-                    .as("Base is set after commit")
-                    .isEqualTo(vid);
-            assertThat(newItem.dirty())
-                    .as("Not dirty after commit")
-                    .isFalse();
+            Optional<byte[]> fetched = lib.fetch(cid);
+            assertThat(fetched).isPresent();
+            assertThat(fetched.get()).containsExactly(bytes);
         }
     }
 }

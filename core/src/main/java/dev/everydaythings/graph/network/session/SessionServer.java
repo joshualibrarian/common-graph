@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.session;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.network.Ack;
@@ -10,7 +10,7 @@ import dev.everydaythings.graph.network.ProtocolError;
 import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.transport.HeartbeatHandler;
 import dev.everydaythings.graph.network.transport.TransportDetector;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -25,7 +25,6 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -48,7 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Log4j2
 public class SessionServer implements AutoCloseable {
 
-    private final Librarian librarian;
+    private final LibrarianOld librarian;
 
     // Netty infrastructure
     private EventLoopGroup bossGroup;
@@ -66,7 +65,7 @@ public class SessionServer implements AutoCloseable {
     // Lifecycle
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    public SessionServer(Librarian librarian) {
+    public SessionServer(LibrarianOld librarian) {
         this.librarian = librarian;
     }
 
@@ -203,7 +202,7 @@ public class SessionServer implements AutoCloseable {
         public void channelInactive(ChannelHandlerContext ctx) {
             ClientSession removed = sessions.remove(ctx.channel());
             if (removed != null) {
-                librarian.unregisterSession(Librarian.SessionInfo.unix("Session " + removed.sessionId));
+                librarian.unregisterSession(LibrarianOld.SessionInfo.unix("Session " + removed.sessionId));
                 logger.info("Session closed: {}", removed.sessionId);
             }
         }
@@ -265,7 +264,7 @@ public class SessionServer implements AutoCloseable {
             });
         }
 
-        librarian.registerSession(Librarian.SessionInfo.unix("Session " + session.sessionId));
+        librarian.registerSession(LibrarianOld.SessionInfo.unix("Session " + session.sessionId));
         if (session.principalId != null) {
             sendMessage(ctx, SessionMessage.AuthResponse.successWithPrincipal(session.sessionId, session.principalId));
         } else {
@@ -306,7 +305,7 @@ public class SessionServer implements AutoCloseable {
 
             String persistentToken = createPersistentToken("User: " + name + " (" + user.iid().encodeText() + ")");
 
-            librarian.registerSession(Librarian.SessionInfo.unix("Session " + session.sessionId + " (" + name + ")"));
+            librarian.registerSession(LibrarianOld.SessionInfo.unix("Session " + session.sessionId + " (" + name + ")"));
             sendMessage(ctx, SessionMessage.AuthResponse.engaged(session.sessionId, persistentToken, user.iid()));
             logger.info("Session {} engaged as '{}' ({}), issued persistent token",
                     session.sessionId, name, user.iid().encodeText());
@@ -320,7 +319,7 @@ public class SessionServer implements AutoCloseable {
         boolean resolve = m.resolve();
 
         if (m.itemId() == null) {
-            Item ctxItem = session.context != null ? session.context : librarian;
+            ItemOld ctxItem = session.context != null ? session.context : librarian;
             sendMessage(ctx, new SessionMessage.ContextResponse(ctxItem.iid(), ctxItem.displayToken(), null));
             return;
         }
@@ -340,9 +339,9 @@ public class SessionServer implements AutoCloseable {
                 return;
             }
             ItemID iid = postings.get(0).target();
-            session.context = librarian.get(iid, Item.class).orElse(null);
+            session.context = librarian.get(iid, ItemOld.class).orElse(null);
         } else {
-            session.context = librarian.get(m.itemId(), Item.class).orElse(null);
+            session.context = librarian.get(m.itemId(), ItemOld.class).orElse(null);
         }
 
         if (session.context == null) {
@@ -459,7 +458,7 @@ public class SessionServer implements AutoCloseable {
         final boolean isUnixSocket;
         boolean authenticated = false;
         boolean challengeSent = false;
-        Item context = null;
+        ItemOld context = null;
         ItemID principalId = null;
         final java.util.Set<ItemID> subscriptions = ConcurrentHashMap.newKeySet();
 

@@ -2,11 +2,11 @@ package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.parse.ExpressionToken.*;
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
+import dev.everydaythings.graph.item.id.CompoundKey;
+import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Language;
@@ -37,9 +37,9 @@ class ProgressiveDisambiguationTest {
 
     private static Posting testPosting(String token, ItemID scope, ItemID target, float weight) {
         List<FrameToken> quals = scope != null
-                ? List.of(new FrameKey.Sememe(scope)) : List.of();
-        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
-                FrameBody.homeBinding(target),
+                ? List.of(new CompoundKey.Sememe(scope)) : List.of();
+        FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBodyOld.homeBinding(target),
                 new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, weight);
@@ -50,10 +50,10 @@ class ProgressiveDisambiguationTest {
         // POS goes at qualifier index 1+ so that features() returns it.
         // Use a synthetic scope at index 0 so scope() doesn't swallow the POS.
         List<FrameToken> quals = new ArrayList<>();
-        quals.add(new FrameKey.Sememe(Language.ENGLISH));
-        if (posFeature != null) quals.add(new FrameKey.Sememe(posFeature));
-        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
-                FrameBody.homeBinding(target),
+        quals.add(new CompoundKey.Sememe(Language.ENGLISH));
+        if (posFeature != null) quals.add(new CompoundKey.Sememe(posFeature));
+        FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBodyOld.homeBinding(target),
                 new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, 1.0f);
@@ -90,7 +90,7 @@ class ProgressiveDisambiguationTest {
                     testPostingWithPOS("set", SET_NOUN_IID, PartOfSpeech.NOUN)
             );
 
-            Function<ItemID, Optional<Item>> resolver = iid -> {
+            Function<ItemID, Optional<ItemOld>> resolver = iid -> {
                 if (iid.equals(SET_VERB_IID)) return Optional.of(mockVerb(SET_VERB_IID));
                 if (iid.equals(SET_NOUN_IID)) return Optional.of(mockNoun(SET_NOUN_IID));
                 return Optional.empty();
@@ -114,7 +114,7 @@ class ProgressiveDisambiguationTest {
                     testPostingWithPOS("on", NOUN_A_IID, PartOfSpeech.NOUN)
             );
 
-            Function<ItemID, Optional<Item>> resolver = iid -> {
+            Function<ItemID, Optional<ItemOld>> resolver = iid -> {
                 if (iid.equals(ON_PREP_IID)) return Optional.of(mockPreposition(ON_PREP_IID));
                 if (iid.equals(NOUN_A_IID)) return Optional.of(mockNoun(NOUN_A_IID));
                 return Optional.empty();
@@ -147,7 +147,7 @@ class ProgressiveDisambiguationTest {
 
             ItemID prepCandidateIid = candidates.get(0).target();
 
-            Function<ItemID, Optional<Item>> resolver = iid -> {
+            Function<ItemID, Optional<ItemOld>> resolver = iid -> {
                 if (iid.equals(ON_PREP_IID)) return Optional.of(mockPreposition(ON_PREP_IID));
                 if (iid.equals(prepCandidateIid)) return Optional.of(mockPreposition(prepCandidateIid));
                 if (iid.equals(NOUN_A_IID)) return Optional.of(mockNoun(NOUN_A_IID));
@@ -175,7 +175,7 @@ class ProgressiveDisambiguationTest {
                     testPostingWithPOS("extra", NOUN_B_IID, PartOfSpeech.NOUN)
             );
 
-            Function<ItemID, Optional<Item>> resolver = iid -> Optional.empty();
+            Function<ItemID, Optional<ItemOld>> resolver = iid -> Optional.empty();
 
             List<Posting> surviving = ctx.pruneForPosition(
                     0, candidates, List.of(), resolver);
@@ -193,7 +193,7 @@ class ProgressiveDisambiguationTest {
                     testPosting("set", SET_NOUN_IID)
             );
 
-            Function<ItemID, Optional<Item>> resolver = iid -> Optional.empty();
+            Function<ItemID, Optional<ItemOld>> resolver = iid -> Optional.empty();
 
             List<Posting> surviving = ctx.pruneForPosition(
                     0, candidates, List.of(), resolver);
@@ -212,7 +212,7 @@ class ProgressiveDisambiguationTest {
             );
 
             // Resolver can't resolve
-            Function<ItemID, Optional<Item>> resolver = iid -> Optional.empty();
+            Function<ItemID, Optional<ItemOld>> resolver = iid -> Optional.empty();
 
             List<Posting> surviving = ctx.pruneForPosition(
                     0, candidates, List.of(), resolver);
@@ -327,7 +327,7 @@ class ProgressiveDisambiguationTest {
     private static Sememe mockVerb(ItemID iid) {
         // Verb with an EXPECTS frame so inferPOSFromItem detects it as a verb
         Sememe verb = new Sememe("test:verb/" + iid.toString().substring(0, 8));
-        verb.endorseFrame(new FrameBody(CoreVocabulary.Expects.IID, verb.iid(),
+        verb.endorseFrame(new FrameBodyOld(CoreVocabulary.Expects.IID, verb.iid(),
                 List.of(Binding.ref(ThematicRole.Topic.IID, ThematicRole.Theme.IID))));
         return verb;
     }

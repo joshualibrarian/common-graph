@@ -2,11 +2,11 @@ package dev.everydaythings.graph.ui;
 
 import dev.everydaythings.graph.frame.*;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
-import dev.everydaythings.graph.frame.eval.FrameAssemblyPipeline;
 import dev.everydaythings.graph.item.*;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.parse.InputSnapshot;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.ActionResult;
@@ -15,7 +15,6 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
-import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -32,7 +31,7 @@ import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.surface.item.ItemView;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.log4j.Log4j2;
@@ -50,7 +49,7 @@ import java.util.function.Consumer;
 /**
  * Session is the core controller for interacting with a Librarian.
  *
- * <p>Session extends {@link Item} — it IS an Item with identity,
+ * <p>Session extends {@link ItemOld} — it IS an Item with identity,
  * vocabulary, verbs, and components. It manages authenticated users,
  * session-level verbs (exit, back, authenticate, switch), the activity
  * log, and the UI layer (ItemView, input, rendering).
@@ -89,7 +88,7 @@ import java.util.function.Consumer;
     mixinStandardHelpOptions = true,
     description = "Open a session to a Librarian"
 )
-public abstract class Session extends Item implements Callable<Integer>, Closeable {
+public abstract class Session extends ItemOld implements Callable<Integer>, Closeable {
 
     public static final String KEY = "cg.sememe:session";
 
@@ -131,11 +130,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     private static final SecureRandom RANDOM = new SecureRandom();
 
     /** All authenticated users for this session (insertion-ordered). */
-    private final Set<Signer> authenticatedUsers = new LinkedHashSet<>();
+    private final Set<SignerOld> authenticatedUsers = new LinkedHashSet<>();
 
     /** The currently active actor — the identity that signs dispatched actions. */
     @Getter
-    private Signer actor;
+    private SignerOld actor;
 
     /** Handle for resolving users during authentication. */
     private LibrarianHandle handle;
@@ -176,7 +175,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * stored manifests, losing runtime modifications.
      */
     @Deprecated // Being removed — use librarian.put() / librarian.get() instead
-    private final Map<ItemID, Item> liveItemCache = new HashMap<>();
+    private final Map<ItemID, ItemOld> liveItemCache = new HashMap<>();
 
     private static final ItemID EXIT_SEMEME_ID = ItemID.fromString(CoreVocabulary.Exit.KEY);
     private static final ItemID BACK_SEMEME_ID = ItemID.fromString(CoreVocabulary.Back.KEY);
@@ -262,7 +261,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     private void autoAuthenticate() {
         if (handle == null) return;
         handle.principal().ifPresent(principal -> {
-            if (principal instanceof Signer signer && signer.canSign()) {
+            if (principal instanceof SignerOld signer && signer.canSign()) {
                 if (challengeResponse(signer)) {
                     authenticatedUsers.add(signer);
                     actor = signer;
@@ -282,7 +281,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param signer The signer to authenticate
      * @return true if the signer proved possession of the private key
      */
-    private boolean challengeResponse(Signer signer) {
+    private boolean challengeResponse(SignerOld signer) {
         if (!signer.canSign()) {
             return false;
         }
@@ -312,28 +311,28 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @return The authenticated user
      * @throws IllegalArgumentException if user not found or auth fails
      */
-    public Signer authenticate(ItemID userId) {
+    public SignerOld authenticate(ItemID userId) {
         if (handle == null) {
             throw new IllegalStateException("No librarian handle — cannot resolve users");
         }
 
         // Check if already authenticated
-        for (Signer s : authenticatedUsers) {
+        for (SignerOld s : authenticatedUsers) {
             if (s.iid().equals(userId)) {
                 return s;
             }
         }
 
         // Resolve the item and check if it's a Signer
-        Optional<Item> found = handle.get(userId);
-        if (found.isPresent() && found.get() instanceof Signer signer) {
+        Optional<ItemOld> found = handle.get(userId);
+        if (found.isPresent() && found.get() instanceof SignerOld signer) {
             return authenticateSigner(signer);
         }
 
         throw new IllegalArgumentException("User not found: " + userId.encodeText());
     }
 
-    private Signer authenticateSigner(Signer signer) {
+    private SignerOld authenticateSigner(SignerOld signer) {
         if (!challengeResponse(signer)) {
             throw new IllegalArgumentException(
                     "Authentication failed for " + signer.displayToken()
@@ -358,8 +357,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @return The user that is now the active actor
      * @throws IllegalArgumentException if user is not authenticated
      */
-    public Signer switchActor(ItemID userId) {
-        for (Signer s : authenticatedUsers) {
+    public SignerOld switchActor(ItemID userId) {
+        for (SignerOld s : authenticatedUsers) {
             if (s.iid().equals(userId)) {
                 actor = s;
                 logger.info("Switched actor to: {}", s.displayToken());
@@ -373,7 +372,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Get all authenticated users (unmodifiable).
      */
-    public Set<Signer> authenticatedUsers() {
+    public Set<SignerOld> authenticatedUsers() {
         return Collections.unmodifiableSet(authenticatedUsers);
     }
 
@@ -398,7 +397,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         // Also create an ACTIVITY frame on the Session item (frame-based logging)
         if (librarian != null) {
-            FrameBody.Builder builder = FrameBody.builder(
+            FrameBodyOld.Builder builder = FrameBodyOld.builder(
                     ItemID.fromString(CoreVocabulary.Activity.KEY));
 
             // THEME — what was evaluated (input text)
@@ -478,7 +477,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             if (target == null) return;
 
             // Endorse the ITEM_VIEW frame on this session
-            FrameKey key = endorseViewFrame(ctx.body());
+            CompoundKey key = endorseViewFrame(ctx.body());
             onViewOpened(key);
             ctx.handled(ActionResult.success("Viewing " + target.displayAtWidth(12)));
             return;
@@ -502,11 +501,11 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * <p>Creates a Frame with a unique key and adds it to the session's
      * endorsements table. Returns the key for window management.
      */
-    private FrameKey endorseViewFrame(FrameBody body) {
+    private CompoundKey endorseViewFrame(FrameBodyOld body) {
         String viewId = java.util.UUID.randomUUID().toString().substring(0, 8);
-        FrameKey key = FrameKey.of(ViewVocabulary.ItemView.IID, viewId);
+        CompoundKey key = CompoundKey.of(ViewVocabulary.ItemView.IID, viewId);
 
-        Frame frame = new Frame(key, ViewVocabulary.ItemView.IID, body, null, false);
+        FrameOld frame = new FrameOld(key, ViewVocabulary.ItemView.IID, body, null, false);
         frames().add(frame);
         frame.setInstance(ViewConfig.defaults());
 
@@ -521,13 +520,13 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * Hook called when a new ITEM_VIEW frame is opened.
      * GraphicalSession overrides to create an OS window.
      */
-    protected void onViewOpened(FrameKey key) {}
+    protected void onViewOpened(CompoundKey key) {}
 
     /**
      * Hook called when an ITEM_VIEW frame is closed.
      * GraphicalSession overrides to destroy the OS window.
      */
-    protected void onViewClosed(FrameKey key) {}
+    protected void onViewClosed(CompoundKey key) {}
 
     /**
      * Open a view of an item on a specific display.
@@ -563,7 +562,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (displayRef != null) {
             bindings.add(Binding.ref(ThematicRole.Location.IID, displayRef));
         }
-        FrameBody body = new FrameBody(ViewVocabulary.ItemView.IID, bindings);
+        FrameBodyOld body = new FrameBodyOld(ViewVocabulary.ItemView.IID, bindings);
 
         // Fire through the assembly reaction — onFrameAssembled handles
         // endorsement and window creation.
@@ -589,7 +588,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      *
      * @param viewKey the ITEM_VIEW frame key to close
      */
-    public void closeView(FrameKey viewKey) {
+    public void closeView(CompoundKey viewKey) {
         frames().removeByKey(viewKey);
     }
 
@@ -615,7 +614,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @return a ViewHandle if found, null otherwise
      */
     public ViewHandle findView(ItemID target) {
-        for (Frame frame : frames()) {
+        for (FrameOld frame : frames()) {
             if (ViewVocabulary.ItemView.IID.equals(frame.type()) && frame.body() != null) {
                 ItemID themeId = frame.body().homeId();
                 if (target.equals(themeId)) {
@@ -636,7 +635,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     public List<ViewHandle> openViews() {
         List<ViewHandle> views = new java.util.ArrayList<>();
-        for (Frame frame : frames()) {
+        for (FrameOld frame : frames()) {
             if (ViewVocabulary.ItemView.IID.equals(frame.type()) && frame.body() != null) {
                 ItemID themeId = frame.body().homeId();
                 if (themeId != null) {
@@ -653,8 +652,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Resolve all open view targets to Items, for sibling disambiguation.
      */
-    private Collection<Item> openViewItems() {
-        List<Item> items = new ArrayList<>();
+    private Collection<ItemOld> openViewItems() {
+        List<ItemOld> items = new ArrayList<>();
         for (ViewHandle vh : openViews()) {
             resolveItem(vh.target()).ifPresent(items::add);
         }
@@ -667,8 +666,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param key the ITEM_VIEW frame key
      * @return the config, or null if not found
      */
-    public ViewConfig viewConfig(FrameKey key) {
-        Frame frame = frames().get(key);
+    public ViewConfig viewConfig(CompoundKey key) {
+        FrameOld frame = frames().get(key);
         if (frame == null) return null;
         return frame.instance() instanceof ViewConfig vc ? vc : ViewConfig.defaults();
     }
@@ -679,8 +678,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param key    the ITEM_VIEW frame key
      * @param config the new config
      */
-    public void updateViewConfig(FrameKey key, ViewConfig config) {
-        dev.everydaythings.graph.frame.Frame frame = frames().get(key);
+    public void updateViewConfig(CompoundKey key, ViewConfig config) {
+        FrameOld frame = frames().get(key);
         if (frame != null) {
             frame.setInstance(config);
         }
@@ -699,8 +698,8 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param config the display layout configuration
      * @return the FrameKey of the new DISPLAY_LAYOUT frame
      */
-    public FrameKey registerDisplayLayout(DisplayLayoutConfig config) {
-        FrameKey key = FrameKey.of(ViewVocabulary.DisplayLayout.IID, config.displayId());
+    public CompoundKey registerDisplayLayout(DisplayLayoutConfig config) {
+        CompoundKey key = CompoundKey.of(ViewVocabulary.DisplayLayout.IID, config.displayId());
 
         // Remove existing frame for this display if present
         frames().removeByKey(key);
@@ -709,9 +708,9 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         bindings.add(Binding.literal(ThematicRole.Theme.IID,
                 Literal.ofText(config.displayId())));
         bindings.add(Binding.ref(ThematicRole.Location.IID, config.hostId()));
-        FrameBody body = new FrameBody(ViewVocabulary.DisplayLayout.IID, bindings);
+        FrameBodyOld body = new FrameBodyOld(ViewVocabulary.DisplayLayout.IID, bindings);
 
-        Frame frame = new Frame(key, ViewVocabulary.DisplayLayout.IID, body, null, false);
+        FrameOld frame = new FrameOld(key, ViewVocabulary.DisplayLayout.IID, body, null, false);
         frames().add(frame);
         frame.setInstance(config);
 
@@ -723,7 +722,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      */
     public List<DisplayLayoutConfig> displayLayouts() {
         List<DisplayLayoutConfig> result = new java.util.ArrayList<>();
-        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+        for (FrameOld frame : frames()) {
             if (ViewVocabulary.DisplayLayout.IID.equals(frame.type())
                     && frame.instance() instanceof DisplayLayoutConfig dlc) {
                 result.add(dlc);
@@ -738,15 +737,15 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      * @param hostId the host whose layouts to remove
      */
     public void clearDisplayLayouts(ItemID hostId) {
-        List<FrameKey> toRemove = new ArrayList<>();
-        for (Frame frame : frames()) {
+        List<CompoundKey> toRemove = new ArrayList<>();
+        for (FrameOld frame : frames()) {
             if (ViewVocabulary.DisplayLayout.IID.equals(frame.type())
                     && frame.instance() instanceof DisplayLayoutConfig dlc
                     && hostId.equals(dlc.hostId())) {
                 toRemove.add(frame.frameKey());
             }
         }
-        for (FrameKey key : toRemove) {
+        for (CompoundKey key : toRemove) {
             frames().removeByKey(key);
         }
     }
@@ -868,14 +867,14 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // Cache the principal so resolveItem() can find it
         cachePrincipal();
 
-        Item contextItem = resolveItem(context.target()).orElse(this);
+        ItemOld contextItem = resolveItem(context.target()).orElse(this);
         itemView = new ItemView(contextItem, this::resolveItem);
         itemView.setSiblingsProvider(this::openViewItems);
 
         // Wire ephemeral frame provider if librarian supports it
         if (librarian != null) {
             itemView.setEphemeralProvider(new ItemView.EphemeralFrameProvider() {
-                @Override public List<FrameBody> ephemeralFrames(ItemID itemId) {
+                @Override public List<FrameBodyOld> ephemeralFrames(ItemID itemId) {
                     return librarian.ephemeralFrames(itemId);
                 }
                 @Override public void onEphemeralChanged(ItemID itemId, Runnable listener) {
@@ -901,7 +900,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         ItemID principalId = librarian.principalId();
         if (principalId == null) principalId = librarian.iid();
 
-        FrameBody presence = FrameBody.builder(
+        FrameBodyOld presence = FrameBodyOld.builder(
                         ItemID.fromString(dev.everydaythings.graph.language.PresenceVocabulary.Present.KEY))
                 .bind(ItemID.fromString(dev.everydaythings.graph.language.ThematicRole.Agent.KEY), principalId)
                 .bind(ItemID.fromString(dev.everydaythings.graph.language.ThematicRole.Location.KEY), itemId)
@@ -948,7 +947,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Create a session with resolved librarian, context Item, and options.
      */
-    public static Session create(LibrarianHandle librarian, Item context, SessionOptions opts) {
+    public static Session create(LibrarianHandle librarian, ItemOld context, SessionOptions opts) {
         Ref contextRef = context != null ? Ref.of(context.iid()) : null;
         return create(librarian, contextRef, opts);
     }
@@ -1125,7 +1124,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Get the context Item (resolves the Ref's target IID).
      */
-    public Optional<Item> contextItem() {
+    public Optional<ItemOld> contextItem() {
         if (itemView == null) return Optional.empty();
         Ref ctx = itemView.context();
         if (ctx == null || ctx.target() == null) return Optional.empty();
@@ -1143,7 +1142,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         return itemView != null ? itemView.toSceneNode() : null;
     }
 
-    public Optional<Item> resolveItem(ItemID iid) {
+    public Optional<ItemOld> resolveItem(ItemID iid) {
         return librarian.get(iid);
     }
 
@@ -1232,7 +1231,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     protected void handleEvalResult(Eval.EvalResult result) {
         switch (result) {
             case Eval.EvalResult.Empty() -> {}
-            case Eval.EvalResult.ItemResult(Item item) -> {
+            case Eval.EvalResult.ItemResult(ItemOld item) -> {
                 if (isSessionVerb(item)) {
                     executeSessionVerb(item);
                     return;
@@ -1240,7 +1239,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
                 librarian.put(item);
                 openView(item.iid());
             }
-            case Eval.EvalResult.Created(Item item, Item type) -> {
+            case Eval.EvalResult.Created(ItemOld item, ItemOld type) -> {
                 // Item was created — don't navigate the current view.
                 // Cache it and refresh the tree so it's visible.
                 librarian.put(item);
@@ -1255,7 +1254,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             case Eval.EvalResult.Value(Object value) -> {
                 displayValue(value);
             }
-            case Eval.EvalResult.ValueWithTarget(Object value, Item targetItem) -> {
+            case Eval.EvalResult.ValueWithTarget(Object value, ItemOld targetItem) -> {
                 // Value targeted at an item — display for now
                 displayValue(value);
             }
@@ -1287,7 +1286,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         // Log to the session activity log FIRST (before navigation changes context)
         if (!(result instanceof Eval.EvalResult.Empty)) {
             String inputText = lastDispatchedText;
-            ItemID contextIid = contextItem().map(Item::iid).orElse(null);
+            ItemID contextIid = contextItem().map(ItemOld::iid).orElse(null);
             ActivityEntry entry = ActivityEntry.from(inputText, contextIid, result);
             logActivity(entry);
 
@@ -1322,7 +1321,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
      *
      * @param item the item whose components changed
      */
-    protected void onContextComponentsChanged(Item item) {
+    protected void onContextComponentsChanged(ItemOld item) {
         // Default: no-op
     }
 
@@ -1347,7 +1346,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Check if an item is a session-level verb sememe (exit, back).
      */
-    protected boolean isSessionVerb(Item item) {
+    protected boolean isSessionVerb(ItemOld item) {
         ItemID iid = item.iid();
         return iid.equals(EXIT_SEMEME_ID) || iid.equals(BACK_SEMEME_ID);
     }
@@ -1355,7 +1354,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Execute a session-level verb (exit, back).
      */
-    protected void executeSessionVerb(Item item) {
+    protected void executeSessionVerb(ItemOld item) {
         ItemID iid = item.iid();
         if (iid.equals(EXIT_SEMEME_ID)) {
             running = false;
@@ -1397,12 +1396,12 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             return actorPrefix + "session> ";
         }
 
-        Optional<Item> item = contextItem();
+        Optional<ItemOld> item = contextItem();
         if (item.isPresent()) {
             String icon = item.get().emoji();
             String label = item.get().displayToken();
 
-            FrameKey frameKey = ctx.frameKey();
+            CompoundKey frameKey = ctx.frameKey();
             if (frameKey != null) {
                 label = label + "/" + frameKey.toCanonicalString();
             }
@@ -1467,7 +1466,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
         if (value instanceof SceneNode sn) {
             return "[SceneNode]";
         }
-        if (value instanceof Item item) {
+        if (value instanceof ItemOld item) {
             return item.emoji() + " " + item.displayToken();
         }
         return value.toString();
@@ -1486,7 +1485,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
     /**
      * Lookup an item by query string.
      */
-    protected Item lookupItem(String query) {
+    protected ItemOld lookupItem(String query) {
         List<Posting> postings = librarian.lookup(query).limit(10).toList();
 
         for (Posting p : postings) {
@@ -1509,7 +1508,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
 
         if (spec.startsWith("@")) {
             String handleStr = spec.substring(1);
-            Item item = lookupItem(handleStr);
+            ItemOld item = lookupItem(handleStr);
             return item != null ? Ref.of(item.iid()) : null;
         }
 
@@ -1522,7 +1521,7 @@ public abstract class Session extends Item implements Callable<Integer>, Closeab
             }
         }
 
-        Item item = lookupItem(spec);
+        ItemOld item = lookupItem(spec);
         return item != null ? Ref.of(item.iid()) : null;
     }
 

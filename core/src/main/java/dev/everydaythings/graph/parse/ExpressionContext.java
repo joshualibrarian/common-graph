@@ -1,12 +1,11 @@
 package dev.everydaythings.graph.parse;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.FrameAssembler;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.CoreVocabulary;
 
 import java.util.*;
 import java.util.function.Function;
@@ -69,7 +68,7 @@ public record ExpressionContext(
      */
     public static ExpressionContext analyze(
             List<ExpressionToken> tokens,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
 
         if (tokens.isEmpty()) {
             return EMPTY;
@@ -130,7 +129,7 @@ public record ExpressionContext(
      */
     public List<Posting> filter(
             List<Posting> postings,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
 
         if (verb == null) {
             // No verb yet — show everything
@@ -152,7 +151,7 @@ public record ExpressionContext(
             }
 
             // Slow path: hydrate to infer POS (postings without features)
-            Optional<Item> target = resolver.apply(posting.target());
+            Optional<ItemOld> target = resolver.apply(posting.target());
             if (target.isEmpty()) {
                 filtered.add(posting);
                 continue;
@@ -184,7 +183,7 @@ public record ExpressionContext(
             int tokenIndex,
             List<Posting> candidates,
             List<ExpressionToken> allTokens,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
 
         if (candidates.isEmpty()) {
             return candidates;
@@ -216,7 +215,7 @@ public record ExpressionContext(
         if (tokenIndex > 0) {
             ExpressionToken prev = allTokens.get(tokenIndex - 1);
             if (prev instanceof ExpressionToken.RefToken ref) {
-                Optional<Item> prevItem = resolver.apply(ref.target());
+                Optional<ItemOld> prevItem = resolver.apply(ref.target());
                 Set<ItemID> prevFeats = ref.sourcePosting() != null ? ref.sourcePosting().features() : Set.of();
                 if (prevFeats.isEmpty() && prevItem.isPresent()) {
                     prevFeats = FrameAssembler.inferPOSFromItem(prevItem.get());
@@ -256,7 +255,7 @@ public record ExpressionContext(
             int tokenIndex,
             List<Posting> candidates,
             List<ExpressionToken> allTokens,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
 
         // Check right neighbor
         if (tokenIndex + 1 < allTokens.size()) {
@@ -292,10 +291,10 @@ public record ExpressionContext(
     /**
      * Get features for a posting, using posting field with hydration fallback.
      */
-    private static Set<ItemID> featuresOf(Posting posting, Function<ItemID, Optional<Item>> resolver) {
+    private static Set<ItemID> featuresOf(Posting posting, Function<ItemID, Optional<ItemOld>> resolver) {
         Set<ItemID> feats = posting.features();
         if (!feats.isEmpty()) return feats;
-        Optional<Item> item = resolver.apply(posting.target());
+        Optional<ItemOld> item = resolver.apply(posting.target());
         if (item.isEmpty()) return Set.of();
         return FrameAssembler.inferPOSFromItem(item.get());
     }

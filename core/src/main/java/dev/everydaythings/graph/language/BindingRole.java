@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval;
 
@@ -27,7 +27,7 @@ public enum BindingRole {
      * @param token    The resolved token
      * @param features Grammatical features from the token pipeline (POS is a feature)
      */
-    public static BindingRole classify(Item item, Eval.ResolvedToken token, Set<ItemID> features) {
+    public static BindingRole classify(ItemOld item, Eval.ResolvedToken token, Set<ItemID> features) {
         if (!features.isEmpty()) {
             if (features.contains(PartOfSpeech.VERB)) return ACTION;
             if (features.contains(PartOfSpeech.NOUN) || features.contains(PartOfSpeech.PRONOUN)) return REFERENCE;

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -26,12 +26,12 @@ public class DiscourseHistory {
 
     private static final int MAX_HISTORY = 16;
 
-    private final Deque<Item> history = new ArrayDeque<>(MAX_HISTORY);
+    private final Deque<ItemOld> history = new ArrayDeque<>(MAX_HISTORY);
 
     /**
      * Record that an item was just created, navigated to, or mentioned.
      */
-    public void push(Item item) {
+    public void push(ItemOld item) {
         if (item == null) return;
         // Remove if already in history (move to front)
         history.removeIf(i -> i.iid().equals(item.iid()));
@@ -44,14 +44,14 @@ public class DiscourseHistory {
     /**
      * The most recently pushed item ("it", "that").
      */
-    public Optional<Item> mostRecent() {
+    public Optional<ItemOld> mostRecent() {
         return Optional.ofNullable(history.peekFirst());
     }
 
     /**
      * The second most recent item ("last").
      */
-    public Optional<Item> previous() {
+    public Optional<ItemOld> previous() {
         var iter = history.iterator();
         if (iter.hasNext()) iter.next(); // skip most recent
         return iter.hasNext() ? Optional.of(iter.next()) : Optional.empty();
@@ -64,7 +64,7 @@ public class DiscourseHistory {
      * @param focusedItem The currently focused item ("this"), or null
      * @return The resolved item, or empty if unresolvable
      */
-    public Optional<Item> resolve(Sememe pronoun, Item focusedItem) {
+    public Optional<ItemOld> resolve(Sememe pronoun, ItemOld focusedItem) {
         String key = pronoun.canonicalKey();
         if (key == null) return Optional.empty();
 

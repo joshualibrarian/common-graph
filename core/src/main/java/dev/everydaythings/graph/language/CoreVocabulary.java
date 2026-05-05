@@ -2,22 +2,19 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
 import dev.everydaythings.graph.frame.eval.FrameEvaluator;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.eval.ParseContext;
-import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.*;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.item.user.SignerOld;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 /**
  * Core vocabulary seeds — the fundamental predicates and actions CG needs to function.
@@ -139,7 +136,7 @@ public final class CoreVocabulary {
 
         public Create() { super(KEY); }
         protected Create(ItemID iid) { super(iid); }
-        protected Create(Librarian lib, Manifest m) { super(lib, m); }
+        protected Create(LibrarianOld lib, ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -175,19 +172,19 @@ public final class CoreVocabulary {
 
         @Override
         public void onFrameAssembled(FrameAssemblyContext ctx) {
-            Item typeItem = ctx.item(ThematicRole.Theme.IID);
+            ItemOld typeItem = ctx.item(ThematicRole.Theme.IID);
             if (typeItem == null) return;
 
             Class<?> implClass = typeItem.resolveImplementingClass().orElse(null);
-            if (implClass == null || !Item.class.isAssignableFrom(implClass)) return;
+            if (implClass == null || !ItemOld.class.isAssignableFrom(implClass)) return;
 
-            Librarian lib = ctx.scope().librarian();
+            LibrarianOld lib = ctx.scope().librarian();
             if (lib == null) return;
 
-            Item newItem = Item.instantiateItem(implClass, lib);
+            ItemOld newItem = ItemOld.instantiateItem(implClass, lib);
 
             // INSTANCE_OF frame
-            lib.storeFrame(FrameBody.builder(LexicalVocabulary.InstanceOf.IID)
+            lib.storeFrame(FrameBodyOld.builder(LexicalVocabulary.InstanceOf.IID)
                     .bind(ThematicRole.Theme.IID, newItem.iid())
                     .bind(ThematicRole.Goal.IID, typeItem.iid())
                     .build());
@@ -197,10 +194,10 @@ public final class CoreVocabulary {
             if (nameTarget instanceof Literal lit && lit.payload() != null) {
                 String name = new String(lit.payload(), java.nio.charset.StandardCharsets.UTF_8);
                 if (!name.isBlank()) {
-                    if (newItem instanceof Signer signer) {
+                    if (newItem instanceof SignerOld signer) {
                         signer.setName(name);
                     } else {
-                        lib.storeFrame(FrameBody.builder(Title.IID)
+                        lib.storeFrame(FrameBodyOld.builder(Title.IID)
                                 .bind(ThematicRole.Theme.IID, newItem.iid())
                                 .bind(ThematicRole.Value.IID, name)
                                 .build());
@@ -701,7 +698,7 @@ public final class CoreVocabulary {
 
         public Commit() { super(KEY); }
         protected Commit(ItemID iid) { super(iid); }
-        protected Commit(Librarian lib, Manifest m) { super(lib, m); }
+        protected Commit(LibrarianOld lib, ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -722,17 +719,17 @@ public final class CoreVocabulary {
         @Override
         public void onFrameAssembled(FrameAssemblyContext ctx) {
             // The THEME is the item to commit — filled from context if bare "commit"
-            Item target = ctx.item(ThematicRole.Theme.IID);
+            ItemOld target = ctx.item(ThematicRole.Theme.IID);
             if (target == null) {
                 // No explicit target — commit the context item
-                Librarian lib = ctx.scope().librarian();
+                LibrarianOld lib = ctx.scope().librarian();
                 if (lib != null && ctx.scope().owner() != null) {
                     target = ctx.scope().owner();
                 }
             }
             if (target == null) return;
 
-            Signer signer = ctx.signer();
+            SignerOld signer = ctx.signer();
             if (signer == null) return;
 
             ContentID vid = target.commit(signer);
@@ -752,7 +749,7 @@ public final class CoreVocabulary {
 
         public Equals() { super(KEY); }
         protected Equals(ItemID iid) { super(iid); }
-        protected Equals(Librarian lib, Manifest m) { super(lib, m); }
+        protected Equals(LibrarianOld lib, ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -832,7 +829,7 @@ public final class CoreVocabulary {
 
         public Author() { super(KEY); }
         protected Author(ItemID iid) { super(iid); }
-        protected Author(Librarian lib, Manifest m) { super(lib, m); }
+        protected Author(LibrarianOld lib, ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -902,7 +899,7 @@ public final class CoreVocabulary {
 
         public Title() { super(KEY); }
         protected Title(ItemID iid) { super(iid); }
-        protected Title(Librarian lib, Manifest m) { super(lib, m); }
+        protected Title(LibrarianOld lib, ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))

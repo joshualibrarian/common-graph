@@ -22,13 +22,13 @@ public class TreeValue {
 
     String label;
     Object value;
-    Item owner;
+    ItemOld owner;
     String path;
 
     /**
      * Create a TreeValue for a named value within an Item.
      */
-    public static TreeValue of(String label, Object value, Item owner, String path) {
+    public static TreeValue of(String label, Object value, ItemOld owner, String path) {
         return new TreeValue(label, value, owner, path);
     }
 

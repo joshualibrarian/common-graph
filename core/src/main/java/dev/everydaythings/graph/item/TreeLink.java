@@ -2,7 +2,7 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import lombok.Getter;
@@ -61,13 +61,13 @@ public class TreeLink {
 
     private final Ref target;
     private final ChildMode mode;
-    private final Function<ItemID, Optional<Item>> resolver;
+    private final Function<ItemID, Optional<ItemOld>> resolver;
 
     // Cached state
     private List<TreeLink> cachedChildren;
     private Boolean cachedExpandable;
 
-    private TreeLink(Ref target, ChildMode mode, Function<ItemID, Optional<Item>> resolver) {
+    private TreeLink(Ref target, ChildMode mode, Function<ItemID, Optional<ItemOld>> resolver) {
         this.target = Objects.requireNonNull(target, "target");
         this.mode = Objects.requireNonNull(mode, "mode");
         this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -80,21 +80,21 @@ public class TreeLink {
      * @param mode     which child view to use
      * @param resolver function to resolve ItemID to Item
      */
-    public static TreeLink of(Ref target, ChildMode mode, Function<ItemID, Optional<Item>> resolver) {
+    public static TreeLink of(Ref target, ChildMode mode, Function<ItemID, Optional<ItemOld>> resolver) {
         return new TreeLink(target, mode, resolver);
     }
 
     /**
      * Create a TreeLink in PRESENTATION mode.
      */
-    public static TreeLink presentation(Ref target, Function<ItemID, Optional<Item>> resolver) {
+    public static TreeLink presentation(Ref target, Function<ItemID, Optional<ItemOld>> resolver) {
         return new TreeLink(target, ChildMode.PRESENTATION, resolver);
     }
 
     /**
      * Create a TreeLink in INSPECT mode.
      */
-    public static TreeLink inspect(Ref target, Function<ItemID, Optional<Item>> resolver) {
+    public static TreeLink inspect(Ref target, Function<ItemID, Optional<ItemOld>> resolver) {
         return new TreeLink(target, ChildMode.INSPECT, resolver);
     }
 
@@ -109,7 +109,7 @@ public class TreeLink {
             return cachedExpandable;
         }
 
-        FrameKey fk = target.frameKey();
+        CompoundKey fk = target.frameKey();
         if (fk != null) {
             String p = "/" + fk.toCanonicalString();
             if (p.contains("#")) {
@@ -117,7 +117,7 @@ public class TreeLink {
                 cachedExpandable = false;
             } else if (mode == ChildMode.PRESENTATION) {
                 // Virtual directories are expandable if they have children
-                Optional<Item> item = resolver.apply(target.target());
+                Optional<ItemOld> item = resolver.apply(target.target());
                 cachedExpandable = item.map(i -> !i.childrenAtPath(p).isEmpty()).orElse(false);
             } else {
                 // INSPECT mode: check if component has entries
@@ -128,7 +128,7 @@ public class TreeLink {
             return cachedExpandable;
         }
 
-        Optional<Item> item = resolver.apply(target.target());
+        Optional<ItemOld> item = resolver.apply(target.target());
         cachedExpandable = item.map(i -> i.isExpandable(mode)).orElse(false);
         return cachedExpandable;
     }
@@ -150,7 +150,7 @@ public class TreeLink {
             return cachedChildren;
         }
 
-        FrameKey fk = target.frameKey();
+        CompoundKey fk = target.frameKey();
         if (fk != null) {
             String p = "/" + fk.toCanonicalString();
             if (p.contains("#")) {
@@ -158,7 +158,7 @@ public class TreeLink {
                 cachedChildren = List.of();
             } else if (mode == ChildMode.PRESENTATION) {
                 // Virtual directory or component with sub-mounts
-                Optional<Item> item = resolver.apply(target.target());
+                Optional<ItemOld> item = resolver.apply(target.target());
                 if (item.isPresent()) {
                     cachedChildren = item.get().childrenAtPath(p).stream()
                             .map(ref -> new TreeLink(ref, mode, resolver))
@@ -171,7 +171,7 @@ public class TreeLink {
                 cachedChildren = resolveInspectable(fk)
                         .map(cc -> cc.inspectEntries().stream()
                                 .map(e -> {
-                                    Ref entryRef = Ref.of(target.target(), FrameKey.of(fk.headSememe(), e.id()));
+                                    Ref entryRef = Ref.of(target.target(), CompoundKey.of(fk.headSememe(), e.id()));
                                     return new TreeLink(entryRef, mode, resolver);
                                 })
                                 .toList())
@@ -180,7 +180,7 @@ public class TreeLink {
             return cachedChildren;
         }
 
-        Optional<Item> item = resolver.apply(target.target());
+        Optional<ItemOld> item = resolver.apply(target.target());
         if (item.isEmpty()) {
             cachedChildren = List.of();
             return cachedChildren;
@@ -209,13 +209,13 @@ public class TreeLink {
      * If the ref has a frame key, resolves through the Item to find the component.
      */
     public String displayToken() {
-        Optional<Item> item = resolver.apply(target.target());
+        Optional<ItemOld> item = resolver.apply(target.target());
         if (item.isEmpty()) {
             return truncate(target.toString());
         }
 
         // If ref has a frame key, resolve to the component
-        FrameKey fk = target.frameKey();
+        CompoundKey fk = target.frameKey();
         if (fk != null) {
             String p = "/" + fk.toCanonicalString();
             // Entry path: resolve from component's inspectEntries()
@@ -245,13 +245,13 @@ public class TreeLink {
      * If the ref has a frame key, resolves through the Item to find the component.
      */
     public String emoji() {
-        Optional<Item> item = resolver.apply(target.target());
+        Optional<ItemOld> item = resolver.apply(target.target());
         if (item.isEmpty()) {
             return "❓";
         }
 
         // If ref has a frame key, resolve to the component
-        FrameKey fk = target.frameKey();
+        CompoundKey fk = target.frameKey();
         if (fk != null) {
             String p = "/" + fk.toCanonicalString();
             // Entry path: resolve from component's inspectEntries()
@@ -274,10 +274,10 @@ public class TreeLink {
      * for a resource path. Returns null if no icon resource is defined.
      */
     public String iconResource() {
-        Optional<Item> item = resolver.apply(target.target());
+        Optional<ItemOld> item = resolver.apply(target.target());
         if (item.isEmpty()) return null;
 
-        FrameKey fk = target.frameKey();
+        CompoundKey fk = target.frameKey();
         if (fk != null) {
             String p = "/" + fk.toCanonicalString();
             return item.get().resolvePathIconResource(p).orElse(null);
@@ -291,10 +291,10 @@ public class TreeLink {
      * Returns 0 if unavailable.
      */
     public int typeColorArgb() {
-        Optional<Item> item = resolver.apply(target.target());
+        Optional<ItemOld> item = resolver.apply(target.target());
         if (item.isEmpty()) return 0;
 
-        FrameKey fk = target.frameKey();
+        CompoundKey fk = target.frameKey();
         if (fk != null) {
             String p = "/" + fk.toCanonicalString();
             // Component — use the component type's color if available
@@ -317,7 +317,7 @@ public class TreeLink {
             return "link:" + System.identityHashCode(this);
         }
         String base = "iid:" + target.target().encodeText();
-        FrameKey fk = target.frameKey();
+        CompoundKey fk = target.frameKey();
         if (fk != null) {
             return base + "/" + fk.toCanonicalString();
         }
@@ -344,8 +344,8 @@ public class TreeLink {
     /**
      * Resolve a FrameKey to its live Inspectable instance.
      */
-    private Optional<Inspectable> resolveInspectable(FrameKey key) {
-        Optional<Item> item = resolver.apply(target.target());
+    private Optional<Inspectable> resolveInspectable(CompoundKey key) {
+        Optional<ItemOld> item = resolver.apply(target.target());
         if (item.isEmpty()) return Optional.empty();
         return item.get().frames().getLive(key)
                 .filter(o -> o instanceof Inspectable)
@@ -360,7 +360,7 @@ public class TreeLink {
         String compPath = parts[0];
         String entryId = parts[1];
         String handle = compPath.startsWith("/") ? compPath.substring(1) : compPath;
-        FrameKey key = FrameKey.fromCanonicalString(handle);
+        CompoundKey key = CompoundKey.fromCanonicalString(handle);
         return resolveInspectable(key)
                 .flatMap(cc -> cc.inspectEntries().stream()
                         .filter(e -> e.id().equals(entryId))

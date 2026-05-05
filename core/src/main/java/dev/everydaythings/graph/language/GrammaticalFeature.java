@@ -3,13 +3,12 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.util.List;
 import java.util.Map;
-import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * A grammatical feature sememe — describes an inflectional property of a word form.
@@ -496,7 +495,7 @@ public class GrammaticalFeature extends Sememe {
 
     /** Hydration constructor. */
     @SuppressWarnings("unused")
-    protected GrammaticalFeature(Librarian librarian, Manifest manifest) {
+    protected GrammaticalFeature(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 

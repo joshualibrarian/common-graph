@@ -1,16 +1,12 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.ui.scene.SceneNode.NodeType;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
-import java.util.function.Function;
 
 /**
  * Compiles @Scene annotations into SceneNode trees.

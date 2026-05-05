@@ -2,12 +2,9 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * A per-language gloss (definition) for a Sememe.

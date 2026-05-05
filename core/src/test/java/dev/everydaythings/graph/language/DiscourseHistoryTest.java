@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,9 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class DiscourseHistoryTest {
 
-    private static final Item ALICE = new Sememe("cg:test/alice").gloss("en", "alice");
-    private static final Item BOB = new Sememe("cg:test/bob").gloss("en", "bob");
-    private static final Item CAROL = new Sememe("cg:test/carol").gloss("en", "carol");
+    private static final ItemOld ALICE = new Sememe("cg:test/alice").gloss("en", "alice");
+    private static final ItemOld BOB = new Sememe("cg:test/bob").gloss("en", "bob");
+    private static final ItemOld CAROL = new Sememe("cg:test/carol").gloss("en", "carol");
 
     @Test
     void emptyHistoryReturnsEmpty() {

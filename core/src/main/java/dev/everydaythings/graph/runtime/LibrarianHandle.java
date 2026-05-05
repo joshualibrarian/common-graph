@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  *
  * <p>Implementations:
  * <ul>
- *   <li>{@link LocalLibrarian} - wraps a local {@link Librarian} instance (same JVM)</li>
+ *   <li>{@link LocalLibrarian} - wraps a local {@link LibrarianOld} instance (same JVM)</li>
  *   <li>{@link RemoteLibrarian} - connects to a Librarian daemon via Session Protocol
  *       (Unix socket or TCP)</li>
  * </ul>
@@ -53,7 +53,7 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * <p>Opens or creates the Librarian at the specified location.
      */
     static LibrarianHandle local(Path path) {
-        return new LocalLibrarian(Librarian.open(path));
+        return new LocalLibrarian(LibrarianOld.open(path));
     }
 
     /**
@@ -63,13 +63,13 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * Data is lost when the session ends.
      */
     static LibrarianHandle inMemory() {
-        return new LocalLibrarian(Librarian.createInMemory());
+        return new LocalLibrarian(LibrarianOld.createInMemory());
     }
 
     /**
      * Wrap an existing local Librarian.
      */
-    static LibrarianHandle wrap(Librarian librarian) {
+    static LibrarianHandle wrap(LibrarianOld librarian) {
         return new LocalLibrarian(librarian);
     }
 
@@ -143,18 +143,18 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
     /**
      * Store an item — cache it so {@link #get} can find it.
      */
-    void put(Item item);
+    void put(ItemOld item);
 
     /**
      * Get an item by ID.
      */
-    <T extends Item> Optional<T> get(ItemID iid, Class<T> type);
+    <T extends ItemOld> Optional<T> get(ItemID iid, Class<T> type);
 
     /**
      * Get an item by ID (as generic Item).
      */
-    default Optional<Item> get(ItemID iid) {
-        return get(iid, Item.class);
+    default Optional<ItemOld> get(ItemID iid) {
+        return get(iid, ItemOld.class);
     }
 
     /**
@@ -235,7 +235,7 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * <p>For local handles, returns the Librarian's principal Signer directly.
      * For remote handles, resolves via {@link #principalId()}.
      */
-    Optional<Item> principal();
+    Optional<ItemOld> principal();
 
     /**
      * Get the default context for a new session.
@@ -256,7 +256,7 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * Store a frame body — routes to persistent or ephemeral storage
      * based on the predicate's durability policy.
      */
-    void storeFrame(FrameBody body);
+    void storeFrame(FrameBodyOld body);
 
     /**
      * Get all ephemeral frames for an item (presence state, cursors, etc.).
@@ -268,7 +268,7 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * @param itemId The item to query
      * @return List of ephemeral frame bodies for this item
      */
-    List<FrameBody> ephemeralFrames(ItemID itemId);
+    List<FrameBodyOld> ephemeralFrames(ItemID itemId);
 
     /**
      * Subscribe to ephemeral frame changes on an item.

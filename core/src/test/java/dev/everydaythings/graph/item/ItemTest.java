@@ -1,0 +1,286 @@
+package dev.everydaythings.graph.item;
+
+import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.runtime.Librarian;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class ItemTest {
+
+    @Nested
+    @DisplayName("Identity")
+    class Identity {
+
+        @Test
+        @DisplayName("Item carries its iid")
+        void carriesIid() {
+            ItemID iid = ItemID.fromString("test-item");
+            Item item = new Item(iid);
+            assertThat(item.iid()).isEqualTo(iid);
+        }
+
+        @Test
+        @DisplayName("Item rejects null iid")
+        void rejectsNullIid() {
+            assertThatThrownBy(() -> new Item(null))
+                    .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("Equality based on iid")
+        void equalsByIid() {
+            ItemID iid = ItemID.fromString("same-iid");
+            Item a = new Item(iid);
+            Item b = new Item(iid);
+            assertThat(a).isEqualTo(b);
+            assertThat(a.hashCode()).isEqualTo(b.hashCode());
+        }
+
+        @Test
+        @DisplayName("Different iids produce unequal items")
+        void differentIids() {
+            Item a = new Item(ItemID.fromString("a"));
+            Item b = new Item(ItemID.fromString("b"));
+            assertThat(a).isNotEqualTo(b);
+        }
+
+        @Test
+        @DisplayName("Concrete instantiation works")
+        void canInstantiate() {
+            Item item = new Item(ItemID.random());
+            assertThat(item).isNotNull();
+            assertThat(item.iid()).isNotNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("Librarian binding")
+    class LibrarianBinding {
+
+        @Test
+        @DisplayName("Single-arg constructor leaves librarian null")
+        void noLibrarianByDefault() {
+            Item item = new Item(ItemID.random());
+            assertThat(item.librarian()).isNull();
+        }
+
+        @Test
+        @DisplayName("Two-arg constructor accepts a librarian")
+        void constructorWithLibrarian() {
+            Librarian lib = Librarian.inMemory();
+            Item item = new Item(ItemID.random(), lib);
+            assertThat(item.librarian()).isSameAs(lib);
+        }
+
+        @Test
+        @DisplayName("Two-arg constructor accepts null librarian")
+        void constructorWithNullLibrarian() {
+            Item item = new Item(ItemID.random(), null);
+            assertThat(item.librarian()).isNull();
+        }
+
+        @Test
+        @DisplayName("bindLibrarian rebinds")
+        void bindLibrarian() {
+            Item item = new Item(ItemID.random());
+            assertThat(item.librarian()).isNull();
+
+            Librarian lib = Librarian.inMemory();
+            item.bindLibrarian(lib);
+            assertThat(item.librarian()).isSameAs(lib);
+        }
+
+        @Test
+        @DisplayName("bindLibrarian can replace an existing binding")
+        void rebind() {
+            Librarian first = Librarian.inMemory();
+            Item item = new Item(ItemID.random(), first);
+
+            Librarian second = Librarian.inMemory();
+            item.bindLibrarian(second);
+            assertThat(item.librarian()).isSameAs(second);
+        }
+    }
+
+    @Nested
+    @DisplayName("Canonical key")
+    class CanonicalKey {
+
+        @Test
+        @DisplayName("KEY constant matches the documented canonical key")
+        void keyMatches() {
+            assertThat(Item.KEY).isEqualTo("cg.sememe:item");
+        }
+    }
+
+    @Nested
+    @DisplayName("Manifest state")
+    class ManifestState {
+
+        @Test
+        @DisplayName("New item has no current manifest")
+        void noCurrentByDefault() {
+            Item item = new Item(ItemID.random());
+            assertThat(item.current()).isNull();
+            assertThat(item.versionId()).isEmpty();
+            assertThat(item.parents()).isEmpty();
+            assertThat(item.endorses()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("bindManifest attaches a manifest")
+        void bindManifest() {
+            ItemID iid = ItemID.fromString("test-item");
+            Item item = new Item(iid);
+
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(Binding.ref(Manifest.ITEM_ID, iid))
+            );
+            Manifest manifest = Manifest.of(manifestBody);
+
+            item.bindManifest(manifest);
+            assertThat(item.current()).isSameAs(manifest);
+            assertThat(item.versionId()).contains(manifest.versionId());
+        }
+
+        @Test
+        @DisplayName("Replacing manifest with bindManifest works (git-checkout style)")
+        void replaceManifest() {
+            ItemID iid = ItemID.fromString("test-item");
+            Item item = new Item(iid);
+
+            Body bodyV1 = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(Binding.ref(Manifest.ITEM_ID, iid))
+            );
+            Manifest v1 = Manifest.of(bodyV1);
+
+            Body bodyV2 = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            Binding.ref(Manifest.FOLLOWS, ItemID.fromString("v1-as-iid"))
+                    )
+            );
+            Manifest v2 = Manifest.of(bodyV2);
+
+            item.bindManifest(v1);
+            assertThat(item.current()).isSameAs(v1);
+
+            item.bindManifest(v2);
+            assertThat(item.current()).isSameAs(v2);
+            assertThat(item.parents()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("Convenience accessors delegate to current manifest")
+        void delegatedAccessors() {
+            ItemID iid = ItemID.fromString("doc-item");
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-1")),
+                            Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-2"))
+                    )
+            );
+            Manifest manifest = Manifest.of(body);
+
+            Item item = new Item(iid);
+            item.bindManifest(manifest);
+
+            assertThat(item.versionId()).contains(manifest.versionId());
+            assertThat(item.endorses()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("Unbinding manifest by passing null clears state")
+        void unbind() {
+            ItemID iid = ItemID.fromString("test");
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(Binding.ref(Manifest.ITEM_ID, iid))
+            );
+            Item item = new Item(iid);
+            item.bindManifest(Manifest.of(body));
+            assertThat(item.current()).isNotNull();
+
+            item.bindManifest(null);
+            assertThat(item.current()).isNull();
+            assertThat(item.versionId()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Endorsed frames")
+    class EndorsedFrames {
+
+        @Test
+        @DisplayName("No manifest → empty stream")
+        void noManifest() {
+            Item item = new Item(ItemID.random(), Librarian.inMemory());
+            assertThat(item.endorsedFrames()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("No librarian → empty stream")
+        void noLibrarian() {
+            ItemID iid = ItemID.fromString("orphan");
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-1"))
+                    )
+            );
+            Item item = new Item(iid);
+            item.bindManifest(Manifest.of(manifestBody));
+            assertThat(item.endorsedFrames()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Materializes endorsed bodies via the librarian; missing CIDs are silently dropped")
+        void materializesEndorsements() {
+            Librarian lib = Librarian.inMemory();
+
+            Body presentFrame = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(
+                            ItemID.fromString("cg.role:theme"),
+                            ItemID.fromString("hobbit")))
+            );
+            ContentID presentCid = lib.persist(presentFrame);
+
+            ContentID missingCid = ContentID.of("never-stored".getBytes());
+
+            ItemID iid = ItemID.fromString("doc");
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            new Binding(Manifest.ENDORSES, BindingTarget.ref(presentCid)),
+                            new Binding(Manifest.ENDORSES, BindingTarget.ref(missingCid))
+                    )
+            );
+            Item item = new Item(iid, lib);
+            item.bindManifest(Manifest.of(manifestBody));
+
+            List<Frame> resolved = item.endorsedFrames().toList();
+            assertThat(resolved).hasSize(1);
+            assertThat(resolved.get(0).body()).isEqualTo(presentFrame);
+        }
+    }
+}

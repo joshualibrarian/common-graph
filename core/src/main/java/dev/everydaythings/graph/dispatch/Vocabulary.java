@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.dispatch;
 
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.EndorsementsTable;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.Literal;
@@ -55,8 +55,8 @@ public class Vocabulary {
         localTokens.clear();
         if (frames == null) return;
 
-        for (Frame frame : frames) {
-            FrameBody body = frame.body();
+        for (FrameOld frame : frames) {
+            FrameBodyOld body = frame.body();
             if (body == null) continue;
 
             List<Binding> bindings = body.frameBindings();

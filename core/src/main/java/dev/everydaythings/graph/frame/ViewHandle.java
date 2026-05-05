@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.frame;
 
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 
@@ -18,7 +18,7 @@ import dev.everydaythings.graph.item.id.Ref;
  * @param config   the current view configuration
  */
 public record ViewHandle(
-        FrameKey frameKey,
+        CompoundKey frameKey,
         ItemID target,
         Ref display,
         ViewConfig config
@@ -26,7 +26,7 @@ public record ViewHandle(
     /**
      * Create a ViewHandle with default config and no display.
      */
-    public static ViewHandle of(FrameKey frameKey, ItemID target) {
+    public static ViewHandle of(CompoundKey frameKey, ItemID target) {
         return new ViewHandle(frameKey, target, null, ViewConfig.defaults());
     }
 

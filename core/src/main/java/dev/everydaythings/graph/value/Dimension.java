@@ -2,21 +2,15 @@ package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.Getter;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,7 +45,7 @@ import java.util.Map;
  */
 @Implements(Dimension.KEY)
 @ItemSeed(key = Dimension.KEY)
-public class Dimension extends Item {
+public class Dimension extends ItemOld {
 
     // ==================================================================================
     // TYPE DEFINITION
@@ -170,7 +164,7 @@ public class Dimension extends Item {
     /**
      * Create a dimension with a librarian (for runtime creation).
      */
-    public Dimension(Librarian librarian,
+    public Dimension(LibrarianOld librarian,
                      String canonicalKey, String symbol, String name,
                      Map<String, String> descriptions) {
         super(librarian, ItemID.fromString(canonicalKey));
@@ -197,7 +191,7 @@ public class Dimension extends Item {
      * The field initializations here are just defaults that get overwritten.
      */
     @SuppressWarnings("unused")  // Used via reflection for hydration
-    private Dimension(Librarian librarian, Manifest manifest) {
+    private Dimension(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
         // Fields are set by bindFieldsFromTable() via reflection during super() call
         // Do NOT assign values here - it would overwrite what hydration set!

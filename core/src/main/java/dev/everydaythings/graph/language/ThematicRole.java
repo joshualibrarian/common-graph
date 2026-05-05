@@ -3,13 +3,12 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.util.List;
 import java.util.Map;
-import dev.everydaythings.graph.language.CoreVocabulary;
 
 /**
  * A thematic role sememe — defines the semantic function of a participant in a frame.
@@ -595,7 +594,7 @@ public class ThematicRole extends Sememe {
 
     /** Hydration constructor. */
     @SuppressWarnings("unused")
-    protected ThematicRole(Librarian librarian, Manifest manifest) {
+    protected ThematicRole(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 
@@ -616,8 +615,8 @@ public class ThematicRole extends Sememe {
     }
 
     /** Runtime constructor (with librarian). */
-    protected ThematicRole(Librarian librarian, String canonicalKey,
-                   Map<String, String> glosses) {
+    protected ThematicRole(LibrarianOld librarian, String canonicalKey,
+                           Map<String, String> glosses) {
         super(librarian, canonicalKey, glosses, Map.of());
     }
 

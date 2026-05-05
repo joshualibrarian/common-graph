@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.dispatch;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 
 /**
  * Marker return type for creation results.
@@ -12,4 +12,4 @@ import dev.everydaythings.graph.item.Item;
  * @param item the newly created item
  * @param type the type item that was the creation target
  */
-public record Created(Item item, Item type) {}
+public record Created(ItemOld item, ItemOld type) {}

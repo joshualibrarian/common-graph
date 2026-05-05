@@ -1,11 +1,10 @@
 package dev.everydaythings.graph.frame;
 
-import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.library.Library;
+import dev.everydaythings.graph.library.LibraryOld;
 import dev.everydaythings.graph.library.LibraryIndex;
 
 import java.util.*;
@@ -45,7 +44,7 @@ public class FrameChain {
 
     private static final ItemID FOLLOWS_ROLE = ItemID.fromString(ThematicRole.Follows.KEY);
 
-    private final Library library;
+    private final LibraryOld library;
     private final ItemID item;       // LOCATION of frames
     private final ItemID predicate;  // frame type to query
 
@@ -56,7 +55,7 @@ public class FrameChain {
      * @param item      the item ID these frames belong to (LOCATION role)
      * @param predicate the predicate (frame type) to query
      */
-    public FrameChain(Library library, ItemID item, ItemID predicate) {
+    public FrameChain(LibraryOld library, ItemID item, ItemID predicate) {
         this.library = Objects.requireNonNull(library, "library");
         this.item = Objects.requireNonNull(item, "item");
         this.predicate = Objects.requireNonNull(predicate, "predicate");
@@ -66,7 +65,7 @@ public class FrameChain {
     // Accessors
     // ==================================================================================
 
-    public Library library() { return library; }
+    public LibraryOld library() { return library; }
     public ItemID item() { return item; }
     public ItemID predicate() { return predicate; }
 
@@ -83,8 +82,8 @@ public class FrameChain {
      *
      * @return stream of frame bodies in causal order
      */
-    public Stream<FrameBody> stream() {
-        List<FrameBody> bodies = loadAllBodies();
+    public Stream<FrameBodyOld> stream() {
+        List<FrameBodyOld> bodies = loadAllBodies();
         if (bodies.isEmpty()) return Stream.empty();
         return topoSort(bodies).stream();
     }
@@ -97,13 +96,13 @@ public class FrameChain {
      *
      * @return list of head frame bodies (frontier)
      */
-    public List<FrameBody> heads() {
-        List<FrameBody> bodies = loadAllBodies();
+    public List<FrameBodyOld> heads() {
+        List<FrameBodyOld> bodies = loadAllBodies();
         if (bodies.isEmpty()) return List.of();
 
         // Collect all body hashes referenced as FOLLOWS targets
         Set<ContentID> referenced = new HashSet<>();
-        for (FrameBody body : bodies) {
+        for (FrameBodyOld body : bodies) {
             List<Binding> followsBindings = body.getAllBindings(FOLLOWS_ROLE);
             for (Binding b : followsBindings) {
                 ContentID targetCid = extractFollowsCid(b);
@@ -112,8 +111,8 @@ public class FrameChain {
         }
 
         // Heads are bodies whose hash is NOT referenced by anyone else
-        List<FrameBody> heads = new ArrayList<>();
-        for (FrameBody body : bodies) {
+        List<FrameBodyOld> heads = new ArrayList<>();
+        for (FrameBodyOld body : bodies) {
             if (!referenced.contains(body.hash())) {
                 heads.add(body);
             }
@@ -155,9 +154,9 @@ public class FrameChain {
      * @param reducer function that applies a frame body to the current state
      * @return the final state after all frames are applied
      */
-    public <S> S fold(S initial, BiFunction<S, FrameBody, S> reducer) {
+    public <S> S fold(S initial, BiFunction<S, FrameBodyOld, S> reducer) {
         S state = initial;
-        for (FrameBody body : topoSort(loadAllBodies())) {
+        for (FrameBodyOld body : topoSort(loadAllBodies())) {
             state = reducer.apply(state, body);
         }
         return state;
@@ -178,10 +177,10 @@ public class FrameChain {
      * @param signer   who signs this frame
      * @return the stored FrameBody
      */
-    public FrameBody append(List<Binding> bindings, Signer signer) {
+    public FrameBodyOld append(List<Binding> bindings, SignerOld signer) {
         Objects.requireNonNull(signer, "signer");
 
-        List<FrameBody> currentHeads = heads();
+        List<FrameBodyOld> currentHeads = heads();
 
         // Build complete binding list
         List<Binding> allBindings = new ArrayList<>();
@@ -192,7 +191,7 @@ public class FrameChain {
                 BindingTarget.iid(item)));
 
         // FOLLOWS → each current head's body hash (identity — causal position IS part of event identity)
-        for (FrameBody head : currentHeads) {
+        for (FrameBodyOld head : currentHeads) {
             allBindings.add(new Binding(
                     FOLLOWS_ROLE,
                     BindingTarget.ref(head.hash())));
@@ -202,8 +201,8 @@ public class FrameChain {
         if (bindings != null) allBindings.addAll(bindings);
 
         // Create body and record
-        FrameBody body = new FrameBody(predicate, allBindings);
-        FrameRecord record = FrameRecord.create(body, signer);
+        FrameBodyOld body = new FrameBodyOld(predicate, allBindings);
+        FrameRecordOld record = FrameRecordOld.create(body, signer);
 
         // Store
         library.storeFrame(body, record);
@@ -214,7 +213,7 @@ public class FrameChain {
     /**
      * Append a frame with a single predicate and bindings map (convenience).
      */
-    public FrameBody append(Map<ItemID, BindingTarget> bindings, Signer signer) {
+    public FrameBodyOld append(Map<ItemID, BindingTarget> bindings, SignerOld signer) {
         List<Binding> bindingList = new ArrayList<>();
         if (bindings != null) {
             for (var entry : bindings.entrySet()) {
@@ -231,7 +230,7 @@ public class FrameChain {
     /**
      * Load all frame bodies from the index.
      */
-    private List<FrameBody> loadAllBodies() {
+    private List<FrameBodyOld> loadAllBodies() {
         return library.index()
                 .map(idx -> idx.framesByItemPredicate(item, predicate)
                         .map(ref -> library.loadFrameBody(ref.bodyHash()).orElse(null))
@@ -246,13 +245,13 @@ public class FrameChain {
      * <p>Uses Kahn's algorithm. Roots (no FOLLOWS) come first.
      * Within a level, bodies are sorted by body hash for determinism.
      */
-    private static List<FrameBody> topoSort(List<FrameBody> bodies) {
+    private static List<FrameBodyOld> topoSort(List<FrameBodyOld> bodies) {
         if (bodies.isEmpty()) return List.of();
         if (bodies.size() == 1) return List.copyOf(bodies);
 
         // Index by body hash
-        Map<ContentID, FrameBody> byHash = new LinkedHashMap<>();
-        for (FrameBody b : bodies) byHash.put(b.hash(), b);
+        Map<ContentID, FrameBodyOld> byHash = new LinkedHashMap<>();
+        for (FrameBodyOld b : bodies) byHash.put(b.hash(), b);
 
         // Build adjacency: child → parents (FOLLOWS targets)
         Map<ContentID, List<ContentID>> parents = new HashMap<>();
@@ -260,7 +259,7 @@ public class FrameChain {
         Map<ContentID, List<ContentID>> children = new HashMap<>();
         Map<ContentID, Integer> inDegree = new HashMap<>();
 
-        for (FrameBody b : bodies) {
+        for (FrameBodyOld b : bodies) {
             ContentID hash = b.hash();
             parents.putIfAbsent(hash, new ArrayList<>());
             children.putIfAbsent(hash, new ArrayList<>());
@@ -278,7 +277,7 @@ public class FrameChain {
         }
 
         // Kahn's algorithm
-        List<FrameBody> result = new ArrayList<>(bodies.size());
+        List<FrameBodyOld> result = new ArrayList<>(bodies.size());
         Deque<ContentID> queue = new ArrayDeque<>();
 
         // Start with roots (in-degree 0), sorted for determinism
@@ -291,7 +290,7 @@ public class FrameChain {
 
         while (!queue.isEmpty()) {
             ContentID current = queue.poll();
-            FrameBody body = byHash.get(current);
+            FrameBodyOld body = byHash.get(current);
             if (body != null) result.add(body);
 
             List<ContentID> kids = children.getOrDefault(current, List.of());
@@ -307,8 +306,8 @@ public class FrameChain {
         // If there were cycles or missing parents, append any remaining
         if (result.size() < bodies.size()) {
             Set<ContentID> included = new HashSet<>();
-            for (FrameBody b : result) included.add(b.hash());
-            for (FrameBody b : bodies) {
+            for (FrameBodyOld b : result) included.add(b.hash());
+            for (FrameBodyOld b : bodies) {
                 if (!included.contains(b.hash())) result.add(b);
             }
         }

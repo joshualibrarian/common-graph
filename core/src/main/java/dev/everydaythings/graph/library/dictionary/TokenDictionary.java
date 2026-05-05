@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.library.dictionary;
 
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  * <p>The body_hash is a self-delimiting multihash (algorithm + length + digest),
  * so its length is determined by the multihash header rather than fixed.
  *
- * <p>The body hash is the {@link ContentID} of the source {@link FrameBody}.
+ * <p>The body hash is the {@link ContentID} of the source {@link FrameBodyOld}.
  * The binding index identifies which binding within the body produced this token.
  * At query time, a body resolver reconstructs the full {@link Posting} — scope,
  * target, and features are all derived from the resolved body + binding.
@@ -75,7 +75,7 @@ public interface TokenDictionary extends Service {
      * @param scopes       scope filter (empty = all scopes)
      */
     default Stream<Posting> lookup(String token,
-                                   Function<ContentID, Optional<FrameBody>> bodyResolver,
+                                   Function<ContentID, Optional<FrameBodyOld>> bodyResolver,
                                    ItemID... scopes) {
         String normalized = Posting.normalize(token);
         byte[] prefix = tokenOnlyPrefix(normalized);
@@ -116,7 +116,7 @@ public interface TokenDictionary extends Service {
      * @param scopes       scope filter (empty = all scopes)
      */
     default Stream<Posting> prefix(String tokenPrefix, int limit,
-                                   Function<ContentID, Optional<FrameBody>> bodyResolver,
+                                   Function<ContentID, Optional<FrameBodyOld>> bodyResolver,
                                    ItemID... scopes) {
         String normalized = Posting.normalize(tokenPrefix);
         byte[] prefix = tokenOnlyPrefix(normalized);
@@ -204,7 +204,7 @@ public interface TokenDictionary extends Service {
      * @param predicateWeightResolver resolves predicate IID → index weight (0 = don't index)
      * @param tx write transaction
      */
-    default void indexFromFrameBody(FrameBody body,
+    default void indexFromFrameBody(FrameBodyOld body,
                                     java.util.function.Function<ItemID, Float> predicateWeightResolver,
                                     WriteTransaction tx) {
         List<Posting> postings = TokenExtractor.fromFrameBody(body, predicateWeightResolver);
@@ -336,7 +336,7 @@ public interface TokenDictionary extends Service {
      */
     private Stream<Posting> streamPostingsWithPrefix(
             byte[] prefix,
-            Function<ContentID, Optional<FrameBody>> bodyResolver) {
+            Function<ContentID, Optional<FrameBodyOld>> bodyResolver) {
         List<Posting> results = new ArrayList<>();
 
         try (var it = store().iterate(Column.BY_TOKEN, prefix)) {
@@ -347,9 +347,9 @@ public interface TokenDictionary extends Service {
                     float weight = decodeWeight(kv.value());
 
                     if (parsed.bodyHash() != null && bodyResolver != null) {
-                        Optional<FrameBody> bodyOpt = bodyResolver.apply(parsed.bodyHash());
+                        Optional<FrameBodyOld> bodyOpt = bodyResolver.apply(parsed.bodyHash());
                         if (bodyOpt.isPresent()) {
-                            FrameBody body = bodyOpt.get();
+                            FrameBodyOld body = bodyOpt.get();
                             if (parsed.bindingIndex() >= 0
                                     && parsed.bindingIndex() < body.frameBindings().size()) {
                                 results.add(Posting.fromFrame(body, parsed.bindingIndex(), weight));

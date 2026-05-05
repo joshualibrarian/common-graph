@@ -4,7 +4,7 @@ import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Encoding;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Factory;
 
 import java.io.ByteArrayOutputStream;
@@ -87,7 +87,7 @@ public final class Ref implements Canonical {
 
     private final ItemID target;
     private final ContentID version;
-    private final FrameKey frameKey;
+    private final CompoundKey frameKey;
     private final Selector selector;
 
     /**
@@ -100,7 +100,7 @@ public final class Ref implements Canonical {
      */
     private final String asEntered;
 
-    private Ref(ItemID target, ContentID version, FrameKey frameKey, Selector selector, String asEntered) {
+    private Ref(ItemID target, ContentID version, CompoundKey frameKey, Selector selector, String asEntered) {
         this.target = Objects.requireNonNull(target, "target");
         this.version = version;
         this.frameKey = frameKey;
@@ -123,17 +123,17 @@ public final class Ref implements Canonical {
     }
 
     /** Ref to a specific frame on an item. */
-    public static Ref of(ItemID target, FrameKey frameKey) {
+    public static Ref of(ItemID target, CompoundKey frameKey) {
         return new Ref(target, null, frameKey, null, null);
     }
 
     /** Ref to a specific frame on a specific version of an item. */
-    public static Ref of(ItemID target, ContentID version, FrameKey frameKey) {
+    public static Ref of(ItemID target, ContentID version, CompoundKey frameKey) {
         return new Ref(target, version, frameKey, null, null);
     }
 
     /** Full ref with all fields. */
-    public static Ref of(ItemID target, ContentID version, FrameKey frameKey, Selector selector) {
+    public static Ref of(ItemID target, ContentID version, CompoundKey frameKey, Selector selector) {
         return new Ref(target, version, frameKey, selector, null);
     }
 
@@ -149,7 +149,7 @@ public final class Ref implements Canonical {
      * @param path the mount path (e.g., "/vault", "/documents/readme")
      * @return Ref with resolved FrameKey, or item-level Ref for virtual paths
      */
-    public static Ref fromPath(Item item, String path) {
+    public static Ref fromPath(ItemOld item, String path) {
         Objects.requireNonNull(item, "item");
         if (path == null || path.isBlank()) return of(item.iid());
         var entry = item.frames().atPath(path);
@@ -176,7 +176,7 @@ public final class Ref implements Canonical {
     public ContentID version() { return version; }
 
     /** The frame key path, or null for the whole item. */
-    public FrameKey frameKey() { return frameKey; }
+    public CompoundKey frameKey() { return frameKey; }
 
     /** The selector, or null for all content. */
     public Selector selector() { return selector; }
@@ -220,11 +220,11 @@ public final class Ref implements Canonical {
 
         // Optional frame key segments
         if (frameKey != null) {
-            for (FrameKey.FrameToken token : frameKey.tokens()) {
+            for (CompoundKey.FrameToken token : frameKey.tokens()) {
                 out.write(MARKER_FRAME);
-                if (token instanceof FrameKey.Sememe s) {
+                if (token instanceof CompoundKey.Sememe s) {
                     writeBytes(out, s.id().encodeBinary());
-                } else if (token instanceof FrameKey.Literal l) {
+                } else if (token instanceof CompoundKey.Literal l) {
                     out.write(MARKER_LITERAL);
                     byte[] strBytes = l.value().getBytes(StandardCharsets.UTF_8);
                     writeVarint(out, strBytes.length);
@@ -258,7 +258,7 @@ public final class Ref implements Canonical {
         pos = iidSlice.next();
 
         ContentID version = null;
-        List<FrameKey.FrameToken> frameTokens = null;
+        List<CompoundKey.FrameToken> frameTokens = null;
         Selector selector = null;
 
         while (pos < bytes.length) {
@@ -282,11 +282,11 @@ public final class Ref implements Canonical {
                     pos = varint[1];
                     String value = new String(bytes, pos, strLen, StandardCharsets.UTF_8);
                     pos += strLen;
-                    frameTokens.add(new FrameKey.Literal(value));
+                    frameTokens.add(new CompoundKey.Literal(value));
                 } else {
                     // Sememe key: multihash
                     HashID.Slice semSlice = HashID.splitLeadingMultihashFromByteArray(bytes, pos);
-                    frameTokens.add(new FrameKey.Sememe(new ItemID(semSlice.bytes())));
+                    frameTokens.add(new CompoundKey.Sememe(new ItemID(semSlice.bytes())));
                     pos = semSlice.next();
                 }
 
@@ -305,7 +305,7 @@ public final class Ref implements Canonical {
             }
         }
 
-        FrameKey frameKey = frameTokens != null ? FrameKey.ofTokens(frameTokens) : null;
+        CompoundKey frameKey = frameTokens != null ? CompoundKey.ofTokens(frameTokens) : null;
         return new Ref(target, version, frameKey, selector, null);
     }
 
@@ -370,11 +370,11 @@ public final class Ref implements Canonical {
 
         // Frame key segments
         if (frameKey != null) {
-            for (FrameKey.FrameToken token : frameKey.tokens()) {
+            for (CompoundKey.FrameToken token : frameKey.tokens()) {
                 sb.append(TEXT_FRAME);
-                if (token instanceof FrameKey.Sememe s) {
+                if (token instanceof CompoundKey.Sememe s) {
                     sb.append(encodeMultihash(s.id()));
-                } else if (token instanceof FrameKey.Literal l) {
+                } else if (token instanceof CompoundKey.Literal l) {
                     sb.append(TEXT_QUOTE).append(l.value()).append(TEXT_QUOTE);
                 }
             }
@@ -411,7 +411,7 @@ public final class Ref implements Canonical {
         pos = targetEnd;
 
         ContentID version = null;
-        List<FrameKey.FrameToken> frameTokens = null;
+        List<CompoundKey.FrameToken> frameTokens = null;
         Selector selector = null;
 
         while (pos < len) {
@@ -433,13 +433,13 @@ public final class Ref implements Canonical {
                     pos++; // skip opening quote
                     int closeQuote = text.indexOf(TEXT_QUOTE, pos);
                     if (closeQuote < 0) throw new IllegalArgumentException("unclosed quote at position " + pos);
-                    frameTokens.add(new FrameKey.Literal(text.substring(pos, closeQuote)));
+                    frameTokens.add(new CompoundKey.Literal(text.substring(pos, closeQuote)));
                     pos = closeQuote + 1;
                 } else {
                     // Sememe: multibase-encoded multihash
                     int end = nextStructuralMarker(text, pos);
                     if (end == pos) throw new IllegalArgumentException("empty frame key at position " + pos);
-                    frameTokens.add(new FrameKey.Sememe(decodeMultihash(text.substring(pos, end))));
+                    frameTokens.add(new CompoundKey.Sememe(decodeMultihash(text.substring(pos, end))));
                     pos = end;
                 }
 
@@ -456,7 +456,7 @@ public final class Ref implements Canonical {
             }
         }
 
-        FrameKey frameKey = frameTokens != null ? FrameKey.ofTokens(frameTokens) : null;
+        CompoundKey frameKey = frameTokens != null ? CompoundKey.ofTokens(frameTokens) : null;
         return new Ref(target, version, frameKey, selector, null);
     }
 

@@ -1,10 +1,9 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.Sememe;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -114,15 +113,15 @@ public class ActivityEntry implements Canonical {
                     new ActivityEntry(input, contextIid, Kind.VALUE,
                             summarize(value), null, Source.SESSION);
 
-            case Eval.EvalResult.ItemResult(Item item) ->
+            case Eval.EvalResult.ItemResult(ItemOld item) ->
                     new ActivityEntry(input, contextIid, Kind.ITEM,
                             item.displayToken(), item.iid(), Source.SESSION);
 
-            case Eval.EvalResult.Created(Item item, Item type) ->
+            case Eval.EvalResult.Created(ItemOld item, ItemOld type) ->
                     new ActivityEntry(input, contextIid, Kind.CREATED,
                             item.displayToken(), item.iid(), Source.SESSION);
 
-            case Eval.EvalResult.ValueWithTarget(Object value, Item target) ->
+            case Eval.EvalResult.ValueWithTarget(Object value, ItemOld target) ->
                     new ActivityEntry(input, contextIid, Kind.VALUE,
                             summarize(value), target.iid(), Source.SESSION);
 
@@ -163,7 +162,7 @@ public class ActivityEntry implements Canonical {
      */
     private static String summarize(Object value) {
         if (value == null) return null;
-        if (value instanceof Item item) return item.displayToken();
+        if (value instanceof ItemOld item) return item.displayToken();
         // Try @Implements annotation for display token
         Implements impl = value.getClass().getAnnotation(Implements.class);
         if (impl != null) {

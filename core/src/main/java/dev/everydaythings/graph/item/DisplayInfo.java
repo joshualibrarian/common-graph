@@ -5,7 +5,7 @@ import dev.everydaythings.graph.value.Color;
 /**
  * Visual display metadata for Items and Components.
  *
- * <p>Types provide default DisplayInfo via {@link Item#displayInfo()}.
+ * <p>Types provide default DisplayInfo via {@link ItemOld#displayInfo()}.
  * Instances can override to customize their appearance.
  *
  * <p>The display system uses this to render items consistently:

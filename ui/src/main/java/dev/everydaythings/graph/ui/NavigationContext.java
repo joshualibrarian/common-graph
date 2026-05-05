@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.ui;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.*;
@@ -38,13 +38,13 @@ public class NavigationContext {
     }
 
     // Navigation state
-    private Item rootItem;
+    private ItemOld rootItem;
     private Object commandContext;  // Can be Item or any displayable object
-    private final Deque<Item> history = new ArrayDeque<>();
+    private final Deque<ItemOld> history = new ArrayDeque<>();
     private ViewMode viewMode = ViewMode.META;
 
     // Librarian for resolution
-    private Librarian librarian;
+    private LibrarianOld librarian;
 
     // Command history for UP/DOWN recall
     private final List<String> commandHistory = new ArrayList<>();
@@ -56,10 +56,10 @@ public class NavigationContext {
     /**
      * Create a NavigationContext rooted at the given item.
      */
-    public NavigationContext(Item root) {
+    public NavigationContext(ItemOld root) {
         this.rootItem = root;
         this.commandContext = root;
-        if (root instanceof Librarian lib) {
+        if (root instanceof LibrarianOld lib) {
             this.librarian = lib;
         }
     }
@@ -67,7 +67,7 @@ public class NavigationContext {
     /**
      * Create a NavigationContext with explicit librarian.
      */
-    public NavigationContext(Item root, Librarian librarian) {
+    public NavigationContext(ItemOld root, LibrarianOld librarian) {
         this.rootItem = root;
         this.commandContext = root;
         this.librarian = librarian;
@@ -80,7 +80,7 @@ public class NavigationContext {
     /**
      * Navigate to a different item, pushing current to history.
      */
-    public void navigateTo(Item item) {
+    public void navigateTo(ItemOld item) {
         if (item == null || item == rootItem) {
             return;
         }
@@ -185,11 +185,11 @@ public class NavigationContext {
     /**
      * Resolve an ItemID to an Item.
      */
-    public Optional<Item> resolve(ItemID iid) {
+    public Optional<ItemOld> resolve(ItemID iid) {
         if (librarian == null || iid == null) {
             return Optional.empty();
         }
-        return librarian.get(iid, Item.class);
+        return librarian.get(iid, ItemOld.class);
     }
 
     /**
@@ -211,7 +211,7 @@ public class NavigationContext {
     /**
      * The item forming the tree root.
      */
-    public Item rootItem() {
+    public ItemOld rootItem() {
         return rootItem;
     }
 
@@ -225,14 +225,14 @@ public class NavigationContext {
     /**
      * The librarian for lookups.
      */
-    public Librarian librarian() {
+    public LibrarianOld librarian() {
         return librarian;
     }
 
     /**
      * Set the librarian (if not set via constructor).
      */
-    public void setLibrarian(Librarian librarian) {
+    public void setLibrarian(LibrarianOld librarian) {
         this.librarian = librarian;
     }
 
@@ -243,7 +243,7 @@ public class NavigationContext {
         if (commandContext == rootItem) {
             return rootItem.displayToken();
         }
-        String contextToken = commandContext instanceof Item item
+        String contextToken = commandContext instanceof ItemOld item
                 ? item.displayToken()
                 : commandContext.toString();
         return rootItem.displayToken() + " > " + contextToken;

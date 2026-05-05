@@ -2,15 +2,14 @@ package dev.everydaythings.graph.importer;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.id.CompoundKey;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.extern.log4j.Log4j2;
 
 import javax.xml.stream.XMLInputFactory;
@@ -44,13 +43,13 @@ import java.util.*;
 @Log4j2
 public class VerbNetImporter {
 
-    private final Librarian librarian;
+    private final LibrarianOld librarian;
     private final String resourceDir;
 
     /** Maps VerbNet role names to ThematicRole IIDs. */
     private static final Map<String, ItemID> ROLE_MAP = buildRoleMap();
 
-    public VerbNetImporter(Librarian librarian, String resourceDir) {
+    public VerbNetImporter(LibrarianOld librarian, String resourceDir) {
         this.librarian = librarian;
         this.resourceDir = resourceDir;
     }
@@ -61,7 +60,7 @@ public class VerbNetImporter {
      * @param signer the asserting identity
      * @return import statistics
      */
-    public ImportStats importAll(Signer signer) {
+    public ImportStats importAll(SignerOld signer) {
         long startTime = System.currentTimeMillis();
         int classCount = 0;
         int memberCount = 0;
@@ -110,7 +109,7 @@ public class VerbNetImporter {
      * @return [memberCount, expectsCount, unmappedMembers]
      */
     int[] processClass(VerbClass vc, List<String> inheritedRoles,
-                       Signer signer, Set<String> unmappedRoles) {
+                       SignerOld signer, Set<String> unmappedRoles) {
         int memberCount = 0;
         int expectsCount = 0;
         int unmappedMembers = 0;
@@ -226,7 +225,7 @@ public class VerbNetImporter {
         if (tokenDict == null) return null;
 
         var bodyResolver = (java.util.function.Function<dev.everydaythings.graph.item.id.ContentID,
-                Optional<dev.everydaythings.graph.frame.FrameBody>>)
+                Optional<FrameBodyOld>>)
                 (hash -> librarian.library().loadFrameBody(hash));
 
         var postings = tokenDict.lookup(senseId, bodyResolver).toList();
@@ -245,7 +244,7 @@ public class VerbNetImporter {
      * Add EXPECTS frames to a sememe for the given thematic roles.
      * Skips roles the sememe already expects (from seed annotations or earlier import).
      */
-    private int addExpectsFrames(Sememe sememe, List<ItemID> roleIids, Signer signer) {
+    private int addExpectsFrames(Sememe sememe, List<ItemID> roleIids, SignerOld signer) {
         if (sememe.frames() == null) return 0;
 
         // Check which roles are already declared
@@ -255,13 +254,13 @@ public class VerbNetImporter {
         for (ItemID roleIid : roleIids) {
             if (existingRoles.contains(roleIid)) continue;
 
-            List<FrameKey.FrameToken> qualifiers = List.of(
-                    new FrameKey.Sememe(ItemID.fromString(ThematicRole.KEY)),
-                    new FrameKey.Sememe(roleIid));
+            List<CompoundKey.FrameToken> qualifiers = List.of(
+                    new CompoundKey.Sememe(ItemID.fromString(ThematicRole.KEY)),
+                    new CompoundKey.Sememe(roleIid));
             Binding topicBinding = Binding.qualified(
                     ThematicRole.Topic.IID, qualifiers,
                     BindingTarget.iid(roleIid), true, false);
-            FrameBody body = new FrameBody(CoreVocabulary.Expects.IID,
+            FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Expects.IID,
                     List.of(topicBinding));
 
             librarian.storeFrame(body);
@@ -274,10 +273,10 @@ public class VerbNetImporter {
     /**
      * Store a source ID frame on a sememe.
      */
-    private void storeSourceIdFrame(Sememe sememe, ItemID predicate, String sourceId, Signer signer) {
+    private void storeSourceIdFrame(Sememe sememe, ItemID predicate, String sourceId, SignerOld signer) {
         if (sourceId == null || sourceId.isBlank()) return;
 
-        FrameBody body = FrameBody.builder(predicate)
+        FrameBodyOld body = FrameBodyOld.builder(predicate)
                 .bind(ThematicRole.Theme.IID, sememe.iid())
                 .bind(ThematicRole.Value.IID, sourceId)
                 .build();

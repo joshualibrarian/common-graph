@@ -4,8 +4,8 @@ import dev.everydaythings.graph.frame.DisplayConfig;
 import dev.everydaythings.graph.frame.DisplayLayoutConfig;
 import dev.everydaythings.graph.frame.ViewConfig;
 import dev.everydaythings.graph.frame.ViewHandle;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.runtime.Host;
@@ -45,7 +45,7 @@ public class GraphicalSession extends Session {
 
     private SharedResources shared;
     private FilamentContext filamentContext;
-    private final Map<FrameKey, ViewWindow> windows = new LinkedHashMap<>();
+    private final Map<CompoundKey, ViewWindow> windows = new LinkedHashMap<>();
     private boolean sessionAlive = true;
 
     /** Default renderer for new windows (from constructor arg). */
@@ -77,7 +77,7 @@ public class GraphicalSession extends Session {
             filamentContext = new FilamentContext();
 
             // Resolve initial context item
-            Item ctx = contextItem()
+            ItemOld ctx = contextItem()
                     .or(() -> librarian.get(librarian.iid()))
                     .orElse(null);
             if (ctx == null) {
@@ -121,19 +121,19 @@ public class GraphicalSession extends Session {
             org.lwjgl.glfw.GLFW.glfwPollEvents();
 
             // Create any deferred windows before ticking
-            FrameKey pendingKey;
+            CompoundKey pendingKey;
             while ((pendingKey = pendingWindowCreations.poll()) != null) {
                 openWindowForView(pendingKey);
             }
 
-            var toRemove = new ArrayList<FrameKey>();
+            var toRemove = new ArrayList<CompoundKey>();
             for (var entry : windows.entrySet()) {
                 if (!entry.getValue().tick()) {
                     toRemove.add(entry.getKey());
                 }
             }
 
-            for (FrameKey key : toRemove) {
+            for (CompoundKey key : toRemove) {
                 closeWindow(key);
             }
 
@@ -173,7 +173,7 @@ public class GraphicalSession extends Session {
     /**
      * Create and show a ViewWindow for the given ITEM_VIEW frame.
      */
-    void openWindowForView(FrameKey key) {
+    void openWindowForView(CompoundKey key) {
         if (windows.containsKey(key)) return;
 
         ViewHandle vh = findViewByKey(key);
@@ -198,7 +198,7 @@ public class GraphicalSession extends Session {
         }
     }
 
-    private void closeWindow(FrameKey key) {
+    private void closeWindow(CompoundKey key) {
         ViewWindow window = windows.remove(key);
         if (window != null) {
             window.syncConfigToFrame();
@@ -215,7 +215,7 @@ public class GraphicalSession extends Session {
         windows.clear();
     }
 
-    private ViewHandle findViewByKey(FrameKey key) {
+    private ViewHandle findViewByKey(CompoundKey key) {
         for (ViewHandle vh : openViews()) {
             if (vh.frameKey().equals(key)) return vh;
         }
@@ -386,10 +386,10 @@ public class GraphicalSession extends Session {
     // ==================== View Lifecycle Hooks ====================
 
     /** Pending window creations — deferred to avoid creating windows mid-render. */
-    private final java.util.Queue<FrameKey> pendingWindowCreations = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private final java.util.Queue<CompoundKey> pendingWindowCreations = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
     @Override
-    protected void onViewOpened(FrameKey key) {
+    protected void onViewOpened(CompoundKey key) {
         if (shared != null) {
             ViewHandle vh = findViewByKey(key);
             if (vh != null && !isViewOnLocalDisplay(vh)) {
@@ -403,7 +403,7 @@ public class GraphicalSession extends Session {
     }
 
     @Override
-    protected void onViewClosed(FrameKey key) {
+    protected void onViewClosed(CompoundKey key) {
         closeWindow(key);
     }
 

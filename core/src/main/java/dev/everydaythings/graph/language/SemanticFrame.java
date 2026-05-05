@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
 
@@ -96,9 +96,9 @@ public record SemanticFrame(
     /**
      * Get the Item bound to a specific role, if it is an Item.
      */
-    public java.util.Optional<Item> itemBinding(ItemID role) {
+    public java.util.Optional<ItemOld> itemBinding(ItemID role) {
         Object value = bindings.get(role);
-        return value instanceof Item item ? java.util.Optional.of(item) : java.util.Optional.empty();
+        return value instanceof ItemOld item ? java.util.Optional.of(item) : java.util.Optional.empty();
     }
 
     private static boolean isQueryQuantifier(Object value) {

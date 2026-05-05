@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
@@ -21,10 +21,10 @@ import java.util.stream.Stream;
  */
 public final class LocalLibrarian implements LibrarianHandle {
 
-    private final Librarian librarian;
+    private final LibrarianOld librarian;
     private boolean closed = false;
 
-    LocalLibrarian(Librarian librarian) {
+    LocalLibrarian(LibrarianOld librarian) {
         this.librarian = Objects.requireNonNull(librarian, "librarian");
     }
 
@@ -34,7 +34,7 @@ public final class LocalLibrarian implements LibrarianHandle {
      * <p>Only available for local references. Use with care - prefer
      * using the LibrarianRef interface methods for portability.
      */
-    public Librarian librarian() {
+    public LibrarianOld librarian() {
         checkOpen();
         return librarian;
     }
@@ -69,13 +69,13 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     @Override
-    public void put(Item item) {
+    public void put(ItemOld item) {
         checkOpen();
         librarian.put(item);
     }
 
     @Override
-    public <T extends Item> Optional<T> get(ItemID iid, Class<T> type) {
+    public <T extends ItemOld> Optional<T> get(ItemID iid, Class<T> type) {
         checkOpen();
         return librarian.get(iid, type);
     }
@@ -109,7 +109,7 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     private java.util.function.Function<dev.everydaythings.graph.item.id.ContentID,
-            Optional<dev.everydaythings.graph.frame.FrameBody>> bodyResolver() {
+            Optional<FrameBodyOld>> bodyResolver() {
         return bodyHash -> librarian.library().loadFrameBody(bodyHash);
     }
 
@@ -126,19 +126,19 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     @Override
-    public Optional<Item> principal() {
+    public Optional<ItemOld> principal() {
         checkOpen();
-        return librarian.principal().map(s -> (Item) s);
+        return librarian.principal().map(s -> (ItemOld) s);
     }
 
     @Override
-    public void storeFrame(dev.everydaythings.graph.frame.FrameBody body) {
+    public void storeFrame(FrameBodyOld body) {
         checkOpen();
         librarian.storeFrame(body);
     }
 
     @Override
-    public List<dev.everydaythings.graph.frame.FrameBody> ephemeralFrames(ItemID itemId) {
+    public List<FrameBodyOld> ephemeralFrames(ItemID itemId) {
         checkOpen();
         return librarian.ephemeralFramesForItem(itemId);
     }

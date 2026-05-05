@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.DisplayConfig;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.language.DeviceVocabulary;
 import org.junit.jupiter.api.BeforeAll;
@@ -17,12 +17,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Host DEVICE frame management")
 class HostDisplayTest {
 
-    private static Librarian librarian;
+    private static LibrarianOld librarian;
     private Host host;
 
     @BeforeAll
     static void setupLibrarian() {
-        librarian = Librarian.createInMemory();
+        librarian = LibrarianOld.createInMemory();
     }
 
     @BeforeEach
@@ -46,7 +46,7 @@ class HostDisplayTest {
                     .osX(0).osY(0)
                     .build();
 
-            FrameKey key = host.registerDisplay("retina-0", config);
+            CompoundKey key = host.registerDisplay("retina-0", config);
             assertThat(key).isNotNull();
 
             List<Host.DeviceInfo> displays = host.displays();

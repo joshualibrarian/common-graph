@@ -2,7 +2,7 @@ package dev.everydaythings.graph;
 
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import dev.everydaythings.graph.runtime.RemoteLibrarian;
 import dev.everydaythings.graph.ui.Session;
@@ -33,7 +33,7 @@ import java.security.Security;
  *
  * <p>Graph is a launcher that combines the two core commands:
  * <ul>
- *   <li>{@link Librarian} - the backend daemon</li>
+ *   <li>{@link LibrarianOld} - the backend daemon</li>
  *   <li>{@link Session} - the UI frontend</li>
  * </ul>
  *
@@ -55,7 +55,7 @@ import java.security.Security;
     version = "graph 0.1.0",
     description = "Common Graph - where everything is an Item",
     subcommands = {
-        Librarian.class,
+        LibrarianOld.class,
         Session.SessionShell.class  // Session.SessionShell is the concrete picocli command
     }
 )
@@ -78,7 +78,7 @@ public class Graph implements Runnable {
     // State
     // ==================================================================================
 
-    private Librarian librarian;
+    private LibrarianOld librarian;
     private HostPresence hostPresence;
 
     // ==================================================================================
@@ -178,7 +178,7 @@ public class Graph implements Runnable {
 
         Path librarianPath = libOpts.effectivePath();
         logger.info("Opening Librarian at {}", librarianPath);
-        librarian = Librarian.open(librarianPath);
+        librarian = LibrarianOld.open(librarianPath);
 
         // open() starts Unix socket; also listen on TCP for remote connections
         librarian.startSessionServer("0.0.0.0", libOpts.port);
@@ -284,12 +284,12 @@ public class Graph implements Runnable {
         if (libOpts.path != null) {
             // Explicit path specified - use file-backed librarian
             logger.info("Opening Librarian at {}", libOpts.path);
-            librarian = Librarian.open(libOpts.path);
+            librarian = LibrarianOld.open(libOpts.path);
             handle = LibrarianHandle.wrap(librarian);
         } else {
             // No path specified - use ephemeral in-memory librarian
             logger.info("Creating ephemeral in-memory librarian");
-            librarian = Librarian.createInMemory();
+            librarian = LibrarianOld.createInMemory();
             librarian.startSessionServer();  // Start session server so others can connect
             handle = LibrarianHandle.wrap(librarian);
         }

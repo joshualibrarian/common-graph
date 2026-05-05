@@ -1,22 +1,21 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.DisplayConfig;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.DeviceVocabulary;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
-import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.ManifestOld;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.library.ItemStore;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
@@ -40,7 +39,7 @@ import java.util.List;
  */
 @Implements(Host.KEY)
 @ItemSeed(key = Host.KEY)
-public class Host extends Signer {
+public class Host extends SignerOld {
 
     // ==================================================================================
     // TYPE DEFINITION
@@ -87,23 +86,23 @@ public class Host extends Signer {
     }
 
     /** Hydration constructor for loading Host from manifest. */
-    protected Host(Librarian librarian, Manifest manifest) {
+    protected Host(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 
     /** Reference constructor for remote hosts. */
-    public Host(Librarian librarian, Manifest manifest, SigningPublicKey publicKey) {
+    public Host(LibrarianOld librarian, ManifestOld manifest, SigningPublicKey publicKey) {
         super(librarian, manifest, publicKey);
     }
 
     /** In-memory constructor for ephemeral Host items. */
-    public Host(Librarian librarian) {
+    public Host(LibrarianOld librarian) {
         super(librarian, librarian.library().primaryStore().orElse(null));
         initializeNetworkInfo();
     }
 
     /** Path-based constructor with librarian. */
-    public Host(Librarian librarian, Path path) {
+    public Host(LibrarianOld librarian, Path path) {
         super(librarian, path, librarian.library().primaryStore().orElse(null));
         if (freshBoot) initializeNetworkInfo();
     }
@@ -162,7 +161,7 @@ public class Host extends Signer {
      * @param deviceId   the string identifier for the device
      * @param config     the device's configuration (e.g., DisplayConfig)
      */
-    public record DeviceInfo(FrameKey frameKey, ItemID deviceType, String deviceId, Object config) {
+    public record DeviceInfo(CompoundKey frameKey, ItemID deviceType, String deviceId, Object config) {
 
         /** Build a compound Ref targeting this device on the given host. */
         public Ref refOn(ItemID hostIid) {
@@ -183,14 +182,14 @@ public class Host extends Signer {
      * @param config     the device's configuration object
      * @return the FrameKey of the new DEVICE frame
      */
-    public FrameKey registerDevice(ItemID deviceType, String deviceId, Object config) {
-        FrameKey key = FrameKey.of(DeviceVocabulary.Device.IID, deviceType, deviceId);
+    public CompoundKey registerDevice(ItemID deviceType, String deviceId, Object config) {
+        CompoundKey key = CompoundKey.of(DeviceVocabulary.Device.IID, deviceType, deviceId);
 
         // Remove existing frame for this device if present
         frames().removeByKey(key);
 
-        dev.everydaythings.graph.frame.Frame frame =
-                new dev.everydaythings.graph.frame.Frame(key, DeviceVocabulary.Device.IID, null, null, false);
+        FrameOld frame =
+                new FrameOld(key, DeviceVocabulary.Device.IID, null, null, false);
         frames().add(frame);
         frame.setInstance(config);
 
@@ -204,7 +203,7 @@ public class Host extends Signer {
      * @param config    the display's physical properties
      * @return the FrameKey of the new DEVICE frame
      */
-    public FrameKey registerDisplay(String displayId, DisplayConfig config) {
+    public CompoundKey registerDisplay(String displayId, DisplayConfig config) {
         return registerDevice(DeviceVocabulary.Display.IID, displayId, config);
     }
 
@@ -214,7 +213,7 @@ public class Host extends Signer {
      * <p>The frame body is preserved in the library for history. Re-registering
      * the same device will re-endorse it with the same identity.
      */
-    public void disconnectDevice(FrameKey key) {
+    public void disconnectDevice(CompoundKey key) {
         frames().removeByKey(key);
     }
 
@@ -223,7 +222,7 @@ public class Host extends Signer {
      */
     public List<DeviceInfo> devices() {
         List<DeviceInfo> result = new ArrayList<>();
-        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+        for (FrameOld frame : frames()) {
             if (DeviceVocabulary.Device.IID.equals(frame.type())) {
                 extractDeviceInfo(frame, result);
             }
@@ -238,11 +237,11 @@ public class Host extends Signer {
      */
     public List<DeviceInfo> devices(ItemID deviceType) {
         List<DeviceInfo> result = new ArrayList<>();
-        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+        for (FrameOld frame : frames()) {
             if (DeviceVocabulary.Device.IID.equals(frame.type())) {
-                List<FrameKey.FrameToken> quals = frame.frameKey().qualifiers();
+                List<CompoundKey.FrameToken> quals = frame.frameKey().qualifiers();
                 if (!quals.isEmpty()
-                        && quals.getFirst() instanceof FrameKey.Sememe sem
+                        && quals.getFirst() instanceof CompoundKey.Sememe sem
                         && deviceType.equals(sem.id())) {
                     extractDeviceInfo(frame, result);
                 }
@@ -291,25 +290,25 @@ public class Host extends Signer {
      * Remove all DEVICE frames from this host.
      */
     public void clearDevices() {
-        List<FrameKey> toRemove = new ArrayList<>();
-        for (dev.everydaythings.graph.frame.Frame frame : frames()) {
+        List<CompoundKey> toRemove = new ArrayList<>();
+        for (FrameOld frame : frames()) {
             if (DeviceVocabulary.Device.IID.equals(frame.type())) {
                 toRemove.add(frame.frameKey());
             }
         }
-        for (FrameKey key : toRemove) {
+        for (CompoundKey key : toRemove) {
             frames().removeByKey(key);
         }
     }
 
-    private static void extractDeviceInfo(dev.everydaythings.graph.frame.Frame frame, List<DeviceInfo> result) {
-        List<FrameKey.FrameToken> quals = frame.frameKey().qualifiers();
+    private static void extractDeviceInfo(FrameOld frame, List<DeviceInfo> result) {
+        List<CompoundKey.FrameToken> quals = frame.frameKey().qualifiers();
         ItemID deviceType = null;
         String deviceId = null;
-        if (quals.size() >= 1 && quals.get(0) instanceof FrameKey.Sememe sem) {
+        if (quals.size() >= 1 && quals.get(0) instanceof CompoundKey.Sememe sem) {
             deviceType = sem.id();
         }
-        if (quals.size() >= 2 && quals.get(1) instanceof FrameKey.Literal lit) {
+        if (quals.size() >= 2 && quals.get(1) instanceof CompoundKey.Literal lit) {
             deviceId = lit.value();
         }
         result.add(new DeviceInfo(frame.frameKey(), deviceType, deviceId, frame.instance()));

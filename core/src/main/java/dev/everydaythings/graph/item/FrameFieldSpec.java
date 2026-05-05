@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.frame.ItemFrame;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 import lombok.NonNull;
@@ -26,7 +26,7 @@ public class FrameFieldSpec {
     private final Field field;
 
     /** The frame's semantic key — the primary address. */
-    @NonNull private final FrameKey frameKey;
+    @NonNull private final CompoundKey frameKey;
 
     /** The frame's type ID (from field type or derived). */
     @NonNull private final ItemID type;
@@ -57,7 +57,7 @@ public class FrameFieldSpec {
 
     public FrameFieldSpec(
             Field field,
-            @NonNull FrameKey frameKey,
+            @NonNull CompoundKey frameKey,
             @NonNull ItemID type,
             @NonNull ItemID selfRole,
             @NonNull ItemID valueRole,
@@ -90,16 +90,13 @@ public class FrameFieldSpec {
     }
 
     /**
-     * Get the predicate ItemID (head of the FrameKey).
-     * Only meaningful for semantic keys.
+     * Get the predicate ItemID (head of the CompoundKey).
+     *
+     * <p>The head of a CompoundKey is always a sememe ItemID, so this returns
+     * the head directly. Equivalent to {@code frameKey.head()}.
      */
     public ItemID predicate() {
-        FrameKey.FrameToken head = frameKey.head();
-        if (head instanceof FrameKey.Sememe sememe) {
-            return sememe.id();
-        }
-        // Literal keys don't have a predicate ItemID — derive one
-        return ItemID.fromString(((FrameKey.Literal) head).value());
+        return frameKey.head();
     }
 
     /**
@@ -138,7 +135,7 @@ public class FrameFieldSpec {
      * @param item The item to read from
      * @return The field value, or null if not accessible
      */
-    public Object getValue(Item item) {
+    public Object getValue(ItemOld item) {
         if (field == null) return null;
         try {
             field.setAccessible(true);
@@ -154,7 +151,7 @@ public class FrameFieldSpec {
      * @param item The item to write to
      * @param value The value to set
      */
-    public void setValue(Item item, Object value) {
+    public void setValue(ItemOld item, Object value) {
         if (field == null) return;
         try {
             field.setAccessible(true);

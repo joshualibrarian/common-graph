@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
@@ -132,14 +132,14 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     }
 
     @Override
-    public void put(Item item) {
+    public void put(ItemOld item) {
         checkOpen();
         // Remote items would need protocol-level persistence — not yet implemented
         log.warn("put() called on RemoteLibrarian - not yet implemented");
     }
 
     @Override
-    public <T extends Item> Optional<T> get(ItemID iid, Class<T> type) {
+    public <T extends ItemOld> Optional<T> get(ItemID iid, Class<T> type) {
         checkOpen();
         // Items can't be directly transferred over the protocol - they're local objects.
         // The protocol works with Views and dispatch results.
@@ -189,7 +189,7 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     }
 
     @Override
-    public Optional<Item> principal() {
+    public Optional<ItemOld> principal() {
         checkOpen();
         if (principalId != null) {
             return get(principalId);
@@ -228,12 +228,12 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     // ==================================================================================
 
     @Override
-    public void storeFrame(dev.everydaythings.graph.frame.FrameBody body) {
+    public void storeFrame(FrameBodyOld body) {
         // TODO: Remote frame storage requires DISPATCH protocol message
     }
 
     @Override
-    public java.util.List<dev.everydaythings.graph.frame.FrameBody> ephemeralFrames(dev.everydaythings.graph.item.id.ItemID itemId) {
+    public java.util.List<FrameBodyOld> ephemeralFrames(dev.everydaythings.graph.item.id.ItemID itemId) {
         // TODO: Remote ephemeral frame queries require protocol extension
         return java.util.List.of();
     }

@@ -61,6 +61,14 @@ Every bridge has two directions:
 
 A bridge typically supports both directions, though some are inherently one-way (an RSS bridge might only consume external feeds, never publish to them).
 
+### Bridges share the unified input pipeline
+
+Inbound translation is not a bridge-specific operation — it is a policy-configured invocation of the same `eval()` pipeline that handles every other input event in the system (interactive composition, CLI commands, programmatic API calls, queries).  A Slack bridge feeding a message body to `eval()` with bridge-appropriate policies is doing the same parsing work that an interactive editor does as the user types.  The parser, the sememe resolution, the frame assembly — all identical.  Only the policy differs (batch silent vs interactive prompt, fallback to MESSAGE vs user-disambiguate, queue uncertain cases for AI review, etc.).
+
+This means bridge implementations are remarkably thin: they handle protocol specifics (SMTP delivery, Slack API, HTTP request parsing) but delegate semantic interpretation entirely to the core pipeline.  Every improvement to the parser benefits every bridge automatically.
+
+For the unified-input architecture, see [Input](input.md).
+
 ## The ecosystems
 
 What follows is a survey of ecosystems worth bridging to, organized by domain.  Order is roughly by leverage and priority, not by technical difficulty.

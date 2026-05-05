@@ -1,16 +1,16 @@
 package dev.everydaythings.graph.network.peer;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.FrameRecord;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.frame.FrameRecordOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.network.RoutingVocabulary;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
 import lombok.Getter;
@@ -39,30 +39,30 @@ public class PeerContext {
     private static final Logger log = LogManager.getLogger(PeerContext.class);
 
     @Getter
-    private final Librarian librarian;
+    private final LibrarianOld librarian;
 
-    public PeerContext(Librarian librarian) {
+    public PeerContext(LibrarianOld librarian) {
         this.librarian = librarian;
     }
 
     /**
      * Get the local Librarian's manifest (for handshake).
      */
-    public Manifest localManifest() {
+    public ManifestOld localManifest() {
         return librarian.current();
     }
 
     /**
      * Look up an item by IID.
      */
-    public Optional<Item> getItem(ItemID iid) {
-        return librarian.get(iid, Item.class);
+    public Optional<ItemOld> getItem(ItemID iid) {
+        return librarian.get(iid, ItemOld.class);
     }
 
     /**
      * Look up an item's manifest.
      */
-    public Optional<Manifest> getManifest(ItemID iid) {
+    public Optional<ManifestOld> getManifest(ItemID iid) {
         return librarian.manifest(iid);
     }
 
@@ -77,7 +77,7 @@ public class PeerContext {
      * Query frame bodies (item, predicate - either can be null for wildcard).
      * Frame-based: queries by participating item and/or predicate.
      */
-    public List<FrameBody> queryFrameBodies(ItemID item, ItemID predicate) {
+    public List<FrameBodyOld> queryFrameBodies(ItemID item, ItemID predicate) {
         // Library.byPredicate returns Stream<FrameBody> directly
         if (predicate != null) {
             return librarian.library().byPredicate(predicate).toList();
@@ -89,7 +89,7 @@ public class PeerContext {
     /**
      * Store a received manifest.
      */
-    public void storeManifest(Manifest manifest) {
+    public void storeManifest(ManifestOld manifest) {
         // Librarian's storeManifest takes bytes
         byte[] encoded = manifest.encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
         librarian.storeManifest(encoded);
@@ -105,8 +105,8 @@ public class PeerContext {
     /**
      * Store received frame bodies.
      */
-    public void storeFrameBodies(List<FrameBody> frames) {
-        for (FrameBody body : frames) {
+    public void storeFrameBodies(List<FrameBodyOld> frames) {
+        for (FrameBodyOld body : frames) {
             librarian.storeFrame(body);
         }
     }
@@ -123,16 +123,16 @@ public class PeerContext {
      * @param remoteManifest The remote librarian's manifest
      * @param remoteAddress  The network address of the remote peer
      */
-    public void onPeerIdentified(Manifest remoteManifest, InetSocketAddress remoteAddress) {
+    public void onPeerIdentified(ManifestOld remoteManifest, InetSocketAddress remoteAddress) {
         ItemID localId = librarian.iid();
         ItemID remoteId = remoteManifest.iid();
 
         // Create peers-with relation: local --peers-with--> remote
-        FrameBody peersWithBody = FrameBody.of(
+        FrameBodyOld peersWithBody = FrameBodyOld.of(
                 RoutingVocabulary.PeersWith.IID,
                 localId,
                 Map.of(ThematicRole.Goal.IID, BindingTarget.iid(remoteId)));
-        FrameRecord peersWithRecord = FrameRecord.create(peersWithBody, librarian);
+        FrameRecordOld peersWithRecord = FrameRecordOld.create(peersWithBody, librarian);
         librarian.library().storeFrame(peersWithBody, peersWithRecord);
         log.info("Created peers-with frame: {} -> {}", localId.encodeText(), remoteId.encodeText());
 
@@ -141,11 +141,11 @@ public class PeerContext {
                 IpAddress.fromInetAddress(remoteAddress.getAddress()),
                 remoteAddress.getPort()
         );
-        FrameBody reachableAtBody = FrameBody.of(
+        FrameBodyOld reachableAtBody = FrameBodyOld.of(
                 RoutingVocabulary.ReachableAt.IID,
                 remoteId,
                 Map.of(ThematicRole.Goal.IID, Literal.of(endpoint)));
-        FrameRecord reachableAtRecord = FrameRecord.create(reachableAtBody, librarian);
+        FrameRecordOld reachableAtRecord = FrameRecordOld.create(reachableAtBody, librarian);
         librarian.library().storeFrame(reachableAtBody, reachableAtRecord);
         log.info("Created reachable-at frame: {} -> {}", remoteId.encodeText(), endpoint);
     }
@@ -174,11 +174,11 @@ public class PeerContext {
     public void onRelayForwarded(ItemID fromPeer, ItemID toPeer) {
         if (fromPeer == null || toPeer == null) return;
 
-        FrameBody relayBody = FrameBody.of(
+        FrameBodyOld relayBody = FrameBodyOld.of(
                 RoutingVocabulary.AcknowledgesRelay.IID,
                 librarian.iid(),
                 Map.of(ThematicRole.Goal.IID, BindingTarget.iid(fromPeer)));
-        FrameRecord relayRecord = FrameRecord.create(relayBody, librarian);
+        FrameRecordOld relayRecord = FrameRecordOld.create(relayBody, librarian);
         librarian.library().storeFrame(relayBody, relayRecord);
         log.info("Relay forwarded: {} -> {}", fromPeer.encodeText(), toPeer.encodeText());
     }
@@ -186,13 +186,13 @@ public class PeerContext {
     public void onDeliveryReceived(ItemID remoteLibrarianIid, long requestId) {
         ItemID localId = librarian.iid();
 
-        FrameBody ackBody = FrameBody.of(
+        FrameBodyOld ackBody = FrameBodyOld.of(
                 RoutingVocabulary.AcknowledgesDelivery.IID,
                 localId,
                 Map.of(
                         ThematicRole.Goal.IID, BindingTarget.iid(remoteLibrarianIid),
                         RoutingVocabulary.RequestId.IID, Literal.ofInteger(requestId)));
-        FrameRecord ackRecord = FrameRecord.create(ackBody, librarian);
+        FrameRecordOld ackRecord = FrameRecordOld.create(ackBody, librarian);
         librarian.library().storeFrame(ackBody, ackRecord);
         log.info("Acknowledged delivery from {} (request {})",
                 remoteLibrarianIid.encodeText(), requestId);

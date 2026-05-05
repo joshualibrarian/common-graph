@@ -4,9 +4,8 @@ import dev.everydaythings.graph.item.Factory;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 
@@ -30,23 +29,23 @@ import java.util.stream.Stream;
  * the item's identity and behavior. Mounts (path assignments) are stored
  * separately from frames in a parallel map.
  *
- * <p>Also implements {@link Iterable} of {@link Frame} for convenient for-each loops.
+ * <p>Also implements {@link Iterable} of {@link FrameOld} for convenient for-each loops.
  */
-public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
-        implements Canonical, Iterable<Frame> {
+public class EndorsementsTable extends AbstractMap<CompoundKey, FrameOld>
+        implements Canonical, Iterable<FrameOld> {
 
     // ==================================================================================
     // Internal Storage
     // ==================================================================================
 
     /** Frame storage (insertion-ordered). */
-    private final Map<FrameKey, Frame> frames = new LinkedHashMap<>();
+    private final Map<CompoundKey, FrameOld> frames = new LinkedHashMap<>();
 
     /** Mount metadata — separate from frames. */
-    private final Map<FrameKey, List<Mount>> mounts = new LinkedHashMap<>();
+    private final Map<CompoundKey, List<Mount>> mounts = new LinkedHashMap<>();
 
     /** Owner item (transient). */
-    private transient Item owningItem;
+    private transient ItemOld owningItem;
 
     /** Change listener — notified when frames are added or removed. */
     private transient Runnable onChanged;
@@ -55,9 +54,9 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // Owner Tracking
     // ==================================================================================
 
-    public void setOwner(Item owner) {
+    public void setOwner(ItemOld owner) {
         this.owningItem = owner;
-        for (Frame frame : frames.values()) {
+        for (FrameOld frame : frames.values()) {
             frame.setOwner(owner);
         }
     }
@@ -76,10 +75,10 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     @Override
-    public Set<Entry<FrameKey, Frame>> entrySet() {
+    public Set<Entry<CompoundKey, FrameOld>> entrySet() {
         return new AbstractSet<>() {
             @Override
-            public Iterator<Entry<FrameKey, Frame>> iterator() {
+            public Iterator<Entry<CompoundKey, FrameOld>> iterator() {
                 return frames.entrySet().iterator();
             }
             @Override public int size() { return frames.size(); }
@@ -87,7 +86,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     @Override
-    public Frame get(Object key) {
+    public FrameOld get(Object key) {
         return frames.get(key);
     }
 
@@ -115,11 +114,11 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     @Override
-    public Frame remove(Object key) {
-        if (key instanceof FrameKey fk) {
+    public FrameOld remove(Object key) {
+        if (key instanceof CompoundKey fk) {
             mounts.remove(fk);
         }
-        Frame removed = frames.remove(key);
+        FrameOld removed = frames.remove(key);
         if (removed != null) notifyChanged();
         return removed;
     }
@@ -129,12 +128,12 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     @Override
-    public Iterator<Frame> iterator() {
+    public Iterator<FrameOld> iterator() {
         return frames.values().iterator();
     }
 
     /** Stream over all frames. */
-    public Stream<Frame> stream() {
+    public Stream<FrameOld> stream() {
         return frames.values().stream();
     }
 
@@ -143,7 +142,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     /** Add a frame (with optional mounts). */
-    public void add(Frame frame) {
+    public void add(FrameOld frame) {
         frames.put(frame.frameKey(), frame);
         if (owningItem != null) {
             frame.setOwner(owningItem);
@@ -152,7 +151,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Add a frame with mounts. */
-    public void add(Frame frame, List<Mount> frameMounts) {
+    public void add(FrameOld frame, List<Mount> frameMounts) {
         frames.put(frame.frameKey(), frame);
         if (owningItem != null) {
             frame.setOwner(owningItem);
@@ -164,12 +163,12 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Get frame by key. */
-    public Optional<Frame> getFrame(FrameKey key) {
+    public Optional<FrameOld> getFrame(CompoundKey key) {
         return Optional.ofNullable(frames.get(key));
     }
 
     /** Remove by key. */
-    public boolean removeByKey(FrameKey key) {
+    public boolean removeByKey(CompoundKey key) {
         mounts.remove(key);
         boolean removed = frames.remove(key) != null;
         if (removed) notifyChanged();
@@ -181,28 +180,28 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     /** Add a mount for a frame key. */
-    public void addMount(FrameKey key, Mount mount) {
+    public void addMount(CompoundKey key, Mount mount) {
         mounts.computeIfAbsent(key, k -> new ArrayList<>()).add(mount);
     }
 
     /** Get all mounts for a frame key. */
-    public List<Mount> mountsFor(FrameKey key) {
+    public List<Mount> mountsFor(CompoundKey key) {
         return mounts.getOrDefault(key, List.of());
     }
 
     /** Get path mounts for a frame key. */
-    public List<Mount.PathMount> pathMountsFor(FrameKey key) {
-        return Frame.filterPathMounts(mountsFor(key));
+    public List<Mount.PathMount> pathMountsFor(CompoundKey key) {
+        return FrameOld.filterPathMounts(mountsFor(key));
     }
 
     /** Does the given frame have any path mounts? */
-    public boolean hasPathMount(FrameKey key) {
-        return Frame.hasPathMount(mountsFor(key));
+    public boolean hasPathMount(CompoundKey key) {
+        return FrameOld.hasPathMount(mountsFor(key));
     }
 
     /** Get the primary path mount for a frame key. */
-    public Mount.PathMount primaryPathMount(FrameKey key) {
-        return Frame.primaryPathMount(mountsFor(key));
+    public Mount.PathMount primaryPathMount(CompoundKey key) {
+        return FrameOld.primaryPathMount(mountsFor(key));
     }
 
     // ==================================================================================
@@ -210,8 +209,8 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     /** Store a live decoded instance. */
-    public void setLive(FrameKey key, Object instance) {
-        Frame frame = frames.get(key);
+    public void setLive(CompoundKey key, Object instance) {
+        FrameOld frame = frames.get(key);
         if (frame == null) {
             throw new IllegalArgumentException("No frame for key: " + key);
         }
@@ -221,8 +220,8 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
 
     /** Get a live decoded instance by key (typed). */
     @SuppressWarnings("unchecked")
-    public <T> Optional<T> getLive(FrameKey key, Class<T> type) {
-        Frame frame = frames.get(key);
+    public <T> Optional<T> getLive(CompoundKey key, Class<T> type) {
+        FrameOld frame = frames.get(key);
         if (frame == null) return Optional.empty();
         Object instance = frame.instance();
         if (instance != null && (type.isInstance(instance) || primitiveMatches(type, instance))) {
@@ -244,15 +243,15 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Get a live decoded instance by key (untyped). */
-    public Optional<Object> getLive(FrameKey key) {
-        Frame frame = frames.get(key);
+    public Optional<Object> getLive(CompoundKey key) {
+        FrameOld frame = frames.get(key);
         if (frame == null) return Optional.empty();
         return Optional.ofNullable(frame.instance());
     }
 
     /** Iterate over all live instances. */
     public void forEachLive(Consumer<Object> action) {
-        for (Frame frame : frames.values()) {
+        for (FrameOld frame : frames.values()) {
             Object instance = frame.instance();
             if (instance != null) action.accept(instance);
         }
@@ -261,7 +260,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     /** Iterate over live instances of a specific type. */
     @SuppressWarnings("unchecked")
     public <T> void forEachLive(Class<T> filter, Consumer<T> action) {
-        for (Frame frame : frames.values()) {
+        for (FrameOld frame : frames.values()) {
             Object instance = frame.instance();
             if (instance == null) continue;
             if (filter.isInstance(instance)) {
@@ -271,8 +270,8 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Check if a live instance exists for the given key. */
-    public boolean hasLive(FrameKey key) {
-        Frame frame = frames.get(key);
+    public boolean hasLive(CompoundKey key) {
+        FrameOld frame = frames.get(key);
         return frame != null && frame.instance() != null;
     }
 
@@ -281,15 +280,15 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     /** Get all bare frames (type == FrameBody.TYPE_ID — semantic assertions without component wrapper). */
-    public Stream<Frame> bareFrames() {
-        return frames.values().stream().filter(Frame::isBareFrame);
+    public Stream<FrameOld> bareFrames() {
+        return frames.values().stream().filter(FrameOld::isBareFrame);
     }
 
     /** Remove all bare frames. */
     public void removeBareFrames() {
         var toRemove = frames.values().stream()
-                .filter(Frame::isBareFrame)
-                .map(Frame::frameKey)
+                .filter(FrameOld::isBareFrame)
+                .map(FrameOld::frameKey)
                 .toList();
         for (var key : toRemove) {
             removeByKey(key);
@@ -297,7 +296,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Get frames matching a predicate filter. */
-    public Stream<Frame> framesWithPredicate(ItemID predicate) {
+    public Stream<FrameOld> framesWithPredicate(ItemID predicate) {
         return frames.values().stream()
                 .filter(f -> predicate.equals(f.type()));
     }
@@ -307,13 +306,13 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     /** Get all frames that have at least one PathMount. */
-    public Stream<Frame> mounted() {
+    public Stream<FrameOld> mounted() {
         return frames.values().stream()
                 .filter(f -> hasPathMount(f.frameKey()));
     }
 
     /** Get the frame mounted at the exact path. */
-    public Optional<Frame> atPath(String path) {
+    public Optional<FrameOld> atPath(String path) {
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(path);
         return frames.values().stream()
                 .filter(f -> pathMountsFor(f.frameKey()).stream()
@@ -322,7 +321,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Get root-level frames (depth-1 path mounts). */
-    public List<Frame> roots() {
+    public List<FrameOld> roots() {
         return frames.values().stream()
                 .filter(f -> pathMountsFor(f.frameKey()).stream()
                         .anyMatch(pm -> dev.everydaythings.graph.item.mount.PathUtil.depth(pm.path()) == 1))
@@ -330,7 +329,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Get frames that are immediate children of the given path. */
-    public List<Frame> children(String parentPath) {
+    public List<FrameOld> children(String parentPath) {
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(parentPath);
         return frames.values().stream()
                 .filter(f -> pathMountsFor(f.frameKey()).stream()
@@ -339,7 +338,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Get all frames that are descendants of the given path. */
-    public Stream<Frame> descendants(String path) {
+    public Stream<FrameOld> descendants(String path) {
         String canonical = dev.everydaythings.graph.item.mount.PathUtil.canonicalize(path);
         String prefix = canonical.equals("/") ? "/" : canonical + "/";
         return frames.values().stream()
@@ -361,7 +360,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     // ==================================================================================
 
     /** A child at a path — real mounted component or virtual directory. */
-    public record PathChild(String segment, String fullPath, Frame frame) {
+    public record PathChild(String segment, String fullPath, FrameOld frame) {
         public boolean isVirtual() { return frame == null; }
     }
 
@@ -371,9 +370,9 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
         int targetDepth = dev.everydaythings.graph.item.mount.PathUtil.depth(canon) + 1;
         String prefix = canon.equals("/") ? "/" : canon + "/";
 
-        Map<String, Frame> childMap = new LinkedHashMap<>();
+        Map<String, FrameOld> childMap = new LinkedHashMap<>();
 
-        for (Frame frame : frames.values()) {
+        for (FrameOld frame : frames.values()) {
             for (Mount.PathMount pm : pathMountsFor(frame.frameKey())) {
                 String mountPath = pm.path();
 
@@ -409,7 +408,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     }
 
     /** Reverse-lookup: find the primary presentation path for a frame key. */
-    public Optional<String> pathForKey(FrameKey key) {
+    public Optional<String> pathForKey(CompoundKey key) {
         Mount.PathMount pm = primaryPathMount(key);
         return pm != null ? Optional.of(pm.path()) : Optional.empty();
     }
@@ -421,7 +420,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     /** Build endorsements from all frames for manifest serialization. */
     public List<FrameEndorsement> buildEndorsements() {
         List<FrameEndorsement> result = new ArrayList<>();
-        for (Frame frame : frames.values()) {
+        for (FrameOld frame : frames.values()) {
             result.add(frame.toEndorsement(mountsFor(frame.frameKey())));
         }
         return Collections.unmodifiableList(result);
@@ -434,7 +433,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
     @Override
     public CBORObject toCborTree(Scope scope) {
         CBORObject array = CBORObject.NewArray();
-        for (Frame frame : frames.values()) {
+        for (FrameOld frame : frames.values()) {
             array.Add(frame.toCborTree(mountsFor(frame.frameKey())));
         }
         return array;
@@ -445,7 +444,7 @@ public class EndorsementsTable extends AbstractMap<FrameKey, Frame>
         EndorsementsTable table = new EndorsementsTable();
         if (node != null && node.getType() == com.upokecenter.cbor.CBORType.Array) {
             for (CBORObject entryNode : node.getValues()) {
-                Frame frame = Canonical.fromCborTree(entryNode, Frame.class, Scope.RECORD);
+                FrameOld frame = Canonical.fromCborTree(entryNode, FrameOld.class, Scope.RECORD);
                 if (frame != null) {
                     table.add(frame, frame.decodedMounts());
                 }

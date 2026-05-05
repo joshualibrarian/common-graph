@@ -2,9 +2,8 @@ package dev.everydaythings.graph.network.peer;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.CgTag;
-import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.ManifestOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.network.ProtocolMessage;
@@ -42,21 +41,21 @@ public record Delivery(
     /**
      * Deliver an item (unsolicited - e.g., handshake).
      */
-    public static Delivery item(Manifest manifest) {
+    public static Delivery item(ManifestOld manifest) {
         return new Delivery(0, List.of(new Payload.Item(manifest)));
     }
 
     /**
      * Deliver an item in response to a request.
      */
-    public static Delivery item(long requestId, Manifest manifest) {
+    public static Delivery item(long requestId, ManifestOld manifest) {
         return new Delivery(requestId, List.of(new Payload.Item(manifest)));
     }
 
     /**
      * Deliver multiple items (e.g., "here's my Librarian AND my Principal").
      */
-    public static Delivery items(Manifest... manifests) {
+    public static Delivery items(ManifestOld... manifests) {
         List<Payload> payloads = Arrays.stream(manifests)
                 .map(Payload.Item::new)
                 .map(p -> (Payload) p)
@@ -74,7 +73,7 @@ public record Delivery(
     /**
      * Deliver frame bodies (response or push update).
      */
-    public static Delivery relations(long requestId, List<FrameBody> bodies) {
+    public static Delivery relations(long requestId, List<FrameBodyOld> bodies) {
         return new Delivery(requestId, List.of(new Payload.Relations(bodies)));
     }
 
@@ -157,7 +156,7 @@ public record Delivery(
         /**
          * An item (manifest).
          */
-        record Item(Manifest manifest) implements Payload {
+        record Item(ManifestOld manifest) implements Payload {
             @Override
             public CBORObject toCbor(Canonical.Scope scope) {
                 CBORObject obj = CBORObject.NewMap();
@@ -166,7 +165,7 @@ public record Delivery(
             }
 
             static Item fromCbor(CBORObject obj) {
-                Manifest manifest = Canonical.fromCborTree(obj.get("manifest"), Manifest.class, Canonical.Scope.RECORD);
+                ManifestOld manifest = Canonical.fromCborTree(obj.get("manifest"), ManifestOld.class, Canonical.Scope.RECORD);
                 return new Item(manifest);
             }
         }
@@ -193,12 +192,12 @@ public record Delivery(
         /**
          * Frame bodies.
          */
-        record Relations(List<FrameBody> bodies) implements Payload {
+        record Relations(List<FrameBodyOld> bodies) implements Payload {
             @Override
             public CBORObject toCbor(Canonical.Scope scope) {
                 CBORObject obj = CBORObject.NewMap();
                 CBORObject arr = CBORObject.NewArray();
-                for (FrameBody body : bodies) {
+                for (FrameBodyOld body : bodies) {
                     arr.Add(body.toCborTree(scope));
                 }
                 obj.set("relations", arr);
@@ -206,8 +205,8 @@ public record Delivery(
             }
 
             static Relations fromCbor(CBORObject obj) {
-                List<FrameBody> bodies = obj.get("relations").getValues().stream()
-                        .map(node -> Canonical.fromCborTree(node, FrameBody.class, Canonical.Scope.RECORD))
+                List<FrameBodyOld> bodies = obj.get("relations").getValues().stream()
+                        .map(node -> Canonical.fromCborTree(node, FrameBodyOld.class, Canonical.Scope.RECORD))
                         .toList();
                 return new Relations(bodies);
             }

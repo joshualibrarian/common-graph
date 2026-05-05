@@ -1,17 +1,16 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 /**
  * Presence vocabulary — predicates for real-time shared presence in items.
@@ -62,7 +61,7 @@ public final class PresenceVocabulary {
 
         public Present() { super(KEY); }
         protected Present(ItemID iid) { super(iid); }
-        protected Present(Librarian lib, Manifest m) { super(lib, m); }
+        protected Present(LibrarianOld lib, ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -103,7 +102,7 @@ public final class PresenceVocabulary {
 
         public Leave() { super(KEY); }
         protected Leave(ItemID iid) { super(iid); }
-        protected Leave(Librarian lib, Manifest m) { super(lib, m); }
+        protected Leave(LibrarianOld lib, ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -121,19 +120,19 @@ public final class PresenceVocabulary {
         @Override
         public void onFrameAssembled(FrameAssemblyContext ctx) {
             // Find the target item (LOCATION, filled from context)
-            Item target = ctx.item(ThematicRole.Location.IID);
+            ItemOld target = ctx.item(ThematicRole.Location.IID);
             if (target == null || target.frames() == null) return;
 
-            Librarian lib = ctx.scope().librarian();
+            LibrarianOld lib = ctx.scope().librarian();
             if (lib == null) return;
 
             // Use the principal's identity (matches what announcePresence uses)
-            ItemID signerId = lib.principal().map(Item::iid).orElse(lib.iid());
+            ItemID signerId = lib.principal().map(ItemOld::iid).orElse(lib.iid());
 
             // Find and remove PRESENT frames from this signer on this item
             ItemID presentPredicate = ItemID.fromString(Present.KEY);
-            java.util.List<FrameKey> toRemove = new java.util.ArrayList<>();
-            for (Frame frame : target.frames()) {
+            java.util.List<CompoundKey> toRemove = new java.util.ArrayList<>();
+            for (FrameOld frame : target.frames()) {
                 if (frame.body() == null) continue;
                 if (!presentPredicate.equals(frame.body().predicate())) continue;
                 // Check if the AGENT binding matches our signer

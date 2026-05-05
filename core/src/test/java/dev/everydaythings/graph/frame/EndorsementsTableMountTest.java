@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.frame;
 
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,9 +26,9 @@ class EndorsementsTableMountTest {
         docType = ItemID.fromString("cg.sememe:document");
     }
 
-    private Frame addFrameWithMount(String handleName, String path) {
-        FrameKey key = FrameKey.of(ItemID.fromString("cg.test:" + handleName));
-        Frame frame = Frame.snapshot(key, docType, null, true);
+    private FrameOld addFrameWithMount(String handleName, String path) {
+        CompoundKey key = CompoundKey.of(ItemID.fromString("cg.test:" + handleName));
+        FrameOld frame = FrameOld.snapshot(key, docType, null, true);
         table.add(frame, List.of(new Mount.PathMount(path)));
         return frame;
     }
@@ -48,7 +48,7 @@ class EndorsementsTableMountTest {
     @Test
     @DisplayName("atPath finds frame at exact path")
     void atPathFindsEntry() {
-        Frame docs = addFrameWithMount("docs", "/documents");
+        FrameOld docs = addFrameWithMount("docs", "/documents");
 
         assertThat(table.atPath("/documents")).isPresent();
         assertThat(table.atPath("/documents").get()).isSameAs(docs);
@@ -98,7 +98,7 @@ class EndorsementsTableMountTest {
         addFrameWithMount("docs", "/documents");
 
         // Frame without mount
-        Frame unmounted = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:internal")), docType, null, true);
+        FrameOld unmounted = FrameOld.snapshot(CompoundKey.of(ItemID.fromString("cg.test:internal")), docType, null, true);
         table.add(unmounted);
 
         assertThat(table.mounted().count()).isEqualTo(1);
@@ -108,7 +108,7 @@ class EndorsementsTableMountTest {
     @Test
     @DisplayName("frame with multiple mounts appears in multiple lookups")
     void multiplePathMounts() {
-        Frame frame = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:shared")), docType, null, true);
+        FrameOld frame = FrameOld.snapshot(CompoundKey.of(ItemID.fromString("cg.test:shared")), docType, null, true);
         table.add(frame, List.of(
                 new Mount.PathMount("/primary"),
                 new Mount.PathMount("/alias")));
@@ -123,17 +123,17 @@ class EndorsementsTableMountTest {
     void pathForKeyReturnsPrimaryPath() {
         addFrameWithMount("docs", "/documents");
 
-        assertThat(table.pathForKey(FrameKey.of(ItemID.fromString("cg.test:docs")))).hasValue("/documents");
-        assertThat(table.pathForKey(FrameKey.of(ItemID.fromString("cg.test:nonexistent")))).isEmpty();
+        assertThat(table.pathForKey(CompoundKey.of(ItemID.fromString("cg.test:docs")))).hasValue("/documents");
+        assertThat(table.pathForKey(CompoundKey.of(ItemID.fromString("cg.test:nonexistent")))).isEmpty();
     }
 
     @Test
     @DisplayName("pathForKey returns empty for unmounted frame")
     void pathForKeyEmptyWhenNoMount() {
-        Frame unmounted = Frame.snapshot(FrameKey.of(ItemID.fromString("cg.test:internal")), docType, null, true);
+        FrameOld unmounted = FrameOld.snapshot(CompoundKey.of(ItemID.fromString("cg.test:internal")), docType, null, true);
         table.add(unmounted);
 
-        assertThat(table.pathForKey(FrameKey.of(ItemID.fromString("cg.test:internal")))).isEmpty();
+        assertThat(table.pathForKey(CompoundKey.of(ItemID.fromString("cg.test:internal")))).isEmpty();
     }
 
     // ==================================================================================

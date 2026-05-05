@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.ui;
 
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.parse.InputSnapshot;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.runtime.Eval;
@@ -126,7 +126,7 @@ public class TextSession extends Session {
             return 1;
         }
 
-        Item ctx = contextItem().orElse(null);
+        ItemOld ctx = contextItem().orElse(null);
         return Eval.builder()
                 .librarian(librarian)
                 .context(ctx)
@@ -141,7 +141,7 @@ public class TextSession extends Session {
         List<String> commandArgs = opts.positionalArgs.subList(startIndex, opts.positionalArgs.size());
 
         if (commandArgs.isEmpty()) {
-            Item ctx = contextItem().orElse(null);
+            ItemOld ctx = contextItem().orElse(null);
             if (ctx != null) {
                 showItemInfo(ctx);
                 return 0;
@@ -150,7 +150,7 @@ public class TextSession extends Session {
             return 1;
         }
 
-        Item ctx = contextItem().orElse(null);
+        ItemOld ctx = contextItem().orElse(null);
         return Eval.builder()
                 .librarian(librarian)
                 .context(ctx)
@@ -160,7 +160,7 @@ public class TextSession extends Session {
                 .run(commandArgs);
     }
 
-    private void showItemInfo(Item item) {
+    private void showItemInfo(ItemOld item) {
         System.out.println(item.displayToken());
         System.out.println("  IID: " + item.iid().encodeText());
         System.out.println("  Type: " + item.getClass().getSimpleName());
@@ -759,7 +759,7 @@ public class TextSession extends Session {
             p.paint(sn);
             return p.result();
         }
-        if (value instanceof Item item) {
+        if (value instanceof ItemOld item) {
             String emoji = item.emoji();
             return (emoji != null ? emoji + " " : "") + item.displayToken();
         }
@@ -827,7 +827,7 @@ public class TextSession extends Session {
     }
 
     @Override
-    protected void onContextComponentsChanged(Item item) {
+    protected void onContextComponentsChanged(ItemOld item) {
         tickRegistry.rebuild(item.frames());
     }
 

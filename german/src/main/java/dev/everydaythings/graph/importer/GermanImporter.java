@@ -2,7 +2,7 @@ package dev.everydaythings.graph.importer;
 
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 /**
  * Imports German language data from OdeNet (Open German WordNet) and UniMorph.
@@ -20,7 +20,7 @@ public class GermanImporter extends LanguageImporter {
     private static final String WORDNET_PATH = "/german-wordnet.xml";
     private static final String UNIMORPH_PATH = "/unimorph/deu";
 
-    public GermanImporter(Librarian librarian) {
+    public GermanImporter(LibrarianOld librarian) {
         super(librarian);
     }
 

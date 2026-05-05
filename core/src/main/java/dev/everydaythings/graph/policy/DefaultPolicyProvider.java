@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.policy;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 
 /**
  * Provider of default policies for items.
@@ -13,5 +13,5 @@ public interface DefaultPolicyProvider {
      * @param item The item to get defaults for
      * @return The default policy set
      */
-    PolicySet defaultsFor(Item item);
+    PolicySet defaultsFor(ItemOld item);
 }

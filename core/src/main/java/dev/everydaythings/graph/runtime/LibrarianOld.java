@@ -1,0 +1,2331 @@
+package dev.everydaythings.graph.runtime;
+
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.item.*;
+import dev.everydaythings.graph.item.id.CompoundKey;
+import dev.everydaythings.graph.item.user.SignerOld;
+import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
+import dev.everydaythings.graph.network.session.SessionServer;
+import lombok.extern.log4j.Log4j2;
+import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.user.User;
+import dev.everydaythings.graph.library.directory.ItemDirectory;
+import dev.everydaythings.graph.library.ItemStore;
+import dev.everydaythings.graph.library.LibraryOld;
+import dev.everydaythings.graph.library.dictionary.TokenExtractor;
+import dev.everydaythings.graph.library.dictionary.TokenDictionary;
+import dev.everydaythings.graph.library.SeedVocabulary;
+import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
+import dev.everydaythings.graph.language.Posting;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.Sememe;
+import dev.everydaythings.graph.language.SememeGloss;
+import dev.everydaythings.graph.language.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.network.RoutingVocabulary;
+import dev.everydaythings.graph.network.peer.PeerProtocol;
+import dev.everydaythings.graph.network.NetworkManager;
+import dev.everydaythings.graph.network.peer.PeerContext;
+import dev.everydaythings.graph.network.peer.PeerConnection;
+import dev.everydaythings.graph.network.peer.RemotePeer;
+import dev.everydaythings.graph.network.transport.UnixPeerConnection;
+import dev.everydaythings.graph.network.transport.UnixSocketServer;
+import dev.everydaythings.graph.network.Heartbeat;
+import dev.everydaythings.graph.network.ProtocolMessage;
+import dev.everydaythings.graph.network.peer.Delivery;
+import dev.everydaythings.graph.network.peer.Request;
+import dev.everydaythings.graph.value.Endpoint;
+import dev.everydaythings.graph.value.IpAddress;
+import java.lang.reflect.InvocationTargetException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.security.cert.X509Certificate;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
+import org.apache.commons.daemon.Daemon;
+import org.apache.commons.daemon.DaemonContext;
+import org.apache.commons.daemon.DaemonInitException;
+import dev.everydaythings.graph.runtime.options.LibrarianOptions;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Mixin;
+
+/**
+ * The Librarian is the runtime's bootstrap item and primary access point.
+ *
+ * <p>Librarian is a special Item that:
+ * <ul>
+ *   <li>IS an Item (extends Signer, has IID, versions, can be signed)</li>
+ *   <li>Owns the local storage and index (via Library)</li>
+ *   <li>Provides a simple API for working with items and relations</li>
+ *   <li>Optionally lives at {@code <root>/.librarian/} on disk</li>
+ * </ul>
+ *
+ * <h2>Deployment Modes</h2>
+ * <ul>
+ *   <li><b>File-based</b>: {@link #open(Path)} - Persistent storage with RocksDB</li>
+ *   <li><b>In-memory</b>: {@link #createInMemory()} - Ephemeral, no filesystem needed</li>
+ * </ul>
+ *
+ * <p>In-memory mode uses:
+ * <ul>
+ *   <li>{@link dev.everydaythings.graph.crypt.InMemoryVault} - Ephemeral keys</li>
+ *   <li>{@link LibraryOld#memory()} - SkipList-backed storage</li>
+ *   <li>No Unix socket (uses TCP localhost for session server)</li>
+ * </ul>
+ *
+ * <p>Librarian also serves as a daemon entry point, implementing both
+ * {@link Callable} (for picocli) and {@link Daemon} (for jsvc).
+ *
+ * <h2>Usage</h2>
+ * <pre>{@code
+ * // Persistent (creates on first boot, loads on subsequent)
+ * try (Librarian lib = Librarian.open(Paths.get("~/.common-graph"))) {
+ *     // ...
+ * }
+ *
+ * // Ephemeral (testing, demos, temporary sessions)
+ * try (Librarian lib = Librarian.createInMemory()) {
+ *     // Fetch an item
+ *     Optional<MyItem> item = lib.get(someIid, MyItem.class);
+ *
+ *     // Query frames via Library
+ *     lib.library().byItem(someIid).forEach(body -> ...);
+ * }
+ * }</pre>
+ */
+@Log4j2
+@Implements(LibrarianOld.KEY)
+@ItemSeed(key = LibrarianOld.KEY)
+@Command(
+    name = "librarian",
+    mixinStandardHelpOptions = true,
+    description = "Run the Librarian backend daemon"
+)
+public final class LibrarianOld extends SignerOld implements AutoCloseable, Daemon, Callable<Integer> {
+
+    // === TYPE DEFINITION ===
+    public static final String KEY = "cg.sememe:librarian";
+
+    @ItemFrame(predicate = SememeGloss.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
+    static final String seedGloss = "the local runtime bootstrap item";
+
+    @ItemFrame(predicate = CoreVocabulary.Lexeme.KEY, fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}, index = true))
+    static final String seedNoun = "librarian";
+
+    /** Default port for Common Graph protocol. */
+    public static final int DEFAULT_PORT = 7432;
+
+    /** Socket filename for local IPC. */
+    public static final String SOCKET_FILENAME = "graph.sock";
+
+    /** Sentinel IID for CLI shell instances. These instances only hold CLI options and are not functional. */
+    private static final ItemID CLI_SHELL_IID = ItemID.fromString("cg:shell/librarian-cli");
+
+    // ==================================================================================
+    // CLI Options (transient - only used when running as daemon command)
+    // ==================================================================================
+
+    @Mixin
+    private transient LibrarianOptions cliOpts = new LibrarianOptions();
+
+    // ==================================================================================
+    // Daemon State
+    // ==================================================================================
+
+    /** True when this instance is being used as a daemon (vs direct API usage). */
+    private transient boolean runningAsDaemon = false;
+
+    /** The live librarian instance when running as daemon. */
+    private transient LibrarianOld liveInstance;
+
+    // ==================================================================================
+    // Session Tracking
+    // ==================================================================================
+
+    /** Sessions currently connected to this librarian. */
+    private final transient Set<SessionInfo> connectedSessions = ConcurrentHashMap.newKeySet();
+
+    // ==================================================================================
+    // Ephemeral Frame Store
+    //
+    // In-memory store for frames whose predicate declares CONFIG:[DURABILITY]→EPHEMERAL.
+    // These are not persisted, not indexed, and use LATEST retention (replace previous
+    // at the same key). Keyed by (item, predicate, signer) — e.g., one AVATAR_STATE
+    // per user per space. Cleaned up when the signer's PRESENT frame is revoked.
+    // ==================================================================================
+
+    /** Key for ephemeral frame lookup: one frame per (item, predicate, signer). */
+    public record EphemeralKey(ItemID item, ItemID predicate, ItemID signer) {}
+
+    /** Ephemeral frames — in-memory only, latest-wins, not persisted. */
+    private final transient Map<EphemeralKey, FrameBodyOld> ephemeralFrames = new ConcurrentHashMap<>();
+
+    /** Listeners for ephemeral frame changes, keyed by item. */
+    private final transient Map<ItemID, List<Runnable>> ephemeralListeners = new ConcurrentHashMap<>();
+
+    // --- On-disk paths ---
+    private final Path rootPath;
+
+    // Library holds ALL storage and indexing:
+    // - Primary ItemStore (block storage)
+    // - Store registry (additional stores)
+    // - LibraryIndex (relation queries, head tracking)
+    // - ItemDirectory (which store has item X?)
+    // - TokenDictionary (human text → item lookup)
+    @ItemFrame(predicate = CoreVocabulary.Library.KEY, endorsement = @ItemFrame.Endorsed(mounts = {"library"}), localOnly = true)
+    private LibraryOld library;
+
+    // Types query removed — use library index to find IMPLEMENTED_BY subjects directly
+
+    /** Item cache — the single cache for all items known to this librarian. */
+    private transient volatile Map<ItemID, ItemOld> itemCache;
+
+    // Infrastructure activity log — in-memory only (no longer a manifest frame).
+    // Activity logging is now frame-based: each eval produces an ACTIVITY frame.
+    private ActivityLog activityLog = new ActivityLog();
+
+    // --- Services ---
+    private final Clock clock = Clock.systemUTC();
+
+    // --- Network ---
+    private NetworkManager network;
+    private PeerProtocol peerProtocol;
+    private UnixSocketServer unixSocket;
+
+    // --- Session Protocol Server ---
+    private SessionServer sessionServer;
+
+    // --- Principal (role) and Workspace ---
+    /**
+     * The human/entity that owns this Librarian.
+     *
+     * <p>Principal is a role, not a type - any Signer can be a principal.
+     */
+    @ItemFrame(predicate = RoutingVocabulary.Serves.KEY, endorsement = @ItemFrame.Endorsed(false))
+    private SignerOld principal;
+
+    @ItemFrame(predicate = RoutingVocabulary.AvailableAt.KEY, endorsement = @ItemFrame.Endorsed(false))
+    private Host host;
+
+    /**
+     * Items currently acting as workspaces (navigable container windows).
+     *
+     * <p>Any item with a Surface component can be a workspace - it's a ROLE, not a type.
+     * Each workspace is a window containing its Surface's contents. You can have
+     * multiple workspaces open simultaneously on large screens.
+     *
+     * <p>When empty, items render as floating OS windows (no enclosing workspace).
+     */
+    private final Set<ItemID> activeWorkspaces = new LinkedHashSet<>();
+
+    /**
+     * The workspace currently in full-screen mode (if any).
+     *
+     * <p>When a workspace is full-screened, all other workspaces are hidden.
+     * Only one workspace can be full-screen at a time.
+     */
+    private ItemID fullscreenWorkspace;
+
+    // --- Librarian's own relations ---
+    @ItemFrame(predicate = RoutingVocabulary.ReachableAt.KEY, endorsement = @ItemFrame.Endorsed(false))
+    private List<Endpoint> endpoints;
+
+    // ==================================================================================
+    // Factory / Lifecycle
+    // ==================================================================================
+
+    /**
+     * Open or create a Librarian at the given root path.
+     *
+     * <p>On first boot, creates a fresh Librarian with new identity and keypair.
+     * On subsequent boots, loads from disk and verifies integrity.
+     *
+     * <p>Bootstrap sequence:
+     * <ol>
+     *   <li>Create SeedStore (in-memory, has SeedLibraryIndex for type lookups)</li>
+     *   <li>Create Librarian (SeedStore as fallback during construction)</li>
+     *   <li>Library created and initialized</li>
+     *   <li>onFullyInitialized: import seed data into RocksDB, clear seedStore</li>
+     * </ol>
+     *
+     * @param rootPath The graph root directory (e.g., ~/.common-graph/)
+     * @return The initialized Librarian
+     */
+    public static LibrarianOld open(Path rootPath) {
+        logger.info("Opening Librarian at {}", rootPath);
+
+        // Create in-memory seed store (provides type resolution during construction)
+        ItemStore seeds = SkipListItemStore.create();
+        List<ItemOld> seedItems = SeedVocabulary.bootstrap(seeds);
+
+        // Create Librarian (seed store as fallback for type lookups)
+        LibrarianOld librarian = new LibrarianOld(rootPath, seeds);
+
+        // Cache fully-populated seed items with librarian reference set.
+        // Seeds are created with librarian=null during bootstrap; fix that now
+        // so all items returned from librarian.get() have a valid librarian.
+        for (ItemOld seed : seedItems) {
+            seed.setLibrarian(librarian);
+            librarian.put(seed);
+        }
+
+        // Index seed item frames now that they're cached
+        librarian.library().indexItemFrames(librarian.ensureCache().values());
+
+        // Start Unix socket for local IPC (must happen after constructor completes)
+        librarian.startUnixSocket().thenAccept(path ->
+                logger.info("Unix socket ready at {}", path));
+
+        // Start Session Protocol server
+        librarian.startSessionServer();
+
+        logger.info("Librarian ready: iid={}, freshBoot={}", librarian.iid(), librarian.freshBoot());
+        return librarian;
+    }
+
+    /**
+     * Create a new ephemeral in-memory Librarian.
+     *
+     * <p>This creates a fully functional Librarian with no persistent storage.
+     * Useful for:
+     * <ul>
+     *   <li>Testing and experimentation</li>
+     *   <li>Creating a librarian that will be configured and then deployed</li>
+     *   <li>Temporary sessions</li>
+     * </ul>
+     *
+     * @return A new in-memory Librarian
+     */
+    public static LibrarianOld createInMemory() {
+        logger.info("Creating in-memory Librarian");
+
+        // Create in-memory seed store with vocabulary
+        ItemStore seeds = SkipListItemStore.create();
+        List<ItemOld> seedItems = SeedVocabulary.bootstrap(seeds);
+
+        // Create librarian using in-memory constructor
+        LibrarianOld librarian = new LibrarianOld(seeds);
+
+        // Cache fully-populated seed items with librarian reference set.
+        for (ItemOld seed : seedItems) {
+            seed.setLibrarian(librarian);
+            librarian.put(seed);
+        }
+
+        // Index seed item frames now that they're cached
+        librarian.library().indexItemFrames(librarian.ensureCache().values());
+
+        logger.info("In-memory Librarian ready: iid={}", librarian.iid());
+        return librarian;
+    }
+
+    /**
+     * Type seed constructor.
+     *
+     * <p>Creates a minimal Librarian instance for use as a type seed.
+     * This is NOT a functional Librarian - it just represents the type in the graph.
+     *
+     * @param iid The type's ItemID
+     */
+    protected LibrarianOld(ItemID iid) {
+        super(iid);
+        this.rootPath = null;
+        // Type seeds don't need content
+    }
+
+    /**
+     * Hydration constructor for loading Librarian type seeds from DB.
+     *
+     * <p>NOTE: This creates a non-functional Librarian (no storage, no networking).
+     * It's only used to hydrate the type seed so it can provide displayInfo.
+     *
+     * @param librarian The librarian performing hydration (unused for type seeds)
+     * @param manifest  The manifest to hydrate from
+     */
+    protected LibrarianOld(LibrarianOld librarian, ManifestOld manifest) {
+        super(librarian, manifest);
+        this.rootPath = null;
+    }
+
+    /**
+     * Create or load a Librarian at the given root path.
+     *
+     * @param rootPath  The graph root directory
+     * @param seedStore In-memory seed store for type lookups during construction
+     */
+    private LibrarianOld(Path rootPath, ItemStore seedStore) {
+        super(null, rootPath, seedStore);
+        this.rootPath = rootPath;
+        // Library is created in onFullyInitialized() (super() calls it before we return)
+    }
+
+    /**
+     * In-memory constructor for ephemeral Librarian.
+     *
+     * @param seedStore In-memory store with bootstrapped vocabulary
+     */
+    private LibrarianOld(ItemStore seedStore) {
+        super(null, seedStore);
+        this.rootPath = null;
+        // Library is created in onFullyInitialized() (super() calls it before we return)
+    }
+
+    /**
+     * No-arg constructor for picocli CLI parsing.
+     *
+     * <p>Creates a "shell" Librarian instance that only holds CLI options.
+     * The actual librarian is created via {@link #open(Path)} when {@link #call()} runs.
+     * This instance is NOT a functional Librarian - it uses a sentinel IID.
+     */
+    public LibrarianOld() {
+        super(CLI_SHELL_IID);  // Use sentinel IID - this is NOT a functional Librarian
+        this.rootPath = null;
+    }
+
+    /**
+     * Called after all components are initialized.
+     *
+     * <p>This runs boot-specific initialization after Library is ready.
+     * On fresh boot, imports seed data into RocksDB from the store's fallback.
+     *
+     * <p>MUST call super.onFullyInitialized() first to initialize signing keys.
+     */
+    @Override
+    protected void onFullyInitialized() {
+        // Initialize signing keys from Vault (required before commit)
+        super.onFullyInitialized();
+
+        // Set librarian reference
+        this.librarian = this;
+
+        // Create the Library (must happen here, not in constructor,
+        // because super() triggers onFullyInitialized() before constructor body runs)
+        if (this.library == null) {
+            if (store != null && store.root() != null) {
+                // File-based: use RocksDB Library
+                this.library = LibraryOld.file(store.root().resolve("library"));
+            } else {
+                // In-memory: use SkipList Library
+                this.library = LibraryOld.memory();
+            }
+            this.library.setLibrarian(this);
+
+            // Register as live instance so getLive() can find it
+            // (ContentField annotation only registers during initializeComponents,
+            // but library is created here after that phase completes)
+            frames().setLive(
+                    CompoundKey.of(ItemID.fromString(CoreVocabulary.Library.KEY)),
+                    this.library);
+        }
+
+        // On fresh boot, import seed data into Library and release the seed store
+        if (freshBoot && library != null) {
+            if (store instanceof WorkingTreeStore wts) {
+                // File-based: import from seed store, swap fallback to Library
+                ItemStore seedStore = wts.fallback();
+                if (seedStore != null) {
+                    library.importFrom(seedStore, this::predicateIndexWeight);
+                    wts.setFallback(library.store());
+                }
+            } else {
+                // In-memory: the constructor's seed store IS this.store —
+                // import it into Library, then replace the reference so it can be GC'd
+                library.importFrom(this.store, this::predicateIndexWeight);
+                this.store = library.store();
+            }
+        }
+
+        if (freshBoot) {
+            onFirstBoot();
+        } else {
+            onReload();
+        }
+
+        // Cache ourselves so get(iid) can find us
+        put(this);
+
+        // Re-populate unendorsed frames now that endpoints are gathered
+        populateUnendorsedFrames();
+
+        // Ensure a host item exists for this machine
+        ensureHost();
+
+        // Ensure a principal (user) is set
+        ensurePrincipal();
+    }
+
+    /**
+     * First boot: gather network endpoints and commit first version.
+     */
+    private void onFirstBoot() {
+        logger.debug("First boot - importing seeds and committing initial version");
+        logActivity("First boot", "Seed vocabulary imported");
+
+        // Placeholder name — will be updated after ensureHost()/ensurePrincipal()
+        setName("librarian");
+
+        // Gather our network endpoints
+        gatherEndpoints();
+
+        // Commit our first version (self-sign)
+        commit(this);
+
+        // Persist manifest through the working tree store (if file-based)
+        if (store instanceof WorkingTreeStore wts) {
+            byte[] record = current.encodeBinary(Canonical.Scope.RECORD);
+            var storedVid = new ContentID[1];
+            wts.runInWriteTransaction(tx -> {
+                storedVid[0] = wts.persistManifest(iid(), record, tx);
+                wts.setCurrentVersion(storedVid[0], tx);
+            });
+        }
+
+        // Register ourselves in the directory so we can be found by IID
+        library().directory().ifPresent(dir -> {
+            dir.runInWriteTransaction(tx -> {
+                // Register with the library's primary store
+                library().primaryStore().ifPresent(primaryStore ->
+                    dir.register(iid(), primaryStore, tx));
+            });
+        });
+    }
+
+    /**
+     * Reload: load existing state from working tree.
+     *
+     * <p>Note: Components are already hydrated by the path-based constructor
+     * (via hydrate()). This method just loads the manifest to set current/base
+     * and refreshes endpoints.
+     *
+     * <p>For in-memory librarians, this is a no-op since there's nothing to reload.
+     */
+    private void onReload() {
+        // Only reload from WorkingTreeStore (file-based mode)
+        if (!(store instanceof WorkingTreeStore wts)) {
+            // In-memory mode - nothing to reload
+            gatherEndpoints();
+            return;
+        }
+
+        Optional<ContentID> currentVid = wts.currentVersion();
+        if (currentVid.isEmpty()) {
+            throw new IllegalStateException("Working tree has no version checked out but freshBoot is false");
+        }
+
+        ContentID vid = currentVid.get();
+
+        // Load manifest from working tree (consumer API)
+        this.current = wts.manifest(iid(), vid)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Head points to version " + vid + " but manifest not found"));
+        this.base = vid;
+
+        // Swap fallback from seed store to RocksItemStore
+        // (Seed store was only needed during construction for type lookups)
+        ItemStore fallback = wts.fallback();
+        if (fallback != null && fallback != library.store()) {
+            wts.setFallback(library.store());
+        }
+
+        // Refresh network endpoints
+        gatherEndpoints();
+    }
+
+    /**
+     * Gather local network endpoints for Common Graph communication.
+     *
+     * <p>Filters to only include routable addresses:
+     * <ul>
+     *   <li>Excludes loopback (127.x.x.x, ::1)</li>
+     *   <li>Excludes link-local (169.254.x.x, fe80::)</li>
+     *   <li>Prefers IPv4 for now (simpler, more universally supported)</li>
+     * </ul>
+     */
+    private void gatherEndpoints() {
+        try {
+            InetAddress localHost = InetAddress.getLocalHost();
+            InetAddress[] addrs = InetAddress.getAllByName(localHost.getHostName());
+            endpoints = Arrays.stream(addrs)
+                    .filter(addr -> !addr.isLoopbackAddress())
+                    .filter(addr -> !addr.isLinkLocalAddress())
+                    .filter(addr -> addr instanceof Inet4Address) // IPv4 only for now
+                    .map(addr -> Endpoint.cg(IpAddress.fromInetAddress(addr), DEFAULT_PORT))
+                    .toList();
+        } catch (UnknownHostException e) {
+            endpoints = List.of();
+        }
+    }
+
+    @Override
+    public void close() {
+        logger.debug("Closing Librarian at {}", rootPath);
+
+        // Stop session server first
+        stopSessionServer();
+
+        // Stop network
+        stopNetwork();
+
+        // Close Library (closes store, index, directory, tokenDict)
+        if (library != null) {
+            try { library.close(); } catch (Exception ignore) {}
+        }
+        // Close working tree store
+        if (store != null) {
+            try { store.close(); } catch (Exception ignore) {}
+        }
+    }
+
+    // ==================================================================================
+    // Display Info
+    // ==================================================================================
+
+    @Override
+    public DisplayInfo displayInfo() {
+        DisplayInfo base = super.displayInfo();
+        String name = rootPath != null ? rootPath.getFileName().toString() : "Librarian";
+        return base.withName(name);
+    }
+
+    @Override
+    public String displayToken() {
+        return displayInfo().displayName();
+    }
+
+    /**
+     * Resolve display info for a type from the graph.
+     *
+     * @param typeId The type's ItemID (e.g., "cg.sememe:log")
+     * @return DisplayInfo from the type, or a default based on the type key
+     */
+    public DisplayInfo resolveTypeDisplay(ItemID typeId) {
+        if (typeId == null) {
+            return DisplayInfo.builder()
+                    .name("Unknown")
+                    .iconText("\u2753")
+                    .build();
+        }
+
+        Optional<ItemOld> typeItem = get(typeId, ItemOld.class);
+        if (typeItem.isPresent()) {
+            return typeItem.get().displayInfo();
+        }
+
+        // Type not in graph - extract what we can from the key
+        String typeName = extractTypeShortName(typeId);
+        return DisplayInfo.builder()
+                .name(typeName != null ? typeName : typeId.encodeText())
+                .typeName(typeName)
+                .iconText("\uD83D\uDCE6")
+                .build();
+    }
+
+    /**
+     * Extract a short readable name from a type ItemID.
+     * <p>e.g., "cg.sememe:log" → "Log", "cg.sememe:expression" → "Expression"
+     */
+    private static String extractTypeShortName(ItemID typeId) {
+        String text = typeId.encodeText();
+        int sep = text.lastIndexOf('/');
+        if (sep < 0) sep = text.lastIndexOf(':');
+        if (sep >= 0 && sep < text.length() - 1) {
+            String shortName = text.substring(sep + 1);
+            if (!shortName.isEmpty()) {
+                return Character.toUpperCase(shortName.charAt(0)) + shortName.substring(1);
+            }
+        }
+        return null;
+    }
+
+    // ==================================================================================
+    // Network Operations
+    // ==================================================================================
+
+    /**
+     * Start the network layer, listening for peer connections.
+     *
+     * <p>This starts the NetworkManager which:
+     * <ul>
+     *   <li>Listens on the configured port for incoming connections</li>
+     *   <li>Provides a client for outbound connections to peers</li>
+     *   <li>Dispatches incoming messages to the appropriate handlers</li>
+     * </ul>
+     *
+     * @return Future that completes when the network is ready
+     */
+    public CompletableFuture<Void> startNetwork() {
+        return startNetwork(DEFAULT_PORT);
+    }
+
+    /**
+     * Start the network layer on a specific port.
+     *
+     * @param port The port to listen on (0 for auto-assign)
+     * @return Future that completes when the network is ready
+     */
+    public CompletableFuture<Void> startNetwork(int port) {
+        if (network != null) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // Get Netty SslContext from vault for TLS
+        io.netty.handler.ssl.SslContext serverSsl = null;
+        io.netty.handler.ssl.SslContext clientSsl = null;
+        if (vault() != null) {
+            try {
+                serverSsl = vault().serverSslContext();
+                clientSsl = vault().clientSslContext();
+                logger.info("TLS enabled with certificate from vault");
+            } catch (Exception e) {
+                logger.warn("Could not get SslContext from vault, running without TLS: {}", e.getMessage());
+            }
+        }
+
+        logger.info("Starting network on port {} (TLS: {})", port, serverSsl != null);
+
+        // Create protocol handler
+        peerProtocol = new PeerProtocol(new PeerContext(this));
+
+        network = new NetworkManager(port, new NetworkManager.MessageDispatcher() {
+            @Override
+            public void onPeerConnected(PeerConnection connection, X509Certificate peerCert) {
+                logger.info("Peer connected: {} (cert: {})",
+                        connection.remoteAddress(),
+                        peerCert != null ? peerCert.getSubjectX500Principal().getName() : "none");
+                logActivity("Peer connected", String.valueOf(connection.remoteAddress()));
+
+                // Delegate to PeerProtocol
+                peerProtocol.onPeerConnected(connection, false);  // inbound connection
+            }
+
+            @Override
+            public void onMessage(PeerConnection connection, ProtocolMessage message) {
+                // Delegate to PeerProtocol
+                peerProtocol.handleMessage(connection, message);
+            }
+
+            @Override
+            public void onPeerDisconnected(PeerConnection connection) {
+                logger.info("Peer disconnected: {}", connection.remoteAddress());
+                logActivity("Peer disconnected", String.valueOf(connection.remoteAddress()));
+                peerProtocol.onPeerDisconnected(connection);
+            }
+        }, serverSsl, clientSsl);
+
+        return network.start();
+    }
+
+    /**
+     * Stop the network layer.
+     */
+    public void stopNetwork() {
+        stopUnixSocket();
+        if (network != null) {
+            logger.info("Stopping network");
+            network.close();
+            network = null;
+        }
+        peerProtocol = null;
+    }
+
+    // ==================================================================================
+    // Unix Socket (Local IPC)
+    // ==================================================================================
+
+    /**
+     * Get the path to the Unix socket file for local IPC.
+     *
+     * <p>The socket is created at {@code <rootPath>/graph.sock}.
+     *
+     * @return Path to the socket file
+     */
+    public Path socketPath() {
+        return rootPath.resolve(SOCKET_FILENAME);
+    }
+
+    /**
+     * Start the Unix socket server for local IPC.
+     *
+     * <p>Creates a Unix domain socket at {@link #socketPath()} for local
+     * communication with other processes on this machine. This is the preferred
+     * transport for local librarian-to-librarian communication.
+     *
+     * @return Future that completes with the socket path when ready
+     */
+    public CompletableFuture<Path> startUnixSocket() {
+        if (unixSocket != null) {
+            return CompletableFuture.completedFuture(socketPath());
+        }
+
+        if (!UnixSocketServer.isAvailable()) {
+            logger.warn("Unix domain sockets not available on this platform");
+            return CompletableFuture.failedFuture(
+                    new UnsupportedOperationException("Unix domain sockets require native transport (epoll or kqueue)"));
+        }
+
+        Path sockPath = socketPath();
+        logger.info("Starting Unix socket server at {}", sockPath);
+
+        unixSocket = new UnixSocketServer(sockPath, new UnixSocketServer.IncomingHandler() {
+            @Override
+            public void onConnect(UnixPeerConnection connection) {
+                logger.debug("Local client connected: {}", connection);
+            }
+
+            @Override
+            public void onMessage(UnixPeerConnection connection, byte[] data) {
+                handleUnixMessage(connection, data);
+            }
+
+            @Override
+            public void onDisconnect(UnixPeerConnection connection) {
+                logger.debug("Local client disconnected: {}", connection);
+            }
+        });
+
+        return unixSocket.start();
+    }
+
+    /**
+     * Stop the Unix socket server.
+     */
+    public void stopUnixSocket() {
+        if (unixSocket != null) {
+            logger.info("Stopping Unix socket server");
+            unixSocket.close();
+            unixSocket = null;
+        }
+    }
+
+    /**
+     * Check if the Unix socket server is running.
+     */
+    public boolean isUnixSocketRunning() {
+        return unixSocket != null;
+    }
+
+    // ==================================================================================
+    // Session Protocol Server
+    // ==================================================================================
+
+    /**
+     * Start the Session Protocol server.
+     *
+     * <p>Listens for local session connections. Prefers Unix socket if we have
+     * a directory, falls back to TCP localhost for in-memory librarians.
+     *
+     * <p>This is used by TextSession (CLI/TUI) and embedded terminals.
+     */
+    public void startSessionServer() {
+        if (sessionServer != null) {
+            return;  // Already running
+        }
+
+        try {
+            sessionServer = new SessionServer(this);
+
+            if (rootPath != null) {
+                // We have a directory - use Unix socket (preferred)
+                Path sessionSocketPath = rootPath.resolve("session.sock");
+                sessionServer.listenUnix(sessionSocketPath);
+
+                // Write auto-token to file for local clients
+                writeAutoTokenFile();
+
+                logger.info("Session server started on Unix socket: {}", sessionSocketPath);
+            } else {
+                // In-memory librarian - use TCP localhost
+                // Pick a random available port
+                sessionServer.listenTcp("127.0.0.1", 0);
+                logger.info("Session server started on TCP localhost (in-memory mode)");
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to start session server: {}", e.getMessage());
+            // Non-fatal - librarian can still work without session server
+        }
+    }
+
+    /**
+     * Start the Session Protocol server on a specific TCP port.
+     *
+     * <p>Use this for explicit TCP configuration or remote access.
+     *
+     * @param host Host to bind to ("127.0.0.1" for local only, "0.0.0.0" for all interfaces)
+     * @param port Port to listen on
+     */
+    public void startSessionServer(String host, int port) {
+        if (sessionServer != null) {
+            // Already have a server - add TCP listener
+            try {
+                sessionServer.listenTcp(host, port);
+                logger.info("Session server also listening on TCP {}:{}", host, port);
+            } catch (Exception e) {
+                logger.warn("Failed to add TCP listener: {}", e.getMessage());
+            }
+            return;
+        }
+
+        try {
+            sessionServer = new SessionServer(this);
+            sessionServer.listenTcp(host, port);
+            logger.info("Session server started on TCP {}:{}", host, port);
+        } catch (Exception e) {
+            logger.warn("Failed to start session server: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Stop the Session Protocol server.
+     */
+    public void stopSessionServer() {
+        if (sessionServer != null) {
+            sessionServer.close();
+            sessionServer = null;
+            deleteAutoTokenFile();
+            logger.info("Session server stopped");
+        }
+    }
+
+    /**
+     * Get the path to the session socket (if using Unix socket).
+     */
+    public Path sessionSocketPath() {
+        return rootPath != null ? rootPath.resolve("session.sock") : null;
+    }
+
+    /**
+     * Get the connection string for connecting to this librarian's session server.
+     *
+     * <p>Returns a string that can be passed to `graph session --to <connection>`:
+     * <ul>
+     *   <li>Unix socket path (if available): "/path/to/session.sock"</li>
+     *   <li>TCP localhost: "127.0.0.1:port"</li>
+     *   <li>null if session server is not running</li>
+     * </ul>
+     *
+     * @return Connection string, or null if session server isn't running
+     */
+    public String sessionConnectionString() {
+        if (sessionServer == null) {
+            return null;
+        }
+
+        // Prefer Unix socket if available (faster, more secure)
+        if (rootPath != null && sessionServer.hasUnixSocket()) {
+            return sessionSocketPath().toString();
+        }
+
+        // Fall back to TCP localhost
+        if (sessionServer.hasTcpServer()) {
+            int port = sessionServer.getTcpPort();
+            if (port > 0) {
+                return "127.0.0.1:" + port;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the local auto-token for session authentication.
+     *
+     * <p>This token is valid for local connections (Unix socket or TCP localhost).
+     * It's regenerated each time the session server starts.
+     *
+     * @return The local auto-token, or null if session server isn't running
+     */
+    public String sessionLocalToken() {
+        return sessionServer != null ? sessionServer.localAutoToken() : null;
+    }
+
+    /**
+     * Create a pairing code for a new device/client.
+     *
+     * <p>The code is 6 digits, valid for 5 minutes, one-time use.
+     * When a client authenticates with this code, they receive a
+     * persistent token for future connections.
+     *
+     * @return The pairing code, or null if session server isn't running
+     */
+    public String createPairingCode() {
+        return sessionServer != null ? sessionServer.createInviteCode() : null;
+    }
+
+    /**
+     * Check if the session server is running.
+     */
+    public boolean isSessionServerRunning() {
+        return sessionServer != null;
+    }
+
+    /**
+     * Write the auto-token to a file for local clients.
+     *
+     * <p>The token file is written with restricted permissions (owner-only read)
+     * so only the same user can read it.
+     */
+    private void writeAutoTokenFile() {
+        if (rootPath == null || sessionServer == null) return;
+
+        try {
+            Path tokenPath = rootPath.resolve("session.token");
+            String token = sessionServer.localAutoToken();
+            if (token != null) {
+                Files.writeString(tokenPath, token);
+                // Set restrictive permissions (Unix only)
+                try {
+                    Files.setPosixFilePermissions(tokenPath,
+                        PosixFilePermissions.fromString("rw-------"));
+                } catch (UnsupportedOperationException e) {
+                    // Not Unix, skip permission setting
+                }
+                logger.debug("Wrote session token to {}", tokenPath);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to write session token file: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Delete the auto-token file on shutdown.
+     */
+    private void deleteAutoTokenFile() {
+        if (rootPath == null) return;
+
+        try {
+            Path tokenPath = rootPath.resolve("session.token");
+            Files.deleteIfExists(tokenPath);
+        } catch (Exception e) {
+            // Ignore
+        }
+    }
+
+    /**
+     * Handle an incoming message from a local Unix socket client.
+     *
+     * <p>Local messages use the same protocol as TCP, but with implicit trust
+     * for same-machine communication.
+     */
+    private void handleUnixMessage(UnixPeerConnection connection, byte[] data) {
+        try {
+            ProtocolMessage message = ProtocolMessage.decode(data);
+            logger.debug("Received {} from local client", message.getClass().getSimpleName());
+
+            switch (message) {
+                case Delivery delivery -> handleLocalDelivery(connection, delivery);
+                case Request request -> handleLocalRequest(connection, request);
+                case Heartbeat ignored -> {} // ignore
+                default -> logger.debug("Ignoring {} from local client", message.getClass().getSimpleName());
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to decode message from local client: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Handle a DELIVERY message from a local client.
+     */
+    private void handleLocalDelivery(UnixPeerConnection connection, Delivery delivery) {
+        // Local deliveries are treated similarly to network deliveries
+        // but with implicit trust (same machine = same user context)
+        for (Delivery.Payload payload : delivery.payloads()) {
+            switch (payload) {
+                case Delivery.Payload.Item item -> {
+                    ManifestOld manifest = item.manifest();
+                    logger.debug("Local delivery: item {}", manifest.iid());
+                    // TODO: Store manifest
+                }
+                case Delivery.Payload.Content content -> {
+                    logger.debug("Local delivery: content {} ({} bytes)",
+                            content.cid(), content.data().length);
+                    // TODO: Store content
+                }
+                case Delivery.Payload.Relations relations -> {
+                    logger.debug("Local delivery: {} frame bodies", relations.bodies().size());
+                    // TODO: Store frame bodies
+                }
+                case Delivery.Payload.NotFound notFound -> {
+                    logger.debug("Local: not found {}", notFound.iid());
+                }
+                case Delivery.Payload.Envelope envelope -> {
+                    logger.debug("Local: envelope for {} (ignoring)", envelope.nextHop());
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle a REQUEST message from a local client.
+     */
+    private void handleLocalRequest(UnixPeerConnection connection, Request request) {
+        logger.debug("Local request {} with {} targets",
+                request.requestId(), request.targets().size());
+
+        // TODO: Fulfill requests and send DELIVERY responses
+        for (Request.Target target : request.targets()) {
+            switch (target) {
+                case Request.Target.Item item ->
+                    logger.debug("  Local request for item {} @ {}", item.iid(), item.vid());
+                case Request.Target.Content content ->
+                    logger.debug("  Local request for content {}", content.cid());
+                case Request.Target.Relations rel ->
+                    logger.debug("  Local request for relations (item={}, pred={})",
+                            rel.item(), rel.predicate());
+            }
+        }
+    }
+
+    /**
+     * Check if the network is running.
+     */
+    public boolean isNetworkRunning() {
+        return network != null && network.isRunning();
+    }
+
+    /**
+     * Get the network manager (for advanced operations).
+     */
+    public Optional<NetworkManager> network() {
+        return Optional.ofNullable(network);
+    }
+
+    /**
+     * Connect to a peer at the given endpoint.
+     *
+     * @param endpoint The endpoint to connect to
+     * @return Future that completes with the connection
+     */
+    public CompletableFuture<PeerConnection> connect(Endpoint endpoint) {
+        if (network == null) {
+            return CompletableFuture.failedFuture(
+                    new IllegalStateException("Network not started"));
+        }
+        return network.connect(endpoint).thenApply(connection -> {
+            // Notify PeerProtocol about outbound connection
+            if (peerProtocol != null) {
+                peerProtocol.onPeerConnected(connection, false);  // outbound connection
+            }
+            return connection;
+        });
+    }
+
+    /**
+     * Get the CG protocol handler.
+     */
+    public Optional<PeerProtocol> peerProtocol() {
+        return Optional.ofNullable(peerProtocol);
+    }
+
+    /**
+     * Get the IID of a connected peer, if known.
+     */
+    public Optional<ItemID> peerIdentity(PeerConnection connection) {
+        if (peerProtocol == null) return Optional.empty();
+        return peerProtocol.peer(connection)
+                .filter(RemotePeer::isIdentified)
+                .map(RemotePeer::librarianId);
+    }
+
+    /**
+     * Get all connected peers.
+     */
+    public Iterable<RemotePeer> connectedPeers() {
+        if (peerProtocol == null) return List.of();
+        return peerProtocol.peers();
+    }
+
+    // ==================================================================================
+    // Item Operations (Public API)
+    // ==================================================================================
+
+    /**
+     * Fetch an item by ID.
+     *
+     * <p>For seed items (static vocabulary like Sememes), returns the in-memory instance.
+     * For other items, hydrates from the stored manifest.
+     *
+     * @param iid  The item ID
+     * @param type The expected item class
+     * @return The item, or empty if not found
+     */
+    private Map<ItemID, ItemOld> ensureCache() {
+        Map<ItemID, ItemOld> c = itemCache;
+        if (c == null) {
+            c = new java.util.concurrent.ConcurrentHashMap<>();
+            itemCache = c;
+        }
+        return c;
+    }
+
+    /**
+     * Store an item — cache it and make it findable by {@link #get}.
+     *
+     * <p>This is the single entry point for making items known to the librarian.
+     * Freshly created items, hydrated items, seed items — all go through here.
+     */
+    public void put(ItemOld item) {
+        Objects.requireNonNull(item, "item");
+        ensureCache().put(item.iid(), item);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ItemOld> Optional<T> get(ItemID iid, Class<T> type) {
+        Objects.requireNonNull(iid, "iid");
+        Objects.requireNonNull(type, "type");
+
+        logger.trace("get() called for iid={}", iid.encodeText());
+
+        // Check the librarian's item cache
+        ItemOld cached = ensureCache().get(iid);
+        if (cached != null && type.isInstance(cached)) {
+            logger.trace("get() - found in cache: {}", cached.getClass().getSimpleName());
+            return Optional.of((T) cached);
+        }
+
+        // Try to find in directory and load from store
+        Optional<ItemDirectory> dir = library().directory();
+        if (dir.isEmpty()) {
+            logger.debug("get() - directory is empty");
+            return Optional.empty();
+        }
+
+        Optional<ItemDirectory.Entry> entry = dir.get().locate(iid);
+        if (entry.isEmpty()) {
+            logger.trace("get() - locate returned empty for iid={}", iid.encodeText());
+            return Optional.empty();
+        }
+
+        // Found in directory - get from the store
+        return switch (entry.get().location()) {
+            case ItemDirectory.InStore(var itemStore) -> {
+                Optional<ManifestOld> manifestOpt = loadManifest(iid, itemStore);
+                if (manifestOpt.isEmpty()) {
+                    yield Optional.empty();
+                }
+                Optional<T> hydrated = hydrateItem(manifestOpt.get(), type);
+                // Cache the hydrated item for next time
+                hydrated.ifPresent(this::put);
+                yield hydrated;
+            }
+            case ItemDirectory.Rumor r -> {
+                // TODO: Fetch from network
+                yield Optional.empty();
+            }
+        };
+    }
+
+    /**
+     * Resolve a principal's current encryption public keys.
+     *
+     * <p>Looks up the principal item by ID, hydrates it as a Signer, and
+     * returns all current encryption keys from its KeyLog. Returns an empty
+     * list if the principal is not found or has no encryption keys.
+     *
+     * <p>Used by the commit flow to resolve {@code EncryptionPolicy.recipients}
+     * (ItemIDs) into actual {@code EncryptionPublicKey} objects for envelope creation.
+     */
+    public java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey> resolveEncryptionKeys(ItemID principalId) {
+        if (principalId == null) return java.util.List.of();
+
+        // Check if it's us (common case — encrypting to self)
+        if (principalId.equals(iid()) && encryptionPublicKey() != null) {
+            return java.util.List.of(encryptionPublicKey());
+        }
+
+        return get(principalId, SignerOld.class)
+                .map(signer -> {
+                    var key = signer.encryptionPublicKey();
+                    return key != null ? java.util.List.of(key) : java.util.List.<dev.everydaythings.graph.crypt.EncryptionPublicKey>of();
+                })
+                .orElse(java.util.List.of());
+    }
+
+    /**
+     * Load a manifest for an item from a store.
+     */
+    private Optional<ManifestOld> loadManifest(ItemID iid, ItemStore store) {
+        // Get VID from library index
+        Optional<ContentID> vidOpt = library().latestVersion(iid);
+        if (vidOpt.isEmpty()) {
+            logger.trace("loadManifest() - no version found for iid={}", iid.encodeText());
+            return Optional.empty();
+        }
+
+        ContentID vid = vidOpt.get();
+        logger.trace("loadManifest() - got VID for iid={}, vid={}", iid.encodeText(), vid.encodeText());
+
+        // Load manifest using consumer API
+        Optional<ManifestOld> result = store.manifest(iid, vid);
+        if (result.isEmpty()) {
+            logger.debug("loadManifest() - store.manifest returned empty for iid={}, vid={}", iid.encodeText(), vid.encodeText());
+        }
+        return result;
+    }
+
+    /**
+     * Hydrate an item from its manifest.
+     *
+     * <p>Looks up the implementing class via the manifest's type ID,
+     * then instantiates it using the (Librarian, Manifest) constructor.
+     *
+     * @param manifest The item's manifest
+     * @param expectedType The expected Java type (for casting)
+     * @return The hydrated item, or empty if hydration fails
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends ItemOld> Optional<T> hydrateItem(ManifestOld manifest, Class<T> expectedType) {
+        // PHASE 6: resolve implementation class directly from manifest binding
+        Class<?> resolved = manifest.implementationClass();
+        if (resolved == null || !ItemOld.class.isAssignableFrom(resolved)) {
+            logger.warn("hydrateItem() - no valid implementation for iid={}, impl={}",
+                    manifest.iid().encodeText(), manifest.implementationName());
+            return Optional.empty();
+        }
+
+        Class<? extends ItemOld> implClass = resolved.asSubclass(ItemOld.class);
+        logger.trace("hydrateItem() - implClass={} for iid={}", implClass.getSimpleName(), manifest.iid().encodeText());
+
+        // Check type compatibility
+        if (!expectedType.isAssignableFrom(implClass)) {
+            logger.debug("hydrateItem() - type mismatch: expectedType={}, implClass={}", expectedType.getSimpleName(), implClass.getSimpleName());
+            return Optional.empty();
+        }
+
+        try {
+            // Find and invoke the (Librarian, Manifest) constructor
+            var ctor = implClass.getDeclaredConstructor(LibrarianOld.class, ManifestOld.class);
+            ctor.setAccessible(true);
+            ItemOld item = ctor.newInstance(this, manifest);
+            return Optional.of((T) item);
+        } catch (NoSuchMethodException e) {
+            logger.warn("hydrateItem() - no (Librarian,Manifest) ctor for {}", implClass.getSimpleName());
+            return Optional.empty();
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            logger.error("hydrateItem() - ctor threw InvocationTargetException for {}", implClass.getSimpleName(), cause);
+            return Optional.empty();
+        } catch (Exception e) {
+            logger.error("hydrateItem() - ctor threw exception for {}", implClass.getSimpleName(), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Fetch the latest manifest for an item.
+     */
+    public Optional<ManifestOld> manifest(ItemID iid) {
+        Objects.requireNonNull(iid, "iid");
+
+        // Find in directory
+        Optional<ItemDirectory> dir = library().directory();
+        if (dir.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Optional<ItemDirectory.Entry> entry = dir.get().locate(iid);
+        if (entry.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return switch (entry.get().location()) {
+            case ItemDirectory.InStore(var store) -> loadManifest(iid, store);
+            case ItemDirectory.Rumor r -> Optional.empty();
+        };
+    }
+
+    /**
+     * Save an item (store its current manifest and content).
+     */
+    public void save(ItemOld item) {
+        // TODO: Store manifest and update index
+    }
+
+    // ==================================================================================
+    // Frame Operations
+    // ==================================================================================
+
+    /**
+     * Resolve a predicate's index weight from its Sememe definition.
+     *
+     * <p>Looks up the predicate IID in the library, hydrates as a Sememe,
+     * and returns the scaled indexWeight (1000 = 1.0f). Returns 0 if the
+     * predicate is not a Sememe or has no index weight set.
+     */
+    float predicateIndexWeight(ItemID predicateId) {
+        return get(predicateId, Sememe.class)
+                .map(s -> s.indexWeight() / 1000.0f)
+                .orElse(0.0f);
+    }
+
+    /**
+     * Store and index a frame body via the library.
+     *
+     * <p>If the predicate declares {@code CONFIG:[DURABILITY] → EPHEMERAL},
+     * the frame is stored in the ephemeral map (in-memory, latest-wins) instead
+     * of the persistent object store. Subscription notifications fire either way.
+     */
+    public void storeFrame(FrameBodyOld body) {
+        // Check predicate durability policy
+        if (isEphemeralPredicate(body.predicate())) {
+            storeEphemeralFrame(body);
+            return;
+        }
+
+        // Durable path: Library handles both storage and indexing
+        library().storeFrameBody(body);
+
+        // Also index in TokenDictionary (NAME bindings + GOAL bindings)
+        TokenDictionary tokenDict = tokenIndex();
+        if (tokenDict != null) {
+            List<Posting> namePostings = TokenExtractor.fromBody(body);
+            List<Posting> goalPostings = TokenExtractor.fromFrameBody(body, this::predicateIndexWeight);
+            if (!namePostings.isEmpty() || !goalPostings.isEmpty()) {
+                tokenDict.runInWriteTransaction(tidxTx -> {
+                    for (Posting p : namePostings) tokenDict.index(p, tidxTx);
+                    for (Posting p : goalPostings) tokenDict.index(p, tidxTx);
+                });
+            }
+        }
+
+        // Add to the target item's frames (so item.frames() shows ALL frames, not just endorsed)
+        addFrameToItem(body);
+
+        // Notify peer subscribers
+        notifyFrameSubscribers(body);
+    }
+
+    /**
+     * Find an item by a source ID frame.
+     *
+     * <p>Searches for items that have a frame with the given predicate and a VALUE
+     * binding matching the source ID string. Used for cross-referencing between
+     * data sources (e.g., finding a sememe by its WordNet sense key).
+     *
+     * <p>This is a scan over cached items — suitable for import-time lookups
+     * where the frame index may not yet cover source ID frames.
+     *
+     * @param predicate the source ID predicate (e.g., WnSenseKey.IID)
+     * @param sourceId  the source ID value to match
+     * @param type      the expected item type
+     * @return the matching item, or empty
+     */
+    public <T extends ItemOld> Optional<T> findBySourceFrame(ItemID predicate, String sourceId, Class<T> type) {
+        if (predicate == null || sourceId == null) return Optional.empty();
+
+        for (ItemOld item : itemCache.values()) {
+            if (!type.isInstance(item)) continue;
+            if (item.frames() == null) continue;
+
+            for (FrameOld frame : item.frames()) {
+                FrameBodyOld body = frame.body();
+                if (body == null) continue;
+                if (!predicate.equals(body.predicate())) continue;
+
+                dev.everydaythings.graph.frame.BindingTarget vt = body.binding(ThematicRole.Value.IID);
+                if (vt instanceof dev.everydaythings.graph.item.Literal lit
+                        && dev.everydaythings.graph.item.Literal.TYPE_TEXT.equals(lit.valueType())) {
+                    try {
+                        if (sourceId.equals(lit.asText())) {
+                            return Optional.of(type.cast(item));
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Add a stored frame to the in-memory item it belongs to.
+     *
+     * <p>Looks up the frame's home item (from its LOCATION or THEME binding)
+     * in the item cache. If found, adds the frame to the item's EndorsementsTable
+     * so that {@code item.frames()} yields ALL frames — endorsed and unendorsed.
+     */
+    private void addFrameToItem(FrameBodyOld body) {
+        ItemID homeId = body.homeId();
+        if (homeId == null) return;
+        get(homeId, ItemOld.class).ifPresent(item -> {
+            if (item.frames() == null) return;
+
+            // Skip if the item already has a frame with the same body hash (endorsed)
+            var hash = body.hash();
+            for (FrameOld existing : item.frames()) {
+                if (hash.equals(existing.bodyHash())) return;
+            }
+
+            item.frames().add(FrameOld.fromBody(body));
+        });
+    }
+
+    /**
+     * Store an ephemeral frame — in-memory only, latest-wins, not persisted.
+     * Replaces the previous frame at the same (item, predicate, signer) key.
+     */
+    private void storeEphemeralFrame(FrameBodyOld body) {
+        ItemID item = body.homeId();
+        // The AGENT binding identifies who this ephemeral frame belongs to
+        BindingTarget agentTarget = body.binding(ItemID.fromString(ThematicRole.Agent.KEY));
+        ItemID agent = (agentTarget instanceof BindingTarget.IidTarget iid) ? iid.iid() : null;
+        if (item == null || agent == null) {
+            // Ephemeral frames require both item context and agent attribution
+            logger.warn("Ephemeral frame missing item or agent: predicate={}", body.predicate());
+            return;
+        }
+        ItemID signer = agent;
+        var key = new EphemeralKey(item, body.predicate(), signer);
+        ephemeralFrames.put(key, body);
+        logger.trace("Stored ephemeral frame: {}", key);
+
+        // Notify local listeners (e.g., ItemView watching this item)
+        notifyEphemeralListeners(item);
+
+        // Notify peer subscribers (same path as durable frames)
+        notifyFrameSubscribers(body);
+    }
+
+    /**
+     * Check if a predicate declares ephemeral durability.
+     */
+    private boolean isEphemeralPredicate(ItemID predicateId) {
+        return get(predicateId, Sememe.class)
+                .map(Sememe::isEphemeral)
+                .orElse(false);
+    }
+
+    /**
+     * Notify peer protocol and session subscribers of a new frame.
+     */
+    private void notifyFrameSubscribers(FrameBodyOld body) {
+        if (peerProtocol != null) {
+            peerProtocol.onFrameBodyAdded(body);
+        }
+        // Notify session subscribers — the frame's home item gets an event
+        if (sessionServer != null) {
+            ItemID homeItem = body.homeId();
+            if (homeItem != null) {
+                String eventType = isEphemeralPredicate(body.predicate()) ? "ephemeral" : "frame";
+                sessionServer.notifySubscribers(homeItem, eventType);
+            }
+        }
+    }
+
+    /**
+     * Get all ephemeral frames for an item.
+     */
+    public List<FrameBodyOld> ephemeralFramesForItem(ItemID itemId) {
+        return ephemeralFrames.entrySet().stream()
+                .filter(e -> e.getKey().item().equals(itemId))
+                .map(Map.Entry::getValue)
+                .toList();
+    }
+
+    /**
+     * Remove all ephemeral frames from a specific signer on a specific item.
+     * Called when a PRESENT frame is revoked (user leaves the space).
+     */
+    public void clearEphemeralFrames(ItemID itemId, ItemID signerId) {
+        ephemeralFrames.entrySet().removeIf(e ->
+                e.getKey().item().equals(itemId) && e.getKey().signer().equals(signerId));
+        logger.debug("Cleared ephemeral frames for signer {} on item {}", signerId, itemId);
+        notifyEphemeralListeners(itemId);
+    }
+
+    /**
+     * Subscribe to ephemeral frame changes on an item.
+     * The listener fires whenever an ephemeral frame is added, replaced, or cleared.
+     */
+    public void onEphemeralChanged(ItemID itemId, Runnable listener) {
+        ephemeralListeners.computeIfAbsent(itemId, k -> new java.util.concurrent.CopyOnWriteArrayList<>())
+                .add(listener);
+    }
+
+    /**
+     * Unsubscribe from ephemeral frame changes on an item.
+     */
+    public void removeEphemeralListener(ItemID itemId, Runnable listener) {
+        List<Runnable> listeners = ephemeralListeners.get(itemId);
+        if (listeners != null) {
+            listeners.remove(listener);
+            if (listeners.isEmpty()) {
+                ephemeralListeners.remove(itemId);
+            }
+        }
+    }
+
+    private void notifyEphemeralListeners(ItemID itemId) {
+        List<Runnable> listeners = ephemeralListeners.get(itemId);
+        if (listeners != null) {
+            for (Runnable listener : listeners) {
+                try {
+                    listener.run();
+                } catch (Exception e) {
+                    logger.warn("Ephemeral listener error for item {}", itemId, e);
+                }
+            }
+        }
+    }
+
+    // ==================================================================================
+    // Content Operations
+    // ==================================================================================
+
+    /**
+     * Fetch raw content by ID.
+     */
+    public Optional<byte[]> content(ContentID cid) {
+        byte[] data = library().content(cid);
+        return Optional.ofNullable(data);
+    }
+
+    /**
+     * Store raw content, returning its content ID.
+     */
+    public ContentID storeContent(byte[] data) {
+        var cid = new ContentID[1];
+        library().runInWriteTransaction(tx -> {
+            cid[0] = library().writableStore()
+                    .orElseThrow(() -> new IllegalStateException("No writable store available"))
+                    .persistContent(data, tx);
+        });
+        return cid[0];
+    }
+
+    /**
+     * Store a manifest (used by Item during commit).
+     *
+     * <p>Uses library.manifest() to ensure both storage AND indexing happen,
+     * so the item can be found via library.get(iid).
+     */
+    public void storeManifest(byte[] manifestBytes) {
+        ManifestOld m = ManifestOld.decode(manifestBytes);
+        library().manifest(m);  // Store AND index
+    }
+
+    /**
+     * Store payload content (used by Item during commit).
+     */
+    public void storePayload(byte[] payloadBytes) {
+        storeContent(payloadBytes);
+    }
+
+    // ==================================================================================
+    // Services (for internal use by Items)
+    // ==================================================================================
+
+    /**
+     * Clock for timestamps.
+     */
+    public Clock clock() {
+        return clock;
+    }
+
+    /**
+     * The principal (human/entity) that owns this Librarian.
+     *
+     * <p>Principal is a role - any Signer can be a principal.
+     * May be null if no principal has been configured yet.
+     */
+    public Optional<SignerOld> principal() {
+        return Optional.ofNullable(principal);
+    }
+
+    /**
+     * Set the principal for this Librarian.
+     */
+    public void setPrincipal(SignerOld principal) {
+        this.principal = principal;
+    }
+
+    /**
+     * The Host item representing this machine.
+     */
+    public Host host() {
+        return host;
+    }
+
+    /**
+     * Ensure a principal is set, reloading from stored relation or auto-creating.
+     *
+     * <p>On reboot, looks up the "cg.core:serves" relation to find the previously
+     * served user. On first boot, auto-creates a user from the system username.
+     *
+     * <p>Called at the end of {@link #onFullyInitialized()}.
+     */
+    private void ensurePrincipal() {
+        if (principal != null) return;
+
+        // Reload from stored frame (reboot case)
+        ItemID servesId = ItemID.fromString(RoutingVocabulary.Serves.KEY);
+        library().byItemPredicate(iid(), servesId)
+                .findFirst()
+                .ifPresent(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
+                    if (tgt instanceof BindingTarget.IidTarget target) {
+                        get(target.iid(), User.class).ifPresent(this::setPrincipal);
+                    }
+                });
+
+        if (principal != null) {
+            logger.info("Reloaded principal: {}", principal.displayToken());
+            updateLibrarianName();
+            return;
+        }
+
+        // First boot: auto-create from system username
+        String name = System.getProperty("user.name", "user");
+        if (isSystemUser(name)) name = "user";
+
+        User user = User.create(this, name);
+        setPrincipal(user);
+        commit(this);  // Persist the "serves" relation
+        logger.info("Auto-created principal: {}", user.displayToken());
+
+        // Update librarian name now that both host and principal are known
+        updateLibrarianName();
+    }
+
+    /**
+     * Ensure a host item exists, reloading from stored relation or creating fresh.
+     *
+     * <p>On reboot, looks up the "cg.core:available-at" relation to find the
+     * previously created Host. On first boot, creates a new Host item.
+     *
+     * <p>Called before {@link #ensurePrincipal()} in {@link #onFullyInitialized()}.
+     */
+    private void ensureHost() {
+        if (host != null) return;
+
+        // Reload from stored frame (reboot case)
+        ItemID availableAtId = ItemID.fromString(RoutingVocabulary.AvailableAt.KEY);
+        library().byItemPredicate(iid(), availableAtId)
+                .findFirst()
+                .ifPresent(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
+                    if (tgt instanceof BindingTarget.IidTarget target) {
+                        get(target.iid(), Host.class).ifPresent(h -> this.host = h);
+                    }
+                });
+
+        if (host != null) {
+            logger.info("Reloaded host: {}", host.displayToken());
+            return;
+        }
+
+        // First boot: create host item
+        if (rootPath() != null) {
+            Path hostPath = rootPath().resolve("host");
+            host = new Host(this, hostPath);
+        } else {
+            host = new Host(this);
+        }
+        host.commit(this);
+        put(host);
+        logger.info("Created host: {}", host.hostname());
+    }
+
+    /**
+     * Update the librarian name to "for &lt;user&gt; on &lt;host&gt;" format.
+     */
+    private void updateLibrarianName() {
+        String userName = principal != null ? principal.name() : "unknown";
+        String hostName = host != null ? host.hostname() : "localhost";
+        setName("for " + userName + " on " + hostName);
+        commit(this);
+    }
+
+    /**
+     * Detect system/service accounts that should not be used as principal names.
+     */
+    private static boolean isSystemUser(String name) {
+        if (name == null || name.isEmpty()) return true;
+        return Set.of("root", "daemon", "bin", "sys", "nobody",
+                "www-data", "systemd-resolve", "sshd", "messagebus")
+                .contains(name.toLowerCase());
+    }
+
+    /**
+     * Get all currently active workspaces.
+     *
+     * <p>Any item with a Surface can be a workspace. Multiple workspaces can
+     * be open simultaneously, each in its own window.
+     *
+     * @return Unmodifiable set of workspace item IDs
+     */
+    public Set<ItemID> activeWorkspaces() {
+        return Collections.unmodifiableSet(activeWorkspaces);
+    }
+
+    /**
+     * Add an item as an active workspace.
+     *
+     * <p>Opens the item as a workspace window. The item should have a Surface
+     * component that defines the layout of contents.
+     *
+     * @param itemId The item to use as workspace
+     * @return true if added, false if already a workspace
+     */
+    public boolean addWorkspace(ItemID itemId) {
+        return activeWorkspaces.add(itemId);
+    }
+
+    /**
+     * Remove an item from active workspaces.
+     *
+     * @param itemId The workspace to close
+     * @return true if removed, false if wasn't a workspace
+     */
+    public boolean removeWorkspace(ItemID itemId) {
+        if (itemId.equals(fullscreenWorkspace)) {
+            fullscreenWorkspace = null;
+        }
+        return activeWorkspaces.remove(itemId);
+    }
+
+    /**
+     * Check if an item is currently an active workspace.
+     */
+    public boolean isWorkspace(ItemID itemId) {
+        return activeWorkspaces.contains(itemId);
+    }
+
+    /**
+     * Check if any workspaces are currently active.
+     */
+    public boolean hasActiveWorkspaces() {
+        return !activeWorkspaces.isEmpty();
+    }
+
+    /**
+     * Clear all active workspaces.
+     *
+     * <p>When no workspaces are active, items render as floating OS windows.
+     */
+    public void clearAllWorkspaces() {
+        activeWorkspaces.clear();
+        fullscreenWorkspace = null;
+    }
+
+    /**
+     * Get the workspace currently in full-screen mode.
+     *
+     * @return The full-screen workspace ID, or empty if none
+     */
+    public Optional<ItemID> fullscreenWorkspace() {
+        return Optional.ofNullable(fullscreenWorkspace);
+    }
+
+    /**
+     * Set a workspace to full-screen mode.
+     *
+     * <p>When a workspace is full-screened, all other workspaces are hidden
+     * until full-screen is exited. The item must already be an active workspace.
+     *
+     * @param itemId The workspace to full-screen, or null to exit full-screen
+     */
+    public void setFullscreenWorkspace(ItemID itemId) {
+        if (itemId != null && !activeWorkspaces.contains(itemId)) {
+            // Auto-add as workspace if not already
+            activeWorkspaces.add(itemId);
+        }
+        this.fullscreenWorkspace = itemId;
+    }
+
+    /**
+     * Exit full-screen mode (if any workspace is full-screened).
+     */
+    public void exitFullscreen() {
+        this.fullscreenWorkspace = null;
+    }
+
+    /**
+     * Check if a workspace is currently full-screened.
+     */
+    public boolean isFullscreen() {
+        return fullscreenWorkspace != null;
+    }
+
+    /**
+     * The Library providing storage, indexing, and directory services.
+     *
+     * <p>Library is created with a backend based on configuration:
+     * RocksDB for file-backed (production), SkipList for memory (tests).
+     *
+     * @return The Library
+     */
+    public LibraryOld library() {
+        return library;
+    }
+
+    /**
+     * The TokenDictionary for human text → item resolution.
+     *
+     * <p>TokenDictionary is owned by the Library as one of its 5 parts.
+     *
+     * @return The TokenDictionary, or null if library not yet initialized
+     */
+    public TokenDictionary tokenIndex() {
+        return library != null
+                ? library.tokenDictionary().orElse(null)
+                : null;
+    }
+
+    // ==================================================================================
+    // Store Access
+    // ==================================================================================
+
+    /**
+     * The primary store for all item and relation operations.
+     *
+     * @return The RocksItemStore
+     */
+    public Optional<ItemStore> primaryStore() {
+        return library().primaryStore();
+    }
+
+    /**
+     * Get all known Item types in the graph.
+     *
+     * <p>This queries the graph for all items that have an {@code implementedBy}
+     * relation, which indicates they are type definitions. This is a "pure graph"
+     * query - no special type registry.
+     *
+     * <p>Returns a stream of type ItemIDs. To get the actual type item, use
+     * {@link #get(ItemID, Class)} or navigate to it.
+     *
+     * @return Stream of type ItemIDs
+     */
+    public Stream<ItemID> types() {
+        return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
+                .map(FrameBodyOld::homeId);
+    }
+
+    // ==================================================================================
+    // Type Catalogs
+    // ==================================================================================
+
+    /**
+     * Represents an entry in a type catalog.
+     *
+     * @param typeId The type's ItemID (e.g., "cg.sememe:librarian")
+     * @param implClass The implementing Java class
+     * @param displayName Human-readable name derived from the type key
+     */
+    public record TypeEntry(
+            ItemID typeId,
+            Class<?> implClass,
+            String displayName
+    ) {
+        /**
+         * Create a TypeEntry, deriving display name from the type ID.
+         */
+        public static TypeEntry of(ItemID typeId, Class<?> implClass) {
+            String display = deriveDisplayName(typeId);
+            return new TypeEntry(typeId, implClass, display);
+        }
+
+        private static String deriveDisplayName(ItemID typeId) {
+            String key = typeId.toString();
+            // Extract short name after last / or :
+            int lastSlash = key.lastIndexOf('/');
+            int lastColon = key.lastIndexOf(':');
+            int lastSep = Math.max(lastSlash, lastColon);
+            if (lastSep >= 0 && lastSep < key.length() - 1) {
+                String shortName = key.substring(lastSep + 1);
+                // Convert kebab-case to Title Case
+                return toTitleCase(shortName);
+            }
+            return key;
+        }
+
+        private static String toTitleCase(String s) {
+            if (s == null || s.isEmpty()) return s;
+            StringBuilder result = new StringBuilder();
+            boolean capitalizeNext = true;
+            for (char c : s.toCharArray()) {
+                if (c == '-' || c == '_') {
+                    result.append(' ');
+                    capitalizeNext = true;
+                } else if (capitalizeNext) {
+                    result.append(Character.toUpperCase(c));
+                    capitalizeNext = false;
+                } else {
+                    result.append(c);
+                }
+            }
+            return result.toString();
+        }
+    }
+
+    /**
+     * Get all registered Item types.
+     *
+     * <p>Queries the graph for all implementedBy relations where the object
+     * is a Java class that extends Item.
+     *
+     * @return Stream of TypeEntry for each Item type
+     */
+    public Stream<TypeEntry> itemTypes() {
+        return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
+                .filter(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
+                    if (tgt instanceof Literal lit) {
+                        Class<?> c = lit.asJavaClass();
+                        return c != null && ItemOld.class.isAssignableFrom(c);
+                    }
+                    return false;
+                })
+                .map(body -> {
+                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:goal"));
+                    return TypeEntry.of(body.homeId(), lit.asJavaClass());
+                });
+    }
+
+    /**
+     * Get all registered component types.
+     *
+     * <p>Queries the graph for all implementedBy relations where the object
+     * is a Java class annotated with {@link Type}.
+     *
+     * @return Stream of TypeEntry for each component type
+     */
+    public Stream<TypeEntry> componentTypes() {
+        return library().byPredicate(CoreVocabulary.ImplementedBy.IID)
+                .filter(body -> {
+                    BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
+                    if (tgt instanceof Literal lit) {
+                        Class<?> c = lit.asJavaClass();
+                        return c != null && c.isAnnotationPresent(Implements.class);
+                    }
+                    return false;
+                })
+                .map(body -> {
+                    Literal lit = (Literal) body.binding(ItemID.fromString("cg.role:goal"));
+                    return TypeEntry.of(body.homeId(), lit.asJavaClass());
+                });
+    }
+
+    /**
+     * Get all registered ValueType seed items.
+     *
+     * <p>ValueTypes are Items that define value semantics (Decimal, Text, etc).
+     * @deprecated Dead code — will be removed.
+     */
+
+    // ==================================================================================
+    // Info
+    // ==================================================================================
+
+    /**
+     * The root path this Librarian manages.
+     */
+    public Path rootPath() {
+        return rootPath;
+    }
+
+    /**
+     * Check if this was a fresh boot (no prior data).
+     */
+    public boolean isFreshBoot() {
+        return freshBoot;
+    }
+
+    // ==================================================================================
+    // Operations
+    // ==================================================================================
+
+    /**
+     * Fetch an item by ID.
+     *
+     * @param iid The item ID
+     * @return The item, or empty if not found
+     */
+    public Optional<ItemOld> get(ItemID iid) {
+        return get(iid, ItemOld.class);
+    }
+
+    /**
+     * Create a new Item.
+     *
+     * <p>If the name resolves to a type Sememe with an IMPLEMENTED_BY relation,
+     * creates a typed Item with the implementation attached as a component.
+     * Otherwise creates a plain Item with the name as title.
+     *
+     * <p>For example, "create chess" resolves "chess" to the chess type Sememe,
+     * finds ChessGame via IMPLEMENTED_BY, instantiates it, and attaches it
+     * to a new Item via {@link ItemOld#addComponent}.
+     */
+    @Override
+    public ItemOld actionNew(String name) {
+        // Try to resolve as a type and create a typed Item
+        if (name != null && !name.isBlank()) {
+            Optional<ItemOld> typed = createTypedItem(name);
+            if (typed.isPresent()) return typed.get();
+        }
+
+        // Fall back: plain item with title
+        ItemOld newItem = ItemOld.create(this);
+        if (name != null && !name.isBlank()) {
+            storeFrame(FrameBodyOld.builder(CoreVocabulary.Title.IID)
+                    .bind(ThematicRole.Theme.IID, newItem.iid())
+                    .bind(ThematicRole.Value.IID, name)
+                    .build());
+        }
+        return newItem;
+    }
+
+    /**
+     * Try to create a typed Item from a type name.
+     *
+     * <p>Looks up the name in the TokenDictionary, checks if any match is
+     * a type Sememe with an IMPLEMENTED_BY relation pointing to an Item
+     * subclass, and creates a fresh instance of that class.
+     */
+    private Optional<ItemOld> createTypedItem(String typeName) {
+        TokenDictionary tokenDict = tokenIndex();
+        if (tokenDict == null) return Optional.empty();
+
+        var postings = tokenDict.lookup(typeName).toList();
+
+        for (var posting : postings) {
+            Optional<Sememe> sememe = get(posting.target(), Sememe.class);
+            if (sememe.isPresent() && sememe.get().hasImplementation()) {
+                Class<?> implClass = sememe.get().resolveImplementingClass().orElseThrow();
+
+                if (ItemOld.class.isAssignableFrom(implClass)) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        var ctor = ((Class<? extends ItemOld>) implClass).getDeclaredConstructor(LibrarianOld.class);
+                        ctor.setAccessible(true);
+                        return Optional.of(ctor.newInstance(this));
+                    } catch (Exception e) {
+                        logger.debug("Failed to create typed Item {}: {}", implClass.getSimpleName(), e.getMessage());
+                    }
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    // ==================================================================================
+    // Callable Implementation (picocli entry point)
+    // ==================================================================================
+
+    /**
+     * Called by picocli after parsing CLI arguments.
+     *
+     * <p>Opens the librarian at the specified path and runs it as a daemon,
+     * blocking until interrupted.
+     */
+    @Override
+    public Integer call() {
+        Path librarianPath = cliOpts.effectivePath();
+
+        logger.info("Starting Librarian daemon at {} on port {}", librarianPath, cliOpts.port);
+
+        try {
+            // Open the actual librarian
+            liveInstance = LibrarianOld.open(librarianPath);
+
+            // TODO: Start TCP listener on cliOpts.port
+
+            System.out.println("Librarian running at " + librarianPath);
+            System.out.println("IID: " + liveInstance.iid().encodeText());
+            System.out.println("Port: " + cliOpts.port + " (not yet implemented)");
+            System.out.println("Unix socket: " + cliOpts.effectiveSocketPath());
+            System.out.println();
+            System.out.println("Press Ctrl+C to stop.");
+
+            // Block until interrupted
+            try {
+                Thread.currentThread().join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.info("Librarian interrupted, shutting down");
+            }
+
+            return 0;
+        } catch (Exception e) {
+            logger.error("Librarian failed", e);
+            System.err.println("Error: " + e.getMessage());
+            return 1;
+        } finally {
+            if (liveInstance != null) {
+                liveInstance.close();
+                liveInstance = null;
+            }
+        }
+    }
+
+    // ==================================================================================
+    // Daemon Implementation (jsvc entry point)
+    // ==================================================================================
+
+    /**
+     * Called by jsvc to initialize the daemon.
+     */
+    @Override
+    public void init(DaemonContext context) throws DaemonInitException {
+        logger.info("Daemon init: {}", String.join(" ", context.getArguments()));
+        runningAsDaemon = true;
+
+        // Parse CLI arguments
+        int exitCode = new CommandLine(this).execute(context.getArguments());
+        if (exitCode != 0) {
+            throw new DaemonInitException("Argument parsing failed with code: " + exitCode);
+        }
+    }
+
+    /**
+     * Called by jsvc to start the daemon.
+     */
+    @Override
+    public void start() throws Exception {
+        logger.info("Daemon start");
+
+        Path librarianPath = cliOpts.effectivePath();
+        liveInstance = LibrarianOld.open(librarianPath);
+
+        // TODO: Start network listeners
+        logger.info("Librarian daemon started: iid={}", liveInstance.iid());
+    }
+
+    /**
+     * Called by jsvc to stop the daemon.
+     */
+    @Override
+    public void stop() throws Exception {
+        logger.info("Daemon stop");
+        // Close handled in destroy()
+    }
+
+    /**
+     * Called by jsvc to destroy the daemon.
+     */
+    @Override
+    public void destroy() {
+        logger.info("Daemon destroy");
+        if (liveInstance != null) {
+            liveInstance.close();
+            liveInstance = null;
+        }
+    }
+
+    // ==================================================================================
+    // Session Tracking
+    // ==================================================================================
+
+    /**
+     * Register a session as connected to this librarian.
+     *
+     * @param session The session info
+     */
+    public void registerSession(SessionInfo session) {
+        connectedSessions.add(session);
+        logger.info("Session connected: {}", session);
+        logActivity("Session connected", String.valueOf(session));
+    }
+
+    /**
+     * Unregister a session from this librarian.
+     *
+     * @param session The session info
+     */
+    public void unregisterSession(SessionInfo session) {
+        connectedSessions.remove(session);
+        logger.info("Session disconnected: {}", session);
+        logActivity("Session disconnected", String.valueOf(session));
+    }
+
+    /**
+     * Get all currently connected sessions.
+     *
+     * @return Immutable copy of connected sessions
+     */
+    public Set<SessionInfo> connectedSessions() {
+        return Set.copyOf(connectedSessions);
+    }
+
+    /**
+     * Get the librarian's infrastructure activity log.
+     */
+    public ActivityLog activityLog() {
+        return activityLog;
+    }
+
+    /**
+     * Log an infrastructure event to the librarian's activity log.
+     */
+    private void logActivity(String event, String detail) {
+        if (activityLog != null) {
+            activityLog.append(ActivityEntry.infrastructure(event, detail));
+        }
+    }
+
+    /**
+     * Information about a connected session.
+     */
+    public record SessionInfo(
+        ItemID sessionId,      // Session's IID (null for anonymous local sessions)
+        String connectionType, // "local", "unix", "tcp"
+        Instant connectedAt,
+        String description     // User-friendly description
+    ) {
+        /**
+         * Create a SessionInfo for a local (same-process) session.
+         */
+        public static SessionInfo local() {
+            return new SessionInfo(null, "local", Instant.now(), "Local session");
+        }
+
+        /**
+         * Create a SessionInfo for a Unix socket session.
+         */
+        public static SessionInfo unix(String description) {
+            return new SessionInfo(null, "unix", Instant.now(), description);
+        }
+    }
+
+    // ==================================================================================
+    // CLI Entry Point
+    // ==================================================================================
+
+    /**
+     * Standalone entry point for running Librarian as a daemon.
+     *
+     * <p>Usage:
+     * <pre>
+     * # Start librarian at default location
+     * java Librarian
+     *
+     * # Start at specific path
+     * java Librarian --path /path/to/library
+     *
+     * # Start on specific port
+     * java Librarian --port 7474
+     * </pre>
+     */
+    public static void main(String[] args) {
+        int exitCode = new CommandLine(new LibrarianOld()).execute(args);
+        System.exit(exitCode);
+    }
+}

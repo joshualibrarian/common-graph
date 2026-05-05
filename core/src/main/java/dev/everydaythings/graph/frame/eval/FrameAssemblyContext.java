@@ -1,10 +1,10 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.FrameRecord;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.frame.FrameRecordOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.user.SignerOld;
 import lombok.Getter;
 
 import java.util.LinkedHashMap;
@@ -34,22 +34,22 @@ import java.util.Map;
 public class FrameAssemblyContext {
 
     /** The assembled semantic assertion. */
-    private final FrameBody body;
+    private final FrameBodyOld body;
 
     /** The evaluation scope (librarian + owner). */
     private final Scope scope;
 
     /** The asserting identity (signs the record). */
-    private final Signer signer;
+    private final SignerOld signer;
 
     /** The execution context session (null in headless). */
-    private final Item session;
+    private final ItemOld session;
 
     /** Binding targets resolved to Items by the pipeline (role IID → Item). */
-    private final Map<ItemID, Item> resolvedItems;
+    private final Map<ItemID, ItemOld> resolvedItems;
 
     /** The signed record (set after handling, when frame is persisted). */
-    private FrameRecord record;
+    private FrameRecordOld record;
 
     /** The result value set by a participant callback. */
     private Object result;
@@ -60,8 +60,8 @@ public class FrameAssemblyContext {
     /** True if the frame was handled as a command — don't persist the frame itself. */
     private boolean commandOnly;
 
-    public FrameAssemblyContext(FrameBody body, Scope scope, Signer signer, Item session,
-                                Map<ItemID, Item> resolvedItems) {
+    public FrameAssemblyContext(FrameBodyOld body, Scope scope, SignerOld signer, ItemOld session,
+                                Map<ItemID, ItemOld> resolvedItems) {
         this.body = body;
         this.scope = scope;
         this.signer = signer;
@@ -99,7 +99,7 @@ public class FrameAssemblyContext {
     /**
      * Set the signed record (called by the pipeline after signing).
      */
-    public void record(FrameRecord record) {
+    public void record(FrameRecordOld record) {
         this.record = record;
     }
 
@@ -109,7 +109,7 @@ public class FrameAssemblyContext {
      * @param role the thematic role IID
      * @return the resolved Item, or null if the role has no Item target
      */
-    public Item item(ItemID role) {
+    public ItemOld item(ItemID role) {
         return resolvedItems.get(role);
     }
 }

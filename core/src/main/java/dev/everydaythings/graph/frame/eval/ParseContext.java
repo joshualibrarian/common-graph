@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Sememe;
@@ -32,7 +32,7 @@ public class ParseContext {
     private final Sememe currentVerb;
 
     /** The currently focused item (for domain-specific context). */
-    private final Item activeItem;
+    private final ItemOld activeItem;
 
     /** The language inferred from resolved token scopes. */
     private final Language inferredLanguage;

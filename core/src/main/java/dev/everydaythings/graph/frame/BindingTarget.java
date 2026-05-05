@@ -73,7 +73,7 @@ public interface BindingTarget extends Canonical {
     static RefTarget ref(Ref ref) { return new RefTarget(ref); }
 
     /** Convenience factory for inline nested frames (Tag 23). */
-    static FrameTarget frame(FrameBody body) { return new FrameTarget(body); }
+    static FrameTarget frame(FrameBodyOld body) { return new FrameTarget(body); }
 
     /**
      * Unified reference target using CG-CBOR Tag 6 (REF).
@@ -190,13 +190,13 @@ public interface BindingTarget extends Canonical {
      * expressions like {@code MUL { THEME → ADD { THEME→3, INSTRUMENT→5 }, INSTRUMENT → 2 }}.
      */
     final class FrameTarget implements BindingTarget {
-        private final FrameBody body;
+        private final FrameBodyOld body;
 
-        public FrameTarget(FrameBody body) {
+        public FrameTarget(FrameBodyOld body) {
             this.body = Objects.requireNonNull(body, "body");
         }
 
-        public FrameBody body() { return body; }
+        public FrameBodyOld body() { return body; }
 
         @Override
         public CBORObject toCborTree(Scope scope) {
@@ -207,7 +207,7 @@ public interface BindingTarget extends Canonical {
         public static FrameTarget fromCborTree(CBORObject node) {
             if (node == null || node.isNull()) return null;
             CBORObject inner = node.isTagged() ? node.UntagOne() : node;
-            FrameBody body = FrameBody.fromCborTree(inner);
+            FrameBodyOld body = FrameBodyOld.fromCborTree(inner);
             return body != null ? new FrameTarget(body) : null;
         }
 

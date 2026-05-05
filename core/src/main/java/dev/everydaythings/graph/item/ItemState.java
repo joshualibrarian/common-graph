@@ -48,7 +48,7 @@ public class ItemState implements Canonical {
         this.frames = frames != null ? frames : new EndorsementsTable();
     }
 
-    public void setOwner(Item owner) {
+    public void setOwner(ItemOld owner) {
         frames.setOwner(owner);
     }
 

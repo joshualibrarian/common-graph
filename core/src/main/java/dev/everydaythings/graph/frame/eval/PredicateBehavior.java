@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.frame.eval;
 
 import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 
 import java.util.List;
 
@@ -40,7 +41,7 @@ public interface PredicateBehavior {
      * <p>The implementation controls evaluation order. Use
      * {@link FrameEvaluator#resolve(dev.everydaythings.graph.frame.BindingTarget, Scope)}
      * to eagerly evaluate individual binding targets, or
-     * {@link FrameEvaluator#evaluate(dev.everydaythings.graph.frame.FrameBody, Scope)}
+     * {@link FrameEvaluator#evaluate(FrameBodyOld, Scope)}
      * to evaluate nested frames.
      *
      * @param bindings  the frame's role bindings

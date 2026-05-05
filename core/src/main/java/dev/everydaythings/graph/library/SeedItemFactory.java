@@ -3,15 +3,15 @@ package dev.everydaythings.graph.library;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Sememe;
@@ -53,7 +53,7 @@ public final class SeedItemFactory {
      * @param clazz the annotated class
      * @return the fully-formed item with all frames, or null if the class can't be processed
      */
-    public static Item create(Class<?> clazz) {
+    public static ItemOld create(Class<?> clazz) {
         ItemSeed seedAnn = clazz.getAnnotation(ItemSeed.class);
         if (seedAnn == null) return null;
 
@@ -103,7 +103,7 @@ public final class SeedItemFactory {
      * <p>Only scans the LEAF class — static fields on parent classes belong to
      * the parent's type item, not this one.
      */
-    private static void scanStaticFrameFields(Class<?> clazz, Item item) {
+    private static void scanStaticFrameFields(Class<?> clazz, ItemOld item) {
         for (Field field : clazz.getDeclaredFields()) {
             if (!Modifier.isStatic(field.getModifiers())) continue;
 
@@ -127,16 +127,16 @@ public final class SeedItemFactory {
     /**
      * Create a frame on the item from an @ItemFrame annotation and field value.
      */
-    private static void createFrame(Item item, ItemFrame ann, Object value) {
+    private static void createFrame(ItemOld item, ItemFrame ann, Object value) {
         ItemID head = ItemID.fromString(ann.predicate());
 
         // Resolve bindings from classAs / fieldAs
         ItemID selfRole = ItemID.fromString(ann.classAs().role());
         ItemID valueRole = ItemID.fromString(ann.fieldAs().role());
 
-        List<FrameKey.FrameToken> qualifiers = new ArrayList<>();
+        List<CompoundKey.FrameToken> qualifiers = new ArrayList<>();
         for (String q : ann.fieldAs().qualifiers()) {
-            qualifiers.add(new FrameKey.Sememe(ItemID.fromString(q)));
+            qualifiers.add(new CompoundKey.Sememe(ItemID.fromString(q)));
         }
 
         // Build bindings: self binding + one or more value bindings
@@ -153,14 +153,14 @@ public final class SeedItemFactory {
         }
         if (bindings.size() < 2) return; // no value bindings created
 
-        FrameBody body = new FrameBody(head, bindings);
+        FrameBodyOld body = new FrameBodyOld(head, bindings);
         // Derive FrameKey from body for lookup
-        FrameKey frameKey = body.selector();
+        CompoundKey frameKey = body.selector();
 
         // Create Frame and add to item
         byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = ContentID.of(bytes);
-        Frame frame = new Frame(frameKey, head, body, cid, true);
+        FrameOld frame = new FrameOld(frameKey, head, body, cid, true);
         item.frames().add(frame);
         item.frames().setLive(frameKey, body);
     }
@@ -171,7 +171,7 @@ public final class SeedItemFactory {
      * <p>The IMPLEMENTED_BY frame binds the item (THEME) to its Java class (GOAL).
      * This replaces the old SeedVocabulary.registerImplementation() post-store step.
      */
-    private static void scanImplements(Class<?> clazz, Item item) {
+    private static void scanImplements(Class<?> clazz, ItemOld item) {
         Implements ann = clazz.getAnnotation(Implements.class);
         if (ann == null) return;
 
@@ -185,11 +185,11 @@ public final class SeedItemFactory {
         List<Binding> bindings = List.of(
                 new Binding(ThematicRole.Theme.IID, BindingTarget.iid(item.iid())),
                 new Binding(ThematicRole.Goal.IID, classLiteral));
-        FrameBody body = new FrameBody(predicate, bindings);
+        FrameBodyOld body = new FrameBodyOld(predicate, bindings);
 
         byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = ContentID.of(bytes);
-        Frame frame = Frame.forFrameBody(predicate, cid, true, "implementedBy");
+        FrameOld frame = FrameOld.forFrameBody(predicate, cid, true, "implementedBy");
         frame.setBody(body);
         item.frames().add(frame);
         item.frames().setLive(frame.frameKey(), body);

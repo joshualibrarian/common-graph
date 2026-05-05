@@ -2,15 +2,12 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Tick;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ui.scene.Scene;

@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.importer.LanguageImporter;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,11 +22,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("English") @Disabled
 public class EnglishTest extends LanguageTest {
 
-    private Librarian librarian;
+    private LibrarianOld librarian;
 
     @Override
-    protected Item createItem(Path tempDir) {
-        librarian = Librarian.open(tempDir);
+    protected ItemOld createItem(Path tempDir) {
+        librarian = LibrarianOld.open(tempDir);
         return new English(librarian);
     }
 

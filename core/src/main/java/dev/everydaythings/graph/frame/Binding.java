@@ -6,8 +6,8 @@ import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
+import dev.everydaythings.graph.item.id.CompoundKey;
+import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Language;
@@ -41,7 +41,7 @@ import java.util.Objects;
  *
  * <p>The {@code instance} field is the live decoded runtime value (transient).
  *
- * @see FrameBody
+ * @see FrameBodyOld
  * @see BindingTarget
  */
 @Getter
@@ -62,19 +62,19 @@ public final class Binding implements Canonical {
     static final ItemID expectRole = ItemID.fromString(ThematicRole.KEY);
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Qualifiers.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBodyOld.TYPE_KEY, Qualifiers.KEY}))
     static final ItemID expectQualifiers = Qualifiers.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Target.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBodyOld.TYPE_KEY, Target.KEY}))
     static final ItemID expectTarget = Target.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Identity.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBodyOld.TYPE_KEY, Identity.KEY}))
     static final ItemID expectIdentity = Identity.IID;
 
     @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, Index.KEY}))
+               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBodyOld.TYPE_KEY, Index.KEY}))
     static final ItemID expectIndex = Index.IID;
 
     // Field-name sememes for array positions
@@ -212,7 +212,7 @@ public final class Binding implements Canonical {
         List<ItemID> result = new ArrayList<>();
         if (role != null) result.add(role);
         for (FrameToken q : qualifiers) {
-            if (q instanceof FrameKey.Sememe s) result.add(s.id());
+            if (q instanceof CompoundKey.Sememe s) result.add(s.id());
         }
         return List.copyOf(result);
     }
@@ -229,7 +229,7 @@ public final class Binding implements Canonical {
         if (parts.length - 1 != qualifiers.size()) return false;
         for (int i = 1; i < parts.length; i++) {
             FrameToken q = qualifiers.get(i - 1);
-            if (!(q instanceof FrameKey.Sememe s) || !s.id().equals(parts[i])) return false;
+            if (!(q instanceof CompoundKey.Sememe s) || !s.id().equals(parts[i])) return false;
         }
         return true;
     }
@@ -302,7 +302,7 @@ public final class Binding implements Canonical {
     /**
      * Create an identity binding with an inline nested frame.
      */
-    public static Binding frame(ItemID role, FrameBody body) {
+    public static Binding frame(ItemID role, FrameBodyOld body) {
         return new Binding(role, new BindingTarget.FrameTarget(body));
     }
 
@@ -349,9 +349,9 @@ public final class Binding implements Canonical {
             for (int i = 0; i < qualsArr.size(); i++) {
                 CBORObject q = qualsArr.get(i);
                 if (q.getType() == CBORType.ByteString) {
-                    quals.add(new FrameKey.Sememe(new ItemID(q.GetByteString())));
+                    quals.add(new CompoundKey.Sememe(new ItemID(q.GetByteString())));
                 } else if (q.getType() == CBORType.TextString) {
-                    quals.add(new FrameKey.Literal(q.AsString()));
+                    quals.add(new CompoundKey.Literal(q.AsString()));
                 }
             }
         }

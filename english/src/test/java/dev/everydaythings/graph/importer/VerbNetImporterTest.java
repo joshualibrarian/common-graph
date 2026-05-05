@@ -1,13 +1,7 @@
 package dev.everydaythings.graph.importer;
 
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.English;
-import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,7 +26,7 @@ class VerbNetImporterTest {
         @Test
         @DisplayName("parses give-13.1 class with members, roles, and subclass")
         void parseGiveClass() throws Exception {
-            Librarian lib = Librarian.createInMemory();
+            LibrarianOld lib = LibrarianOld.createInMemory();
             VerbNetImporter importer = new VerbNetImporter(lib, "verbnet");
 
             URL giveFile = getClass().getClassLoader().getResource("verbnet/give-13.1.xml");
@@ -63,7 +57,7 @@ class VerbNetImporterTest {
         @Test
         @DisplayName("parses member WordNet sense keys")
         void parseSenseKeys() throws Exception {
-            Librarian lib = Librarian.createInMemory();
+            LibrarianOld lib = LibrarianOld.createInMemory();
             VerbNetImporter importer = new VerbNetImporter(lib, "verbnet");
 
             URL giveFile = getClass().getClassLoader().getResource("verbnet/give-13.1.xml");
@@ -91,7 +85,7 @@ class VerbNetImporterTest {
         @Test
         @DisplayName("all 329 VerbNet files parse without errors")
         void parseAllFiles() throws Exception {
-            Librarian lib = Librarian.createInMemory();
+            LibrarianOld lib = LibrarianOld.createInMemory();
             VerbNetImporter importer = new VerbNetImporter(lib, "verbnet");
 
             // Parse all files — just verify no exceptions
@@ -168,7 +162,7 @@ class VerbNetImporterTest {
         @Test
         @DisplayName("role mapping covers all VerbNet roles in give-13.1")
         void roleMappingForGiveClass() throws Exception {
-            Librarian lib = Librarian.createInMemory();
+            LibrarianOld lib = LibrarianOld.createInMemory();
             VerbNetImporter importer = new VerbNetImporter(lib, "verbnet");
 
             URL giveFile = getClass().getClassLoader().getResource("verbnet/give-13.1.xml");
@@ -196,7 +190,7 @@ class VerbNetImporterTest {
         @Test
         @DisplayName("WordNet import + VerbNet import end-to-end")
         void fullImportPipeline() {
-            Librarian lib = Librarian.createInMemory();
+            LibrarianOld lib = LibrarianOld.createInMemory();
             English english = new English(lib);
 
             // Step 1: Import WordNet (creates sememes + lexemes + sense key frames)

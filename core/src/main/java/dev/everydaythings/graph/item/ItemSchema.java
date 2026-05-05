@@ -7,10 +7,10 @@ import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameConfig;
 import dev.everydaythings.graph.frame.EndorsementsTable;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -48,13 +48,13 @@ import java.util.stream.Collectors;
 public class ItemSchema {
 
     /** The Item class this schema describes. */
-    @NonNull private final Class<? extends Item> itemClass;
+    @NonNull private final Class<? extends ItemOld> itemClass;
 
     /** All frame fields (endorsed + unendorsed). */
     private final List<FrameFieldSpec> frameFields;
 
     public ItemSchema(
-            @NonNull Class<? extends Item> itemClass,
+            @NonNull Class<? extends ItemOld> itemClass,
             List<FrameFieldSpec> frameFields) {
         this.itemClass = itemClass;
         this.frameFields = frameFields != null ? List.copyOf(frameFields) : List.of();
@@ -102,10 +102,10 @@ public class ItemSchema {
      * @param item  The item to bind fields on
      * @param table The content table with live instances
      */
-    public void bindFieldsFromTable(Item item, EndorsementsTable table) {
+    public void bindFieldsFromTable(ItemOld item, EndorsementsTable table) {
         for (FrameFieldSpec spec : frameFields) {
             if (!spec.endorsed()) continue;
-            FrameKey key = spec.frameKey();
+            CompoundKey key = spec.frameKey();
             table.getLive(key, spec.fieldType())
                     .ifPresent(value -> spec.setValue(item, value));
         }
@@ -115,7 +115,7 @@ public class ItemSchema {
     /**
      * Get a frame field spec by FrameKey.
      */
-    public FrameFieldSpec getFrameField(FrameKey key) {
+    public FrameFieldSpec getFrameField(CompoundKey key) {
         return frameFields.stream()
                 .filter(spec -> spec.frameKey().equals(key))
                 .findFirst()
@@ -135,7 +135,7 @@ public class ItemSchema {
      * @param table The endorsements table to populate
      * @param item  The item to read field values from
      */
-    public void populateUnendorsedFrames(EndorsementsTable table, Item item) {
+    public void populateUnendorsedFrames(EndorsementsTable table, ItemOld item) {
         table.removeBareFrames();
 
         for (FrameFieldSpec spec : frameFields) {
@@ -145,13 +145,13 @@ public class ItemSchema {
 
             if (spec.isIterable()) {
                 for (Object element : (Iterable<?>) value) {
-                    FrameBody body = buildFrameBody(item, spec, element);
+                    FrameBodyOld body = buildFrameBody(item, spec, element);
                     if (body != null) {
                         addBareFrame(table, body, spec.predicateDisplayName());
                     }
                 }
             } else {
-                FrameBody body = buildFrameBody(item, spec, value);
+                FrameBodyOld body = buildFrameBody(item, spec, value);
                 if (body != null) {
                     addBareFrame(table, body, spec.predicateDisplayName());
                 }
@@ -159,22 +159,22 @@ public class ItemSchema {
         }
     }
 
-    private void addBareFrame(EndorsementsTable table, FrameBody body, String displayName) {
+    private void addBareFrame(EndorsementsTable table, FrameBodyOld body, String displayName) {
         byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = ContentID.of(bytes);
-        Frame frame = Frame.forFrameBody(body.predicate(), cid, true, displayName);
+        FrameOld frame = FrameOld.forFrameBody(body.predicate(), cid, true, displayName);
         frame.setBody(body);
         table.add(frame);
         table.setLive(frame.frameKey(), body);
     }
 
-    private FrameBody buildFrameBody(Item item, FrameFieldSpec spec, Object target) {
+    private FrameBodyOld buildFrameBody(ItemOld item, FrameFieldSpec spec, Object target) {
         if (target == null) return null;
 
         BindingTarget targetValue;
         if (target instanceof ItemID itemId) {
             targetValue = BindingTarget.iid(itemId);
-        } else if (target instanceof Item targetItem) {
+        } else if (target instanceof ItemOld targetItem) {
             targetValue = BindingTarget.iid(targetItem.iid());
         } else if (target instanceof AddressSpace.ParsedAddress addr) {
             targetValue = Literal.ofText(addr.canonical());
@@ -191,7 +191,7 @@ public class ItemSchema {
             targetValue = Literal.ofText(target.toString());
         }
 
-        return new FrameBody(spec.predicate(), java.util.List.of(
+        return new FrameBodyOld(spec.predicate(), java.util.List.of(
                 new dev.everydaythings.graph.frame.Binding(spec.selfRole(), BindingTarget.iid(item.iid())),
                 new dev.everydaythings.graph.frame.Binding(spec.valueRole(), targetValue)));
     }
@@ -207,7 +207,7 @@ public class ItemSchema {
      * @param contentTable The content table to add entries to
      * @param storePayload Function to store payload bytes
      */
-    public void bindComponentFieldsForCommit(Item item, EndorsementsTable contentTable, Consumer<byte[]> storePayload) {
+    public void bindComponentFieldsForCommit(ItemOld item, EndorsementsTable contentTable, Consumer<byte[]> storePayload) {
         bindComponentFieldsForCommit(item, contentTable, storePayload, null, null, id -> java.util.List.of());
     }
 
@@ -220,7 +220,7 @@ public class ItemSchema {
      * @param encryptionContext  Encryption policy (null or {@code EncryptionContext.NONE} for no encryption)
      * @param keyResolver       Resolves a principal ItemID to their current encryption public keys
      */
-    public void bindComponentFieldsForCommit(Item item, EndorsementsTable contentTable,
+    public void bindComponentFieldsForCommit(ItemOld item, EndorsementsTable contentTable,
                                              Consumer<byte[]> storePayload,
                                              dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
                                              java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
@@ -237,10 +237,10 @@ public class ItemSchema {
      * @param storeFrameBody    Function to store FrameBody objects (for indexing); may be null
      * @param keyResolver       Resolves a principal ItemID to their current encryption public keys
      */
-    public void bindComponentFieldsForCommit(Item item, EndorsementsTable contentTable,
+    public void bindComponentFieldsForCommit(ItemOld item, EndorsementsTable contentTable,
                                              Consumer<byte[]> storePayload,
                                              dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
-                                             Consumer<FrameBody> storeFrameBody,
+                                             Consumer<FrameBodyOld> storeFrameBody,
                                              java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
         for (FrameFieldSpec spec : frameFields) {
             if (!spec.endorsed()) continue;
@@ -250,7 +250,7 @@ public class ItemSchema {
             // TODO: Existing config (FrameConfig) migrating to CONFIG binding
             FrameConfig existingConfig = null;
 
-            Frame frame = encodeFrameField(item, spec, value, storePayload, encryptionContext,
+            FrameOld frame = encodeFrameField(item, spec, value, storePayload, encryptionContext,
                     existingConfig, storeFrameBody, keyResolver);
             if (frame != null) {
                 contentTable.add(frame);
@@ -259,12 +259,12 @@ public class ItemSchema {
         }
     }
 
-    private Frame encodeFrameField(Item item, FrameFieldSpec spec, Object value, Consumer<byte[]> storePayload,
-                                    dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
-                                    FrameConfig existingConfig,
-                                    Consumer<FrameBody> storeFrameBody,
-                                    java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
-        FrameKey key = spec.frameKey();
+    private FrameOld encodeFrameField(ItemOld item, FrameFieldSpec spec, Object value, Consumer<byte[]> storePayload,
+                                      dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
+                                      FrameConfig existingConfig,
+                                      Consumer<FrameBodyOld> storeFrameBody,
+                                      java.util.function.Function<ItemID, java.util.List<dev.everydaythings.graph.crypt.EncryptionPublicKey>> keyResolver) {
+        CompoundKey key = spec.frameKey();
         String alias = spec.canonicalKeyString();
 
         // Determine effective encryption context: explicit parameter wins,
@@ -274,11 +274,11 @@ public class ItemSchema {
 
         // For types with @Type annotation
         if (value.getClass().isAnnotationPresent(Implements.class)) {
-            ItemID typeId = Item.idOf(value.getClass());
+            ItemID typeId = ItemOld.idOf(value.getClass());
             boolean isLocalOnly = spec.localOnly();
 
             if (isLocalOnly) {
-                Frame frame = Frame.snapshot(key, typeId, null, spec.identity());
+                FrameOld frame = FrameOld.snapshot(key, typeId, null, spec.identity());
                 // alias removed — display names resolved via TokenDictionary
                 buildAndStoreComponentBody(item, spec, typeId, alias, null, null, existingConfig, frame, storeFrameBody);
                 return frame;
@@ -404,9 +404,9 @@ public class ItemSchema {
     }
 
     /**
-     * Store encoded bytes (optionally encrypting) and build a {@link Frame}.
+     * Store encoded bytes (optionally encrypting) and build a {@link FrameOld}.
      *
-     * <p>Also builds a {@link FrameBody} for the component frame, computes its
+     * <p>Also builds a {@link FrameBodyOld} for the component frame, computes its
      * body hash, and stores it via {@code storeFrameBody} if provided.
      *
      * <p>The plaintext CID ({@code snapshotCid}) is always computed from the plaintext bytes
@@ -417,11 +417,11 @@ public class ItemSchema {
      * <p>If {@code existingConfig} is non-null, it is carried forward to the new frame
      * so that per-frame config (policy, settings) survives across commits.
      */
-    private Frame storeAndBuildFrame(Item item, FrameFieldSpec spec, FrameKey key, String alias, ItemID typeId, boolean identity,
-                                     byte[] plaintextBytes, Consumer<byte[]> storePayload,
-                                     dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
-                                     FrameConfig existingConfig,
-                                     Consumer<FrameBody> storeFrameBody) {
+    private FrameOld storeAndBuildFrame(ItemOld item, FrameFieldSpec spec, CompoundKey key, String alias, ItemID typeId, boolean identity,
+                                        byte[] plaintextBytes, Consumer<byte[]> storePayload,
+                                        dev.everydaythings.graph.crypt.EncryptionContext encryptionContext,
+                                        FrameConfig existingConfig,
+                                        Consumer<FrameBodyOld> storeFrameBody) {
 
         ContentID snapshotCid = new ContentID(Hash.DEFAULT.digest(plaintextBytes), Hash.DEFAULT);
         ContentID encryptedCid = null;
@@ -451,7 +451,7 @@ public class ItemSchema {
             if (storePayload != null) storePayload.accept(plaintextBytes);
         }
 
-        Frame frame = Frame.snapshot(key, typeId, snapshotCid, identity);
+        FrameOld frame = FrameOld.snapshot(key, typeId, snapshotCid, identity);
         // alias removed — display names resolved via TokenDictionary
 
         // Carry forward existing config (policy, settings) from previous version
@@ -466,7 +466,7 @@ public class ItemSchema {
     }
 
     /**
-     * Build a {@link FrameBody} for a component frame, set its body hash on the entry,
+     * Build a {@link FrameBodyOld} for a component frame, set its body hash on the entry,
      * and store it via the provided consumer.
      *
      * <p>The FrameBody carries the semantic assertion: predicate=type, theme=item,
@@ -478,12 +478,12 @@ public class ItemSchema {
      * from endorsements. The BODY-scope hash (identity only) can be computed lazily
      * when needed for identity comparison.
      */
-    private void buildAndStoreComponentBody(Item item, FrameFieldSpec spec, ItemID typeId,
+    private void buildAndStoreComponentBody(ItemOld item, FrameFieldSpec spec, ItemID typeId,
                                             String alias, ContentID snapshotCid,
                                             ContentID encryptedCid,
                                             FrameConfig existingConfig,
-                                            Frame frame,
-                                            Consumer<FrameBody> storeFrameBody) {
+                                            FrameOld frame,
+                                            Consumer<FrameBodyOld> storeFrameBody) {
         java.util.List<dev.everydaythings.graph.frame.Binding> bindings = new java.util.ArrayList<>();
 
         ItemID topicId = ThematicRole.Topic.IID;
@@ -497,7 +497,7 @@ public class ItemSchema {
         // Encrypted envelope — compound key (TOPIC, ENCRYPTED)
         if (encryptedCid != null) {
             bindings.add(dev.everydaythings.graph.frame.Binding.qualified(
-                    topicId, java.util.List.of(new FrameKey.Sememe(CoreVocabulary.Encrypted.IID)),
+                    topicId, java.util.List.of(new CompoundKey.Sememe(CoreVocabulary.Encrypted.IID)),
                     BindingTarget.ref(encryptedCid), false, false));
         }
 
@@ -514,7 +514,7 @@ public class ItemSchema {
         java.util.List<dev.everydaythings.graph.frame.Binding> allBindings = new java.util.ArrayList<>();
         allBindings.add(new dev.everydaythings.graph.frame.Binding(selfRole, BindingTarget.iid(item.iid())));
         allBindings.addAll(bindings);
-        FrameBody body = new FrameBody(typeId, allBindings);
+        FrameBodyOld body = new FrameBodyOld(typeId, allBindings);
 
         // Use RECORD-scope CID as bodyHash (includes all bindings for reconstruction)
         byte[] recordBytes = body.encodeBinary(Canonical.Scope.RECORD);
@@ -535,9 +535,9 @@ public class ItemSchema {
      * @param storePayload   Function to store payload bytes and return CID
      * @param storeFrameBody Function to store frame bodies (indexing)
      */
-    public void bindUnendorsedFramesForCommit(Item item, EndorsementsTable table,
+    public void bindUnendorsedFramesForCommit(ItemOld item, EndorsementsTable table,
                                               java.util.function.Function<byte[], ContentID> storePayload,
-                                              Consumer<FrameBody> storeFrameBody) {
+                                              Consumer<FrameBodyOld> storeFrameBody) {
         table.removeBareFrames();
 
         for (FrameFieldSpec spec : frameFields) {
@@ -555,11 +555,11 @@ public class ItemSchema {
         }
     }
 
-    private void bindSingleUnendorsedFrame(Item item, FrameFieldSpec spec, Object object,
+    private void bindSingleUnendorsedFrame(ItemOld item, FrameFieldSpec spec, Object object,
                                            EndorsementsTable table,
                                            java.util.function.Function<byte[], ContentID> storePayload,
-                                           Consumer<FrameBody> storeFrameBody) {
-        FrameBody body = buildFrameBody(item, spec, object);
+                                           Consumer<FrameBodyOld> storeFrameBody) {
+        FrameBodyOld body = buildFrameBody(item, spec, object);
         if (body == null) return;
 
         if (storeFrameBody != null) {
@@ -569,7 +569,7 @@ public class ItemSchema {
         byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
         ContentID cid = (storePayload != null) ? storePayload.apply(bytes) : ContentID.of(bytes);
 
-        Frame frame = Frame.forFrameBody(body.predicate(), cid, true, spec.predicateDisplayName());
+        FrameOld frame = FrameOld.forFrameBody(body.predicate(), cid, true, spec.predicateDisplayName());
         table.add(frame);
         table.setLive(frame.frameKey(), body);
     }

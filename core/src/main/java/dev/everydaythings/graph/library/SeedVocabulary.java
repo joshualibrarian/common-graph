@@ -1,22 +1,17 @@
 package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.id.FrameKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.ui.scene.Scene;
-import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
@@ -55,7 +50,7 @@ public final class SeedVocabulary {
 
     private final ItemStore store;
     private WriteTransaction tx;
-    private final List<Item> seedItems = new ArrayList<>();
+    private final List<ItemOld> seedItems = new ArrayList<>();
 
     private SeedVocabulary(ItemStore store, WriteTransaction tx) {
         this.store = store;
@@ -71,7 +66,7 @@ public final class SeedVocabulary {
      *
      * @param store The ItemStore to populate
      */
-    public static List<Item> bootstrap(ItemStore store) {
+    public static List<ItemOld> bootstrap(ItemStore store) {
         Objects.requireNonNull(store, "store");
         logger.info("Bootstrapping vocabulary - scanning classpath for types and seeds");
 
@@ -115,7 +110,7 @@ public final class SeedVocabulary {
             for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(Implements.class)) {
                 Class<?> clazz = classInfo.loadClass();
                 if (dev.everydaythings.graph.value.Value.class.isAssignableFrom(clazz)
-                        && !Item.class.isAssignableFrom(clazz)) {
+                        && !ItemOld.class.isAssignableFrom(clazz)) {
                     registerValueType((Class<? extends dev.everydaythings.graph.value.Value>) clazz);
                 }
             }
@@ -144,7 +139,7 @@ public final class SeedVocabulary {
             if (seedItems.stream().anyMatch(i -> seedId.equals(i.iid()))) continue;
 
             // Create the fully-formed seed item
-            Item item = SeedItemFactory.create(clazz);
+            ItemOld item = SeedItemFactory.create(clazz);
             if (item == null) continue;
 
             // Store it
@@ -155,7 +150,7 @@ public final class SeedVocabulary {
 
             // Store frame bodies for indexing
             if (item.frames() != null) {
-                item.frames().forEachLive(FrameBody.class, body -> storeFrameBody(body));
+                item.frames().forEachLive(FrameBodyOld.class, body -> storeFrameBody(body));
             }
         }
 
@@ -231,7 +226,7 @@ public final class SeedVocabulary {
         ItemID typeId = ItemID.fromString(key);
 
         // Find the seed item by IID — it was stored earlier in the seed scan
-        Item seedItem = seedItems.stream()
+        ItemOld seedItem = seedItems.stream()
                 .filter(i -> typeId.equals(i.iid()))
                 .findFirst()
                 .orElse(null);
@@ -253,7 +248,7 @@ public final class SeedVocabulary {
         // Create IMPLEMENTED_BY relation and attach to seed item AFTER storeItem().
         // This ensures the in-memory cached instance carries the frame at runtime,
         // since generateSeedManifest()'s scanAndBindFields() won't overwrite it again.
-        FrameBody implBy = createImplementedByRelation(typeId, clazz, seedItem);
+        FrameBodyOld implBy = createImplementedByRelation(typeId, clazz, seedItem);
         storeFrameBody(implBy);
         storeFrameBody(createTitleRelation(typeId, key));
     }
@@ -265,7 +260,7 @@ public final class SeedVocabulary {
         ItemID typeId = ItemID.fromString(annotation.value());
 
         // Value types may not have seed items, just create IMPLEMENTED_BY relation
-        storeFrameBody(FrameBody.of(
+        storeFrameBody(FrameBodyOld.of(
                 CoreVocabulary.ImplementedBy.IID,
                 typeId,
                 Map.of(ThematicRole.Goal.IID, Literal.ofJavaClass(type))));
@@ -275,8 +270,8 @@ public final class SeedVocabulary {
     // Relation Creation
     // ==================================================================================
 
-    private FrameBody createImplementedByRelation(ItemID typeId, Class<?> implementingClass, Item item) {
-        FrameBody body = FrameBody.of(
+    private FrameBodyOld createImplementedByRelation(ItemID typeId, Class<?> implementingClass, ItemOld item) {
+        FrameBodyOld body = FrameBodyOld.of(
                 CoreVocabulary.ImplementedBy.IID,
                 typeId,
                 Map.of(ThematicRole.Goal.IID, Literal.ofJavaClass(implementingClass)));
@@ -285,7 +280,7 @@ public final class SeedVocabulary {
         if (item != null) {
             byte[] bytes = body.encodeBinary(Canonical.Scope.RECORD);
             ContentID cid = ContentID.of(bytes);
-            Frame frame = Frame.forFrameBody(body.predicate(), cid, true, "implementedBy");
+            FrameOld frame = FrameOld.forFrameBody(body.predicate(), cid, true, "implementedBy");
             frame.setBody(body);
             item.frames().add(frame);
             item.frames().setLive(frame.frameKey(), body);
@@ -294,8 +289,8 @@ public final class SeedVocabulary {
         return body;
     }
 
-    private FrameBody createTitleRelation(ItemID itemId, String key) {
-        return FrameBody.of(
+    private FrameBodyOld createTitleRelation(ItemID itemId, String key) {
+        return FrameBodyOld.of(
                 CoreVocabulary.Title.IID,
                 itemId,
                 Map.of(ThematicRole.Goal.IID, Literal.ofText(key)));
@@ -305,14 +300,14 @@ public final class SeedVocabulary {
     // Store Operations
     // ==================================================================================
 
-    private boolean storeItem(Item item) {
+    private boolean storeItem(ItemOld item) {
         try {
             var manifest = item.generateSeedManifest();
             byte[] record = manifest.encodeBinary(Canonical.Scope.RECORD);
             store.persistManifest(item.iid(), record, tx);
 
             // Store component content
-            for (Frame frame : manifest.components()) {
+            for (FrameOld frame : manifest.components()) {
                 if (frame.body().hasContent()) {
                     // Try @ContentField-based encoding first
                     byte[] content = item.encodeComponentValue(frame.frameKey());
@@ -337,7 +332,7 @@ public final class SeedVocabulary {
         }
     }
 
-    private void storeFrameBody(FrameBody body) {
+    private void storeFrameBody(FrameBodyOld body) {
         if (body == null) return;
         try {
             byte[] record = body.encodeBinary(Canonical.Scope.RECORD);

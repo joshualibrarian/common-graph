@@ -1,13 +1,11 @@
 package dev.everydaythings.graph.library.workingtree;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.ManifestOld;
+import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.mount.Mount;
 import dev.everydaythings.graph.library.ItemStore;
@@ -268,7 +266,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param frames The component frames to save
      * @param wtx    Write transaction
      */
-    public void saveHeadComponents(List<Frame> frames, WriteTransaction wtx) {
+    public void saveHeadComponents(List<FrameOld> frames, WriteTransaction wtx) {
         Objects.requireNonNull(frames, "frames");
         Objects.requireNonNull(wtx, "wtx");
 
@@ -289,7 +287,7 @@ public final class WorkingTreeStore implements ItemStore {
         }
 
         // Write each frame (no mounts needed for per-frame save; mounts are saved separately)
-        for (Frame frame : frames) {
+        for (FrameOld frame : frames) {
             String filename = hex(frame.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
             Path file = componentsDir.resolve(filename);
             byte[] bytes = frame.encodeCbor(List.of());
@@ -323,7 +321,7 @@ public final class WorkingTreeStore implements ItemStore {
         }
 
         // Write each frame with its mounts
-        for (Frame frame : table) {
+        for (FrameOld frame : table) {
             String filename = hex(frame.frameKey().toCanonicalString().getBytes(StandardCharsets.UTF_8)) + ".cbor";
             Path file = componentsDir.resolve(filename);
             byte[] bytes = frame.encodeCbor(table.mountsFor(frame.frameKey()));
@@ -337,17 +335,17 @@ public final class WorkingTreeStore implements ItemStore {
      *
      * @return List of component entries
      */
-    public List<Frame> loadHeadComponents() {
+    public List<FrameOld> loadHeadComponents() {
         Path componentsDir = headDir().resolve(DIR_COMPONENTS);
         if (!Files.exists(componentsDir)) {
             return List.of();
         }
 
-        List<Frame> frames = new ArrayList<>();
+        List<FrameOld> frames = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(componentsDir, "*.cbor")) {
             for (Path file : stream) {
                 byte[] bytes = Files.readAllBytes(file);
-                Frame frame = Frame.decodeCbor(bytes);
+                FrameOld frame = FrameOld.decodeCbor(bytes);
                 frames.add(frame);
             }
         } catch (IOException e) {
@@ -363,7 +361,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param key The component frame key
      * @return The component entry, or empty if not found
      */
-    public Optional<Frame> loadHeadComponent(FrameKey key) {
+    public Optional<FrameOld> loadHeadComponent(CompoundKey key) {
         Objects.requireNonNull(key, "key");
 
         Path file = headDir().resolve(DIR_COMPONENTS).resolve(
@@ -374,7 +372,7 @@ public final class WorkingTreeStore implements ItemStore {
 
         try {
             byte[] bytes = Files.readAllBytes(file);
-            return Optional.of(Frame.decodeCbor(bytes));
+            return Optional.of(FrameOld.decodeCbor(bytes));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to load component: " + key, e);
         }
@@ -412,7 +410,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param content The content table to derive mount paths from
      */
     public void materializeMountPaths(dev.everydaythings.graph.frame.EndorsementsTable content) {
-        for (dev.everydaythings.graph.frame.Frame frame : content) {
+        for (FrameOld frame : content) {
             if (frame.body() != null && frame.body().isExternal()) continue;
             for (Mount.PathMount pm : content.pathMountsFor(frame.frameKey())) {
                 String mountPath = pm.path();
@@ -456,8 +454,8 @@ public final class WorkingTreeStore implements ItemStore {
      * separate from content. This overrides the default trial-decode approach.
      */
     @Override
-    public java.util.stream.Stream<Manifest> manifests(ItemID iid) {
-        List<Manifest> results = new ArrayList<>();
+    public java.util.stream.Stream<ManifestOld> manifests(ItemID iid) {
+        List<ManifestOld> results = new ArrayList<>();
 
         // Local filesystem manifests
         Path versionsDir = root.resolve(DOT_ITEM).resolve(DIR_VERSIONS);
@@ -466,7 +464,7 @@ public final class WorkingTreeStore implements ItemStore {
                 for (Path file : stream) {
                     byte[] bytes = Files.readAllBytes(file);
                     try {
-                        Manifest m = Manifest.decode(bytes);
+                        ManifestOld m = ManifestOld.decode(bytes);
                         if (m != null && (iid == null || iid.equals(m.iid()))) {
                             results.add(m);
                         }
@@ -640,7 +638,7 @@ public final class WorkingTreeStore implements ItemStore {
         Objects.requireNonNull(wtx, "wtx");
 
         // Decode to compute VID (hash of BODY)
-        Manifest m = Manifest.decode(record);
+        ManifestOld m = ManifestOld.decode(record);
         byte[] body = m.encodeBinary(dev.everydaythings.graph.Canonical.Scope.BODY);
         ContentID vid = new ContentID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
 
@@ -707,7 +705,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @return The item, or empty if not found
      */
     @Override
-    public Optional<Item> item(ItemID iid) {
+    public Optional<ItemOld> item(ItemID iid) {
         if (fallback != null) {
             return fallback.item(iid);
         }
@@ -838,7 +836,7 @@ public final class WorkingTreeStore implements ItemStore {
     /**
      * Get the path for a local component by frame key.
      */
-    public Path localComponentPath(FrameKey key) {
+    public Path localComponentPath(CompoundKey key) {
         return localDir().resolve(Encoding.hex(key.toCanonicalString().getBytes(StandardCharsets.UTF_8)));
     }
 
@@ -850,7 +848,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param relativePath Relative path within the component's local directory
      * @return Full path to the resource
      */
-    public Path localComponentPath(FrameKey key, String relativePath) {
+    public Path localComponentPath(CompoundKey key, String relativePath) {
         return localComponentPath(key).resolve(relativePath);
     }
 
@@ -861,7 +859,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param content The content bytes
      * @param wtx     Write transaction
      */
-    public void putLocalContent(FrameKey key, byte[] content, WriteTransaction wtx) {
+    public void putLocalContent(CompoundKey key, byte[] content, WriteTransaction wtx) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(wtx, "wtx");
@@ -876,7 +874,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param key The component frame key
      * @return The content bytes, or empty if not found
      */
-    public Optional<byte[]> getLocalContent(FrameKey key) {
+    public Optional<byte[]> getLocalContent(CompoundKey key) {
         Objects.requireNonNull(key, "key");
 
         Path file = localComponentPath(key);
@@ -892,7 +890,7 @@ public final class WorkingTreeStore implements ItemStore {
      * @param key The component frame key
      * @return True if the local component directory exists
      */
-    public boolean hasLocalComponent(FrameKey key) {
+    public boolean hasLocalComponent(CompoundKey key) {
         Objects.requireNonNull(key, "key");
         Path path = localComponentPath(key);
         return Files.exists(path);

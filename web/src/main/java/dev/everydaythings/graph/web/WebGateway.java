@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.web;
 
 import dev.everydaythings.graph.network.transport.TransportDetector;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -33,14 +33,14 @@ import java.net.InetSocketAddress;
 @Log4j2
 public class WebGateway implements AutoCloseable {
 
-    private final Librarian librarian;
+    private final LibrarianOld librarian;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
     private InetSocketAddress boundAddress;
 
-    public WebGateway(Librarian librarian) {
+    public WebGateway(LibrarianOld librarian) {
         this.librarian = librarian;
     }
 

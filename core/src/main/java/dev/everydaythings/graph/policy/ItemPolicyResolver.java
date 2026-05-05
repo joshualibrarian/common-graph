@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.policy;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.frame.Roster;
 import dev.everydaythings.graph.item.id.ItemID;
 
@@ -27,14 +27,14 @@ import dev.everydaythings.graph.item.id.ItemID;
  */
 public class ItemPolicyResolver implements PolicyEngine.Resolver {
 
-    private final Item item;
+    private final ItemOld item;
     private final ItemID hostId;
 
     /**
      * @param item   the item whose policy is being evaluated
      * @param hostId the local librarian's IID (for "hosts" subject matching), or null
      */
-    public ItemPolicyResolver(Item item, ItemID hostId) {
+    public ItemPolicyResolver(ItemOld item, ItemID hostId) {
         this.item = item;
         this.hostId = hostId;
     }
@@ -42,7 +42,7 @@ public class ItemPolicyResolver implements PolicyEngine.Resolver {
     /**
      * Resolver without host identity (isHost always returns false).
      */
-    public ItemPolicyResolver(Item item) {
+    public ItemPolicyResolver(ItemOld item) {
         this(item, null);
     }
 

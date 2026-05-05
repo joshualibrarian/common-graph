@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.importer;
 
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 /**
  * Imports English language data from Open English WordNet (OEWN) and UniMorph.
@@ -32,7 +32,7 @@ public class EnglishImporter extends LanguageImporter {
     /** The English language ItemID. */
     private static final ItemID ENGLISH_ID = ItemID.fromString("cg.lang:english");
 
-    public EnglishImporter(Librarian librarian) {
+    public EnglishImporter(LibrarianOld librarian) {
         super(librarian);
     }
 

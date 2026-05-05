@@ -57,7 +57,7 @@ class RefTest {
         @Test
         @DisplayName("ref with frame key")
         void refWithFrame() {
-            FrameKey key = FrameKey.of(AUTHOR);
+            CompoundKey key = CompoundKey.of(AUTHOR);
             Ref ref = Ref.of(ALICE, key);
 
             assertThat(ref.target()).isEqualTo(ALICE);
@@ -70,7 +70,7 @@ class RefTest {
         @Test
         @DisplayName("full ref — version + frame + selector")
         void fullRef() {
-            FrameKey key = FrameKey.of(GLOSS, ENG);
+            CompoundKey key = CompoundKey.of(GLOSS, ENG);
             Selector sel = Selector.byteRange(0, 1024);
             Ref ref = Ref.of(ALICE, VERSION_1, key, sel);
 
@@ -131,7 +131,7 @@ class RefTest {
         @Test
         @DisplayName("ref with single sememe frame key")
         void singleSememeFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.of(AUTHOR));
+            Ref original = Ref.of(ALICE, CompoundKey.of(AUTHOR));
             byte[] bytes = original.toRefBytes();
             Ref decoded = Ref.fromRefBytes(bytes);
 
@@ -142,7 +142,7 @@ class RefTest {
         @Test
         @DisplayName("ref with compound sememe frame key")
         void compoundSememeFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.of(GLOSS, ENG));
+            Ref original = Ref.of(ALICE, CompoundKey.of(GLOSS, ENG));
             byte[] bytes = original.toRefBytes();
             Ref decoded = Ref.fromRefBytes(bytes);
 
@@ -153,7 +153,7 @@ class RefTest {
         @Test
         @DisplayName("ref with qualified frame key (sememe + string qualifier)")
         void qualifiedFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.of(CHAT, "tavern"));
+            Ref original = Ref.of(ALICE, CompoundKey.of(CHAT, "tavern"));
             byte[] bytes = original.toRefBytes();
             Ref decoded = Ref.fromRefBytes(bytes);
 
@@ -178,7 +178,7 @@ class RefTest {
         @Test
         @DisplayName("full ref — all components")
         void fullRef() {
-            FrameKey key = FrameKey.of(GLOSS, ENG);
+            CompoundKey key = CompoundKey.of(GLOSS, ENG);
             Selector sel = Selector.byteRange(0, 1024);
             Ref original = Ref.of(ALICE, VERSION_1, key, sel);
 
@@ -221,7 +221,7 @@ class RefTest {
         @Test
         @DisplayName("full ref CBOR round-trip")
         void fullRefCborRoundTrip() {
-            FrameKey key = FrameKey.of(CHAT, "tavern");
+            CompoundKey key = CompoundKey.of(CHAT, "tavern");
             Selector sel = Selector.byteRange(0, 100);
             Ref original = Ref.of(BOB, VERSION_2, key, sel);
 
@@ -234,7 +234,7 @@ class RefTest {
         @Test
         @DisplayName("CBOR binary round-trip (encode to bytes, decode from bytes)")
         void binaryBytesRoundTrip() {
-            Ref original = Ref.of(ALICE, VERSION_1, FrameKey.of(GLOSS, ENG));
+            Ref original = Ref.of(ALICE, VERSION_1, CompoundKey.of(GLOSS, ENG));
             byte[] cborBytes = original.toCborTree(Canonical.Scope.BODY).EncodeToBytes();
             Ref decoded = Ref.fromCborTree(CBORObject.DecodeFromBytes(cborBytes));
 
@@ -285,7 +285,7 @@ class RefTest {
         @Test
         @DisplayName("ref with sememe frame key text round-trip")
         void sememeFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.of(AUTHOR));
+            Ref original = Ref.of(ALICE, CompoundKey.of(AUTHOR));
             String text = original.encodeText();
             Ref decoded = Ref.parse(text);
 
@@ -296,7 +296,7 @@ class RefTest {
         @Test
         @DisplayName("ref with compound frame key text round-trip")
         void compoundFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.of(GLOSS, ENG));
+            Ref original = Ref.of(ALICE, CompoundKey.of(GLOSS, ENG));
             String text = original.encodeText();
             Ref decoded = Ref.parse(text);
 
@@ -306,7 +306,7 @@ class RefTest {
         @Test
         @DisplayName("ref with qualified frame key text round-trip")
         void qualifiedFrame() {
-            Ref original = Ref.of(ALICE, FrameKey.of(CHAT, "tavern"));
+            Ref original = Ref.of(ALICE, CompoundKey.of(CHAT, "tavern"));
             String text = original.encodeText();
             Ref decoded = Ref.parse(text);
 
@@ -316,7 +316,7 @@ class RefTest {
         @Test
         @DisplayName("full ref text round-trip")
         void fullRef() {
-            FrameKey key = FrameKey.of(GLOSS, ENG);
+            CompoundKey key = CompoundKey.of(GLOSS, ENG);
             Selector sel = Selector.byteRange(0, 1024);
             Ref original = Ref.of(ALICE, VERSION_1, key, sel);
             String text = original.encodeText();
@@ -328,7 +328,7 @@ class RefTest {
         @Test
         @DisplayName("text contains expected structural markers")
         void textStructure() {
-            FrameKey key = FrameKey.of(CHAT, "tavern");
+            CompoundKey key = CompoundKey.of(CHAT, "tavern");
             Selector sel = Selector.byteRange(0, 100);
             Ref ref = Ref.of(ALICE, VERSION_1, key, sel);
             String text = ref.encodeText();
@@ -363,8 +363,8 @@ class RefTest {
         @Test
         @DisplayName("equal refs")
         void equalRefs() {
-            Ref a = Ref.of(ALICE, VERSION_1, FrameKey.of(AUTHOR));
-            Ref b = Ref.of(ALICE, VERSION_1, FrameKey.of(AUTHOR));
+            Ref a = Ref.of(ALICE, VERSION_1, CompoundKey.of(AUTHOR));
+            Ref b = Ref.of(ALICE, VERSION_1, CompoundKey.of(AUTHOR));
 
             assertThat(a).isEqualTo(b);
             assertThat(a.hashCode()).isEqualTo(b.hashCode());
@@ -391,15 +391,15 @@ class RefTest {
         @Test
         @DisplayName("different frame keys are not equal")
         void differentFrameKeys() {
-            assertThat(Ref.of(ALICE, FrameKey.of(AUTHOR)))
-                    .isNotEqualTo(Ref.of(ALICE, FrameKey.of(GLOSS)));
+            assertThat(Ref.of(ALICE, CompoundKey.of(AUTHOR)))
+                    .isNotEqualTo(Ref.of(ALICE, CompoundKey.of(GLOSS)));
         }
 
         @Test
         @DisplayName("with vs without frame are not equal")
         void frameVsNot() {
             assertThat(Ref.of(ALICE))
-                    .isNotEqualTo(Ref.of(ALICE, FrameKey.of(AUTHOR)));
+                    .isNotEqualTo(Ref.of(ALICE, CompoundKey.of(AUTHOR)));
         }
     }
 
@@ -541,7 +541,7 @@ class RefTest {
         @Test
         @DisplayName("binary and CBOR produce same ref")
         void binaryMatchesCbor() {
-            Ref original = Ref.of(ALICE, VERSION_1, FrameKey.of(GLOSS, ENG));
+            Ref original = Ref.of(ALICE, VERSION_1, CompoundKey.of(GLOSS, ENG));
 
             // Via binary
             Ref fromBinary = Ref.fromRefBytes(original.toRefBytes());
@@ -555,7 +555,7 @@ class RefTest {
         @Test
         @DisplayName("text and binary produce same ref")
         void textMatchesBinary() {
-            Ref original = Ref.of(ALICE, VERSION_1, FrameKey.of(CHAT, "tavern"));
+            Ref original = Ref.of(ALICE, VERSION_1, CompoundKey.of(CHAT, "tavern"));
 
             Ref fromText = Ref.parse(original.encodeText());
             Ref fromBinary = Ref.fromRefBytes(original.toRefBytes());
@@ -566,7 +566,7 @@ class RefTest {
         @Test
         @DisplayName("all three formats agree")
         void allFormatsAgree() {
-            FrameKey key = FrameKey.of(GLOSS, ENG);
+            CompoundKey key = CompoundKey.of(GLOSS, ENG);
             Selector sel = Selector.byteRange(0, 1024);
             Ref original = Ref.of(BOB, VERSION_2, key, sel);
 

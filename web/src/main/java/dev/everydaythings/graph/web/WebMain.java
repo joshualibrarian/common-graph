@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.web;
 
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.net.InetSocketAddress;
 
@@ -33,7 +33,7 @@ public class WebMain {
 
         // Boot librarian
         System.out.println("Starting in-memory Librarian...");
-        Librarian librarian = Librarian.createInMemory();
+        LibrarianOld librarian = LibrarianOld.createInMemory();
 
         // Start session server (needed for auth token generation)
         librarian.startSessionServer();

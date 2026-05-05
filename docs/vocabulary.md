@@ -2,7 +2,7 @@
 
 **Vocabulary** is the linguistic surface of Common Graph. Every interaction — creating, navigating, querying, computing, customizing — flows through a unified language system where tokens resolve to sememes, and sememes drive action. This system is holistic: it handles all parts of speech, works in any human language, and uses the same resolution mechanism for verbs, nouns, proper names, units, operators, functions, and prepositions.
 
-> This document covers the vocabulary system, token resolution, dispatch, the expression input, and how items expose their linguistic surface. For the semantic backbone (what sememes are, how they're anchored), see [Sememes](sememes.md). For how frames declare vocabulary contributions, see [Frames](frames.md).
+> This document covers the vocabulary system, token resolution, dispatch, the expression input, and how items expose their linguistic surface. For the semantic backbone (what sememes are, how they're anchored), see [Sememes](sememes.md). For how frames declare vocabulary contributions, see [Frames](frames.md). For the architectural picture of how this resolution pipeline serves *every* input context — interactive editors, bridges from external systems, scripted commands, queries — through a single unified entry point, see [Input](input.md).
 
 ## Core Principle: Everything Is Language
 

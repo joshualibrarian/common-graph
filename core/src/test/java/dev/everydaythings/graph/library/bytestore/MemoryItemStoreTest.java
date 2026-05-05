@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.library.bytestore;
 
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
@@ -19,7 +19,7 @@ class MemoryItemStoreTest {
     void storeAndRetrieveManifest() {
         try (var store = SkipListItemStore.create()) {
             ItemID iid = ItemID.fromString("test:item");
-            Manifest m = Manifest.builder().iid(iid).build();
+            ManifestOld m = ManifestOld.builder().iid(iid).build();
 
             // Store
             ContentID vid = store.manifest(m);

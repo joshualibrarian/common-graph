@@ -6,7 +6,7 @@ import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.library.Library;
+import dev.everydaythings.graph.library.LibraryOld;
 import dev.everydaythings.graph.value.IpAddress;
 import dev.everydaythings.graph.value.Quantity;
 import dev.everydaythings.graph.value.Value;
@@ -385,7 +385,7 @@ public final class Literal implements BindingTarget {
      * @param library The library for type resolution (may be null for basic rendering)
      * @return Human-readable representation
      */
-    public String format(Library library) {
+    public String format(LibraryOld library) {
         try {
             // Try to decode as the registered Value type first
             if (library != null && valueType != null) {
@@ -417,7 +417,7 @@ public final class Literal implements BindingTarget {
      * Human-readable string representation showing the decoded payload.
      *
      * <p>Uses generic CBOR rendering only. For rich type-aware formatting,
-     * use {@link #format(Library)} with a library context.
+     * use {@link #format(LibraryOld)} with a library context.
      */
     @Override
     public String toString() {

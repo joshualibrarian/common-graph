@@ -2,19 +2,19 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.FrameRecord;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.frame.FrameRecordOld;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyPipeline;
 import dev.everydaythings.graph.frame.eval.FrameEvaluator;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.eval.Scope;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.parse.ExpressionToken;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.DiscourseHistory;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.FrameAssembler;
@@ -34,9 +34,7 @@ import org.jline.terminal.TerminalBuilder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -70,11 +68,11 @@ public class Eval {
     private static final int MAX_EXPRESSION_DEPTH = 8;
 
     private final LibrarianHandle librarianHandle;
-    private final Item context;
+    private final ItemOld context;
     /** Focused component handle within the context item (inner-to-outer dispatch). */
     private final String focusedComponent;
     /** Session-level item providing outermost vocabulary scope. */
-    private final Item session;
+    private final ItemOld session;
     /** Discourse history for pronoun resolution ("it", "that", "this", "last"). */
     private final DiscourseHistory discourseHistory;
     private final boolean interactive;
@@ -85,8 +83,8 @@ public class Eval {
     /** Frame assembly pipeline — dispatches via onFrameAssembled. */
     private final FrameAssemblyPipeline assemblyPipeline;
 
-    private Eval(LibrarianHandle librarianHandle, Item context, String focusedComponent,
-                 Item session, DiscourseHistory discourseHistory,
+    private Eval(LibrarianHandle librarianHandle, ItemOld context, String focusedComponent,
+                 ItemOld session, DiscourseHistory discourseHistory,
                  boolean interactive, boolean jsonOutput, int depth) {
         this.librarianHandle = librarianHandle;
         this.context = context;
@@ -110,9 +108,9 @@ public class Eval {
 
     public static class Builder {
         private LibrarianHandle librarianHandle;
-        private Item context;
+        private ItemOld context;
         private String focusedComponent;
-        private Item session;
+        private ItemOld session;
         private DiscourseHistory discourseHistory;
         private boolean interactive = true;
         private boolean jsonOutput = false;
@@ -122,12 +120,12 @@ public class Eval {
             return this;
         }
 
-        public Builder librarian(Librarian librarian) {
+        public Builder librarian(LibrarianOld librarian) {
             this.librarianHandle = LibrarianHandle.wrap(librarian);
             return this;
         }
 
-        public Builder context(Item item) {
+        public Builder context(ItemOld item) {
             this.context = item;
             return this;
         }
@@ -139,7 +137,7 @@ public class Eval {
         }
 
         /** Set the session item (outermost dispatch scope). */
-        public Builder session(Item session) {
+        public Builder session(ItemOld session) {
             this.session = session;
             return this;
         }
@@ -470,7 +468,7 @@ public class Eval {
 
                 // Fall back to checking the sememe's contribute() — no hardcoded IID checks
                 if (!isPronoun) {
-                    Optional<Item> item = librarianHandle.get(link.iid());
+                    Optional<ItemOld> item = librarianHandle.get(link.iid());
                     if (item.isPresent() && item.get() instanceof Sememe sememe) {
                         ParseContribution contribution = sememe.contribute(null);
                         isPronoun = contribution.structuralRole() == ParseContribution.StructuralRole.PRONOUN;
@@ -478,9 +476,9 @@ public class Eval {
                 }
 
                 if (isPronoun) {
-                    Optional<Item> item = librarianHandle.get(link.iid());
+                    Optional<ItemOld> item = librarianHandle.get(link.iid());
                     if (item.isPresent() && item.get() instanceof Sememe pronoun) {
-                        Optional<Item> referent = discourseHistory.resolve(pronoun, context);
+                        Optional<ItemOld> referent = discourseHistory.resolve(pronoun, context);
                         if (referent.isPresent()) {
                             result.add(new ResolvedToken.Link(
                                     referent.get().iid(), link.originalToken()));
@@ -502,7 +500,7 @@ public class Eval {
     /**
      * Push an item to discourse history after it was referenced in a result.
      */
-    private void pushToHistory(Item item) {
+    private void pushToHistory(ItemOld item) {
         if (item != null && discourseHistory != null) {
             discourseHistory.push(item);
         }
@@ -806,12 +804,12 @@ public class Eval {
                 .toList();
 
         if (!links.isEmpty()) {
-            Librarian librarian = librarianHandle instanceof LocalLibrarian local
+            LibrarianOld librarian = librarianHandle instanceof LocalLibrarian local
                     ? local.librarian() : null;
             if (librarian != null) {
                 QueryItem queryItem = new QueryItem(librarian, resolved);
                 Set<ItemID> resultIds = queryItem.run();
-                List<Item> resultItems = resultIds.stream()
+                List<ItemOld> resultItems = resultIds.stream()
                         .map(id -> librarianHandle.get(id))
                         .flatMap(Optional::stream)
                         .toList();
@@ -850,18 +848,18 @@ public class Eval {
      * </ol>
      */
     private EvalResult evaluateFrame(SemanticFrame frame) {
-        FrameBody frameBody = toFrameBody(frame);
+        FrameBodyOld frameBody = toFrameBody(frame);
 
         // Context filling: fill unfilled EXPECTS roles from context and signer
         frameBody = fillFromContext(frameBody);
 
-        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+        LibrarianOld librarian = librarianHandle instanceof LocalLibrarian local
                 ? local.librarian() : null;
         if (librarian == null) {
             return EvalResult.error("No librarian available");
         }
 
-        Signer signer = session instanceof Signer s ? s : librarian;
+        SignerOld signer = session instanceof SignerOld s ? s : librarian;
         Scope assemblyScope = Scope.of(librarian, context);
         FrameAssemblyContext ctx = assemblyPipeline.assemble(
                 frameBody, assemblyScope, signer, session);
@@ -905,7 +903,7 @@ public class Eval {
      * and it has at least one binding with user-provided content (not just
      * auto-filled context bindings).
      */
-    private boolean isAssertable(FrameBody body, Librarian librarian) {
+    private boolean isAssertable(FrameBodyOld body, LibrarianOld librarian) {
         if (body == null || body.predicate() == null) return false;
         if (body.frameBindings() == null || body.frameBindings().isEmpty()) return false;
 
@@ -918,7 +916,7 @@ public class Eval {
             ItemID tid = b.targetId();
             // Skip bindings that are just the context item or the signer
             if (tid != null && contextIid != null && tid.equals(contextIid)) continue;
-            if (session instanceof Item s && tid != null && tid.equals(s.iid())) continue;
+            if (session instanceof ItemOld s && tid != null && tid.equals(s.iid())) continue;
             // Found user-provided content
             return true;
         }
@@ -928,11 +926,11 @@ public class Eval {
     /**
      * Persist a frame body and sign it — the default assertion action.
      */
-    private void persistFrame(FrameBody body, Signer signer, Librarian librarian) {
+    private void persistFrame(FrameBodyOld body, SignerOld signer, LibrarianOld librarian) {
         librarian.storeFrame(body);
         if (signer != null && signer.canSign()) {
             try {
-                FrameRecord record = FrameRecord.create(body, signer);
+                FrameRecordOld record = FrameRecordOld.create(body, signer);
                 // Record is stored as part of storeFrame's pipeline
             } catch (Exception e) {
                 logger.warn("Failed to sign frame: {}", e.getMessage());
@@ -947,7 +945,7 @@ public class Eval {
      * the library indexes, and returns the matched items.
      */
     private EvalResult evaluateStructuredQuery(SemanticFrame frame) {
-        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+        LibrarianOld librarian = librarianHandle instanceof LocalLibrarian local
                 ? local.librarian() : null;
         if (librarian == null) {
             return EvalResult.error("Query requires a local librarian");
@@ -969,7 +967,7 @@ public class Eval {
                     new ResolvedToken.Link(queryFrame.verb().iid(), queryFrame.verb().displayToken()));
             QueryItem queryItem = new QueryItem(librarian, terms);
             Set<ItemID> resultIds = queryItem.run();
-            List<Item> resultItems = resultIds.stream()
+            List<ItemOld> resultItems = resultIds.stream()
                     .map(id -> librarianHandle.get(id))
                     .flatMap(Optional::stream)
                     .toList();
@@ -979,7 +977,7 @@ public class Eval {
 
         QueryItem queryItem = new QueryItem(librarian, queryFrame);
         Set<ItemID> resultIds = queryItem.run();
-        List<Item> resultItems = resultIds.stream()
+        List<ItemOld> resultItems = resultIds.stream()
                 .map(id -> librarianHandle.get(id))
                 .flatMap(Optional::stream)
                 .toList();
@@ -995,7 +993,7 @@ public class Eval {
      * Java objects (Item, String, Number, etc.) to BindingTargets.
      * Unmatched args become additional THEME bindings.
      */
-    private FrameBody toFrameBody(SemanticFrame frame) {
+    private FrameBodyOld toFrameBody(SemanticFrame frame) {
         List<Binding> bindings = new ArrayList<>();
 
         for (var entry : frame.bindings().entrySet()) {
@@ -1015,7 +1013,7 @@ public class Eval {
             }
         }
 
-        return new FrameBody(frame.verb().iid(), bindings);
+        return new FrameBodyOld(frame.verb().iid(), bindings);
     }
 
     /**
@@ -1023,7 +1021,7 @@ public class Eval {
      */
     private BindingTarget toBindingTarget(Object value) {
         if (value instanceof SemanticFrame nested) return BindingTarget.frame(toFrameBody(nested));
-        if (value instanceof Item item) return BindingTarget.iid(item.iid());
+        if (value instanceof ItemOld item) return BindingTarget.iid(item.iid());
         if (value instanceof ItemID iid) return BindingTarget.iid(iid);
         if (value instanceof String s) return Literal.ofText(s);
         if (value instanceof Long l) return Literal.ofInteger(l);
@@ -1053,7 +1051,7 @@ public class Eval {
      * from the session's principal. This enables bare commands like "enter" to
      * auto-fill LOCATION from the focused item and AGENT from the user.
      */
-    private FrameBody fillFromContext(FrameBody body) {
+    private FrameBodyOld fillFromContext(FrameBodyOld body) {
         // Resolve the predicate to check its EXPECTS
         Sememe predicate = librarianHandle.get(body.predicate(), Sememe.class).orElse(null);
         if (predicate == null) return body;
@@ -1098,7 +1096,7 @@ public class Eval {
         // Rebuild the body with the additional bindings
         List<Binding> allBindings = new ArrayList<>(body.frameBindings());
         allBindings.addAll(additions);
-        return new FrameBody(body.predicate(), allBindings);
+        return new FrameBodyOld(body.predicate(), allBindings);
     }
 
     /**
@@ -1109,13 +1107,13 @@ public class Eval {
             pushToHistory(created.item());
             return EvalResult.created(created.item(), created.type());
         }
-        if (value instanceof Item item) {
+        if (value instanceof ItemOld item) {
             pushToHistory(item);
             return EvalResult.item(item);
         }
 
         // Wrap with TARGET if a prepositional phrase bound to GOAL was present
-        Optional<Item> prepTarget = frame.itemBinding(ThematicRole.Goal.IID);
+        Optional<ItemOld> prepTarget = frame.itemBinding(ThematicRole.Goal.IID);
         if (prepTarget.isPresent()) {
             return EvalResult.valueWithTarget(value, prepTarget.get());
         }
@@ -1134,11 +1132,11 @@ public class Eval {
 
         return switch (result) {
             case EvalResult.Empty() -> 0;
-            case EvalResult.ItemResult(Item item) -> {
+            case EvalResult.ItemResult(ItemOld item) -> {
                 showItemInfo(item);
                 yield 0;
             }
-            case EvalResult.Created(Item item, Item type) -> {
+            case EvalResult.Created(ItemOld item, ItemOld type) -> {
                 showItemInfo(item);
                 yield 0;
             }
@@ -1146,7 +1144,7 @@ public class Eval {
                 if (value != null) printResult(value);
                 yield 0;
             }
-            case EvalResult.ValueWithTarget(Object value, Item targetItem) -> {
+            case EvalResult.ValueWithTarget(Object value, ItemOld targetItem) -> {
                 // Legacy CLI path: print target info
                 if (value != null) printResult(value);
                 System.out.println("  → target: " + targetItem.displayToken());
@@ -1165,7 +1163,7 @@ public class Eval {
             }
             case EvalResult.QueryResult(var queryItem, var items, var pattern) -> {
                 System.out.println("Query: " + items.size() + " results");
-                for (Item item : items) {
+                for (ItemOld item : items) {
                     System.out.println("  " + item.displayToken() + " (" + item.iid().encodeText() + ")");
                 }
                 yield 0;
@@ -1181,7 +1179,7 @@ public class Eval {
         };
     }
 
-    private void showItemInfo(Item item) {
+    private void showItemInfo(ItemOld item) {
         System.out.println(item.displayToken());
         System.out.println("  IID:  " + item.iid().encodeText());
         System.out.println("  Type: " + item.getClass().getSimpleName());
@@ -1219,7 +1217,7 @@ public class Eval {
         }
 
         // Handle Items - print with label
-        if (value instanceof Item item) {
+        if (value instanceof ItemOld item) {
             String label = item.displayToken();
             System.out.println(label != null ? label : item.iid().encodeText());
             return;
@@ -1307,7 +1305,7 @@ public class Eval {
      * (focused context) to the evaluator. Created fresh for each evaluation.
      */
     private Scope getOrCreateScope() {
-        Librarian librarian = librarianHandle instanceof LocalLibrarian local
+        LibrarianOld librarian = librarianHandle instanceof LocalLibrarian local
                 ? local.librarian() : null;
         if (librarian != null && context != null) {
             return Scope.of(librarian, context);
@@ -1351,10 +1349,10 @@ public class Eval {
     public sealed interface EvalResult {
         record Empty() implements EvalResult {}
         record Value(Object value) implements EvalResult {}
-        record ItemResult(Item item) implements EvalResult {}
+        record ItemResult(ItemOld item) implements EvalResult {}
         /** An item was created — session should NOT navigate the current view. */
-        record Created(Item item, Item type) implements EvalResult {}
-        record ValueWithTarget(Object value, Item targetItem) implements EvalResult {}
+        record Created(ItemOld item, ItemOld type) implements EvalResult {}
+        record ValueWithTarget(Object value, ItemOld targetItem) implements EvalResult {}
         record Error(String message) implements EvalResult {}
         /**
          * CandidateTokens survived all the way to dispatch — user must disambiguate.
@@ -1366,16 +1364,16 @@ public class Eval {
                                           List<dev.everydaythings.graph.language.Posting> candidates) {}
         }
         /** Query results — an incomplete frame pattern matched against the library. */
-        record QueryResult(QueryItem queryItem, List<Item> items, Set<ItemID> pattern) implements EvalResult {}
+        record QueryResult(QueryItem queryItem, List<ItemOld> items, Set<ItemID> pattern) implements EvalResult {}
 
         static EvalResult empty() { return new Empty(); }
         static EvalResult value(Object v) { return new Value(v); }
-        static EvalResult item(Item i) { return new ItemResult(i); }
-        static EvalResult created(Item i, Item type) { return new Created(i, type); }
-        static EvalResult valueWithTarget(Object v, Item t) { return new ValueWithTarget(v, t); }
+        static EvalResult item(ItemOld i) { return new ItemResult(i); }
+        static EvalResult created(ItemOld i, ItemOld type) { return new Created(i, type); }
+        static EvalResult valueWithTarget(Object v, ItemOld t) { return new ValueWithTarget(v, t); }
         static EvalResult error(String msg) { return new Error(msg); }
         static EvalResult ambiguous(List<Ambiguous.UnresolvedToken> tokens) { return new Ambiguous(tokens); }
-        static EvalResult query(QueryItem qi, List<Item> items, Set<ItemID> pattern) { return new QueryResult(qi, items, pattern); }
+        static EvalResult query(QueryItem qi, List<ItemOld> items, Set<ItemID> pattern) { return new QueryResult(qi, items, pattern); }
 
         default boolean isSuccess() {
             return !(this instanceof Error) && !(this instanceof Ambiguous);
@@ -1389,7 +1387,7 @@ public class Eval {
     /**
      * Run a one-shot command with a local librarian.
      */
-    public static int run(Librarian librarian, List<String> args) {
+    public static int run(LibrarianOld librarian, List<String> args) {
         return builder()
                 .librarian(librarian)
                 .build()

@@ -2,22 +2,20 @@ package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.parse.ExpressionToken.*;
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
+import dev.everydaythings.graph.item.id.CompoundKey;
+import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.value.Operator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,9 +39,9 @@ class InputControllerTest {
 
     private static Posting testPosting(String token, ItemID scope, ItemID target, float weight) {
         List<FrameToken> quals = scope != null
-                ? List.of(new FrameKey.Sememe(scope)) : List.of();
-        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
-                FrameBody.homeBinding(target),
+                ? List.of(new CompoundKey.Sememe(scope)) : List.of();
+        FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBodyOld.homeBinding(target),
                 new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, weight);

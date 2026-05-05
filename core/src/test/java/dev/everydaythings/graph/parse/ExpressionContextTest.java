@@ -1,15 +1,15 @@
 package dev.everydaythings.graph.parse;
 
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.parse.ExpressionToken.RefToken;
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
+import dev.everydaythings.graph.item.id.CompoundKey;
+import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.*;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -40,20 +40,20 @@ class ExpressionContextTest {
 
     private static Posting testPosting(String token, ItemID scope, ItemID target, float weight) {
         List<FrameToken> quals = scope != null
-                ? List.of(new FrameKey.Sememe(scope)) : List.of();
-        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
-                FrameBody.homeBinding(target),
+                ? List.of(new CompoundKey.Sememe(scope)) : List.of();
+        FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBodyOld.homeBinding(target),
                 new Binding(ThematicRole.Value.IID, quals, Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, weight);
     }
 
-    private Librarian lib;
-    private Function<ItemID, Optional<Item>> resolver;
+    private LibrarianOld lib;
+    private Function<ItemID, Optional<ItemOld>> resolver;
 
     @BeforeEach
     void setUp(@TempDir Path testDir) {
-        lib = Librarian.open(testDir);
+        lib = LibrarianOld.open(testDir);
         resolver = iid -> lib.get(iid);
     }
 

@@ -1,9 +1,7 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.policy.PolicySet;
-import dev.everydaythings.graph.crypt.Algorithm;
-import dev.everydaythings.graph.crypt.EncryptionPublicKey;
 
 import java.util.List;
 
@@ -25,21 +23,21 @@ public interface EncryptionContext {
 
     /** No encryption — all frames stored cleartext. */
     EncryptionContext NONE = new EncryptionContext() {
-        @Override public boolean shouldEncrypt(FrameKey key) { return false; }
-        @Override public List<EncryptionPublicKey> recipients(FrameKey key) { return List.of(); }
+        @Override public boolean shouldEncrypt(CompoundKey key) { return false; }
+        @Override public List<EncryptionPublicKey> recipients(CompoundKey key) { return List.of(); }
         @Override public Algorithm.Aead aeadAlgorithm() { return Algorithm.Aead.AES_GCM_256; }
     };
 
     /**
      * Should the frame with this key be encrypted?
      */
-    boolean shouldEncrypt(FrameKey key);
+    boolean shouldEncrypt(CompoundKey key);
 
     /**
      * The recipients for encrypting the frame with this key.
-     * Only called when {@link #shouldEncrypt(FrameKey)} returns true.
+     * Only called when {@link #shouldEncrypt(CompoundKey)} returns true.
      */
-    List<EncryptionPublicKey> recipients(FrameKey key);
+    List<EncryptionPublicKey> recipients(CompoundKey key);
 
     /**
      * The AEAD algorithm to use. Default: AES-256-GCM.
@@ -61,8 +59,8 @@ public interface EncryptionContext {
     static EncryptionContext allFrames(List<EncryptionPublicKey> recipients, Algorithm.Aead aead) {
         List<EncryptionPublicKey> r = List.copyOf(recipients);
         return new EncryptionContext() {
-            @Override public boolean shouldEncrypt(FrameKey key) { return !r.isEmpty(); }
-            @Override public List<EncryptionPublicKey> recipients(FrameKey key) { return r; }
+            @Override public boolean shouldEncrypt(CompoundKey key) { return !r.isEmpty(); }
+            @Override public List<EncryptionPublicKey> recipients(CompoundKey key) { return r; }
             @Override public Algorithm.Aead aeadAlgorithm() { return aead; }
         };
     }
@@ -85,8 +83,8 @@ public interface EncryptionContext {
                 ? Algorithm.Aead.valueOf(policy.algorithm())
                 : Algorithm.Aead.AES_GCM_256;
         return new EncryptionContext() {
-            @Override public boolean shouldEncrypt(FrameKey key) { return !r.isEmpty(); }
-            @Override public List<EncryptionPublicKey> recipients(FrameKey key) { return r; }
+            @Override public boolean shouldEncrypt(CompoundKey key) { return !r.isEmpty(); }
+            @Override public List<EncryptionPublicKey> recipients(CompoundKey key) { return r; }
             @Override public Algorithm.Aead aeadAlgorithm() { return aead; }
         };
     }

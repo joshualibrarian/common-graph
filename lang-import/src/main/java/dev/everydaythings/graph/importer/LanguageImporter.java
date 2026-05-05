@@ -1,14 +1,12 @@
 package dev.everydaythings.graph.importer;
 
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.FrameRecord;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.frame.FrameRecordOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.importer.WordNetImporter.*;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.io.IOException;
 import java.util.*;
@@ -37,9 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class LanguageImporter {
 
-    protected final Librarian librarian;
+    protected final LibrarianOld librarian;
 
-    protected LanguageImporter(Librarian librarian) {
+    protected LanguageImporter(LibrarianOld librarian) {
         this.librarian = librarian;
     }
 
@@ -81,7 +79,7 @@ public abstract class LanguageImporter {
      * @param maxSynsets Maximum synsets to process (0 = unlimited)
      * @return Import statistics
      */
-    public ImportStats importLanguage(Language language, Signer signer, int maxSynsets) {
+    public ImportStats importLanguage(Language language, SignerOld signer, int maxSynsets) {
         long startTime = System.currentTimeMillis();
 
         Map<String, List<UniMorphReader.Entry>> uniMorphData =
@@ -166,7 +164,7 @@ public abstract class LanguageImporter {
     }
 
     /** Import all data (no synset limit). */
-    public ImportStats importLanguage(Language language, Signer signer) {
+    public ImportStats importLanguage(Language language, SignerOld signer) {
         return importLanguage(language, signer, 0);
     }
 
@@ -179,7 +177,7 @@ public abstract class LanguageImporter {
      */
     protected void storeLexemeFrame(ItemID sememeId, String word, ItemID pos,
                                      ItemID feature, float weight) {
-        FrameBody body = FrameBody.builder(CoreVocabulary.Lexeme.IID)
+        FrameBodyOld body = FrameBodyOld.builder(CoreVocabulary.Lexeme.IID)
                 .bind(ThematicRole.Theme.IID, sememeId)
                 .bind(ThematicRole.Value.IID)
                     .qualified(languageId(), pos, feature)
@@ -226,14 +224,14 @@ public abstract class LanguageImporter {
      * Build a LEXEME frame for an inflected form.
      * Qualifiers: [language, POS, feature1, feature2, ...]
      */
-    private FrameBody buildInflectedLexemeFrame(ItemID sememeId, String form,
-                                                 ItemID pos, Set<ItemID> features) {
+    private FrameBodyOld buildInflectedLexemeFrame(ItemID sememeId, String form,
+                                                   ItemID pos, Set<ItemID> features) {
         List<ItemID> quals = new ArrayList<>();
         quals.add(languageId());
         quals.add(pos);
         quals.addAll(features);
 
-        return FrameBody.builder(CoreVocabulary.Lexeme.IID)
+        return FrameBodyOld.builder(CoreVocabulary.Lexeme.IID)
                 .bind(ThematicRole.Theme.IID, sememeId)
                 .bind(ThematicRole.Value.IID)
                     .qualified(quals.toArray(new ItemID[0]))
@@ -273,7 +271,7 @@ public abstract class LanguageImporter {
     // SEMEME RESOLUTION
     // ==================================================================================
 
-    protected Sememe resolveSememe(SynsetRecord synset, Signer signer) {
+    protected Sememe resolveSememe(SynsetRecord synset, SignerOld signer) {
         Sememe existing = findExistingSememe(synset);
         if (existing != null) return existing;
         return createSememe(synset, signer);
@@ -283,7 +281,7 @@ public abstract class LanguageImporter {
         return null;
     }
 
-    protected Sememe createSememe(SynsetRecord synset, Signer signer) {
+    protected Sememe createSememe(SynsetRecord synset, SignerOld signer) {
         String canonicalKey = synset.ili() != null && !synset.ili().isEmpty()
                 ? "ili:" + synset.ili()
                 : sourcePrefix() + ":" + synset.id();
@@ -314,10 +312,10 @@ public abstract class LanguageImporter {
      * <p>Creates a frame like {@code OEWN_ID { THEME → sememe, VALUE → "oewn-00001740-v" }}.
      * This enables cross-referencing: VerbNet can find sememes by their WordNet sense keys.
      */
-    protected void storeSourceIdFrame(Sememe sememe, ItemID predicate, String sourceId, Signer signer) {
+    protected void storeSourceIdFrame(Sememe sememe, ItemID predicate, String sourceId, SignerOld signer) {
         if (librarian == null || sourceId == null || sourceId.isBlank()) return;
 
-        FrameBody body = FrameBody.builder(predicate)
+        FrameBodyOld body = FrameBodyOld.builder(predicate)
                 .bind(ThematicRole.Theme.IID, sememe.iid())
                 .bind(ThematicRole.Value.IID, sourceId)
                 .build();
@@ -358,7 +356,7 @@ public abstract class LanguageImporter {
     // ==================================================================================
 
     protected int createRelations(SynsetRecord synset, Sememe source,
-                                  Map<String, Sememe> synsetMap, Signer signer) {
+                                  Map<String, Sememe> synsetMap, SignerOld signer) {
         int count = 0;
 
         for (RelationRecord rel : synset.relations()) {
@@ -368,11 +366,11 @@ public abstract class LanguageImporter {
             Sememe target = synsetMap.get(rel.target());
             if (target == null) continue;
 
-            FrameBody body = FrameBody.builder(predicate)
+            FrameBodyOld body = FrameBodyOld.builder(predicate)
                     .bind(ThematicRole.Theme.IID, source.iid())
                     .bind(ThematicRole.Goal.IID, target.iid())
                     .build();
-            FrameRecord record = FrameRecord.create(body, signer);
+            FrameRecordOld record = FrameRecordOld.create(body, signer);
 
             if (librarian != null) {
                 librarian.storeFrame(body);

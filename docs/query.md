@@ -4,6 +4,8 @@ In Common Graph, a query is not a separate kind of thing.  A query is a **frame*
 
 This document is an architectural reference for the query model.  Parts of it are settled; parts are still being worked out.  Flagged as such where relevant.
 
+> Queries are also input.  A user typing a question, a SPARQL expression, a miniKanren run-form, an SQL `SELECT` — all flow through the same `eval()` pipeline that handles every other input event in the system, and produce query frames as their output.  See [Input](input.md) for the unified-input architecture and the multi-language input/query angle.
+
 ## The core claim
 
 A binding determines which values match it.  A specific value matches only itself.  A range matches anything in the range.  A comparison matches anything satisfying the comparison.  `ANY` matches anything.  Each of these is the same kind of thing, differing only in how many values it admits.  A frame becomes a query when at least one of its bindings admits more than one matching value.

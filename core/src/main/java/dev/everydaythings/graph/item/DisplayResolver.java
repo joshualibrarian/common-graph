@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
@@ -32,7 +32,7 @@ public final class DisplayResolver {
      * @param path the path to resolve (e.g., "/readme")
      * @return display token for the component, or empty if not found
      */
-    public static Optional<String> resolvePathDisplayToken(Item item, String path) {
+    public static Optional<String> resolvePathDisplayToken(ItemOld item, String path) {
         if (path == null || path.isEmpty()) {
             return Optional.of(item.displayToken());
         }
@@ -60,7 +60,7 @@ public final class DisplayResolver {
      * @param path the path to resolve (e.g., "/readme")
      * @return emoji for the component, or empty if not found
      */
-    public static Optional<String> resolvePathEmoji(Item item, String path) {
+    public static Optional<String> resolvePathEmoji(ItemOld item, String path) {
         if (path == null || path.isEmpty()) {
             return Optional.of(item.emoji());
         }
@@ -84,7 +84,7 @@ public final class DisplayResolver {
     /**
      * Resolve emoji from frame metadata with semantic type fallback.
      */
-    public static String resolveFrameEmoji(Item item, Frame frame) {
+    public static String resolveFrameEmoji(ItemOld item, FrameOld frame) {
         if (frame == null) return "\uD83D\uDCE6";
         // TODO: resolve glyph from type item's scene metadata
         return frame.emoji();
@@ -128,11 +128,11 @@ public final class DisplayResolver {
     // Path Icon & Color Resolution
     // ==================================================================================
 
-    public static Optional<String> resolvePathIconResource(Item item, String path) {
+    public static Optional<String> resolvePathIconResource(ItemOld item, String path) {
         return Optional.empty();
     }
 
-    public static Optional<Color> resolvePathTypeColor(Item item, String path) {
+    public static Optional<Color> resolvePathTypeColor(ItemOld item, String path) {
         return Optional.empty();
     }
 
@@ -140,15 +140,15 @@ public final class DisplayResolver {
     // Icon, Color Category, Subtitle
     // ==================================================================================
 
-    public static ItemID icon(Item item) {
+    public static ItemID icon(ItemOld item) {
         Implements impl = item.getClass().getAnnotation(Implements.class);
         if (impl != null) {
             return ItemID.fromString(impl.value());
         }
-        return ItemID.fromString(Item.KEY);
+        return ItemID.fromString(ItemOld.KEY);
     }
 
-    public static String colorCategory(Item item) {
+    public static String colorCategory(ItemOld item) {
         String name = item.getClass().getSimpleName().toLowerCase();
         if (name.contains("librarian")) return "librarian";
         if (name.contains("principal")) return "principal";
@@ -156,7 +156,7 @@ public final class DisplayResolver {
         return "item";
     }
 
-    public static String displaySubtitle(Item item) {
+    public static String displaySubtitle(ItemOld item) {
         return item.iid() != null ? item.iid().toString().substring(0, Math.min(20, item.iid().toString().length())) + "..." : "";
     }
 
@@ -167,7 +167,7 @@ public final class DisplayResolver {
     /**
      * Get the display information for an item.
      */
-    public static DisplayInfo displayInfo(Item item) {
+    public static DisplayInfo displayInfo(ItemOld item) {
         return DisplayInfo.builder()
                 .name(findDisplayName(item))
                 .typeName(findTypeName(item))
@@ -191,11 +191,11 @@ public final class DisplayResolver {
      *   <li>Use the class simple name</li>
      * </ol>
      */
-    public static String findDisplayName(Item item) {
-        for (FrameKey key : new FrameKey[]{
-                FrameKey.of(ItemID.fromString(RoutingVocabulary.Name.KEY)),
-                FrameKey.of(ItemID.fromString(CoreVocabulary.Title.KEY)),
-                FrameKey.of(ItemID.fromString(CoreVocabulary.HashKey.KEY))}) {
+    public static String findDisplayName(ItemOld item) {
+        for (CompoundKey key : new CompoundKey[]{
+                CompoundKey.of(ItemID.fromString(RoutingVocabulary.Name.KEY)),
+                CompoundKey.of(ItemID.fromString(CoreVocabulary.Title.KEY)),
+                CompoundKey.of(ItemID.fromString(CoreVocabulary.HashKey.KEY))}) {
             var opt = item.frames().getLive(key, Object.class);
             if (opt.isPresent()) {
                 Object value = opt.get();
@@ -210,7 +210,7 @@ public final class DisplayResolver {
     /**
      * Find the type name from the @Implements annotation.
      */
-    public static String findTypeName(Item item) {
+    public static String findTypeName(ItemOld item) {
         Implements impl = item.getClass().getAnnotation(Implements.class);
         if (impl != null) {
             String key = impl.value();
@@ -228,14 +228,14 @@ public final class DisplayResolver {
     /**
      * Find the type color.
      */
-    public static Color findTypeColor(Item item) {
+    public static Color findTypeColor(ItemOld item) {
         return Color.rgb(120, 120, 140); // Default gray
     }
 
     /**
      * Find the icon text (glyph).
      */
-    public static String findIconText(Item item) {
+    public static String findIconText(ItemOld item) {
         // TODO: resolve glyph from type item's scene metadata
         return "\uD83D\uDCE6";
     }

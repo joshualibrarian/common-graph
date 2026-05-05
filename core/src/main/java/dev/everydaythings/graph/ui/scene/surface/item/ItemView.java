@@ -3,22 +3,21 @@ package dev.everydaythings.graph.ui.scene.surface.item;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.dispatch.Vocabulary;
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ViewHandle;
 import dev.everydaythings.graph.item.HandleResolver;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.TreeLink;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.parse.CompletionEntry;
 import dev.everydaythings.graph.parse.ExpressionToken;
 import dev.everydaythings.graph.parse.InputSnapshot;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -192,13 +191,13 @@ public class ItemView {
 
     /** Item emoji for icon display. */
     public String itemEmoji() {
-        Item ctx = item();
+        ItemOld ctx = item();
         return ctx != null && ctx.emoji() != null ? ctx.emoji() : "";
     }
 
     /** Type display name (resolved from @Implements key). */
     public String typeName() {
-        Item ctx = item();
+        ItemOld ctx = item();
         if (ctx == null) return "";
         ItemID typeId = typeIdOf(ctx);
         if (typeId == null) return ctx.displayToken();
@@ -208,9 +207,9 @@ public class ItemView {
 
     /** Distinguishing label from HandleResolver (null if none). */
     public String handleLabel() {
-        Item ctx = item();
+        ItemOld ctx = item();
         if (ctx == null) return null;
-        Collection<Item> siblings = siblingsProvider != null
+        Collection<ItemOld> siblings = siblingsProvider != null
                 ? siblingsProvider.get() : List.of();
         return HandleResolver.resolve(ctx, siblings);
     }
@@ -248,10 +247,10 @@ public class ItemView {
 
     /** Summary of who is present — e.g., "👤 2 present". */
     public String presenceSummary() {
-        List<FrameBody> present = presenceFrames();
+        List<FrameBodyOld> present = presenceFrames();
         if (present.isEmpty()) {
             // Fall back to counting ephemeral frames
-            List<FrameBody> ephemeral = ephemeralFrames();
+            List<FrameBodyOld> ephemeral = ephemeralFrames();
             if (ephemeral.isEmpty()) return "";
             return "\uD83D\uDC64 " + ephemeral.size() + " active";
         }
@@ -259,13 +258,13 @@ public class ItemView {
     }
 
     /** Get durable PRESENT frames on the current item. */
-    private List<FrameBody> presenceFrames() {
-        Item resolved = item();
+    private List<FrameBodyOld> presenceFrames() {
+        ItemOld resolved = item();
         if (resolved == null || resolved.frames() == null) return List.of();
         ItemID presentPredicate = ItemID.fromString(
                 dev.everydaythings.graph.language.PresenceVocabulary.Present.KEY);
-        List<FrameBody> result = new ArrayList<>();
-        for (Frame f : resolved.frames()) {
+        List<FrameBodyOld> result = new ArrayList<>();
+        for (FrameOld f : resolved.frames()) {
             if (f.body() != null && presentPredicate.equals(f.body().predicate())) {
                 result.add(f.body());
             }
@@ -323,7 +322,7 @@ public class ItemView {
         if (inputSnapshot != null) return null;
 
         // Empty prompt placeholder
-        Item ctx = item();
+        ItemOld ctx = item();
         String p = ctx != null
                 ? (ctx.emoji() != null ? ctx.emoji() + " " : "") + ctx.displayToken() + "> "
                 : "> ";
@@ -341,8 +340,8 @@ public class ItemView {
     private Ref root;
     private Ref context;
     private final List<Ref> history = new ArrayList<>();
-    private final Function<ItemID, Optional<Item>> resolver;
-    private Supplier<Collection<Item>> siblingsProvider;
+    private final Function<ItemID, Optional<ItemOld>> resolver;
+    private Supplier<Collection<ItemOld>> siblingsProvider;
 
     /**
      * Provider for ephemeral frames on the current item (presence, cursors, etc.).
@@ -355,7 +354,7 @@ public class ItemView {
 
     /** Functional interface for ephemeral frame access — avoids coupling to LibrarianHandle. */
     public interface EphemeralFrameProvider {
-        List<FrameBody> ephemeralFrames(ItemID itemId);
+        List<FrameBodyOld> ephemeralFrames(ItemID itemId);
         void onEphemeralChanged(ItemID itemId, Runnable listener);
         void removeEphemeralListener(ItemID itemId, Runnable listener);
     }
@@ -366,9 +365,9 @@ public class ItemView {
     }
 
     /** Get ephemeral frames for the currently viewed item. */
-    public List<FrameBody> ephemeralFrames() {
+    public List<FrameBodyOld> ephemeralFrames() {
         if (ephemeralProvider == null) return List.of();
-        Item current = item();
+        ItemOld current = item();
         if (current == null) return List.of();
         return ephemeralProvider.ephemeralFrames(current.iid());
     }
@@ -404,7 +403,7 @@ public class ItemView {
     // Constructor
     // ==================================================================================
 
-    public ItemView(Item item, Function<ItemID, Optional<Item>> resolver) {
+    public ItemView(ItemOld item, Function<ItemID, Optional<ItemOld>> resolver) {
         this.root = Ref.of(item.iid());
         this.context = this.root;
         this.resolver = resolver;
@@ -412,7 +411,7 @@ public class ItemView {
     }
 
     /** Currently watched item (for unsubscribing on navigation). */
-    private transient Item watchedItem;
+    private transient ItemOld watchedItem;
 
     /**
      * Subscribe to the current item's frame changes.
@@ -424,7 +423,7 @@ public class ItemView {
             watchedItem.frames().onChanged(null);
         }
 
-        Item current = item();
+        ItemOld current = item();
         watchedItem = current;
 
         if (current != null && current.frames() != null) {
@@ -448,7 +447,7 @@ public class ItemView {
             ephemeralProvider.removeEphemeralListener(watchedEphemeralItem, ephemeralListener);
         }
 
-        Item current = item();
+        ItemOld current = item();
         if (current == null || ephemeralProvider == null) {
             watchedEphemeralItem = null;
             ephemeralListener = null;
@@ -482,7 +481,7 @@ public class ItemView {
     public Ref root() { return root; }
     public Ref context() { return context; }
 
-    public Item item() {
+    public ItemOld item() {
         return resolver.apply(context.target()).orElse(null);
     }
 
@@ -503,7 +502,7 @@ public class ItemView {
         changed();
     }
 
-    public void select(Item item) {
+    public void select(ItemOld item) {
         if (item == null) return;
         select(Ref.of(item.iid()));
     }
@@ -520,7 +519,7 @@ public class ItemView {
     }
     public void clearFeedback() { this.feedbackText = null; this.feedbackIsError = false; }
     public void setRenderInputInSurface(boolean render) { this.renderInputInSurface = render; }
-    public void setSiblingsProvider(Supplier<Collection<Item>> provider) {
+    public void setSiblingsProvider(Supplier<Collection<ItemOld>> provider) {
         this.siblingsProvider = provider;
     }
     public void setStateStore(Map<String, Map<String, Object>> store) { this.stateStore = store; }
@@ -553,19 +552,19 @@ public class ItemView {
     // ==================================================================================
 
     private SceneNode selectedNodeContent() {
-        Item resolved = item();
+        ItemOld resolved = item();
         if (resolved == null) return SceneNode.ofText("");
 
         // Try as an ItemID — shows the item's scene
         try {
             ItemID iid = ItemID.fromString(selectedTreeNodeId);
-            Optional<Item> selected = resolver.apply(iid);
+            Optional<ItemOld> selected = resolver.apply(iid);
             if (selected.isPresent()) return itemContent(selected.get());
         } catch (Exception ignored) {}
 
         // Try as a frame reference — shows the frame's bindings
         if (resolved.frames() != null) {
-            for (Frame frame : resolved.frames()) {
+            for (FrameOld frame : resolved.frames()) {
                 String id = "frame:" + (frame.bodyHash() != null
                         ? frame.bodyHash().displayAtWidth(12) : frame.frameKey().toString());
                 if (id.equals(selectedTreeNodeId)) {
@@ -577,7 +576,7 @@ public class ItemView {
         return itemContent();
     }
 
-    private SceneNode buildFrameDetail(Frame frame, Item resolved) {
+    private SceneNode buildFrameDetail(FrameOld frame, ItemOld resolved) {
         SceneNode detail = SceneNode.vertical().gap("0.5em");
 
         // Heading — resolved predicate name
@@ -595,7 +594,7 @@ public class ItemView {
                     })
                     .orElse(null);
         };
-        ItemID typeId = frame.type() != null ? frame.type() : FrameBody.TYPE_ID;
+        ItemID typeId = frame.type() != null ? frame.type() : FrameBodyOld.TYPE_ID;
         if (frame.body() != null) {
             detail.add(SceneNode.ofText("(inspector TBD)"));
         } else if (frame.instance() instanceof Canonical canonical) {
@@ -614,7 +613,7 @@ public class ItemView {
      * Meta content — manifest body + record rendered via CborInspector.
      */
     private SceneNode metaContent() {
-        Item resolved = item();
+        ItemOld resolved = item();
         if (resolved == null) return SceneNode.ofText("No item").classes("muted");
 
         SceneNode meta = SceneNode.vertical().gap("0.5em");
@@ -643,7 +642,7 @@ public class ItemView {
         }
 
         // Manifest
-        Manifest mf = resolved.current();
+        ManifestOld mf = resolved.current();
         if (mf != null) {
             // VID
             if (mf.vid() != null) {
@@ -681,7 +680,7 @@ public class ItemView {
             Function<ItemID, String> resolver = iid -> {
                 if (resolved.itemLibrarian() == null) return null;
                 return resolved.itemLibrarian().get(iid)
-                        .map(Item::displayToken).orElse(null);
+                        .map(ItemOld::displayToken).orElse(null);
             };
             meta.add(SceneNode.ofText("raw manifest:").fontWeight("bold").classes("muted"));
             meta.add(SceneNode.ofText("(inspector TBD)"));
@@ -716,9 +715,9 @@ public class ItemView {
         return row;
     }
 
-    private SceneNode itemContent(Item resolved) {
+    private SceneNode itemContent(ItemOld resolved) {
         Class<?> clazz = resolved.getClass();
-        if (clazz != Item.class && SceneCompiler.has2DAnnotation(clazz)) {
+        if (clazz != ItemOld.class && SceneCompiler.has2DAnnotation(clazz)) {
             try {
                 SceneNode content = SceneCompiler.compile(resolved);
                 if (content != null) return content;
@@ -728,12 +727,12 @@ public class ItemView {
     }
 
     private SceneNode itemContent() {
-        Item resolved = item();
+        ItemOld resolved = item();
         if (resolved == null) return SceneNode.ofText("");
         return itemContent(resolved);
     }
 
-    private SceneNode defaultItemSummary(Item resolved) {
+    private SceneNode defaultItemSummary(ItemOld resolved) {
         SceneNode s = SceneNode.vertical().gap("0.5em");
         s.add(SceneNode.ofSememe(resolved.iid()).fontWeight("bold").classes("heading"));
         if (resolved.iid() != null)
@@ -750,8 +749,8 @@ public class ItemView {
     // ==================================================================================
 
     private SceneNode helpContent() {
-        Item ctx = item();
-        Librarian lib = ctx != null ? ctx.itemLibrarian() : null;
+        ItemOld ctx = item();
+        LibrarianOld lib = ctx != null ? ctx.itemLibrarian() : null;
         SceneNode help = SceneNode.vertical().gap("0.5em");
         if (ctx != null) help.add(scopeSection(ctx.iid(), ctx.vocabulary()));
         if (lib != null) help.add(scopeSection(lib.iid(), lib.vocabulary()));
@@ -810,7 +809,7 @@ public class ItemView {
         String emoji = null;
         if (token instanceof ExpressionToken.RefToken ref && resolver != null) {
             try {
-                Optional<Item> it = resolver.apply(ref.target());
+                Optional<ItemOld> it = resolver.apply(ref.target());
                 if (it.isPresent()) emoji = it.get().emoji();
             } catch (Exception ignored) {}
         }
@@ -862,19 +861,19 @@ public class ItemView {
     }
 
     private void buildFramesTree() {
-        Item resolved = item();
+        ItemOld resolved = item();
         if (resolved == null) { treeNav = null; treeContentNode = null; return; }
 
         // Durable frames from the item's EndorsementsTable
         List<FrameNode> durableNodes = new ArrayList<>();
         if (resolved.frames() != null) {
-            for (Frame f : resolved.frames()) durableNodes.add(new FrameNode(f, resolved));
+            for (FrameOld f : resolved.frames()) durableNodes.add(new FrameNode(f, resolved));
         }
 
         // Ephemeral frames from the Librarian's in-memory store
         List<FrameNode> ephemeralNodes = new ArrayList<>();
-        List<FrameBody> ephemeral = ephemeralFrames();
-        for (FrameBody body : ephemeral) {
+        List<FrameBodyOld> ephemeral = ephemeralFrames();
+        for (FrameBodyOld body : ephemeral) {
             ephemeralNodes.add(new FrameNode(body, resolved));
         }
 
@@ -893,7 +892,7 @@ public class ItemView {
     }
 
     private void buildVersionsTree() {
-        Item resolved = item();
+        ItemOld resolved = item();
         String vid = resolved != null && resolved.base() != null
                 ? resolved.base().displayAtWidth(16) : "?";
         FrameNode r = new FrameNode("Versions", "\uD83D\uDCC2", "group:versions",
@@ -906,9 +905,9 @@ public class ItemView {
     // Helpers
     // ==================================================================================
 
-    static ItemID typeIdOf(Item item) {
+    static ItemID typeIdOf(ItemOld item) {
         try {
-            return Item.idOf(item.getClass());
+            return ItemOld.idOf(item.getClass());
         } catch (IllegalArgumentException e) {
             return item.iid();
         }
@@ -958,7 +957,7 @@ public class ItemView {
             }
             try {
                 ItemID iid = ItemID.fromString(target);
-                Optional<Item> item = resolver.apply(iid);
+                Optional<ItemOld> item = resolver.apply(iid);
                 if (item.isPresent()) {
                     select(Ref.of(iid));
                     return true;
@@ -982,7 +981,7 @@ public class ItemView {
     @Log4j2
     static class FrameNode {
         private final String label, emoji, id;
-        private final Frame frame;
+        private final FrameOld frame;
         private final List<FrameNode> children;
 
         FrameNode(String label, String emoji, String id, List<FrameNode> children) {
@@ -990,7 +989,7 @@ public class ItemView {
             this.frame = null; this.children = children;
         }
 
-        FrameNode(Frame frame, Item item) {
+        FrameNode(FrameOld frame, ItemOld item) {
             this.frame = frame;
             this.emoji = "\uD83D\uDCCB";
             this.id = "frame:" + (frame.bodyHash() != null
@@ -1001,11 +1000,11 @@ public class ItemView {
         }
 
         /** Construct from an ephemeral FrameBody (no Frame wrapper, no body hash). */
-        FrameNode(FrameBody body, Item item) {
+        FrameNode(FrameBodyOld body, ItemOld item) {
             this.frame = null;
             this.emoji = "\u26A1";  // ⚡ lightning bolt for ephemeral
             this.id = "ephemeral:" + body.predicate().encodeText();
-            Librarian lib = item.itemLibrarian();
+            LibrarianOld lib = item.itemLibrarian();
             if (lib != null) {
                 this.label = "\u26A1 " + HandleResolver.labelForFrame(body, item.iid(), lib);
             } else {
@@ -1018,17 +1017,17 @@ public class ItemView {
         String emoji() { return emoji; }
         String id() { return id; }
         List<FrameNode> children() { return children; }
-        Frame frame() { return frame; }
+        FrameOld frame() { return frame; }
 
         private static final int MAX_LABEL_LENGTH = 50;
 
-        private static String buildSummaryLabel(Frame frame, Item item) {
-            FrameBody body = frame.body();
+        private static String buildSummaryLabel(FrameOld frame, ItemOld item) {
+            FrameBodyOld body = frame.body();
             if (body == null) {
                 return truncate(resolveFrameKeyLabel(frame, item));
             }
 
-            Librarian lib = item.itemLibrarian();
+            LibrarianOld lib = item.itemLibrarian();
             if (lib != null) {
                 return truncate(HandleResolver.labelForFrame(body, item.iid(), lib));
             }
@@ -1049,7 +1048,7 @@ public class ItemView {
          * Resolves sememe tokens to display names, keeps literal tokens as-is.
          * Never returns raw hashes.
          */
-        private static String resolveFrameKeyLabel(Frame frame, Item item) {
+        private static String resolveFrameKeyLabel(FrameOld frame, ItemOld item) {
             // Try the frame type first (same IID as the head sememe, but may be set even without body)
             if (frame.type() != null) {
                 String r = item.resolveDisplayToken(frame.type());
@@ -1061,18 +1060,18 @@ public class ItemView {
             }
 
             // Try resolving FrameKey tokens directly
-            FrameKey key = frame.frameKey();
+            CompoundKey key = frame.frameKey();
             if (key != null && !key.tokens().isEmpty()) {
                 StringBuilder sb = new StringBuilder();
-                for (FrameKey.FrameToken token : key.tokens()) {
-                    if (token instanceof FrameKey.Sememe s) {
+                for (CompoundKey.FrameToken token : key.tokens()) {
+                    if (token instanceof CompoundKey.Sememe s) {
                         String r = item.resolveDisplayToken(s.id());
                         if (r != null) {
                             if (!sb.isEmpty()) sb.append(" \u2014 ");
                             sb.append(r);
                         }
                         // Skip unresolvable sememe tokens — don't show hashes
-                    } else if (token instanceof FrameKey.Literal l) {
+                    } else if (token instanceof CompoundKey.Literal l) {
                         if (!sb.isEmpty()) sb.append(" \u2014 ");
                         sb.append(l.value());
                     }
@@ -1084,11 +1083,11 @@ public class ItemView {
         }
 
         /** Extract literal tokens from a FrameKey as qualifier context, skipping hash-like values. */
-        private static String literalQualifiers(FrameKey key) {
+        private static String literalQualifiers(CompoundKey key) {
             if (key == null) return null;
             StringBuilder sb = new StringBuilder();
-            for (FrameKey.FrameToken token : key.tokens()) {
-                if (token instanceof FrameKey.Literal l) {
+            for (CompoundKey.FrameToken token : key.tokens()) {
+                if (token instanceof CompoundKey.Literal l) {
                     String v = l.value();
                     // Skip literals that are or contain raw hashes
                     if (v.startsWith("iid:") || v.startsWith("cid:") || v.startsWith("vid:")) continue;
@@ -1099,18 +1098,18 @@ public class ItemView {
             return sb.isEmpty() ? null : sb.toString();
         }
 
-        static String resolvePredicate(Frame frame, Item item) {
+        static String resolvePredicate(FrameOld frame, ItemOld item) {
             if (frame.body() != null && frame.body().predicate() != null) {
                 String r = item.resolveDisplayToken(frame.body().predicate());
                 if (r != null) return r;
             }
-            FrameKey key = frame.frameKey();
+            CompoundKey key = frame.frameKey();
             if (key != null && !key.tokens().isEmpty()) {
-                FrameKey.FrameToken head = key.tokens().get(0);
-                if (head instanceof FrameKey.Sememe s) {
+                CompoundKey.FrameToken head = key.tokens().get(0);
+                if (head instanceof CompoundKey.Sememe s) {
                     String r = item.resolveDisplayToken(s.id());
                     if (r != null) return r;
-                } else if (head instanceof FrameKey.Literal l) {
+                } else if (head instanceof CompoundKey.Literal l) {
                     return l.value();
                 }
             }
@@ -1123,7 +1122,7 @@ public class ItemView {
             return "frame";
         }
 
-        static String fmtTarget(Binding b, Item item) {
+        static String fmtTarget(Binding b, ItemOld item) {
             ItemID tid = b.targetId();
             if (tid != null) {
                 String r = item.resolveDisplayToken(tid);

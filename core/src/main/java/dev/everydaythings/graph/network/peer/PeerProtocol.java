@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.network.peer;
 
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.network.ProtocolMessage;
@@ -152,7 +152,7 @@ public class PeerProtocol implements Protocol {
                 case Request.Target.Item itemTarget -> {
                     ItemID iid = itemTarget.iid();
 
-                    Optional<Manifest> manifest = context.getManifest(iid);
+                    Optional<ManifestOld> manifest = context.getManifest(iid);
                     if (manifest.isPresent()) {
                         payloads.add(new Delivery.Payload.Item(manifest.get()));
                         log.debug("Fulfilling request for item {}", iid);
@@ -175,7 +175,7 @@ public class PeerProtocol implements Protocol {
                 }
 
                 case Request.Target.Relations relTarget -> {
-                    List<FrameBody> bodies = context.queryFrameBodies(
+                    List<FrameBodyOld> bodies = context.queryFrameBodies(
                             relTarget.item(),
                             relTarget.predicate()
                     );
@@ -233,7 +233,7 @@ public class PeerProtocol implements Protocol {
             switch (payload) {
                 case Delivery.Payload.Item itemPayload -> {
                     hasUsefulPayload = true;
-                    Manifest manifest = itemPayload.manifest();
+                    ManifestOld manifest = itemPayload.manifest();
 
                     if (isHandshake) {
                         // This is the handshake - record peer identity
@@ -263,7 +263,7 @@ public class PeerProtocol implements Protocol {
 
                 case Delivery.Payload.Relations relPayload -> {
                     hasUsefulPayload = true;
-                    List<FrameBody> bodies = relPayload.bodies();
+                    List<FrameBodyOld> bodies = relPayload.bodies();
 
                     context.storeFrameBodies(bodies);
                     log.debug("Stored {} frame bodies", bodies.size());
@@ -332,7 +332,7 @@ public class PeerProtocol implements Protocol {
      * Send a handshake to a peer (our Librarian manifest).
      */
     private void sendHandshake(PeerConnection connection) {
-        Manifest manifest = context.localManifest();
+        ManifestOld manifest = context.localManifest();
         if (manifest == null) {
             log.warn("Cannot send handshake: no local manifest");
             return;
@@ -346,7 +346,7 @@ public class PeerProtocol implements Protocol {
     /**
      * Request an item from a peer.
      */
-    public void requestItem(PeerConnection connection, ItemID iid, Consumer<Manifest> callback) {
+    public void requestItem(PeerConnection connection, ItemID iid, Consumer<ManifestOld> callback) {
         long requestId = requestIdCounter.incrementAndGet();
 
         pendingRequests.put(requestId, new PendingRequest(requestId, callback));
@@ -370,7 +370,7 @@ public class PeerProtocol implements Protocol {
      * @param callback    Called with the manifest (or null on timeout/not-found)
      */
     public void requestItemVia(PeerConnection relay, ItemID destination,
-                               ItemID iid, Consumer<Manifest> callback) {
+                               ItemID iid, Consumer<ManifestOld> callback) {
         long requestId = requestIdCounter.incrementAndGet();
 
         pendingRequests.put(requestId, new PendingRequest(requestId, callback));
@@ -414,11 +414,11 @@ public class PeerProtocol implements Protocol {
     // Pending Request Management
     // =========================================================================
 
-    private void completePendingItemRequest(ItemID iid, Manifest manifest) {
+    private void completePendingItemRequest(ItemID iid, ManifestOld manifest) {
         pendingRequests.values().removeIf(pending -> {
             if (pending.callback instanceof Consumer<?>) {
                 @SuppressWarnings("unchecked")
-                Consumer<Manifest> callback = (Consumer<Manifest>) pending.callback;
+                Consumer<ManifestOld> callback = (Consumer<ManifestOld>) pending.callback;
                 callback.accept(manifest);
                 return true;
             }
@@ -437,7 +437,7 @@ public class PeerProtocol implements Protocol {
     /**
      * Called when a frame body is added locally - push to subscribers.
      */
-    public void onFrameBodyAdded(FrameBody body) {
+    public void onFrameBodyAdded(FrameBodyOld body) {
         for (var entry : subscriptions.entrySet()) {
             PeerConnection connection = entry.getKey();
             Set<Request.Target.Relations> filters = entry.getValue();
@@ -453,7 +453,7 @@ public class PeerProtocol implements Protocol {
         }
     }
 
-    private boolean matchesFilter(FrameBody body, Request.Target.Relations filter) {
+    private boolean matchesFilter(FrameBodyOld body, Request.Target.Relations filter) {
         if (filter.item() != null) {
             // Check theme
             boolean found = filter.item().equals(body.homeId());
@@ -531,7 +531,7 @@ public class PeerProtocol implements Protocol {
                     switch (payload) {
                         case Delivery.Payload.Item itemPayload -> {
                             @SuppressWarnings("unchecked")
-                            Consumer<Manifest> c = (Consumer<Manifest>) callback;
+                            Consumer<ManifestOld> c = (Consumer<ManifestOld>) callback;
                             c.accept(itemPayload.manifest());
                             return;
                         }

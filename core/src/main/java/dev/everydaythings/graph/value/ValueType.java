@@ -3,22 +3,15 @@ package dev.everydaythings.graph.value;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.DisplayInfo;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.language.SememeGloss;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.network.RoutingVocabulary;
-import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.Getter;
-
-import java.util.List;
 
 /**
  * A ValueType defines a type of {@link Value} that can appear in relations.
@@ -45,7 +38,7 @@ import java.util.List;
  */
 @Implements(ValueType.KEY)
 @ItemSeed(key = ValueType.KEY)
-public class ValueType extends Item {
+public class ValueType extends ItemOld {
 
     // ==================================================================================
     // TYPE DEFINITION
@@ -211,7 +204,7 @@ public class ValueType extends Item {
     /**
      * Create a value type with a librarian (for runtime creation).
      */
-    public ValueType(Librarian librarian, String canonicalKey, String name,
+    public ValueType(LibrarianOld librarian, String canonicalKey, String name,
                      CanonRules canonRules, Bounds bounds, UnitRules unitRules) {
         super(librarian, ItemID.fromString(canonicalKey));
         this.canonicalKey = canonicalKey;
@@ -237,7 +230,7 @@ public class ValueType extends Item {
      * <p>Fields are bound via reflection in the base class hydrate() method.
      */
     @SuppressWarnings("unused")  // Used via reflection for hydration
-    protected ValueType(Librarian librarian, Manifest manifest) {
+    protected ValueType(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
         // Fields are set by bindFieldsFromTable() via reflection during super() call
         // Do NOT assign values here - it would overwrite what hydration set!
@@ -246,7 +239,7 @@ public class ValueType extends Item {
     /**
      * Create and commit a value type.
      */
-    public static ValueType create(Librarian librarian, Signer signer,
+    public static ValueType create(LibrarianOld librarian, SignerOld signer,
                                    String canonicalKey, String name,
                                    CanonRules canonRules, Bounds bounds, UnitRules unitRules) {
         ValueType valueType = new ValueType(librarian, canonicalKey, name,

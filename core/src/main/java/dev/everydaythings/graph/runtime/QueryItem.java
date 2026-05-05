@@ -2,10 +2,11 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -16,16 +17,14 @@ import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
-import dev.everydaythings.graph.library.Library;
+import dev.everydaythings.graph.library.LibraryOld;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,9 +40,9 @@ import java.util.stream.Stream;
  *
  * <p>Two query strategies:
  * <ul>
- *   <li><b>Unstructured</b> — bag of term IDs, intersection via {@link Library#queryItems}</li>
+ *   <li><b>Unstructured</b> — bag of term IDs, intersection via {@link LibraryOld#queryItems}</li>
  *   <li><b>Structured</b> — predicate + filled role bindings, targeted index query
- *       via {@link Library#byItemPredicate} with role filtering, extracting items
+ *       via {@link LibraryOld#byItemPredicate} with role filtering, extracting items
  *       from unbound role positions</li>
  * </ul>
  *
@@ -54,7 +53,7 @@ import java.util.stream.Stream;
 @Implements(QueryItem.KEY)
 @ItemSeed(key = QueryItem.KEY)
 @Scene.Root
-public class QueryItem extends Item {
+public class QueryItem extends ItemOld {
 
     public static final String KEY = "cg.sememe:query";
     public static final ItemID IID = ItemID.fromString(KEY);
@@ -82,7 +81,7 @@ public class QueryItem extends Item {
         // EXPECTS — query results are the frames on a QueryItem
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY,
-                                   qualifiers = {FrameBody.TYPE_KEY, Result.KEY}))
+                                   qualifiers = {FrameBodyOld.TYPE_KEY, Result.KEY}))
         static final ItemID expectResult = ItemID.fromString(Result.KEY);
     }
 
@@ -136,7 +135,7 @@ public class QueryItem extends Item {
     private transient Set<ItemID> patternTerms;
 
     /** Cached result items for rendering (transient — populated by {@link #run}). */
-    private transient List<Item> resultItems = List.of();
+    private transient List<ItemOld> resultItems = List.of();
 
     // ==================================================================================
     // Constructors
@@ -148,7 +147,7 @@ public class QueryItem extends Item {
     }
 
     /** Fresh query from resolved terms (unstructured intersection). */
-    public QueryItem(Librarian librarian, List<Eval.ResolvedToken> terms) {
+    public QueryItem(LibrarianOld librarian, List<Eval.ResolvedToken> terms) {
         super(librarian);
         this.patternTerms = new LinkedHashSet<>();
         for (Eval.ResolvedToken token : terms) {
@@ -160,7 +159,7 @@ public class QueryItem extends Item {
     }
 
     /** Fresh query from an incomplete semantic frame (structured query). */
-    public QueryItem(Librarian librarian, SemanticFrame frame) {
+    public QueryItem(LibrarianOld librarian, SemanticFrame frame) {
         super(librarian);
         this.semanticFrame = frame;
         this.patternTerms = new LinkedHashSet<>();
@@ -176,7 +175,7 @@ public class QueryItem extends Item {
     }
 
     /** Hydrate from manifest. */
-    public QueryItem(Librarian librarian, dev.everydaythings.graph.item.Manifest manifest) {
+    public QueryItem(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 
@@ -189,7 +188,7 @@ public class QueryItem extends Item {
      *
      * <p>If constructed with a {@link SemanticFrame}, runs a structured query
      * using predicate+role index lookups. Otherwise falls back to unstructured
-     * intersection via {@link Library#queryItems}.
+     * intersection via {@link LibraryOld#queryItems}.
      *
      * @return the set of matched ItemIDs
      */
@@ -203,12 +202,12 @@ public class QueryItem extends Item {
     /**
      * Run a structured query — predicate + filled roles → targeted index query.
      *
-     * <p>For each filled binding, queries frames via {@link Library#byItemPredicate}
+     * <p>For each filled binding, queries frames via {@link LibraryOld#byItemPredicate}
      * and filters to frames where the binding actually fills the expected role.
      * Then extracts items from the unbound role positions as results.
      */
     private Set<ItemID> runStructured() {
-        Library library = librarian.library();
+        LibraryOld library = librarian.library();
         ItemID predicateId = semanticFrame.verb().iid();
         Map<ItemID, Object> filledBindings = semanticFrame.bindings();
         List<ItemID> unboundRoles = semanticFrame.unboundRoles();
@@ -294,8 +293,8 @@ public class QueryItem extends Item {
      */
     private Set<ItemID> storeResults(Set<ItemID> results) {
         for (ItemID resultId : results) {
-            FrameBody resultFrame = new FrameBody(Result.IID, List.of(
-                    FrameBody.homeBinding(iid()),
+            FrameBodyOld resultFrame = new FrameBodyOld(Result.IID, List.of(
+                    FrameBodyOld.homeBinding(iid()),
                     new Binding(ThematicRole.Result.IID, BindingTarget.iid(resultId), true, true)
             ));
             endorseFrame(resultFrame);
@@ -307,7 +306,7 @@ public class QueryItem extends Item {
     /**
      * Check if a specific item fills a specific role in a frame body.
      */
-    private static boolean bindingMatchesRole(FrameBody body, ItemID itemId, ItemID role) {
+    private static boolean bindingMatchesRole(FrameBodyOld body, ItemID itemId, ItemID role) {
         for (Binding b : body.frameBindings()) {
             if (role.equals(b.role()) && itemId.equals(b.targetId())) {
                 return true;
@@ -319,7 +318,7 @@ public class QueryItem extends Item {
     /**
      * Extract items from unbound role positions in a frame body.
      */
-    private static Stream<ItemID> extractUnboundRoleTargets(FrameBody body, List<ItemID> unboundRoles) {
+    private static Stream<ItemID> extractUnboundRoleTargets(FrameBodyOld body, List<ItemID> unboundRoles) {
         if (unboundRoles.isEmpty()) {
             // No specific unbound roles — return the home item
             ItemID home = body.homeId();
@@ -335,7 +334,7 @@ public class QueryItem extends Item {
      * Extract an ItemID from a binding value (Item or ItemID).
      */
     private static ItemID extractItemId(Object value) {
-        if (value instanceof Item item) return item.iid();
+        if (value instanceof ItemOld item) return item.iid();
         if (value instanceof ItemID iid) return iid;
         return null;
     }
@@ -343,14 +342,14 @@ public class QueryItem extends Item {
     /**
      * Set the cached result items for rendering.
      */
-    public void resultItems(List<Item> items) {
+    public void resultItems(List<ItemOld> items) {
         this.resultItems = items != null ? items : List.of();
     }
 
     /**
      * Get the cached result items.
      */
-    public List<Item> resultItems() {
+    public List<ItemOld> resultItems() {
         return resultItems;
     }
 
@@ -404,7 +403,7 @@ public class QueryItem extends Item {
         }
 
         // Result list — one handle per result item
-        for (Item item : resultItems) {
+        for (ItemOld item : resultItems) {
             SceneNode row = SceneNode.horizontal().gap("0.5em");
             String emoji = item.emoji();
             row.add(SceneNode.ofGlyph(emoji != null ? emoji : ""));

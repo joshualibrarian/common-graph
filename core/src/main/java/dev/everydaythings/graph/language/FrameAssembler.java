@@ -4,7 +4,7 @@ import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.eval.ParseContribution.Associativity;
 import dev.everydaythings.graph.frame.eval.ParseContribution.Fixity;
 import dev.everydaythings.graph.frame.eval.ParseContribution.StructuralRole;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval.ResolvedToken;
 import lombok.extern.log4j.Log4j2;
@@ -33,7 +33,7 @@ import java.util.function.Function;
 public class FrameAssembler {
 
     /** A resolved token paired with its Item (if resolved) and its grammatical features. */
-    private record Slot(ResolvedToken token, Item item, Set<ItemID> features) {}
+    private record Slot(ResolvedToken token, ItemOld item, Set<ItemID> features) {}
 
     /**
      * Unified semantic analysis result for resolved tokens.
@@ -63,7 +63,7 @@ public class FrameAssembler {
      */
     public static Optional<Analysis> analyze(
             List<ResolvedToken> tokens,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
         return analyze(tokens, resolver, v -> 0);
     }
 
@@ -77,7 +77,7 @@ public class FrameAssembler {
      */
     public static Optional<Analysis> analyze(
             List<ResolvedToken> tokens,
-            Function<ItemID, Optional<Item>> resolver,
+            Function<ItemID, Optional<ItemOld>> resolver,
             ToIntFunction<Sememe> headVerbScorer) {
 
         if (traceEnabled()) {
@@ -92,8 +92,8 @@ public class FrameAssembler {
         List<Slot> slots = new ArrayList<>();
         for (ResolvedToken token : tokens) {
             if (token instanceof ResolvedToken.Link link) {
-                Optional<Item> item = resolver.apply(link.iid());
-                Item resolved = item.orElse(null);
+                Optional<ItemOld> item = resolver.apply(link.iid());
+                ItemOld resolved = item.orElse(null);
                 Set<ItemID> features = link.features();
                 if (features.isEmpty() && resolved != null) {
                     features = inferPOSFromItem(resolved);
@@ -126,7 +126,7 @@ public class FrameAssembler {
         for (int i = 0; i < slots.size(); i++) {
             if (consumed.contains(i)) continue;
 
-            Item item = slots.get(i).item();
+            ItemOld item = slots.get(i).item();
             if (slots.get(i).features().contains(PartOfSpeech.PREPOSITION) && item instanceof Sememe prep && prep.assignedRole() != null) {
                 // Look for the next unconsumed token as the object
                 int objectIndex = nextUnconsumed(slots, consumed, i + 1);
@@ -160,7 +160,7 @@ public class FrameAssembler {
             if (consumed.contains(i)) continue;
 
             Set<ItemID> slotFeats = slots.get(i).features();
-            Item item = slots.get(i).item();
+            ItemOld item = slots.get(i).item();
             if (slotFeats.contains(PartOfSpeech.ADVERB) && item instanceof Sememe s) {
                 // Adverbs modify the verb
                 modifiers.computeIfAbsent("verb", k -> new ArrayList<>()).add(s);
@@ -170,7 +170,7 @@ public class FrameAssembler {
                 int nextNoun = -1;
                 for (int j = i + 1; j < slots.size(); j++) {
                     if (consumed.contains(j)) continue;
-                    Item candidate = slots.get(j).item();
+                    ItemOld candidate = slots.get(j).item();
                     Set<ItemID> candidateFeats = slots.get(j).features();
                     if (candidate != null
                             && !(candidate instanceof Sememe cs && canBePredicate(cs, candidateFeats))
@@ -201,7 +201,7 @@ public class FrameAssembler {
         for (int i = 0; i < slots.size(); i++) {
             if (consumed.contains(i)) continue;
 
-            Item item = slots.get(i).item();
+            ItemOld item = slots.get(i).item();
             if (item == null) continue; // literals and unresolved handled in step 5
             Set<ItemID> feats = slots.get(i).features();
             if (item instanceof Sememe s && canBePredicate(s, feats)) continue; // extra predicates go unmatched
@@ -292,7 +292,7 @@ public class FrameAssembler {
         for (int i = 0; i < slots.size(); i++) {
             Slot slot = slots.get(i);
             ResolvedToken token = slot.token();
-            Item item = slot.item();
+            ItemOld item = slot.item();
             ItemID targetId = token instanceof ResolvedToken.Link link ? link.iid() : null;
             termBindings.add(new TermBinding(
                     i,
@@ -337,7 +337,7 @@ public class FrameAssembler {
      */
     public static Optional<SemanticFrame> assemble(
             List<ResolvedToken> tokens,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
         Optional<Analysis> analysis = analyze(tokens, resolver);
         if (analysis.isEmpty()) return Optional.empty();
         Analysis a = analysis.get();
@@ -363,7 +363,7 @@ public class FrameAssembler {
      */
     public static List<SemanticFrame> assembleAll(
             List<ResolvedToken> tokens,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
         return assembleAll(tokens, resolver, v -> 0);
     }
 
@@ -372,7 +372,7 @@ public class FrameAssembler {
      */
     public static List<SemanticFrame> assembleAll(
             List<ResolvedToken> tokens,
-            Function<ItemID, Optional<Item>> resolver,
+            Function<ItemID, Optional<ItemOld>> resolver,
             ToIntFunction<Sememe> headVerbScorer) {
 
         if (tokens.isEmpty()) return List.of();
@@ -384,7 +384,7 @@ public class FrameAssembler {
         for (int i = 0; i < tokens.size(); i++) {
             if (tokens.get(i) instanceof ResolvedToken.Link link) {
                 Set<ItemID> feats = link.features();
-                Optional<Item> resolved = resolver.apply(link.iid());
+                Optional<ItemOld> resolved = resolver.apply(link.iid());
                 if (feats.isEmpty() && resolved.isPresent()) {
                     feats = inferPOSFromItem(resolved.get());
                 }
@@ -543,7 +543,7 @@ public class FrameAssembler {
         int bestScore = Integer.MIN_VALUE;
 
         for (int i = 0; i < slots.size(); i++) {
-            Item item = slots.get(i).item();
+            ItemOld item = slots.get(i).item();
             if (!(item instanceof Sememe sememe)) continue;
             if (!canBePredicate(sememe, slots.get(i).features())) continue;
 
@@ -603,7 +603,7 @@ public class FrameAssembler {
      * that bypass the TokenDictionary and thus have no Posting with features.
      * Returns features that allow FrameAssembler to categorize the token.
      */
-    public static Set<ItemID> inferPOSFromItem(Item item) {
+    public static Set<ItemID> inferPOSFromItem(ItemOld item) {
         if (!(item instanceof Sememe sememe)) return Set.of();
 
         // Ask the sememe for its parsing contribution
@@ -646,7 +646,7 @@ public class FrameAssembler {
      */
     public static Optional<SemanticFrame> assembleExpression(
             List<ResolvedToken> tokens,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
 
         if (tokens.isEmpty()) return Optional.empty();
 
@@ -654,7 +654,7 @@ public class FrameAssembler {
         boolean hasExpressionSyntax = false;
         for (ResolvedToken token : tokens) {
             if (token instanceof ResolvedToken.Link link) {
-                Optional<Item> item = resolver.apply(link.iid());
+                Optional<ItemOld> item = resolver.apply(link.iid());
                 if (item.isPresent() && item.get() instanceof Sememe s) {
                     ParseContribution c = s.contribute(null);
                     if (c.fixity() != null || c.structuralRole() == StructuralRole.OPEN_GROUP
@@ -694,10 +694,10 @@ public class FrameAssembler {
      */
     private static class ExpressionParser {
         private final List<ResolvedToken> tokens;
-        private final Function<ItemID, Optional<Item>> resolver;
+        private final Function<ItemID, Optional<ItemOld>> resolver;
         private int pos = 0;
 
-        ExpressionParser(List<ResolvedToken> tokens, Function<ItemID, Optional<Item>> resolver) {
+        ExpressionParser(List<ResolvedToken> tokens, Function<ItemID, Optional<ItemOld>> resolver) {
             this.tokens = tokens;
             this.resolver = resolver;
         }
@@ -807,7 +807,7 @@ public class FrameAssembler {
             // Non-operator item reference (variable, item, noun)
             if (token instanceof ResolvedToken.Link link) {
                 pos++;
-                Optional<Item> item = resolver.apply(link.iid());
+                Optional<ItemOld> item = resolver.apply(link.iid());
                 return item.orElse(null);
             }
 
@@ -893,7 +893,7 @@ public class FrameAssembler {
 
         private Sememe resolveAsSememe(ResolvedToken token) {
             if (token instanceof ResolvedToken.Link link) {
-                Optional<Item> item = resolver.apply(link.iid());
+                Optional<ItemOld> item = resolver.apply(link.iid());
                 if (item.isPresent() && item.get() instanceof Sememe s) {
                     return s;
                 }

@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.lang.reflect.Field;
@@ -42,7 +42,7 @@ public final class ItemScanner {
      * @param itemClass The Item class to get schema for
      * @return The cached or computed schema
      */
-    public static ItemSchema schemaFor(Class<? extends Item> itemClass) {
+    public static ItemSchema schemaFor(Class<? extends ItemOld> itemClass) {
         Objects.requireNonNull(itemClass, "itemClass");
         return cache.computeIfAbsent(itemClass, ItemScanner::scan);
     }
@@ -59,7 +59,7 @@ public final class ItemScanner {
     /**
      * Check if a schema is cached for the given class.
      */
-    public static boolean isCached(Class<? extends Item> itemClass) {
+    public static boolean isCached(Class<? extends ItemOld> itemClass) {
         return cache.containsKey(itemClass);
     }
 
@@ -84,7 +84,7 @@ public final class ItemScanner {
     private static ItemSchema scan(Class<?> itemClass) {
         List<FrameFieldSpec> frameFields = new ArrayList<>();
 
-        Set<FrameKey> frameKeys = new HashSet<>(); // Track for uniqueness
+        Set<CompoundKey> frameKeys = new HashSet<>(); // Track for uniqueness
         Set<String> paths = new HashSet<>();   // Track for uniqueness
 
         // Walk class hierarchy (child first → parent)
@@ -108,7 +108,7 @@ public final class ItemScanner {
         }
 
         return new ItemSchema(
-                (Class<? extends Item>) itemClass,
+                (Class<? extends ItemOld>) itemClass,
                 frameFields
         );
     }
@@ -125,7 +125,7 @@ public final class ItemScanner {
         if (key == null || key.isBlank()) return null;
 
         ItemID implPredicate = ItemID.fromString(CoreVocabulary.ImplementedBy.KEY);
-        FrameKey frameKey = FrameKey.of(implPredicate);
+        CompoundKey frameKey = CompoundKey.of(implPredicate);
 
         // The "type" of this frame is the ImplementedBy predicate itself
         ItemID type = implPredicate;
@@ -162,12 +162,12 @@ public final class ItemScanner {
         for (int i = 0; i < fieldBind.qualifiers().length; i++) {
             qualifiers[i] = ItemID.fromString(fieldBind.qualifiers()[i]);
         }
-        FrameKey frameKey = FrameKey.of(head, qualifiers);
+        CompoundKey frameKey = CompoundKey.of(head, qualifiers);
 
         Class<?> fieldType = field.getType();
         ItemID type;
         if (fieldType.isAnnotationPresent(Implements.class)) {
-            type = Item.idOf(fieldType);
+            type = ItemOld.idOf(fieldType);
         } else {
             type = ItemID.fromString("cg.sememe:" + fieldType.getSimpleName().toLowerCase());
         }
@@ -196,8 +196,8 @@ public final class ItemScanner {
     /**
      * Validate an endorsed frame field spec for uniqueness.
      */
-    private static void validateFrameField(FrameFieldSpec spec, Set<FrameKey> frameKeys, Set<String> paths) {
-        FrameKey key = spec.frameKey();
+    private static void validateFrameField(FrameFieldSpec spec, Set<CompoundKey> frameKeys, Set<String> paths) {
+        CompoundKey key = spec.frameKey();
         if (frameKeys.contains(key)) {
             throw new IllegalStateException(
                     "Duplicate frame key " + key + " on field " + spec.field().getName());

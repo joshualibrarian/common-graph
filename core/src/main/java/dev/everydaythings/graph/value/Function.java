@@ -5,7 +5,7 @@ import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -14,7 +14,7 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -966,7 +966,7 @@ public class Function extends Sememe {
 
     /** Hydration constructor. */
     @SuppressWarnings("unused")
-    protected Function(Librarian librarian, Manifest manifest) {
+    protected Function(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 

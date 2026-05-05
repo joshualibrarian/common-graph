@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.item.ItemTest;
+import dev.everydaythings.graph.item.ItemOldTest;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Subclasses provide specific Language implementations to test.
  */
 @Disabled
-public abstract class LanguageTest extends ItemTest {
+public abstract class LanguageTest extends ItemOldTest {
 
     /**
      * Get the item as a Language.

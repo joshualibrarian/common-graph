@@ -2,11 +2,10 @@ package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.peer.PeerProtocol;
-import dev.everydaythings.graph.network.RoutingVocabulary;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.value.Endpoint;
 import dev.everydaythings.graph.value.IpAddress;
 import org.junit.jupiter.api.AfterAll;
@@ -31,13 +30,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Disabled("Slow integration test — TLS handshake + full librarian bootstrap")
 class PeerProtocolTest {
 
-    private static Librarian lib1;
-    private static Librarian lib2;
+    private static LibrarianOld lib1;
+    private static LibrarianOld lib2;
 
     @BeforeAll
     static void setUp() {
-        lib1 = Librarian.createInMemory();
-        lib2 = Librarian.createInMemory();
+        lib1 = LibrarianOld.createInMemory();
+        lib2 = LibrarianOld.createInMemory();
     }
 
     @AfterAll
@@ -82,7 +81,7 @@ class PeerProtocolTest {
         }, 5000)).as("lib1 should identify lib2").isTrue();
 
         // Then: lib1 should have peers-with frame pointing at lib2
-        List<FrameBody> lib1PeersWith = lib1.library().byPredicate(RoutingVocabulary.PeersWith.IID).toList();
+        List<FrameBodyOld> lib1PeersWith = lib1.library().byPredicate(RoutingVocabulary.PeersWith.IID).toList();
         assertThat(lib1PeersWith).isNotEmpty();
         assertThat(lib1PeersWith).anyMatch(r ->
                 r.homeId().equals(lib1.iid()) &&
@@ -91,7 +90,7 @@ class PeerProtocolTest {
         );
 
         // lib1 should have reachable-at frame for lib2
-        List<FrameBody> lib1Reachable = lib1.library().byPredicate(RoutingVocabulary.ReachableAt.IID)
+        List<FrameBodyOld> lib1Reachable = lib1.library().byPredicate(RoutingVocabulary.ReachableAt.IID)
                 .filter(r -> r.homeId().equals(lib2.iid()))
                 .toList();
         assertThat(lib1Reachable).isNotEmpty();
@@ -99,7 +98,7 @@ class PeerProtocolTest {
                 r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.IID) instanceof Literal);
 
         // Then: lib2 should have peers-with frame pointing at lib1
-        List<FrameBody> lib2PeersWith = lib2.library().byPredicate(RoutingVocabulary.PeersWith.IID).toList();
+        List<FrameBodyOld> lib2PeersWith = lib2.library().byPredicate(RoutingVocabulary.PeersWith.IID).toList();
         assertThat(lib2PeersWith).isNotEmpty();
         assertThat(lib2PeersWith).anyMatch(r ->
                 r.homeId().equals(lib2.iid()) &&
@@ -108,7 +107,7 @@ class PeerProtocolTest {
         );
 
         // lib2 should have reachable-at frame for lib1
-        List<FrameBody> lib2Reachable = lib2.library().byPredicate(RoutingVocabulary.ReachableAt.IID)
+        List<FrameBodyOld> lib2Reachable = lib2.library().byPredicate(RoutingVocabulary.ReachableAt.IID)
                 .filter(r -> r.homeId().equals(lib1.iid()))
                 .toList();
         assertThat(lib2Reachable).isNotEmpty();
@@ -116,7 +115,7 @@ class PeerProtocolTest {
                 r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.IID) instanceof Literal);
 
         // Verify the reachable-at endpoint on lib2 points to lib1's address
-        FrameBody lib2ReachableBody = lib2Reachable.stream()
+        FrameBodyOld lib2ReachableBody = lib2Reachable.stream()
                 .filter(r -> r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.IID) instanceof Literal)
                 .findFirst().orElseThrow();
         Literal endpointLit = (Literal) lib2ReachableBody.binding(

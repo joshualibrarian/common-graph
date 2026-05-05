@@ -12,7 +12,7 @@ import java.util.List;
  * Per-frame configuration — settings and policy.
  *
  * <p>Long-term, config will be absorbed into the CONFIG binding on
- * {@link FrameBody} and this class will be removed.
+ * {@link FrameBodyOld} and this class will be removed.
  */
 @Getter
 @Canonical.Canonization

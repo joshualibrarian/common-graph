@@ -1,10 +1,9 @@
 package dev.everydaythings.graph.library.dictionary;
 
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
@@ -19,11 +18,11 @@ import java.util.function.Function;
  *
  * <p>Two extraction paths:
  * <ul>
- *   <li>{@link #fromBody(FrameBody)} — VALUE bindings (lexemes, titles, symbols).
+ *   <li>{@link #fromBody(FrameBodyOld)} — VALUE bindings (lexemes, titles, symbols).
  *       Scope and features derived from binding qualifiers. Frames with a LOCATION
  *       binding are skipped (those are locally-scoped bindings, indexed only in the
  *       per-item Vocabulary).</li>
- *   <li>{@link #fromFrameBody(FrameBody, Function)} — GOAL binding text (data-driven
+ *   <li>{@link #fromFrameBody(FrameBodyOld, Function)} — GOAL binding text (data-driven
  *       predicate indexing). Scope = theme item.</li>
  * </ul>
  *
@@ -51,7 +50,7 @@ public final class TokenExtractor {
      * @param body the FrameBody (self-contained assertion)
      * @return list of frame-backed postings (may be empty)
      */
-    public static List<Posting> fromBody(FrameBody body) {
+    public static List<Posting> fromBody(FrameBodyOld body) {
         if (body == null) return List.of();
 
         // LOCATION binding present → locally scoped (EQUALS variables etc.)
@@ -83,11 +82,11 @@ public final class TokenExtractor {
      * @param item the item with live Frame objects
      * @return list of frame-backed postings (may be empty)
      */
-    public static List<Posting> fromItemFrames(Item item) {
+    public static List<Posting> fromItemFrames(ItemOld item) {
         if (item == null || item.frames() == null) return List.of();
 
         List<Posting> result = new ArrayList<>();
-        for (Frame frame : item.frames()) {
+        for (FrameOld frame : item.frames()) {
             if (frame.body() != null) {
                 result.addAll(fromBody(frame.body()));
             }
@@ -107,7 +106,7 @@ public final class TokenExtractor {
      * @return list of frame-backed postings (may be empty)
      */
     public static List<Posting> fromFrameBody(
-            FrameBody body,
+            FrameBodyOld body,
             Function<ItemID, Float> predicateWeightResolver) {
         if (body == null) return List.of();
 
@@ -122,7 +121,7 @@ public final class TokenExtractor {
     // HELPERS
     // ==================================================================================
 
-    private static List<Posting> extractGoalPostingFromBody(FrameBody body, float weight) {
+    private static List<Posting> extractGoalPostingFromBody(FrameBodyOld body, float weight) {
         ItemID goalRole = ItemID.fromString("cg.role:goal");
         List<Binding> bindings = body.frameBindings();
 

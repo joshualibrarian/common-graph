@@ -1,10 +1,10 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.library.dictionary.TokenExtractor;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,11 +13,11 @@ class TokenIndexDebugTest {
 
     @Test
     void createVerbIsIndexable() {
-        Librarian lib = Librarian.createInMemory();
+        LibrarianOld lib = LibrarianOld.createInMemory();
         var cached = lib.get(ItemID.fromString(CoreVocabulary.Create.KEY));
         System.out.println("Create cached: " + cached.isPresent());
         if (cached.isPresent()) {
-            Item item = cached.get();
+            ItemOld item = cached.get();
             System.out.println("Frames: " + item.frames().size());
             for (var f : item.frames()) {
                 System.out.println("  key=" + f.frameKey() + " body=" + (f.body() != null));

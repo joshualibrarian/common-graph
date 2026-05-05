@@ -2,7 +2,7 @@
 
 This document describes the language system — how human languages, words, and meanings are represented, imported, and connected in Common Graph.
 
-> For how sememes anchor meaning, see [Sememes](sememes.md). For the expression input and dispatch system, see [Vocabulary](vocabulary.md). For the frame primitive, see [Frames](frames.md).
+> For how sememes anchor meaning, see [Sememes](sememes.md). For the expression input and dispatch system, see [Vocabulary](vocabulary.md). For the frame primitive, see [Frames](frames.md). For the unified input pipeline that uses Languages as parsers across every input context (interactive, bridges, scripts, queries), see [Input](input.md).
 
 ## Overview
 

@@ -4,6 +4,7 @@ import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
@@ -185,7 +186,7 @@ public class Minesweeper extends GameComponent<Minesweeper.Op>
         publishConfigSettings(ctx.theme());
     }
 
-    private void publishConfigSettings(dev.everydaythings.graph.item.Item owningItem) {
+    private void publishConfigSettings(ItemOld owningItem) {
         // TODO: Config settings migration — settings should be in CONFIG binding on FrameBody
     }
 

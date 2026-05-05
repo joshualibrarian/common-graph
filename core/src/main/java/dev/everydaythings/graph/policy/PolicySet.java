@@ -1,15 +1,9 @@
 package dev.everydaythings.graph.policy;
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.Canon;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
 import lombok.*;
 
 import java.util.ArrayList;

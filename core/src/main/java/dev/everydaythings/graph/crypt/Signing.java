@@ -4,6 +4,7 @@ import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.user.SignerOld;
 import lombok.Builder;
 import lombok.Singular;
 
@@ -223,7 +224,7 @@ public final class Signing implements Canonical {
      * <p>This is the unified signing interface used throughout Common Graph.
      * Implementations include:
      * <ul>
-     *   <li>{@link dev.everydaythings.graph.item.user.Signer} - Item that owns a keypair</li>
+     *   <li>{@link SignerOld} - Item that owns a keypair</li>
      *   <li>Hardware-backed signers (TPM, Secure Enclave, YubiKey)</li>
      * </ul>
      *

@@ -1,280 +1,278 @@
 # Storage Architecture
 
-The storage layer for Common Graph. One source of truth, four derived indexes.
+The storage layer for Common Graph after the Datum unification. One object store as the source of truth, three derived indexes, an item-location directory, all mediated by the Librarian.
 
-## Design Principles
+> For the Datum primitive itself (Body, Record, Frame, Manifest), see [Datum](datum.md). For how queries operate on storage, see [Query](query.md). For how content is referenced (CIDs, multibase, multihash), see [Content](content.md).
 
-- **One object store**: All content-addressed data lives in a single store. Frame bodies, frame records, manifest bytes, component snapshots, media files — all stored as `CID → bytes`. The store doesn't interpret what's inside.
-- **Indexes are derived**: Every index can be rebuilt by walking the object store. Indexes are projections, not sources of truth. Corruption or schema changes are recoverable.
-- **Content addressing**: Every object is stored by the hash of its bytes. Deduplication is automatic. Integrity is verifiable at any time. See [Content](content.md).
-- **Transparent large object support**: Small objects are inline in the database. Large objects live on disk as files. The boundary is invisible to callers.
-
-## Object Store
-
-The single source of truth:
+## Layer separation
 
 ```
-OBJECTS: CID → bytes
+Item                     ← items use librarian; never touch storage directly
+   ↓
+Librarian                ← runtime; mediates access; routes local/network/mounted
+   ↓
+Library                  ← storage manager; owns ObjectStore + indexes
+   ↓
+ObjectStore              ← byte storage primitive; CID → bytes
 ```
 
-`persist(bytes) → CID`, `fetch(CID) → Optional<bytes>`. That's the entire API.
-
-The store holds four kinds of objects, distinguished by their content (not by separate columns):
-
-| Object Kind | What It Is | Size |
-|-------------|-----------|------|
-| **Manifest** | Signed inventory of an item's endorsed frames | Small (kilobytes) |
-| **Frame body** | Semantic assertion: predicate + theme + bindings | Small (tens of bytes) |
-| **Frame record** | Signed envelope: body hash + signer + timestamp + signature | Small (hundreds of bytes) |
-| **Content blob** | Encoded data: component state, media, documents | Any size (bytes to gigabytes) |
-
-The store doesn't need to know which kind an object is. Callers always know what they're fetching because they followed a typed reference to get the CID — a manifest entry, an index lookup, a FrameRecord's bodyHash field.
-
-### Why One Store
-
-Like git's object store, a CID is a CID. Separating objects by type adds routing logic on every persist/fetch, complicates index rebuilds (which store do I scan?), and doesn't enable meaningful dedup across types (a manifest and a frame body will never have the same bytes).
-
-Per-type tuning (bloom filters, compression, cache priority) can be layered below the API as a transparent backend optimization if profiling ever demands it. The `persist`/`fetch` interface doesn't change.
-
-## Indexes
-
-Four derived indexes. All rebuildable from the object store.
-
-### ITEMS — Version History
+Plus, separately:
 
 ```
-Key:   IID | VID
-Value: timestamp (8 bytes)
+ItemDirectory            ← location registry for items NOT in our local store
+                           (peers, mounted WorkingTreeStores, mentioned-but-not-fetched)
 ```
 
-Maps item identity to all known versions. Prefix scan by IID returns the full version history. The timestamp in the value enables finding the latest version without decoding manifests.
+ItemDirectory sits beside Library as primary data — not derivable from objects, so it's not an index.
 
-To hydrate an item: find latest VID in ITEMS → fetch manifest from OBJECTS by VID → walk frame CIDs → fetch each from OBJECTS.
+## Two column-family sets
 
-**Rebuildable**: Walk all objects, decode manifests, extract IID + VID + timestamp.
+Storage is organized into two conceptually distinct sets of column families:
 
-### HEADS — Current Version per Principal
+**Data CFs** — primary truth, never derivable from anything else:
 
-```
-Key:   Principal | IID
-Value: VID (34 bytes)
-```
+| Column | Maps | Purpose |
+|--------|------|---------|
+| `objects` | CID → bytes | The single content-addressed object store. Holds Datums (bodies + records) and content blobs uniformly. |
+| `item_directory` | IID → directory entry | Locations of items not in the local store. |
 
-Tracks the current version of each item as seen by each principal (signer). Supports multi-device scenarios where different signers may have different heads for the same item.
+**Index CFs** — derived, rebuildable from `objects` by walking it:
 
-**Rebuildable**: From ITEMS index (latest VID per IID per signer).
+| Column | Maps | Purpose |
+|--------|------|---------|
+| `forward_bindings` | (role-IID, qualifiers..., target-bytes) → CID | Role-and-qualifier-driven queries: "frames whose binding matches this pattern." |
+| `reverse_bindings` | (target-bytes, role-IID, qualifiers...) → CID | Target-driven queries: "everything referencing this thing." Subsumes token resolution and time-range queries. |
+| `type_index` | (head-IID, head-VID-or-empty, item-IID) → body-CID | Items by archetype: "all Documents", "all Chess games". Only archetypal/manifest bodies are entered here. |
 
-### FRAME_BY_ITEM — Unified Frame Index
+The two sets are conceptually independent; in practice, a single backing store (RocksDB or similar) hosts both as separate column families to enable atomic transactions across object-insert + index-update.
 
-```
-Key:   ItemID | Predicate | BodyHash
-Value: CID (34 bytes, pointing to body or record in OBJECTS)
-```
+## Why two index orderings (forward and reverse)
 
-The single frame lookup index. Every ItemID that participates in a frame gets an entry. This includes:
+Both forward and reverse indexes encode the same per-binding information, just in different key orderings:
 
-- The **theme** (the item the frame is about)
-- The **target** (if the target is an ItemID)
-- The **predicate itself** (predicates are items too)
-- Any other ItemID in the bindings
+- **Forward**: `(role, qualifiers..., target)` — useful when the role is known and the target is queried by value or range. *"All English lemma verbs spelled 'create'"* (`role=VALUE, qualifier=ENGLISH/VERB/LEMMA, target="create"`).
+- **Reverse**: `(target, role, qualifiers...)` — useful when the target is known. *"Everything pointing at this meme"* (`target=meme-IID, role=any`).
 
-Because predicates are ItemIDs, this one index subsumes what was previously two separate indexes (FRAME_BY_ITEM and FRAME_BY_PRED). Querying by predicate is just a prefix scan where the ItemID happens to be a predicate:
+Most queries hit one or the other naturally. The two-index pattern is standard database technique.
 
-| Query | Scan |
-|-------|------|
-| All frames involving item X | Prefix `[X]` |
-| Frames involving X via predicate P | Prefix `[X \| P]` |
-| All frames with predicate P | Prefix `[P]` (P is an ItemID too) |
+The reverse index also enables several access patterns that would otherwise need dedicated indexes:
 
-**Rebuildable**: Walk all objects, decode frame bodies, fan out by predicate + all ItemID bindings.
+- **Token resolution and tab completion** — text-typed targets cluster contiguously by their CBOR encoding; prefix scan on text bytes returns all lexemes matching a string prefix.
+- **Time-range queries** — timestamp-typed targets cluster together (CBOR Tag 1 prefix); range scan on the timestamp portion returns all assertions within a temporal range.
+- **Reference reverse lookup** — IID-typed targets cluster together; exact-match returns all frames pointing at that item.
 
-### RECORD_BY_BODY — Attestation Index
+These all fall out of one index because the **encoding is discriminated by type**.
 
-```
-Key:   BodyHash | SignerKeyID
-Value: CID (34 bytes, pointing to record in OBJECTS)
-```
+## Index key encoding
 
-Tracks who has attested a given frame body. Enables:
-- "Who signed this assertion?" — prefix scan by BodyHash
-- "Has signer X attested body Y?" — exact key lookup
-- Attestation counting — count entries for a BodyHash prefix
-
-**Rebuildable**: Walk all objects, decode frame records, extract bodyHash + signer.
-
-## Large Object Storage
-
-The object store transparently handles objects of any size through three storage modes:
-
-### Inline (Default)
-
-Small objects (below a configurable threshold) are stored directly in the database column:
+Index keys use CBOR's existing type discrimination. The leading bytes of a CBOR-encoded value already identify its type, and these prefixes naturally cluster same-type values in lexicographic order:
 
 ```
-Column value: 0x00 | raw bytes
+Index target portion encoding (the CBOR-tag-encoded target):
+
+  CBOR major-type 2 (0x40+):  byte-string targets       — IIDs, content blobs (exact-match)
+  CBOR major-type 3 (0x60+):  text-string targets       — text/lexemes (range-scannable)
+  CBOR Tag 1 (0xc1):          epoch timestamps          — fixed-width 9-byte (range-scannable)
+  CBOR Tag 6 (0xc6):          Tag-6 references          — ItemRef/ContentRef/FrameRef (exact-match)
+  CBOR Tag 7 (0xc7):          explicitly-typed values   — exact-match
+  CBOR Tag 9 (0xc9):          quantities                — clustered by unit; exact-match within
 ```
 
-This is the common case. Frame bodies, records, manifests, and small component snapshots all fit inline.
+Within each type's prefix range, byte-lex ordering reflects the type's natural ordering when the encoding preserves it. Timestamps and integers do (with fixed-width sortable encoding). Text does naturally. References and quantities don't have a natural cross-instance ordering beyond unit-clustering for quantities.
 
-### Store-Managed External
+### Timestamp encoding for index keys
 
-Large objects are written to disk at a path derived from the CID:
-
-```
-Column value: 0x01 | path length (u32) | path bytes (UTF-8)
-
-Filesystem: objects/<prefix>/<cid-hex>
-```
-
-The store controls the layout. The caller sees no difference — `fetch(CID)` reads from disk transparently. The database entry is small (just a pointer).
-
-### User-Named External
-
-Objects can be registered at a user-specified path:
+Timestamps appear in many bindings (`TIME:[]`, `TIME:[SIGNED]`, `TIME:[ENDS]`, etc.) and need to be range-scannable to support temporal queries. The encoding inside index keys (NOT the wire format of stored Datums, which uses standard CBOR Tag 1) is:
 
 ```
-Column value: 0x02 | path length (u32) | path bytes (UTF-8)
+0xc1 | <8 bytes nanoseconds since UTC epoch (signed, big-endian)>
+     | <1 byte precision>
+
+Total: 10 bytes including the Tag-1 prefix.
+
+Precision byte:
+  0 = year only (just the year is meaningful)
+  1 = year + month
+  2 = year + month + day
+  3 = + hour
+  4 = + minute
+  5 = + second
+  6 = + millisecond
+  7 = + microsecond
+  8 = + nanosecond
 ```
 
-This enables files to live at human-friendly locations while still being addressable by CID. A media library can keep movies at `/media/movies/inception.mkv` — the file stays where it is, named what it's named, usable by media players and other tools. The store just knows where to find it.
+For partial dates, the unspecified portions of the nanoseconds value are zero-padded. Sort order is by the timestamp bytes first (temporal), with precision following. A "2024" year-only entry and a "2024-01-01T00:00:00.000000000Z" entry sort to the same byte position; the precision byte distinguishes them but doesn't change ordering.
 
-On fetch, the store verifies integrity by hashing the file and comparing to the CID. If the file was modified outside CG, the hash mismatch is a detectable event (triggers re-indexing, new CID, new version).
+Range queries are precise: `[T1, T2)` translates to a byte range scan with appropriately filled endpoints.
 
-### Streaming Access
+This 9-byte (post-tag) format is an internal index detail. The stored Datum uses standard CBOR Tag 1. If we ever need higher resolution or a different scheme, indexes can be rebuilt — no migration of stored data required.
 
-For large objects, the store provides streaming access alongside the byte-array API:
+### Text-string encoding caveat
 
-```
-fetchStream(CID) → Optional<InputStream>
-```
+Standard canonical CBOR encodes text strings with variable-length length prefixes (`0x60`-`0x77` for short strings, `0x78 + 1 byte length`, `0x79 + 2 byte length`, etc.). This breaks naive byte-prefix scanning across strings of different lengths.
 
-This avoids loading multi-gigabyte content into memory. The inline/external distinction is invisible — both modes support streaming.
+For index keys specifically, text targets may use a slightly modified encoding — typically the major-type byte followed by the raw UTF-8 bytes of the string, terminated by a zero byte (since UTF-8 never contains 0x00 except in NUL characters, which can be banned in text targets) or a similar separator scheme. This preserves the type-discrimination property and enables prefix scans across arbitrary string lengths.
 
-### Chunking
+Wire format (in `objects`) uses canonical CBOR. Index format is internal.
 
-Very large objects can be split into content-addressed chunks:
+### Quantity indexing
 
-```
-BlobManifest {
-    totalSize:  integer
-    chunkSize:  integer
-    chunkCids:  [CID]
-}
-```
-
-The CID of the file is the CID of the BlobManifest. Each chunk is a separate object in the store, independently fetchable and verifiable. The BlobManifest is stored as a regular object; chunks are stored as regular objects. No special column or storage mode needed.
-
-## Storage Backends
-
-All backends implement the same interfaces. The choice is transparent to everything above the storage layer.
-
-| Backend | Characteristics | Use Case |
-|---------|----------------|----------|
-| **RocksDB** | Persistent, LSM-tree, column families, bloom filters | Production |
-| **MapDB** | Persistent, B-tree, lightweight | Lighter-weight alternative |
-| **SkipList** | In-memory, zero dependencies | Testing and ephemeral use |
-
-### Column Families
-
-Each backend manages five column families (one store + four indexes):
-
-| Column Family | Contents |
-|---------------|----------|
-| **OBJECTS** | All content-addressed blobs |
-| **ITEMS** | IID \| VID → timestamp |
-| **HEADS** | Principal \| IID → VID |
-| **FRAME_BY_ITEM** | ItemID \| Pred \| BodyHash → CID |
-| **RECORD_BY_BODY** | BodyHash \| SignerKeyID → CID |
-
-Plus supporting column families for ItemDirectory and TokenDictionary (unchanged from current architecture — see [Library](library.md)).
-
-### Transaction Model
-
-Write operations use transactions for atomicity across columns:
+Quantities (`Tag 9 [magnitude, unit-IID]`) are encoded for index keys as:
 
 ```
-store.runInWriteTransaction(tx → {
-    CID cid = tx.persistObject(manifestBytes);
-    tx.indexItem(iid, vid, timestamp);
-    tx.indexHead(principal, iid, vid);
-    // All succeed or all fail
-})
+0xc9 | <unit-IID multihash bytes> | <canonical-CBOR magnitude bytes>
 ```
 
-Read operations use snapshot isolation (RocksDB MVCC).
+Same-unit quantities cluster together (prefix `0xc9 + <unit-IID>`). Within a unit, exact-match queries work; magnitude range scans require a fixed-width sortable magnitude encoding and are deferred. When magnitude range becomes a real access pattern, a dedicated quantity range index can be added — index re-buildable.
 
-## Index Rebuild
+## Type index
 
-All indexes are projections of the object store. To rebuild from scratch:
-
-```
-1. Walk OBJECTS
-2. For each object, trial-decode:
-   a. Manifest? → index in ITEMS (IID|VID → timestamp), update HEADS
-   b. Frame body? → index in FRAME_BY_ITEM (fan out by predicate + all ItemID bindings)
-   c. Frame record? → index in RECORD_BY_BODY (bodyHash + signer → CID)
-   d. Content blob? → no index entry needed (referenced from manifests/bodies by CID)
-3. Done
-```
-
-Classification is cheap — manifests, bodies, and records have distinct CBOR structures. Content blobs are everything else (referenced by CID from other objects, not directly indexed).
-
-## Content Lifecycle
-
-### Storing (Commit)
+Indexes a Datum's *head* sememe (the predicate or archetype) — but only for archetypal bodies, where it's useful.
 
 ```
-1. Encode each endorsed frame value → content bytes
-2. persist(content bytes) → content CID
-3. Build manifest: frame entries with content CIDs
-4. Encode manifest body → manifest bytes
-5. persist(manifest bytes) → VID (= CID of manifest body)
-6. Index: ITEMS[IID|VID], HEADS[principal|IID], FRAME_BY_ITEM[...]
+type_index keys: (head-IID, head-VID-or-empty, item-IID) → body-CID
 ```
 
-### Storing (Unendorsed Frame)
+A Datum gets a type-index entry **iff it has an `ITEM_ID` binding** (i.e., it's a manifest body — a versioned instance of some archetype). Propositional frames don't get type-indexed; "all AUTHORED frames in the corpus" is rarely a useful query and the volume would dominate the index.
+
+The head-VID slot is empty (zero-byte sentinel) for unpinned references and contains the archetype's specific VID for version-pinned references. Prefix-scan with just the head-IID returns all instances of that archetype regardless of which version of the archetype was used.
+
+Use cases:
+- "All my Documents" — `prefix scan (Document-IID, ...)` → list of (item-IID, body-CID).
+- "All chess games" — same, with `Chess_Game-IID`.
+- "All instances of archetype-X pinned to version Y" — full-key prefix.
+
+## Indexing rules
+
+When a Datum is inserted into `objects`, the Library walks its bindings and writes index entries:
 
 ```
-1. Build FrameBody: predicate + theme + bindings
-2. persist(body bytes) → body CID
-3. Build FrameRecord: body hash + signer + timestamp + signature
-4. persist(record bytes) → record CID
-5. Index: FRAME_BY_ITEM[...], RECORD_BY_BODY[bodyHash|signer]
+For each binding (role, qualifiers, target) in the Datum's bindings list:
+  - Write forward_bindings entry: (role, qualifiers..., encoded-target) → CID
+  - Write reverse_bindings entry: (encoded-target, role, qualifiers...) → CID
+
+If the Datum has an ITEM_ID binding (it's a manifest body):
+  - Write type_index entry:
+        (head-IID, head-VID-or-empty, item-IID-from-ITEM_ID-binding) → CID
 ```
 
-### Retrieving (Hydrate)
+The Datum write to `objects` and the index updates happen in a single transaction so that recovery is straightforward: either everything is present, or the Datum isn't visible.
+
+Records (Datums with signatures) are indexed identically to bodies — their bindings populate the same forward and reverse indexes. A record's bindings include things like the signer's key reference, signing time, etc., all of which become queryable.
+
+## ItemDirectory
+
+A separate primary-data column family for tracking items that aren't in our local `objects`:
 
 ```
-1. ITEMS[IID] → latest VID (by timestamp)
-2. OBJECTS[VID] → manifest bytes → decode
-3. For each frame entry in manifest:
-   a. OBJECTS[entry.contentCID] → content bytes → decode → live instance
-4. Bind live instances to @Frame fields
+item_directory keys: ItemID → DirectoryEntry
+
+DirectoryEntry:
+  iid:               ItemID
+  locations:         List<Location>    — where to find the item
+  latestKnownVid:    Optional<CID>     — last version we heard about
+  lastSeen:          Optional<Instant> — when we last had contact
 ```
 
-### Querying
+`Location` variants:
+- A peer's network address
+- A mounted WorkingTreeStore filesystem path
+- "Mentioned by frame X" — referenced but never fetched
+
+ItemDirectory provides routing hints when the local store doesn't have an item but we know where to look. It's primary data (not derivable from `objects`), so it lives alongside `objects` in the data CFs.
+
+## Resolution priority
+
+When the Librarian needs to fetch an item or content:
+
+1. **Local `objects`** — fast path; if the bytes are here, return them.
+2. **ItemDirectory hints** — if local doesn't have it, check directory for known locations. Try each in priority order:
+   - Mounted WorkingTreeStores (filesystem; usually available)
+   - Trusted peers (network; may be unreachable)
+3. **Network search** — if directory has no hint, ask peers via the trust graph. May return nothing.
+
+Successful fetches from external sources can be cached locally (write to `objects`) and the directory entry's `lastSeen` updated, but caching is optional — Librarian's policy decides.
+
+## Backends
+
+The `ObjectStore` interface is implementable by multiple backends:
+
+- **In-memory** — for tests, ephemeral runs.
+- **RocksDB** — production persistent storage. Column families host the data and index CFs together.
+- **MapDB** — lighter-weight persistent or in-memory option.
+- **WorkingTreeStore** — filesystem-backed, materialized item layout (`.item/objects/`, etc.). Used for export, USB sync, and as the persistence medium for materialized standalone items.
+
+Library is backend-agnostic; it composes whichever ObjectStore + index machinery is available. The same indexing rules apply regardless of backend.
+
+## Future indexes
+
+Several additional indexes are anticipated as access patterns mature. They're noted here for design awareness; none are part of the foundation:
+
+- **Hypernym index** — for fast hyponymy walks ("anything that's-a Animal" pulls in Dog, Cat, Mammal, etc. transitively).
+- **Trust-graph index** — signer-key → frames signed by them; trust relationships.
+- **Quantity range index** — fixed-width sortable magnitude encoding within a unit, for "all harvests > 5 kg"-style queries.
+- **N-gram index** — for fuzzy text matching beyond byte-prefix.
+- **Embedding index** — vector similarity over WL fingerprints (see [Fuzzy Matching](fuzzy-matching.md)).
+
+All would be added without disrupting existing indexes; all would be rebuildable from `objects`.
+
+## Why indexes are rebuildable
+
+The combination of:
+
+- One source-of-truth object store
+- Indexes derived purely by walking objects
+- A clear set of indexing rules
+
+…gives the system several useful properties:
+
+- **Recovery**: index corruption is non-fatal. Drop and rebuild.
+- **Schema evolution**: changing index encoding requires no data migration. Drop, change rules, rebuild.
+- **Selective indexing**: a deployment can choose which indexes to maintain. A read-only mounted store might skip indexes entirely.
+- **Lazy indexing**: indexes can be built on-demand rather than at insert time, with appropriate query-time fallback to scanning.
+- **Transparent backends**: any backend that provides `objects` + transactional column families can host the same Library logic.
+
+## Datum encoding in `objects`
+
+A reminder of what's stored:
 
 ```
-1. FRAME_BY_ITEM[itemID | predicate] → prefix scan → body CIDs
-2. OBJECTS[bodyCID] → body bytes → decode FrameBody
-3. Optional: RECORD_BY_BODY[bodyHash] → record CIDs → attestation info
+objects: CID → bytes
+
+Stored bytes are CBOR-encoded Datums:
+  - Body Datum:   2-element CBOR array  [Tag-6(head), [bindings]]
+  - Record Datum: 3-element CBOR array  [Tag-6(head), [bindings], signature]
+
+Plus content blobs: arbitrary bytes (raw content addressable by CID,
+referenced via ~<CID> ContentRefs).
 ```
 
-## Verification
+Decoder dispatches on array length: 2 elements → Body, 3 elements → Record. Content blobs are not arrays at all; they're whatever the producer wrote. Type confusion is impossible because retrieval is always context-driven (you fetched a CID because some structure pointed at it; that structure tells you what to expect).
 
-The integrity chain from content to signature:
+For the encoding details, see [Datum](datum.md) and [CG-CBOR](cg-cbor.md).
 
-```
-Content bytes → CID (verified by hash)
-  → Frame entry → Manifest body → VID (verified by hash)
-    → Manifest record → Signature (verified by public key)
-```
+## What this dissolves from the older model
 
-Any object can be verified at any time: fetch bytes, recompute hash, compare to CID. The store does this automatically for external files on fetch.
+Several concepts from the pre-Datum-unification storage layer are no longer needed:
+
+- **Separate object kinds** (manifests vs frame bodies vs frame records as different types). Now: one `objects` column, all Datums.
+- **Four specific indexes** (ITEMS, HEADS, FRAME_BY_ITEM, RECORD_BY_BODY). Now: forward + reverse + type, more general.
+- **TokenDictionary as a separate index**. Now: subsumed by reverse_bindings via type-discriminated encoding.
+- **EndorsementsTable** as a runtime structure. Now: the manifest's body bindings ARE the endorsement set, queryable directly.
+- **ItemState wrapping**. Now: dissolved with EndorsementsTable.
+
+What persists from the older model:
+
+- One source of truth (`objects`), derived indexes — same principle, refined.
+- Transparent large-object support via content references — large blobs live as files or in `objects`; references work the same either way.
+- Backend-agnostic Library — RocksDB, MapDB, in-memory, WorkingTreeStore all valid.
+- Trust-graph mediation by Librarian — local first, then routed to external sources.
 
 ## References
 
-- [Git Object Store](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) — Single content-addressed object store for all object types
-- [IPFS](https://ipfs.tech/) — Content-addressed block storage with Merkle DAGs
-- [Content Addressing](content.md) — CIDs, hashing, encoding, selectors
-- [Library](library.md) — Store registry, ItemDirectory, TokenDictionary, bootstrap
+- [Datum](datum.md) — the structural primitive that gets stored
+- [Frames](frames.md) — Body/Record/Frame/Manifest semantics
+- [Content](content.md) — CIDs, multihash, multibase
+- [Query](query.md) — how queries operate over the indexes
+- [Fuzzy Matching](fuzzy-matching.md) — downstream similarity layer using WL kernel and embeddings

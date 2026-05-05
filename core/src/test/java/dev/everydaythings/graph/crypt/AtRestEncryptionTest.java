@@ -2,10 +2,9 @@ package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.library.ItemStore;
-import dev.everydaythings.graph.library.Library;
+import dev.everydaythings.graph.library.LibraryOld;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.crypt.InMemoryVault;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -217,14 +216,14 @@ class AtRestEncryptionTest {
     // ==================================================================================
 
     @Nested
-    class LibraryIntegration {
+    class LibraryOldIntegration {
 
         @Test
         void encryptedLibraryStoresAndRetrievesContent() {
             InMemoryVault vault = InMemoryVault.create();
             vault.generateEncryptionKey();
 
-            try (Library lib = Library.memoryEncrypted(vault)) {
+            try (LibraryOld lib = LibraryOld.memoryEncrypted(vault)) {
                 assertThat(lib.isEncrypted()).isTrue();
 
                 // Store content
@@ -243,8 +242,8 @@ class AtRestEncryptionTest {
             vault.generateEncryptionKey();
 
             // Create a librarian with encrypted library
-            Librarian librarian = Librarian.createInMemory();
-            Library encLib = Library.memoryEncrypted(vault);
+            LibrarianOld librarian = LibrarianOld.createInMemory();
+            LibraryOld encLib = LibraryOld.memoryEncrypted(vault);
             encLib.setLibrarian(librarian);
 
             // Store raw content as a proxy for manifest storage
@@ -265,7 +264,7 @@ class AtRestEncryptionTest {
             vault.generateEncryptionKey();
 
             // Store data in encrypted library
-            Library encLib = Library.memoryEncrypted(vault);
+            LibraryOld encLib = LibraryOld.memoryEncrypted(vault);
             byte[] data = "secret data".getBytes();
             ContentID cid = encLib.store().content(data);
 
@@ -287,7 +286,7 @@ class AtRestEncryptionTest {
             InMemoryVault vault = InMemoryVault.create();
             vault.generateEncryptionKey();
 
-            Library lib = Library.memoryEncrypted(vault);
+            LibraryOld lib = LibraryOld.memoryEncrypted(vault);
             assertThat(lib.isEncrypted()).isTrue();
 
             lib.close();
@@ -300,7 +299,7 @@ class AtRestEncryptionTest {
             InMemoryVault vault = InMemoryVault.create();
             vault.generateEncryptionKey();
 
-            try (Library lib = Library.memoryEncrypted(vault)) {
+            try (LibraryOld lib = LibraryOld.memoryEncrypted(vault)) {
                 // Simulate a Tag 10 encrypted envelope stored at rest
                 byte[] tag10Envelope = "pretend-this-is-a-tag10-envelope".getBytes();
                 ContentID cid = lib.store().content(tag10Envelope);
@@ -320,7 +319,7 @@ class AtRestEncryptionTest {
 
         @Test
         void plainLibraryIsNotEncrypted() {
-            try (Library lib = Library.memory()) {
+            try (LibraryOld lib = LibraryOld.memory()) {
                 assertThat(lib.isEncrypted()).isFalse();
             }
         }

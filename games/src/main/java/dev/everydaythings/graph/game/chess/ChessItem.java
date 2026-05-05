@@ -9,9 +9,10 @@ import dev.everydaythings.graph.game.BoardState;
 import dev.everydaythings.graph.game.GameBoard;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.game.Piece;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.language.ColorVocabulary;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -20,10 +21,9 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 @Scene.Body(shape = "box", fontSize = "2.2cm", color = 0x8B4513)
 @Scene.Container(id = "chess-root", direction = Direction.VERTICAL, width = "100%", height = "100%",
         padding = "0.6em", gap = "0.5em", style = "fill")
-public class ChessItem extends Item {
+public class ChessItem extends ItemOld {
 
     @ItemSeed(key = Chess.KEY)
     public static class Chess {
@@ -70,17 +70,17 @@ public class ChessItem extends Item {
         // EXPECTS — declaration order is salience order for handle disambiguation.
         // The expected predicate is a qualifier on TOPIC (ensures unique FrameKeys).
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Player.KEY, ColorVocabulary.White.KEY}))
+                fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBodyOld.TYPE_KEY, GameVocabulary.Player.KEY, ColorVocabulary.White.KEY}))
         static final ItemID expectWhitePlayer = ItemID.fromString(GameVocabulary.Player.KEY);
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                 fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
-                        qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Player.KEY, ColorVocabulary.Black.KEY}))
+                        qualifiers = {FrameBodyOld.TYPE_KEY, GameVocabulary.Player.KEY, ColorVocabulary.Black.KEY}))
         static final ItemID expectBlackPlayer = ItemID.fromString(GameVocabulary.Player.KEY);
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                 fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY,
-                        qualifiers = {FrameBody.TYPE_KEY, GameVocabulary.Move.KEY}))
+                        qualifiers = {FrameBodyOld.TYPE_KEY, GameVocabulary.Move.KEY}))
         static final ItemID expectMove = ItemID.fromString(GameVocabulary.Move.KEY);
     }
 
@@ -223,7 +223,7 @@ public class ChessItem extends Item {
     // ==================================================================================
 
     /** Fresh game — starting position. */
-    public ChessItem(Librarian librarian) {
+    public ChessItem(LibrarianOld librarian) {
         super(librarian);
     }
 
@@ -249,7 +249,7 @@ public class ChessItem extends Item {
 
             // Persist as a frame
             if (librarian != null) {
-                librarian.storeFrame(FrameBody.builder(GameVocabulary.Move.IID)
+                librarian.storeFrame(FrameBodyOld.builder(GameVocabulary.Move.IID)
                         .bind(dev.everydaythings.graph.language.ThematicRole.Theme.IID, iid())
                         .bind(dev.everydaythings.graph.language.ThematicRole.Goal.IID, Literal.ofText(normalized))
                         .build());

@@ -2,17 +2,14 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ItemFrame;
-import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.*;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Eval;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -37,7 +34,7 @@ import java.util.Set;
  */
 @Implements(Language.KEY)
 @ItemSeed(key = Language.KEY)
-public class Language extends Item {
+public class Language extends ItemOld {
 
     // ==================================================================================
     // TYPE DEFINITION
@@ -72,7 +69,7 @@ public class Language extends Item {
      * @param librarian The librarian for storage
      * @param locale    The Java locale for this language
      */
-    public Language(Librarian librarian, Locale locale) {
+    public Language(LibrarianOld librarian, Locale locale) {
         super(librarian);
         this.languageCode = locale.getISO3Language();  // Use ISO 639-3 (3-letter)
     }
@@ -124,7 +121,7 @@ public class Language extends Item {
      * <p>Fields are bound via reflection in the base class hydrate() method.
      */
     @SuppressWarnings("unused")  // Used via reflection for hydration
-    protected Language(Librarian librarian, Manifest manifest) {
+    protected Language(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
         // Fields are set by bindFieldsFromTable() via reflection during super() call
     }
@@ -280,7 +277,7 @@ public class Language extends Item {
     public ParseResult parse(
             List<Eval.ResolvedToken> tokens,
             String rawText,
-            java.util.function.Function<ItemID, java.util.Optional<Item>> resolver,
+            java.util.function.Function<ItemID, java.util.Optional<ItemOld>> resolver,
             java.util.function.ToIntFunction<Sememe> headVerbScorer) {
         List<SemanticFrame> frames = FrameAssembler.assembleAll(tokens, resolver, headVerbScorer);
         if (!frames.isEmpty()) {
@@ -310,7 +307,7 @@ public class Language extends Item {
      * @param lib     librarian for resolving item references to display text
      * @return natural language text expressing the frame's assertion
      */
-    public String express(FrameBody body, ItemID ownerIid, Librarian lib) {
+    public String express(FrameBodyOld body, ItemID ownerIid, LibrarianOld lib) {
         if (body == null) return "frame";
 
         String predDisplay = predicateDisplay(body.predicate(), lib);
@@ -354,7 +351,7 @@ public class Language extends Item {
     /**
      * Express a specific role's binding from a frame body.
      */
-    private String expressBinding(FrameBody body, ItemID role, ItemID ownerIid, Librarian lib) {
+    private String expressBinding(FrameBodyOld body, ItemID role, ItemID ownerIid, LibrarianOld lib) {
         BindingTarget target = body.binding(role);
         if (target == null) return null;
         // Skip if it's the owner
@@ -369,17 +366,17 @@ public class Language extends Item {
      * <p>Checks the item's SYMBOL frames directly (not the transient field,
      * which may not be hydrated on cached seeds).
      */
-    protected String predicateDisplay(ItemID predicate, Librarian lib) {
+    protected String predicateDisplay(ItemID predicate, LibrarianOld lib) {
         if (predicate == null || lib == null) return null;
 
-        Optional<Item> item = lib.get(predicate);
+        Optional<ItemOld> item = lib.get(predicate);
         if (item.isEmpty()) return null;
 
         // Check SYMBOL frames on the item for a universal symbol
-        Item pred = item.get();
+        ItemOld pred = item.get();
         if (pred.frames() != null) {
-            for (Frame frame : pred.frames()) {
-                FrameBody fb = frame.body();
+            for (FrameOld frame : pred.frames()) {
+                FrameBodyOld fb = frame.body();
                 if (fb == null) continue;
                 if (!CoreVocabulary.Symbol.IID.equals(fb.predicate())) continue;
                 // Extract the VALUE binding text
@@ -399,7 +396,7 @@ public class Language extends Item {
     /**
      * Express a binding target as text.
      */
-    protected String expressTarget(BindingTarget target, ItemID ownerIid, Librarian lib) {
+    protected String expressTarget(BindingTarget target, ItemID ownerIid, LibrarianOld lib) {
         if (target == null) return null;
 
         if (target instanceof Literal lit) {
@@ -413,14 +410,14 @@ public class Language extends Item {
 
         if (target instanceof BindingTarget.IidTarget iid) {
             if (lib != null) {
-                return lib.get(iid.iid()).map(Item::displayToken).orElse(null);
+                return lib.get(iid.iid()).map(ItemOld::displayToken).orElse(null);
             }
             return iid.iid().displayAtWidth(12);
         }
 
         if (target instanceof BindingTarget.RefTarget ref) {
             if (lib != null) {
-                return lib.get(ref.asItemId()).map(Item::displayToken).orElse(null);
+                return lib.get(ref.asItemId()).map(ItemOld::displayToken).orElse(null);
             }
         }
 

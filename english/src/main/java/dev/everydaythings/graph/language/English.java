@@ -3,14 +3,14 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.importer.EnglishImporter;
 import dev.everydaythings.graph.importer.LanguageImporter;
 import dev.everydaythings.graph.runtime.Eval;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,7 +28,7 @@ import java.util.function.ToIntFunction;
  * <p>English is a Language with a Lexicon populated from OEWN 2025.
  * It contains lexemes (word→sememe mappings) for English words.
  *
- * <p>The {@link #generate(Signer)} method is bootstrap scaffolding that:
+ * <p>The {@link #generate(SignerOld)} method is bootstrap scaffolding that:
  * <ol>
  *   <li>Parses OEWN using the LMF importer</li>
  *   <li>Creates Sememes for each synset</li>
@@ -81,7 +81,7 @@ public class English extends Language {
      *
      * @param librarian The librarian for storage
      */
-    public English(Librarian librarian) {
+    public English(LibrarianOld librarian) {
         super(librarian, Locale.ENGLISH);
     }
 
@@ -89,7 +89,7 @@ public class English extends Language {
      * Hydration constructor - reconstructs an English from a stored manifest.
      */
     @SuppressWarnings("unused")  // Used via reflection for hydration
-    private English(Librarian librarian, Manifest manifest) {
+    private English(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 
@@ -117,14 +117,14 @@ public class English extends Language {
      * @deprecated Pre-deprecated bootstrap scaffolding.  Do not remove until post-1.0.
      */
     @Deprecated
-    public English generate(Signer signer) {
+    public English generate(SignerOld signer) {
         return generate(signer, 0);
     }
 
     /**
      * Generate with a limit on entries (for testing).
      *
-     * <p><b>PRE-DEPRECATED — DO NOT REMOVE.</b>  See {@link #generate(Signer)}.
+     * <p><b>PRE-DEPRECATED — DO NOT REMOVE.</b>  See {@link #generate(SignerOld)}.
      *
      * @param signer     The signer
      * @param maxSynsets Maximum synsets to process (0 = unlimited)
@@ -132,7 +132,7 @@ public class English extends Language {
      * @deprecated Pre-deprecated bootstrap scaffolding.  Do not remove until post-1.0.
      */
     @Deprecated
-    public English generate(Signer signer, int maxSynsets) {
+    public English generate(SignerOld signer, int maxSynsets) {
         EnglishImporter importer = new EnglishImporter(librarian);
         this.stats = importer.importLanguage(this, signer, maxSynsets);
         return this;
@@ -175,7 +175,7 @@ public class English extends Language {
     public ParseResult parse(
             List<Eval.ResolvedToken> tokens,
             String rawText,
-            Function<ItemID, Optional<Item>> resolver,
+            Function<ItemID, Optional<ItemOld>> resolver,
             ToIntFunction<Sememe> headVerbScorer) {
 
         // Step 1: Run the language-agnostic assembler
@@ -261,14 +261,14 @@ public class English extends Language {
      */
     private List<AuxiliaryChain> findAuxiliaryChains(
             List<Eval.ResolvedToken> unmatched,
-            Function<ItemID, Optional<Item>> resolver) {
+            Function<ItemID, Optional<ItemOld>> resolver) {
 
         List<AuxiliaryChain> chains = new ArrayList<>();
 
         for (int i = 0; i < unmatched.size() - 1; i++) {
             if (!(unmatched.get(i) instanceof Eval.ResolvedToken.Link prepLink)) continue;
 
-            Optional<Item> prepItem = resolver.apply(prepLink.iid());
+            Optional<ItemOld> prepItem = resolver.apply(prepLink.iid());
             if (prepItem.isEmpty() || !(prepItem.get() instanceof Sememe prepSememe)) continue;
 
             ParseContribution contribution = prepSememe.contribute(null);

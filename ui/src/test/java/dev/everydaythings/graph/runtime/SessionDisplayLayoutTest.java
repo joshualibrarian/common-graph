@@ -2,7 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.ui.Session;
 import dev.everydaythings.graph.frame.DisplayLayoutConfig;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Session DISPLAY_LAYOUT frame management")
 class SessionDisplayLayoutTest {
 
-    private Librarian librarian;
+    private LibrarianOld librarian;
     private TestSession session;
 
     static class TestSession extends Session {
@@ -34,7 +34,7 @@ class SessionDisplayLayoutTest {
 
     @BeforeEach
     void setUp() {
-        librarian = Librarian.createInMemory();
+        librarian = LibrarianOld.createInMemory();
         LocalLibrarian handle = new LocalLibrarian(librarian);
         session = new TestSession(handle, Ref.of(librarian.iid()));
     }
@@ -54,7 +54,7 @@ class SessionDisplayLayoutTest {
                     .widthPx(2560).heightPx(1600)
                     .build();
 
-            FrameKey key = session.registerDisplayLayout(config);
+            CompoundKey key = session.registerDisplayLayout(config);
             assertThat(key).isNotNull();
 
             List<DisplayLayoutConfig> layouts = session.displayLayouts();

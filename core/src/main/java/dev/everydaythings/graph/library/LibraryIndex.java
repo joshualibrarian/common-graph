@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -315,7 +315,7 @@ public interface LibraryIndex extends Service {
      * @param recordCid content ID of the stored RECORD bytes
      * @param wtx       write transaction
      */
-    default void indexFrameBody(FrameBody body, ContentID recordCid, WriteTransaction wtx) {
+    default void indexFrameBody(FrameBodyOld body, ContentID recordCid, WriteTransaction wtx) {
         Objects.requireNonNull(body, "body");
         Objects.requireNonNull(recordCid, "recordCid");
         Objects.requireNonNull(wtx, "wtx");
@@ -332,12 +332,12 @@ public interface LibraryIndex extends Service {
     /**
      * Index an endorsed frame from a manifest's frame table.
      */
-    default void indexEndorsedFrame(ItemID ownerIid, Frame frame, WriteTransaction wtx) {
+    default void indexEndorsedFrame(ItemID ownerIid, FrameOld frame, WriteTransaction wtx) {
         Objects.requireNonNull(ownerIid, "ownerIid");
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(wtx, "wtx");
 
-        FrameBody body = frame.body();
+        FrameBodyOld body = frame.body();
         ContentID bodyHash = frame.bodyHash();
         if (bodyHash == null && body.hasContent()) {
             bodyHash = body.contentCid();

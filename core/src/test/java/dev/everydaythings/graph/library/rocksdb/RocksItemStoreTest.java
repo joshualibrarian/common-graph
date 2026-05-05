@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.rocksdb;
 
 import dev.everydaythings.graph.library.ItemStore;
-import dev.everydaythings.graph.library.ItemStoreTest;
+import dev.everydaythings.graph.library.ItemOldStoreTest;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for RocksItemStore.
  *
- * <p>Inherits all standard ItemStore contract tests from {@link ItemStoreTest}.
+ * <p>Inherits all standard ItemStore contract tests from {@link ItemOldStoreTest}.
  * Adds RocksDB-specific tests if needed.
  */
 @Disabled("Store tests — refactoring later")
 @DisplayName("RocksItemStore")
-class RocksItemStoreTest extends ItemStoreTest {
+class RocksItemStoreTest extends ItemOldStoreTest {
 
     @Override
     protected ItemStore createStore(Path tempDir) {

@@ -2,13 +2,9 @@ package dev.everydaythings.graph.value.address;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.value.ValueType;
 
 import java.util.Optional;
@@ -84,7 +80,7 @@ public abstract class AddressSpace extends ValueType {
      * Hydration constructor - reconstructs an AddressSpace from a stored manifest.
      */
     @SuppressWarnings("unused")  // Used via reflection for hydration
-    protected AddressSpace(Librarian librarian, Manifest manifest) {
+    protected AddressSpace(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 

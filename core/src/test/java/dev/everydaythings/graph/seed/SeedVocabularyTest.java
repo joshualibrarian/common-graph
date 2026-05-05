@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.seed;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Sememe;
@@ -49,15 +49,15 @@ class SeedVocabularyTest {
                 .anyMatch(r -> typeId.equals(r.bindingId(ItemID.fromString("cg.role:theme"))));
     }
 
-    private List<Manifest> allManifestsOfType(ItemID typeId) {
+    private List<ManifestOld> allManifestsOfType(ItemID typeId) {
         // PHASE 6: type is now an implementation binding, not a sememe IID.
         // Match by checking if the implementation class has @Implements pointing to typeId.
-        List<Manifest> result = new ArrayList<>();
-        for (Manifest m : store.manifests(null).toList()) {
+        List<ManifestOld> result = new ArrayList<>();
+        for (ManifestOld m : store.manifests(null).toList()) {
             Class<?> implClass = m.implementationClass();
             if (implClass != null) {
                 try {
-                    ItemID implTypeId = Item.idOf(implClass);
+                    ItemID implTypeId = ItemOld.idOf(implClass);
                     if (typeId.equals(implTypeId)) {
                         result.add(m);
                     }

@@ -3,14 +3,12 @@ package dev.everydaythings.graph.ui;
 import dev.everydaythings.graph.frame.TickRegistry;
 import dev.everydaythings.graph.frame.ViewConfig;
 import dev.everydaythings.graph.frame.ViewHandle;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.parse.InputController;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
-import dev.everydaythings.graph.ui.WindowDragController;
-import dev.everydaythings.graph.ui.WindowResizeController;
 import dev.everydaythings.graph.ui.filament.*;
 import dev.everydaythings.graph.ui.scene.AnimationState;
 import dev.everydaythings.graph.ui.scene.KeyframeAnimator;
@@ -18,8 +16,6 @@ import dev.everydaythings.graph.ui.scene.InteractionState;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 import dev.everydaythings.graph.ui.scene.ScenePresenter;
 import dev.everydaythings.graph.ui.scene.SceneResolver;
-import dev.everydaythings.graph.ui.scene.RenderContext;
-import dev.everydaythings.graph.ui.scene.RenderMetrics;
 import dev.everydaythings.graph.ui.input.KeyChord;
 import dev.everydaythings.graph.ui.input.SpecialKey;
 import dev.everydaythings.graph.ui.skia.*;
@@ -60,7 +56,7 @@ public class ViewWindow {
 
     // ==================== Identity ====================
 
-    private final FrameKey frameKey;
+    private final CompoundKey frameKey;
     private ViewHandle viewHandle;
     private final Session session;
     private final SharedResources shared;
@@ -138,13 +134,13 @@ public class ViewWindow {
 
     // ==================== Constructor ====================
 
-    public ViewWindow(FrameKey frameKey, ViewHandle viewHandle,
+    public ViewWindow(CompoundKey frameKey, ViewHandle viewHandle,
                       Session session, SharedResources shared,
                       FilamentContext filamentContext) {
         this(frameKey, viewHandle, session, shared, filamentContext, null);
     }
 
-    public ViewWindow(FrameKey frameKey, ViewHandle viewHandle,
+    public ViewWindow(CompoundKey frameKey, ViewHandle viewHandle,
                       Session session, SharedResources shared,
                       FilamentContext filamentContext,
                       GraphicalSession.CoordinateMapper coordinateMapper) {
@@ -166,7 +162,7 @@ public class ViewWindow {
 
     // ==================== Accessors ====================
 
-    public FrameKey frameKey() { return frameKey; }
+    public CompoundKey frameKey() { return frameKey; }
     public ViewHandle viewHandle() { return viewHandle; }
     public Stage stage() { return stage; }
     public dev.everydaythings.graph.ui.scene.surface.item.ItemView itemView() { return itemView; }
@@ -180,7 +176,7 @@ public class ViewWindow {
     public void init() {
         resizeController = new WindowResizeController(20f);
 
-        Item targetItem = session.resolveItem(viewHandle.target()).orElse(null);
+        ItemOld targetItem = session.resolveItem(viewHandle.target()).orElse(null);
         String title = targetItem != null
                 ? "Common Graph - " + targetItem.displayToken()
                 : "Common Graph";
@@ -206,7 +202,7 @@ public class ViewWindow {
         stage.show();
 
         // Create ItemView wrapping the target item
-        Optional<Item> viewTargetItem = session.resolveItem(viewHandle.target());
+        Optional<ItemOld> viewTargetItem = session.resolveItem(viewHandle.target());
         if (viewTargetItem.isPresent()) {
             itemView = new dev.everydaythings.graph.ui.scene.surface.item.ItemView(
                     viewTargetItem.get(), iid -> session.resolveItem(iid));
@@ -504,7 +500,7 @@ public class ViewWindow {
         });
     }
 
-    private Optional<Item> contextItem() {
+    private Optional<ItemOld> contextItem() {
         if (itemView == null) return Optional.empty();
         Ref ctx = itemView.context();
         if (ctx == null || ctx.target() == null) return Optional.empty();
@@ -759,7 +755,7 @@ public class ViewWindow {
         rendererType = newType;
         String title = "Common Graph";
         contextItem().ifPresent(item -> {});
-        Item target = session.resolveItem(viewHandle.target()).orElse(null);
+        ItemOld target = session.resolveItem(viewHandle.target()).orElse(null);
         if (target != null) title = "Common Graph - " + target.displayToken();
 
         if (newType == ViewConfig.RendererType.FILAMENT) {

@@ -4,7 +4,9 @@ import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 /**
  * View vocabulary seeds — predicates for the view lifecycle.
@@ -38,8 +40,8 @@ public final class ViewVocabulary {
 
         public ItemView() { super(KEY); }
         protected ItemView(ItemID iid) { super(iid); }
-        protected ItemView(dev.everydaythings.graph.runtime.Librarian lib,
-                           dev.everydaythings.graph.item.Manifest m) { super(lib, m); }  // cross-module refs required
+        protected ItemView(LibrarianOld lib,
+                           ManifestOld m) { super(lib, m); }  // cross-module refs required
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
@@ -75,8 +77,8 @@ public final class ViewVocabulary {
 
         public Close() { super(KEY); }
         protected Close(ItemID iid) { super(iid); }
-        protected Close(dev.everydaythings.graph.runtime.Librarian lib,
-                        dev.everydaythings.graph.item.Manifest m) { super(lib, m); }
+        protected Close(LibrarianOld lib,
+                        ManifestOld m) { super(lib, m); }
 
         @ItemFrame(predicate = SememeGloss.KEY,
                    fieldAs = @Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))

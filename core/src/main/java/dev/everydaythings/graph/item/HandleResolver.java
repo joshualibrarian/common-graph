@@ -1,14 +1,14 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
@@ -51,8 +51,8 @@ public final class HandleResolver {
      *                 (may be empty — produces a best-effort label)
      * @return a human-readable distinguishing label, or null if nothing useful found
      */
-    public static String resolve(Item item, Collection<Item> siblings) {
-        Librarian lib = item.itemLibrarian();
+    public static String resolve(ItemOld item, Collection<ItemOld> siblings) {
+        LibrarianOld lib = item.itemLibrarian();
         if (lib == null) return null;
 
         // Item-level bindings first — these are the item's direct semantic content
@@ -90,7 +90,7 @@ public final class HandleResolver {
     /**
      * Resolve a label for an item without sibling context.
      */
-    public static String resolve(Item item) {
+    public static String resolve(ItemOld item) {
         return resolve(item, List.of());
     }
 
@@ -105,7 +105,7 @@ public final class HandleResolver {
      * (not frames on the item). These take priority over frame-derived features
      * because they represent the item's core identity.
      */
-    private static List<Feature> extractItemBindingFeatures(Item item, Librarian lib) {
+    private static List<Feature> extractItemBindingFeatures(ItemOld item, LibrarianOld lib) {
         List<Feature> features = new ArrayList<>();
         for (Binding b : item.itemBindings()) {
             String value = extractBindingDisplayValue(b, lib);
@@ -128,18 +128,18 @@ public final class HandleResolver {
     /**
      * Read EXPECTS frames from an item's type, in declaration order (= salience).
      */
-    static List<Expectation> expectationsFor(Item item, Librarian lib) {
+    static List<Expectation> expectationsFor(ItemOld item, LibrarianOld lib) {
         // Find the type IID
         ItemID typeId = typeIdOf(item);
         if (typeId == null) return List.of();
 
         // Get the type item from cache
-        Optional<Item> typeItem = lib.get(typeId);
+        Optional<ItemOld> typeItem = lib.get(typeId);
         if (typeItem.isEmpty()) return List.of();
 
         // Extract EXPECTS frames in iteration order
         List<Expectation> result = new ArrayList<>();
-        for (Frame frame : typeItem.get().frames()) {
+        for (FrameOld frame : typeItem.get().frames()) {
             if (frame.body() == null) continue;
             if (!CoreVocabulary.Expects.IID.equals(frame.body().predicate())) continue;
 
@@ -178,12 +178,12 @@ public final class HandleResolver {
     /**
      * Extract display features from an item by matching its frames against expectations.
      */
-    static List<Feature> extractFeatures(Item item, List<Expectation> expectations, Librarian lib) {
+    static List<Feature> extractFeatures(ItemOld item, List<Expectation> expectations, LibrarianOld lib) {
         List<Feature> features = new ArrayList<>();
 
         for (Expectation exp : expectations) {
             // Find matching frame(s) on the instance
-            for (Frame frame : item.frames()) {
+            for (FrameOld frame : item.frames()) {
                 if (frame.body() == null) continue;
                 if (!exp.expectedPredicate().equals(frame.body().predicate())) continue;
 
@@ -207,13 +207,13 @@ public final class HandleResolver {
      * Check if a frame body's bindings contain ALL the constraint IIDs
      * (as qualifier values or target values).
      */
-    private static boolean matchesConstraints(FrameBody body, List<ItemID> constraints) {
+    private static boolean matchesConstraints(FrameBodyOld body, List<ItemID> constraints) {
         for (ItemID constraint : constraints) {
             boolean found = false;
             for (Binding b : body.frameBindings()) {
                 // Check qualifiers
-                for (FrameKey.FrameToken q : b.qualifiers()) {
-                    if (q instanceof FrameKey.Sememe s && s.id().equals(constraint)) {
+                for (CompoundKey.FrameToken q : b.qualifiers()) {
+                    if (q instanceof CompoundKey.Sememe s && s.id().equals(constraint)) {
                         found = true;
                         break;
                     }
@@ -236,7 +236,7 @@ public final class HandleResolver {
      * <p>Skips the home binding (self-reference) and returns the first
      * binding that has a resolvable display value.
      */
-    private static String extractDisplayValue(FrameBody body, ItemID selfId, Librarian lib) {
+    private static String extractDisplayValue(FrameBodyOld body, ItemID selfId, LibrarianOld lib) {
         for (Binding b : body.frameBindings()) {
             // Skip self-references
             ItemID tid = b.targetId();
@@ -255,12 +255,12 @@ public final class HandleResolver {
     /**
      * Find the minimal feature set that uniquely identifies this item among siblings.
      */
-    private static String disambiguate(Item item, List<Feature> myFeatures,
-                                        Collection<Item> siblings,
-                                        List<Expectation> expectations, Librarian lib) {
+    private static String disambiguate(ItemOld item, List<Feature> myFeatures,
+                                       Collection<ItemOld> siblings,
+                                       List<Expectation> expectations, LibrarianOld lib) {
         // Build feature lists for all siblings using the same extraction strategy
         Map<ItemID, List<Feature>> siblingFeatures = new LinkedHashMap<>();
-        for (Item sib : siblings) {
+        for (ItemOld sib : siblings) {
             if (sib.iid().equals(item.iid())) continue; // skip self
             List<Feature> sf = !expectations.isEmpty()
                     ? extractFeatures(sib, expectations, lib)
@@ -344,12 +344,12 @@ public final class HandleResolver {
      * <p>Scans all frames on the item, skipping metadata predicates.
      * For each priority role, finds the first non-self binding value.
      */
-    static List<Feature> extractFallbackFeatures(Item item, Librarian lib) {
+    static List<Feature> extractFallbackFeatures(ItemOld item, LibrarianOld lib) {
         List<Feature> features = new ArrayList<>();
         ItemID selfId = item.iid();
 
         for (ItemID role : FALLBACK_ROLE_PRIORITY) {
-            for (Frame frame : item.frames()) {
+            for (FrameOld frame : item.frames()) {
                 if (frame.body() == null) continue;
                 if (SKIP_PREDICATES.contains(frame.body().predicate())) continue;
 
@@ -376,10 +376,10 @@ public final class HandleResolver {
     /**
      * Extract a display value from a single binding.
      */
-    private static String extractBindingDisplayValue(Binding binding, Librarian lib) {
+    private static String extractBindingDisplayValue(Binding binding, LibrarianOld lib) {
         ItemID tid = binding.targetId();
         if (tid != null) {
-            Optional<Item> resolved = lib.get(tid);
+            Optional<ItemOld> resolved = lib.get(tid);
             if (resolved.isPresent()) {
                 return resolved.get().displayToken();
             }
@@ -418,7 +418,7 @@ public final class HandleResolver {
      * @param lib    the librarian for resolving IIDs to display names
      * @return a human-readable label, never null
      */
-    public static String labelForFrame(FrameBody body, ItemID selfId, Librarian lib) {
+    public static String labelForFrame(FrameBodyOld body, ItemID selfId, LibrarianOld lib) {
         if (body == null) return "frame";
 
         // Use Language.express() for natural language handle text
@@ -460,9 +460,9 @@ public final class HandleResolver {
     /**
      * Resolve an ItemID to a display token via the librarian.
      */
-    private static String resolveDisplayToken(ItemID iid, Librarian lib) {
+    private static String resolveDisplayToken(ItemID iid, LibrarianOld lib) {
         if (iid == null || lib == null) return null;
-        return lib.get(iid).map(Item::displayToken).orElse(null);
+        return lib.get(iid).map(ItemOld::displayToken).orElse(null);
     }
 
     // ==================================================================================
@@ -472,9 +472,9 @@ public final class HandleResolver {
     /**
      * Get the type IID for an item — from {@code @Implements} annotation.
      */
-    static ItemID typeIdOf(Item item) {
+    static ItemID typeIdOf(ItemOld item) {
         try {
-            return Item.idOf(item.getClass());
+            return ItemOld.idOf(item.getClass());
         } catch (IllegalArgumentException e) {
             return null;
         }

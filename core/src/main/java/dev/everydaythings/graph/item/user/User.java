@@ -2,19 +2,16 @@ package dev.everydaythings.graph.item.user;
 
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.crypt.InMemoryVault;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.nio.file.Path;
 
@@ -36,7 +33,7 @@ import java.nio.file.Path;
  */
 @Implements(User.KEY)
 @ItemSeed(key = User.KEY)
-public class User extends Signer {
+public class User extends SignerOld {
 
     public static final String KEY = "cg.sememe:user";
 
@@ -68,17 +65,17 @@ public class User extends Signer {
      * @param librarian The librarian (provides store access)
      * @param manifest  The manifest describing this user's state
      */
-    protected User(Librarian librarian, Manifest manifest) {
+    protected User(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 
     /** Path-based constructor for creating/loading a User at a home directory. */
-    protected User(Librarian librarian, Path homePath) {
+    protected User(LibrarianOld librarian, Path homePath) {
         super(librarian, homePath, librarian.library().primaryStore().orElse(null));
     }
 
     /** In-memory constructor for ephemeral users (testing, no filesystem). */
-    protected User(Librarian librarian) {
+    protected User(LibrarianOld librarian) {
         super(librarian, librarian.library().primaryStore().orElse(null));
     }
 
@@ -100,7 +97,7 @@ public class User extends Signer {
      * @param name The user's name
      * @return The newly created User
      */
-    public static User create(Librarian lib, String name) {
+    public static User create(LibrarianOld lib, String name) {
         User user;
         if (lib.rootPath() != null) {
             Path homePath = lib.rootPath().resolve("users").resolve(name);
@@ -121,7 +118,7 @@ public class User extends Signer {
     /**
      * Create a new user.
      *
-     * <p>Delegates to {@link #create(Librarian, String)}.
+     * <p>Delegates to {@link #create(LibrarianOld, String)}.
      *
      * <p>Does NOT set the principal — use {@code serve <name>} for that.
      *
@@ -129,7 +126,7 @@ public class User extends Signer {
      * @return The newly created User
      */
     public User actionNew(String name) {
-        Librarian lib = this.librarian;
+        LibrarianOld lib = this.librarian;
         if (lib == null) {
             throw new IllegalStateException("Cannot create user without librarian");
         }

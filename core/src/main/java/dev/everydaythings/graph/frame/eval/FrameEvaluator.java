@@ -2,9 +2,9 @@ package dev.everydaythings.graph.frame.eval;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -73,7 +73,7 @@ public final class FrameEvaluator {
      * <p>This is the main entry point. Resolves the predicate to a
      * PredicateBehavior and delegates.
      */
-    public Object evaluate(FrameBody frame, Scope scope) {
+    public Object evaluate(FrameBodyOld frame, Scope scope) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(scope, "scope");
 
@@ -161,10 +161,10 @@ public final class FrameEvaluator {
 
         // 2. Context item's frames — look for a frame whose THEME is this text
         //    and that has a VALUE binding (the asserted content to evaluate).
-        Item owner = scope.owner();
+        ItemOld owner = scope.owner();
         if (owner != null && owner.frames() != null) {
-            for (Frame frame : owner.frames()) {
-                FrameBody body = frame.body();
+            for (FrameOld frame : owner.frames()) {
+                FrameBodyOld body = frame.body();
                 if (body == null) continue;
 
                 // Check if this frame's THEME is the string we're looking for
@@ -275,27 +275,27 @@ public final class FrameEvaluator {
     private BindingTarget lookupImplementedBy(ItemID predicate, Scope scope) {
         if (scope.librarian() == null) return null;
 
-        Optional<Item> item = scope.librarian().get(predicate, Item.class);
+        Optional<ItemOld> item = scope.librarian().get(predicate, ItemOld.class);
         if (item.isEmpty()) {
             System.err.println("  lookupImplementedBy: item not found for " + predicate);
             return null;
         }
 
-        Item sememe = item.get();
+        ItemOld sememe = item.get();
         if (sememe.frames() == null) {
             System.err.println("  lookupImplementedBy: item has no frames: " + sememe.displayToken());
             return null;
         }
 
         ItemID implPredicate = CoreVocabulary.ImplementedBy.IID;
-        for (Frame frame : sememe.frames()) {
-            FrameBody body = frame.body();
+        for (FrameOld frame : sememe.frames()) {
+            FrameBodyOld body = frame.body();
             if (body != null && implPredicate.equals(body.predicate())) {
                 return body.binding(ThematicRole.Goal.IID);
             }
             // Also check live objects (seed frames store FrameBody as live)
             Optional<Object> live = sememe.frames().getLive(frame.frameKey());
-            if (live.isPresent() && live.get() instanceof FrameBody liveBody) {
+            if (live.isPresent() && live.get() instanceof FrameBodyOld liveBody) {
                 if (implPredicate.equals(liveBody.predicate())) {
                     return liveBody.binding(ThematicRole.Goal.IID);
                 }
@@ -420,7 +420,7 @@ public final class FrameEvaluator {
         if (u != null) return u;
 
         // Try to resolve from librarian
-        Optional<Item> item = scope.librarian().get(iid, Item.class);
+        Optional<ItemOld> item = scope.librarian().get(iid, ItemOld.class);
         return item.isPresent() ? item.get() : iid;
     }
 

@@ -2,12 +2,12 @@ package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.importer.GermanImporter;
 import dev.everydaythings.graph.importer.LanguageImporter;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.util.List;
 import java.util.Locale;
@@ -33,7 +33,7 @@ import java.util.Set;
 @ItemSeed(key = Language.GERMAN_KEY)
 public class German extends Language {
 
-    private Librarian librarian;
+    private LibrarianOld librarian;
     private LanguageImporter.ImportStats stats;
 
     /** Seed constructor. */
@@ -48,14 +48,14 @@ public class German extends Language {
     }
 
     /** Create German language item. */
-    public German(Librarian librarian) {
+    public German(LibrarianOld librarian) {
         super(librarian, Locale.GERMAN);
         this.librarian = librarian;
     }
 
     /** Hydration constructor. */
     @SuppressWarnings("unused")
-    private German(Librarian librarian, Manifest manifest) {
+    private German(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
         this.librarian = librarian;
     }
@@ -70,7 +70,7 @@ public class German extends Language {
      * @deprecated Bootstrap scaffolding
      */
     @Deprecated
-    public German generate(Signer signer) {
+    public German generate(SignerOld signer) {
         return generate(signer, 0);
     }
 
@@ -80,7 +80,7 @@ public class German extends Language {
      * @deprecated Bootstrap scaffolding
      */
     @Deprecated
-    public German generate(Signer signer, int maxSynsets) {
+    public German generate(SignerOld signer, int maxSynsets) {
         GermanImporter importer = new GermanImporter(librarian);
         this.stats = importer.importLanguage(this, signer, maxSynsets);
         return this;

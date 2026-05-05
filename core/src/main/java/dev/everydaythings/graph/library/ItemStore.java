@@ -3,14 +3,14 @@ package dev.everydaythings.graph.library;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Hash;
 import dev.everydaythings.graph.crypt.AtRestEncryption;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.item.id.*;
-import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.item.ManifestOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
@@ -58,7 +58,7 @@ public interface ItemStore extends Service {
      * @param iid The item ID
      * @return The item, or empty if not found
      */
-    default Optional<Item> item(ItemID iid) {
+    default Optional<ItemOld> item(ItemID iid) {
         // TODO: implement via manifest lookup and hydration
         return Optional.empty();
     }
@@ -76,10 +76,10 @@ public interface ItemStore extends Service {
      * @param vid The version ID (hash of manifest body)
      * @return The manifest, or empty if not found
      */
-    default Optional<Manifest> manifest(ItemID iid, ContentID vid) {
+    default Optional<ManifestOld> manifest(ItemID iid, ContentID vid) {
         byte[] bytes = retrieveManifest(iid, vid);
         if (bytes == null) return Optional.empty();
-        return Optional.of(Manifest.decode(bytes));
+        return Optional.of(ManifestOld.decode(bytes));
     }
 
     /**
@@ -101,7 +101,7 @@ public interface ItemStore extends Service {
      * @param m The manifest to store
      * @return The version ID (hash of the body)
      */
-    default ContentID manifest(Manifest m) {
+    default ContentID manifest(ManifestOld m) {
         byte[] record = m.encodeBinary(Canonical.Scope.RECORD);
         var vid = new ContentID[1];
         runInWriteTransaction(tx -> vid[0] = persistManifest(m.iid(), record, tx));
@@ -116,10 +116,10 @@ public interface ItemStore extends Service {
      * @param recordCid The CID of the RECORD bytes
      * @return The frame body, or empty if not found
      */
-    default Optional<FrameBody> frameBody(ContentID recordCid) {
+    default Optional<FrameBodyOld> frameBody(ContentID recordCid) {
         byte[] bytes = retrieveFrameBody(recordCid);
         if (bytes == null) return Optional.empty();
-        return Optional.of(Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD));
+        return Optional.of(Canonical.decodeBinary(bytes, FrameBodyOld.class, Canonical.Scope.RECORD));
     }
 
     /**
@@ -128,7 +128,7 @@ public interface ItemStore extends Service {
      * @param r The frame body to store
      * @return The content ID of the stored RECORD bytes
      */
-    default ContentID storeFrameBody(FrameBody r) {
+    default ContentID storeFrameBody(FrameBodyOld r) {
         byte[] record = r.encodeBinary(Canonical.Scope.RECORD);
         var cid = new ContentID[1];
         runInWriteTransaction(tx -> cid[0] = persistContent(record, tx));
@@ -199,7 +199,7 @@ public interface ItemStore extends Service {
         Objects.requireNonNull(tx, "tx");
 
         // Decode to compute VID (hash of BODY)
-        Manifest m = Manifest.decode(record);
+        ManifestOld m = ManifestOld.decode(record);
         byte[] body = m.encodeBinary(Canonical.Scope.BODY);
         ContentID vid = new ContentID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
 
@@ -393,10 +393,10 @@ public interface ItemStore extends Service {
      * @return The implementing Item class, or empty if not found
      */
     @SuppressWarnings("unchecked")
-    default Optional<Class<? extends Item>> findItemImplementation(ItemID typeId) {
+    default Optional<Class<? extends ItemOld>> findItemImplementation(ItemID typeId) {
         return findImplementation(typeId)
-                .filter(Item.class::isAssignableFrom)
-                .map(c -> (Class<? extends Item>) c);
+                .filter(ItemOld.class::isAssignableFrom)
+                .map(c -> (Class<? extends ItemOld>) c);
     }
 
     // ==================================================================================
@@ -418,7 +418,7 @@ public interface ItemStore extends Service {
      * @param frames Component frames to save
      * @param tx     Write transaction
      */
-    default void saveHeadComponents(List<Frame> frames, WriteTransaction tx) {
+    default void saveHeadComponents(List<FrameOld> frames, WriteTransaction tx) {
         // Default: no-op
     }
 
@@ -434,7 +434,7 @@ public interface ItemStore extends Service {
      *
      * @return List of component frames, or empty if not supported
      */
-    default List<Frame> loadHeadComponents() {
+    default List<FrameOld> loadHeadComponents() {
         return List.of();
     }
 
@@ -444,7 +444,7 @@ public interface ItemStore extends Service {
      * @param key The component frame key
      * @return The component bytes, or empty if not found
      */
-    default Optional<byte[]> getLocalContent(FrameKey key) {
+    default Optional<byte[]> getLocalContent(CompoundKey key) {
         return Optional.empty();
     }
 
@@ -462,11 +462,11 @@ public interface ItemStore extends Service {
      * @param iid The item ID to filter by, or null for all manifests
      * @return Stream of decoded manifests
      */
-    default Stream<Manifest> manifests(ItemID iid) {
+    default Stream<ManifestOld> manifests(ItemID iid) {
         return StreamSupport.stream(iterateObjects().spliterator(), false)
                 .flatMap(bytes -> {
                     try {
-                        Manifest m = Manifest.decode(bytes);
+                        ManifestOld m = ManifestOld.decode(bytes);
                         if (m == null || m.iid() == null) return Stream.empty();
                         if (iid != null && !iid.equals(m.iid())) return Stream.empty();
                         return Stream.of(m);
@@ -484,11 +484,11 @@ public interface ItemStore extends Service {
      *
      * @return Stream of decoded frame bodies
      */
-    default Stream<FrameBody> frameBodies() {
+    default Stream<FrameBodyOld> frameBodies() {
         return StreamSupport.stream(iterateObjects().spliterator(), false)
                 .flatMap(bytes -> {
                     try {
-                        FrameBody r = Canonical.decodeBinary(bytes, FrameBody.class, Canonical.Scope.RECORD);
+                        FrameBodyOld r = Canonical.decodeBinary(bytes, FrameBodyOld.class, Canonical.Scope.RECORD);
                         if (r == null || r.predicate() == null) return Stream.empty();
                         return Stream.of(r);
                     } catch (Exception e) {

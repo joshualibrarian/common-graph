@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.web;
 
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.network.Ack;
@@ -8,12 +8,11 @@ import dev.everydaythings.graph.network.Heartbeat;
 import dev.everydaythings.graph.network.ProtocolError;
 import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.session.SessionMessage;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.ui.scene.SceneCompiler;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
@@ -39,18 +38,18 @@ import java.util.concurrent.ConcurrentHashMap;
 @Log4j2
 public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryWebSocketFrame> {
 
-    private final Librarian librarian;
+    private final LibrarianOld librarian;
 
     // Per-connection session state
     private String sessionId;
     private byte[] authNonce;
     private boolean challengeSent = false;
     private boolean authenticated = false;
-    private Item context = null;
+    private ItemOld context = null;
     private ItemID principalId = null;
     private final Set<ItemID> subscriptions = ConcurrentHashMap.newKeySet();
 
-    public WebSocketSessionHandler(Librarian librarian) {
+    public WebSocketSessionHandler(LibrarianOld librarian) {
         this.librarian = librarian;
     }
 
@@ -79,7 +78,7 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         if (sessionId != null) {
-            librarian.unregisterSession(Librarian.SessionInfo.unix("WebSession " + sessionId));
+            librarian.unregisterSession(LibrarianOld.SessionInfo.unix("WebSession " + sessionId));
             logger.info("WebSocket session closed: {}", sessionId);
         }
         super.channelInactive(ctx);
@@ -156,7 +155,7 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
             librarian.principal().ifPresent(p -> principalId = p.iid());
         }
 
-        librarian.registerSession(Librarian.SessionInfo.unix("WebSession " + sessionId));
+        librarian.registerSession(LibrarianOld.SessionInfo.unix("WebSession " + sessionId));
         if (principalId != null) {
             sendMessage(ctx, SessionMessage.AuthResponse.successWithPrincipal(sessionId, principalId));
         } else {
@@ -191,7 +190,7 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
 
     private void handleContext(ChannelHandlerContext ctx, SessionMessage.ContextRequest m) {
         if (m.itemId() == null) {
-            Item ctxItem = context != null ? context : librarian;
+            ItemOld ctxItem = context != null ? context : librarian;
             sendMessage(ctx, new SessionMessage.ContextResponse(ctxItem.iid(), ctxItem.displayToken(), null));
             return;
         }
@@ -211,9 +210,9 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
                 return;
             }
             ItemID iid = postings.get(0).target();
-            context = librarian.get(iid, Item.class).orElse(null);
+            context = librarian.get(iid, ItemOld.class).orElse(null);
         } else {
-            context = librarian.get(m.itemId(), Item.class).orElse(null);
+            context = librarian.get(m.itemId(), ItemOld.class).orElse(null);
         }
 
         if (context == null) {
@@ -258,7 +257,7 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
      * ItemModel.toSurface() → SceneCompiler.compile(). Every item is
      * renderable through its @Scene annotations.
      */
-    private SceneNode compileItemView(Item item) {
+    private SceneNode compileItemView(ItemOld item) {
         try {
             SceneNode result = SceneCompiler.compile(item);
             if (result != null) return result;

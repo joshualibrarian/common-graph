@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.parse;
 
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.parse.ExpressionToken.*;
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -93,12 +93,12 @@ public class InputController {
 
     private Function<String, List<Posting>> lookup;
     private LibrarianHandle librarianHandle;
-    private Item context;
-    private Item session;
+    private ItemOld context;
+    private ItemOld session;
     private int minLookupLength = 1;
 
     private Consumer<InputSnapshot> onChange;
-    private Consumer<Item> onNavigate;
+    private Consumer<ItemOld> onNavigate;
     private Consumer<Eval.EvalResult> onResult;
     private Consumer<String> onError;
 
@@ -125,12 +125,12 @@ public class InputController {
             return this;
         }
 
-        public Builder context(Item context) {
+        public Builder context(ItemOld context) {
             input.context = context;
             return this;
         }
 
-        public Builder session(Item session) {
+        public Builder session(ItemOld session) {
             input.session = session;
             return this;
         }
@@ -155,7 +155,7 @@ public class InputController {
             return this;
         }
 
-        public Builder onNavigate(Consumer<Item> callback) {
+        public Builder onNavigate(Consumer<ItemOld> callback) {
             input.onNavigate = callback;
             return this;
         }
@@ -276,7 +276,7 @@ public class InputController {
     }
 
     /** Get current context item. */
-    public Item context() {
+    public ItemOld context() {
         return context;
     }
 
@@ -305,7 +305,7 @@ public class InputController {
     // ==================================================================================
 
     /** Update the focused item context. */
-    public void setContext(Item item) {
+    public void setContext(ItemOld item) {
         this.context = item;
     }
 

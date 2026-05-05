@@ -3,10 +3,10 @@ package dev.everydaythings.graph.language;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 
@@ -16,11 +16,11 @@ import java.util.*;
 /**
  * A thin view over a frame binding in the token index.
  *
- * <p>Three fields: {@link FrameBody}, binding index, weight. Everything
+ * <p>Three fields: {@link FrameBodyOld}, binding index, weight. Everything
  * else is derived from the body's bindings:
  * <ul>
  *   <li><b>token</b> — the text literal in the indexed binding</li>
- *   <li><b>target</b> — the body's home item ({@link FrameBody#homeId()})</li>
+ *   <li><b>target</b> — the body's home item ({@link FrameBodyOld#homeId()})</li>
  *   <li><b>scope</b> — first qualifier of the binding (language), or null (universal)</li>
  *   <li><b>features</b> — remaining qualifiers (POS, morphology)</li>
  * </ul>
@@ -33,7 +33,7 @@ public final class Posting implements Canonical {
 
     private static final int WEIGHT_SCALE = 1000;
 
-    private final FrameBody body;
+    private final FrameBodyOld body;
     private final int bindingIndex;
     private final float weight;
 
@@ -41,7 +41,7 @@ public final class Posting implements Canonical {
     // Constructor
     // ==================================================================================
 
-    public Posting(FrameBody body, int bindingIndex, float weight) {
+    public Posting(FrameBodyOld body, int bindingIndex, float weight) {
         this.body = Objects.requireNonNull(body, "body");
         this.bindingIndex = bindingIndex;
         this.weight = weight;
@@ -50,7 +50,7 @@ public final class Posting implements Canonical {
     /**
      * Create a posting from a frame body and binding index.
      */
-    public static Posting fromFrame(FrameBody body, int bindingIndex, float weight) {
+    public static Posting fromFrame(FrameBodyOld body, int bindingIndex, float weight) {
         return new Posting(body, bindingIndex, weight);
     }
 
@@ -91,7 +91,7 @@ public final class Posting implements Canonical {
     /** Scope ItemID — first qualifier of the binding, or null (universal). */
     public ItemID scope() {
         var quals = binding().qualifiers();
-        if (!quals.isEmpty() && quals.getFirst() instanceof FrameKey.Sememe s) {
+        if (!quals.isEmpty() && quals.getFirst() instanceof CompoundKey.Sememe s) {
             return s.id();
         }
         return null;
@@ -107,7 +107,7 @@ public final class Posting implements Canonical {
         if (quals.size() <= 1) return Set.of();
         Set<ItemID> fs = new HashSet<>();
         for (int i = 1; i < quals.size(); i++) {
-            if (quals.get(i) instanceof FrameKey.Sememe s) fs.add(s.id());
+            if (quals.get(i) instanceof CompoundKey.Sememe s) fs.add(s.id());
         }
         return Set.copyOf(fs);
     }
@@ -116,7 +116,7 @@ public final class Posting implements Canonical {
     public float weight() { return weight; }
 
     /** The source frame body. */
-    public FrameBody body() { return body; }
+    public FrameBodyOld body() { return body; }
 
     /** The binding index within the body. */
     public int bindingIndex() { return bindingIndex; }
@@ -189,7 +189,7 @@ public final class Posting implements Canonical {
 
     public static Posting fromCborTree(CBORObject obj) {
         if (obj == null || obj.isNull()) return null;
-        FrameBody body = Canonical.fromCborTree(obj.get(0), FrameBody.class, Scope.RECORD);
+        FrameBodyOld body = Canonical.fromCborTree(obj.get(0), FrameBodyOld.class, Scope.RECORD);
         int bindingIndex = obj.get(1).AsInt32();
         float weight = obj.get(2).AsInt32() / (float) WEIGHT_SCALE;
         return new Posting(body, bindingIndex, weight);

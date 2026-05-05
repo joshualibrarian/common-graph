@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.importer.LanguageImporter;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,7 @@ class GermanTest {
     @Test
     @DisplayName("German import with limit creates sememes and lexemes")
     void importWithLimit() {
-        Librarian lib = Librarian.createInMemory();
+        LibrarianOld lib = LibrarianOld.createInMemory();
         German german = new German(lib);
         german.generate(lib, 100);
 
@@ -34,7 +34,7 @@ class GermanTest {
     @Disabled("Full import: 36K synsets, 144K lexemes, 112s, 1.1GB.")
     @DisplayName("Full German import")
     void fullImport() {
-        Librarian lib = Librarian.createInMemory();
+        LibrarianOld lib = LibrarianOld.createInMemory();
         German german = new German(lib);
 
         long start = System.currentTimeMillis();

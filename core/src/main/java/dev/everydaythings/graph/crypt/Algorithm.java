@@ -99,16 +99,45 @@ public sealed interface Algorithm extends Canonical
         /** True for signing algorithms, false for key-agreement / transport. */
         default boolean canSign() { return kind() == Kind.SIGN; }
 
+        /**
+         * Multikey codec code for this algorithm's public key type.
+         * Used to tag self-describing public keys in {@code MultiKey} format.
+         */
+        int multikeyCode();
+
+        /**
+         * Expected raw public key bytes for this algorithm's key type, or {@code 0}
+         * if the key is variable-length (e.g., RSA).
+         */
+        int rawKeyBytes();
+
         enum KeyFamily { OKP, EC, RSA }
+
+        /**
+         * Look up an Asymmetric algorithm by its multikey codec code.
+         *
+         * <p>If multiple algorithms share the same key type (e.g., PS256 and RSA-OAEP
+         * both use RSA keys with multikey code 0x1205), returns the first match.
+         * Used primarily for length validation when decoding raw key bytes.
+         *
+         * @throws IllegalArgumentException if no algorithm has this multikey code
+         */
+        static Asymmetric byMultikeyCode(int code) {
+            for (Sign s : Sign.values())     if (s.multikeyCode() == code) return s;
+            for (KeyMgmt k : KeyMgmt.values()) if (k.multikeyCode() == code) return k;
+            throw new IllegalArgumentException(
+                    "No Asymmetric algorithm with multikey code 0x" + Integer.toHexString(code));
+        }
     }
 
     /* SIGNING algorithms (Ed25519, ES256, PS256, …) */
     @AllArgsConstructor @Getter
     enum Sign implements Asymmetric {
-        ED25519(-8,  KeyFamily.OKP, "Ed25519", "Ed25519",         null,        0),
-        ES256  (-7,  KeyFamily.EC,  "EC",      "SHA256withECDSA", "secp256r1", 256),
-        ES256K (-47, KeyFamily.EC,  "EC",      "SHA256withECDSA", "secp256k1", 256),
-        PS256  (-37, KeyFamily.RSA, "RSA",     "RSASSA-PSS",      null,        4096);
+        //          coseId  keyFamily        keyFactory  signatureName       curveName    keyBits  multikey  rawKey  varsig   sigBytes
+        ED25519(    -8,     KeyFamily.OKP,   "Ed25519",  "Ed25519",          null,        0,       0xed,     32,     0xed,    64),
+        ES256  (    -7,     KeyFamily.EC,    "EC",       "SHA256withECDSA",  "secp256r1", 256,     0x1200,   33,     0x1200,  64),
+        ES256K (    -47,    KeyFamily.EC,    "EC",       "SHA256withECDSA",  "secp256k1", 256,     0xe7,     33,     0xe7,    64),
+        PS256  (    -37,    KeyFamily.RSA,   "RSA",      "RSASSA-PSS",       null,        4096,    0x1205,   0,      0x1205,  0);
 
         private final int coseId;
         private final Kind kind = Kind.SIGN;
@@ -117,6 +146,10 @@ public sealed interface Algorithm extends Canonical
         private final String signatureName;
         private final String curveName;
         private final int keyBits;
+        private final int multikeyCode;
+        private final int rawKeyBytes;
+        private final int varsigCode;       // multicodec for the signature in varsig format
+        private final int sigBytes;         // expected raw signature bytes; 0 = variable
 
         // inside Algorithm.Sign enum
         public static Sign byJcaAlgorithmName(String algName) {
@@ -129,15 +162,26 @@ public sealed interface Algorithm extends Canonical
                 default -> throw new IllegalArgumentException("Unsupported JCA PublicKey algorithm: " + algName);
             }
         }
+
+        /**
+         * Look up a Sign algorithm by its varsig codec code.
+         *
+         * @throws IllegalArgumentException if no Sign algorithm has this varsig code
+         */
+        public static Sign byVarsigCode(int code) {
+            for (Sign s : values()) if (s.varsigCode == code) return s;
+            throw new IllegalArgumentException(
+                    "No Sign algorithm with varsig code 0x" + Integer.toHexString(code));
+        }
     }
 
     /* KEY MANAGEMENT (agreement / transport for CEKs) */
     @AllArgsConstructor @Getter
     enum KeyMgmt implements Asymmetric {
         // Agreement: ECDH-ES + HKDF-SHA256 with X25519 (OKP family)
-        ECDH_ES_HKDF_256(-25, KeyFamily.OKP, "XDH", "X25519", "XDH", "HKDF-SHA256", 0),
+        ECDH_ES_HKDF_256(-25, KeyFamily.OKP, "XDH", "X25519", "XDH", "HKDF-SHA256", 0,    0xec,   32),
         // Transport: RSA-OAEP with SHA-256
-        RSA_OAEP_256     (-41, KeyFamily.RSA, "RSA", "RSA",    null,  "OAEP-SHA256",  4096);
+        RSA_OAEP_256     (-41, KeyFamily.RSA, "RSA", "RSA",    null,  "OAEP-SHA256",  4096, 0x1205, 0);
 
         private final int coseId;
         private final Kind kind = Kind.KEY_MGMT;
@@ -147,6 +191,8 @@ public sealed interface Algorithm extends Canonical
         private final String agreementName;     // "XDH" for X25519 agreement; null for transport
         private final String kdfOrWrap;         // "HKDF-SHA256" or "OAEP-SHA256"
         private final int keyBits;
+        private final int multikeyCode;
+        private final int rawKeyBytes;          // 0 = variable
 
         public static KeyMgmt byJcaAlgorithmName(String algName) {
             if (algName == null) throw new IllegalArgumentException("algName is null");

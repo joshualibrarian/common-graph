@@ -1,396 +1,174 @@
 package dev.everydaythings.graph.item;
 
-import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.frame.AttributedBody;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameEndorsement;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.language.RuntimeVocabulary;
-import dev.everydaythings.graph.item.id.HashID;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.frame.Record;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.crypt.GraphPublicKey;
-import dev.everydaythings.graph.crypt.SigningPublicKey;
-import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.crypt.Signing;
-import lombok.*;
+import dev.everydaythings.graph.item.id.ItemID;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 
 /**
- * Manifest = the version-defining "endorsed set" for an item version.
+ * A {@link AttributedBody} whose body represents a version of an item.
  *
- * <p>A Manifest contains:
- * <ul>
- *   <li><b>Identity</b>: iid, parents, type - identifies this version</li>
- *   <li><b>State</b>: ItemState containing all tables (content, relations, policy)</li>
- *   <li><b>Signing</b>: authorKey and signature for verification</li>
- * </ul>
+ * <p>A Manifest is structurally just a Frame whose body has an {@code ITEM_ID}
+ * binding. The wrapper concept dissolves — the IID lives as a binding inside the
+ * body, not as a separate envelope field. This class adds archetypal-flavored
+ * convenience methods on top of {@link AttributedBody} for the common
+ * version-DAG and curation queries.
  *
- * <p>The {@link ItemState} is shared between Manifest and Item, ensuring consistent
- * handling of the five core tables.
+ * <p>Common bindings on a manifest body:
+ * <table>
+ *   <tr><th>Role</th><th>Purpose</th></tr>
+ *   <tr><td>{@code ITEM_ID}</td><td>The item's identity (the IID this is a version of)</td></tr>
+ *   <tr><td>{@code FOLLOWS}</td><td>Parent VIDs (zero for inception, multiple for merges)</td></tr>
+ *   <tr><td>{@code ENDORSES}</td><td>Frame body CIDs that this version endorses as its content</td></tr>
+ *   <tr><td>{@code IMPLEMENTATION}</td><td>Reference to the implementation that produced this version</td></tr>
+ *   <tr><td>{@code CONFIG:[...]}</td><td>Per-purpose configuration (retention, presentation, etc.)</td></tr>
+ * </table>
  */
-@Getter
-@Canonical.Canonization
-public final class Manifest implements Signing.Target {
+public final class Manifest extends AttributedBody {
 
-    // --- IDENTITY ---
-    @Canon(order = 0)
-    private int version = 1;
+    /** Canonical key for the ITEM_ID structural sememe. */
+    public static final String ITEM_ID_KEY = "cg.structural:item-id";
 
-    @Canon(order = 1)
-    private ItemID iid;
+    /** ItemID of the structural ITEM_ID sememe. */
+    public static final ItemID ITEM_ID = ItemID.fromString(ITEM_ID_KEY);
 
-    @Canon(order = 2)
-    private List<ContentID> parents;
+    /** Canonical key for the FOLLOWS structural sememe. */
+    public static final String FOLLOWS_KEY = "cg.structural:follows";
 
-    // PHASE 6: was `ItemID type` (sememe IID). Now carries the creating
-    // implementation as (platform, class-name). The sememe relationship
-    // lives in the item's IMPLEMENTS frame, not on the manifest.
-    @Getter(AccessLevel.NONE)
-    @Canon(order = 3)
-    private Binding implementation;
+    /** ItemID of the structural FOLLOWS sememe. */
+    public static final ItemID FOLLOWS = ItemID.fromString(FOLLOWS_KEY);
 
-    // --- STATE (the five tables) ---
-    @Canon(order = 4)
-    private ItemState state;
+    /** Canonical key for the ENDORSES structural sememe. */
+    public static final String ENDORSES_KEY = "cg.structural:endorses";
 
-    // --- SIGNING (non-BODY) ---
-    @Canon(order = 5, isBody = false)
-    private SigningPublicKey authorKey;
+    /** ItemID of the structural ENDORSES sememe. */
+    public static final ItemID ENDORSES = ItemID.fromString(ENDORSES_KEY);
 
-    @Canon(order = 6, isBody = false)
-    private Signing signature;
+    /** Canonical key for the IMPLEMENTATION structural sememe. */
+    public static final String IMPLEMENTATION_KEY = "cg.structural:implementation";
 
-    // --- ITEM BINDINGS ---
-    @Getter(AccessLevel.NONE)
-    @Canon(order = 7)
-    private List<Binding> identityBindingsList;
+    /** ItemID of the structural IMPLEMENTATION sememe. */
+    public static final ItemID IMPLEMENTATION = ItemID.fromString(IMPLEMENTATION_KEY);
 
-    @Getter(AccessLevel.NONE)
-    @Canon(order = 8, isBody = false)
-    private List<Binding> nonIdentityBindingsList;
+    /** Canonical key for the CONFIG structural sememe. */
+    public static final String CONFIG_KEY = "cg.structural:config";
 
-    // --- DERIVED CACHES (NOT serialized) ---
-    @Getter(AccessLevel.NONE)
-    private transient volatile byte[] bodyBytes;
+    /** ItemID of the structural CONFIG sememe. */
+    public static final ItemID CONFIG = ItemID.fromString(CONFIG_KEY);
 
-    @Getter(AccessLevel.NONE)
-    private transient volatile ContentID vid;
-
-    // ==================================================================================
-    // Constructors
-    // ==================================================================================
-
-    @Builder(builderClassName = "ManifestBuilder")
-    private Manifest(
-            @NonNull ItemID iid,
-            @Singular("parent") List<ContentID> parents,
-            Binding implementation,
-            ItemState state,
-            @Singular("binding") List<Binding> bindings
-    ) {
-        this.iid = Objects.requireNonNull(iid, "iid");
-        this.parents = (parents == null) ? List.of() : List.copyOf(parents);
-        this.implementation = implementation;
-        this.state = state != null ? state : new ItemState();
-
-        // Split bindings by identity flag for body/record encoding
-        if (bindings != null && !bindings.isEmpty()) {
-            List<Binding> identity = new java.util.ArrayList<>();
-            List<Binding> nonIdentity = new java.util.ArrayList<>();
-            for (Binding b : bindings) {
-                if (b.identity()) identity.add(b);
-                else nonIdentity.add(b);
-            }
-            this.identityBindingsList = identity.isEmpty() ? null : List.copyOf(identity);
-            this.nonIdentityBindingsList = nonIdentity.isEmpty() ? null : List.copyOf(nonIdentity);
+    public Manifest(Body body, List<Record> records) {
+        super(body, records);
+        if (body.binding(CompoundKey.of(ITEM_ID)).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Manifest body must have an ITEM_ID binding "
+                            + "(use Frame for non-archetypal bodies)");
         }
+    }
 
-        // Precompute caches for newly-built instances
-        this.bodyBytes = encodeBinary(Canonical.Scope.BODY);
-        this.vid = new ContentID(Hash.DEFAULT.digest(this.bodyBytes), Hash.DEFAULT);
+    /** Construct a Manifest with the given body and no records. */
+    public static Manifest of(Body body) {
+        return new Manifest(body, List.of());
+    }
+
+    /** Construct a Manifest with the given body and records. */
+    public static Manifest of(Body body, List<Record> records) {
+        return new Manifest(body, records);
     }
 
     /**
-     * No-arg constructor for Canonical decode support.
+     * The item's identity — read from the {@code ITEM_ID} binding.
      */
-    @SuppressWarnings("unused")
-    private Manifest() {
-        // Fields set via reflection during decode
+    public ItemID itemId() {
+        Binding b = body().binding(CompoundKey.of(ITEM_ID))
+                .orElseThrow(() -> new IllegalStateException(
+                        "Manifest body missing ITEM_ID binding (should have been validated at construction)"));
+        return readIidFromTarget(b.target(), ITEM_ID_KEY);
     }
 
-    // ==================================================================================
-    // State Accessors (convenience delegates)
-    // ==================================================================================
-
     /**
-     * Get the endorsed frames (endorsements table snapshot).
+     * The version ID — equivalent to the body's CID.
      */
-    public List<Frame> components() {
-        if (state == null) return List.of();
-        var table = state.frames();
-        return table != null ? table.stream().toList() : List.of();
+    public ContentID versionId() {
+        return bodyCID();
     }
 
     /**
-     * Get the frame endorsements from this manifest's state.
+     * Parent version IDs — read from {@code FOLLOWS} bindings.
      *
-     * <p>Returns endorsements if available, or an empty list
-     * for manifests with no endorsed frames.
+     * <p>Returns an empty list for an inception manifest (no parents).
+     * Multi-IID FOLLOWS indicates a merge of multiple parent versions.
      */
-    public List<FrameEndorsement> endorsements() {
-        return state != null ? state.endorsements() : List.of();
-    }
-
-    // ==================================================================================
-    // Binding Accessors
-    // ==================================================================================
-
-    /**
-     * All item-level bindings (both identity and non-identity).
-     */
-    public List<Binding> bindings() {
-        if (identityBindingsList == null && nonIdentityBindingsList == null) return List.of();
-        List<Binding> all = new java.util.ArrayList<>();
-        if (identityBindingsList != null) all.addAll(identityBindingsList);
-        if (nonIdentityBindingsList != null) all.addAll(nonIdentityBindingsList);
-        return List.copyOf(all);
+    public List<ContentID> parents() {
+        return body().bindingsByRole(FOLLOWS).stream()
+                .map(b -> readCidFromTarget(b.target(), FOLLOWS_KEY))
+                .toList();
     }
 
     /**
-     * Look up a binding by role (simple key match, searches all bindings).
-     */
-    public Binding binding(ItemID role) {
-        if (identityBindingsList != null) {
-            for (Binding b : identityBindingsList) {
-                if (b.isSimpleKey() && role.equals(b.role())) return b;
-            }
-        }
-        if (nonIdentityBindingsList != null) {
-            for (Binding b : nonIdentityBindingsList) {
-                if (b.isSimpleKey() && role.equals(b.role())) return b;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Identity bindings only (contribute to VID).
-     */
-    public List<Binding> identityBindings() {
-        return identityBindingsList != null ? identityBindingsList : List.of();
-    }
-
-    /**
-     * Non-identity bindings (record-scope, don't affect VID).
-     */
-    public List<Binding> nonIdentityBindings() {
-        return nonIdentityBindingsList != null ? nonIdentityBindingsList : List.of();
-    }
-
-    /**
-     * Look up a non-identity binding by role (simple key match).
-     */
-    public Binding nonIdentityBinding(ItemID role) {
-        if (nonIdentityBindingsList == null) return null;
-        for (Binding b : nonIdentityBindingsList) {
-            if (b.isSimpleKey() && role.equals(b.role())) return b;
-        }
-        return null;
-    }
-
-    // ==================================================================================
-    // Implementation Accessors
-    // ==================================================================================
-
-    /**
-     * The creating implementation binding: platform + class/module name.
+     * Endorsed frame bindings — the bindings whose role is {@code ENDORSES}.
      *
-     * <p>The binding's key is the platform IID (e.g., Java, Python) and
-     * its target is a Literal containing the implementation class name.
+     * <p>Each endorsed binding's target is the body CID of a frame this manifest
+     * endorses as part of its content state.
      */
-    public Binding implementation() { return implementation; }
+    public List<Binding> endorses() {
+        return body().bindingsByRole(ENDORSES);
+    }
 
     /**
-     * The platform that created this item (language/runtime IID).
+     * Implementation reference — read from the {@code IMPLEMENTATION} binding.
      *
-     * @return the platform sememe IID (e.g., RuntimeVocabulary.Java), or null
+     * <p>Returns empty if no implementation is declared.
      */
-    public ItemID platform() {
-        return implementation != null ? implementation.role() : null;
+    public Optional<Binding> implementation() {
+        return body().binding(CompoundKey.of(IMPLEMENTATION));
     }
 
     /**
-     * The implementation class/module name as a string.
+     * Find a CONFIG binding with the given qualifier list.
      *
-     * @return the implementation name, or null if not set
+     * <p>Example: {@code config(CompoundKey.of(CONFIG, RETENTION))} returns the
+     * binding declaring this manifest's retention policy.
      */
-    public String implementationName() {
-        if (implementation == null) return null;
-        if (implementation.target() instanceof Literal lit) return lit.asText();
-        return null;
+    public Optional<Binding> config(CompoundKey configKey) {
+        return body().binding(configKey);
     }
 
     /**
-     * Resolve the Java class for this manifest's implementation.
-     *
-     * @return the Java class, or null if not a Java implementation or class not found
+     * Read an ItemID from a binding target, expecting a reference target shape.
      */
-    public Class<?> implementationClass() {
-        if (implementation == null) return null;
-        if (implementation.target() instanceof Literal lit) {
-            try {
-                return lit.asJavaClass();
-            } catch (Exception e) {
-                return null;
-            }
+    private static ItemID readIidFromTarget(BindingTarget target, String role) {
+        if (target instanceof BindingTarget.IidTarget iidTarget) {
+            return iidTarget.iid();
         }
-        return null;
-    }
-
-    /**
-     * Build an implementation binding for a Java class.
-     *
-     * <p>Convenience factory for the common case of creating a manifest
-     * for a Java item.
-     */
-    public static Binding javaImplementation(Class<?> clazz) {
-        return new Binding(
-                RuntimeVocabulary.Java.IID,
-                Literal.ofText(clazz.getName()));
-    }
-
-    // ==================================================================================
-    // VID and Body
-    // ==================================================================================
-
-    /**
-     * Canonical BODY bytes (derived).
-     * Returned value is a clone to prevent accidental mutation.
-     */
-    public byte[] bodyBytes() {
-        byte[] local = bodyBytes;
-        if (local == null) {
-            synchronized (this) {
-                local = bodyBytes;
-                if (local == null) {
-                    local = encodeBinary(Canonical.Scope.BODY);
-                    bodyBytes = local;
-                }
-            }
+        if (target instanceof BindingTarget.RefTarget refTarget) {
+            return refTarget.asItemId();
         }
-        return local.clone();
+        throw new IllegalStateException(
+                role + " binding target must be a reference, got "
+                        + target.getClass().getSimpleName());
     }
 
     /**
-     * ContentID (derived from BODY bytes).
+     * Read a ContentID from a binding target, expecting a reference target shape.
      */
-    public ContentID vid() {
-        ContentID local = vid;
-        if (local == null) {
-            synchronized (this) {
-                local = vid;
-                if (local == null) {
-                    byte[] body = encodeBinary(Canonical.Scope.BODY);
-                    local = new ContentID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
-                    vid = local;
-                }
-            }
+    private static ContentID readCidFromTarget(BindingTarget target, String role) {
+        if (target instanceof BindingTarget.RefTarget refTarget) {
+            // RefTarget wraps a Ref; for FOLLOWS the target is conceptually a VID
+            // (which is a ContentID). We return ContentID derived from the ref's bytes.
+            return new ContentID(refTarget.asItemId().encodeBinary());
         }
-        return local;
-    }
-
-    // ==================================================================================
-    // Signing
-    // ==================================================================================
-
-    public boolean isSigned() {
-        return authorKey != null && signature != null;
-    }
-
-    /**
-     * Chainable signer; signs BODY bytes (Ed25519-friendly).
-     * NOTE: this mutates the inline signature fields.
-     */
-    public Manifest sign(@NonNull Signer signer) {
-        Objects.requireNonNull(signer, "signer");
-        if (!verifyBody()) throw new IllegalStateException("BODY verification failed");
-
-        this.authorKey = signer.publicKey();
-        Signing.Sig sig = signer.sign(vid(), bodyBytes(), null, null);
-        this.signature = Signing.of(vid(), targetBodyHash(), sig);
-        return this;
-    }
-
-    /**
-     * Re-encode and compare with cached BODY to guard against accidental drift.
-     */
-    public boolean verifyBody() {
-        byte[] cached = this.bodyBytes;
-        byte[] now = encodeBinary(Canonical.Scope.BODY);
-        return cached == null || Arrays.equals(now, cached);
-    }
-
-    /**
-     * Verify the inline signature, if present.
-     */
-    public boolean verifySignature() {
-        if (!isSigned()) return false;
-
-        try {
-            Method m = signature.getClass().getMethod(
-                    "verify",
-                    GraphPublicKey.class,
-                    HashID.class,
-                    byte[].class,
-                    byte[].class,
-                    byte[].class
-            );
-
-            Object ok = m.invoke(signature, authorKey, vid(), bodyBytes(), null, null);
-            return ok instanceof Boolean b && b;
-
-        } catch (NoSuchMethodException e) {
-            throw new UnsupportedOperationException(
-                    "Signing.verify(...) method not found; update Manifest.verifySignature() to match Signing API",
-                    e
-            );
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Signature verification failed unexpectedly", e);
+        if (target instanceof BindingTarget.IidTarget iidTarget) {
+            return new ContentID(iidTarget.iid().encodeBinary());
         }
+        throw new IllegalStateException(
+                role + " binding target must be a reference, got "
+                        + target.getClass().getSimpleName());
     }
-
-    @Override
-    public HashID targetId() {
-        return vid();
-    }
-
-    // ==================================================================================
-    // Decode
-    // ==================================================================================
-
-    /**
-     * Decode a Manifest from CBOR bytes.
-     */
-    public static Manifest decode(byte[] bytes) {
-        return Canonical.decodeBinary(bytes, Manifest.class, Canonical.Scope.RECORD);
-    }
-
-    /**
-     * Decode a Manifest from CBOR bytes with explicit scope.
-     */
-    public static Manifest decode(byte[] bytes, Canonical.Scope scope) {
-        return Canonical.decodeBinary(bytes, Manifest.class, scope);
-    }
-
-    // NOTE: Do NOT add a fromCborTree(CBORObject) method here!
-    // It would cause infinite recursion because Canonical.fromCborTree()
-    // looks for such methods and invokes them, expecting custom decoding.
-    // Manifest uses standard field-based decoding, so let Canonical handle it.
 }

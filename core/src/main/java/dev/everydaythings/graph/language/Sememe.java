@@ -1,24 +1,20 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.dispatch.Created;
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.item.id.FrameKey;
+import dev.everydaythings.graph.frame.FrameOld;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.item.Implements;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.item.user.SignerOld;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
@@ -26,7 +22,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * A Sememe is a unit of meaning, like "meters" are a unit of measure.
@@ -58,7 +53,7 @@ import java.util.Optional;
 @Log4j2
 @Implements(Sememe.KEY)
 @ItemSeed(key = Sememe.KEY)
-public class Sememe extends Item {
+public class Sememe extends ItemOld {
 
     // ==================================================================================
     // TYPE DEFINITION
@@ -236,7 +231,7 @@ public class Sememe extends Item {
      * @param glosses      Glosses by language
      * @param sources      External source references
      */
-    public Sememe(Librarian librarian, String canonicalKey,
+    public Sememe(LibrarianOld librarian, String canonicalKey,
                   Map<String, String> glosses, Map<String, String> sources) {
         super(librarian, ItemID.fromString(canonicalKey));
         this.canonicalKey = canonicalKey;
@@ -262,7 +257,7 @@ public class Sememe extends Item {
      * <p>Fields are bound via reflection in the base class hydrate() method.
      */
     @SuppressWarnings("unused")  // Used via reflection for hydration
-    protected Sememe(Librarian librarian, Manifest manifest) {
+    protected Sememe(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
         // Fields are set by bindFieldsFromTable() via reflection during super() call
         // Do NOT assign values here - it would overwrite what hydration set!
@@ -278,7 +273,7 @@ public class Sememe extends Item {
      * @param sources      External source references
      * @return The created and committed sememe
      */
-    public static Sememe create(Librarian librarian, Signer signer,
+    public static Sememe create(LibrarianOld librarian, SignerOld signer,
                                 String canonicalKey,
                                 Map<String, String> glosses, Map<String, String> sources) {
         Sememe sememe = new Sememe(librarian, canonicalKey, glosses, sources);
@@ -376,7 +371,7 @@ public class Sememe extends Item {
         // Try SememeGloss component
         if (frames() != null) {
             var live = frames().getLive(
-                    dev.everydaythings.graph.item.id.FrameKey.of(
+                    CompoundKey.of(
                             dev.everydaythings.graph.item.id.ItemID.fromString(SememeGloss.KEY), iso3));
             if (live.isPresent() && live.get() instanceof SememeGloss sg) {
                 return sg.text();
@@ -473,7 +468,7 @@ public class Sememe extends Item {
      * ({@code cg.sememe:frame}).
      */
     public List<ItemID> expectedFrames() {
-        return expectsFiltered(FrameBody.TYPE_ID);
+        return expectsFiltered(FrameBodyOld.TYPE_ID);
     }
 
     /**
@@ -487,7 +482,7 @@ public class Sememe extends Item {
         if (frames() == null) return List.of();
         List<ItemID> qualified = new ArrayList<>();
         List<ItemID> all = new ArrayList<>();
-        for (Frame frame : frames()) {
+        for (FrameOld frame : frames()) {
             if (frame.body() == null) continue;
             if (!CoreVocabulary.Expects.IID.equals(frame.body().predicate())) continue;
             Binding topicBinding = frame.body().getBindingByRole(ThematicRole.Topic.IID);
@@ -497,7 +492,7 @@ public class Sememe extends Item {
 
             // Check if first qualifier matches
             if (qualifier != null && !topicBinding.qualifiers().isEmpty()) {
-                if (topicBinding.qualifiers().getFirst() instanceof FrameKey.Sememe sem
+                if (topicBinding.qualifiers().getFirst() instanceof CompoundKey.Sememe sem
                         && qualifier.equals(sem.id())) {
                     qualified.add(topicBinding.targetId());
                 }
@@ -525,13 +520,13 @@ public class Sememe extends Item {
         if (frames() == null) return null;
         ItemID durabilityQualifier = ItemID.fromString(CoreVocabulary.Durability.KEY);
         ItemID configRole = ItemID.fromString(ThematicRole.Config.KEY);
-        for (Frame frame : frames()) {
+        for (FrameOld frame : frames()) {
             if (frame.body() == null) continue;
             if (!CoreVocabulary.Expects.IID.equals(frame.body().predicate())) continue;
             Binding configBinding = frame.body().getBindingByRole(configRole);
             if (configBinding == null || configBinding.targetId() == null) continue;
             if (!configBinding.qualifiers().isEmpty()
-                    && configBinding.qualifiers().getFirst() instanceof FrameKey.Sememe sem
+                    && configBinding.qualifiers().getFirst() instanceof CompoundKey.Sememe sem
                     && durabilityQualifier.equals(sem.id())) {
                 return configBinding.targetId();
             }

@@ -2,13 +2,13 @@ package dev.everydaythings.graph.frame.eval;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
-import dev.everydaythings.graph.frame.FrameRecord;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.frame.FrameRecordOld;
+import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.language.Sememe;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ import java.util.Map;
  * Runs the frame assembly callback chain.
  *
  * <p>Given an assembled FrameBody, resolves all participants and calls
- * {@link Item#onFrameAssembled(FrameAssemblyContext)} on each in order:
+ * {@link ItemOld#onFrameAssembled(FrameAssemblyContext)} on each in order:
  * <ol>
  *   <li>The predicate sememe (knows overall semantics)</li>
  *   <li>Binding targets in EXPECTS salience order (skip literals)</li>
@@ -46,26 +46,26 @@ public class FrameAssemblyPipeline {
      * @param session the execution context session (may be null)
      * @return the assembly context (check {@code ctx.handled()} for result)
      */
-    public FrameAssemblyContext assemble(FrameBody body, Scope scope, Signer signer, Item session) {
-        Librarian librarian = scope.librarian();
+    public FrameAssemblyContext assemble(FrameBodyOld body, Scope scope, SignerOld signer, ItemOld session) {
+        LibrarianOld librarian = scope.librarian();
 
         // Resolve the predicate to a Sememe item
-        Item predicateItem = librarian != null
-                ? librarian.get(body.predicate(), Item.class).orElse(null)
+        ItemOld predicateItem = librarian != null
+                ? librarian.get(body.predicate(), ItemOld.class).orElse(null)
                 : null;
 
         // Resolve binding targets to Items (skip literals)
-        Map<ItemID, Item> resolvedItems = resolveBindingTargets(body, librarian);
+        Map<ItemID, ItemOld> resolvedItems = resolveBindingTargets(body, librarian);
 
         // Build callback order from EXPECTS on the predicate
-        List<Item> callbackChain = buildCallbackChain(
+        List<ItemOld> callbackChain = buildCallbackChain(
                 predicateItem, resolvedItems, body, signer, session);
 
         // Create the context
         FrameAssemblyContext ctx = new FrameAssemblyContext(body, scope, signer, session, resolvedItems);
 
         // Run callbacks — stop on first handler
-        for (Item participant : callbackChain) {
+        for (ItemOld participant : callbackChain) {
             participant.onFrameAssembled(ctx);
             if (ctx.handled()) break;
         }
@@ -75,7 +75,7 @@ public class FrameAssemblyPipeline {
             try {
                 librarian.storeFrame(body);
                 if (signer != null && signer.canSign()) {
-                    FrameRecord record = FrameRecord.create(body, signer);
+                    FrameRecordOld record = FrameRecordOld.create(body, signer);
                     ctx.record(record);
                 }
             } catch (Exception e) {
@@ -89,14 +89,14 @@ public class FrameAssemblyPipeline {
     /**
      * Resolve binding targets to Items, keyed by role.
      */
-    private Map<ItemID, Item> resolveBindingTargets(FrameBody body, Librarian librarian) {
-        Map<ItemID, Item> resolved = new LinkedHashMap<>();
+    private Map<ItemID, ItemOld> resolveBindingTargets(FrameBodyOld body, LibrarianOld librarian) {
+        Map<ItemID, ItemOld> resolved = new LinkedHashMap<>();
         if (librarian == null || body.frameBindings() == null) return resolved;
 
         for (Binding binding : body.frameBindings()) {
             ItemID targetId = extractItemId(binding.target());
             if (targetId != null) {
-                librarian.get(targetId, Item.class).ifPresent(item -> resolved.put(binding.role(), item));
+                librarian.get(targetId, ItemOld.class).ifPresent(item -> resolved.put(binding.role(), item));
             }
         }
         return resolved;
@@ -118,9 +118,9 @@ public class FrameAssemblyPipeline {
      * Deduplicates: if the signer or session is already in the chain as a binding
      * target, it won't be called twice.
      */
-    private List<Item> buildCallbackChain(Item predicateItem, Map<ItemID, Item> resolvedItems,
-                                          FrameBody body, Signer signer, Item session) {
-        LinkedHashSet<Item> chain = new LinkedHashSet<>();
+    private List<ItemOld> buildCallbackChain(ItemOld predicateItem, Map<ItemID, ItemOld> resolvedItems,
+                                             FrameBodyOld body, SignerOld signer, ItemOld session) {
+        LinkedHashSet<ItemOld> chain = new LinkedHashSet<>();
 
         // 1. Predicate sememe first
         if (predicateItem != null) {
@@ -131,7 +131,7 @@ public class FrameAssemblyPipeline {
         if (predicateItem instanceof Sememe sememe) {
             List<ItemID> expectsOrder = sememe.slotRoles();
             for (ItemID role : expectsOrder) {
-                Item target = resolvedItems.get(role);
+                ItemOld target = resolvedItems.get(role);
                 if (target != null) {
                     chain.add(target);
                 }
@@ -139,7 +139,7 @@ public class FrameAssemblyPipeline {
         }
 
         // Add any binding targets not covered by EXPECTS (in binding order)
-        for (Item target : resolvedItems.values()) {
+        for (ItemOld target : resolvedItems.values()) {
             chain.add(target);
         }
 

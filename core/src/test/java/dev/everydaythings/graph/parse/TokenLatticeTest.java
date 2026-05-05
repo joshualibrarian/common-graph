@@ -1,10 +1,9 @@
 package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.FrameKey;
-import dev.everydaythings.graph.item.id.FrameKey.FrameToken;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.Posting;
@@ -12,8 +11,6 @@ import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -322,18 +319,18 @@ class TokenLatticeTest {
     }
 
     private static Posting posting(String token, ItemID target, float weight) {
-        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
-                FrameBody.homeBinding(target),
+        FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBodyOld.homeBinding(target),
                 new Binding(ThematicRole.Value.IID, List.of(), Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, weight);
     }
 
     private static Posting scopedPosting(String token, ItemID target, ItemID scope) {
-        FrameBody body = new FrameBody(CoreVocabulary.Lexeme.IID, List.of(
-                FrameBody.homeBinding(target),
+        FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Lexeme.IID, List.of(
+                FrameBodyOld.homeBinding(target),
                 new Binding(ThematicRole.Value.IID,
-                        List.of(new FrameKey.Sememe(scope)),
+                        List.of(new CompoundKey.Sememe(scope)),
                         Literal.ofText(token), true, true)
         ));
         return Posting.fromFrame(body, 1, 1.0f);

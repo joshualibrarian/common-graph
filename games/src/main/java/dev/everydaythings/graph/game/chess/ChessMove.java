@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.game.chess;
 
 import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.game.GameVocabulary;
@@ -43,7 +43,7 @@ public class ChessMove extends Sememe {
     ChessMove() {
         super(KEY);
         gloss("en", "a chess move in algebraic notation");
-        endorseFrame(new FrameBody(CoreVocabulary.Expects.IID,
+        endorseFrame(new FrameBodyOld(CoreVocabulary.Expects.IID,
                 List.of(Binding.ref(ThematicRole.Topic.IID,
                         ItemID.fromString(GameVocabulary.Move.KEY)))));
     }

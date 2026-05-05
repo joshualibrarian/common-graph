@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.mapdb;
 
 import dev.everydaythings.graph.library.ItemStore;
-import dev.everydaythings.graph.library.ItemStoreTest;
+import dev.everydaythings.graph.library.ItemOldStoreTest;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for MapDBItemStore.
  *
- * <p>Inherits all standard ItemStore contract tests from {@link ItemStoreTest}.
+ * <p>Inherits all standard ItemStore contract tests from {@link ItemOldStoreTest}.
  * Adds MapDB-specific tests for in-memory and file-backed modes.
  */
 @Disabled("Store tests — refactoring later")
 @DisplayName("MapDBItemStore")
-class MapDBItemStoreTest extends ItemStoreTest {
+class MapDBItemStoreTest extends ItemOldStoreTest {
 
     @Override
     protected ItemStore createStore(Path tempDir) {

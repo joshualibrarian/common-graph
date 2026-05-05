@@ -2,7 +2,7 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.FrameBody;
+import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -31,7 +31,7 @@ class QueryItemsTest {
 
     @Test
     void singleTerm_findsRelatedItems() {
-        Library lib = Library.memory();
+        LibraryOld lib = LibraryOld.memory();
 
         // GAME_1 is a chess game (TYPE frame: home=GAME_1, binding=CHESS)
         storeFrame(lib, IMPLEMENTED_BY, GAME_1, CHESS);
@@ -46,7 +46,7 @@ class QueryItemsTest {
 
     @Test
     void twoTerms_intersects() {
-        Library lib = Library.memory();
+        LibraryOld lib = LibraryOld.memory();
 
         // GAME_1: chess, players Alice and Bob
         storeFrame(lib, IMPLEMENTED_BY, GAME_1, CHESS);
@@ -82,7 +82,7 @@ class QueryItemsTest {
 
     @Test
     void noMatches_returnsEmpty() {
-        Library lib = Library.memory();
+        LibraryOld lib = LibraryOld.memory();
 
         storeFrame(lib, IMPLEMENTED_BY, GAME_1, CHESS);
         storeFrame(lib, PLAYER, GAME_1, ALICE);
@@ -96,7 +96,7 @@ class QueryItemsTest {
 
     @Test
     void patternItemsExcludedFromResults() {
-        Library lib = Library.memory();
+        LibraryOld lib = LibraryOld.memory();
 
         storeFrame(lib, IMPLEMENTED_BY, GAME_1, CHESS);
 
@@ -110,7 +110,7 @@ class QueryItemsTest {
 
     @Test
     void emptyPattern_returnsEmpty() {
-        Library lib = Library.memory();
+        LibraryOld lib = LibraryOld.memory();
         assertThat(lib.queryItems(Set.of())).isEmpty();
         lib.close();
     }
@@ -118,9 +118,9 @@ class QueryItemsTest {
     /**
      * Store a simple frame: predicate, home item (THEME), and one binding target.
      */
-    private void storeFrame(Library lib, ItemID predicate, ItemID home, ItemID relatedItem) {
-        FrameBody body = new FrameBody(predicate, List.of(
-                FrameBody.homeBinding(home),
+    private void storeFrame(LibraryOld lib, ItemID predicate, ItemID home, ItemID relatedItem) {
+        FrameBodyOld body = new FrameBodyOld(predicate, List.of(
+                FrameBodyOld.homeBinding(home),
                 new Binding(ThematicRole.Theme.IID, BindingTarget.iid(relatedItem), true, true)
         ));
         lib.storeFrameBody(body);

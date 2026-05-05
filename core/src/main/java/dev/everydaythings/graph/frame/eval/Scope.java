@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,13 +19,13 @@ import java.util.Optional;
  */
 public final class Scope {
 
-    private final Librarian librarian;
-    private final Item owner;
+    private final LibrarianOld librarian;
+    private final ItemOld owner;
     private final Scope parent;
     private final Map<String, Object> variables;
     private final Map<Object, Object> cache;
 
-    private Scope(Librarian librarian, Item owner, Scope parent,
+    private Scope(LibrarianOld librarian, ItemOld owner, Scope parent,
                   Map<String, Object> variables, Map<Object, Object> cache) {
         this.librarian = librarian;
         this.owner = owner;
@@ -37,22 +37,22 @@ public final class Scope {
     /**
      * Create a root scope with a librarian and owner item.
      */
-    public static Scope of(Librarian librarian, Item owner) {
+    public static Scope of(LibrarianOld librarian, ItemOld owner) {
         return new Scope(librarian, owner, null, new HashMap<>(), new HashMap<>());
     }
 
     /**
      * Create a root scope with just a librarian (owner = librarian).
      */
-    public static Scope of(Librarian librarian) {
+    public static Scope of(LibrarianOld librarian) {
         return new Scope(librarian, librarian, null, new HashMap<>(), new HashMap<>());
     }
 
     /** The librarian for graph access. */
-    public Librarian librarian() { return librarian; }
+    public LibrarianOld librarian() { return librarian; }
 
     /** The focused item (owner of the evaluation). */
-    public Item owner() { return owner; }
+    public ItemOld owner() { return owner; }
 
     /**
      * Look up a variable by name in the scope chain.
@@ -89,7 +89,7 @@ public final class Scope {
     /**
      * Create a child scope with a different owner item.
      */
-    public Scope withOwner(Item newOwner) {
+    public Scope withOwner(ItemOld newOwner) {
         return new Scope(librarian, newOwner, this, new HashMap<>(), cache);
     }
 

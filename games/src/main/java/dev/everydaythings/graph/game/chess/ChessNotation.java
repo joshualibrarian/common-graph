@@ -3,15 +3,15 @@ package dev.everydaythings.graph.game.chess;
 import dev.everydaythings.graph.game.GameVocabulary;
 import dev.everydaythings.graph.item.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.Sememe;
 import dev.everydaythings.graph.language.SemanticFrame;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.Eval;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.LibrarianOld;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -147,13 +147,13 @@ public class ChessNotation extends Language {
     }
 
     /** Runtime constructor. */
-    public ChessNotation(Librarian librarian) {
+    public ChessNotation(LibrarianOld librarian) {
         super(librarian, Locale.ROOT);
     }
 
     /** Hydration constructor. */
     @SuppressWarnings("unused")
-    private ChessNotation(Librarian librarian, Manifest manifest) {
+    private ChessNotation(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 
@@ -172,7 +172,7 @@ public class ChessNotation extends Language {
     public ParseResult parse(
             List<Eval.ResolvedToken> tokens,
             String rawText,
-            Function<ItemID, Optional<Item>> resolver,
+            Function<ItemID, Optional<ItemOld>> resolver,
             ToIntFunction<Sememe> headVerbScorer) {
 
         List<SemanticFrame> frames = new ArrayList<>();
