@@ -1,10 +1,12 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.crypt.VarSig;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.Body;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.Record;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameRef;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LibrarianTest {
 
@@ -45,6 +48,19 @@ class LibrarianTest {
         @DisplayName("Librarian KEY is the archetype canonical key")
         void keyMatches() {
             assertThat(Librarian.KEY).isEqualTo("cg.archetype:librarian");
+        }
+
+        @Test
+        @DisplayName("inMemory() Librarian inherits signing capability from Signer")
+        void inheritsSigningCapability() {
+            Librarian lib = Librarian.inMemory();
+            assertThat(lib.canSign()).isTrue();
+            assertThat(lib.signingPublicKey()).isPresent();
+
+            // Round-trip: librarian signs, verify with its own public key.
+            byte[] message = "librarian-signed message".getBytes();
+            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), message, lib.sign(message)))
+                    .isTrue();
         }
     }
 
@@ -180,6 +196,384 @@ class LibrarianTest {
     }
 
     @Nested
+    @DisplayName("Item cache & one-instance-per-IID")
+    class ItemCache {
+
+        @Test
+        @DisplayName("fetchItem returns the same Java instance on repeated calls")
+        void fetchItemMemoizes() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.fromString("doc-1");
+            new Item(iid, lib).commit(List.of());
+
+            Item first = lib.fetchItem(iid).orElseThrow();
+            Item second = lib.fetchItem(iid).orElseThrow();
+            assertThat(second).isSameAs(first);
+        }
+
+        @Test
+        @DisplayName("commit auto-registers the item")
+        void commitRegisters() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.fromString("doc-1");
+            Item committed = new Item(iid, lib);
+            committed.commit(List.of());
+
+            // After commit, the SAME instance is what fetchItem returns.
+            assertThat(lib.fetchItem(iid)).hasValueSatisfying(found ->
+                    assertThat(found).isSameAs(committed));
+        }
+
+        @Test
+        @DisplayName("register makes an externally-constructed instance canonical")
+        void explicitRegister() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.fromString("doc-1");
+            Item custom = new Item(iid, lib);
+            lib.register(custom);
+
+            assertThat(lib.fetchItem(iid)).hasValueSatisfying(found ->
+                    assertThat(found).isSameAs(custom));
+        }
+
+        @Test
+        @DisplayName("Librarian self-registers in inMemory()")
+        void librarianSelfRegisters() {
+            Librarian lib = Librarian.inMemory();
+            assertThat(lib.fetchItem(lib.iid())).hasValueSatisfying(found ->
+                    assertThat(found).isSameAs(lib));
+        }
+    }
+
+    @Nested
+    @DisplayName("assembleFrame & onFrameAssembled routing")
+    class FrameAssembly {
+
+        /** Test subclass that records every frame it receives via onFrameAssembled. */
+        static class CountingItem extends Item {
+            final java.util.List<Frame> received = new java.util.ArrayList<>();
+
+            CountingItem(ItemID iid, Librarian lib) {
+                super(iid, lib);
+            }
+
+            @Override
+            public void onFrameAssembled(Frame frame) {
+                received.add(frame);
+            }
+        }
+
+        /** Test subclass that throws on every frame. */
+        static class ThrowingItem extends Item {
+            int callCount = 0;
+
+            ThrowingItem(ItemID iid, Librarian lib) {
+                super(iid, lib);
+            }
+
+            @Override
+            public void onFrameAssembled(Frame frame) {
+                callCount++;
+                throw new RuntimeException("oops");
+            }
+        }
+
+        @Test
+        @DisplayName("assembleFrame persists body and record")
+        void persists() {
+            Librarian lib = Librarian.inMemory();
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:status")),
+                    List.of()
+            );
+
+            Frame frame = lib.assembleFrame(body, lib);
+
+            assertThat(frame.body()).isEqualTo(body);
+            assertThat(frame.records()).hasSize(1);
+            assertThat(lib.has(frame.body().cid())).isTrue();
+            assertThat(lib.has(frame.records().get(0).cid())).isTrue();
+        }
+
+        @Test
+        @DisplayName("registered items referenced in body bindings receive onFrameAssembled")
+        void referencedItemsNotified() {
+            Librarian lib = Librarian.inMemory();
+            ItemID aliceId = ItemID.fromString("alice");
+            CountingItem alice = new CountingItem(aliceId, lib);
+            lib.register(alice);
+
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ItemID.fromString("cg.role:agent"), aliceId))
+            );
+            Frame frame = lib.assembleFrame(body, lib);
+
+            assertThat(alice.received).containsExactly(frame);
+        }
+
+        @Test
+        @DisplayName("items not referenced are not notified")
+        void unreferencedNotNotified() {
+            Librarian lib = Librarian.inMemory();
+            ItemID aliceId = ItemID.fromString("alice");
+            ItemID bobId = ItemID.fromString("bob");
+            CountingItem alice = new CountingItem(aliceId, lib);
+            CountingItem bob = new CountingItem(bobId, lib);
+            lib.register(alice);
+            lib.register(bob);
+
+            // Frame mentions only alice.
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ItemID.fromString("cg.role:agent"), aliceId))
+            );
+            lib.assembleFrame(body, lib);
+
+            assertThat(alice.received).hasSize(1);
+            assertThat(bob.received).isEmpty();
+        }
+
+        @Test
+        @DisplayName("an item referenced by multiple bindings is notified exactly once (dedup)")
+        void deduplicates() {
+            Librarian lib = Librarian.inMemory();
+            ItemID aliceId = ItemID.fromString("alice");
+            CountingItem alice = new CountingItem(aliceId, lib);
+            lib.register(alice);
+
+            // Frame mentions alice twice (two different roles).
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:self-loop")),
+                    List.of(
+                            Binding.ref(ItemID.fromString("cg.role:agent"), aliceId),
+                            Binding.ref(ItemID.fromString("cg.role:theme"), aliceId)
+                    )
+            );
+            lib.assembleFrame(body, lib);
+
+            assertThat(alice.received).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("references to unknown items are silently skipped")
+        void unknownItemsSkipped() {
+            Librarian lib = Librarian.inMemory();
+            // No item registered for "ghost".
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ItemID.fromString("cg.role:agent"),
+                            ItemID.fromString("ghost")))
+            );
+
+            // Should not throw.
+            Frame frame = lib.assembleFrame(body, lib);
+            assertThat(frame.records()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("an exception in one item's handler does not stop the chain")
+        void exceptionsDontPropagate() {
+            Librarian lib = Librarian.inMemory();
+            ItemID aliceId = ItemID.fromString("alice");
+            ItemID bobId = ItemID.fromString("bob");
+            ThrowingItem alice = new ThrowingItem(aliceId, lib);
+            CountingItem bob = new CountingItem(bobId, lib);
+            lib.register(alice);
+            lib.register(bob);
+
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:co-mention")),
+                    List.of(
+                            Binding.ref(ItemID.fromString("cg.role:agent"), aliceId),
+                            Binding.ref(ItemID.fromString("cg.role:theme"), bobId)
+                    )
+            );
+
+            lib.assembleFrame(body, lib);
+
+            assertThat(alice.callCount).isEqualTo(1);     // alice was called and threw
+            assertThat(bob.received).hasSize(1);           // bob was still called
+        }
+
+        @Test
+        @DisplayName("the assembled record's signature verifies under the signer's public key")
+        void recordSignatureVerifies() {
+            Librarian lib = Librarian.inMemory();
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:status")),
+                    List.of()
+            );
+            Frame frame = lib.assembleFrame(body, lib);
+
+            byte[] signedBytes = body.encodeBinary(
+                    dev.everydaythings.graph.Canonical.Scope.BODY);
+            VarSig sig = frame.records().get(0).varsig();
+            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig))
+                    .isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Subclass dispatch via IMPLEMENTATION binding")
+    class SubclassDispatch {
+
+        /** Public static subclass — Class.forName needs to resolve it via FQN. */
+        public static class TestThing extends Item {
+            public final java.util.List<Frame> received = new java.util.ArrayList<>();
+
+            public TestThing(ItemID iid, Librarian lib) {
+                super(iid, lib);
+            }
+
+            @Override
+            public void onFrameAssembled(Frame frame) {
+                received.add(frame);
+            }
+        }
+
+        @Test
+        @DisplayName("commit auto-injects IMPLEMENTATION for non-bare-Item subclasses")
+        void commitInjectsImplementationForSubclass() {
+            Librarian lib = Librarian.inMemory();
+            TestThing thing = new TestThing(ItemID.random(), lib);
+            Manifest committed = thing.commit(List.of());
+
+            Optional<Binding> impl = committed.implementation();
+            assertThat(impl).isPresent();
+            Literal lit = (Literal) impl.get().target();
+            assertThat(lit.asJavaClass()).isEqualTo(TestThing.class);
+        }
+
+        @Test
+        @DisplayName("commit does NOT inject IMPLEMENTATION for bare Item")
+        void commitOmitsImplementationForBareItem() {
+            Librarian lib = Librarian.inMemory();
+            Item bare = new Item(ItemID.random(), lib);
+            Manifest committed = bare.commit(List.of());
+
+            assertThat(committed.implementation()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("fetchItem hydrates as the subclass when manifest declares IMPLEMENTATION")
+        void hydratesSubclassFromImplementation() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.random();
+            // Manually persist a manifest body — bypasses commit's auto-register
+            // so fetchItem hits the storage hydration path.
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:test-thing")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            Manifest.javaImplementation(TestThing.class)
+                    )
+            );
+            lib.persist(manifestBody);
+
+            Item fetched = lib.fetchItem(iid).orElseThrow();
+            assertThat(fetched).isInstanceOf(TestThing.class);
+            assertThat(fetched.iid()).isEqualTo(iid);
+        }
+
+        @Test
+        @DisplayName("fetchItem falls back to bare Item when manifest has no IMPLEMENTATION")
+        void fallsBackToBareItem() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.random();
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:plain")),
+                    List.of(Binding.ref(Manifest.ITEM_ID, iid))
+            );
+            lib.persist(manifestBody);
+
+            Item fetched = lib.fetchItem(iid).orElseThrow();
+            assertThat(fetched.getClass()).isEqualTo(Item.class);  // exactly bare Item
+        }
+
+        @Test
+        @DisplayName("fetchItem throws when IMPLEMENTATION points at a non-existent class")
+        void throwsOnUnloadableImplementation() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.random();
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:bogus")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            new Binding(Manifest.IMPLEMENTATION,
+                                    Literal.ofJavaClass("does.not.Exist"))
+                    )
+            );
+            lib.persist(manifestBody);
+
+            assertThatThrownBy(() -> lib.fetchItem(iid))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("does.not.Exist")
+                    .hasMessageContaining("not on the classpath");
+        }
+
+        @Test
+        @DisplayName("fetchItem throws when IMPLEMENTATION class doesn't extend Item")
+        void throwsOnNonItemClass() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.random();
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:bogus")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            new Binding(Manifest.IMPLEMENTATION,
+                                    Literal.ofJavaClass(String.class))
+                    )
+            );
+            lib.persist(manifestBody);
+
+            assertThatThrownBy(() -> lib.fetchItem(iid))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("does not extend Item");
+        }
+
+        @Test
+        @DisplayName("hydrated subclass receives onFrameAssembled when frames reference it")
+        void hydratedSubclassReceivesRouting() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.random();
+            // Persist a manifest declaring IMPLEMENTATION → TestThing.
+            Body manifestBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.archetype:test-thing")),
+                    List.of(
+                            Binding.ref(Manifest.ITEM_ID, iid),
+                            Manifest.javaImplementation(TestThing.class)
+                    )
+            );
+            lib.persist(manifestBody);
+
+            // Assemble a frame referencing iid; routing internally fetches+hydrates
+            // the TestThing, caches it, and calls onFrameAssembled.
+            Body frameBody = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:mention")),
+                    List.of(Binding.ref(ItemID.fromString("cg.role:theme"), iid))
+            );
+            Frame assembled = lib.assembleFrame(frameBody, lib);
+
+            // Fetch the (now-cached) hydrated TestThing and verify it received the frame.
+            TestThing thing = (TestThing) lib.fetchItem(iid).orElseThrow();
+            assertThat(thing.received).contains(assembled);
+        }
+
+        @Test
+        @DisplayName("commit-then-fetch returns the same registered subclass instance")
+        void commitThenFetchSameInstance() {
+            Librarian lib = Librarian.inMemory();
+            TestThing thing = new TestThing(ItemID.random(), lib);
+            thing.commit(List.of());
+
+            // After commit, the cached instance IS the one we constructed.
+            Item fetched = lib.fetchItem(thing.iid()).orElseThrow();
+            assertThat(fetched).isSameAs(thing);
+        }
+    }
+
+    @Nested
     @DisplayName("Item loading")
     class ItemLoading {
 
@@ -206,6 +600,38 @@ class LibrarianTest {
             assertThat(loaded.get().iid()).isEqualTo(iid);
             assertThat(loaded.get().librarian()).isSameAs(lib);
             assertThat(loaded.get().versionId()).contains(expectedVid);
+        }
+
+        @Test
+        @DisplayName("End-to-end: librarian signs a body, persists the record, fetches it back, signature verifies")
+        void signPersistFetchVerify() {
+            Librarian lib = Librarian.inMemory();
+
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(
+                            ItemID.fromString("cg.role:theme"),
+                            ItemID.fromString("hobbit")))
+            );
+            ContentID bodyCid = lib.persist(body);
+
+            // Sign the body's bytes with the librarian's own keypair, persist the record.
+            byte[] signedBytes = body.encodeBinary(dev.everydaythings.graph.Canonical.Scope.BODY);
+            VarSig signature = lib.sign(signedBytes);
+            Record record = Record.of(FrameRef.of(bodyCid), List.of(), signature);
+            lib.persist(record);
+
+            // Fetch the frame back; it should carry the persisted record.
+            Frame frame = lib.fetchFrame(bodyCid).orElseThrow();
+            assertThat(frame.records()).hasSize(1);
+            Record fetched = frame.records().get(0);
+
+            // Verify the signature with the librarian's own public key.
+            assertThat(Librarian.verify(
+                    lib.signingPublicKey().orElseThrow(),
+                    signedBytes,
+                    fetched.varsig()))
+                    .isTrue();
         }
 
         @Test

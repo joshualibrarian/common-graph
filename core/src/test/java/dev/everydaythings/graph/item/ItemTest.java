@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.crypt.VarSig;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Body;
@@ -7,6 +8,7 @@ import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -281,6 +283,190 @@ class ItemTest {
             List<Frame> resolved = item.endorsedFrames().toList();
             assertThat(resolved).hasSize(1);
             assertThat(resolved.get(0).body()).isEqualTo(presentFrame);
+        }
+    }
+
+    @Nested
+    @DisplayName("Archetype")
+    class Archetype {
+
+        @Test
+        @DisplayName("bare Item returns Item.ARCHETYPE")
+        void bareItemArchetype() {
+            Item item = new Item(ItemID.random());
+            assertThat(item.archetype()).isEqualTo(Item.ARCHETYPE);
+        }
+
+        @Test
+        @DisplayName("Signer subclass returns Signer.ARCHETYPE")
+        void signerArchetype() {
+            Signer s = new Signer(ItemID.random());
+            assertThat(s.archetype()).isEqualTo(Signer.ARCHETYPE);
+            assertThat(s.archetype()).isNotEqualTo(Item.ARCHETYPE);
+        }
+
+        @Test
+        @DisplayName("Librarian subclass returns Librarian.ARCHETYPE")
+        void librarianArchetype() {
+            Librarian lib = Librarian.inMemory();
+            assertThat(lib.archetype()).isEqualTo(Librarian.ARCHETYPE);
+            assertThat(lib.archetype()).isNotEqualTo(Signer.ARCHETYPE);
+        }
+    }
+
+    @Nested
+    @DisplayName("Commit")
+    class Commit {
+
+        @Test
+        @DisplayName("commit with no librarian throws")
+        void commitWithoutLibrarianThrows() {
+            Item item = new Item(ItemID.random());
+            assertThatThrownBy(() -> item.commit(List.of()))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("inception commit produces a manifest with ITEM_ID and no FOLLOWS")
+        void inceptionCommit() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.fromString("doc-1");
+            Item item = new Item(iid, lib);
+            assertThat(item.versionId()).isEmpty();
+
+            Manifest manifest = item.commit(List.of());
+
+            assertThat(manifest.itemId()).isEqualTo(iid);
+            assertThat(manifest.parents()).isEmpty();
+            assertThat(item.current()).isSameAs(manifest);
+            assertThat(item.versionId()).contains(manifest.versionId());
+        }
+
+        @Test
+        @DisplayName("sequential commit FOLLOWS the previous version")
+        void sequentialCommitLinksVersions() {
+            Librarian lib = Librarian.inMemory();
+            Item item = new Item(ItemID.fromString("doc-1"), lib);
+
+            Manifest v1 = item.commit(List.of());
+            ContentID v1Cid = v1.versionId();
+
+            Manifest v2 = item.commit(List.of());
+
+            assertThat(v2.parents()).containsExactly(v1Cid);
+            assertThat(item.current()).isSameAs(v2);
+        }
+
+        @Test
+        @DisplayName("commit body uses the item's archetype as the head")
+        void commitBodyHasArchetypeHead() {
+            Librarian lib = Librarian.inMemory();
+            Item item = new Item(ItemID.fromString("doc-1"), lib);
+
+            Manifest manifest = item.commit(List.of());
+
+            // Body's head is the item's archetype (Item.ARCHETYPE for bare Item).
+            assertThat(((ItemRef) manifest.body().head()).iid())
+                    .isEqualTo(Item.ARCHETYPE);
+        }
+
+        @Test
+        @DisplayName("Signer subclass commits with Signer's archetype as head")
+        void signerCommitUsesSignerArchetype() {
+            Librarian lib = Librarian.inMemory();
+            // Use Signer-typed item bound to the librarian for storage.
+            Signer s = new Signer(ItemID.fromString("alice")) {};
+            // Need a librarian on the Signer; bindLibrarian:
+            s.bindLibrarian(lib);
+
+            Manifest manifest = s.commit(lib, List.of());
+
+            assertThat(((ItemRef) manifest.body().head()).iid())
+                    .isEqualTo(Signer.ARCHETYPE);
+        }
+
+        @Test
+        @DisplayName("commit's record signature verifies with the signer's public key")
+        void commitRecordSignatureVerifies() {
+            Librarian lib = Librarian.inMemory();
+            Item item = new Item(ItemID.fromString("doc-1"), lib);
+
+            Manifest manifest = item.commit(List.of());
+
+            // The new manifest carries the record produced by the commit.
+            assertThat(manifest.records()).hasSize(1);
+            VarSig sig = manifest.records().get(0).varsig();
+
+            byte[] signedBytes = manifest.body().encodeBinary(
+                    dev.everydaythings.graph.Canonical.Scope.BODY);
+            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig))
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("committed body and record are persisted to the librarian")
+        void committedBytesArePersisted() {
+            Librarian lib = Librarian.inMemory();
+            Item item = new Item(ItemID.fromString("doc-1"), lib);
+
+            Manifest manifest = item.commit(List.of());
+            ContentID bodyCid = manifest.versionId();
+            ContentID recordCid = manifest.records().get(0).cid();
+
+            assertThat(lib.has(bodyCid)).isTrue();
+            assertThat(lib.has(recordCid)).isTrue();
+        }
+
+        @Test
+        @DisplayName("after commit, librarian.fetchItem returns the item with the same current manifest")
+        void fetchItemAfterCommit() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.fromString("doc-1");
+            Item item = new Item(iid, lib);
+            Manifest committed = item.commit(List.of());
+
+            Item refetched = lib.fetchItem(iid).orElseThrow();
+            assertThat(refetched.iid()).isEqualTo(iid);
+            assertThat(refetched.versionId()).contains(committed.versionId());
+        }
+
+        @Test
+        @DisplayName("commit-supplied bindings appear in the manifest body alongside ITEM_ID")
+        void additionalBindingsPropagate() {
+            Librarian lib = Librarian.inMemory();
+            ItemID iid = ItemID.fromString("doc-1");
+            Item item = new Item(iid, lib);
+
+            // Persist a frame body so we can endorse it.
+            Body endorsed = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of()
+            );
+            ContentID endorsedCid = lib.persist(endorsed);
+
+            Binding endorsement = new Binding(Manifest.ENDORSES, BindingTarget.ref(endorsedCid));
+            Manifest manifest = item.commit(List.of(endorsement));
+
+            assertThat(manifest.endorses()).hasSize(1);
+            assertThat(item.endorsedFrames().toList()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("commit can use a different signer than the librarian")
+        void commitWithExplicitSigner() {
+            Librarian lib = Librarian.inMemory();
+            Signer alice = Signer.inMemory();
+            Item item = new Item(ItemID.fromString("doc-1"), lib);
+
+            // Storage goes through `lib`; signing is done by `alice`.
+            Manifest manifest = item.commit(alice, List.of());
+
+            VarSig sig = manifest.records().get(0).varsig();
+            byte[] signedBytes = manifest.body().encodeBinary(
+                    dev.everydaythings.graph.Canonical.Scope.BODY);
+            // Alice's public key verifies — not the librarian's.
+            assertThat(Signer.verify(alice.signingPublicKey().orElseThrow(), signedBytes, sig)).isTrue();
+            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig)).isFalse();
         }
     }
 }

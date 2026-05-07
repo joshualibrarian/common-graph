@@ -4,6 +4,7 @@ import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.crypt.MultiKey;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.library.LibraryOld;
@@ -170,6 +171,9 @@ public final class Literal implements BindingTarget {
     /** Well-known type for Java class addresses (fully qualified class names). */
     public static final ItemID TYPE_JAVA_CLASS = ItemID.fromString("cg.address:java-class");
 
+    /** Well-known type for multikey-encoded public keys (codec varint + raw key bytes). */
+    public static final ItemID TYPE_MULTIKEY = ItemID.fromString("cg.value:multikey");
+
     /* ------------------------ Convenience factories (default types) ------------------------ */
 
     /** Create a text literal with default text type. */
@@ -202,6 +206,18 @@ public final class Literal implements BindingTarget {
     /** Create a Java class address literal from a Class object. */
     public static Literal ofJavaClass(Class<?> clazz) {
         return ofText(TYPE_JAVA_CLASS, clazz.getName());
+    }
+
+    /**
+     * Create a multikey literal carrying a self-describing public key.
+     *
+     * <p>The literal's payload is a CBOR ByteString of the multikey-encoded bytes
+     * (codec varint followed by raw key bytes). The codec identifies the key type
+     * (Ed25519, X25519, etc.).
+     */
+    public static Literal ofMultiKey(MultiKey key) {
+        Objects.requireNonNull(key, "key");
+        return ofCbor(TYPE_MULTIKEY, CBORObject.FromByteArray(key.encoded()));
     }
 
     /* ------------------------ Factories (payload encoders) ------------------------ */
@@ -374,6 +390,18 @@ public final class Literal implements BindingTarget {
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Class not found: " + className, e);
         }
+    }
+
+    /**
+     * Decode the payload as a {@link MultiKey} if this is a multikey literal.
+     *
+     * @throws IllegalStateException if not a multikey literal
+     */
+    public MultiKey asMultiKey() {
+        if (!TYPE_MULTIKEY.equals(valueType)) {
+            throw new IllegalStateException("Not a multikey literal: " + valueType);
+        }
+        return MultiKey.decode(asBytes());
     }
 
     /**

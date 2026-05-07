@@ -141,6 +141,16 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
+     * Build an IMPLEMENTATION binding pointing at the given Java class. Used by
+     * {@link dev.everydaythings.graph.item.Item#commit} to declare which Java
+     * class should hydrate this item's manifests, and by callers who want to
+     * include it explicitly in their bindings.
+     */
+    public static Binding javaImplementation(Class<?> clazz) {
+        return new Binding(IMPLEMENTATION, dev.everydaythings.graph.item.Literal.ofJavaClass(clazz));
+    }
+
+    /**
      * Read an ItemID from a binding target, expecting a reference target shape.
      */
     private static ItemID readIidFromTarget(BindingTarget target, String role) {

@@ -35,6 +35,22 @@ public final class ItemID extends HashID {
         return result;
     }
 
+    /**
+     * Create an ItemID by hashing the given multikey-encoded bytes — used to
+     * derive a Signer's IID from its initial signing public key, cryptographically
+     * binding identity to key. An attacker can't preemptively claim an IID
+     * because they can't generate a key whose multikey-encoded bytes hash to it.
+     *
+     * <p>This is the CG analog of KERI's AID-from-inception derivation. Use for
+     * Signers (Users, Bots, Librarians, Groups, Hosts-when-active) — anything
+     * with an initial signing keypair. Sememes and other content-addressed
+     * concepts continue to use {@link #fromString(String)} from a canonical key.
+     */
+    public static ItemID fromMultikeyBytes(byte[] multikeyBytes) {
+        requireNonNull(multikeyBytes, "multikeyBytes");
+        return new ItemID(Hash.DEFAULT.digest(multikeyBytes), Hash.DEFAULT);
+    }
+
     /** Strict: requires iid: prefix. */
     public static ItemID parse(String text) {
         requireNonNull(text, "text");

@@ -1,13 +1,21 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.crypt.VarSig;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.frame.Body;
 import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.Record;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.FrameRef;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import lombok.Getter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,6 +37,20 @@ public class Item {
 
     /** Canonical key for Item-the-concept — the archetype for generic items. */
     public static final String KEY = "cg.sememe:item";
+
+    /** The archetype IID for generic Items. Subclasses override {@link #archetype()}. */
+    public static final ItemID ARCHETYPE = ItemID.fromString(KEY);
+
+    /**
+     * The archetype this item is an instance of — the sememe IID that goes in the
+     * head of a manifest body produced by {@link #commit}.
+     *
+     * <p>Subclasses override to return their own archetype IID (Signer, Librarian,
+     * application-specific item types). The default returns {@link #ARCHETYPE}.
+     */
+    public ItemID archetype() {
+        return ARCHETYPE;
+    }
 
     /** The item's stable cryptographic identity. */
     protected final ItemID iid;
@@ -122,6 +144,30 @@ public class Item {
         return current != null ? current.endorses() : List.of();
     }
 
+    // ==================================================================================
+    // Frame-assembled hook (behavior model)
+    // ==================================================================================
+
+    /**
+     * Hook called by the librarian when a frame referencing this item is assembled.
+     *
+     * <p>This is the "frame-creation-as-action" model: instead of dispatching to
+     * verbs, items react to frames. When {@link Librarian#assembleFrame} publishes
+     * a propositional frame, every item referenced in the frame's body bindings
+     * (via reference targets) gets a single call to this method.
+     *
+     * <p>Default implementation is a no-op. Subclasses override to react:
+     * a {@code ChessGame} updates its board on a {@code MOVE} frame; an activity
+     * log appends an entry on any frame mentioning it; etc.
+     *
+     * <p>Calls are synchronous and single-threaded. An exception thrown here is
+     * caught by the librarian's routing loop and does not prevent other items
+     * from being notified. Implementations should still aim to be defensive.
+     */
+    public void onFrameAssembled(Frame frame) {
+        // default: no-op. Override in subclasses.
+    }
+
     /**
      * Frames endorsed by the current manifest, materialized from the Library.
      *
@@ -141,6 +187,81 @@ public class Item {
         return current.endorses().stream()
                 .map(b -> ((BindingTarget.RefTarget) b.target()).asCid())
                 .flatMap(cid -> librarian.fetchFrame(cid).stream());
+    }
+
+    // ==================================================================================
+    // Commit
+    // ==================================================================================
+
+    /**
+     * Commit a new version of this item using the bound librarian as the signer.
+     *
+     * @see #commit(Signer, List)
+     */
+    public Manifest commit(List<Binding> bindings) {
+        if (librarian == null) {
+            throw new IllegalStateException("Item has no librarian; cannot commit");
+        }
+        return commit(librarian, bindings);
+    }
+
+    /**
+     * Commit a new version of this item.
+     *
+     * <p>Builds a manifest body whose head is this item's {@link #archetype()} and
+     * whose bindings include:
+     * <ul>
+     *   <li>{@code ITEM_ID → this.iid} (always)</li>
+     *   <li>{@code FOLLOWS → previous-VID} (if a previous manifest is loaded)</li>
+     *   <li>everything in the caller-supplied {@code bindings} list</li>
+     * </ul>
+     *
+     * <p>The body is persisted via the librarian, the signer signs the body's
+     * encoded bytes, the resulting record is persisted, and {@link #current} is
+     * advanced to the new manifest.
+     *
+     * <p>The bindings list is "additional" content bindings — ENDORSES, CONFIG,
+     * IMPLEMENTATION, etc. ITEM_ID and FOLLOWS are added automatically; callers
+     * should not include them.
+     *
+     * @return the newly-committed Manifest (also bound as {@link #current})
+     * @throws IllegalStateException if no librarian is bound
+     * @throws IllegalArgumentException if signer is null
+     */
+    public Manifest commit(Signer signer, List<Binding> bindings) {
+        if (librarian == null) {
+            throw new IllegalStateException("Item has no librarian; cannot commit");
+        }
+        Objects.requireNonNull(signer, "signer");
+        Objects.requireNonNull(bindings, "bindings");
+
+        List<Binding> manifestBindings = new ArrayList<>();
+        manifestBindings.add(Binding.ref(Manifest.ITEM_ID, iid));
+        if (current != null) {
+            manifestBindings.add(new Binding(
+                    Manifest.FOLLOWS,
+                    BindingTarget.ref(current.versionId())));
+        }
+        // Auto-inject IMPLEMENTATION for non-bare-Item subclasses so future
+        // hydration of this item's manifest can dispatch to the right Java class.
+        if (this.getClass() != Item.class) {
+            manifestBindings.add(Manifest.javaImplementation(this.getClass()));
+        }
+        manifestBindings.addAll(bindings);
+
+        Body body = Body.of(ItemRef.of(archetype()), manifestBindings);
+        ContentID bodyCid = librarian.persist(body);
+
+        VarSig signature = signer.sign(body.encodeBinary(Canonical.Scope.BODY));
+        Record record = Record.of(FrameRef.of(bodyCid), List.of(), signature);
+        librarian.persist(record);
+
+        Manifest committed = Manifest.of(body, List.of(record));
+        bindManifest(committed);
+        // Once committed, this item is canonical for its IID — register so any
+        // future fetchItem returns this same instance.
+        librarian.register(this);
+        return committed;
     }
 
     @Override

@@ -112,6 +112,67 @@ public class Library {
         return dataStore.db(DataStore.Column.OBJECTS).key(cid).exists();
     }
 
+    /**
+     * Delete a Datum from local storage, tearing down its index entries first.
+     *
+     * <p>Symmetric inverse of {@link #put}: fetches the Datum at {@code cid},
+     * computes the index entries it would have written, removes them, then removes
+     * the OBJECTS entry. Idempotent — returns {@code false} if the CID isn't
+     * present locally; otherwise {@code true} after deletion.
+     *
+     * <p>This deletes only the named Datum. Cascading (e.g., deleting an item's
+     * manifests + their records) is the caller's responsibility — the caller
+     * decides what's a logical group and how to tear it down.
+     */
+    public boolean delete(ContentID cid) {
+        Objects.requireNonNull(cid, "cid");
+        Optional<byte[]> bytes = get(cid);
+        if (bytes.isEmpty()) return false;
+
+        Datum datum = decodeDatum(bytes.get());
+        if (datum != null) {
+            unindex(datum, cid);
+        }
+
+        dataStore.db(DataStore.Column.OBJECTS).key(cid).delete();
+        return true;
+    }
+
+    private static Datum decodeDatum(byte[] bytes) {
+        try {
+            com.upokecenter.cbor.CBORObject node = com.upokecenter.cbor.CBORObject.DecodeFromBytes(bytes);
+            if (node.getType() != com.upokecenter.cbor.CBORType.Array) return null;
+            int size = node.size();
+            if (size == 2) return Body.fromCborTree(node);
+            if (size == 3) return Record.fromCborTree(node);
+            return null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private void unindex(Datum datum, ContentID cid) {
+        if (datum instanceof Record record) {
+            ContentID bodyCid = record.headRef().bodyCid();
+            byte[] key = concat(bodyCid.encodeBinary(), cid.encodeBinary());
+            indexStore.db(IndexStore.Column.RECORDS_BY_BODY).key(key).delete();
+        } else if (datum instanceof Body body) {
+            body.binding(CompoundKey.of(Manifest.ITEM_ID)).ifPresent(itemIdBinding -> {
+                byte[] key = composeTypeIndexKey(body, itemIdBinding, cid);
+                indexStore.db(IndexStore.Column.TYPE_INDEX).key(key).delete();
+            });
+        }
+        unindexBindings(datum, cid);
+    }
+
+    private void unindexBindings(Datum datum, ContentID datumCid) {
+        for (Binding b : datum.bindings()) {
+            composeForwardKey(b, datumCid).ifPresent(key ->
+                    indexStore.db(IndexStore.Column.FORWARD_BINDINGS).key(key).delete()
+            );
+        }
+    }
+
     // ==================================================================================
     // Index queries
     // ==================================================================================
@@ -143,10 +204,32 @@ public class Library {
      * wired; for now, expect at most one entry in single-version-per-item tests).
      */
     public List<ContentID> manifestCidsForItem(ItemID itemIid) {
-        Objects.requireNonNull(itemIid, "itemIid");
-        byte[] roleBytes = Manifest.ITEM_ID.encodeBinary();
-        byte[] iidBytes = itemIid.encodeBinary();
-        byte[] prefix = concat(roleBytes, new byte[]{0}, iidBytes);
+        return bodyCidsForReferenceBinding(Manifest.ITEM_ID, itemIid);
+    }
+
+    /**
+     * Find the body-CIDs of all bodies that have a simple-key (no qualifiers) binding
+     * with the given role pointing at the given reference target.
+     *
+     * <p>Generalizes {@link #manifestCidsForItem} — the manifest-by-iid lookup is just
+     * the special case where role = ITEM_ID. Other useful queries:
+     * <ul>
+     *   <li>{@code bodyCidsForReferenceBinding(THEME, X)} — frames where the THEME role
+     *       points at X. Used for things like "which IMPLEMENTS frames target this
+     *       concept?" combined with a head-filter.</li>
+     *   <li>{@code bodyCidsForReferenceBinding(AGENT, X)} — frames where AGENT points
+     *       at X.</li>
+     * </ul>
+     *
+     * <p>This is a Phase 1 query; doesn't yet support qualified-key matches. Caller
+     * fetches each result body to apply additional filters (head, qualifiers, etc.).
+     */
+    public List<ContentID> bodyCidsForReferenceBinding(ItemID role, ItemID target) {
+        Objects.requireNonNull(role, "role");
+        Objects.requireNonNull(target, "target");
+        byte[] roleBytes = role.encodeBinary();
+        byte[] targetBytes = target.encodeBinary();
+        byte[] prefix = concat(roleBytes, new byte[]{0}, targetBytes);
         List<ContentID> bodyCids = new ArrayList<>();
         indexStore.forEach(IndexStore.Column.FORWARD_BINDINGS, prefix, (key, value) -> {
             byte[] bodyCidBytes = Arrays.copyOfRange(key, prefix.length, key.length);
