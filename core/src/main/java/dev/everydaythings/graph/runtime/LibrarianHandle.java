@@ -163,7 +163,7 @@ public sealed interface LibrarianHandle extends Closeable permits LocalLibrarian
      * <p>For local handles, returns the librarian's host directly.
      * For remote handles, returns empty (the remote host is not local).
      */
-    Optional<Host> host();
+    Optional<HostOld> host();
 
     // ==================================================================================
     // Lookup

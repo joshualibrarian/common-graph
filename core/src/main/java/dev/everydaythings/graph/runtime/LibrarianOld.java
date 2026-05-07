@@ -223,7 +223,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
     private SignerOld principal;
 
     @ItemFrame(predicate = RoutingVocabulary.AvailableAt.KEY, endorsement = @ItemFrame.Endorsed(false))
-    private Host host;
+    private HostOld host;
 
     /**
      * Items currently acting as workspaces (navigable container windows).
@@ -1658,7 +1658,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
     /**
      * The Host item representing this machine.
      */
-    public Host host() {
+    public HostOld host() {
         return host;
     }
 
@@ -1721,7 +1721,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
                 .ifPresent(body -> {
                     BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
                     if (tgt instanceof BindingTarget.IidTarget target) {
-                        get(target.iid(), Host.class).ifPresent(h -> this.host = h);
+                        get(target.iid(), HostOld.class).ifPresent(h -> this.host = h);
                     }
                 });
 
@@ -1733,9 +1733,9 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
         // First boot: create host item
         if (rootPath() != null) {
             Path hostPath = rootPath().resolve("host");
-            host = new Host(this, hostPath);
+            host = new HostOld(this, hostPath);
         } else {
-            host = new Host(this);
+            host = new HostOld(this);
         }
         host.commit(this);
         put(host);

@@ -126,7 +126,7 @@ public final class RemoteLibrarian extends SessionClient implements LibrarianHan
     }
 
     @Override
-    public Optional<Host> host() {
+    public Optional<HostOld> host() {
         // Remote librarian's host is not local to this JVM
         return Optional.empty();
     }

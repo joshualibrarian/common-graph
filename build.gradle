@@ -10,10 +10,13 @@
 // =============================================================================
 ext {
     // Core
-    lombokVersion = '1.18.36'
+    lombokVersion = '1.18.42'
 
     // Logging
     log4jVersion = '2.25.3'
+
+    // GraalVM Polyglot (Item-runtime engine layer)
+    graalvmVersion = '25.0.0'
 
     // CLI & Terminal
     picocliVersion = '4.7.7'
@@ -76,8 +79,16 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
+            languageVersion = JavaLanguageVersion.of(25)
         }
+    }
+
+    // Compile to Java 21 bytecode so the artifacts run on any modern JVM
+    // (plain OpenJDK 21+, in addition to GraalVM 25 used for development).
+    // GraalVM provides extra capability (Polyglot, Espresso sandbox); without
+    // it, the librarian degrades to native-Java-only mode.
+    tasks.withType(JavaCompile).configureEach {
+        options.release = 21
     }
 
     repositories {

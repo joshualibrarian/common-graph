@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class HostDisplayTest {
 
     private static LibrarianOld librarian;
-    private Host host;
+    private HostOld host;
 
     @BeforeAll
     static void setupLibrarian() {
@@ -49,7 +49,7 @@ class HostDisplayTest {
             CompoundKey key = host.registerDisplay("retina-0", config);
             assertThat(key).isNotNull();
 
-            List<Host.DeviceInfo> displays = host.displays();
+            List<HostOld.DeviceInfo> displays = host.displays();
             assertThat(displays).hasSize(1);
             assertThat(displays.getFirst().deviceId()).isEqualTo("retina-0");
             assertThat(displays.getFirst().deviceType()).isEqualTo(DeviceVocabulary.Display.IID);
@@ -130,17 +130,17 @@ class HostDisplayTest {
 
             // Update: monitor-1 gone, monitor-2 added
             host.updateDisplays(List.of(
-                    new Host.DisplayUpdate("monitor-0", DisplayConfig.builder()
+                    new HostOld.DisplayUpdate("monitor-0", DisplayConfig.builder()
                             .name("A").widthPx(1920).heightPx(1080)
                             .refreshRate(60).scalePercent(100).osX(0).osY(0).build()),
-                    new Host.DisplayUpdate("monitor-2", DisplayConfig.builder()
+                    new HostOld.DisplayUpdate("monitor-2", DisplayConfig.builder()
                             .name("C").widthPx(3840).heightPx(2160)
                             .refreshRate(60).scalePercent(150).osX(1920).osY(0).build())
             ));
 
-            List<Host.DeviceInfo> displays = host.displays();
+            List<HostOld.DeviceInfo> displays = host.displays();
             assertThat(displays).hasSize(2);
-            assertThat(displays.stream().map(Host.DeviceInfo::deviceId))
+            assertThat(displays.stream().map(HostOld.DeviceInfo::deviceId))
                     .containsExactlyInAnyOrder("monitor-0", "monitor-2");
         }
     }
@@ -156,7 +156,7 @@ class HostDisplayTest {
                     .name("Built-in").widthPx(2560).heightPx(1600)
                     .refreshRate(60).scalePercent(200).osX(0).osY(0).build());
 
-            Host.DeviceInfo display = host.displays().getFirst();
+            HostOld.DeviceInfo display = host.displays().getFirst();
             Ref ref = display.refOn(host.iid());
 
             assertThat(ref.target()).isEqualTo(host.iid());

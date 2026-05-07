@@ -63,7 +63,7 @@ public final class LocalLibrarian implements LibrarianHandle {
     }
 
     @Override
-    public Optional<Host> host() {
+    public Optional<HostOld> host() {
         checkOpen();
         return Optional.ofNullable(librarian.host());
     }
