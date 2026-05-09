@@ -1,18 +1,27 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.crypt.VarSig;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.*;
 import dev.everydaythings.graph.frame.Record;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.FrameRef;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.linguistics.GrammaticalFeature;
+import dev.everydaythings.graph.linguistics.Gloss;
+import dev.everydaythings.graph.linguistics.Language;
+import dev.everydaythings.graph.linguistics.Lexeme;
+import dev.everydaythings.graph.linguistics.PartOfSpeech;
 import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.semantics.Expects;
+import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.text.FrameDraftMerger;
+import dev.everydaythings.graph.text.FrameMap;
+import dev.everydaythings.graph.text.ParseContext;
+import dev.everydaythings.graph.text.ParseEngine;
+import dev.everydaythings.graph.text.ParseParams;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -33,23 +42,25 @@ import java.util.stream.Stream;
  * by piece from {@link ItemOld} as their requirements become clear.
  */
 @Getter
+@Seed.Item(key = dev.everydaythings.graph.item.Item.KEY)
+@Seed.Embodies(key = dev.everydaythings.graph.item.Item.KEY)
 public class Item {
 
     /** Canonical key for Item-the-concept — the archetype for generic items. */
     public static final String KEY = "cg.sememe:item";
 
-    /** The archetype IID for generic Items. Subclasses override {@link #archetype()}. */
-    public static final ItemID ARCHETYPE = ItemID.fromString(KEY);
+    /** The IID for Item-the-concept. Subclasses override {@link #archetype()} to return their own. */
+    public static final ItemID IID = ItemID.fromString(KEY);
 
     /**
      * The archetype this item is an instance of — the sememe IID that goes in the
      * head of a manifest body produced by {@link #commit}.
      *
      * <p>Subclasses override to return their own archetype IID (Signer, Librarian,
-     * application-specific item types). The default returns {@link #ARCHETYPE}.
+     * application-specific item types). The default returns {@link #IID}.
      */
     public ItemID archetype() {
-        return ARCHETYPE;
+        return IID;
     }
 
     /** The item's stable cryptographic identity. */
@@ -189,6 +200,28 @@ public class Item {
                 .flatMap(cid -> librarian.fetchFrame(cid).stream());
     }
 
+    /**
+     * Endorsed frames whose head matches the given predicate.
+     *
+     * <p>An item often has multiple frames endorsed under the same predicate — e.g.,
+     * one {@code Lexeme} frame per (language, POS, feature) combination, or one
+     * {@code Gloss} per language. Callers filter the stream further by binding
+     * qualifiers when they need a specific instance.
+     *
+     * <p>For predicates that are typically unique-per-item (Symbol, Fixity,
+     * Precedence, Associativity), {@code .findFirst()} on the stream returns the
+     * single instance. For predicates with many instances, callers either iterate
+     * all matches or apply additional filtering on the binding qualifiers.
+     *
+     * @param predicateIid the predicate to match against each frame body's head
+     * @return frames endorsed by this item's manifest whose head equals {@code predicateIid}
+     */
+    public Stream<Frame> endorsedFramesByPredicate(ItemID predicateIid) {
+        Objects.requireNonNull(predicateIid, "predicateIid");
+        return endorsedFrames()
+                .filter(f -> f.body().headRef().iid().equals(predicateIid));
+    }
+
     // ==================================================================================
     // Commit
     // ==================================================================================
@@ -279,5 +312,128 @@ public class Item {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + iid + "]";
+    }
+
+    // ==================================================================================
+    // Text pipeline — parsing
+    // ==================================================================================
+
+    /**
+     * Orchestrator entry point — input has arrived at this item's prompt.
+     *
+     * <p>Delegates to {@link ParseEngine#run}: the standard consensus engine runs with
+     * this item as the orchestrator. The engine tokenizes the input, builds an
+     * {@link dev.everydaythings.graph.text.AnchorTable} of active participants from
+     * the lattice, iterates {@link #parse(ParseContext)} on each participant per
+     * round, merges via {@link #merge}, and returns when fixpoint is reached.
+     *
+     * <p>Subclasses override to customize orchestration entirely (rare). To customize
+     * just merge behavior, override {@link #merge} instead — the engine calls it once
+     * per round.
+     *
+     * @param input  raw text from the prompt
+     * @param params operational parameters (language stack, mode, verbosity, etc.)
+     * @return the final FrameMap after consensus reaches fixpoint
+     */
+    public FrameMap parse(String input, ParseParams params) {
+        return ParseEngine.run(this, input, params);
+    }
+
+    /**
+     * Participant entry point — contribute this item's view of a parse round.
+     *
+     * <p>Most items have no opinion and return an empty {@link FrameMap}. Languages,
+     * predicate sememes, operator sememes, and structural sememes override this to
+     * contribute their parse behavior. The orchestrator collects the deltas across
+     * all active participants and merges them.
+     *
+     * @param ctx the round context (text, current draft, orchestrator reference)
+     * @return this item's delta — typically empty
+     */
+    public FrameMap parse(ParseContext ctx) {
+        return FrameMap.empty();
+    }
+
+    /**
+     * Combine this round's deltas with the prior draft into the next draft.
+     *
+     * <p>Called by the orchestrator's {@link #parse(String, ParseParams)} loop once per
+     * round, after all participants have contributed. The default implementation
+     * delegates to {@link FrameDraftMerger#weighted}: per-part weighted reconciliation,
+     * highest-weighted proposal wins, locks pass through.
+     *
+     * <p>Items override to substitute custom merge logic — e.g. domain-specific
+     * tie-breaking, additional validation, special handling of certain predicates.
+     * Most items use the default.
+     *
+     * @param priorDraft the running consensus from prior rounds; null in round 1
+     * @param deltas     the participant contributions from this round
+     * @return the new draft to use as the prior draft of the next round
+     */
+    public FrameMap merge(FrameMap priorDraft, List<FrameMap> deltas) {
+        return FrameDraftMerger.weighted(priorDraft, deltas);
+    }
+
+    // ==================================================================================
+    // Meta-archetypes (data-only seed declarations)
+    // ==================================================================================
+
+    /**
+     * The root archetype — every item's manifest head transitively reaches here.
+     *
+     * <p>Self-typing: Archetype's manifest head references its own IID. Every other
+     * archetype (Item itself, Photograph, Code, Predicate, etc.) declares Archetype
+     * as its head, directly or through a chain.
+     */
+    @Seed.Item(key = Archetype.KEY)
+    public static final class Archetype {
+        public static final String KEY = "cg.archetype:archetype";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        private Archetype() {}
+
+        @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the root archetype — the kind-of-thing every item's manifest is, "
+                        + "the meta-root every head chain terminates at";
+
+        @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "archetype";
+
+        /**
+         * The universal item-hood rule: every instance — every item in the system —
+         * must carry an {@code ITEM_ID} binding on its manifest body. Propagates to
+         * every descendant via the head chain. Archetype itself is the bootstrap
+         * exception (no ITEM_ID binding on its own manifest).
+         */
+        @Seed.Frame(predicate = Expects.KEY,
+              field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
+        static final ItemID expectItemId = Manifest.ITEM_ID;
+    }
+
+    /**
+     * The archetype of all predicates — items that serve as the head of frame bodies.
+     *
+     * <p>Predicates have role-keyed EXPECTS declarations specifying what bindings
+     * their frame-instances must carry. Each concrete predicate (AUTHORED, TITLE,
+     * MOVE, IMPLEMENTATION, EXPECTS itself) is an instance of Predicate, with
+     * {@code head = Item.Predicate.KEY} on its {@code @Seed} annotation.
+     */
+    @Seed.Item(key = Predicate.KEY)
+    public static final class Predicate {
+        public static final String KEY = "cg.archetype:predicate";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        private Predicate() {}
+
+        @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the archetype of all predicates — items used as the head of frame bodies; "
+                        + "predicates declare role-keyed EXPECTS for their frame-instances";
+
+        @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "predicate";
     }
 }

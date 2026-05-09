@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;

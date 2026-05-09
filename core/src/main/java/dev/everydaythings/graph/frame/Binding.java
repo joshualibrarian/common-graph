@@ -4,7 +4,7 @@ import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;

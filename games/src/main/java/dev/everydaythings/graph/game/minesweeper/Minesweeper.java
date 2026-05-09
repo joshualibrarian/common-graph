@@ -3,7 +3,7 @@ package dev.everydaythings.graph.game.minesweeper;
 import dev.everydaythings.graph.game.*;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.ui.scene.Scene;

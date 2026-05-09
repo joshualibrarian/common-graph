@@ -72,7 +72,7 @@ Identity in CG is a keypair, not a registered account.  This enables strong pseu
 
 Mechanisms:
 
-- **Pseudonymous by default.**  An identity is a public key.  Unless the user binds real-world identifying information to it (name, email, photo, social links), the identity reveals nothing about the person behind it.
+- **Pseudonymous by default.**  An identity is a public key.  Unless the user frames real-world identifying information to it (name, email, photo, social links), the identity reveals nothing about the person behind it.
 - **Multiple identities.**  A user can operate multiple distinct identities simultaneously, using different keys for different contexts: one for professional work, another for political activity, another for anonymous publishing.
 - **Unlinkability between identities.**  Identities maintained on separate devices, or through separate Librarians, with separate trust graphs and separate relay patterns, are structurally hard to link.  Linkage requires correlation signals the user chose to leak.
 - **Identity rotation.**  Keys can be rotated on a schedule, generating fresh identities with no cryptographic linkage to prior ones.

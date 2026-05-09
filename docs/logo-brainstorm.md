@@ -47,14 +47,14 @@ From the project's architecture:
 ### Structural / graph-theoretic
 
 1. **Minimal graph cluster** — 5-7 dots connected by lines.  Risk of being generic; needs a distinctive composition to avoid looking like a stock network icon.
-2. **Node cohering around center** — a central filled circle with 5-6 curved lines radiating outward, each ending in a smaller unfilled circle.  Not straight spokes — lines bend gently like tendrils or grass.  Slightly asymmetric composition.  Reads as seed-head / dandelion-spore, but literally depicts "item with frames cohering around it."
+2. **Node cohering around center** — a central filled circle with 5-6 curved lines radiating outward, each ending in a smaller unfilled circle.  Not straight spokes — lines bend gently like tendrils or grass.  Slightly asymmetric composition.  Reads as seedItem-head / dandelion-spore, but literally depicts "item with frames cohering around it."
 3. **Hexagonal lattice fragment** — honeycomb pattern, suggests repeatable structure.
 4. **Atom-like orbit** — central node with surrounding ring of nodes.  Clean symmetry, but risks feeling generic.
 
 ### Organic / living
 
 5. **Flower / mandala** — radial symmetry, 6 or 8 petals each a small graph connection.  Natural + structured.
-6. **Seed or sprout** — abstract shape suggesting foundation / beginning.  Could have internal branching structure visible, like the inside of a pomegranate or a dandelion seed.
+6. **Seed or sprout** — abstract shape suggesting foundation / beginning.  Could have internal branching structure visible, like the inside of a pomegranate or a dandelion seedItem.
 7. **Woven thread / knot** — three or more curves that interlock.  Suggests unity through connection.  Celtic-knot energy without being Celtic-specific.
 8. **Coral or branching growth** — fractal-ish form, suggests organic emergence of structure.
 
@@ -68,7 +68,7 @@ From the project's architecture:
 ### Specific vivid concepts (expansions of promising directions)
 
 **A. The Cohering Node** (expansion of #2)
-A central filled circle about pea-sized.  Five or six slightly curved lines radiate outward, each terminating in a smaller unfilled circle.  Curves bend gently like tendrils or grass reaching.  Deliberately asymmetric (e.g., four lines going up-and-out, two going down) so it doesn't feel sterile.  Reads as a seed-head or dandelion-spore.  Literally depicts the CG item model.
+A central filled circle about pea-sized.  Five or six slightly curved lines radiate outward, each terminating in a smaller unfilled circle.  Curves bend gently like tendrils or grass reaching.  Deliberately asymmetric (e.g., four lines going up-and-out, two going down) so it doesn't feel sterile.  Reads as a seedItem-head or dandelion-spore.  Literally depicts the CG item model.
 
 **B. The Hearth Graph** (expansion of #5 and #10)
 Inspired by the warmth in Reading Rainbow.  A central small shape (dot, flame, spark) with three to five lines arcing outward like embers drifting from a fire.  Some lines terminate in dots, some trail into space.  Organic and warm.  Reads as "node with connections" AND "warmth radiating outward."  Good at any size.

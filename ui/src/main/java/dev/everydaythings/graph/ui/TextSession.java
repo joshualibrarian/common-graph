@@ -3,7 +3,7 @@ package dev.everydaythings.graph.ui;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.parse.InputSnapshot;
 import dev.everydaythings.graph.item.id.Ref;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.runtime.Eval;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import dev.everydaythings.graph.runtime.options.SessionOptions;

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.game.set;
 
 import dev.everydaythings.graph.game.*;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.ui.scene.Scene;
 

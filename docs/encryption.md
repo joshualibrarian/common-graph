@@ -161,7 +161,7 @@ Encrypted envelopes can optionally include sender authentication:
 - `senderKid` identifies who encrypted the content (by their signing key ID)
 - `senderSig` is an Ed25519 signature over the envelope header body (everything except the signature itself)
 
-This binds the encryption to a specific identity. Anonymous encryption (no sender identification) is supported by omitting these fields -- useful for anonymous drops, whistleblowing scenarios, or when the sender's identity should be protected.
+This frames the encryption to a specific identity. Anonymous encryption (no sender identification) is supported by omitting these fields -- useful for anonymous drops, whistleblowing scenarios, or when the sender's identity should be protected.
 
 ### Relation to Existing EncryptedEnvelope
 

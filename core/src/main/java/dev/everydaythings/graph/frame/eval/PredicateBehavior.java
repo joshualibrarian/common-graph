@@ -2,6 +2,7 @@ package dev.everydaythings.graph.frame.eval;
 
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.FrameBodyOld;
+import dev.everydaythings.graph.value.OperatorOld;
 
 import java.util.List;
 
@@ -27,7 +28,7 @@ import java.util.List;
  *       evaluation order, enabling lazy evaluation and short-circuit logic.</li>
  * </ol>
  *
- * <p>This is the same pattern as {@link dev.everydaythings.graph.value.Operator}
+ * <p>This is the same pattern as {@link OperatorOld}
  * and {@link dev.everydaythings.graph.value.Function}, which already carry both
  * parsing metadata (precedence, fixity) and evaluation code (applyBinary, apply).
  * PredicateBehavior makes this pattern explicit and universal.

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.semantics;
 
-import dev.everydaythings.graph.item.Seed;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -27,7 +27,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  * cross-validates against this at bootstrap: a class declaring "I implement instances
  * of K" requires K to declare what its instances should look like.
  */
-@Seed(key = Expects.KEY)
+@Seed.Item(key = Expects.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
 public final class Expects {
 
     public static final String KEY = "cg.sememe:expects";

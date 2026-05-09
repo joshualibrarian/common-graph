@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.item.id.ItemID;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for English regular morphology rules and irregular override lookup.
  */
 @DisplayName("English Morphology")
-class EnglishMorphologyTest {
+class EnglishOldMorphologyTest {
 
     // Feature IIDs
     static final ItemID PAST = GrammaticalFeature.Past.IID;
@@ -28,7 +27,7 @@ class EnglishMorphologyTest {
     static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.IID;
 
     // Use English as a seed (no librarian needed for morphology)
-    static final English english = new English(ItemID.fromString(English.KEY));
+    static final EnglishOld ENGLISH_OLD = new EnglishOld(ItemID.fromString(EnglishOld.KEY));
 
     // ==================================================================================
     // VERB INFLECTION
@@ -41,130 +40,130 @@ class EnglishMorphologyTest {
         @Test
         @DisplayName("3rd person singular present: add -s")
         void thirdPersonSingular() {
-            assertThat(english.inflect("run", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("run", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("runs");
-            assertThat(english.inflect("eat", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("eat", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("eats");
-            assertThat(english.inflect("walk", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("walk", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("walks");
         }
 
         @Test
         @DisplayName("3rd person singular present: add -es for sibilants")
         void thirdPersonSibilant() {
-            assertThat(english.inflect("pass", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("pass", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("passes");
-            assertThat(english.inflect("watch", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("watch", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("watches");
-            assertThat(english.inflect("fix", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("fix", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("fixes");
-            assertThat(english.inflect("push", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("push", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("pushes");
-            assertThat(english.inflect("buzz", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("buzz", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("buzzes");
         }
 
         @Test
         @DisplayName("3rd person singular present: consonant+y → -ies")
         void thirdPersonConsonantY() {
-            assertThat(english.inflect("carry", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("carry", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("carries");
-            assertThat(english.inflect("study", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("study", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("studies");
         }
 
         @Test
         @DisplayName("3rd person singular present: vowel+y → -ys")
         void thirdPersonVowelY() {
-            assertThat(english.inflect("play", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("play", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("plays");
-            assertThat(english.inflect("enjoy", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
+            assertThat(ENGLISH_OLD.inflect("enjoy", PartOfSpeech.VERB, Set.of(THIRD_PERSON)))
                     .isEqualTo("enjoys");
         }
 
         @Test
         @DisplayName("past tense: add -ed")
         void pastRegular() {
-            assertThat(english.inflect("walk", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("walk", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("walked");
-            assertThat(english.inflect("play", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("play", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("played");
         }
 
         @Test
         @DisplayName("past tense: ends in e → add -d")
         void pastEndsInE() {
-            assertThat(english.inflect("love", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("love", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("loved");
-            assertThat(english.inflect("create", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("create", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("created");
         }
 
         @Test
         @DisplayName("past tense: consonant+y → -ied")
         void pastConsonantY() {
-            assertThat(english.inflect("carry", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("carry", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("carried");
-            assertThat(english.inflect("study", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("study", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("studied");
         }
 
         @Test
         @DisplayName("past tense: double consonant")
         void pastDoubleConsonant() {
-            assertThat(english.inflect("stop", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("stop", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("stopped");
-            assertThat(english.inflect("plan", PartOfSpeech.VERB, Set.of(PAST)))
+            assertThat(ENGLISH_OLD.inflect("plan", PartOfSpeech.VERB, Set.of(PAST)))
                     .isEqualTo("planned");
         }
 
         @Test
         @DisplayName("present participle: add -ing")
         void presentParticiple() {
-            assertThat(english.inflect("walk", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("walk", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("walking");
-            assertThat(english.inflect("play", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("play", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("playing");
         }
 
         @Test
         @DisplayName("present participle: drop -e + -ing")
         void presentParticipleDropE() {
-            assertThat(english.inflect("love", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("love", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("loving");
-            assertThat(english.inflect("create", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("create", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("creating");
         }
 
         @Test
         @DisplayName("present participle: -ie → -ying")
         void presentParticipleIeToYing() {
-            assertThat(english.inflect("die", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("die", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("dying");
-            assertThat(english.inflect("lie", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("lie", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("lying");
         }
 
         @Test
         @DisplayName("present participle: double consonant")
         void presentParticipleDouble() {
-            assertThat(english.inflect("run", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("run", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("running");
-            assertThat(english.inflect("stop", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("stop", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("stopping");
         }
 
         @Test
         @DisplayName("present participle: -ee stays")
         void presentParticipleEeStays() {
-            assertThat(english.inflect("see", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
+            assertThat(ENGLISH_OLD.inflect("see", PartOfSpeech.VERB, Set.of(PARTICIPLE, PRESENT)))
                     .isEqualTo("seeing");
         }
 
         @Test
         @DisplayName("empty features returns lemma")
         void emptyFeaturesReturnsLemma() {
-            assertThat(english.inflect("run", PartOfSpeech.VERB, Set.of()))
+            assertThat(ENGLISH_OLD.inflect("run", PartOfSpeech.VERB, Set.of()))
                     .isEqualTo("run");
         }
     }
@@ -180,38 +179,38 @@ class EnglishMorphologyTest {
         @Test
         @DisplayName("regular plural: add -s")
         void pluralRegular() {
-            assertThat(english.inflect("cat", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("cat", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("cats");
-            assertThat(english.inflect("dog", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("dog", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("dogs");
         }
 
         @Test
         @DisplayName("sibilant plural: add -es")
         void pluralSibilant() {
-            assertThat(english.inflect("box", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("box", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("boxes");
-            assertThat(english.inflect("church", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("church", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("churches");
-            assertThat(english.inflect("bus", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("bus", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("buses");
         }
 
         @Test
         @DisplayName("consonant+y plural: -ies")
         void pluralConsonantY() {
-            assertThat(english.inflect("baby", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("baby", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("babies");
-            assertThat(english.inflect("city", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("city", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("cities");
         }
 
         @Test
         @DisplayName("vowel+y plural: -ys")
         void pluralVowelY() {
-            assertThat(english.inflect("boy", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("boy", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("boys");
-            assertThat(english.inflect("key", PartOfSpeech.NOUN, Set.of(PLURAL)))
+            assertThat(ENGLISH_OLD.inflect("key", PartOfSpeech.NOUN, Set.of(PLURAL)))
                     .isEqualTo("keys");
         }
     }
@@ -227,57 +226,57 @@ class EnglishMorphologyTest {
         @Test
         @DisplayName("comparative: add -er")
         void comparative() {
-            assertThat(english.inflect("tall", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("tall", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("taller");
-            assertThat(english.inflect("cold", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("cold", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("colder");
         }
 
         @Test
         @DisplayName("comparative: ends in -e → add -r")
         void comparativeEndsInE() {
-            assertThat(english.inflect("nice", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("nice", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("nicer");
-            assertThat(english.inflect("large", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("large", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("larger");
         }
 
         @Test
         @DisplayName("comparative: consonant+y → -ier")
         void comparativeConsonantY() {
-            assertThat(english.inflect("happy", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("happy", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("happier");
-            assertThat(english.inflect("easy", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("easy", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("easier");
         }
 
         @Test
         @DisplayName("comparative: double consonant")
         void comparativeDouble() {
-            assertThat(english.inflect("big", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("big", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("bigger");
-            assertThat(english.inflect("hot", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
+            assertThat(ENGLISH_OLD.inflect("hot", PartOfSpeech.ADJECTIVE, Set.of(COMPARATIVE)))
                     .isEqualTo("hotter");
         }
 
         @Test
         @DisplayName("superlative: add -est")
         void superlative() {
-            assertThat(english.inflect("tall", PartOfSpeech.ADJECTIVE, Set.of(SUPERLATIVE)))
+            assertThat(ENGLISH_OLD.inflect("tall", PartOfSpeech.ADJECTIVE, Set.of(SUPERLATIVE)))
                     .isEqualTo("tallest");
         }
 
         @Test
         @DisplayName("superlative: consonant+y → -iest")
         void superlativeConsonantY() {
-            assertThat(english.inflect("happy", PartOfSpeech.ADJECTIVE, Set.of(SUPERLATIVE)))
+            assertThat(ENGLISH_OLD.inflect("happy", PartOfSpeech.ADJECTIVE, Set.of(SUPERLATIVE)))
                     .isEqualTo("happiest");
         }
 
         @Test
         @DisplayName("superlative: double consonant")
         void superlativeDouble() {
-            assertThat(english.inflect("big", PartOfSpeech.ADJECTIVE, Set.of(SUPERLATIVE)))
+            assertThat(ENGLISH_OLD.inflect("big", PartOfSpeech.ADJECTIVE, Set.of(SUPERLATIVE)))
                     .isEqualTo("biggest");
         }
     }
@@ -302,16 +301,16 @@ class EnglishMorphologyTest {
                     ));
 
             // Irregular past: "ran" (not "runned")
-            assertThat(english.inflect(run, Set.of(PAST))).isEqualTo("ran");
+            assertThat(ENGLISH_OLD.inflect(run, Set.of(PAST))).isEqualTo("ran");
 
             // Irregular past participle: "run" (not "runned")
-            assertThat(english.inflect(run, Set.of(PAST, PARTICIPLE))).isEqualTo("run");
+            assertThat(ENGLISH_OLD.inflect(run, Set.of(PAST, PARTICIPLE))).isEqualTo("run");
 
             // Irregular present participle: "running" (override for double consonant)
-            assertThat(english.inflect(run, Set.of(PRESENT, PARTICIPLE))).isEqualTo("running");
+            assertThat(ENGLISH_OLD.inflect(run, Set.of(PRESENT, PARTICIPLE))).isEqualTo("running");
 
             // Regular 3rd person (no override): falls through to algorithm
-            assertThat(english.inflect(run, Set.of(THIRD_PERSON))).isEqualTo("runs");
+            assertThat(ENGLISH_OLD.inflect(run, Set.of(THIRD_PERSON))).isEqualTo("runs");
         }
 
         @Test
@@ -322,7 +321,7 @@ class EnglishMorphologyTest {
                     List.of(FormEntry.of("children", GrammaticalFeature.Plural.IID)));
 
             // Irregular plural: "children" (not "childs")
-            assertThat(english.inflect(child, Set.of(PLURAL))).isEqualTo("children");
+            assertThat(ENGLISH_OLD.inflect(child, Set.of(PLURAL))).isEqualTo("children");
         }
 
         @Test
@@ -335,8 +334,8 @@ class EnglishMorphologyTest {
                             FormEntry.of("best", GrammaticalFeature.Superlative.IID)
                     ));
 
-            assertThat(english.inflect(good, Set.of(COMPARATIVE))).isEqualTo("better");
-            assertThat(english.inflect(good, Set.of(SUPERLATIVE))).isEqualTo("best");
+            assertThat(ENGLISH_OLD.inflect(good, Set.of(COMPARATIVE))).isEqualTo("better");
+            assertThat(ENGLISH_OLD.inflect(good, Set.of(SUPERLATIVE))).isEqualTo("best");
         }
 
         @Test
@@ -346,8 +345,8 @@ class EnglishMorphologyTest {
                     ItemID.fromString("cg.test:run-sememe"), PartOfSpeech.VERB, 1.0f,
                     List.of(FormEntry.of("ran", GrammaticalFeature.Past.IID)));
 
-            assertThat(english.inflect(run, Set.of())).isEqualTo("run");
-            assertThat(english.inflect(run, null)).isEqualTo("run");
+            assertThat(ENGLISH_OLD.inflect(run, Set.of())).isEqualTo("run");
+            assertThat(ENGLISH_OLD.inflect(run, null)).isEqualTo("run");
         }
 
         @Test
@@ -356,9 +355,9 @@ class EnglishMorphologyTest {
             Lexeme walk = Lexeme.of("walk", Language.ENGLISH,
                     ItemID.fromString("cg.test:walk-sememe"), PartOfSpeech.VERB);
 
-            assertThat(english.inflect(walk, Set.of(PAST))).isEqualTo("walked");
-            assertThat(english.inflect(walk, Set.of(PARTICIPLE, PRESENT))).isEqualTo("walking");
-            assertThat(english.inflect(walk, Set.of(THIRD_PERSON))).isEqualTo("walks");
+            assertThat(ENGLISH_OLD.inflect(walk, Set.of(PAST))).isEqualTo("walked");
+            assertThat(ENGLISH_OLD.inflect(walk, Set.of(PARTICIPLE, PRESENT))).isEqualTo("walking");
+            assertThat(ENGLISH_OLD.inflect(walk, Set.of(THIRD_PERSON))).isEqualTo("walks");
         }
     }
 }

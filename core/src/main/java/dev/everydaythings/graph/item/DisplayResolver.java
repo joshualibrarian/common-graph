@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.Implements;
+
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;

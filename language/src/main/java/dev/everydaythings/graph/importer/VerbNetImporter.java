@@ -259,7 +259,7 @@ public class VerbNetImporter {
                     new CompoundKey.Sememe(roleIid));
             Binding topicBinding = Binding.qualified(
                     ThematicRole.Topic.IID, qualifiers,
-                    BindingTarget.iid(roleIid), true, false);
+                    BindingTarget.iid(roleIid));
             FrameBodyOld body = new FrameBodyOld(CoreVocabulary.Expects.IID,
                     List.of(topicBinding));
 

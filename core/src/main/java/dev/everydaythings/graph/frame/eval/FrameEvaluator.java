@@ -9,7 +9,7 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.value.Operator;
+import dev.everydaythings.graph.value.OperatorOld;
 import dev.everydaythings.graph.value.Unit;
 
 import java.util.ArrayList;
@@ -325,7 +325,7 @@ public final class FrameEvaluator {
             Binding condition = findBinding(bindings, ThematicRole.Theme.IID);
             Object condValue = condition != null ? evaluator.resolve(condition.target(), scope) : null;
 
-            if (Operator.toBoolean(condValue)) {
+            if (OperatorOld.toBoolean(condValue)) {
                 Binding thenBranch = findBinding(bindings, ThematicRole.Result.IID);
                 return thenBranch != null ? evaluator.resolve(thenBranch.target(), scope) : null;
             } else {

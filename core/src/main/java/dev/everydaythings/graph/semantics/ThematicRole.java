@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.semantics;
 
-import dev.everydaythings.graph.item.Seed;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -21,7 +21,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  * qualifier vocabularies (Languages, PartOfSpeech, GrammaticalFeature) are
  * migrated and we can attach them via {@code @Bind}.
  */
-@Seed(key = ThematicRole.KEY)
+@Seed.Item(key = ThematicRole.KEY)
 public final class ThematicRole {
 
     /** Canonical key for the role meta-sememe — the kind-of-thing-that-is-a-role. */
@@ -31,7 +31,7 @@ public final class ThematicRole {
     private ThematicRole() {}
 
     /** The intentional initiator of an action. */
-    @Seed(key = Agent.KEY)
+    @Seed.Item(key = Agent.KEY, head = ThematicRole.KEY)
     public static final class Agent {
         public static final String KEY = "cg.role:agent";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -39,7 +39,7 @@ public final class ThematicRole {
     }
 
     /** The entity undergoing a change of state, location, or condition. */
-    @Seed(key = Patient.KEY)
+    @Seed.Item(key = Patient.KEY, head = ThematicRole.KEY)
     public static final class Patient {
         public static final String KEY = "cg.role:patient";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -47,7 +47,7 @@ public final class ThematicRole {
     }
 
     /** The entity affected by an action, or the focal participant of a frame. */
-    @Seed(key = Theme.KEY)
+    @Seed.Item(key = Theme.KEY, head = ThematicRole.KEY)
     public static final class Theme {
         public static final String KEY = "cg.role:theme";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -55,7 +55,7 @@ public final class ThematicRole {
     }
 
     /** The participant having an experience or perception. */
-    @Seed(key = Experiencer.KEY)
+    @Seed.Item(key = Experiencer.KEY, head = ThematicRole.KEY)
     public static final class Experiencer {
         public static final String KEY = "cg.role:experiencer";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -63,7 +63,7 @@ public final class ThematicRole {
     }
 
     /** The phenomenon causing a perception or feeling. */
-    @Seed(key = Stimulus.KEY)
+    @Seed.Item(key = Stimulus.KEY, head = ThematicRole.KEY)
     public static final class Stimulus {
         public static final String KEY = "cg.role:stimulus";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -71,7 +71,7 @@ public final class ThematicRole {
     }
 
     /** The grammatical pivot, often used for binary-relation participants. */
-    @Seed(key = Pivot.KEY)
+    @Seed.Item(key = Pivot.KEY, head = ThematicRole.KEY)
     public static final class Pivot {
         public static final String KEY = "cg.role:pivot";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -79,7 +79,7 @@ public final class ThematicRole {
     }
 
     /** The originating cause of an event. */
-    @Seed(key = Cause.KEY)
+    @Seed.Item(key = Cause.KEY, head = ThematicRole.KEY)
     public static final class Cause {
         public static final String KEY = "cg.role:cause";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -87,7 +87,7 @@ public final class ThematicRole {
     }
 
     /** The intended endpoint or aim of an action. */
-    @Seed(key = Goal.KEY)
+    @Seed.Item(key = Goal.KEY, head = ThematicRole.KEY)
     public static final class Goal {
         public static final String KEY = "cg.role:goal";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -95,7 +95,7 @@ public final class ThematicRole {
     }
 
     /** The terminal location of motion. */
-    @Seed(key = Destination.KEY)
+    @Seed.Item(key = Destination.KEY, head = ThematicRole.KEY)
     public static final class Destination {
         public static final String KEY = "cg.role:destination";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -103,7 +103,7 @@ public final class ThematicRole {
     }
 
     /** The originating location or origin of motion. */
-    @Seed(key = Source.KEY)
+    @Seed.Item(key = Source.KEY, head = ThematicRole.KEY)
     public static final class Source {
         public static final String KEY = "cg.role:source";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -111,7 +111,7 @@ public final class ThematicRole {
     }
 
     /** The route or trajectory of motion. */
-    @Seed(key = Path.KEY)
+    @Seed.Item(key = Path.KEY, head = ThematicRole.KEY)
     public static final class Path {
         public static final String KEY = "cg.role:path";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -119,7 +119,7 @@ public final class ThematicRole {
     }
 
     /** The outcome produced by an action. */
-    @Seed(key = Result.KEY)
+    @Seed.Item(key = Result.KEY, head = ThematicRole.KEY)
     public static final class Result {
         public static final String KEY = "cg.role:result";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -127,7 +127,7 @@ public final class ThematicRole {
     }
 
     /** The participant receiving something in a transfer. */
-    @Seed(key = Recipient.KEY)
+    @Seed.Item(key = Recipient.KEY, head = ThematicRole.KEY)
     public static final class Recipient {
         public static final String KEY = "cg.role:recipient";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -135,7 +135,7 @@ public final class ThematicRole {
     }
 
     /** The participant intended to benefit from an action. */
-    @Seed(key = Beneficiary.KEY)
+    @Seed.Item(key = Beneficiary.KEY, head = ThematicRole.KEY)
     public static final class Beneficiary {
         public static final String KEY = "cg.role:beneficiary";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -143,7 +143,7 @@ public final class ThematicRole {
     }
 
     /** A co-participant in a reciprocal relation. */
-    @Seed(key = Partner.KEY)
+    @Seed.Item(key = Partner.KEY, head = ThematicRole.KEY)
     public static final class Partner {
         public static final String KEY = "cg.role:partner";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -151,7 +151,7 @@ public final class ThematicRole {
     }
 
     /** The means by which an action is performed. */
-    @Seed(key = Instrument.KEY)
+    @Seed.Item(key = Instrument.KEY, head = ThematicRole.KEY)
     public static final class Instrument {
         public static final String KEY = "cg.role:instrument";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -159,7 +159,7 @@ public final class ThematicRole {
     }
 
     /** The manner or way in which an action is performed. */
-    @Seed(key = Manner.KEY)
+    @Seed.Item(key = Manner.KEY, head = ThematicRole.KEY)
     public static final class Manner {
         public static final String KEY = "cg.role:manner";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -167,7 +167,7 @@ public final class ThematicRole {
     }
 
     /** The extent or degree to which something occurs. */
-    @Seed(key = Extent.KEY)
+    @Seed.Item(key = Extent.KEY, head = ThematicRole.KEY)
     public static final class Extent {
         public static final String KEY = "cg.role:extent";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -175,7 +175,7 @@ public final class ThematicRole {
     }
 
     /** A property or characteristic. */
-    @Seed(key = Attribute.KEY)
+    @Seed.Item(key = Attribute.KEY, head = ThematicRole.KEY)
     public static final class Attribute {
         public static final String KEY = "cg.role:attribute";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -183,7 +183,7 @@ public final class ThematicRole {
     }
 
     /** The purpose or motivation. */
-    @Seed(key = Purpose.KEY)
+    @Seed.Item(key = Purpose.KEY, head = ThematicRole.KEY)
     public static final class Purpose {
         public static final String KEY = "cg.role:purpose";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -191,7 +191,7 @@ public final class ThematicRole {
     }
 
     /** The setting or place where an event occurs. */
-    @Seed(key = Location.KEY)
+    @Seed.Item(key = Location.KEY, head = ThematicRole.KEY)
     public static final class Location {
         public static final String KEY = "cg.role:location";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -199,7 +199,7 @@ public final class ThematicRole {
     }
 
     /** The temporal setting of an event. */
-    @Seed(key = Time.KEY)
+    @Seed.Item(key = Time.KEY, head = ThematicRole.KEY)
     public static final class Time {
         public static final String KEY = "cg.role:time";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -207,7 +207,7 @@ public final class ThematicRole {
     }
 
     /** The subject matter of a discourse or expression. */
-    @Seed(key = Topic.KEY)
+    @Seed.Item(key = Topic.KEY, head = ThematicRole.KEY)
     public static final class Topic {
         public static final String KEY = "cg.role:topic";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -215,7 +215,7 @@ public final class ThematicRole {
     }
 
     /** Presentation/styling configuration. */
-    @Seed(key = Presentation.KEY)
+    @Seed.Item(key = Presentation.KEY, head = ThematicRole.KEY)
     public static final class Presentation {
         public static final String KEY = "cg.role:presentation";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -223,7 +223,7 @@ public final class ThematicRole {
     }
 
     /** A referenced item (used in compound bindings to point at related items). */
-    @Seed(key = Referent.KEY)
+    @Seed.Item(key = Referent.KEY, head = ThematicRole.KEY)
     public static final class Referent {
         public static final String KEY = "cg.role:referent";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -231,7 +231,7 @@ public final class ThematicRole {
     }
 
     /** Vocabulary configuration scoping. */
-    @Seed(key = Vocabulary.KEY)
+    @Seed.Item(key = Vocabulary.KEY, head = ThematicRole.KEY)
     public static final class Vocabulary {
         public static final String KEY = "cg.role:vocabulary";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -239,7 +239,7 @@ public final class ThematicRole {
     }
 
     /** A literal-typed value carried by a binding (CG extension; common in seed manifests). */
-    @Seed(key = Value.KEY)
+    @Seed.Item(key = Value.KEY, head = ThematicRole.KEY)
     public static final class Value {
         public static final String KEY = "cg.role:value";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -247,7 +247,7 @@ public final class ThematicRole {
     }
 
     /** Configuration scope qualifier (CG extension; for CONFIG bindings on manifests). */
-    @Seed(key = Config.KEY)
+    @Seed.Item(key = Config.KEY, head = ThematicRole.KEY)
     public static final class Config {
         public static final String KEY = "cg.role:config";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -255,7 +255,7 @@ public final class ThematicRole {
     }
 
     /** Successor reference (CG extension; for FOLLOWS-style ordering). */
-    @Seed(key = Follows.KEY)
+    @Seed.Item(key = Follows.KEY, head = ThematicRole.KEY)
     public static final class Follows {
         public static final String KEY = "cg.role:follows";
         public static final ItemID IID = ItemID.fromString(KEY);

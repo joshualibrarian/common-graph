@@ -129,19 +129,19 @@ Read operations are non-transactional by default (snapshot isolation via RocksDB
 
 ## Bootstrap: Seed Vocabulary
 
-On first boot, the Library is populated with **seed items** — deterministic bootstrap vocabulary that every Common Graph node shares. The bootstrap process:
+On first boot, the Library is populated with **seedItem items** — deterministic bootstrap vocabulary that every Common Graph node shares. The bootstrap process:
 
-1. **Scan the classpath** for types and seed declarations
-2. **Create seed items** with deterministic IIDs (derived from canonical strings like `"cg:type/item"`)
-3. **Create Language Items** — at minimum the English Language Item (`cg:language/eng`) with its initial lexicon containing seed lexemes
-4. **Store manifests** for each seed item (timestamp 0, no signature — code-defined)
+1. **Scan the classpath** for types and seedItem declarations
+2. **Create seedItem items** with deterministic IIDs (derived from canonical strings like `"cg:type/item"`)
+3. **Create Language Items** — at minimum the English Language Item (`cg:language/eng`) with its initial lexicon containing seedItem lexemes
+4. **Store manifests** for each seedItem item (timestamp 0, no signature — code-defined)
 5. **Register tokens** in the TokenDictionary — lexemes scoped to their Language Item, symbols as universal postings
 
 Seed items include:
 
 | Category | Examples |
 |----------|----------|
-| **Language items** | English (`cg:language/eng`) — with seed lexicon |
+| **Language items** | English (`cg:language/eng`) — with seedItem lexicon |
 | **Core types** | Item, Signer, Host, Sememe |
 | **Frame types** | Log, Dag, Roster, Space, Model, Vault, KeyLog |
 | **Value types** | Text, Integer, Decimal, Rational, Boolean, Instant, Quantity |
@@ -151,9 +151,9 @@ Seed items include:
 | **Dimensions** | Length, Mass, Time, Temperature, Currency |
 | **Units** | Meter, Kilogram, Second, Kelvin, Dollar, Euro |
 
-Because seed IIDs are deterministic, two independently bootstrapped Libraries will have identical IIDs for all seed items. This is how nodes agree on vocabulary without prior coordination — the seed vocabulary is the shared language of the graph.
+Because seedItem IIDs are deterministic, two independently bootstrapped Libraries will have identical IIDs for all seedItem items. This is how nodes agree on vocabulary without prior coordination — the seedItem vocabulary is the shared language of the graph.
 
-When a lexicon import runs later (e.g., WordNet for English), new lexemes are **merged idempotently** into the existing Language Item's lexicon. The English Language Item created at seed time grows as imports add words, but its IID and existing mappings remain stable.
+When a lexicon import runs later (e.g., WordNet for English), new lexemes are **merged idempotently** into the existing Language Item's lexicon. The English Language Item created at seedItem time grows as imports add words, but its IID and existing mappings remain stable.
 
 ## Working Tree Store
 

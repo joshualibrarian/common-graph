@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import lombok.Getter;
 

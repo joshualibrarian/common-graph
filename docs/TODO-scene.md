@@ -21,7 +21,7 @@ Live TODO list for the scene model and pipeline. The definitive design reference
 | `Transition` | property, duration, easing, delay | `transitionProperty`, `transitionDuration`, `transitionEasing`, `transitionDelay` |
 | `Animation` | duration, iterationCount, direction, easing, delay, fillMode, playState, keyframes | all the `animation*` fields + `keyframes` |
 
-**Stay flat** (~20 fields): id, classes, type, width, height, minWidth/maxWidth/minHeight/maxHeight, padding, margin, overflow, visible, corner, opacity, cursor, editable, events, state, when, children, repeat, childTemplate, text, format, tokens, shape, image, model, glyph, alt, fill, strokeColor, strokeWidth, radius, pathData, material, surfaces, anchorTop/Right/Bottom/Left, bind, capturesFocus.
+**Stay flat** (~20 fields): id, classes, type, width, height, minWidth/maxWidth/minHeight/maxHeight, padding, margin, overflow, visible, corner, opacity, cursor, editable, events, state, when, children, repeat, childTemplate, text, format, tokens, shape, image, model, glyph, alt, fill, strokeColor, strokeWidth, radius, pathData, material, surfaces, anchorTop/Right/Bottom/Left, frame, capturesFocus.
 
 **Rules for the nested classes:**
 - Regular classes, NOT records (project policy)
@@ -129,7 +129,7 @@ The mount system — how endorsed frames weave into item scenes — is still bei
   - CALL, LIKE, FLAG, CRITIQUE, SUGGESTION are all examples of pending frames
 - *Pending vs durable is a cleanup-policy property of the frame*, not a separate frame type. Policies: time-based (TTL), replacement-based (newer-of-same-kind supersedes), side-effect-based (a related action clears it), never (durable). The scene system observes whatever frames currently exist.
 - *Reactions are universal across all items*, handled by the chrome layer. Item implementations don't see them and don't need to know about them.
-- *Views and Implementations*: every visible item is an `ITEM_VIEW` frame. The frame binds to a runtime implementation instance, selected at view-create time, lifetime tied to the view. Multiple views of the same item have separate instances. Frames are the shared source of truth; runtime model state is a per-instance projection.
+- *Views and Implementations*: every visible item is an `ITEM_VIEW` frame. The frame frames to a runtime implementation instance, selected at view-create time, lifetime tied to the view. Multiple views of the same item have separate instances. Frames are the shared source of truth; runtime model state is a per-instance projection.
 - *Events and Dispatch*: four-layer bubbling chain (scene tree → item implementation → chrome → session). Built-in actions (`toggle:`, `set:`, etc.) handled locally by InteractionState. Application actions dispatched up the chain. The Event shape carries `report` (declared at scene-author time) and `consumed` (set by the renderer at dispatch time).
 - *Session actions are the top of the chain*: currently `view <iid>` and `exit`. No back button, no history stack — navigation is structural via creating/closing views.
 
@@ -140,7 +140,7 @@ The mount system — how endorsed frames weave into item scenes — is still bei
   - **Surface mounts** — mounting frames onto named 2D regions of an item's scene
   - **Spatial mounts** — mounting frames into 3D positions within a spatial scene
   All three need design.
-- **How a scene binds to its item's endorsed frames.** The bind expression syntax is partly there, but the formal model for "render this set of frames inside this region" needs detail.
+- **How a scene frames to its item's endorsed frames.** The frame expression syntax is partly there, but the formal model for "render this set of frames inside this region" needs detail.
 - **Visibility/permission model for pending frames.** Owner sees all? Contributors see their own? Public reactions visible to all? This is partly a frame-model question and partly a presentation question.
 - **Endorsement transitions.** The exact mechanism for transitioning a pending frame to durable (the frame's policy changes? a new frame replaces it? both?) needs design.
 

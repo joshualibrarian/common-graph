@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.policy;
 
 import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.*;

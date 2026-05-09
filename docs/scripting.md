@@ -602,7 +602,7 @@ BytecodeComponent {
 }
 ```
 
-The bytecode bytes are content-addressed like any other content. Identical classes deduplicate across the entire graph. The Type Item already exists (it's what `@Type` declares) — today it's a seed with annotations scanned from the local classpath. With `BytecodeComponent`, the type carries its own implementation.
+The bytecode bytes are content-addressed like any other content. Identical classes deduplicate across the entire graph. The Type Item already exists (it's what `@Type` declares) — today it's a seedItem with annotations scanned from the local classpath. With `BytecodeComponent`, the type carries its own implementation.
 
 ### GraphClassLoader
 

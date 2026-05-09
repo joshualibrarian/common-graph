@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.game.chess;
 
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ManifestOld;

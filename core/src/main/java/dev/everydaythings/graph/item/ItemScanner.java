@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;

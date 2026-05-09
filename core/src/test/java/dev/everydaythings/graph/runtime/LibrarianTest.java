@@ -664,4 +664,128 @@ class LibrarianTest {
             assertThat(frames.get(0).body()).isEqualTo(endorsedFrame);
         }
     }
+
+    @Nested
+    @DisplayName("Token lookup")
+    class TokenLookup {
+
+        @Test
+        @DisplayName("indexed lexeme roundtrips into a rich Posting via Librarian.lookupToken")
+        void roundtripBasicLexeme() {
+            Librarian lib = Librarian.inMemory();
+
+            ItemID lexemePredicate = ItemID.fromString("test.predicate:lexeme");
+            ItemID targetSememe = ItemID.fromString("test.sememe:create");
+
+            // LEXEME-shaped body: head=LEXEME, THEME→target, VALUE[Eng,Verb,Lemma]→"create"
+            Body body = Body.of(
+                    ItemRef.of(lexemePredicate),
+                    List.of(
+                            Binding.ref(
+                                    dev.everydaythings.graph.semantics.ThematicRole.Theme.IID,
+                                    targetSememe),
+                            new Binding(
+                                    dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
+                                    List.of(
+                                            new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                                                    dev.everydaythings.graph.linguistics.Language.English.IID),
+                                            new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                                                    dev.everydaythings.graph.linguistics.PartOfSpeech.Verb.IID),
+                                            new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                                                    dev.everydaythings.graph.linguistics.GrammaticalFeature.Lemma.IID)),
+                                    Literal.ofText("create"))));
+
+            ContentID bodyCid = lib.persist(body);
+            dev.everydaythings.graph.item.id.CompoundKey valueKey =
+                    dev.everydaythings.graph.item.id.CompoundKey.of(
+                            dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
+                            dev.everydaythings.graph.linguistics.Language.English.IID,
+                            dev.everydaythings.graph.linguistics.PartOfSpeech.Verb.IID,
+                            dev.everydaythings.graph.linguistics.GrammaticalFeature.Lemma.IID);
+            lib.library().indexToken("create", bodyCid, valueKey,
+                    dev.everydaythings.graph.value.Decimal.ofInt(1));
+
+            List<dev.everydaythings.graph.library.tokens.Posting> postings = lib.lookupToken("create");
+
+            assertThat(postings).hasSize(1);
+            dev.everydaythings.graph.library.tokens.Posting p = postings.get(0);
+            assertThat(p.token()).isEqualTo("create");
+            assertThat(p.target()).isEqualTo(targetSememe);
+            assertThat(p.predicate()).isEqualTo(lexemePredicate);
+            assertThat(p.scope()).isEqualTo(
+                    dev.everydaythings.graph.linguistics.Language.English.IID);
+            assertThat(p.features()).containsExactlyInAnyOrder(
+                    dev.everydaythings.graph.linguistics.PartOfSpeech.Verb.IID,
+                    dev.everydaythings.graph.linguistics.GrammaticalFeature.Lemma.IID);
+            assertThat(p.source()).isEqualTo(bodyCid);
+            assertThat(p.weight().toDouble()).isEqualTo(1.0);
+        }
+
+        @Test
+        @DisplayName("unknown token returns empty list")
+        void unknownToken() {
+            Librarian lib = Librarian.inMemory();
+            assertThat(lib.lookupToken("nonexistent")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Library.put auto-indexes text-target bindings — no explicit indexToken needed")
+        void autoIndexOnPut() {
+            Librarian lib = Librarian.inMemory();
+
+            ItemID titlePredicate = ItemID.fromString("test.predicate:title");
+            ItemID movie = ItemID.fromString("test.item:movie");
+
+            Body body = Body.of(
+                    ItemRef.of(titlePredicate),
+                    List.of(
+                            Binding.ref(
+                                    dev.everydaythings.graph.semantics.ThematicRole.Theme.IID,
+                                    movie),
+                            new Binding(
+                                    dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
+                                    List.of(),
+                                    Literal.ofText("The Shawshank Redemption"))));
+
+            // Just persist — no explicit indexToken call.
+            ContentID bodyCid = lib.persist(body);
+
+            List<dev.everydaythings.graph.library.tokens.Posting> postings =
+                    lib.lookupToken("The Shawshank Redemption");
+
+            assertThat(postings).hasSize(1);
+            dev.everydaythings.graph.library.tokens.Posting p = postings.get(0);
+            assertThat(p.token()).isEqualTo("the shawshank redemption");  // normalized
+            assertThat(p.target()).isEqualTo(movie);
+            assertThat(p.predicate()).isEqualTo(titlePredicate);
+            assertThat(p.source()).isEqualTo(bodyCid);
+        }
+
+        @Test
+        @DisplayName("token normalization — case folding")
+        void caseFolding() {
+            Librarian lib = Librarian.inMemory();
+
+            ItemID predicate = ItemID.fromString("test.predicate:lexeme");
+            Body body = Body.of(
+                    ItemRef.of(predicate),
+                    List.of(new Binding(
+                            dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
+                            List.of(),
+                            Literal.ofText("Hello"))));
+            ContentID bodyCid = lib.persist(body);
+            dev.everydaythings.graph.item.id.CompoundKey valueKey =
+                    dev.everydaythings.graph.item.id.CompoundKey.of(
+                            dev.everydaythings.graph.semantics.ThematicRole.Value.IID);
+
+            // Index with original case; normalize() folds to lowercase.
+            lib.library().indexToken("Hello", bodyCid, valueKey,
+                    dev.everydaythings.graph.value.Decimal.ofInt(1));
+
+            // Lookup with various cases — all should resolve.
+            assertThat(lib.lookupToken("hello")).hasSize(1);
+            assertThat(lib.lookupToken("HELLO")).hasSize(1);
+            assertThat(lib.lookupToken("Hello")).hasSize(1);
+        }
+    }
 }

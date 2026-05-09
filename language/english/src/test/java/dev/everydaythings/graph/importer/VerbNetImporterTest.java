@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.importer;
 
-import dev.everydaythings.graph.language.English;
+import dev.everydaythings.graph.language.EnglishOld;
 import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -191,7 +191,7 @@ class VerbNetImporterTest {
         @DisplayName("WordNet import + VerbNet import end-to-end")
         void fullImportPipeline() {
             LibrarianOld lib = LibrarianOld.createInMemory();
-            English english = new English(lib);
+            EnglishOld english = new EnglishOld(lib);
 
             // Step 1: Import WordNet (creates sememes + lexemes + sense key frames)
             System.out.println("=== Step 1: WordNet Import ===");

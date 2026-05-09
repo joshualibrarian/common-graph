@@ -184,7 +184,7 @@ This is the core of the talk.  The single data structure from which everything e
       b. Retention: keep all, keep only the latest, keep the chain.
       c. Routing: direct, relayed, onion-routed.
       d. Replication, encryption.
-      e. A chess move is retained permanently.  An avatar position is discarded when a newer one arrives.  A video feed binds to a content stream whose blocks are consumed and released.
+      e. A chess move is retained permanently.  An avatar position is discarded when a newer one arrives.  A video feed frames to a content stream whose blocks are consumed and released.
       f. The difference is a CONFIG binding, not a separate mechanism.
 
 ## IV. Items, Identity, and the Social Graph (6 minutes)

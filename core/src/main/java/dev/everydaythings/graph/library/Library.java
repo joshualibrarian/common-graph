@@ -6,6 +6,7 @@ import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Body;
 import dev.everydaythings.graph.frame.Datum;
 import dev.everydaythings.graph.frame.Record;
+import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
@@ -13,7 +14,12 @@ import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
-import lombok.Getter;
+import dev.everydaythings.graph.library.skiplist.SkipListDataStore;
+import dev.everydaythings.graph.library.skiplist.SkipListIndexStore;
+import dev.everydaythings.graph.library.tokens.Posting;
+import dev.everydaythings.graph.library.tokens.SkipListTokenDictionary;
+import dev.everydaythings.graph.library.tokens.TokenDictionary;
+import dev.everydaythings.graph.value.Decimal;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,15 +49,52 @@ import java.util.Optional;
  * <p>For the storage architecture, see
  * <a href="../../../../../../../../../docs/storage.md">storage.md</a>.
  */
-@Getter
-public class Library {
+public class Library implements AutoCloseable {
 
     private final DataStore dataStore;
     private final IndexStore indexStore;
+    private final TokenDictionary tokenDictionary;
 
-    public Library(DataStore dataStore, IndexStore indexStore) {
+    private Library(DataStore dataStore, IndexStore indexStore, TokenDictionary tokenDictionary) {
         this.dataStore = Objects.requireNonNull(dataStore, "dataStore");
         this.indexStore = Objects.requireNonNull(indexStore, "indexStore");
+        this.tokenDictionary = Objects.requireNonNull(tokenDictionary, "tokenDictionary");
+    }
+
+    /**
+     * Create an in-memory Library backed by SkipList stores. Zero-dependency,
+     * pure Java; suitable for tests, ephemeral runs, and demos.
+     *
+     * <p>When persistent storage lands, parallel factories
+     * ({@code Library.atPath(Path)}, etc.) will provide the same self-managed
+     * pattern — the caller never assembles stores by hand.
+     */
+    public static Library inMemory() {
+        return new Library(
+                SkipListDataStore.create(),
+                SkipListIndexStore.create(),
+                SkipListTokenDictionary.create());
+    }
+
+    /**
+     * Close the Library and any backing stores that hold resources. Safe to
+     * call multiple times; in-memory backings are no-ops.
+     */
+    @Override
+    public void close() {
+        closeQuietly(dataStore);
+        closeQuietly(indexStore);
+        closeQuietly(tokenDictionary);
+    }
+
+    private static void closeQuietly(Object o) {
+        if (o instanceof AutoCloseable c) {
+            try {
+                c.close();
+            } catch (Exception ignored) {
+                // best-effort close
+            }
+        }
     }
 
     // ==================================================================================
@@ -163,6 +206,7 @@ public class Library {
             });
         }
         unindexBindings(datum, cid);
+        unindexTokens(datum, cid);
     }
 
     private void unindexBindings(Datum datum, ContentID datumCid) {
@@ -264,6 +308,45 @@ public class Library {
     }
 
     // ==================================================================================
+    // Token Dictionary
+    // ==================================================================================
+
+    /**
+     * Look up postings for an exact token. Returns ranked Postings ordered by
+     * descending weight; empty if the token has no entries or if all entries'
+     * datums fail to resolve locally.
+     */
+    public List<Posting> lookupToken(String token) {
+        return tokenDictionary.lookup(token, this::fetchDatum).toList();
+    }
+
+    /**
+     * Prefix search for autocomplete. Returns up to {@code limit} ranked
+     * Postings whose tokens begin with {@code tokenPrefix}.
+     */
+    public List<Posting> lookupTokenPrefix(String tokenPrefix, int limit) {
+        return tokenDictionary.prefix(tokenPrefix, limit, this::fetchDatum).toList();
+    }
+
+    /**
+     * Index a single token-bearing binding. Token-indexing is currently
+     * driven explicitly by callers; auto-indexing on {@link #put} will be
+     * added when per-predicate weight policy is settled.
+     */
+    public void indexToken(String token, ContentID datum, CompoundKey bindingKey, Decimal weight) {
+        tokenDictionary.index(token, datum, bindingKey, weight, null);
+    }
+
+    /**
+     * Resolve a CID to its decoded Datum (Body or Record). Used as the
+     * datum-resolver passed to {@link TokenDictionary#lookup} so the dictionary
+     * can assemble rich Postings from minimal stored entries.
+     */
+    private Optional<Datum> fetchDatum(ContentID cid) {
+        return get(cid).map(Library::decodeDatum);
+    }
+
+    // ==================================================================================
     // Indexing (write-side)
     // ==================================================================================
 
@@ -281,6 +364,39 @@ public class Library {
             });
         }
         indexBindings(datum, cid);
+        indexTokens(datum, cid);
+    }
+
+    /**
+     * Walk every binding whose target is a text Literal and add a token-dictionary
+     * entry for its surface text. Per-predicate weight policy is not yet wired —
+     * everything indexes at weight 1.0.
+     */
+    private void indexTokens(Datum datum, ContentID datumCid) {
+        for (Binding b : datum.bindings()) {
+            extractIndexableText(b.target()).ifPresent(text -> {
+                CompoundKey bindingKey = CompoundKey.of(b.role(), b.qualifiers());
+                tokenDictionary.index(text, datumCid, bindingKey, Decimal.ofInt(1), null);
+            });
+        }
+    }
+
+    private void unindexTokens(Datum datum, ContentID datumCid) {
+        for (Binding b : datum.bindings()) {
+            extractIndexableText(b.target()).ifPresent(text -> {
+                CompoundKey bindingKey = CompoundKey.of(b.role(), b.qualifiers());
+                tokenDictionary.remove(text, datumCid, bindingKey, null);
+            });
+        }
+    }
+
+    private static Optional<String> extractIndexableText(BindingTarget target) {
+        if (target instanceof Literal lit && Literal.TYPE_TEXT.equals(lit.valueType())) {
+            String text = lit.asText();
+            if (text == null || text.isBlank()) return Optional.empty();
+            return Optional.of(text);
+        }
+        return Optional.empty();
     }
 
     private void indexBindings(Datum datum, ContentID datumCid) {

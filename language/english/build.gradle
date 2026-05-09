@@ -17,6 +17,9 @@ dependencies {
     // Language module — shared importer infrastructure + non-English language sememes
     api project(':language')
 
+    // ICU for ULocale (exposed by Language.locale() in :core)
+    api "com.ibm.icu:icu4j:${icu4jVersion}"
+
     // Abstract test bases (ItemTest, LanguageTest)
     testImplementation testFixtures(project(':core'))
 

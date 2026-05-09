@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Vocabulary seed determinism")
-class VocabularySeedTest {
+class VocabularySeedItemTest {
 
     @Nested
     @DisplayName("RuntimeVocabulary")

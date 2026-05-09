@@ -3,7 +3,7 @@ package dev.everydaythings.graph.value;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.language.CoreVocabulary;
@@ -36,8 +36,8 @@ import java.util.Map;
  * precedence, associativity, fixity, symbol accessors, type coercion helpers,
  * and quantity arithmetic utilities.
  */
-@ItemSeed(key = Operator.KEY)
-public class Operator extends Sememe {
+@ItemSeed(key = OperatorOld.KEY)
+public class OperatorOld extends Sememe {
 
     public static final String KEY = "cg.sememe:operator";
 
@@ -52,7 +52,7 @@ public class Operator extends Sememe {
 
     @Implements(And.KEY)
     @ItemSeed(key = And.KEY)
-    public static class And extends Operator {
+    public static class And extends OperatorOld {
         public static final String KEY = "cg.op:and";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -77,7 +77,7 @@ public class Operator extends Sememe {
 
     @Implements(Or.KEY)
     @ItemSeed(key = Or.KEY)
-    public static class Or extends Operator {
+    public static class Or extends OperatorOld {
         public static final String KEY = "cg.op:or";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -102,7 +102,7 @@ public class Operator extends Sememe {
 
     @Implements(Not.KEY)
     @ItemSeed(key = Not.KEY)
-    public static class Not extends Operator {
+    public static class Not extends OperatorOld {
         public static final String KEY = "cg.op:not";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -131,7 +131,7 @@ public class Operator extends Sememe {
 
     @Implements(Add.KEY)
     @ItemSeed(key = Add.KEY)
-    public static class Add extends Operator {
+    public static class Add extends OperatorOld {
         public static final String KEY = "cg.op:add";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -166,7 +166,7 @@ public class Operator extends Sememe {
 
     @Implements(Subtract.KEY)
     @ItemSeed(key = Subtract.KEY)
-    public static class Subtract extends Operator {
+    public static class Subtract extends OperatorOld {
         public static final String KEY = "cg.op:sub";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -195,7 +195,7 @@ public class Operator extends Sememe {
 
     @Implements(Multiply.KEY)
     @ItemSeed(key = Multiply.KEY)
-    public static class Multiply extends Operator {
+    public static class Multiply extends OperatorOld {
         public static final String KEY = "cg.op:mul";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -226,7 +226,7 @@ public class Operator extends Sememe {
 
     @Implements(Divide.KEY)
     @ItemSeed(key = Divide.KEY)
-    public static class Divide extends Operator {
+    public static class Divide extends OperatorOld {
         public static final String KEY = "cg.op:div";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -262,7 +262,7 @@ public class Operator extends Sememe {
 
     @Implements(Modulo.KEY)
     @ItemSeed(key = Modulo.KEY)
-    public static class Modulo extends Operator {
+    public static class Modulo extends OperatorOld {
         public static final String KEY = "cg.op:mod";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -291,7 +291,7 @@ public class Operator extends Sememe {
 
     @Implements(Power.KEY)
     @ItemSeed(key = Power.KEY)
-    public static class Power extends Operator {
+    public static class Power extends OperatorOld {
         public static final String KEY = "cg.op:pow";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -318,7 +318,7 @@ public class Operator extends Sememe {
 
     @Implements(Negate.KEY)
     @ItemSeed(key = Negate.KEY)
-    public static class Negate extends Operator {
+    public static class Negate extends OperatorOld {
         public static final String KEY = "cg.op:neg";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -349,7 +349,7 @@ public class Operator extends Sememe {
 
     @Implements(Equal.KEY)
     @ItemSeed(key = Equal.KEY)
-    public static class Equal extends Operator {
+    public static class Equal extends OperatorOld {
         public static final String KEY = "cg.op:eq";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -374,7 +374,7 @@ public class Operator extends Sememe {
 
     @Implements(NotEqual.KEY)
     @ItemSeed(key = NotEqual.KEY)
-    public static class NotEqual extends Operator {
+    public static class NotEqual extends OperatorOld {
         public static final String KEY = "cg.op:ne";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -399,7 +399,7 @@ public class Operator extends Sememe {
 
     @Implements(LessThan.KEY)
     @ItemSeed(key = LessThan.KEY)
-    public static class LessThan extends Operator {
+    public static class LessThan extends OperatorOld {
         public static final String KEY = "cg.op:lt";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -424,7 +424,7 @@ public class Operator extends Sememe {
 
     @Implements(GreaterThan.KEY)
     @ItemSeed(key = GreaterThan.KEY)
-    public static class GreaterThan extends Operator {
+    public static class GreaterThan extends OperatorOld {
         public static final String KEY = "cg.op:gt";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -449,7 +449,7 @@ public class Operator extends Sememe {
 
     @Implements(LessOrEqual.KEY)
     @ItemSeed(key = LessOrEqual.KEY)
-    public static class LessOrEqual extends Operator {
+    public static class LessOrEqual extends OperatorOld {
         public static final String KEY = "cg.op:le";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -474,7 +474,7 @@ public class Operator extends Sememe {
 
     @Implements(GreaterOrEqual.KEY)
     @ItemSeed(key = GreaterOrEqual.KEY)
-    public static class GreaterOrEqual extends Operator {
+    public static class GreaterOrEqual extends OperatorOld {
         public static final String KEY = "cg.op:ge";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -501,7 +501,7 @@ public class Operator extends Sememe {
 
     @Implements(Concat.KEY)
     @ItemSeed(key = Concat.KEY)
-    public static class Concat extends Operator {
+    public static class Concat extends OperatorOld {
         public static final String KEY = "cg.op:concat";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -530,7 +530,7 @@ public class Operator extends Sememe {
 
     @Implements(In.KEY)
     @ItemSeed(key = In.KEY)
-    public static class In extends Operator {
+    public static class In extends OperatorOld {
         public static final String KEY = "cg.op:in";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -558,7 +558,7 @@ public class Operator extends Sememe {
 
     @Implements(Contains.KEY)
     @ItemSeed(key = Contains.KEY)
-    public static class Contains extends Operator {
+    public static class Contains extends OperatorOld {
         public static final String KEY = "cg.op:contains";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -588,7 +588,7 @@ public class Operator extends Sememe {
 
     @Implements(Pipe.KEY)
     @ItemSeed(key = Pipe.KEY)
-    public static class Pipe extends Operator {
+    public static class Pipe extends OperatorOld {
         public static final String KEY = "cg.op:pipe";
         public static final ItemID IID = ItemID.fromString(KEY);
 
@@ -635,9 +635,9 @@ public class Operator extends Sememe {
     // ==================================================================================
 
     /** Seed constructor. */
-    protected Operator(String canonicalKey, String symbol, String name,
-                       int arity, int precedence,
-                       Associativity associativity, Fixity fixity) {
+    protected OperatorOld(String canonicalKey, String symbol, String name,
+                          int arity, int precedence,
+                          Associativity associativity, Fixity fixity) {
         super(canonicalKey,
                 Map.of("en", name),
                 Map.of(),
@@ -651,13 +651,13 @@ public class Operator extends Sememe {
 
     /** Type seed constructor. */
     @SuppressWarnings("unused")
-    protected Operator(ItemID typeId) {
+    protected OperatorOld(ItemID typeId) {
         super(typeId);
     }
 
     /** Hydration constructor. */
     @SuppressWarnings("unused")
-    protected Operator(LibrarianOld librarian, ManifestOld manifest) {
+    protected OperatorOld(LibrarianOld librarian, ManifestOld manifest) {
         super(librarian, manifest);
     }
 

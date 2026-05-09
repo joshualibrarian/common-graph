@@ -135,7 +135,7 @@ public static class Author {
 
 The inner class provides:
 - `KEY` — a compile-time constant string, usable in annotations and switch statements
-- `SEED` — the seed instance, annotated `@Seed` for `SeedVocabulary` discovery
+- `SEED` — the seedItem instance, annotated `@Seed` for `SeedVocabulary` discovery
 
 The fluent methods on `Sememe`:
 
@@ -173,7 +173,7 @@ A lexeme frame on a Language item has the key:
 ```
 
 Where:
-- `LEXEME` — the predicate (a seed Sememe: `LexicalVocabulary.Lexeme.SEED`)
+- `LEXEME` — the predicate (a seedItem Sememe: `LexicalVocabulary.Lexeme.SEED`)
 - `<sememe>` — the meaning being expressed (fills the REFERENT role)
 - `<form>` — the grammatical form (LEMMA, PAST, PLURAL, etc.)
 - `"<word>"` — the surface string (a literal key component)
@@ -233,7 +233,7 @@ These are stored in the frame RECORD, keyed by sememes — not by arbitrary stri
 
 ## Thematic Roles
 
-**Thematic roles** (theta roles) describe what part a participant plays in an event or relation. The intellectual lineage runs from Fillmore's Case Grammar (1968) through Dowty's Proto-Roles (1991) to VerbNet (Palmer, 2005+) and the ISO 24617-4 standard (2014). Common Graph's 25 seed roles are aligned with both [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html), following the hierarchical unification proposed by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf).
+**Thematic roles** (theta roles) describe what part a participant plays in an event or relation. The intellectual lineage runs from Fillmore's Case Grammar (1968) through Dowty's Proto-Roles (1991) to VerbNet (Palmer, 2005+) and the ISO 24617-4 standard (2014). Common Graph's 25 seedItem roles are aligned with both [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html), following the hierarchical unification proposed by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf).
 
 In Common Graph, roles are **sememes** — `ThematicRole` subclass instances with deterministic IIDs. The class is `ThematicRole` (in `core/src/main/java/dev/everydaythings/graph/language/ThematicRole.java`).
 
@@ -339,7 +339,7 @@ Common Graph's role inventory draws from a rich tradition:
 
 - **VerbNet** (Martha Palmer, CU Boulder) provides ~30 thematic roles organized by verb class, with selectional restrictions and syntactic frame mappings. VerbNet's XML data includes WordNet sense keys, giving Common Graph a direct bridge from synset to role expectations.
 - **ISO 24617-4 / LIRICS** (Harry Bunt, Tilburg) standardized ~23 semantic roles defined by entailment properties. The [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf) unification showed that VerbNet and LIRICS roles form a compatible hierarchy.
-- **FrameNet** (Fillmore, ICSI Berkeley) uses frame-specific elements rather than universal roles. Common Graph's universal roles handle the common case; FrameNet-style specialization can be layered on top as additional seed data.
+- **FrameNet** (Fillmore, ICSI Berkeley) uses frame-specific elements rather than universal roles. Common Graph's universal roles handle the common case; FrameNet-style specialization can be layered on top as additional seedItem data.
 - **PropBank** uses numbered arguments (ARG0-ARG5) with SemLink providing the cross-walk to VerbNet roles.
 
 The intent is to import VerbNet class data to auto-populate slot declarations: for each verb sememe anchored to a WordNet synset, the VerbNet class tells us exactly which roles it expects. This removes the need to hand-code role expectations for thousands of predicates.
@@ -554,7 +554,7 @@ LmfImporter.synsets()  →  stream of Synset records
     For each synset:
     |
     ├── Resolve ILI identifier → look up existing sememe
-    │   (if CILI maps to a seed sememe, reuse it; otherwise create new)
+    │   (if CILI maps to a seedItem sememe, reuse it; otherwise create new)
     |
     ├── Create or find Sememe item
     │   - Deterministic IID from CILI/ILI
@@ -652,12 +652,12 @@ At system startup, `SeedVocabulary.bootstrap()` orchestrates the initialization:
 
 2. Register all @Type classes
    └── Scan classpath for @Type annotation
-   └── Create type seed items with deterministic IIDs
+   └── Create type seedItem items with deterministic IIDs
    └── Create IMPLEMENTED_BY relations (type → Java class)
 
 3. Scan for @Item.Seed fields
    └── Find all static fields annotated @Seed
-   └── For each seed:
+   └── For each seedItem:
        ├── Store manifest in ItemStore
        ├── Extract tokens → TokenDictionary (English-scoped)
        ├── Extract symbols → TokenDictionary (universal scope)
@@ -674,7 +674,7 @@ At system startup, `SeedVocabulary.bootstrap()` orchestrates the initialization:
 
 ### Token Indexing During Bootstrap
 
-`TokenExtractor.fromSememe(sememe, language)` extracts postings from seed sememes:
+`TokenExtractor.fromSememe(sememe, language)` extracts postings from seedItem sememes:
 
 | Source | Scope | Weight | Example |
 |--------|-------|--------|---------|

@@ -1,12 +1,11 @@
 package dev.everydaythings.graph.semantics;
 
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.item.Embodies;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -35,8 +34,8 @@ import java.util.Optional;
  * the runnable class." Other implementations could exist (different nodes, different
  * apps); each item's manifest declares its own IMPLEMENTATION binding.
  */
-@Seed(key = Create.KEY)
-@Embodies(key = Create.KEY)
+@Seed.Item(key = Create.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Embodies(key = Create.KEY)
 public class Create extends Item {
 
     /** Canonical key for the create sememe. POS-agnostic — this is a unit of meaning. */

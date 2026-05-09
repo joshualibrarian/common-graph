@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.semantics;
 
-import dev.everydaythings.graph.item.Seed;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -8,7 +8,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  * this concept exists, embodied in this artifact."
  *
  * <p>The {@link dev.everydaythings.graph.item.SeedProcessor} publishes IMPLEMENTS
- * frames at bootstrap for every {@link dev.everydaythings.graph.item.Mints @Mints}-
+ * frames at bootstrap for every {@link Seed.Mints @Mints}-
  * annotated class. The frames look like:
  *
  * <pre>
@@ -19,7 +19,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  * minting via CREATE. Future work may add trust-weighted ordering when multiple
  * implementations exist for the same concept.
  */
-@Seed(key = Implements.KEY)
+@Seed.Item(key = Implements.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
 public final class Implements {
 
     public static final String KEY = "cg.sememe:implements";

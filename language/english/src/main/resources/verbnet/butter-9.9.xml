@@ -91,7 +91,7 @@
   <MEMBER fn_mapping="None" grouping="" name="salve" verbnet_key="salve#1" wn="salve%2:29:00" features="covering_entity_type: Drugs and Medicines"/>
   <MEMBER fn_mapping="None" grouping="" name="sand" verbnet_key="sand#1" wn="sand%2:35:00" features="covering_entity_type: Substance"/>
   <MEMBER fn_mapping="None" grouping="scent.01" name="scent" verbnet_key="scent#1" wn="scent%2:39:02 scent%2:29:00" features="covering_purpose: Grooming"/>
-  <MEMBER fn_mapping="Filling" grouping="seed.03" name="seed" verbnet_key="seed#1" wn="seed%2:35:01" features=""/>
+  <MEMBER fn_mapping="Filling" grouping="seedItem.03" name="seedItem" verbnet_key="seedItem#1" wn="seedItem%2:35:01" features=""/>
   <MEMBER fn_mapping="None" grouping="" name="sequin" verbnet_key="sequin#1" wn="" features="covering_entity_type: Clothing Artifact"/>
   <MEMBER fn_mapping="None" grouping="" name="shawl" verbnet_key="shawl#1" wn="" features="covering_entity_type: Clothing Artifact"/>
   <MEMBER fn_mapping="None" grouping="" name="shingle" verbnet_key="shingle#1" wn="shingle%2:35:00" features="covering_entity_type: Functional Material"/>

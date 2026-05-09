@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.linguistics;
 
-import dev.everydaythings.graph.item.Embodies;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 
@@ -28,8 +27,8 @@ import dev.everydaythings.graph.runtime.Librarian;
  * <p>Source-vocabulary sememes are inner classes here for proximity (small
  * pure-data targets, no behavior of their own).
  */
-@Seed(key = Source.KEY)
-@Embodies(key = Source.KEY)
+@Seed.Item(key = Source.KEY)
+@Seed.Embodies(key = Source.KEY)
 public class Source extends Item {
 
     /** Canonical key for the source-attribution sememe. */
@@ -47,7 +46,7 @@ public class Source extends Item {
     // ==================================================================================
 
     /** Open English WordNet — the OEWN project (any release; version on the binding). */
-    @Seed(key = Oewn.KEY)
+    @Seed.Item(key = Oewn.KEY)
     public static final class Oewn {
         public static final String KEY = "cg.source:oewn";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -55,7 +54,7 @@ public class Source extends Item {
     }
 
     /** Collaborative Interlingual Index — language-neutral concept identifiers. */
-    @Seed(key = Cili.KEY)
+    @Seed.Item(key = Cili.KEY)
     public static final class Cili {
         public static final String KEY = "cg.source:cili";
         public static final ItemID IID = ItemID.fromString(KEY);

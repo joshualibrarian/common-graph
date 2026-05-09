@@ -6,7 +6,7 @@ import dev.everydaythings.graph.crypt.AtRestEncryption;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.item.id.*;
 import dev.everydaythings.graph.item.ManifestOld;

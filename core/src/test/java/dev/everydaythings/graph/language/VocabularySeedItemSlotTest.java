@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests verifying that vocabulary seed expected roles are correctly declared
  * as {@code @ItemFrame(predicate = Expects.KEY)} annotations with the ROLE qualifier.
  */
-class VocabularySeedSlotTest {
+class VocabularySeedItemSlotTest {
 
     /**
      * Read the expected roles from @ItemFrame(predicate = Expects.KEY) annotations

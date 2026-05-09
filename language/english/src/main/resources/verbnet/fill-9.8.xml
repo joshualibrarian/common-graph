@@ -253,7 +253,7 @@
    <MEMBERS>
     <MEMBER fn_mapping="Distributed_position" grouping="adorn.01 adorn.02" name="adorn" verbnet_key="adorn#1" wn="adorn%2:36:00 adorn%2:42:00" features=""/>
     <MEMBER fn_mapping="None" grouping="bathe.02" name="bathe" verbnet_key="bathe#2" wn="bathe%2:35:00" features=""/>
-    <MEMBER fn_mapping="None" grouping="bind.02" name="bind" verbnet_key="bind#1" wn="bind%2:35:00 bind%2:35:08 bind%2:35:07 bind%2:35:01" features=""/>
+    <MEMBER fn_mapping="None" grouping="frame.02" name="frame" verbnet_key="frame#1" wn="frame%2:35:00 frame%2:35:08 frame%2:35:07 frame%2:35:01" features=""/>
     <MEMBER fn_mapping="None" grouping="" name="blanket" verbnet_key="blanket#3" wn="blanket%2:35:00 blanket%2:42:00" features=""/>
     <MEMBER fn_mapping="Eclipse" grouping="block.01" name="block" verbnet_key="block#2" wn="block%2:35:00 block%2:39:00 block%2:33:00" features=""/>
     <MEMBER fn_mapping="None" grouping="carpet.01 carpet.02" name="carpet" verbnet_key="carpet#2" wn="?carpet%2:42:00 carpet%2:35:01 carpet%2:35:00" features=""/>

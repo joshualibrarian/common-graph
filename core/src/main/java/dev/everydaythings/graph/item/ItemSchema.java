@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.Implements;
+
 import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.Canonical;

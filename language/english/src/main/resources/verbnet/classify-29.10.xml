@@ -18,7 +18,7 @@
    <MEMBER fn_mapping="None" grouping="" name="reclassify" verbnet_key="reclassify#1" wn="reclassify%2:31:00" features=""/>
    <MEMBER fn_mapping="None" grouping="" name="recode" verbnet_key="recode#1" wn="" features=""/>
    <MEMBER fn_mapping="None" grouping="regroup.02" name="regroup" verbnet_key="regroup#1" wn="regroup%2:31:00" features=""/>
-   <MEMBER fn_mapping="None" grouping="seed.04" name="seed" verbnet_key="seed#2" wn="seed%2:31:00" features=""/>
+   <MEMBER fn_mapping="None" grouping="seedItem.04" name="seedItem" verbnet_key="seedItem#2" wn="seedItem%2:31:00" features=""/>
    <MEMBER fn_mapping="None" grouping="separate.01" name="separate" verbnet_key="separate#1" wn="separate%2:31:00" features=""/>
    <MEMBER fn_mapping="Differentiation" grouping="sort.02" name="sort" verbnet_key="sort#1" wn="sort%2:31:00" features=""/>
    <MEMBER fn_mapping="None" grouping="" name="sort_out" verbnet_key="sort_out#1" wn="sort_out%2:31:00" features=""/>

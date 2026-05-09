@@ -1,12 +1,12 @@
 # Seed Vocabulary and Application Bundles
 
-This document describes how Common Graph's seed vocabulary is structured, how application developers extend it, and how the canonical-key pattern provides a stable developer-facing API while the IID-based identity provides a stable runtime contract.
+This document describes how Common Graph's seedItem vocabulary is structured, how application developers extend it, and how the canonical-key pattern provides a stable developer-facing API while the IID-based identity provides a stable runtime contract.
 
-> For sememes themselves, see [Sememes](sememes.md). For how lexemes attach to sememes, see [Language](language.md). For how vocabulary participates in input parsing, see [Input](input.md). For the trust-graph commitment that the seed vocabulary is a *choice* rather than a foundation of truth, see the philosophy notes in the design memory.
+> For sememes themselves, see [Sememes](sememes.md). For how lexemes attach to sememes, see [Language](language.md). For how vocabulary participates in input parsing, see [Input](input.md). For the trust-graph commitment that the seedItem vocabulary is a *choice* rather than a foundation of truth, see the philosophy notes in the design memory.
 
-## Two layers of seed
+## Two layers of seedItem
 
-When a Librarian boots, it loads a seed vocabulary — a curated collection of sememes, archetypes, predicates, and supporting items. The seed has two distinct layers, with different commitments:
+When a Librarian boots, it loads a seedItem vocabulary — a curated collection of sememes, archetypes, predicates, and supporting items. The seedItem has two distinct layers, with different commitments:
 
 ### Layer 1: Codebase-referenced sememes
 
@@ -33,7 +33,7 @@ WordNet (~120K sememes), VerbNet alignments, FrameNet frames, and similar import
 
 Layer 2 is where the trust-graph philosophy applies in full: communities can fork freely, override, replace, augment. The Librarian's choice of which Layer 2 seeds to load (and how heavily to trust the curator's signature) is a deployment configuration, not an architectural commitment. A Librarian could ship with WordNet at high default trust, with WordNet at zero trust, or with a community alternative entirely. All are valid deployments.
 
-The seed download bundles both layers, but they are philosophically different. Layer 1 is the bootstrap contract; Layer 2 is a generous starting point that's optional in principle and replaceable in practice.
+The seedItem download bundles both layers, but they are philosophically different. Layer 1 is the bootstrap contract; Layer 2 is a generous starting point that's optional in principle and replaceable in practice.
 
 ## Canonical keys: the developer API
 
@@ -75,12 +75,12 @@ This is the primary mechanism by which code names sememes. **Code never holds ra
 
 ## The CANONICAL_KEY binding
 
-When the seed loader mints a sememe item from a canonical key, the canonical key is recorded as a binding on the resulting item:
+When the seedItem loader mints a sememe item from a canonical key, the canonical key is recorded as a binding on the resulting item:
 
 ```
 some-sememe-item:
     CANONICAL_KEY → "cg.role:theme"      (literal string)
-    SOURCE → cg-core-seed-2026             (where this came from)
+    SOURCE → cg-core-seedItem-2026             (where this came from)
     LEXEME → "theme"                        (English lexeme via LEXEME frame)
     LEXEME → "テーマ"                       (Japanese lexeme)
     EXPECTS → ...                           (role expectations if predicate-shaped)
@@ -94,7 +94,7 @@ This makes the canonical key first-class data, queryable like any other binding.
 - **Provenance in data**: items carry their own derivation history. SOURCE shows where the data came from; CANONICAL_KEY shows what conceptual handle was used to mint the item.
 - **Browsability**: tools that show items can display the canonical key alongside, making vocabulary self-documenting.
 
-CANONICAL_KEY itself is a Layer 1 structural sememe — the seed loader needs to recognize it during bootstrap.
+CANONICAL_KEY itself is a Layer 1 structural sememe — the seedItem loader needs to recognize it during bootstrap.
 
 ## Namespace convention
 
@@ -174,7 +174,7 @@ So the chess application:
 
 ## Applications as bundles
 
-An **application** is just an item with the Application archetype. Its contents are other items (sememes, predicates, archetypes, implementations, scenes, seed data). The application item INCLUDES (or COMPOSES) the whole bundle:
+An **application** is just an item with the Application archetype. Its contents are other items (sememes, predicates, archetypes, implementations, scenes, seedItem data). The application item INCLUDES (or COMPOSES) the whole bundle:
 
 ```
 EXPENSE_APP (item, archetype: Application)
@@ -229,7 +229,7 @@ This mirrors how natural language vocabularies converge across communities — s
 
 A few practical norms that should shape how applications get built on CG:
 
-**1. Look before you mint.** Before defining a new sememe under your namespace, search CG core and WordNet (when imported) for an existing sememe that captures the same meaning. The bar for new sememes is "no existing sememe captures this." Tooling will eventually help with discovery; for now, browsing seed vocabulary is the primary tool.
+**1. Look before you mint.** Before defining a new sememe under your namespace, search CG core and WordNet (when imported) for an existing sememe that captures the same meaning. The bar for new sememes is "no existing sememe captures this." Tooling will eventually help with discovery; for now, browsing seedItem vocabulary is the primary tool.
 
 **2. Implementations carry behavior; sememes carry meaning.** When you need app-specific *behavior*, write an implementation, not a new sememe. The same Chess sememe can have many implementations across many chess apps; users and contexts select which is active.
 
@@ -247,4 +247,4 @@ A few practical norms that should shape how applications get built on CG:
 - [Input](input.md) — how vocabulary serves all input contexts uniformly.
 - [Bridges](bridges.md) — bridges as service items, often shipped as their own bundles.
 - [Trust](trust.md) — how trust evaluation drives which sememes/implementations are active in a given user's view.
-- [Library](library.md) — storage and indexing of seed and runtime vocabulary.
+- [Library](library.md) — storage and indexing of seedItem and runtime vocabulary.

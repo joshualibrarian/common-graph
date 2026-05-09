@@ -1,18 +1,12 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.crypt.MultiKey;
 import dev.everydaythings.graph.crypt.VarSig;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.frame.*;
 import dev.everydaythings.graph.frame.Record;
-import dev.everydaythings.graph.item.Bind;
-import dev.everydaythings.graph.item.Embodies;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
@@ -66,8 +60,8 @@ import java.util.Optional;
  * inceptions when a verification is needed. Future phases add a librarian-side
  * key-state cache populated from valid inceptions/rotations.
  */
-@Seed(key = Inception.KEY)
-@Embodies(key = Inception.KEY)
+@Seed.Item(key = Inception.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Embodies(key = Inception.KEY)
 public class Inception extends Item {
 
     /** Canonical key for the inception sememe. POS-agnostic — a unit of meaning. */
@@ -76,20 +70,17 @@ public class Inception extends Item {
     /** The deterministic IID for the inception sememe. */
     public static final ItemID IID = ItemID.fromString(KEY);
 
-    @Bind(predicate = Gloss.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY})
+    @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "the founding key-state declaration for one identity's one key-track";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "inception";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishVerbLemma = "incept";
 
     public Inception(ItemID iid, Librarian librarian) {

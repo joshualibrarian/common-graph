@@ -5,7 +5,7 @@ import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.game.GameVocabulary;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;

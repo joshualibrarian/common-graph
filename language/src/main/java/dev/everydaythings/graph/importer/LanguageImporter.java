@@ -182,7 +182,6 @@ public abstract class LanguageImporter {
                 .bind(ThematicRole.Value.IID)
                     .qualified(languageId(), pos, feature)
                     .to(word)
-                    .identity(true).index(true)
                 .build();
 
         librarian.storeFrame(body);
@@ -236,7 +235,6 @@ public abstract class LanguageImporter {
                 .bind(ThematicRole.Value.IID)
                     .qualified(quals.toArray(new ItemID[0]))
                     .to(form)
-                    .identity(true).index(true)
                 .build();
     }
 

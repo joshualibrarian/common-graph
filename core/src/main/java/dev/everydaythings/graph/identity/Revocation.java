@@ -1,11 +1,9 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.item.Bind;
-import dev.everydaythings.graph.item.Embodies;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -65,8 +63,8 @@ import java.util.Optional;
  * Affected sememes (Identity, Delegation, Trust) react via their own queries
  * when they look up "is this still valid?"
  */
-@Seed(key = Revocation.KEY)
-@Embodies(key = Revocation.KEY)
+@Seed.Item(key = Revocation.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Embodies(key = Revocation.KEY)
 public class Revocation extends Item {
 
     /** Canonical key for the revocation sememe. */
@@ -75,20 +73,17 @@ public class Revocation extends Item {
     /** The deterministic IID for the revocation sememe. */
     public static final ItemID IID = ItemID.fromString(KEY);
 
-    @Bind(predicate = Gloss.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY})
+    @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "the generic withdrawal of any prior assertion — \"I take it back\"";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "revocation";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishVerbLemma = "revoke";
 
     public Revocation(ItemID iid, Librarian librarian) {

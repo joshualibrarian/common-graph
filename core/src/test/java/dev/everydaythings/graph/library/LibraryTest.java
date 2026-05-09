@@ -12,8 +12,6 @@ import dev.everydaythings.graph.item.id.FrameRef;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.library.skiplist.SkipListDataStore;
-import dev.everydaythings.graph.library.skiplist.SkipListIndexStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,51 +22,19 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LibraryTest {
 
-    private SkipListDataStore dataStore;
-    private SkipListIndexStore indexStore;
     private Library library;
 
     @BeforeEach
     void setUp() {
-        dataStore = SkipListDataStore.create();
-        indexStore = SkipListIndexStore.create();
-        library = new Library(dataStore, indexStore);
+        library = Library.inMemory();
     }
 
     @AfterEach
     void tearDown() {
-        dataStore.close();
-        indexStore.close();
-    }
-
-    @Nested
-    @DisplayName("Construction")
-    class Construction {
-
-        @Test
-        @DisplayName("rejects null DataStore")
-        void rejectsNullDataStore() {
-            assertThatThrownBy(() -> new Library(null, indexStore))
-                    .isInstanceOf(NullPointerException.class);
-        }
-
-        @Test
-        @DisplayName("rejects null IndexStore")
-        void rejectsNullIndexStore() {
-            assertThatThrownBy(() -> new Library(dataStore, null))
-                    .isInstanceOf(NullPointerException.class);
-        }
-
-        @Test
-        @DisplayName("exposes both stores via accessors")
-        void exposesStores() {
-            assertThat(library.dataStore()).isSameAs(dataStore);
-            assertThat(library.indexStore()).isSameAs(indexStore);
-        }
+        library.close();
     }
 
     @Nested

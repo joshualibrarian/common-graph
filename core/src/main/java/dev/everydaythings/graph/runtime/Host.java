@@ -1,8 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.item.Bind;
-import dev.everydaythings.graph.item.Embodies;
-import dev.everydaythings.graph.item.Seed;
+import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
@@ -38,8 +36,8 @@ import dev.everydaythings.graph.semantics.ThematicRole;
  * via frames with appropriate predicates and a SERVES-based authorization
  * gate.
  */
-@Seed(key = Host.KEY)
-@Embodies(key = Host.KEY)
+@Seed.Item(key = Host.KEY)
+@Seed.Embodies(key = Host.KEY)
 public class Host extends Signer {
 
     /** Canonical key for the Host archetype. */
@@ -48,15 +46,13 @@ public class Host extends Signer {
     /** The deterministic IID for the Host archetype-sememe itself. */
     public static final ItemID ARCHETYPE_IID = ItemID.fromString(KEY);
 
-    @Bind(predicate = Gloss.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY})
+    @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "the physical or virtual machine on which one or more Librarians run";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String[] englishNounLemmas = {"host", "machine", "device"};
 
     @Override

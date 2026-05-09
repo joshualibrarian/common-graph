@@ -25,7 +25,7 @@
   <MEMBER fn_mapping="None" grouping="" name="rind" verbnet_key="rind#1" wn="" features=""/>
   <MEMBER fn_mapping="None" grouping="scale.04" name="scale" verbnet_key="scale#1" wn="scale%2:35:00" features=""/>
   <MEMBER fn_mapping="None" grouping="" name="scalp" verbnet_key="scalp#1" wn="scalp%2:30:00" features=""/>
-  <MEMBER fn_mapping="Emptying" grouping="seed.07" name="seed" verbnet_key="seed#3" wn="seed%2:30:01" features=""/>
+  <MEMBER fn_mapping="Emptying" grouping="seedItem.07" name="seedItem" verbnet_key="seedItem#3" wn="seedItem%2:30:01" features=""/>
   <MEMBER fn_mapping="None" grouping="shell.01" name="shell" verbnet_key="shell#2" wn="shell%2:30:00" features=""/>
   <MEMBER fn_mapping="None" grouping="" name="shuck" verbnet_key="shuck#1" wn="shuck%2:30:00" features=""/>
   <MEMBER fn_mapping="Emptying" grouping="" name="skin" verbnet_key="skin#2" wn="skin%2:35:01 skin%2:35:00" features=""/>

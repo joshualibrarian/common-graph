@@ -197,7 +197,7 @@ public static class Add extends Operator {
 }
 ```
 
-Standard arithmetic (`+`, `-`, `*`, `/`), comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`), logical (`&&`, `||`, `!`) operators are seed vocabulary. New operators can be defined the same way.
+Standard arithmetic (`+`, `-`, `*`, `/`), comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`), logical (`&&`, `||`, `!`) operators are seedItem vocabulary. New operators can be defined the same way.
 
 ### Functions
 
@@ -505,7 +505,7 @@ move to e4 pawn
 pawn move to e4
 ```
 
-All produce the same frame. The preposition "to" binds "e4" to GOAL regardless of position. "pawn" fills THEME as a bare argument. This is closer to natural language than positional command syntax.
+All produce the same frame. The preposition "to" frames "e4" to GOAL regardless of position. "pawn" fills THEME as a bare argument. This is closer to natural language than positional command syntax.
 
 ### Quantities in Expressions
 

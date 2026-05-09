@@ -291,7 +291,7 @@
     <MEMBER fn_mapping="Filling" grouping="pump.02" name="pump" verbnet_key="pump#1" wn="pump%2:33:00 pump%2:40:00 pump%2:38:02" features=""/>
     <MEMBER fn_mapping="Manipulation" grouping="rub.01" name="rub" verbnet_key="rub#2" wn="rub%2:35:00" features=""/>
     <MEMBER fn_mapping="Dispersal" grouping="scatter.01" name="scatter" verbnet_key="scatter#1" wn="scatter%2:35:00 scatter%2:35:01 scatter%2:38:02" features=""/>
-    <MEMBER fn_mapping="Filling" grouping="seed.03" name="seed" verbnet_key="seed#4" wn="seed%2:35:01" features=""/>
+    <MEMBER fn_mapping="Filling" grouping="seedItem.03" name="seedItem" verbnet_key="seedItem#4" wn="seedItem%2:35:01" features=""/>
     <MEMBER fn_mapping="Attaching" grouping="sew.01" name="sew" verbnet_key="sew#3" wn="sew%2:35:00" features=""/>
     <MEMBER fn_mapping="Placing" grouping="shower.01 shower.02" name="shower" verbnet_key="shower#3" wn="shower%2:40:00 shower%2:35:00 shower%2:34:12" features=""/>
     <MEMBER fn_mapping="Filling" grouping="smear.01" name="smear" verbnet_key="smear#1" wn="smear%2:35:03 smear%2:35:01" features=""/>
@@ -497,7 +497,7 @@
     <MEMBER fn_mapping="Placing" grouping="dust.03" name="dust" verbnet_key="dust#1" wn="dust%2:35:03" features=""/>
     <MEMBER fn_mapping="Placing" grouping="heap.01 heap.02" name="heap" verbnet_key="heap#1" wn="heap%2:35:00 heap%2:30:00" features=""/>
     <MEMBER fn_mapping="Placing" grouping="plant.01 plant.02" name="plant" verbnet_key="plant#3" wn="plant%2:35:00 plant%2:35:01" features=""/>
-    <MEMBER fn_mapping="Filling" grouping="seed.06" name="seed" verbnet_key="seed#4" wn="seed%2:30:00" features=""/>
+    <MEMBER fn_mapping="Filling" grouping="seedItem.06" name="seedItem" verbnet_key="seedItem#4" wn="seedItem%2:30:00" features=""/>
     <MEMBER fn_mapping="None" grouping="" name="slather" verbnet_key="slather#1" wn="slather%2:35:00" features=""/>
     <MEMBER fn_mapping="None" grouping="stack.01" name="stack" verbnet_key="stack#1" wn="stack%2:35:01 stack%2:35:00" features=""/>
     <MEMBER fn_mapping="None" grouping="stock.01" name="stock" verbnet_key="stock#2" wn="stock%2:40:02" features=""/>

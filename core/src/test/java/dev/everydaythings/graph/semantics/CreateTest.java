@@ -1,12 +1,10 @@
 package dev.everydaythings.graph.semantics;
 
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.item.Bind;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.Mints;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
@@ -44,19 +42,19 @@ class CreateTest {
      * AGENT and THEME role bindings). Bootstrap validates {@code @Mints(Chess.KEY)}
      * against the presence of EXPECTS.
      */
-    @Seed(key = Chess.KEY)
+    @Seed.Item(key = Chess.KEY)
     public static final class Chess {
         public static final String KEY = "cg.test:chess";
         public static final ItemID IID = ItemID.fromString(KEY);
 
         /** Chess instances expect an AGENT role (the player). */
-        @Bind(predicate = Expects.KEY, role = ThematicRole.Topic.KEY,
-              qualifiers = {ThematicRole.KEY})
+        @Seed.Frame(predicate = Expects.KEY,
+              field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
         static final ItemID expectsAgent = ThematicRole.Agent.IID;
 
         /** Chess instances expect a THEME role (e.g., the game/board state). */
-        @Bind(predicate = Expects.KEY, role = ThematicRole.Topic.KEY,
-              qualifiers = {ThematicRole.KEY})
+        @Seed.Frame(predicate = Expects.KEY,
+              field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
         static final ItemID expectsTheme = ThematicRole.Theme.IID;
 
         private Chess() {}
@@ -67,7 +65,7 @@ class CreateTest {
      * {@code @Mints(Chess.KEY)} declares "I implement instances of Chess";
      * bootstrap publishes an IMPLEMENTS frame, and CREATE on Chess finds it.
      */
-    @Mints(key = Chess.KEY)
+    @Seed.Mints(key = Chess.KEY)
     public static final class ChessGame extends Item {
         public ChessGame(ItemID iid, Librarian lib) {
             super(iid, lib);

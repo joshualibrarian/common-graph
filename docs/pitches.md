@@ -108,7 +108,7 @@ What you actually have that nobody else has is trust.  Your catalog is the most 
 
 **What changes for your infrastructure.**
 
-Your data becomes frames in the shared vocabulary: TITLE, DIRECTOR, CAST, RELEASE, GENRE, RATING frames on movie items, each signed by your key.  Every user who looks up a movie holds a local copy of those frames.  Your catalog replicates across the network through the peers who access it.  You maintain the authoritative seed; the network handles distribution.
+Your data becomes frames in the shared vocabulary: TITLE, DIRECTOR, CAST, RELEASE, GENRE, RATING frames on movie items, each signed by your key.  Every user who looks up a movie holds a local copy of those frames.  Your catalog replicates across the network through the peers who access it.  You maintain the authoritative seedItem; the network handles distribution.
 
 The consequence for resilience is dramatic.  If your service goes down for hours, probably no one notices.  Every user who has previously accessed a movie has those frames locally.  They are not cached in the browser sense (ephemeral, evicted under pressure).  They are persisted items on the user's device, as durable as anything else in their library.  Your availability becomes a property of the network, not of your server farm.
 

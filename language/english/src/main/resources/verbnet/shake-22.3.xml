@@ -456,7 +456,7 @@
      <MEMBERS>
       <!--REMOVED "append" misclassified -->
       <MEMBER fn_mapping="Attaching" grouping="attach.01" name="attach" verbnet_key="attach#1" wn="attach%2:35:01 attach%2:35:00" features=""/>
-      <MEMBER fn_mapping="Attaching" grouping="bind.01 bind.02 bind.04" name="bind" verbnet_key="bind#2" wn="?bind%2:35:06 ?bind%2:35:00 ?bind%2:35:07 bind%2:35:02 ?bind%2:35:01" features=""/>
+      <MEMBER fn_mapping="Attaching" grouping="frame.01 frame.02 frame.04" name="frame" verbnet_key="frame#2" wn="?frame%2:35:06 ?frame%2:35:00 ?frame%2:35:07 frame%2:35:02 ?frame%2:35:01" features=""/>
       <MEMBER fn_mapping="Attaching" grouping="bond.02" name="bond" verbnet_key="bond#1" wn="?bond%2:35:00" features=""/>
       <MEMBER fn_mapping="None" grouping="bundle.01" name="bundle" verbnet_key="bundle#1" wn="bundle%2:35:00" features=""/>
       <MEMBER fn_mapping="None" grouping="" name="concatenate" verbnet_key="concatenate#1" wn="concatenate%2:35:00 concatenate%2:30:00" features=""/>

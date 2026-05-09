@@ -209,7 +209,7 @@ on (preposition sememe) {
 }
 ```
 
-The parser calls `contribute()` on the preposition sememe, reads `assignedRole`, and binds the following token to that role:
+The parser calls `contribute()` on the preposition sememe, reads `assignedRole`, and frames the following token to that role:
 
 ```
 "move pawn to e4"
@@ -383,7 +383,7 @@ This means type definitions participate in the full semantic infrastructure:
 
 ## Thematic Roles
 
-Verb sememes declare **thematic roles** — the semantic slots that their arguments fill. Common Graph's 25 seed roles are aligned with [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) (Martha Palmer, CU Boulder) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html), following the hierarchical unification proposed by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf). The intellectual lineage traces back to Fillmore's Case Grammar (1968), through Dowty's Proto-Roles (1991), to FrameNet (Fillmore 1997+) and VerbNet (Palmer 2005+).
+Verb sememes declare **thematic roles** — the semantic slots that their arguments fill. Common Graph's 25 seedItem roles are aligned with [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) (Martha Palmer, CU Boulder) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html), following the hierarchical unification proposed by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf). The intellectual lineage traces back to Fillmore's Case Grammar (1968), through Dowty's Proto-Roles (1991), to FrameNet (Fillmore 1997+) and VerbNet (Palmer 2005+).
 
 Roles have **no CILIs** — they are frame-theoretic concepts, not WordNet synsets. The role AGENT is not the WordNet synset for "agent"; it's the participant who intentionally initiates an event.
 

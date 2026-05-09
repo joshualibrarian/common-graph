@@ -3,9 +3,10 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
 import dev.everydaythings.graph.frame.eval.ParseContribution.StructuralRole;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.value.OperatorOld;
 import lombok.Getter;
 
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.Map;
  *
  * <p>Each structural symbol is a proper {@link Sememe} subclass that carries
  * its parsing behavior via {@link #contribute}. This follows the same
- * pattern as {@link dev.everydaythings.graph.value.Operator}: the class IS
+ * pattern as {@link OperatorOld}: the class IS
  * the behavior.
  *
  * <p>These symbols are scoped to the expression/math language — when the

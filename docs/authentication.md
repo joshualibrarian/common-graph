@@ -27,7 +27,7 @@ Every entity that can sign (users, hosts, devices) is a **Signer** — an Item w
 - **CertLog** — Certificates issued by this signer
 - **Public key** — Current signing public key (derived from Vault)
 
-Signers sign manifests and relations. The signature binds the signer's current key to the content being signed.
+Signers sign manifests and relations. The signature frames the signer's current key to the content being signed.
 
 ## Key Model
 
@@ -77,7 +77,7 @@ Until claimed, a Librarian is an "unclaimed device" that can still function loca
 
 ## Signatures
 
-A signature binds:
+A signature frames:
 
 ```
 Sig {

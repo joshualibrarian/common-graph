@@ -8,13 +8,14 @@ import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.runtime.LibrarianOld;
+import dev.everydaythings.graph.value.OperatorOld;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
@@ -39,7 +40,7 @@ import java.util.Map;
  * </ul>
  *
  * <p>Domain-specific subclasses extend Sememe directly for POS-specific data:
- * {@link dev.everydaythings.graph.value.Operator},
+ * {@link OperatorOld},
  * {@link dev.everydaythings.graph.value.Function},
  * {@link ThematicRole}, {@link GrammaticalFeature}.
  *
@@ -423,7 +424,7 @@ public class Sememe extends ItemOld {
      * {@link #slotRoles()} (for predicates with expected arguments)
      * through the unified {@link ParseContribution} interface.
      *
-     * <p>Subclasses ({@link dev.everydaythings.graph.value.Operator},
+     * <p>Subclasses ({@link OperatorOld},
      * {@link dev.everydaythings.graph.value.Function}) override this with
      * richer metadata (precedence, fixity, grouping).
      *

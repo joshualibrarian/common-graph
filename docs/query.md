@@ -89,7 +89,7 @@ Cases:
 - `ADD { (THEME) = 5, (INSTRUMENT) = 2 }` — recursive walk finds `ADD` (returns `NUMBER`), `5`, `2`.  None set-returning.  Assertion.  Evaluates to `7`.
 - `SUM { (VALUE) = ADD { (THEME) = ANY, (INSTRUMENT) = 2 } }` — recursive walk descends into the sub-frame, finds `ANY` inside.  Query.
 
-The routing decision is data-driven.  Adding a new matcher-producing predicate is purely a vocabulary extension: seed the sememe, declare `RETURNS { (VALUE) = MATCHER }`.  No framework changes.
+The routing decision is data-driven.  Adding a new matcher-producing predicate is purely a vocabulary extension: seedItem the sememe, declare `RETURNS { (VALUE) = MATCHER }`.  No framework changes.
 
 ## Posing a query
 
@@ -147,7 +147,7 @@ MOVIE { (THEME) = movie, (DIRECTOR) = PeterJackson, (VIDEO, MKV) = mkv_content }
 GREATER_THAN { (THEME) = SIZE { (THEME) = mkv_content }, (VALUE) = 20GB }
 ```
 
-`mkv_content` appears twice — once in the `MOVIE` frame's `(VIDEO, MKV)` binding (where the matcher binds it to concrete content references) and once inside the `SIZE` sub-frame (where it feeds the size computation).  Without a variable, there's no way to say "the content referenced here AND whose size we're measuring there are the same thing."
+`mkv_content` appears twice — once in the `MOVIE` frame's `(VIDEO, MKV)` binding (where the matcher frames it to concrete content references) and once inside the `SIZE` sub-frame (where it feeds the size computation).  Without a variable, there's no way to say "the content referenced here AND whose size we're measuring there are the same thing."
 
 ### Declaration syntax
 
@@ -253,7 +253,7 @@ The matcher is **universal in structure, per-predicate in semantics**:
 - **One orchestrator.**  A central component (likely a dedicated `FrameMatcher` class) walks the query's claims, probes the index for structural narrowing, evaluates sub-frames for matcher-producing values, applies matchers to candidates, tracks unifications across shared variables.
 - **Per-predicate semantics.**  The matcher doesn't know anything specific about `GREATER_THAN`, `BETWEEN`, `ANY`, or any other predicate.  It evaluates whatever sub-frames it encounters and applies their results (matcher, value, or boolean) uniformly.  Predicate-specific matching logic lives in each predicate's `PredicateBehavior.evaluate`.
 
-Adding a new matcher-producing predicate requires: (1) seed the sememe, (2) implement its `evaluate` to return a matcher, (3) declare `RETURNS { (VALUE) = MATCHER }`.  The orchestrator picks it up automatically.
+Adding a new matcher-producing predicate requires: (1) seedItem the sememe, (2) implement its `evaluate` to return a matcher, (3) declare `RETURNS { (VALUE) = MATCHER }`.  The orchestrator picks it up automatically.
 
 ## Derived properties
 
@@ -339,7 +339,7 @@ Queries are **barely implemented** in CG as of this writing.  The current `Query
 1. The `ANY` sememe with `RETURNS { (VALUE) = MATCHER }`.
 2. A handful of expression predicates (`GREATER_THAN`, `LESS_THAN`, `BETWEEN`, `WITHIN`, `NOT`) with their evaluation behaviors.
 3. The `RETURNS` meta-predicate, and its type-slot sememes (`NUMBER`, `BOOLEAN`, `MATCHER`) if not already seeded.
-4. Unification semantics for `EQUALS` in the matcher context (fresh-side binds; bound-side compares).
+4. Unification semantics for `EQUALS` in the matcher context (fresh-side frames; bound-side compares).
 5. The query-detection routing in the frame-processing pipeline.
 6. The matcher orchestrator (likely a `FrameMatcher` class rather than a method on `Library`).
 7. Per-item update policy configuration (reactive, snapshot, periodic).

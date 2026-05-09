@@ -291,10 +291,10 @@ class ItemTest {
     class Archetype {
 
         @Test
-        @DisplayName("bare Item returns Item.ARCHETYPE")
+        @DisplayName("bare Item returns Item.IID")
         void bareItemArchetype() {
             Item item = new Item(ItemID.random());
-            assertThat(item.archetype()).isEqualTo(Item.ARCHETYPE);
+            assertThat(item.archetype()).isEqualTo(Item.IID);
         }
 
         @Test
@@ -302,7 +302,7 @@ class ItemTest {
         void signerArchetype() {
             Signer s = new Signer(ItemID.random());
             assertThat(s.archetype()).isEqualTo(Signer.ARCHETYPE);
-            assertThat(s.archetype()).isNotEqualTo(Item.ARCHETYPE);
+            assertThat(s.archetype()).isNotEqualTo(Item.IID);
         }
 
         @Test
@@ -365,9 +365,9 @@ class ItemTest {
 
             Manifest manifest = item.commit(List.of());
 
-            // Body's head is the item's archetype (Item.ARCHETYPE for bare Item).
+            // Body's head is the item's archetype (Item.IID for bare Item).
             assertThat(((ItemRef) manifest.body().head()).iid())
-                    .isEqualTo(Item.ARCHETYPE);
+                    .isEqualTo(Item.IID);
         }
 
         @Test

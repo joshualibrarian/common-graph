@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.frame.ItemFrame;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.ManifestOld;

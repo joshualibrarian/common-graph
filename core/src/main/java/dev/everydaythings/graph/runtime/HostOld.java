@@ -3,7 +3,7 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.DisplayConfig;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.language.GrammaticalFeature;

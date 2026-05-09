@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.semantics;
 
-import dev.everydaythings.graph.item.Seed;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -18,7 +18,7 @@ public final class Runtimes {
     private Runtimes() {}
 
     /** The Java Virtual Machine runtime. */
-    @Seed(key = Java.KEY)
+    @Seed.Item(key = Java.KEY)
     public static final class Java {
         public static final String KEY = "cg.runtime:java";
         public static final ItemID IID = ItemID.fromString(KEY);

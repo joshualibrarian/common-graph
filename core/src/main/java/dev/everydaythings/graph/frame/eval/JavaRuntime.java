@@ -6,7 +6,7 @@ import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.value.Function;
-import dev.everydaythings.graph.value.Operator;
+import dev.everydaythings.graph.value.OperatorOld;
 
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +57,7 @@ public final class JavaRuntime implements LanguageRuntime {
             Class<?> clazz = Class.forName(className);
 
             // Operator subclass — get from graph, wrap applyBinary/applyUnary
-            if (Operator.class.isAssignableFrom(clazz)) {
+            if (OperatorOld.class.isAssignableFrom(clazz)) {
                 return resolveOperator(predicate, scope);
             }
 
@@ -87,9 +87,9 @@ public final class JavaRuntime implements LanguageRuntime {
      */
     private PredicateBehavior resolveOperator(ItemID predicate, Scope scope) {
         if (scope.librarian() == null) return null;
-        Optional<Operator> opt = scope.librarian().get(predicate, Operator.class);
+        Optional<OperatorOld> opt = scope.librarian().get(predicate, OperatorOld.class);
         if (opt.isEmpty()) return null;
-        Operator op = opt.get();
+        OperatorOld op = opt.get();
 
         if (op.isShortCircuit()) {
             return (bindings, evaluator, evalScope) -> {
@@ -97,15 +97,15 @@ public final class JavaRuntime implements LanguageRuntime {
                 Binding goal = FrameEvaluator.findBinding(bindings, ThematicRole.Goal.IID);
                 Object left = theme != null ? evaluator.resolve(theme.target(), evalScope) : null;
 
-                if (op instanceof Operator.And) {
-                    if (!Operator.toBoolean(left)) return false;
+                if (op instanceof OperatorOld.And) {
+                    if (!OperatorOld.toBoolean(left)) return false;
                     Object right = goal != null ? evaluator.resolve(goal.target(), evalScope) : null;
-                    return Operator.toBoolean(right);
+                    return OperatorOld.toBoolean(right);
                 }
-                if (op instanceof Operator.Or) {
-                    if (Operator.toBoolean(left)) return true;
+                if (op instanceof OperatorOld.Or) {
+                    if (OperatorOld.toBoolean(left)) return true;
                     Object right = goal != null ? evaluator.resolve(goal.target(), evalScope) : null;
-                    return Operator.toBoolean(right);
+                    return OperatorOld.toBoolean(right);
                 }
                 throw new UnsupportedOperationException("Unknown short-circuit op: " + op.canonicalKey());
             };

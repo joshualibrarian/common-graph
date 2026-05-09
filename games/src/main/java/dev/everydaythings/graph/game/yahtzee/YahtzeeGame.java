@@ -7,7 +7,7 @@ import dev.everydaythings.graph.game.Randomized;
 import dev.everydaythings.graph.game.ScoreBoard;
 import dev.everydaythings.graph.game.Scored;
 import dev.everydaythings.graph.game.dice.Die;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 
 import lombok.EqualsAndHashCode;

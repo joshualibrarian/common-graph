@@ -6,7 +6,7 @@ import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;

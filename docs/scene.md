@@ -59,7 +59,7 @@ Every scene element exists across the dimensionality spectrum. The renderer expr
 
 All three primitives share a universal base. Every property applies to every node type — a text node can have a background color, a body node can be rotated, a container can have opacity.
 
-Every property value is an expression. Width, color, visibility, content, transition duration — all evaluated by the pipeline against item data, state, environment, and user preferences. A background color can be a literal `"#1E1E2E"`, a binding expression `"bind:theme.background"`, or a conditional override via `when` blocks. The scene tree is a template of expressions. The pipeline evaluates them progressively.
+Every property value is an expression. Width, color, visibility, content, transition duration — all evaluated by the pipeline against item data, state, environment, and user preferences. A background color can be a literal `"#1E1E2E"`, a binding expression `"frame:theme.background"`, or a conditional override via `when` blocks. The scene tree is a template of expressions. The pipeline evaluates them progressively.
 
 ### Box Model
 
@@ -386,7 +386,7 @@ Keyframe animations and transitions can coexist on the same node. Keyframe value
 |----------|--------|-------|
 | id | String | Stable element identifier |
 | classes | String list | Style class selectors |
-| bind | Expression | Data binding source |
+| frame | Expression | Data binding source |
 | state | Key-value pairs | Declared state with defaults |
 | when | Condition map | Property overrides keyed by condition |
 
@@ -456,7 +456,7 @@ Declared tree  ->  SceneResolver  ->  ScenePresenter  ->  ScenePainter  ->  outp
 
 Evaluates the tree against live state. Runs on the librarian — no screen dimensions, no viewport, no font metrics needed.
 
-- **Binding expressions** evaluated: `"bind:value.typeName"` becomes a resolved value
+- **Binding expressions** evaluated: `"frame:value.typeName"` becomes a resolved value
 - **Semantic tokens** resolved to the user's language: a sememe reference becomes a display string ("chess", "echecs", "Schach")
 - **Visibility conditions** evaluated: `"$item.piece"` becomes `true` or `false`
 - **Repeat bindings** expanded: a data collection becomes concrete children from the template
@@ -533,7 +533,7 @@ Every property can come from two sources:
 **Style values** cascade and can be overridden:
 
 ```
-Type definition (seed defaults)
+Type definition (seedItem defaults)
     overridden by
 Item instance (per-item customization)
     overridden by

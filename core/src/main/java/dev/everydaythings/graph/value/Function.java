@@ -3,7 +3,7 @@ package dev.everydaythings.graph.value;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;

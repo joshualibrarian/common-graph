@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.linguistics;
 
-import dev.everydaythings.graph.item.Embodies;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 
@@ -25,8 +24,8 @@ import dev.everydaythings.graph.runtime.Librarian;
  *
  * <p>Created when WordNet imports begin; not used on hand-written CG sememes.
  */
-@Seed(key = WordnetSynsetId.KEY)
-@Embodies(key = WordnetSynsetId.KEY)
+@Seed.Item(key = WordnetSynsetId.KEY)
+@Seed.Embodies(key = WordnetSynsetId.KEY)
 public class WordnetSynsetId extends Item {
 
     /** Canonical key for the WordNet-synset-id sememe. */

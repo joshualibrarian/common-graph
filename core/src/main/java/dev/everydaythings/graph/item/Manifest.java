@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.frame.AttributedBody;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
@@ -33,35 +34,38 @@ import java.util.Optional;
  */
 public final class Manifest extends AttributedBody {
 
+    // Aliases to the structural sememes defined in CoreVocabulary — preserved here
+    // for callers that reference Manifest.ITEM_ID, Manifest.FOLLOWS, etc., directly.
+
     /** Canonical key for the ITEM_ID structural sememe. */
-    public static final String ITEM_ID_KEY = "cg.structural:item-id";
+    public static final String ITEM_ID_KEY = CoreVocabulary.ItemId.KEY;
 
     /** ItemID of the structural ITEM_ID sememe. */
-    public static final ItemID ITEM_ID = ItemID.fromString(ITEM_ID_KEY);
+    public static final ItemID ITEM_ID = CoreVocabulary.ItemId.IID;
 
     /** Canonical key for the FOLLOWS structural sememe. */
-    public static final String FOLLOWS_KEY = "cg.structural:follows";
+    public static final String FOLLOWS_KEY = CoreVocabulary.Follows.KEY;
 
     /** ItemID of the structural FOLLOWS sememe. */
-    public static final ItemID FOLLOWS = ItemID.fromString(FOLLOWS_KEY);
+    public static final ItemID FOLLOWS = CoreVocabulary.Follows.IID;
 
     /** Canonical key for the ENDORSES structural sememe. */
-    public static final String ENDORSES_KEY = "cg.structural:endorses";
+    public static final String ENDORSES_KEY = CoreVocabulary.Endorses.KEY;
 
     /** ItemID of the structural ENDORSES sememe. */
-    public static final ItemID ENDORSES = ItemID.fromString(ENDORSES_KEY);
+    public static final ItemID ENDORSES = CoreVocabulary.Endorses.IID;
 
     /** Canonical key for the IMPLEMENTATION structural sememe. */
-    public static final String IMPLEMENTATION_KEY = "cg.structural:implementation";
+    public static final String IMPLEMENTATION_KEY = CoreVocabulary.Implementation.KEY;
 
     /** ItemID of the structural IMPLEMENTATION sememe. */
-    public static final ItemID IMPLEMENTATION = ItemID.fromString(IMPLEMENTATION_KEY);
+    public static final ItemID IMPLEMENTATION = CoreVocabulary.Implementation.IID;
 
     /** Canonical key for the CONFIG structural sememe. */
-    public static final String CONFIG_KEY = "cg.structural:config";
+    public static final String CONFIG_KEY = CoreVocabulary.Config.KEY;
 
     /** ItemID of the structural CONFIG sememe. */
-    public static final ItemID CONFIG = ItemID.fromString(CONFIG_KEY);
+    public static final ItemID CONFIG = CoreVocabulary.Config.IID;
 
     public Manifest(Body body, List<Record> records) {
         super(body, records);

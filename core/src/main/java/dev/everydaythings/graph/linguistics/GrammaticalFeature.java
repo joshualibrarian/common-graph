@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.linguistics;
 
-import dev.everydaythings.graph.item.Seed;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -20,7 +20,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  *
  * <p>Pure-data seeds.
  */
-@Seed(key = GrammaticalFeature.KEY)
+@Seed.Item(key = GrammaticalFeature.KEY)
 public final class GrammaticalFeature {
 
     /** Canonical key for the grammatical-feature meta-sememe. */
@@ -36,7 +36,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** Lemma — the canonical / dictionary form (vs an inflected form). */
-    @Seed(key = Lemma.KEY)
+    @Seed.Item(key = Lemma.KEY)
     public static final class Lemma {
         public static final String KEY = "cg.feat:lemma";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -48,7 +48,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** Past tense. */
-    @Seed(key = Past.KEY)
+    @Seed.Item(key = Past.KEY)
     public static final class Past {
         public static final String KEY = "cg.feat:past";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -56,7 +56,7 @@ public final class GrammaticalFeature {
     }
 
     /** Present tense. */
-    @Seed(key = Present.KEY)
+    @Seed.Item(key = Present.KEY)
     public static final class Present {
         public static final String KEY = "cg.feat:present";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -64,7 +64,7 @@ public final class GrammaticalFeature {
     }
 
     /** Future tense. */
-    @Seed(key = Future.KEY)
+    @Seed.Item(key = Future.KEY)
     public static final class Future {
         public static final String KEY = "cg.feat:future";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -76,7 +76,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** Singular. */
-    @Seed(key = Singular.KEY)
+    @Seed.Item(key = Singular.KEY)
     public static final class Singular {
         public static final String KEY = "cg.feat:singular";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -84,7 +84,7 @@ public final class GrammaticalFeature {
     }
 
     /** Plural. */
-    @Seed(key = Plural.KEY)
+    @Seed.Item(key = Plural.KEY)
     public static final class Plural {
         public static final String KEY = "cg.feat:plural";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -96,7 +96,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** First person — speaker(s). */
-    @Seed(key = FirstPerson.KEY)
+    @Seed.Item(key = FirstPerson.KEY)
     public static final class FirstPerson {
         public static final String KEY = "cg.feat:first-person";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -104,7 +104,7 @@ public final class GrammaticalFeature {
     }
 
     /** Second person — addressee(s). */
-    @Seed(key = SecondPerson.KEY)
+    @Seed.Item(key = SecondPerson.KEY)
     public static final class SecondPerson {
         public static final String KEY = "cg.feat:second-person";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -112,7 +112,7 @@ public final class GrammaticalFeature {
     }
 
     /** Third person — referent(s) other than speaker or addressee. */
-    @Seed(key = ThirdPerson.KEY)
+    @Seed.Item(key = ThirdPerson.KEY)
     public static final class ThirdPerson {
         public static final String KEY = "cg.feat:third-person";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -124,7 +124,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** Participle (e.g., "running", "broken"). */
-    @Seed(key = Participle.KEY)
+    @Seed.Item(key = Participle.KEY)
     public static final class Participle {
         public static final String KEY = "cg.feat:participle";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -132,7 +132,7 @@ public final class GrammaticalFeature {
     }
 
     /** Progressive aspect ("is running"). */
-    @Seed(key = Progressive.KEY)
+    @Seed.Item(key = Progressive.KEY)
     public static final class Progressive {
         public static final String KEY = "cg.feat:progressive";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -140,7 +140,7 @@ public final class GrammaticalFeature {
     }
 
     /** Perfect aspect ("has run"). */
-    @Seed(key = Perfect.KEY)
+    @Seed.Item(key = Perfect.KEY)
     public static final class Perfect {
         public static final String KEY = "cg.feat:perfect";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -148,7 +148,7 @@ public final class GrammaticalFeature {
     }
 
     /** Infinitive ("to run"). */
-    @Seed(key = Infinitive.KEY)
+    @Seed.Item(key = Infinitive.KEY)
     public static final class Infinitive {
         public static final String KEY = "cg.feat:infinitive";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -160,7 +160,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** Imperative mood ("Run!"). */
-    @Seed(key = Imperative.KEY)
+    @Seed.Item(key = Imperative.KEY)
     public static final class Imperative {
         public static final String KEY = "cg.feat:imperative";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -168,7 +168,7 @@ public final class GrammaticalFeature {
     }
 
     /** Indicative mood (statements of fact). */
-    @Seed(key = Indicative.KEY)
+    @Seed.Item(key = Indicative.KEY)
     public static final class Indicative {
         public static final String KEY = "cg.feat:indicative";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -176,7 +176,7 @@ public final class GrammaticalFeature {
     }
 
     /** Subjunctive mood (counterfactuals, hypotheticals). */
-    @Seed(key = Subjunctive.KEY)
+    @Seed.Item(key = Subjunctive.KEY)
     public static final class Subjunctive {
         public static final String KEY = "cg.feat:subjunctive";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -188,7 +188,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** Comparative form ("bigger", "more carefully"). */
-    @Seed(key = Comparative.KEY)
+    @Seed.Item(key = Comparative.KEY)
     public static final class Comparative {
         public static final String KEY = "cg.feat:comparative";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -196,7 +196,7 @@ public final class GrammaticalFeature {
     }
 
     /** Superlative form ("biggest", "most carefully"). */
-    @Seed(key = Superlative.KEY)
+    @Seed.Item(key = Superlative.KEY)
     public static final class Superlative {
         public static final String KEY = "cg.feat:superlative";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -208,7 +208,7 @@ public final class GrammaticalFeature {
     // ==================================================================================
 
     /** Passive voice. */
-    @Seed(key = Passive.KEY)
+    @Seed.Item(key = Passive.KEY)
     public static final class Passive {
         public static final String KEY = "cg.feat:passive";
         public static final ItemID IID = ItemID.fromString(KEY);

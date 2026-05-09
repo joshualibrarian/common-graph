@@ -27,7 +27,7 @@ class UniMorphReaderTest {
     static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.IID;
 
     // English instance for simplification tests
-    static final Language english = new English(ItemID.fromString(English.KEY));
+    static final Language english = new EnglishOld(ItemID.fromString(EnglishOld.KEY));
 
     // ==================================================================================
     // PARSING (universal — tests the core reader)
@@ -125,7 +125,7 @@ class UniMorphReaderTest {
 
     @Nested
     @DisplayName("English Feature Simplification")
-    class EnglishSimplification {
+    class EnglishOldSimplification {
 
         @Test
         @DisplayName("verb: {THIRD_PERSON, SINGULAR, PRESENT} → {THIRD_PERSON}")

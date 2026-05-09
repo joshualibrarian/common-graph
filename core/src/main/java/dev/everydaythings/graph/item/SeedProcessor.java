@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Body;
@@ -8,6 +9,10 @@ import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.semantics.Expects;
+import dev.everydaythings.graph.semantics.Implements;
+import dev.everydaythings.graph.semantics.Runtimes;
+import dev.everydaythings.graph.semantics.ThematicRole;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
@@ -37,26 +42,6 @@ import java.util.List;
  */
 public final class SeedProcessor {
 
-    /** Canonical key for the IMPLEMENTS predicate sememe. */
-    private static final String IMPLEMENTS_KEY = "cg.sememe:implements";
-    private static final ItemID IMPLEMENTS_IID = ItemID.fromString(IMPLEMENTS_KEY);
-
-    /** Canonical key for the THEME role sememe. */
-    private static final String THEME_KEY = "cg.role:theme";
-    private static final ItemID THEME_IID = ItemID.fromString(THEME_KEY);
-
-    /** Canonical key for the AGENT role sememe. */
-    private static final String AGENT_KEY = "cg.role:agent";
-    private static final ItemID AGENT_IID = ItemID.fromString(AGENT_KEY);
-
-    /** Canonical key for the Java runtime sememe. */
-    private static final String JAVA_RUNTIME_KEY = "cg.runtime:java";
-    private static final ItemID JAVA_RUNTIME_IID = ItemID.fromString(JAVA_RUNTIME_KEY);
-
-    /** Canonical key for the EXPECTS predicate sememe. */
-    private static final String EXPECTS_KEY = "cg.sememe:expects";
-    private static final ItemID EXPECTS_IID = ItemID.fromString(EXPECTS_KEY);
-
     private SeedProcessor() {}
 
     /**
@@ -71,7 +56,7 @@ public final class SeedProcessor {
 
             // Pass 1: @Seed classes — produces seed manifest bodies. @Embodies on the
             // same class (same key) is detected here and contributes IMPLEMENTATION.
-            ClassInfoList seedClasses = result.getClassesWithAnnotation(Seed.class.getName());
+            ClassInfoList seedClasses = result.getClassesWithAnnotation(Seed.Item.class.getName());
             for (ClassInfo classInfo : seedClasses) {
                 Class<?> cls = classInfo.loadClass();
                 processSeed(librarian, cls);
@@ -82,10 +67,10 @@ public final class SeedProcessor {
             // Cross-validate that the target concept has EXPECTS endorsements (the data
             // signal of instantiability) — an instance class for a non-instantiable
             // concept is a programming error.
-            ClassInfoList mintsClasses = result.getClassesWithAnnotation(Mints.class.getName());
+            ClassInfoList mintsClasses = result.getClassesWithAnnotation(Seed.Mints.class.getName());
             for (ClassInfo classInfo : mintsClasses) {
                 Class<?> cls = classInfo.loadClass();
-                Mints mints = cls.getAnnotation(Mints.class);
+                Seed.Mints mints = cls.getAnnotation(Seed.Mints.class);
                 ItemID conceptIid = ItemID.fromString(mints.key());
                 requireExpects(librarian, conceptIid, cls.getName());
                 processMints(librarian, cls);
@@ -93,12 +78,12 @@ public final class SeedProcessor {
 
             // Validate: bare @Embodies (without a matching @Seed on the same class) is
             // an error — @Embodies's effect is the combination with @Seed.
-            ClassInfoList embodiesClasses = result.getClassesWithAnnotation(Embodies.class.getName());
+            ClassInfoList embodiesClasses = result.getClassesWithAnnotation(Seed.Embodies.class.getName());
             for (ClassInfo classInfo : embodiesClasses) {
                 Class<?> cls = classInfo.loadClass();
-                Embodies embodies = cls.getAnnotation(Embodies.class);
-                Seed seed = cls.getAnnotation(Seed.class);
-                if (seed == null || !seed.key().equals(embodies.key())) {
+                Seed.Embodies embodies = cls.getAnnotation(Seed.Embodies.class);
+                Seed.Item seedItem = cls.getAnnotation(Seed.Item.class);
+                if (seedItem == null || !seedItem.key().equals(embodies.key())) {
                     throw new IllegalStateException(
                             "@Embodies(" + embodies.key() + ") on " + cls.getName()
                                     + " requires @Seed(\"" + embodies.key()
@@ -113,12 +98,12 @@ public final class SeedProcessor {
     // ==================================================================================
 
     private static void processSeed(Librarian librarian, Class<?> cls) {
-        Seed seed = cls.getAnnotation(Seed.class);
-        if (seed == null) return;
+        Seed.Item seedItem = cls.getAnnotation(Seed.Item.class);
+        if (seedItem == null) return;
 
-        ItemID iid = ItemID.fromString(seed.key());
+        ItemID iid = ItemID.fromString(seedItem.key());
 
-        // Build endorsed frame bodies from @Bind-annotated static fields.
+        // Build endorsed frame bodies from @Seed.Frame-annotated static fields.
         List<ContentID> endorsedFrameCids = buildEndorsedFrames(librarian, cls);
 
         // Build the seed manifest body.
@@ -128,8 +113,8 @@ public final class SeedProcessor {
         // @Embodies(K) on the same class (same key) explicitly declares "I AM this
         // seed item." Add the IMPLEMENTATION binding so future hydration of the seed
         // item produces an instance of this class.
-        Embodies selfEmbodies = cls.getAnnotation(Embodies.class);
-        if (selfEmbodies != null && seed.key().equals(selfEmbodies.key())) {
+        Seed.Embodies selfEmbodies = cls.getAnnotation(Seed.Embodies.class);
+        if (selfEmbodies != null && seedItem.key().equals(selfEmbodies.key())) {
             validateRuntimeClass(cls, "@Embodies");
             manifestBindings.add(Manifest.javaImplementation(cls));
         }
@@ -140,8 +125,15 @@ public final class SeedProcessor {
                     BindingTarget.ref(frameCid)));
         }
 
+        // Direct manifest-body bindings declared on @Seed.Item.bindings — for one-off
+        // entries that don't warrant their own static field.
+        String itemContext = cls.getName() + " (@Seed.Item)";
+        for (Seed.Binding extra : seedItem.bindings()) {
+            manifestBindings.add(buildExplicitBinding(extra, itemContext));
+        }
+
         Body manifestBody = Body.of(
-                ItemRef.of(Item.ARCHETYPE),  // generic archetype for now
+                ItemRef.of(ItemID.fromString(seedItem.head())),
                 manifestBindings);
         librarian.persist(manifestBody);
     }
@@ -151,7 +143,7 @@ public final class SeedProcessor {
     // ==================================================================================
 
     private static void processMints(Librarian librarian, Class<?> cls) {
-        Mints mints = cls.getAnnotation(Mints.class);
+        Seed.Mints mints = cls.getAnnotation(Seed.Mints.class);
         if (mints == null) return;
 
         validateRuntimeClass(cls, "@Mints");
@@ -160,12 +152,12 @@ public final class SeedProcessor {
 
         // IMPLEMENTS { THEME → conceptIid, AGENT[runtime=java] → Literal.ofJavaClass(cls) }
         Body implementsBody = Body.of(
-                ItemRef.of(IMPLEMENTS_IID),
+                ItemRef.of(Implements.IID),
                 List.of(
-                        Binding.ref(THEME_IID, conceptIid),
+                        Binding.ref(ThematicRole.Theme.IID, conceptIid),
                         new Binding(
-                                AGENT_IID,
-                                List.of(new CompoundKey.Sememe(JAVA_RUNTIME_IID)),
+                                ThematicRole.Agent.IID,
+                                List.of(new CompoundKey.Sememe(Runtimes.Java.IID)),
                                 Literal.ofJavaClass(cls))));
         librarian.persist(implementsBody);
     }
@@ -198,21 +190,21 @@ public final class SeedProcessor {
                         .orElse(null);
                 if (endorsedBody == null) continue;
                 if (endorsedBody.head() instanceof dev.everydaythings.graph.item.id.ItemRef ref
-                        && EXPECTS_IID.equals(ref.iid())) {
+                        && Expects.IID.equals(ref.iid())) {
                     return;  // Found at least one EXPECTS endorsement; we're good.
                 }
             }
         }
         throw new IllegalStateException(
-                "@Mints(\"" + conceptIid + "\") on " + mintsClassName
+                "@Seed.Mints(\"" + conceptIid + "\") on " + mintsClassName
                         + " — concept has no EXPECTS endorsements declaring its instance schema; "
-                        + "add @Bind(predicate = Expects.KEY, ...) to the seed class");
+                        + "add @Seed.Frame(predicate = Expects.KEY, ...) to the seed class");
     }
 
     /**
      * Validate that a class meets the runtime-form contract: extends Item and has
-     * a public {@code (ItemID, Librarian)} constructor. Used for both {@code @Embodies}
-     * (when paired with {@code @Seed}) and {@code @Mints}.
+     * a public {@code (ItemID, Librarian)} constructor. Used for both
+     * {@code @Seed.Embodies} (when paired with {@code @Seed.Item}) and {@code @Seed.Mints}.
      */
     private static void validateRuntimeClass(Class<?> cls, String annotationName) {
         if (!Item.class.isAssignableFrom(cls)) {
@@ -229,17 +221,29 @@ public final class SeedProcessor {
     }
 
     // ==================================================================================
-    // @Bind processing
+    // @Seed.Frame processing
     // ==================================================================================
 
+    /**
+     * Process all {@code @Seed.Frame}-annotated fields on {@code cls}, persist the
+     * generated frame bodies, and return the CIDs of those marked for endorsement
+     * ({@code endorse=true}, the default).
+     *
+     * <p>Bodies with {@code endorse=false} are still persisted (and auto-indexed by the
+     * TokenDictionary if they carry text targets) but are not included in the returned
+     * list — they don't appear in the seed manifest's ENDORSES.
+     */
     private static List<ContentID> buildEndorsedFrames(Librarian librarian, Class<?> cls) {
-        List<ContentID> cids = new ArrayList<>();
+        Seed.Item seedItem = cls.getAnnotation(Seed.Item.class);
+        ItemID seedIid = seedItem != null ? ItemID.fromString(seedItem.key()) : null;
+
+        List<ContentID> endorsedCids = new ArrayList<>();
         for (Field field : cls.getDeclaredFields()) {
-            Bind[] binds = field.getAnnotationsByType(Bind.class);
-            if (binds.length == 0) continue;
+            Seed.Frame[] frames = field.getAnnotationsByType(Seed.Frame.class);
+            if (frames.length == 0) continue;
             if (!Modifier.isStatic(field.getModifiers())) {
                 throw new IllegalStateException(
-                        "@Bind field " + cls.getName() + "." + field.getName()
+                        "@Seed.Frame field " + cls.getName() + "." + field.getName()
                                 + " must be static");
             }
             field.setAccessible(true);
@@ -248,41 +252,141 @@ public final class SeedProcessor {
                 fieldValue = field.get(null);
             } catch (IllegalAccessException e) {
                 throw new IllegalStateException(
-                        "Cannot read @Bind field " + cls.getName() + "." + field.getName(), e);
+                        "Cannot read @Seed.Frame field " + cls.getName() + "." + field.getName(), e);
             }
             if (fieldValue == null) continue;
 
-            for (Bind bind : binds) {
-                List<Body> frameBodies = buildFrameBodiesForBind(bind, fieldValue, cls, field);
+            for (Seed.Frame frame : frames) {
+                List<Body> frameBodies = buildFrameBodiesForBind(frame, fieldValue, cls, field, seedIid);
                 for (Body body : frameBodies) {
-                    cids.add(librarian.persist(body));
+                    ContentID cid = librarian.persist(body);
+                    if (frame.endorse()) {
+                        endorsedCids.add(cid);
+                    }
                 }
             }
         }
-        return cids;
+        return endorsedCids;
     }
 
     /**
-     * Given a {@code @Bind} annotation and a field value, build the frame bodies
-     * that should be persisted. Arrays produce one body per element; scalars
-     * produce one body.
+     * Given a {@code @Seed.Frame} annotation and a field value, build the frame bodies
+     * that should be persisted.
+     *
+     * <p>Each generated body has up to (1 + 1 + N) bindings:
+     * <ul>
+     *   <li><b>classBinding</b> — back-link to the enclosing seed item. Default role
+     *       {@link ThematicRole.Theme}. Suppressed if its role is empty or no seed is
+     *       in scope. Target is implicitly the enclosing seed's IID.</li>
+     *   <li><b>fieldBinding</b> — the field's value. Default role {@link ThematicRole.Value}.
+     *       Suppressed if its role is empty. Target is derived from the field's runtime
+     *       value (arrays produce one body per element, each carrying its own copy of
+     *       classBinding and any extra {@code bindings[]} entries).</li>
+     *   <li><b>bindings[]</b> — additional bindings with explicit literal or reference
+     *       targets (text, integer, boolean, sememe ref). Each entry must specify
+     *       exactly one target type.</li>
+     * </ul>
      */
-    private static List<Body> buildFrameBodiesForBind(Bind bind, Object fieldValue,
-                                                      Class<?> declaringClass, Field field) {
-        ItemID predicateIid = ItemID.fromString(bind.predicate());
-        ItemID roleIid = ItemID.fromString(bind.role());
-        List<CompoundKey.FrameToken> qualifiers = new ArrayList<>(bind.qualifiers().length);
-        for (String qualifierKey : bind.qualifiers()) {
-            qualifiers.add(new CompoundKey.Sememe(ItemID.fromString(qualifierKey)));
+    private static List<Body> buildFrameBodiesForBind(Seed.Frame frame, Object fieldValue,
+                                                      Class<?> declaringClass, Field field,
+                                                      ItemID seedIid) {
+        ItemID predicateIid = ItemID.fromString(frame.predicate());
+
+        Seed.Binding classAnnotation = frame.clazz();
+        Seed.Binding fieldAnnotation = frame.field();
+
+        boolean hasClassBinding = !classAnnotation.role().isEmpty() && seedIid != null;
+        boolean hasFieldBinding = !fieldAnnotation.role().isEmpty();
+
+        Binding classBinding = hasClassBinding
+                ? buildImplicitBinding(classAnnotation, BindingTarget.iid(seedIid))
+                : null;
+
+        // Pre-build the static extra bindings — same on every body produced.
+        String fieldContext = declaringClass.getName() + "." + field.getName();
+        List<Binding> extras = new ArrayList<>(frame.bindings().length);
+        for (Seed.Binding extra : frame.bindings()) {
+            extras.add(buildExplicitBinding(extra, fieldContext));
         }
 
+        // Field-role binding suppressed: produce a single body with classBinding (if
+        // present) + extras. The field's value is unused in this branch.
+        if (!hasFieldBinding) {
+            List<Binding> bindings = new ArrayList<>(1 + extras.size());
+            if (classBinding != null) bindings.add(classBinding);
+            bindings.addAll(extras);
+            return List.of(Body.of(ItemRef.of(predicateIid), bindings));
+        }
+
+        // Field-role binding present: walk targets (arrays produce multiple bodies).
         List<BindingTarget> targets = targetsFromValue(fieldValue, declaringClass, field);
         List<Body> bodies = new ArrayList<>(targets.size());
         for (BindingTarget target : targets) {
-            Binding binding = new Binding(roleIid, qualifiers, target);
-            bodies.add(Body.of(ItemRef.of(predicateIid), List.of(binding)));
+            List<Binding> bindings = new ArrayList<>(2 + extras.size());
+            if (classBinding != null) bindings.add(classBinding);
+            bindings.add(buildImplicitBinding(fieldAnnotation, target));
+            bindings.addAll(extras);
+            bodies.add(Body.of(ItemRef.of(predicateIid), bindings));
         }
         return bodies;
+    }
+
+    /**
+     * Build a data {@link Binding} for the {@code classBinding} or {@code fieldBinding}
+     * slots. The target is supplied by the caller (the enclosing seed's IID for
+     * classBinding, the field-derived target for fieldBinding); any {@code text},
+     * {@code integer}, {@code bool}, or {@code ref} fields on the annotation are
+     * ignored in these slots.
+     */
+    private static Binding buildImplicitBinding(Seed.Binding ann,
+                                                BindingTarget target) {
+        ItemID role = ItemID.fromString(ann.role());
+        return new Binding(role, qualifiersFromAnnotation(ann), target);
+    }
+
+    /**
+     * Build a data {@link Binding} for an entry in any explicit-target context
+     * ({@code @Seed.Frame.bindings} or {@code @Seed.Item.bindings}). Exactly one of
+     * {@code text}, {@code integer}, {@code bool}, {@code ref} must indicate "set"
+     * (non-empty string for text/ref, non-empty array for integer/bool).
+     *
+     * <p>{@code context} is a human-readable description of where this annotation
+     * came from — used only in error messages.
+     */
+    private static Binding buildExplicitBinding(Seed.Binding ann, String context) {
+        ItemID role = ItemID.fromString(ann.role());
+        BindingTarget target = explicitTarget(ann, context);
+        return new Binding(role, qualifiersFromAnnotation(ann), target);
+    }
+
+    private static List<CompoundKey.FrameToken> qualifiersFromAnnotation(
+            Seed.Binding ann) {
+        String[] keys = ann.qualifiers();
+        if (keys.length == 0) return List.of();
+        List<CompoundKey.FrameToken> qualifiers = new ArrayList<>(keys.length);
+        for (String key : keys) {
+            qualifiers.add(new CompoundKey.Sememe(ItemID.fromString(key)));
+        }
+        return qualifiers;
+    }
+
+    private static BindingTarget explicitTarget(Seed.Binding ann, String context) {
+        boolean hasText = !ann.text().isEmpty();
+        boolean hasInteger = ann.integer().length > 0;
+        boolean hasBool = ann.bool().length > 0;
+        boolean hasRef = !ann.ref().isEmpty();
+
+        int set = (hasText ? 1 : 0) + (hasInteger ? 1 : 0) + (hasBool ? 1 : 0) + (hasRef ? 1 : 0);
+        if (set != 1) {
+            throw new IllegalStateException(
+                    "@Seed.Binding entry on " + context
+                            + " must specify exactly one of text/integer/bool/ref (found "
+                            + set + ")");
+        }
+        if (hasText) return Literal.ofText(ann.text());
+        if (hasInteger) return Literal.ofInteger(ann.integer()[0]);
+        if (hasBool) return Literal.ofBoolean(ann.bool()[0]);
+        return BindingTarget.iid(ItemID.fromString(ann.ref()));
     }
 
     @SuppressWarnings("unchecked")
@@ -322,7 +426,7 @@ public final class SeedProcessor {
             return List.of(Literal.ofInstant(instant));
         }
         throw new IllegalArgumentException(
-                "Unsupported @Bind field type: " + value.getClass()
+                "Unsupported @Seed.Frame field type: " + value.getClass()
                         + " on " + declaringClass.getName() + "." + field.getName());
     }
 }

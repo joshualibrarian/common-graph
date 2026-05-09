@@ -1,0 +1,566 @@
+package dev.everydaythings.graph.language;
+
+import dev.everydaythings.graph.frame.eval.ParseContribution;
+import dev.everydaythings.graph.Implements;
+import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.item.ItemOld;
+import dev.everydaythings.graph.item.ManifestOld;
+import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.user.SignerOld;
+import dev.everydaythings.graph.importer.EnglishImporter;
+import dev.everydaythings.graph.importer.LanguageImporter;
+import dev.everydaythings.graph.runtime.Eval;
+import dev.everydaythings.graph.runtime.LibrarianOld;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.ToIntFunction;
+
+/**
+ * The English language item, bootstrapped from Open English WordNet.
+ *
+ * <p>English is a Language with a Lexicon populated from OEWN 2025.
+ * It contains lexemes (word→sememe mappings) for English words.
+ *
+ * <p>The {@link #generate(SignerOld)} method is bootstrap scaffolding that:
+ * <ol>
+ *   <li>Parses OEWN using the LMF importer</li>
+ *   <li>Creates Sememes for each synset</li>
+ *   <li>Creates semantic Relations (hypernym, hyponym, etc.)</li>
+ *   <li>Populates the Lexicon with Lexemes</li>
+ * </ol>
+ *
+ * <p><b>PRE-DEPRECATED — DO NOT REMOVE YET.</b> This method will be the bootstrap
+ * mechanism used to generate the canonical English vocabulary item that ships with
+ * real deployments.  It is "pre-deprecated" in the sense that ordinary code should
+ * not call it (the canonical English item is fetched from peers, not regenerated),
+ * but it must remain available until the canonical item exists in production.
+ * Removal target: post-1.0 deployment, once a canonical English item is published
+ * and replicating reliably through the peer network.
+ */
+@Implements(EnglishOld.KEY)
+@ItemSeed(key = EnglishOld.KEY)
+public class EnglishOld extends Language {
+
+    // ==================================================================================
+    // TYPE DEFINITION
+    // ==================================================================================
+
+    public static final String KEY = "cg:language/eng";
+
+    // ==================================================================================
+    // STATISTICS (populated by generate)
+    // ==================================================================================
+
+    // Stats are transient - not persisted as a component
+    private transient LanguageImporter.ImportStats stats;
+
+    // ==================================================================================
+    // CONSTRUCTORS
+    // ==================================================================================
+
+    /**
+     * Type seed constructor - creates a minimal English for use as type seed.
+     *
+     * <p>Used by SeedStore to create the "cg.lang:english" type item.
+     * Does NOT create a Lexicon - type seeds are just markers.
+     */
+    @SuppressWarnings("unused")  // Used via reflection by SeedStore
+    protected EnglishOld(ItemID typeId) {
+        super(typeId);
+    }
+
+    /**
+     * Create English language item.
+     *
+     * @param librarian The librarian for storage
+     */
+    public EnglishOld(LibrarianOld librarian) {
+        super(librarian, Locale.ENGLISH);
+    }
+
+    /**
+     * Hydration constructor - reconstructs an English from a stored manifest.
+     */
+    @SuppressWarnings("unused")  // Used via reflection for hydration
+    private EnglishOld(LibrarianOld librarian, ManifestOld manifest) {
+        super(librarian, manifest);
+    }
+
+    // ==================================================================================
+    // BOOTSTRAP - PRE-DEPRECATED, DO NOT REMOVE UNTIL POST-1.0 DEPLOYMENT
+    //
+    // This method generates the canonical English vocabulary item from OEWN.
+    // It will be used to produce the English item that ships with real deployments.
+    // After the canonical item is published and replicating reliably, this method
+    // can be removed — but NOT BEFORE.  Ordinary code should never call it; the
+    // English item is fetched from peers, not regenerated.
+    // ==================================================================================
+
+    /**
+     * Generate English from Open English WordNet.
+     *
+     * <p><b>PRE-DEPRECATED — DO NOT REMOVE.</b>  This is the canonical bootstrap
+     * mechanism that will produce the English item shipped with real deployments.
+     * Removal target: post-1.0, once a canonical English item exists in production
+     * and replicates reliably.  Ordinary code should fetch English from peers, not
+     * call this method.
+     *
+     * @param signer The signer to sign created items
+     * @return this, for chaining
+     * @deprecated Pre-deprecated bootstrap scaffolding.  Do not remove until post-1.0.
+     */
+    @Deprecated
+    public EnglishOld generate(SignerOld signer) {
+        return generate(signer, 0);
+    }
+
+    /**
+     * Generate with a limit on entries (for testing).
+     *
+     * <p><b>PRE-DEPRECATED — DO NOT REMOVE.</b>  See {@link #generate(SignerOld)}.
+     *
+     * @param signer     The signer
+     * @param maxSynsets Maximum synsets to process (0 = unlimited)
+     * @return this
+     * @deprecated Pre-deprecated bootstrap scaffolding.  Do not remove until post-1.0.
+     */
+    @Deprecated
+    public EnglishOld generate(SignerOld signer, int maxSynsets) {
+        EnglishImporter importer = new EnglishImporter(librarian);
+        this.stats = importer.importLanguage(this, signer, maxSynsets);
+        return this;
+    }
+
+    // ==================================================================================
+    // ACCESSORS
+    // ==================================================================================
+
+    /**
+     * Get generation statistics (null if not yet generated).
+     */
+    public LanguageImporter.ImportStats stats() {
+        return stats;
+    }
+
+    // ==================================================================================
+    // PARSING — English-specific grammar rules
+    // ==================================================================================
+
+    /**
+     * Parse resolved tokens using English grammar rules.
+     *
+     * <p>Wraps the base {@link FrameAssembler} with English-specific logic:
+     * <ol>
+     *   <li>Run FrameAssembler to get the core frame (verb + slots + prepositions)</li>
+     *   <li>Scan unmatched tokens for auxiliary predicates whose role was NOT consumed
+     *       by the primary verb — these become chained frames (e.g., "named rematch"
+     *       chains a TITLE frame if CREATE didn't consume the NAME role)</li>
+     *   <li>Check each predicate's {@code contribute()} for active parsing
+     *       behavior (sub-language delegation, frame chaining)</li>
+     * </ol>
+     *
+     * <p>Auxiliary predicate chaining works because FrameAssembler treats "named"
+     * as a preposition with assignedRole=NAME. If the primary verb has a NAME slot,
+     * FrameAssembler fills it directly. If not, "named" and its object end up in
+     * unmatchedArgs — English's parser detects this and chains a TITLE frame.
+     */
+    @Override
+    public ParseResult parse(
+            List<Eval.ResolvedToken> tokens,
+            String rawText,
+            Function<ItemID, Optional<ItemOld>> resolver,
+            ToIntFunction<Sememe> headVerbScorer) {
+
+        // Step 1: Run the language-agnostic assembler
+        List<SemanticFrame> baseFrames = FrameAssembler.assembleAll(
+                tokens, resolver, headVerbScorer);
+
+        if (baseFrames.isEmpty()) {
+            // No verb found — all tokens are unbound (query pattern)
+            return ParseResult.unbound(tokens);
+        }
+
+        // Step 2: Check for auxiliary predicates in the last frame's unmatched tokens.
+        // If the primary verb consumed all prepositions, there's nothing to chain.
+        SemanticFrame lastFrame = baseFrames.getLast();
+        if (lastFrame.unmatchedArgs().isEmpty()) {
+            return ParseResult.frames(baseFrames);
+        }
+
+        // Scan unmatched tokens for preposition-like sememes with assignedRole
+        List<SemanticFrame> result = new ArrayList<>(baseFrames.subList(0, baseFrames.size() - 1));
+        SemanticFrame currentFrame = lastFrame;
+        List<AuxiliaryChain> chains = findAuxiliaryChains(currentFrame.unmatchedArgs(), resolver);
+
+        if (chains.isEmpty()) {
+            result.add(currentFrame);
+            // Unmatched args on the frame that aren't auxiliary chains — ambiguous
+            if (!currentFrame.unmatchedArgs().isEmpty()) {
+                return new ParseResult(result, currentFrame.unmatchedArgs());
+            }
+            return ParseResult.frames(result);
+        }
+
+        // Remove chained tokens from the current frame's unmatched list
+        List<Eval.ResolvedToken> stillUnmatched = new ArrayList<>(currentFrame.unmatchedArgs());
+        for (AuxiliaryChain chain : chains) {
+            stillUnmatched.remove(chain.prepToken);
+            stillUnmatched.remove(chain.objectToken);
+        }
+
+        // Rebuild the primary frame without the consumed auxiliary tokens
+        result.add(new SemanticFrame(
+                currentFrame.verb(),
+                currentFrame.bindings(),
+                currentFrame.modifiers(),
+                stillUnmatched,
+                currentFrame.unboundRoles()));
+
+        // Add chained frames
+        for (AuxiliaryChain chain : chains) {
+            Map<ItemID, Object> chainBindings = new LinkedHashMap<>();
+            chainBindings.put(chain.role, chain.objectValue);
+            // THEME will be filled by the evaluator with the result of the primary frame
+            result.add(new SemanticFrame(
+                    chain.prepSememe, chainBindings,
+                    Map.of(), List.of(), List.of()));
+        }
+
+        if (!stillUnmatched.isEmpty()) {
+            return new ParseResult(result, stillUnmatched);
+        }
+        return ParseResult.frames(result);
+    }
+
+    /**
+     * A detected auxiliary predicate chain: a preposition + object that should
+     * become a separate chained frame.
+     */
+    private record AuxiliaryChain(
+            Sememe prepSememe,
+            ItemID role,
+            Eval.ResolvedToken prepToken,
+            Eval.ResolvedToken objectToken,
+            Object objectValue
+    ) {}
+
+    /**
+     * Scan unmatched tokens for auxiliary predicate chains.
+     *
+     * <p>An auxiliary chain is a preposition-like sememe followed by its object,
+     * where the preposition assigns a role via {@code assignedRole}. These are
+     * tokens that FrameAssembler couldn't consume because the primary verb
+     * doesn't have matching slots.
+     */
+    private List<AuxiliaryChain> findAuxiliaryChains(
+            List<Eval.ResolvedToken> unmatched,
+            Function<ItemID, Optional<ItemOld>> resolver) {
+
+        List<AuxiliaryChain> chains = new ArrayList<>();
+
+        for (int i = 0; i < unmatched.size() - 1; i++) {
+            if (!(unmatched.get(i) instanceof Eval.ResolvedToken.Link prepLink)) continue;
+
+            Optional<ItemOld> prepItem = resolver.apply(prepLink.iid());
+            if (prepItem.isEmpty() || !(prepItem.get() instanceof Sememe prepSememe)) continue;
+
+            ParseContribution contribution = prepSememe.contribute(null);
+            if (contribution.assignedRole() == null) continue;
+
+            // Found a preposition with an assigned role — the next token is its object
+            Eval.ResolvedToken objectToken = unmatched.get(i + 1);
+            Object objectValue = switch (objectToken) {
+                case Eval.ResolvedToken.Link link -> resolver.apply(link.iid()).orElse(null);
+                case Eval.ResolvedToken.Literal lit -> lit.value();
+                case Eval.ResolvedToken.Unresolved u -> u.token();
+            };
+
+            if (objectValue != null) {
+                chains.add(new AuxiliaryChain(
+                        prepSememe, contribution.assignedRole(),
+                        unmatched.get(i), objectToken, objectValue));
+                i++; // Skip the object token
+            }
+        }
+
+        return chains;
+    }
+
+    // ==================================================================================
+    // MORPHOLOGY — Regular English inflection rules
+    // ==================================================================================
+
+    private static final ItemID PAST = GrammaticalFeature.Past.IID;
+    private static final ItemID PRESENT = GrammaticalFeature.Present.IID;
+    private static final ItemID PLURAL = GrammaticalFeature.Plural.IID;
+    private static final ItemID THIRD_PERSON = GrammaticalFeature.ThirdPerson.IID;
+    private static final ItemID SINGULAR = GrammaticalFeature.Singular.IID;
+    private static final ItemID PARTICIPLE = GrammaticalFeature.Participle.IID;
+    private static final ItemID COMPARATIVE = GrammaticalFeature.Comparative.IID;
+    private static final ItemID SUPERLATIVE = GrammaticalFeature.Superlative.IID;
+
+    // Feature sets that English morphology distinguishes, per POS
+    private static final List<Set<ItemID>> VERB_FEATURES = List.of(
+            Set.of(PAST),
+            Set.of(PARTICIPLE, PRESENT),
+            Set.of(PARTICIPLE, PAST),
+            Set.of(THIRD_PERSON)
+    );
+    private static final List<Set<ItemID>> NOUN_FEATURES = List.of(Set.of(PLURAL));
+    private static final List<Set<ItemID>> ADJ_FEATURES = List.of(
+            Set.of(COMPARATIVE),
+            Set.of(SUPERLATIVE)
+    );
+
+    @Override
+    public List<Set<ItemID>> inflectionFeatures(ItemID pos) {
+        if (pos.equals(PartOfSpeech.VERB)) return VERB_FEATURES;
+        if (pos.equals(PartOfSpeech.NOUN)) return NOUN_FEATURES;
+        if (pos.equals(PartOfSpeech.ADJECTIVE) || pos.equals(PartOfSpeech.ADVERB)) return ADJ_FEATURES;
+        return List.of();
+    }
+
+    /**
+     * Simplify raw UniMorph features to the minimal set English morphology uses.
+     *
+     * <p>Special case: a standalone PARTICIPLE (from UniMorph's gerund tag V.MSDR)
+     * maps to {PARTICIPLE, PRESENT}, because in English a participle without
+     * PAST is always the present participle.
+     */
+    @Override
+    public Set<ItemID> simplifyFeatures(Set<ItemID> rawFeatures, ItemID pos) {
+        if (pos.equals(PartOfSpeech.VERB) && rawFeatures.contains(PARTICIPLE)
+                && !rawFeatures.contains(PAST) && !rawFeatures.contains(PRESENT)) {
+            // Gerund / standalone participle → present participle
+            return Set.of(PARTICIPLE, PRESENT);
+        }
+        return super.simplifyFeatures(rawFeatures, pos);
+    }
+
+    @Override
+    protected String regularInflection(String lemma, ItemID pos, Set<ItemID> features) {
+        if (lemma == null || lemma.isEmpty()) return lemma;
+
+        if (pos.equals(PartOfSpeech.VERB)) return inflectVerb(lemma, features);
+        if (pos.equals(PartOfSpeech.NOUN)) return inflectNoun(lemma, features);
+        if (pos.equals(PartOfSpeech.ADJECTIVE) || pos.equals(PartOfSpeech.ADVERB)) return inflectAdjective(lemma, features);
+        return lemma;
+    }
+
+    // ----- Verb inflection -----
+
+    private String inflectVerb(String lemma, Set<ItemID> features) {
+        // Present participle / gerund: {PARTICIPLE, PRESENT} or {PROGRESSIVE}
+        if (features.contains(PARTICIPLE) && features.contains(PRESENT)) {
+            return addIng(lemma);
+        }
+
+        // Past participle: {PARTICIPLE, PAST}
+        if (features.contains(PARTICIPLE) && features.contains(PAST)) {
+            return addEd(lemma);
+        }
+
+        // Simple past: {PAST}
+        if (features.contains(PAST)) {
+            return addEd(lemma);
+        }
+
+        // 3rd person singular present: {THIRD_PERSON, SINGULAR, PRESENT}
+        // or just {THIRD_PERSON} in present context
+        if (features.contains(THIRD_PERSON)) {
+            return addS(lemma);
+        }
+
+        return lemma;
+    }
+
+    // ----- Noun inflection -----
+
+    private String inflectNoun(String lemma, Set<ItemID> features) {
+        if (features.contains(PLURAL)) {
+            return addS(lemma);
+        }
+        return lemma;
+    }
+
+    // ----- Adjective / Adverb inflection -----
+
+    private String inflectAdjective(String lemma, Set<ItemID> features) {
+        if (features.contains(COMPARATIVE)) {
+            return addEr(lemma);
+        }
+        if (features.contains(SUPERLATIVE)) {
+            return addEst(lemma);
+        }
+        return lemma;
+    }
+
+    // ==================================================================================
+    // SUFFIX RULES
+    // ==================================================================================
+
+    /**
+     * Add -s / -es for 3rd person singular present or noun plural.
+     *
+     * <p>Rules:
+     * <ul>
+     *   <li>Ends in s, x, z, sh, ch → +es (passes, boxes, watches)</li>
+     *   <li>Ends in consonant+y → replace y with ies (carries, babies)</li>
+     *   <li>Otherwise → +s (runs, cats)</li>
+     * </ul>
+     */
+    static String addS(String lemma) {
+        if (endsWithSibilant(lemma)) {
+            return lemma + "es";
+        }
+        if (endsWithConsonantY(lemma)) {
+            return lemma.substring(0, lemma.length() - 1) + "ies";
+        }
+        return lemma + "s";
+    }
+
+    /**
+     * Add -ed for regular past tense and past participle.
+     *
+     * <p>Rules:
+     * <ul>
+     *   <li>Ends in e → +d (loved, created)</li>
+     *   <li>Ends in consonant+y → replace y with ied (carried, studied)</li>
+     *   <li>Short word ending in single-vowel+consonant → double consonant + ed (stopped)</li>
+     *   <li>Otherwise → +ed (played, walked)</li>
+     * </ul>
+     */
+    static String addEd(String lemma) {
+        if (lemma.endsWith("e")) {
+            return lemma + "d";
+        }
+        if (endsWithConsonantY(lemma)) {
+            return lemma.substring(0, lemma.length() - 1) + "ied";
+        }
+        if (shouldDoubleConsonant(lemma)) {
+            return lemma + lemma.charAt(lemma.length() - 1) + "ed";
+        }
+        return lemma + "ed";
+    }
+
+    /**
+     * Add -ing for present participle / gerund.
+     *
+     * <p>Rules:
+     * <ul>
+     *   <li>Ends in ie → replace ie with ying (die→dying, lie→lying)</li>
+     *   <li>Ends in e (not ee) → drop e + ing (love→loving, but see→seeing)</li>
+     *   <li>Short word ending in single-vowel+consonant → double + ing (run→running)</li>
+     *   <li>Otherwise → +ing (play→playing)</li>
+     * </ul>
+     */
+    static String addIng(String lemma) {
+        if (lemma.endsWith("ie")) {
+            return lemma.substring(0, lemma.length() - 2) + "ying";
+        }
+        if (lemma.endsWith("e") && !lemma.endsWith("ee") && !lemma.endsWith("oe")
+                && !lemma.endsWith("ye") && lemma.length() > 1) {
+            return lemma.substring(0, lemma.length() - 1) + "ing";
+        }
+        if (shouldDoubleConsonant(lemma)) {
+            return lemma + lemma.charAt(lemma.length() - 1) + "ing";
+        }
+        return lemma + "ing";
+    }
+
+    /**
+     * Add -er for comparative adjectives.
+     *
+     * <p>Rules:
+     * <ul>
+     *   <li>Ends in e → +r (nice→nicer)</li>
+     *   <li>Ends in consonant+y → replace y with ier (happy→happier)</li>
+     *   <li>Short word ending in single-vowel+consonant → double + er (big→bigger)</li>
+     *   <li>Otherwise → +er (tall→taller)</li>
+     * </ul>
+     */
+    static String addEr(String lemma) {
+        if (lemma.endsWith("e")) {
+            return lemma + "r";
+        }
+        if (endsWithConsonantY(lemma)) {
+            return lemma.substring(0, lemma.length() - 1) + "ier";
+        }
+        if (shouldDoubleConsonant(lemma)) {
+            return lemma + lemma.charAt(lemma.length() - 1) + "er";
+        }
+        return lemma + "er";
+    }
+
+    /**
+     * Add -est for superlative adjectives.
+     */
+    static String addEst(String lemma) {
+        if (lemma.endsWith("e")) {
+            return lemma + "st";
+        }
+        if (endsWithConsonantY(lemma)) {
+            return lemma.substring(0, lemma.length() - 1) + "iest";
+        }
+        if (shouldDoubleConsonant(lemma)) {
+            return lemma + lemma.charAt(lemma.length() - 1) + "est";
+        }
+        return lemma + "est";
+    }
+
+    // ==================================================================================
+    // HELPERS
+    // ==================================================================================
+
+    private static boolean isVowel(char c) {
+        return "aeiou".indexOf(Character.toLowerCase(c)) >= 0;
+    }
+
+    /**
+     * Whether the word ends with a sibilant that requires -es.
+     * Covers: s, x, z, sh, ch.
+     */
+    private static boolean endsWithSibilant(String word) {
+        return word.endsWith("s") || word.endsWith("x") || word.endsWith("z")
+                || word.endsWith("sh") || word.endsWith("ch");
+    }
+
+    /**
+     * Whether the word ends with consonant + y (e.g., carry, baby, happy).
+     * Not: play (vowel + y), boy (vowel + y).
+     */
+    private static boolean endsWithConsonantY(String word) {
+        if (!word.endsWith("y") || word.length() < 2) return false;
+        return !isVowel(word.charAt(word.length() - 2));
+    }
+
+    /**
+     * Whether the final consonant should be doubled before a suffix.
+     *
+     * <p>Applies to short (1-syllable) words ending in a single vowel
+     * followed by a single consonant, excluding w, x, y.
+     * Examples: run, stop, big, hit, plan.
+     * Counterexamples: play (ends in y), fix (ends in x), rain (double vowel).
+     */
+    private static boolean shouldDoubleConsonant(String word) {
+        int len = word.length();
+        if (len < 3) return false;
+        char last = word.charAt(len - 1);
+        char secondLast = word.charAt(len - 2);
+        // Don't double w, x, y
+        if (last == 'w' || last == 'x' || last == 'y') return false;
+        // Last must be consonant, second-to-last must be single vowel
+        if (isVowel(last) || !isVowel(secondLast)) return false;
+        // Third-to-last must NOT be a vowel (that would be a double vowel like "rain")
+        if (len >= 3 && isVowel(word.charAt(len - 3))) return false;
+        // Only reliably double for short words (1 syllable ≈ ≤4 letters)
+        return len <= 4;
+    }
+}

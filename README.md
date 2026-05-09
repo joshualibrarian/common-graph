@@ -170,7 +170,7 @@ Token (any language)
 
 Words resolve to sememes. Sememes assemble into frames. Creating a frame IS the action — items observe new frames and react accordingly. "Move pawn to e4" assembles a MOVE frame; the chess game receives it and updates its board state.
 
-Word order is flexible because resolution is semantic, not positional. "Move pawn to e4" and "move to e4 pawn" produce the same result — prepositions bind arguments by thematic role, not by position.
+Word order is flexible because resolution is semantic, not positional. "Move pawn to e4" and "move to e4 pawn" produce the same result — prepositions frame arguments by thematic role, not by position.
 
 **But you don't have to type.** Items declare their own visual presentation. A chess game renders a board you can click on. A document renders editable text. A chat room shows messages with a compose area. Clicking "reply" creates the same frame as typing "reply."
 
@@ -339,7 +339,7 @@ Requires **Java 21** (via Gradle toolchain).
 core/               # Domain model
   item/             #   Item, IDs, Manifest
   frame/            #   Frame, FrameBody, FrameRecord, Binding
-  library/          #   Object store, indexes, TokenDictionary, seed vocabulary
+  library/          #   Object store, indexes, TokenDictionary, seedItem vocabulary
   runtime/          #   Graph entry point, Librarian, Session
   network/          #   Peer Protocol, Session Protocol, transports
   language/         #   Sememe, Lexeme, Language, ThematicRole

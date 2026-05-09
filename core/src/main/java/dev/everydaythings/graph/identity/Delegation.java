@@ -1,13 +1,11 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.item.Bind;
-import dev.everydaythings.graph.item.Embodies;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
@@ -59,8 +57,8 @@ import java.util.Optional;
  * expiry, applying revocations) happens at lookup time when the trust matrix
  * evaluates a delegated event.
  */
-@Seed(key = Delegation.KEY)
-@Embodies(key = Delegation.KEY)
+@Seed.Item(key = Delegation.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Embodies(key = Delegation.KEY)
 public class Delegation extends Item {
 
     /** Canonical key for the delegation sememe. */
@@ -69,20 +67,17 @@ public class Delegation extends Item {
     /** The deterministic IID for the delegation sememe. */
     public static final ItemID IID = ItemID.fromString(KEY);
 
-    @Bind(predicate = Gloss.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY})
+    @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "a parent identity's authorization for a child identity to operate under its authority";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "delegation";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishVerbLemma = "delegate";
 
     public Delegation(ItemID iid, Librarian librarian) {

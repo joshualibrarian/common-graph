@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for SeedVocabulary and @Item.Seed annotation.
  */
 @Tag("slow")
-class SeedVocabularyTest {
+class SeedItemVocabularyTest {
 
     private static ItemStore store;
 

@@ -2,7 +2,7 @@ package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;

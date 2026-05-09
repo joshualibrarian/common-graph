@@ -20,14 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  * and adds English-specific tests including WordNet generation.
  */
 @DisplayName("English") @Disabled
-public class EnglishTest extends LanguageTest {
+public class EnglishOldTest extends LanguageTest {
 
     private LibrarianOld librarian;
 
     @Override
     protected ItemOld createItem(Path tempDir) {
         librarian = LibrarianOld.open(tempDir);
-        return new English(librarian);
+        return new EnglishOld(librarian);
     }
 
     @Override
@@ -41,8 +41,8 @@ public class EnglishTest extends LanguageTest {
     /**
      * Get the item as English.
      */
-    protected English english() {
-        return (English) item;
+    protected EnglishOld english() {
+        return (EnglishOld) item;
     }
 
     // ==================================================================================
@@ -51,7 +51,7 @@ public class EnglishTest extends LanguageTest {
 
     @Nested
     @DisplayName("English Identity")
-    class EnglishIdentity {
+    class EnglishOldIdentity {
 
         @Test
         @DisplayName("has correct language code")
@@ -67,13 +67,13 @@ public class EnglishTest extends LanguageTest {
             // Instance IID should be randomly generated, not the type ID
             assertThat(english().iid())
                     .as("Instance IID")
-                    .isNotEqualTo(ItemID.fromString(English.KEY));
+                    .isNotEqualTo(ItemID.fromString(EnglishOld.KEY));
         }
 
         @Test
         @DisplayName("type key is correct")
         void typeKeyIsCorrect() {
-            assertThat(English.KEY)
+            assertThat(EnglishOld.KEY)
                     .as("Type key")
                     .isEqualTo("cg.lang:english");
         }

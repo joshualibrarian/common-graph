@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.item;
+package dev.everydaythings.graph;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;

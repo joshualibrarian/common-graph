@@ -1,13 +1,12 @@
 package dev.everydaythings.graph.semantics;
 
 import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Frame;
 import dev.everydaythings.graph.frame.Record;
-import dev.everydaythings.graph.item.Embodies;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -45,8 +44,8 @@ import java.util.Optional;
  * <p>The DELETE frame itself remains in storage as audit data — its existence
  * records "this item was deleted by this signer at this time."
  */
-@Seed(key = Delete.KEY)
-@Embodies(key = Delete.KEY)
+@Seed.Item(key = Delete.KEY)
+@Seed.Embodies(key = Delete.KEY)
 public class Delete extends Item {
 
     /** Canonical key for the delete sememe. POS-agnostic — this is a unit of meaning. */

@@ -150,7 +150,7 @@ An item declares what concept it implements via an **IMPLEMENTS** frame — link
 
 Bootstrap concepts — the foundational sememes that the system needs before any data exists — have **deterministic IIDs** computed from a canonical key string (e.g., `ItemID.fromString("cg.sememe:chess")`). Two independently started nodes arrive at the same IID for "chess" without coordination.
 
-A seed concept is itself an item, carrying frames that define it: glosses (human-readable descriptions), lexemes (words in various languages), and EXPECTS declarations (see below). Seed items have no signature and no timestamp — they are axioms, not assertions.
+A seedItem concept is itself an item, carrying frames that define it: glosses (human-readable descriptions), lexemes (words in various languages), and EXPECTS declarations (see below). Seed items have no signature and no timestamp — they are axioms, not assertions.
 
 ### EXPECTS: Schema as Frames
 

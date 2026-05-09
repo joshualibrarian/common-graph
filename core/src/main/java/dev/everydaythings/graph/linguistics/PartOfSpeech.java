@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.linguistics;
 
-import dev.everydaythings.graph.item.Seed;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -19,7 +19,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  *
  * <p>Pure-data seeds.
  */
-@Seed(key = PartOfSpeech.KEY)
+@Seed.Item(key = PartOfSpeech.KEY)
 public final class PartOfSpeech {
 
     /** Canonical key for the part-of-speech meta-sememe. */
@@ -31,7 +31,7 @@ public final class PartOfSpeech {
     private PartOfSpeech() {}
 
     /** Noun — naming a person, place, thing, or idea. */
-    @Seed(key = Noun.KEY)
+    @Seed.Item(key = Noun.KEY)
     public static final class Noun {
         public static final String KEY = "cg.pos:noun";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -39,7 +39,7 @@ public final class PartOfSpeech {
     }
 
     /** Verb — describing an action, event, or state. */
-    @Seed(key = Verb.KEY)
+    @Seed.Item(key = Verb.KEY)
     public static final class Verb {
         public static final String KEY = "cg.pos:verb";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -47,7 +47,7 @@ public final class PartOfSpeech {
     }
 
     /** Adjective — modifying a noun. */
-    @Seed(key = Adjective.KEY)
+    @Seed.Item(key = Adjective.KEY)
     public static final class Adjective {
         public static final String KEY = "cg.pos:adjective";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -55,7 +55,7 @@ public final class PartOfSpeech {
     }
 
     /** Adverb — modifying a verb, adjective, or another adverb. */
-    @Seed(key = Adverb.KEY)
+    @Seed.Item(key = Adverb.KEY)
     public static final class Adverb {
         public static final String KEY = "cg.pos:adverb";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -63,7 +63,7 @@ public final class PartOfSpeech {
     }
 
     /** Pronoun — substituting for a noun. */
-    @Seed(key = Pronoun.KEY)
+    @Seed.Item(key = Pronoun.KEY)
     public static final class Pronoun {
         public static final String KEY = "cg.pos:pronoun";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -71,7 +71,7 @@ public final class PartOfSpeech {
     }
 
     /** Conjunction — connecting clauses or phrases. */
-    @Seed(key = Conjunction.KEY)
+    @Seed.Item(key = Conjunction.KEY)
     public static final class Conjunction {
         public static final String KEY = "cg.pos:conjunction";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -79,7 +79,7 @@ public final class PartOfSpeech {
     }
 
     /** Interjection — a standalone exclamatory utterance. */
-    @Seed(key = Interjection.KEY)
+    @Seed.Item(key = Interjection.KEY)
     public static final class Interjection {
         public static final String KEY = "cg.pos:interjection";
         public static final ItemID IID = ItemID.fromString(KEY);
@@ -87,7 +87,7 @@ public final class PartOfSpeech {
     }
 
     /** Preposition — relating a noun phrase to another sentence element. */
-    @Seed(key = Preposition.KEY)
+    @Seed.Item(key = Preposition.KEY)
     public static final class Preposition {
         public static final String KEY = "cg.pos:preposition";
         public static final ItemID IID = ItemID.fromString(KEY);

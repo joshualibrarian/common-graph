@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.linguistics;
 
-import dev.everydaythings.graph.item.Embodies;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 
@@ -24,8 +23,8 @@ import dev.everydaythings.graph.runtime.Librarian;
  *
  * <p>Created when CILI-aware imports begin; not used on hand-written CG sememes.
  */
-@Seed(key = CiliId.KEY)
-@Embodies(key = CiliId.KEY)
+@Seed.Item(key = CiliId.KEY)
+@Seed.Embodies(key = CiliId.KEY)
 public class CiliId extends Item {
 
     /** Canonical key for the CILI-id sememe. */

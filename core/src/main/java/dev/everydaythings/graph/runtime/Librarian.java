@@ -19,8 +19,7 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.library.Library;
-import dev.everydaythings.graph.library.skiplist.SkipListDataStore;
-import dev.everydaythings.graph.library.skiplist.SkipListIndexStore;
+import dev.everydaythings.graph.library.tokens.Posting;
 import com.upokecenter.cbor.CBORObject;
 import lombok.Getter;
 
@@ -115,7 +114,7 @@ public class Librarian extends Signer {
      * (current + pre-rotation next).
      */
     public static Librarian inMemory() {
-        Library library = new Library(SkipListDataStore.create(), SkipListIndexStore.create());
+        Library library = Library.inMemory();
         Vault vault = InMemoryVault.generate(Signer.DEFAULT_ALGORITHM);
         // Derive IID from the initial signing public key — cryptographically
         // binds identity to key (closes the IID-preemption gap).
@@ -181,6 +180,29 @@ public class Librarian extends Signer {
      */
     public ContentID persist(Datum datum) {
         return library.put(datum);
+    }
+
+    /**
+     * Resolve a token to ranked Postings — the entry point for the parsing /
+     * input pipeline. Postings carry surface form, target item, predicate kind,
+     * scope, features, weight, and source body CID — everything a parser or
+     * scorer needs without reaching past the librarian to internal indexes.
+     *
+     * <p>Local-only today: searches just this librarian's own Library. Future
+     * "dig deeper" / federated queries will extend this to consult peers
+     * transparently.
+     */
+    public List<Posting> lookupToken(String token) {
+        return library.lookupToken(token);
+    }
+
+    /**
+     * Prefix variant of {@link #lookupToken} for autocomplete. Returns up to
+     * {@code limit} Postings whose tokens begin with {@code tokenPrefix},
+     * ordered by descending weight.
+     */
+    public List<Posting> lookupTokenPrefix(String tokenPrefix, int limit) {
+        return library.lookupTokenPrefix(tokenPrefix, limit);
     }
 
     /**

@@ -1,13 +1,11 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.BindingTarget;
 import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.item.Bind;
-import dev.everydaythings.graph.item.Embodies;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -65,8 +63,8 @@ import java.util.Optional;
  * Future phases add full chain-replay verification (preimage match, sequence,
  * old/new key signatures) and key-state cache advancement.
  */
-@Seed(key = Rotation.KEY)
-@Embodies(key = Rotation.KEY)
+@Seed.Item(key = Rotation.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Embodies(key = Rotation.KEY)
 public class Rotation extends Item {
 
     /** Canonical key for the rotation sememe. */
@@ -75,20 +73,17 @@ public class Rotation extends Item {
     /** The deterministic IID for the rotation sememe. */
     public static final ItemID IID = ItemID.fromString(KEY);
 
-    @Bind(predicate = Gloss.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY})
+    @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "evolving an identity's committed keys for one key-track, with pre-rotation reveal";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "rotation";
 
-    @Bind(predicate = Lexeme.KEY,
-          role = ThematicRole.Value.KEY,
-          qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY})
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishVerbLemma = "rotate";
 
     public Rotation(ItemID iid, Librarian librarian) {

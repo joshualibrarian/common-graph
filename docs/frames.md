@@ -65,7 +65,7 @@ Common Graph adopts a core vocabulary of thematic roles, aligned with VerbNet an
 | TOPIC | What something is about (content reference) |
 | NAME | A name, label, or identifier |
 
-There are more (MANNER, EXTENT, ATTRIBUTE, PURPOSE, CONFIG, FOLLOWS, etc.), and the set is extensible — new roles can be added as seed vocabulary without structural changes. But these cover the vast majority of frames.
+There are more (MANNER, EXTENT, ATTRIBUTE, PURPOSE, CONFIG, FOLLOWS, etc.), and the set is extensible — new roles can be added as seedItem vocabulary without structural changes. But these cover the vast majority of frames.
 
 The key insight: roles are not just labels. Each role carries semantic expectations about what kind of value it holds and how that value relates to the predicate. AGENT implies intentionality. PATIENT implies change of state. THEME implies reference without change. These distinctions matter for querying, inference, and UI generation.
 

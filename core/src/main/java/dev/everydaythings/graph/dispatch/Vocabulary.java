@@ -4,7 +4,7 @@ import dev.everydaythings.graph.frame.Binding;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.EndorsementsTable;
-import dev.everydaythings.graph.item.Implements;
+import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.language.Posting;
 

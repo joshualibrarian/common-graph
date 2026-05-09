@@ -1,6 +1,6 @@
 # Manifests
 
-A **Manifest** is a signed declaration of everything in a specific version of an Item. It binds identity, content, and authority together — the "commit object" of Common Graph.
+A **Manifest** is a signed declaration of everything in a specific version of an Item. It frames identity, content, and authority together — the "commit object" of Common Graph.
 
 A Manifest is a runtime container around a body Datum (with archetype as head reference) and zero or more record Datums (the signed attestations). It uses the same unified Datum primitive as frames; see `datum.md` for the structural foundation.
 

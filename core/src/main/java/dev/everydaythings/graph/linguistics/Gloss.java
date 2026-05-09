@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.linguistics;
 
-import dev.everydaythings.graph.item.Embodies;
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 
@@ -31,8 +30,8 @@ import dev.everydaythings.graph.runtime.Librarian;
  * <p>Phase 1 keeps {@code onFrameAssembled} minimal — body persistence is enough.
  * Future: token-dictionary indexing for "find sememes whose gloss matches X."
  */
-@Seed(key = Gloss.KEY)
-@Embodies(key = Gloss.KEY)
+@Seed.Item(key = Gloss.KEY)
+@Seed.Embodies(key = Gloss.KEY)
 public class Gloss extends Item {
 
     /** Canonical key for the gloss sememe. */

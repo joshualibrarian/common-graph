@@ -58,7 +58,7 @@ Common Graph seeds its sememes from WordNet via CILI identifiers, enabling langu
 
 - **Fellbaum - WordNet Word Relations Senses and Disambiguation.pdf** — Fellbaum, C. "WordNet: Word Relations, Senses, and Disambiguation." *Overview of WordNet's lexical organization and word sense disambiguation.*
 
-- **Bond, Vossen et al 2016 - CILI the Collaborative Interlingual Index.pdf** — Bond, F., Vossen, P., McCrae, J., & Fellbaum, C. (2016). "CILI: the Collaborative Interlingual Index." In *Proceedings of the 8th Global WordNet Conference*, pp. 50-57. *Defines the language-neutral concept identifiers that Common Graph uses as canonical keys for seed sememes.*
+- **Bond, Vossen et al 2016 - CILI the Collaborative Interlingual Index.pdf** — Bond, F., Vossen, P., McCrae, J., & Fellbaum, C. (2016). "CILI: the Collaborative Interlingual Index." In *Proceedings of the 8th Global WordNet Conference*, pp. 50-57. *Defines the language-neutral concept identifiers that Common Graph uses as canonical keys for seedItem sememes.*
 
 - **Bond, Foster 2013 - Linking and Extending an Open Multilingual Wordnet.pdf** — Bond, F. & Foster, R. (2013). "Linking and Extending an Open Multilingual Wordnet." In *Proceedings of ACL*, pp. 1352-1362. *Open multilingual wordnet with 26+ languages — the model for Common Graph's language import pipeline.*
 
