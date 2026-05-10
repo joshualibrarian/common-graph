@@ -1,13 +1,14 @@
-package dev.everydaythings.graph.value;
+package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.linguistics.Lexeme;
 import dev.everydaythings.graph.linguistics.PartOfSpeech;
+import dev.everydaythings.graph.operator.NotationVocabulary;
+import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
 
@@ -17,9 +18,11 @@ import dev.everydaythings.graph.semantics.ThematicRole;
  * addition reversed: THEME is what's removed; SOURCE is where it's removed from.
  * "Subtract 3 from 10" → {@code SUBTRACT { THEME → 3, SOURCE → 10 }} → evaluates to 7.
  */
-@Seed.Item(key = Subtract.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Item(key = Subtract.KEY,
+        head = Operator.KEY,
+        bindings = {@Seed.Binding(role = NotationVocabulary.Arity.KEY, integer = 2)})
 @Seed.Embodies(key = Subtract.KEY)
-public class Subtract extends Item {
+public class Subtract extends Operator {
 
     public static final String KEY = "cg.predicate:subtract";
     public static final ItemID IID = ItemID.fromString(KEY);
@@ -28,17 +31,19 @@ public class Subtract extends Item {
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "the operation of removing one quantity from another";
 
-    @Seed.Frame(predicate = Lexeme.KEY)
+    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {NotationVocabulary.Infix.KEY}),
+          bindings = {
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Precedence.KEY},
+                          integer = 10),
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Associativity.KEY},
+                          ref = NotationVocabulary.Left.KEY)
+          })
     static final String symbol = "-";
-
-    @Seed.Frame(predicate = NotationVocabulary.Fixity.KEY)
-    static final ItemID fixity = NotationVocabulary.Infix.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Associativity.KEY)
-    static final ItemID associativity = NotationVocabulary.Left.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Precedence.KEY)
-    static final long precedence = 10L;
 
     @Seed.Frame(predicate = Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
@@ -51,7 +56,14 @@ public class Subtract extends Item {
     public Subtract(ItemID iid) { super(iid); }
     public Subtract(ItemID iid, Librarian librarian) { super(iid, librarian); }
 
-    public Object applyBinary(Object left, Object right) {
+    @Override
+    public Object execute(Object... operands) {
+        if (operands.length != 2) {
+            throw new IllegalArgumentException(
+                    "expects 2 operands, got " + operands.length);
+        }
+        Object left = operands[0];
+        Object right = operands[1];
         if (left instanceof Number l && right instanceof Number r) {
             if (left instanceof Double || right instanceof Double
                     || left instanceof Float || right instanceof Float) {
@@ -60,6 +72,6 @@ public class Subtract extends Item {
             return l.longValue() - r.longValue();
         }
         throw new IllegalArgumentException(
-                "Subtract.applyBinary: unsupported operand types " + left + " - " + right);
+                "Subtract.execute: unsupported operand types " + left + " - " + right);
     }
 }

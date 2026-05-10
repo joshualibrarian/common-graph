@@ -37,9 +37,9 @@ import java.util.Map;
  * (which dispatches to all GLFW windows), then ticks each ViewWindow.
  * The session survives closing all windows.
  */
-public class GraphicalSession extends Session {
+public class GraphicalSessionOld extends SessionOld {
 
-    private static final Logger log = LogManager.getLogger(GraphicalSession.class);
+    private static final Logger log = LogManager.getLogger(GraphicalSessionOld.class);
 
     // ==================== Multi-Window State ====================
 
@@ -59,7 +59,7 @@ public class GraphicalSession extends Session {
 
     // ==================== Constructor ====================
 
-    public GraphicalSession(LibrarianHandle librarian, Ref context, RenderMode initialMode) {
+    public GraphicalSessionOld(LibrarianHandle librarian, Ref context, RenderMode initialMode) {
         super(librarian, context);
         this.defaultRenderer = (initialMode == RenderMode.SPATIAL)
                 ? ViewConfig.RendererType.FILAMENT

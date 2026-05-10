@@ -160,6 +160,46 @@ The UI generates creation forms from EXPECTS declarations. EXPECTS also enables 
 
 See [Frames: EXPECTS](frames.md#expects-schema-as-frames) for the full explanation.
 
+## Items as Actors: HANDLES Declares the API Surface
+
+Items are **actors**. Frames are **messages**. Predicates classify message types. When a frame is created and reaches an item, the item dispatches on the frame's predicate to choose how to react. The dispatch table is **declared in data**: a list of HANDLES frames endorsed by the item's manifest.
+
+```
+Item's manifest:
+    ENDORSES → <handles-frame-1-CID>      // [HANDLES {THEME→CHESS_MOVE, INSTRUMENT→"applyMove"}]
+    ENDORSES → <handles-frame-2-CID>      // [HANDLES {THEME→RESIGN,     INSTRUMENT→"handleResign"}]
+    ENDORSES → <handles-frame-3-CID>      // [HANDLES {THEME→OFFER_DRAW, INSTRUMENT→"offerDraw"}]
+```
+
+Each HANDLES frame carries:
+
+- **THEME** → the predicate handled (which message type)
+- **INSTRUMENT** → the handler reference (a method name string, OR `@<code-item-ref>` for swappable polyglot handlers)
+- **ATTRIBUTE[ARITY]**, **ATTRIBUTE[PRIORITY]**, ... — optional metadata via the generic `ATTRIBUTE[<kind>] → value` pattern
+
+This is Smalltalk-style message dispatch with the method dictionary in data:
+
+- **APIs are queryable** — walk endorsed HANDLES frames on any item to introspect what it processes.
+- **APIs inherit via archetype** — sub-archetypes inherit parent HANDLES; instances inherit the type's.
+- **APIs can extend at runtime** — endorsing a new HANDLES frame adds a handler. No recompile (subject to trust/policy).
+
+### Polyglot Handler Mapping
+
+The same HANDLES list can be implemented in any supported runtime. The wire/storage layer is uniform; the implementation is private:
+
+- **Java**: methods on the item class found by reflection (matched against the INSTRUMENT string)
+- **Polyglot bundles** (WASM, Python, Clojure, JS): a function table keyed by predicate IID; the bundle's manifest declares what predicates it implements
+
+A Rust `ChessGame` and a Java `ChessGame` both endorse the same HANDLES frames; each implements `applyMove`/`handleResign`/`offerDraw` in its own language. The wire format is the contract.
+
+### Why Endorsed Frames Rather Than Direct Manifest Bindings
+
+HANDLES frames are *endorsed* (referenced via ENDORSES bindings on the manifest), not direct manifest bindings. Direct manifest bindings stay reserved for **identity/structural** declarations — ITEM_ID, FOLLOWS, IMPLEMENTATION, ENDORSES, CONFIG, ARCHETYPE. API surface lives with claims and capabilities (endorsed frames) because it carries rich, extensible metadata and benefits from queryable composition.
+
+### When the Predicate Carries the Behavior Instead
+
+A small class of predicates self-handle: pure operators like `ADD`, `MULTIPLY`, `NEGATE` whose behavior is a function of bindings alone, with no contextual state. These are *both* a message-shape and a self-handling actor; they don't need a HANDLES entry on a separate item to do their work. Use the self-handling pattern sparingly — the default rule is **behavior in items, not in predicates**.
+
 ## Item State
 
 An Item's versioned state is its list of endorsed frames. The manifest serializes these as `FrameEndorsement` objects. At runtime, endorsements are expanded into a frame table for efficient lookup. At commit time, the table is snapshotted back into endorsements for serialization.
@@ -172,10 +212,10 @@ All IDs are multihash values — self-describing hashes that include the algorit
 |----|-------------|---------|
 | **ItemID** | Random or `hash(canonical_string)` | Stable identity across versions |
 | **ContentID** | `hash(content_bytes)` | Content-addresses a block of bytes. Also used as the version identifier (hash of manifest body). |
-| **FrameKey** | Sequence of Sememe/Literal tokens | Compound semantic address for a frame within an item |
-| **Ref** | `target [@version] [\frameKey]* [[selector]]` | Unified reference — can drill into a specific version, frame, and range |
+| **CompoundKey** | Sequence of Sememe/Literal tokens | Compound semantic address (used as a binding-key component within indexes and references) |
+| **Ref** | `target [\compound-key]* [[selector]]` | Unified reference — can drill into a specific frame and range |
 
-ItemID and ContentID inherit from `HashID`. FrameKey is not a hash — it's a structured key composed of semantic tokens (`Sememe(ItemID)` or `Literal(String)`). It implements `Canonical` and `Comparable` for deterministic encoding and ordering.
+ItemID and ContentID inherit from `HashID`. CompoundKey is not a hash — it's a structured key composed of semantic tokens (`Sememe(ItemID)` or `Literal(String)`). It implements `Canonical` and `Comparable` for deterministic encoding and ordering.
 
 ## Item Lifecycle
 

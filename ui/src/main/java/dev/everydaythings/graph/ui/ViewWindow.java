@@ -58,10 +58,10 @@ public class ViewWindow {
 
     private final CompoundKey frameKey;
     private ViewHandle viewHandle;
-    private final Session session;
+    private final SessionOld session;
     private final SharedResources shared;
     private final FilamentContext filamentContext;
-    private final GraphicalSession.CoordinateMapper coordinateMapper;
+    private final GraphicalSessionOld.CoordinateMapper coordinateMapper;
 
     // ==================== Renderer ====================
 
@@ -135,22 +135,22 @@ public class ViewWindow {
     // ==================== Constructor ====================
 
     public ViewWindow(CompoundKey frameKey, ViewHandle viewHandle,
-                      Session session, SharedResources shared,
+                      SessionOld session, SharedResources shared,
                       FilamentContext filamentContext) {
         this(frameKey, viewHandle, session, shared, filamentContext, null);
     }
 
     public ViewWindow(CompoundKey frameKey, ViewHandle viewHandle,
-                      Session session, SharedResources shared,
+                      SessionOld session, SharedResources shared,
                       FilamentContext filamentContext,
-                      GraphicalSession.CoordinateMapper coordinateMapper) {
+                      GraphicalSessionOld.CoordinateMapper coordinateMapper) {
         this.frameKey = frameKey;
         this.viewHandle = viewHandle;
         this.session = session;
         this.shared = shared;
         this.filamentContext = filamentContext;
         this.coordinateMapper = coordinateMapper != null ? coordinateMapper
-                : new GraphicalSession.CoordinateMapper() {
+                : new GraphicalSessionOld.CoordinateMapper() {
             @Override public int[] sessionToOs(int sx, int sy) { return new int[]{sx, sy}; }
             @Override public int[] osToSession(int ox, int oy) { return new int[]{ox, oy}; }
         };

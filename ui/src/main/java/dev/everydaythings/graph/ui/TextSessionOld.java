@@ -42,10 +42,10 @@ import java.util.concurrent.atomic.AtomicReference;
  *   <li><strong>CLI mode</strong> - Scrolling plain text via {@link CliSurfaceRenderer}</li>
  * </ul>
  *
- * <p>All business logic (navigation, commands, ItemModel) is in {@link Session}.
+ * <p>All business logic (navigation, commands, ItemModel) is in {@link SessionOld}.
  */
 @Log4j2
-public class TextSession extends Session {
+public class TextSessionOld extends SessionOld {
 
     private final UIMode mode;
     private final SessionOptions opts;
@@ -80,7 +80,7 @@ public class TextSession extends Session {
     /**
      * Create a text-based session.
      */
-    public TextSession(LibrarianHandle librarian, Ref context, UIMode mode, SessionOptions opts) {
+    public TextSessionOld(LibrarianHandle librarian, Ref context, UIMode mode, SessionOptions opts) {
         super(librarian, context);
         this.mode = mode;
         this.opts = opts;

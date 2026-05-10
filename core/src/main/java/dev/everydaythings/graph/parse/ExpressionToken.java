@@ -2,7 +2,6 @@ package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.value.OperatorOld;
 
 import java.util.List;
 
@@ -156,9 +155,6 @@ public sealed interface ExpressionToken {
         public OpToken(ItemID operatorId) {
             this(operatorId, operatorId.toString());
         }
-
-        public static OpToken and() { return new OpToken(OperatorOld.And.IID, "&&"); }
-        public static OpToken or() { return new OpToken(OperatorOld.Or.IID, "||"); }
 
         @Override
         public String displayText() {

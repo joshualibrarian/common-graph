@@ -5,7 +5,7 @@ import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.runtime.LibrarianOld;
 import dev.everydaythings.graph.runtime.LibrarianHandle;
 import dev.everydaythings.graph.runtime.RemoteLibrarian;
-import dev.everydaythings.graph.ui.Session;
+import dev.everydaythings.graph.ui.SessionOld;
 import dev.everydaythings.graph.ui.host.HostPresence;
 import dev.everydaythings.graph.runtime.options.GlobalOptions;
 import dev.everydaythings.graph.runtime.options.LibrarianOptions;
@@ -34,7 +34,7 @@ import java.security.Security;
  * <p>Graph is a launcher that combines the two core commands:
  * <ul>
  *   <li>{@link LibrarianOld} - the backend daemon</li>
- *   <li>{@link Session} - the UI frontend</li>
+ *   <li>{@link SessionOld} - the UI frontend</li>
  * </ul>
  *
  * <p>Usage:
@@ -56,7 +56,7 @@ import java.security.Security;
     description = "Common Graph - where everything is an Item",
     subcommands = {
         LibrarianOld.class,
-        Session.SessionShell.class  // Session.SessionShell is the concrete picocli command
+        SessionOld.SessionOldShell.class  // Session.SessionShell is the concrete picocli command
     }
 )
 public class Graph implements Runnable {
@@ -311,7 +311,7 @@ public class Graph implements Runnable {
      * retries with a text-based mode so the user always gets a prompt.
      */
     private void runSessionWithFallback(LibrarianHandle handle) {
-        try (Session session = Session.create(handle, sessionOpts)) {
+        try (SessionOld session = SessionOld.create(handle, sessionOpts)) {
             int exitCode = session.run();
             if (exitCode != 0) {
                 logger.warn("Session exited with code {}", exitCode);
@@ -326,7 +326,7 @@ public class Graph implements Runnable {
             if (wasAutoOrGraphical) {
                 logger.warn("Graphical session failed, falling back to text mode: {}", t.getMessage());
                 sessionOpts.uiMode = "auto-text";
-                try (Session fallback = Session.createTextFallback(handle, sessionOpts)) {
+                try (SessionOld fallback = SessionOld.createTextFallback(handle, sessionOpts)) {
                     int exitCode = fallback.run();
                     if (exitCode != 0) {
                         System.exit(exitCode);

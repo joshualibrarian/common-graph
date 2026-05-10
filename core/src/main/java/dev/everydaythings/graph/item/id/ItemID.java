@@ -5,6 +5,7 @@ import io.ipfs.multihash.Multihash;
 import lombok.extern.log4j.Log4j2;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Objects.requireNonNull;
 
@@ -25,14 +26,35 @@ public final class ItemID extends HashID {
     }
 
     /**
+     * Cache of canonical-key → ItemID. Held in a lazy holder class so the cache
+     * isn't initialized as part of {@code ItemID}'s own static init — that would
+     * cause an NPE when bootstrap code (e.g. {@code HashID.DISPLAY_WIDTH}) calls
+     * {@code ItemID.fromString} before {@code ItemID}'s static fields finish.
+     *
+     * <p>Canonical keys are a bounded vocabulary (a few hundred entries even in a
+     * richly-seeded librarian), so the map does not need eviction. The cache makes
+     * {@code fromString(KEY)} cheap enough to use directly at call sites instead of
+     * holding a precomputed {@code public static final ItemID IID} on every seed
+     * class.
+     */
+    private static final class FromStringCache {
+        static final ConcurrentHashMap<String, ItemID> CACHE = new ConcurrentHashMap<>();
+    }
+
+    /**
      * Create a deterministic ItemID from a string.
      * Useful for creating well-known IDs (predicates, types, etc.) from names.
+     *
+     * <p>Memoized: repeated calls with the same string return the same instance.
      */
     public static ItemID fromString(String s) {
         requireNonNull(s, "s");
+        return FromStringCache.CACHE.computeIfAbsent(s, ItemID::computeFromString);
+    }
+
+    private static ItemID computeFromString(String s) {
         byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
-        ItemID result = new ItemID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
-        return result;
+        return new ItemID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
     }
 
     /**

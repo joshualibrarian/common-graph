@@ -30,7 +30,7 @@ import dev.everydaythings.graph.runtime.Librarian;
  * <p>Phase 1 keeps {@code onFrameAssembled} minimal — body persistence is enough.
  * Future: token-dictionary indexing for "find sememes whose gloss matches X."
  */
-@Seed.Item(key = Gloss.KEY)
+@Seed.Item(key = Gloss.KEY, head = Item.Predicate.KEY)
 @Seed.Embodies(key = Gloss.KEY)
 public class Gloss extends Item {
 

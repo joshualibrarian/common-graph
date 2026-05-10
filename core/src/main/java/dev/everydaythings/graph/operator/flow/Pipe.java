@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.value;
+package dev.everydaythings.graph.operator.flow;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.item.Item;
@@ -8,6 +8,8 @@ import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.linguistics.Lexeme;
 import dev.everydaythings.graph.linguistics.PartOfSpeech;
+import dev.everydaythings.graph.operator.NotationVocabulary;
+import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
 
@@ -20,9 +22,11 @@ import dev.everydaythings.graph.semantics.ThematicRole;
  * the runtime/evaluator layer; {@code applyBinary} here is a placeholder that simply
  * returns the right operand to satisfy the binary-operator contract.
  */
-@Seed.Item(key = Pipe.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Item(key = Pipe.KEY,
+        head = Operator.KEY,
+        bindings = {@Seed.Binding(role = NotationVocabulary.Arity.KEY, integer = 2)})
 @Seed.Embodies(key = Pipe.KEY)
-public class Pipe extends Item {
+public class Pipe extends Operator {
 
     public static final String KEY = "cg.predicate:pipe";
     public static final ItemID IID = ItemID.fromString(KEY);
@@ -31,17 +35,19 @@ public class Pipe extends Item {
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "pipe — feeds the left operand into the right (function application chain)";
 
-    @Seed.Frame(predicate = Lexeme.KEY)
+    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {NotationVocabulary.Infix.KEY}),
+          bindings = {
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Precedence.KEY},
+                          integer = -10),
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Associativity.KEY},
+                          ref = NotationVocabulary.Left.KEY)
+          })
     static final String symbol = "|>";
-
-    @Seed.Frame(predicate = NotationVocabulary.Fixity.KEY)
-    static final ItemID fixity = NotationVocabulary.Infix.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Associativity.KEY)
-    static final ItemID associativity = NotationVocabulary.Left.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Precedence.KEY)
-    static final long precedence = -10L;
 
     @Seed.Frame(predicate = Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
@@ -55,7 +61,14 @@ public class Pipe extends Item {
      * that resolves callable items; this returns the right operand verbatim so the
      * binary-operator contract is satisfied.
      */
-    public Object applyBinary(Object left, Object right) {
+    @Override
+    public Object execute(Object... operands) {
+        if (operands.length != 2) {
+            throw new IllegalArgumentException(
+                    "expects 2 operands, got " + operands.length);
+        }
+        Object left = operands[0];
+        Object right = operands[1];
         return right;
     }
 }

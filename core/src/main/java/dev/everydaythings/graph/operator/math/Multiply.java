@@ -1,20 +1,23 @@
-package dev.everydaythings.graph.value;
+package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.linguistics.Lexeme;
 import dev.everydaythings.graph.linguistics.PartOfSpeech;
+import dev.everydaythings.graph.operator.NotationVocabulary;
+import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
 
 /** The multiplication operator. Infix, left-associative, precedence 20 (above add/sub). */
-@Seed.Item(key = Multiply.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Item(key = Multiply.KEY,
+        head = Operator.KEY,
+        bindings = {@Seed.Binding(role = NotationVocabulary.Arity.KEY, integer = 2)})
 @Seed.Embodies(key = Multiply.KEY)
-public class Multiply extends Item {
+public class Multiply extends Operator {
 
     public static final String KEY = "cg.predicate:multiply";
     public static final ItemID IID = ItemID.fromString(KEY);
@@ -23,17 +26,19 @@ public class Multiply extends Item {
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "the operation of scaling one quantity by another";
 
-    @Seed.Frame(predicate = Lexeme.KEY)
+    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {NotationVocabulary.Infix.KEY}),
+          bindings = {
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Precedence.KEY},
+                          integer = 20),
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Associativity.KEY},
+                          ref = NotationVocabulary.Left.KEY)
+          })
     static final String symbol = "*";
-
-    @Seed.Frame(predicate = NotationVocabulary.Fixity.KEY)
-    static final ItemID fixity = NotationVocabulary.Infix.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Associativity.KEY)
-    static final ItemID associativity = NotationVocabulary.Left.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Precedence.KEY)
-    static final long precedence = 20L;
 
     @Seed.Frame(predicate = Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
@@ -46,7 +51,14 @@ public class Multiply extends Item {
     public Multiply(ItemID iid) { super(iid); }
     public Multiply(ItemID iid, Librarian librarian) { super(iid, librarian); }
 
-    public Object applyBinary(Object left, Object right) {
+    @Override
+    public Object execute(Object... operands) {
+        if (operands.length != 2) {
+            throw new IllegalArgumentException(
+                    "expects 2 operands, got " + operands.length);
+        }
+        Object left = operands[0];
+        Object right = operands[1];
         if (left instanceof Number l && right instanceof Number r) {
             if (left instanceof Double || right instanceof Double
                     || left instanceof Float || right instanceof Float) {
@@ -55,6 +67,6 @@ public class Multiply extends Item {
             return l.longValue() * r.longValue();
         }
         throw new IllegalArgumentException(
-                "Multiply.applyBinary: unsupported operand types " + left + " * " + right);
+                "Multiply.execute: unsupported operand types " + left + " * " + right);
     }
 }

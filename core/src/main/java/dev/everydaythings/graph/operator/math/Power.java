@@ -1,13 +1,14 @@
-package dev.everydaythings.graph.value;
+package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.linguistics.Lexeme;
 import dev.everydaythings.graph.linguistics.PartOfSpeech;
+import dev.everydaythings.graph.operator.NotationVocabulary;
+import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
 
@@ -16,9 +17,11 @@ import dev.everydaythings.graph.semantics.ThematicRole;
  * parses as {@code 2^(3^2)} = 512, not {@code (2^3)^2} = 64). Precedence 30 — above
  * multiplication.
  */
-@Seed.Item(key = Power.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Item(key = Power.KEY,
+        head = Operator.KEY,
+        bindings = {@Seed.Binding(role = NotationVocabulary.Arity.KEY, integer = 2)})
 @Seed.Embodies(key = Power.KEY)
-public class Power extends Item {
+public class Power extends Operator {
 
     public static final String KEY = "cg.predicate:power";
     public static final ItemID IID = ItemID.fromString(KEY);
@@ -27,17 +30,19 @@ public class Power extends Item {
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "exponentiation — raising one quantity to the power of another";
 
-    @Seed.Frame(predicate = Lexeme.KEY)
+    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {NotationVocabulary.Infix.KEY}),
+          bindings = {
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Precedence.KEY},
+                          integer = 30),
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Associativity.KEY},
+                          ref = NotationVocabulary.Right.KEY)
+          })
     static final String symbol = "^";
-
-    @Seed.Frame(predicate = NotationVocabulary.Fixity.KEY)
-    static final ItemID fixity = NotationVocabulary.Infix.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Associativity.KEY)
-    static final ItemID associativity = NotationVocabulary.Right.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Precedence.KEY)
-    static final long precedence = 30L;
 
     @Seed.Frame(predicate = Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
@@ -46,11 +51,18 @@ public class Power extends Item {
     public Power(ItemID iid) { super(iid); }
     public Power(ItemID iid, Librarian librarian) { super(iid, librarian); }
 
-    public Object applyBinary(Object left, Object right) {
+    @Override
+    public Object execute(Object... operands) {
+        if (operands.length != 2) {
+            throw new IllegalArgumentException(
+                    "expects 2 operands, got " + operands.length);
+        }
+        Object left = operands[0];
+        Object right = operands[1];
         if (left instanceof Number l && right instanceof Number r) {
             return Math.pow(l.doubleValue(), r.doubleValue());
         }
         throw new IllegalArgumentException(
-                "Power.applyBinary: unsupported operand types " + left + " ^ " + right);
+                "Power.execute: unsupported operand types " + left + " ^ " + right);
     }
 }

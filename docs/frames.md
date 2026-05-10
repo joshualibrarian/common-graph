@@ -115,19 +115,40 @@ Creating a frame IS entering data. Querying frames IS a database query. Piping f
 
 ### Role Declarations
 
-The predicate is itself a sememe — a meaning unit, with an IID. It has two facets: a **definition** and an **implementation**.
+The predicate is itself a sememe — a meaning unit, with an IID. Predicates have two facets: a **definition** (declarative, data) and a **type** (operation vs attestation — see below).
 
-The **definition** is the sememe itself — language-agnostic, declarative, stored as frames:
+The **definition** is the sememe itself — language-agnostic, declarative, stored as frames endorsed by the predicate:
 
-1. **Shape** — what binding roles the frame expects (its "columns")
-2. **Defaults** — which roles are identity or non-identity by default
+1. **EXPECTS frames** — what binding roles the frame expects (its "columns") and what qualifies them
+2. **Glosses + lexemes** — multilingual surface forms
 
-The **implementation** is code in a specific programming language, running on its appropriate runtime. It provides:
+A predicate is mostly *data*. Behavior lives in the **items** that handle frames carrying that predicate (see *Actor Model* below). The predicate itself does no work in the common case.
 
-3. **Parsing** — how this predicate participates in parsing via `contribute()` (precedence, fixity for operators; assigned roles for prepositions; sub-language delegation for domain notation)
-4. **Reaction** — how items respond to this frame being assembled via `onFrameAssembled()` (creating items, opening views, evaluating expressions)
+#### Operation vs Attestation Predicates
 
-The link between definition and implementation is itself a frame: **IMPLEMENTS** is a predicate that declares "this code implements this sememe." The runtime resolves IMPLEMENTS frames to find the appropriate code for a given predicate on the current platform.
+Predicates split into two orthogonal vocabularies:
+
+- **Operation predicates** name what's being done. `ADD`, `MULTIPLY`, `LOOKUP`, `FETCH`, `RENDER`, `INPUT`, `CHESS_MOVE`, `MESSAGE`. The "API call" or "content" shape.
+- **Attestation predicates** name a speech act about an operation frame. `AUTHORED`, `ASK`, `TELL`, `DELIVER`, `ACK`, `ENDORSE`, `REVOKE`, `REDACT`. They typically carry a `body→<operation-CID>` binding plus signer, timestamp, recipient, context.
+
+These are different axes:
+
+| Same operation, different attestations | Same attestation, different operations |
+|---|---|
+| `AUTHORED { body→<chess-move> }` | `DELIVER { body→<chess-move>, recipient→Bob }` |
+| `DELIVER { body→<chess-move>, recipient→Bob }` | `DELIVER { body→<scene>, recipient→renderer }` |
+| `ACK { body→<delivery-record> }` | `DELIVER { body→<input-event>, recipient→view }` |
+
+When a frame travels — across a wire, into persistence, into an attestation chain — it's commonly wrapped in an attestation frame whose `body→` binding points at the operation frame's CID. The receiver dispatches in two stages: outer attestation predicate (verifying signatures, checking trust, resolving routing/context), then inner operation predicate (running the actual call).
+
+#### Pure-Operator Exception
+
+A small class of predicates carry their own behavior — the "self-handling" exception:
+
+- Pure operators like `ADD`, `MULTIPLY`, `NEGATE` whose behavior is a function of the bindings alone, with no contextual state.
+- These compute on frame assembly without consulting any other item.
+
+Use sparingly. The default is *behavior in items, not in predicates*.
 
 A predicate can have a definition with no implementation — it's just a schema, a pure data template. A predicate with an implementation gets active behavior: the ADD operator knows how to evaluate arithmetic; the VIEW predicate knows how to open a window. The definition is universal; the implementation is runtime-specific. Multiple implementations can exist for the same predicate.
 
@@ -269,19 +290,22 @@ The signature signs over the head reference + bindings (everything except itself
 
 A frame = body + record(s). The body is the shared fact. Records carry everything else: who attests it, when, with what proof, and any per-attestation config or presentation choices.
 
-### Endorsement — What Manifests Hold
+### Endorsement — A Binding on the Manifest Body
 
-The item's declaration: "I endorse this fact, presented this way."
+An "endorsement" isn't a separate structure — it's an `ENDORSES` binding on the item's manifest body, with a body CID as target:
 
 ```
-Endorsement {
-    bodyHash:   ContentID       // which fact (required)
-    recordCid:  ContentID?      // which record's config to honor (optional)
-    mounts:     [Mount...]      // presentation layout
-}
+Manifest body bindings:
+  ITEM_ID        → <self-iid>
+  FOLLOWS        → <parent-VID>           (one or more)
+  ENDORSES       → <frame-body-CID>       (one binding per endorsed frame)
+  ENDORSES       → <frame-body-CID>
+  IMPLEMENTATION → <code-bundle-CID>      (optional)
+  CONFIG         → <config-data>          (qualifiers narrow the dimension)
+  HANDLES        → ...                    (one binding per handled predicate; see Actor Model below)
 ```
 
-Most endorsements: just bodyHash + mounts. With recordCid: "I pin this record's config."
+Multiple ENDORSES bindings accumulate the manifest's endorsed-frame set. Per-record presentation/config preferences ride on the records attached to those frame bodies, not on the endorsement entry.
 
 ### Frame — Runtime Container
 
@@ -292,13 +316,13 @@ In-memory only. Holds the body Datum, record Datum(s), and the live decoded inst
 The **selector** identifies a frame — computed from the body, not stored independently. It's the predicate + all qualifier IIDs from compound binding keys:
 
 ```
-FrameBody:  LEXEME { THEME:[]→sememe, NAME:[ENGLISH, VERB, LEMMA]→"create" }
+Body Datum:  LEXEME { THEME:[]→sememe, NAME:[ENGLISH, VERB, LEMMA]→"create" }
 Selector:   (LEXEME, ENGLISH, VERB, LEMMA)
 
-FrameBody:  TITLE { THEME:[]→book, NAME:[]→"The Hobbit" }
+Body Datum:  TITLE { THEME:[]→book, NAME:[]→"The Hobbit" }
 Selector:   (TITLE)
 
-FrameBody:  VAULT { THEME:[]→Alice, LOCATION:[]→laptop, TOPIC:[LOCAL]→"/path" }
+Body Datum:  VAULT { THEME:[]→Alice, LOCATION:[]→laptop, TOPIC:[LOCAL]→"/path" }
 Selector:   (VAULT, LOCAL)
 ```
 
@@ -306,32 +330,95 @@ The home binding's target (THEME→sememe, THEME→book) is NOT part of the sele
 
 **Everything is a query.** The selector IS the fetch pattern. `(GLOSS, ENGLISH)` selects the English gloss. That's how you find it.
 
-## The Manifest: Endorsement List
+## The Manifest: A Body + Records, Like Everything Else
 
-The manifest is the item's signed list of endorsements:
+The manifest is the item's current-version Datum. It uses the same Body+Record structure as every other frame in the system:
 
 ```
-Manifest {
-    iid:            ItemID
-    endorsements:   [Endorsement...]
-    signer:         SigningKey
-    vid:            ContentID       // hash of manifest body
-    timestamp:      Instant
+Manifest body Datum {
+    head-reference:   Tag-6( @<archetype-IID> )    // what kind of item this is
+    bindings:         [
+                        ITEM_ID        → <self-iid>,
+                        FOLLOWS        → <parent-VID>,        // one or more
+                        ENDORSES       → <frame-body-CID>,    // one or more
+                        ENDORSES       → <frame-body-CID>,
+                        IMPLEMENTATION → <code-bundle-CID>,
+                        CONFIG         → <config>,
+                        HANDLES        → <predicate-IID>,     // see Actor Model
+                        ...
+                      ]
+}
+
+Manifest record Datum {
+    head-reference:   Tag-6( #<manifest-body-CID> )
+    bindings:         [signer, timestamp, optional CONFIG, ...]
+    signature:        bytes
 }
 ```
 
-The manifest IS the attestation for endorsed frames. The manifest signature covers all endorsements. No separate per-frame signatures needed for endorsed frames.
+The manifest body is just a Datum whose head is an *archetype* (the type of thing this item is) rather than a predicate. Its bindings carry the structural metadata of an item version. The manifest record is just a Record attesting that body — same shape as any attestation record.
 
-**Mounts** — the item's layout decision. Where this frame appears in the item's presentation tree.
+The VID is the manifest body CID — the hash of the encoded body Datum. New version = new manifest body = new VID. Records on the manifest body carry signatures and per-signer config but don't change the VID.
 
-**VID computation:**
+The manifest signature covers all bindings on the body, including all ENDORSES entries. No separate per-frame signatures needed for endorsed frames — endorsement IS attestation by way of inclusion.
+
+## Actor Model: Items Handle Frames
+
+The runtime is an **actor model**: frames are messages, items are actors, predicates are message types.
+
+- **Frames are data.** A frame describes something — a chess move, a chat message, a lookup request, a render request. The frame itself is inert.
+- **Items are active.** An item has an implementation (a code bundle) that reacts to frames addressed to it.
+- **Predicates classify messages.** They name the shape and meaning of a message kind. They generally do not carry behavior themselves.
+
+When a frame is created and reaches an item — by being endorsed in its manifest, by being addressed to it via a recipient/location binding, or by being delivered through subscription — the item dispatches on the frame's predicate to choose how to react. The dispatch table is **declared in data**: see HANDLES below.
+
+The pure-operator exception (predicates like `ADD` that compute from bindings alone) coexists with this model. Operators are *both* a message-shape and a self-handling actor; everything else has its handlers in items.
+
+### HANDLES: APIs Declared as Endorsed Frames
+
+An item declares which message types it processes by endorsing **HANDLES** frames in its manifest. Each HANDLES frame names a predicate the item handles, optionally with metadata (handler reference, arity, priority, etc.):
+
 ```
-VID = hash(manifest body)
-    = hash(iid + endorsements + timestamp)
-    = hash(... + [bodyHash₁, bodyHash₂, ...] + ...)
+[HANDLES, {
+    THEME      → <predicate-IID>,       // which message type
+    INSTRUMENT → "applyMove",            // handler reference (method name OR @<code-item-ref>)
+    ATTRIBUTE[ARITY] → 3,                // optional metadata
+    ATTRIBUTE[PRIORITY] → ...,           // optional, for ordering polymorphic handlers
+    ...
+}]
 ```
 
-Each body hash only includes identity bindings. Non-identity content is invisible to VID.
+The pattern `ATTRIBUTE[<kind>] → <value>` is generic — Arity is one such kind; Priority, Return-shape, Visibility, etc. attach the same way without requiring new roles.
+
+A ChessGame's manifest endorses three HANDLES frames:
+
+```
+ChessGame manifest body:
+  ITEM_ID  → <self>
+  ENDORSES → <handles-frame-1-CID>      // [HANDLES {THEME→CHESS_MOVE, INSTRUMENT→"applyMove"}]
+  ENDORSES → <handles-frame-2-CID>      // [HANDLES {THEME→RESIGN, INSTRUMENT→"handleResign"}]
+  ENDORSES → <handles-frame-3-CID>      // [HANDLES {THEME→OFFER_DRAW, INSTRUMENT→"offerDraw"}]
+```
+
+Three properties fall out:
+
+- **APIs are queryable.** Walk endorsed HANDLES frames on any item to introspect its full message-handler interface. Same query mechanism as everything else.
+- **APIs inherit via archetype.** Sub-archetypes inherit parent HANDLES; instances inherit the type's. Method-dictionary inheritance, but data-driven.
+- **APIs can extend at runtime.** Endorsing a new HANDLES frame adds a handler. No recompile. (Trust/policy controls govern whose HANDLES additions are accepted.)
+
+### Why Endorsed Frames, Not Manifest Bindings
+
+HANDLES frames are *endorsed* (referenced by ENDORSES bindings on the manifest), not direct manifest bindings. Direct manifest bindings stay reserved for **identity/structural** declarations (ITEM_ID, FOLLOWS, IMPLEMENTATION, ENDORSES, CONFIG, ARCHETYPE). API surface lives with claims/capabilities — endorsed frames — because they need rich, extensible metadata (arity, return shape, priority, qualifiers) and benefit from queryable composition. Keeping the manifest slim and reserved for identity, while richer declarations live as endorsed frames, is the structural rule.
+
+### Polyglot Mapping
+
+The `INSTRUMENT` binding can be:
+
+- **A literal string** (Java method name) — for Java implementations using reflection
+- **A reference to a code item** (`@<code-item-ref>`) — for swappable polyglot handlers
+- **An expression frame** — declarative computed handlers (advanced)
+
+Different language bundles can implement the same archetype's API. Same HANDLES list, same wire/storage format; the bundle provides predicate-keyed handler functions in whatever language. The wire format is the contract; the implementation is private.
 
 ## Config: Just Bindings
 
@@ -369,7 +456,7 @@ A critical principle: frames are **NOT "stored on" items**. Frames are independe
 
 ```
 Frame created → stored in object store (independent)
-  → FrameRecord signed by creator
+  → record Datum signed by creator
   → Bindings reference items via roles (LOCATION, THEME, AGENT, etc.)
   → Indexed in FRAME_BY_ITEM for ALL item references in bindings
   → NOT "part of" any item until endorsed
@@ -387,7 +474,7 @@ This means:
 
 **Endorsed frames** are in the item's manifest. The item owner commits them. The manifest signature covers them.
 
-**Unendorsed frames** reference the item but are not in its manifest. Each carries its own FrameRecord with an independent signature. Likes, annotations, trust attestations, comments from non-owners.
+**Unendorsed frames** reference the item but are not in its manifest. Each carries its own record Datum with an independent signature. Likes, annotations, trust attestations, comments from non-owners.
 
 ```
 book:TheHobbit {
@@ -395,7 +482,7 @@ book:TheHobbit {
     TITLE    { THEME:[]→book,  NAME:[]→"The Hobbit" }
     AUTHORED { THEME:[]→book,  AGENT:[]→Tolkien }
 
-    // Unendorsed (independently signed FrameRecords, NOT in manifest)
+    // Unendorsed (independently signed record Datums, NOT in manifest)
     LIKE { THEME:[]→book, AGENT:[]→Alice }     [signed by Alice]
     LIKE { THEME:[]→book, AGENT:[]→Bob }       [signed by Bob]
 }
@@ -408,7 +495,7 @@ The structural difference is only manifest inclusion. Same frame format. Promoti
 Frames accumulate as uncommitted changes. The owner commits to endorse them:
 
 1. User creates frames (via the item's prompt — typing assertions, making moves, entering data)
-2. Frames are signed FrameRecords, stored in the object store, indexed — but not yet in the manifest
+2. Frames are signed record Datums, stored in the object store, indexed — but not yet in the manifest
 3. Uncommitted frames are visible locally; remote visibility is policy-dependent
 4. User types `commit` → new manifest version endorses accumulated frames
 5. Revert rolls back to the previous manifest version, un-endorsing the frames
@@ -452,12 +539,12 @@ New value → new body hash → replace at same selector. The old frame is dispo
 
 For stateful items (chess, chat): the body hash stays stable (identity bindings don't change), while content evolves in non-identity stream bindings or as new frames accumulating on the item.
 
-## Queries: Incomplete Frames
+## Queries: Just Incomplete Frames (No Wrapper)
 
-A query is a frame with holes:
+A query is literally a frame with holes — *the frame itself IS the query*. **There is no QUERY wrapper predicate.** Don't invent one.
 
 ```
-// Complete frame:
+// Complete frame (an assertion):
 AUTHORED { THEME:[]→TheHobbit, AGENT:[]→Tolkien }
 
 // Query — who authored The Hobbit?
@@ -466,11 +553,42 @@ AUTHORED { THEME:[]→TheHobbit, AGENT:[]→? }
 // Query — what did Tolkien author?
 AUTHORED { THEME:[]→?, AGENT:[]→Tolkien }
 
+// Query — all frames in this session (head=ANY wildcard):
+[ANY, {LOCATION:[]→<session-CID>}]
+
 // Query — all harvest records over 5kg:
 HARVEST_RECORD { RESULT:[QUANTITY, WEIGHT]→(> 5kg) }
 ```
 
-Queries are frames — same structure, just incomplete. Evaluation fills the holes by searching the graph.
+Same structure as assertions, just incomplete (or with `ANY` as head for cross-predicate queries). Evaluation fills the holes by matching against frames in the graph.
+
+If a query needs **execution context** — ordering, return-shape, limits, recipient identity — that goes in a separate **attestation record** wrapping the query body, using the same record pattern as anywhere else:
+
+```
+Query body (operation):
+    [ANY, {LOCATION→<session-CID>}]
+
+Attestation record (request envelope):
+    ASK { body→<query-CID>, signer→Alice, recipient→<librarian>,
+          order→:by-time, return→:all, time→T }
+```
+
+Operation layer = *what to find*. Attestation layer = *who's asking, with what request context*.
+
+### Categories Emerge From Filters — No Container Predicates
+
+When you'd reach for a "container predicate" (INBOX, ACTIVITY_LOG, FEED, FRIENDS_LIST), **don't.** The container is just a query frame with `ANY` (or a more specific predicate) as head, plus binding filters. Different actions inside a session have different predicates; there is no umbrella predicate that wraps them.
+
+| "Container" | Right shape |
+|---|---|
+| Inbox | `[ANY, {recipient→me, ...}]` (with filters for unhandled attestation records) |
+| Activity log | `[ANY, {location→<session>}]` |
+| Public feed | `[ANY, {retention→:durable, visibility→:public}]` |
+| Friends list | `[ENDORSE-AS-FRIEND, {signer→me}]` |
+| Chat history | `[MESSAGE, {location→<room>}]` |
+| Work queue | `[ANY, {recipient→me, ack-status→:none}]` |
+
+Categories emerge from filters, not from named containers. Activity log is the *query result*, never a stored thing.
 
 ## Expressions and Evaluation
 
@@ -563,7 +681,7 @@ The `[LOCAL]` qualifier on TOPIC signals that the content is host-specific. Diff
 
 **Content** (blobs, stream chunks, manifests) is stored by CID, referenced from binding targets.
 
-**FrameRecords** are stored content-addressed, referenced from the RECORD_BY_BODY index.
+**record Datums** are stored content-addressed, referenced from the RECORD_BY_BODY index.
 
 ### Indexes
 
@@ -583,7 +701,10 @@ Token indexing: NAME bindings are indexed with scope and features derived from t
 - **One primitive**: Frame = predicate + role-keyed bindings. That's the entire data model.
 - **One structural primitive**: Body and Record are configurations of the **Datum** primitive (`reference + bindings [+ signature]`). See `datum.md`.
 - **Predicates are schemas**: Designing a predicate IS designing a database, a form, a spreadsheet. Roles are columns. Qualifiers constrain and distinguish.
-- **Predicates carry behavior**: Every predicate declares parsing behavior via `contribute()` and reaction behavior via `onFrameAssembled()`. No switch statements on predicate IDs.
+- **Behavior lives in items, not predicates**: Frames are messages, items are actors, predicates classify message types. The receiving item dispatches on incoming-frame predicate via its endorsed HANDLES frames + `onFrameAssembled()`. Pure operators (ADD, MULTIPLY) are the rare exception that self-handle.
+- **Item APIs are declared as endorsed frames**: HANDLES frames endorsed by an item's manifest declare which predicates it processes. Queryable, inheritable via archetype, runtime-extensible.
+- **Manifest stays slim**: Direct manifest bindings reserved for identity/structural (ITEM_ID, FOLLOWS, ENDORSES, IMPLEMENTATION, CONFIG). Capability/claim metadata (HANDLES, EXPECTS) lives as endorsed frames.
+- **Two predicate vocabularies**: Operation predicates name what's being done (ADD, LOOKUP, CHESS_MOVE). Attestation predicates name speech acts about operations (AUTHORED, ASK, DELIVER, ENDORSE, REVOKE, REDACT). Receivers dispatch in two stages: outer attestation, then inner operation.
 - **Everything is a binding**: Content, references, local paths, config — all role-keyed bindings with compound keys.
 - **Three parts per binding**: Role (always a sememe), qualifiers (sememes or literals — narrowing + constraints), target (the value). One per-binding flag: `index`.
 - **Body is pure assertion**: A body Datum's head reference is to a meaning (predicate IID). Body CID = hash of full encoded form. No signature.
@@ -595,7 +716,7 @@ Token indexing: NAME bindings are indexed with scope and features derived from t
 - **Frames are independent entities**: A frame's body and records are stored content-addressed, independently of any item. Frames reference items via bindings — they are not "stored on" items.
 - **Creating ≠ endorsing**: Anyone can create a frame referencing any item. Only the owner can endorse it (include it in the manifest). Unendorsed frames have records signed by their creator but are not in any item's manifest.
 - **Item binding is semantic**: Each predicate declares which role the context item fills, with proper semantic meaning. TITLE uses THEME ("about this item"), MOVE uses LOCATION ("at this item"), EQUALS uses LOCATION ("lives on this item"). The indexer indexes all item references regardless of role.
-- **Queries are incomplete frames**: A `?` in a role (or simply the absence of that role) turns a frame into a query. Bare sememes are queries. Bare literals self-evaluate.
+- **Queries are just incomplete frames** (no wrapper): A `?` in a role, an unfilled binding, or `ANY` as head turns a frame into a query. Bare sememes are queries. Bare literals self-evaluate. Categories emerge from filters — no INBOX/LOG/FEED/ACTIVITY_LOG predicates.
 - **Expressions are predicates**: Operators declare precedence/fixity via `contribute()`. The FrameAssembler handles precedence-climbing universally — no separate expression parser. Mathematical notation is language-neutral.
 - **Config is bindings**: `CONFIG:[PRESENTATION]→styling`. Not a separate structure. Lives on the predicate item (type defaults), the body (per-instance), or records (per-signer). All are real bindings included in their Datum's hash.
 - **Content is CID-addressed**: Blob (small), Chain (streams), Manifest (large/swarmable). Stream roots are immutable. Heads are derived.

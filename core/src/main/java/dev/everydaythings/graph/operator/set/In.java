@@ -1,7 +1,8 @@
-package dev.everydaythings.graph.value;
+package dev.everydaythings.graph.operator.set;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.operator.NotationVocabulary;
+import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
@@ -15,9 +16,11 @@ import dev.everydaythings.graph.semantics.ThematicRole;
  * The set-membership operator. Infix, non-associative, precedence 5. Tests whether
  * the left operand is a member of the right operand (a collection or container).
  */
-@Seed.Item(key = In.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Item(key = In.KEY,
+        head = Operator.KEY,
+        bindings = {@Seed.Binding(role = NotationVocabulary.Arity.KEY, integer = 2)})
 @Seed.Embodies(key = In.KEY)
-public class In extends Item {
+public class In extends Operator {
 
     public static final String KEY = "cg.predicate:in";
     public static final ItemID IID = ItemID.fromString(KEY);
@@ -26,17 +29,19 @@ public class In extends Item {
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "set membership — true when the left operand is in the right collection";
 
-    @Seed.Frame(predicate = Lexeme.KEY)
+    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {NotationVocabulary.Infix.KEY}),
+          bindings = {
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Precedence.KEY},
+                          integer = 5),
+                  @Seed.Binding(role = ThematicRole.Attribute.KEY,
+                          qualifiers = {NotationVocabulary.Associativity.KEY},
+                          ref = NotationVocabulary.NonAssociative.KEY)
+          })
     static final String symbol = "in";
-
-    @Seed.Frame(predicate = NotationVocabulary.Fixity.KEY)
-    static final ItemID fixity = NotationVocabulary.Infix.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Associativity.KEY)
-    static final ItemID associativity = NotationVocabulary.NonAssociative.IID;
-
-    @Seed.Frame(predicate = NotationVocabulary.Precedence.KEY)
-    static final long precedence = 5L;
 
     @Seed.Frame(predicate = Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Preposition.KEY, GrammaticalFeature.Lemma.KEY}))
@@ -45,7 +50,14 @@ public class In extends Item {
     public In(ItemID iid) { super(iid); }
     public In(ItemID iid, Librarian librarian) { super(iid, librarian); }
 
-    public Object applyBinary(Object left, Object right) {
+    @Override
+    public Object execute(Object... operands) {
+        if (operands.length != 2) {
+            throw new IllegalArgumentException(
+                    "expects 2 operands, got " + operands.length);
+        }
+        Object left = operands[0];
+        Object right = operands[1];
         if (right instanceof java.util.Collection<?> c) return c.contains(left);
         if (right instanceof Object[] arr) {
             for (Object item : arr) {
@@ -55,6 +67,6 @@ public class In extends Item {
         }
         if (right instanceof String s && left instanceof String sub) return s.contains(sub);
         throw new IllegalArgumentException(
-                "In.applyBinary: right operand must be a collection or string, got " + right);
+                "In.execute: right operand must be a collection or string, got " + right);
     }
 }

@@ -17,27 +17,20 @@ CG-CBOR is a **profile** of CBOR tailored for Common Graph's needs:
 
 ## Tag Allocations
 
-CG-CBOR uses unassigned tags in the 1-byte range (6-23):
+CG-CBOR uses unassigned tags in the 1-byte range (6-23). The active set is small and stable: structural-shape tags for system-level concerns, plus one universal Datum container.
 
 | Tag | Name | Description |
 |-----|------|-------------|
 | 6 | `CG-REF` | Universal reference (item, content, or frame, with optional sub-parts) |
 | 7 | `CG-VALUE` | Explicitly typed value (when shorthand won't do) |
+| 8 | `CG-SIG` | Signature semantics — reserved (signatures currently appear as positional byte strings in record Datums; Tag 8 is the explicit form when one is needed) |
 | 9 | `CG-QTY` | Quantity (magnitude + unit IID) |
-| 10 | `CG-ENCRYPTED` | Encrypted envelope — *reserved* |
-| 11 | `CG-REQUEST` | Peer protocol: request for data |
-| 12 | `CG-DELIVERY` | Peer protocol: delivery of data |
-| 13 | `CG-AUTH` | Session protocol: authentication exchange |
-| 14 | `CG-CONTEXT` | Session protocol: get/set focused item |
-| 15 | `CG-DISPATCH` | Session protocol: verb invocation |
-| 16 | `CG-LOOKUP` | Session protocol: token search/completion |
-| 17 | `CG-SUBSCRIBE` | Session protocol: subscribe/unsubscribe |
-| 18 | `CG-EVENT` | Session protocol: push notification |
-| 19 | `CG-STREAM` | Session protocol: chunked data |
-| 20 | `CG-HEARTBEAT` | Shared: keep-alive signal |
-| 21 | `CG-ACK` | Shared: acknowledgment |
-| 22 | `CG-ERROR` | Shared: error response |
-| 23 | `CG-FRAME` | Inline nested frame (frame as binding target) |
+| 10 | `CG-ENCRYPTED` | Encrypted ciphertext envelope (Gordian-style multi-recipient; see `encryption.md`) |
+| 11 | `CG-REDACTED` | Redaction marker — wraps a multihash representing an elided subtree (Merkle elision; see `encryption.md` § Redaction) |
+| 12–22 | *(vacated)* | Formerly protocol-specific tags (REQUEST, DELIVERY, AUTH, etc.). Retired in favor of vocabulary-driven dispatch — protocol operations are now expressed as frames whose head is the operation predicate, dispatched by the receiving item's HANDLES (see `frames.md` and `protocol.md`). Reserved for future structural-shape tags. |
+| 23 | `CG-DATUM` | Inline Datum (head + bindings) — used for nested datums as binding targets, expression trees, and any context where a Datum appears inline rather than as a top-level CBOR value |
+
+**Tag space philosophy.** Tags are *parser shape hints* — they tell decoders how to read bytes without needing semantic resolution. Vocabulary (predicate IIDs in head references) carries the *meaning*. The minimal tag set (6 active structural tags + 1 Datum container) keeps decoders simple; the rich vocabulary lives at the data layer where it belongs.
 
 ---
 
@@ -346,28 +339,60 @@ Tag(9, [100, bytes(<cg.unit:m>)])                    // 100 meters
 
 ---
 
-## Tag 23: CG-FRAME (Inline Nested Frame)
+## Tag 11: CG-REDACTED (Redaction Marker)
 
-An inline nested frame, used as a binding target within another frame. Enables expression trees and compositional frames.
+A redaction marker — wraps just a multihash, replacing a subtree of a Merkle-hashed body without changing the body's CID.
 
 ### Encoding
 
-The same as a body Datum — Tag 23 simply indicates that this CBOR array is an inline frame rather than something to be stored as a top-level Datum.
+```
+Tag 11: bytes(<multihash-of-original-subtree>)
+```
+
+Deliberately spartan. The wrapped value is **only** the hash of the original subtree (in multihash form). No type info, no predicate, no size — a redaction is opaque by definition. If contextual metadata about the redaction matters (who, when, why, scope), that lives in a separate REDACT attestation record referencing the redacted Datum, not in the marker itself.
+
+### Verification Rule
+
+When walking a body to verify its CID:
+
+1. Encounter a Datum subtree → recurse, hash normally
+2. Encounter `tag(11, <hash>)` → use the inner hash directly without recursing
+3. Compute the parent's Merkle hash from these inputs
+4. Compare against the body's known CID
+
+If they match: the redaction is honest — the hash truly represents what was there. If they don't: the body has been tampered with, or the wrong hash was substituted.
+
+### Distinct from Encryption
+
+Redaction (Tag 11) is **lossy without the original** — even with full key material, you cannot recover what was redacted. Encryption (Tag 10) is **recoverable with the key**. The two compose: an ENCRYPT record about a redacted body is legitimate, as is a REDACT record about an encrypted body. See `encryption.md` for the full redaction specification.
+
+---
+
+## Tag 23: CG-DATUM (Inline Datum)
+
+An inline Datum (head + bindings, optionally with signature) used as a binding target within another Datum, or anywhere a Datum appears inline rather than as a top-level CBOR value.
+
+### Encoding
+
+The same as a top-level body or record Datum — Tag 23 simply indicates that this CBOR array is an inline Datum rather than something to be stored separately.
 
 ```
 Tag 23: [
-  Tag-6(@<predicate-IID>),       ; head reference
-  [<binding>, <binding>, ...]    ; bindings
+  Tag-6(@<head-IID>),           ; head reference (predicate, archetype, or other)
+  [<binding>, <binding>, ...]   ; bindings
 ]
 ```
 
+(Three-element form for inline records is allowed but unusual — inline Datums are typically bodies.)
+
 ### Use Cases
 
-- **Expression trees**: `MUL { THEME → ADD { THEME→3, GOAL→5 }, GOAL → 2 }`
+- **Expression trees**: `MUL { THEME → ADD { THEME→3, GOAL→5 }, GOAL → 2 }` — the inner `ADD` Datum is a Tag 23 inline value as the target of the outer `THEME` binding
 - **Parametric modeling**: Mathematical expressions with coordinate bindings
 - **CSG operations**: Boolean operations composing compound structures
+- **Query patterns**: An incomplete frame used as a query has no independent CID and may appear inline in containing requests
 
-Nesting is recursive — an inline frame can itself contain inline frames. The nested frame has no independent CID — it's part of the enclosing frame's body hash.
+Nesting is recursive — an inline Datum can itself contain inline Datums. The nested Datum has no independent CID; it's part of the enclosing Datum's body hash.
 
 ---
 
@@ -408,7 +433,7 @@ The escape hatch exists for interop scenarios where IEEE 754 bit patterns must b
 
 | Aspect | DAG-CBOR (IPLD) | CG-CBOR |
 |--------|-----------------|---------|
-| Custom tags | Only tag 42 (CID) | Tags 6-23 (data types + protocol messages) |
+| Custom tags | Only tag 42 (CID) | Small structural set: Tags 6, 7, 8, 9, 10, 11, 23 (no protocol tags — operations are vocabulary-driven) |
 | Floats | Forbidden | Forbidden (use Rational/Decimal) |
 | Links | CID only | Universal reference (item/content/frame, with sub-parts) |
 | Typed values | Implicit | Shorthand + explicit CG-VALUE |

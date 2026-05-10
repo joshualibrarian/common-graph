@@ -256,11 +256,14 @@ The record's CID (its content hash) is computed over the *full* three-element fo
 |---|---|
 | 6 | Reference (universal, for all reference types) |
 | 7 | Typed value (for explicitly-typed literals when needed) |
+| 8 | Signature semantics — reserved (signatures currently appear as positional byte strings in record Datums; Tag 8 is the explicit form when one is needed) |
 | 9 | Quantity (magnitude + unit IID) |
-| 10 | Encrypted envelope (reserved, see encryption.md) |
-| 23 | Inline frame (for nested frame expressions in binding values) |
+| 10 | Encrypted envelope (Gordian-style multi-recipient ciphertext; see `encryption.md`) |
+| 11 | Redacted marker (wraps a multihash representing an elided subtree; Merkle elision, see `encryption.md`) |
+| 12–22 | Vacated — formerly protocol tags (REQUEST, DELIVERY, etc.); operations are now vocabulary-driven |
+| 23 | Inline Datum (for nested datums as binding targets — expression trees, query patterns, sub-frames) |
 
-Tag 8 (signed envelope) is no longer used — signatures are structurally part of records, with self-describing varsig encoding inside a plain CBOR byte string.
+Signatures are positional in record Datums (third array element), not tagged — Tag 8 is reserved for cases where a signature byte string appears outside that structural slot.
 
 ## Class structure
 

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.ui.Session;
+import dev.everydaythings.graph.ui.SessionOld;
 import dev.everydaythings.graph.frame.DisplayLayoutConfig;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -15,13 +15,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Session DISPLAY_LAYOUT frame management")
-class SessionDisplayLayoutTest {
+class SessionOldDisplayLayoutTest {
 
     private LibrarianOld librarian;
-    private TestSession session;
+    private TestSessionOld session;
 
-    static class TestSession extends Session {
-        TestSession(LibrarianHandle librarian, Ref context) {
+    static class TestSessionOld extends SessionOld {
+        TestSessionOld(LibrarianHandle librarian, Ref context) {
             super(librarian, context);
         }
 
@@ -36,7 +36,7 @@ class SessionDisplayLayoutTest {
     void setUp() {
         librarian = LibrarianOld.createInMemory();
         LocalLibrarian handle = new LocalLibrarian(librarian);
-        session = new TestSession(handle, Ref.of(librarian.iid()));
+        session = new TestSessionOld(handle, Ref.of(librarian.iid()));
     }
 
     @Nested

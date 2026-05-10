@@ -129,6 +129,208 @@ class ParseEngineTest {
         }
     }
 
+    @Nested
+    @DisplayName("PROBE: real seeded operators (bootstrapped Add/Subtract/Multiply/Negate)")
+    class RealSeededOperators {
+
+        private Item realOrchestrator;
+
+        @BeforeEach
+        void seedRealOps() {
+            // Use a fresh lib (not the outer setUp's lib, which pre-registers a test
+            // AddSememe at confidence 0.95 that would dominate over real seeded
+            // operators' precedence-and-fitness-derived confidences).
+            lib = Librarian.inMemory();
+            lib.bootstrap();
+            realOrchestrator = new Item(ItemID.fromString("test.real-orchestrator"), lib);
+        }
+
+        private FrameMap parse(String input) {
+            return realOrchestrator.parse(input, ParseParams.defaults());
+        }
+
+        /** Render a FrameMap as a debug string so failure messages show what we got. */
+        private String describe(FrameMap fm) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("predicate=");
+            sb.append(fm.predicate() == null ? "null" : fm.predicate().value());
+            sb.append(", bindings=[");
+            for (int i = 0; i < fm.bindings().size(); i++) {
+                if (i > 0) sb.append(", ");
+                BindingMap b = fm.bindings().get(i);
+                sb.append(b.role() == null ? "null-role" : b.role().value().iid());
+                sb.append("→");
+                sb.append(b.target() == null ? "null-target" : b.target().value());
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+
+        @Test
+        @DisplayName("'5+3' → Add { THEME=5, GOAL=3 }")
+        void simpleBinaryReal() {
+            FrameMap result = parse("5+3");
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Add.IID);
+            assertThat(integerValue(findBinding(result, ThematicRole.Theme.IID))).isEqualTo(5L);
+            assertThat(integerValue(findBinding(result, ThematicRole.Goal.IID))).isEqualTo(3L);
+        }
+
+        @Test
+        @DisplayName("'5 + 3 * 2' → Add { THEME=5, GOAL=Multiply{3,2} } — sub-frame nesting by precedence")
+        void mixedPrecedence() {
+            FrameMap result = parse("5 + 3 * 2");
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Add.IID);
+            assertThat(integerValue(findBinding(result, ThematicRole.Theme.IID))).isEqualTo(5L);
+
+            // GOAL should be a FrameMapTarget wrapping the Multiply sub-frame.
+            BindingMap goalBinding = findBinding(result, ThematicRole.Goal.IID);
+            assertThat(goalBinding).as("GOAL binding present").isNotNull();
+            assertThat(goalBinding.target().value())
+                    .as("GOAL target is a FrameMapTarget (nested sub-expression)")
+                    .isInstanceOf(FrameMapTarget.class);
+
+            FrameMap nestedMultiply = ((FrameMapTarget) goalBinding.target().value()).frameMap();
+            assertThat(nestedMultiply.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Multiply.IID);
+            assertThat(integerValue(findBinding(nestedMultiply, ThematicRole.Theme.IID))).isEqualTo(3L);
+            assertThat(integerValue(findBinding(nestedMultiply, ThematicRole.Goal.IID))).isEqualTo(2L);
+        }
+
+        @Test
+        @DisplayName("'(5+3)*2' → Multiply { THEME=Add{5,3}, GOAL=2 } — explicit parens via OpenGroup/CloseGroup")
+        void parens() {
+            FrameMap result = parse("(5+3)*2");
+            // OpenGroup / CloseGroup recognize "(" and ")" as text-layer markers.
+            // Operator.parse's neighbor resolver detects them and recursively
+            // parses the bracketed text into a FrameMapTarget — same artifact
+            // precedence-driven nesting produces.
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Multiply.IID);
+
+            BindingMap themeBinding = findBinding(result, ThematicRole.Theme.IID);
+            assertThat(themeBinding).as("THEME binding present").isNotNull();
+            assertThat(themeBinding.target().value())
+                    .as("THEME target is a FrameMapTarget (parenthesized sub-expression)")
+                    .isInstanceOf(FrameMapTarget.class);
+            FrameMap nestedAdd = ((FrameMapTarget) themeBinding.target().value()).frameMap();
+            assertThat(nestedAdd.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Add.IID);
+            assertThat(integerValue(findBinding(nestedAdd, ThematicRole.Theme.IID))).isEqualTo(5L);
+            assertThat(integerValue(findBinding(nestedAdd, ThematicRole.Goal.IID))).isEqualTo(3L);
+
+            assertThat(integerValue(findBinding(result, ThematicRole.Goal.IID))).isEqualTo(2L);
+        }
+
+        @Test
+        @DisplayName("'-5' → Negate { THEME=5 } — context fitness disambiguates Negate (prefix) from Subtract (infix)")
+        void unaryPrefix() {
+            FrameMap result = parse("-5");
+            // Both Negate (prefix) and Subtract (infix) match "-". Negate wins because
+            // its prefix fitness (right operand present, no left) is 1.0, while Subtract's
+            // infix fitness with no left operand is only 0.5.
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Negate.IID);
+            assertThat(integerValue(findBinding(result, ThematicRole.Theme.IID))).isEqualTo(5L);
+            assertThat(findBinding(result, ThematicRole.Goal.IID))
+                    .as("unary Negate has no GOAL binding").isNull();
+        }
+
+        @Test
+        @DisplayName("'2^3^4' → Power { THEME=2, GOAL=Power{3,4} } — right-associative chain")
+        void rightAssocChain() {
+            FrameMap result = parse("2^3^4");
+            // Power is right-associative (precedence 30). Right-assoc means the
+            // outer is the LEFTMOST anchor; inner is rightmost.
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Power.IID);
+            assertThat(integerValue(findBinding(result, ThematicRole.Theme.IID))).isEqualTo(2L);
+
+            BindingMap goalBinding = findBinding(result, ThematicRole.Goal.IID);
+            assertThat(goalBinding).as("GOAL binding present").isNotNull();
+            assertThat(goalBinding.target().value())
+                    .as("GOAL target is a FrameMapTarget (the right-side chain segment)")
+                    .isInstanceOf(FrameMapTarget.class);
+            FrameMap nestedPower = ((FrameMapTarget) goalBinding.target().value()).frameMap();
+            assertThat(nestedPower.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Power.IID);
+            assertThat(integerValue(findBinding(nestedPower, ThematicRole.Theme.IID))).isEqualTo(3L);
+            assertThat(integerValue(findBinding(nestedPower, ThematicRole.Goal.IID))).isEqualTo(4L);
+        }
+
+        @Test
+        @DisplayName("'(2^3)^4' → Power { THEME=Power{2,3}, GOAL=4 } — parens override right-assoc")
+        void parensOverrideRightAssoc() {
+            FrameMap result = parse("(2^3)^4");
+            // Even though Power is right-associative, the parens force the inner
+            // Power to be the LEFT operand of the outer Power. The inner '^' is
+            // skipped at the outer level (it's inside parens) and handled by the
+            // recursive parse of the bracketed text.
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Power.IID);
+
+            BindingMap themeBinding = findBinding(result, ThematicRole.Theme.IID);
+            assertThat(themeBinding.target().value())
+                    .as("THEME target is a FrameMapTarget (parenthesized inner Power)")
+                    .isInstanceOf(FrameMapTarget.class);
+            FrameMap innerPower = ((FrameMapTarget) themeBinding.target().value()).frameMap();
+            assertThat(innerPower.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Power.IID);
+            assertThat(integerValue(findBinding(innerPower, ThematicRole.Theme.IID))).isEqualTo(2L);
+            assertThat(integerValue(findBinding(innerPower, ThematicRole.Goal.IID))).isEqualTo(3L);
+
+            assertThat(integerValue(findBinding(result, ThematicRole.Goal.IID))).isEqualTo(4L);
+        }
+
+        @Test
+        @DisplayName("'5 - 3 - 2 - 1' → deeply nested left-assoc chain (3 anchors)")
+        void deepLeftAssocChain() {
+            FrameMap result = parse("5 - 3 - 2 - 1");
+            // ((5 - 3) - 2) - 1 — outermost is the rightmost '-'.
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Subtract.IID);
+            assertThat(integerValue(findBinding(result, ThematicRole.Goal.IID))).isEqualTo(1L);
+
+            // THEME is (5 - 3) - 2
+            FrameMap level2 = ((FrameMapTarget) findBinding(result, ThematicRole.Theme.IID).target().value()).frameMap();
+            assertThat(level2.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Subtract.IID);
+            assertThat(integerValue(findBinding(level2, ThematicRole.Goal.IID))).isEqualTo(2L);
+
+            // level2's THEME is 5 - 3
+            FrameMap level1 = ((FrameMapTarget) findBinding(level2, ThematicRole.Theme.IID).target().value()).frameMap();
+            assertThat(level1.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Subtract.IID);
+            assertThat(integerValue(findBinding(level1, ThematicRole.Theme.IID))).isEqualTo(5L);
+            assertThat(integerValue(findBinding(level1, ThematicRole.Goal.IID))).isEqualTo(3L);
+        }
+
+        @Test
+        @DisplayName("'5 - 3 - 2' → Subtract { THEME=Subtract{5,3}, GOAL=2 } — multi-anchor chain (left-assoc)")
+        void leftAssocChain() {
+            FrameMap result = parse("5 - 3 - 2");
+            // Left-associative: outer is the rightmost anchor, inner the leftmost.
+            // Operator.parse iterates all its anchor spans and builds the nested
+            // chain by accumulating left-to-right.
+            assertThat(result.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Subtract.IID);
+
+            BindingMap themeBinding = findBinding(result, ThematicRole.Theme.IID);
+            assertThat(themeBinding).as("THEME binding present").isNotNull();
+            assertThat(themeBinding.target().value())
+                    .as("THEME target is a FrameMapTarget (the prior chain segment)")
+                    .isInstanceOf(FrameMapTarget.class);
+            FrameMap nestedSubtract = ((FrameMapTarget) themeBinding.target().value()).frameMap();
+            assertThat(nestedSubtract.predicate().value().iid())
+                    .isEqualTo(dev.everydaythings.graph.operator.math.Subtract.IID);
+            assertThat(integerValue(findBinding(nestedSubtract, ThematicRole.Theme.IID))).isEqualTo(5L);
+            assertThat(integerValue(findBinding(nestedSubtract, ThematicRole.Goal.IID))).isEqualTo(3L);
+
+            assertThat(integerValue(findBinding(result, ThematicRole.Goal.IID))).isEqualTo(2L);
+        }
+    }
+
     private static BindingMap findBinding(FrameMap fm, ItemID role) {
         for (BindingMap b : fm.bindings()) {
             if (b.role() != null && b.role().value() != null

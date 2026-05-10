@@ -38,7 +38,7 @@ import dev.everydaythings.graph.runtime.Librarian;
  * <p>Phase 1 keeps {@code onFrameAssembled} minimal — body persistence is enough.
  * Future: token-dictionary indexing for word→sememe lookup at parse time.
  */
-@Seed.Item(key = Lexeme.KEY)
+@Seed.Item(key = Lexeme.KEY, head = Item.Predicate.KEY)
 @Seed.Embodies(key = Lexeme.KEY)
 public class Lexeme extends Item {
 

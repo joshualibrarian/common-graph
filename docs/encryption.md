@@ -168,9 +168,78 @@ This frames the encryption to a specific identity. Anonymous encryption (no send
 The existing `EncryptedEnvelope.java` in `crypt/` is a prototype that aligns with this design. The key changes:
 
 1. Use Tag 10 CBOR wrapping (currently plain MAP canonization)
-2. Separate sender signing from the envelope structure (the envelope is the Tag 10 wrapper; signing is Tag 8 wrapping the envelope if needed)
+2. Separate sender signing from the envelope structure (signatures are positional in record Datums, not wrapping the envelope)
 3. Add `plaintextCid` for content-address recovery
 4. Rename to clarify the role: `EncryptedEnvelope` becomes the canonical Tag 10 implementation
+
+---
+
+## Tag 11: CG-REDACTED (Merkle Elision)
+
+**Redaction is distinct from encryption.** Both let you withhold content, but they have very different properties:
+
+| Property | Encryption (Tag 10) | Redaction (Tag 11) |
+|---|---|---|
+| Recoverable | Yes, with the right key | **No** — lossy without the original |
+| Hash preserved | Plaintext CID stored inside envelope | Body CID stays unchanged after elision |
+| Wire signal | `tag(10, …multi-recipient envelope…)` | `tag(11, <multihash>)` |
+| Use case | "Only Bob can read this" | "I'm sharing this body with subtree X hidden" |
+
+Redaction enables **Merkle-elision** of subtrees. A body is hashed Merkle-style — each subtree contributes its hash to the parent's hash. To redact, replace a subtree with `tag(11, <subtree-hash>)`. The parent's hash recomputes to the same value, so the body's CID is unchanged. The redactor proves "something hashing to this value was here, but I'm not sharing it."
+
+### Wire Format
+
+Deliberately spartan — the marker contains nothing but the multihash of the original subtree:
+
+```
+Tag 11: bytes(<multihash-of-original-subtree>)
+```
+
+No type info, no predicate, no size. A redaction is opaque by definition; leaking type or shape would defeat the purpose. If contextual metadata about the redaction matters (who, when, why, scope), that lives in a separate **REDACT attestation record** referencing the redacted Datum:
+
+```
+[REDACT, {
+    body          → <redacted-version-CID>,        // the version with elisions
+    original-body → <full-body-CID>,                // proves what was elided from
+    redacted-paths → [...subtree paths...],
+    reason        → "attorney-client privilege",
+    redactor      → <signer-IID>,
+    time          → T
+}, <signature>]
+```
+
+The marker tag is structurally pure (just bytes); accountability/provenance is at the vocabulary layer (the REDACT predicate's frame).
+
+### Verification
+
+When walking a body to verify its CID:
+
+1. Encounter a Datum subtree → recurse, hash normally
+2. Encounter `tag(11, <hash>)` → use the inner hash directly without recursing
+3. Compute the parent's Merkle hash from these inputs
+4. Compare against the body's known CID
+
+Match → redaction is honest (the hash truly represents what was there). Mismatch → tampering or wrong hash substituted.
+
+### Composability
+
+Redaction and encryption compose. Both operate on Datums and stack freely:
+
+- **Encrypted body, then redacted in transit** — recipient decrypts to a body that itself contains redactions
+- **Redacted body, then encrypted to recipient** — only the recipient sees the (already-redacted) body
+- **Redaction record about an encrypted body** — REDACT attestation pointing at an ENCRYPT envelope's body CID
+- **Encrypted record about a redacted body** — ENCRYPT envelope wrapping a body that includes Tag 11 markers
+
+Each layer earns its semantics: encryption protects against unauthorized readers; redaction proves what you're not sharing.
+
+### Compliance / Legal Use Cases
+
+- **Pre-trial discovery**: "Here's the document with attorney-client-privileged sections redacted, and the body CID matches the original."
+- **FOIA**: "Here's the unclassified portion with classified sections marked."
+- **Personal privacy**: "Here's my health record with sensitive items hidden."
+- **Regulated audits**: "Here's the audit trail with non-relevant entries elided."
+
+In every case: original body unchanged, redaction visible and provable, no risk of "did they really redact, or did they tamper?" The hash IS the proof.
 
 ---
 
@@ -199,11 +268,11 @@ This means the Frame's `bodyHash` can be verified against EITHER:
 - The plaintext CID (when the content is stored cleartext)
 - The ciphertext CID (when the content is stored encrypted)
 
-Which one is used depends on the frame's encryption state, tracked in an encryption binding on the FrameBody.
+Which one is used depends on the frame's encryption state, tracked in an encryption binding on the body Datum.
 
 ### Frame Encryption Metadata
 
-Encryption state is stored as a binding on the FrameBody:
+Encryption state is stored as a binding on the body Datum:
 
 ```
 Frame body encryption binding:
@@ -295,7 +364,7 @@ This is intentional: it allows the social graph and discovery mechanisms to work
 
 ### Two Separate but Related Concerns
 
-Access control and encryption are **separate policy dimensions**, both living on the frame's policy (stored as a Config binding on the FrameBody):
+Access control and encryption are **separate policy dimensions**, both living on the frame's policy (stored as a Config binding on the body Datum):
 
 - **Access policy** (`PolicySet.AccessPolicy`) controls **distribution** — the Librarian decides who receives the bytes. A private frame (no READ rules) simply isn't replicated. This is trust-based: you trust the Librarian to enforce it.
 
@@ -790,7 +859,7 @@ This is intentional. Moderation of encrypted content works through social mechan
 
 ### Phase 3: Frame-Level Encryption
 
-1. Frame encryption binding on FrameBody
+1. Frame encryption binding on body Datum
 2. Commit flow: encrypt frames per policy before storing
 3. Hydration flow: detect encrypted frames, attempt decryption via Vault
 4. Local index: `ciphertextCID -> plaintextCID` mapping

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph;
 
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
@@ -159,7 +160,58 @@ public final class CoreVocabulary {
     }
 
     // ==================================================================================
-    // Universal qualifiers — used in EXPECTS declarations
+    // Foundational predicates — declarative item-level metadata via endorsed frames
+    // ==================================================================================
+
+    /**
+     * Handles — predicate declaring an item's API surface.
+     *
+     * <p>A HANDLES frame endorsed by an item's manifest declares "I respond to
+     * frames whose head is this predicate." Each frame carries:
+     * <ul>
+     *   <li>{@link ThematicRole.Theme} → predicate-IID — which message type this handler is for</li>
+     *   <li>{@link ThematicRole.Instrument} → handler reference (method name or code-item-ref) — the implementation</li>
+     *   <li>{@link ThematicRole.Attribute}[{@link Arity}] → integer — optional, expected binding count</li>
+     *   <li>{@link ThematicRole.Attribute}[other qualifiers] → values — extensible metadata
+     *       (priority, return shape, etc.)</li>
+     * </ul>
+     *
+     * <p>Smalltalk-style dispatch: frames are messages, items are receivers,
+     * predicates are selectors, HANDLES frames form the method dictionary. Items
+     * dispatch on incoming frames via their endorsed HANDLES list, finding the
+     * one whose Theme matches the frame's head, then invoking the Instrument.
+     *
+     * <p>The handler reference (Instrument) is implementation-layer concern:
+     * Java reflection on {@code @Handler}-annotated methods, or polyglot bundle
+     * function-table keyed by predicate IID. The data layer stays language-agnostic.
+     *
+     * <p>API surface lives as endorsed frames (not direct manifest bindings) so
+     * that rich metadata fits naturally and HANDLES can be queried, inherited
+     * via archetype, and extended at runtime.
+     */
+    @Seed.Item(key = Handles.KEY, head = Item.Predicate.KEY)
+    public static final class Handles {
+        public static final String KEY = "cg.sememe:handles";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        private Handles() {}
+
+        @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the predicate declaring an item's API — frames endorsed by an item "
+                        + "to declare which message types it handles and how";
+
+        @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "handle";
+
+        @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "handler";
+    }
+
+    // ==================================================================================
+    // Universal qualifiers — used in EXPECTS, HANDLES, and other metadata declarations
     // ==================================================================================
 
     /**
@@ -186,5 +238,34 @@ public final class CoreVocabulary {
         @Seed.Frame(predicate = Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "required";
+    }
+
+    /**
+     * Arity — qualifier on {@link ThematicRole.Attribute} bindings declaring an
+     * arity (count of expected arguments / bindings).
+     *
+     * <p>Used in HANDLES frames as {@code ATTRIBUTE[ARITY] → integer} to indicate
+     * how many bindings the handler expects on the incoming frame, and in
+     * operator/function declarations to declare their argument count.
+     *
+     * <p>The pattern {@code ATTRIBUTE[<kind>] → value} is generic — Arity is one
+     * such kind. Other kinds (Priority, Return-shape, etc.) attach the same way
+     * and can be added as needed without inventing new roles.
+     */
+    @Seed.Item(key = Arity.KEY)
+    public static final class Arity {
+        public static final String KEY = "cg.qualifier:arity";
+        public static final ItemID IID = ItemID.fromString(KEY);
+        private Arity() {}
+
+        @Seed.Frame(predicate = Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "qualifier on ATTRIBUTE bindings declaring an arity — a count of "
+                        + "expected arguments or bindings";
+
+        @Seed.Frame(predicate = Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "arity";
     }
 }

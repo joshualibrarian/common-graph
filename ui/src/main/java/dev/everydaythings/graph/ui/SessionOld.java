@@ -76,20 +76,20 @@ import java.util.function.Consumer;
  *
  * <p>Subclasses handle platform-specific input and rendering:
  * <ul>
- *   <li>{@link TextSession} — CLI/TUI terminal rendering via JLine</li>
- *   <li>{@link GraphicalSession} — Filament 3D + Skia 2D (with SkiaWindow fallback)</li>
+ *   <li>{@link TextSessionOld} — CLI/TUI terminal rendering via JLine</li>
+ *   <li>{@link GraphicalSessionOld} — Filament 3D + Skia 2D (with SkiaWindow fallback)</li>
  * </ul>
  */
 @Log4j2
 @Accessors(fluent = true)
-@Implements(Session.KEY)
-@ItemSeed(key = Session.KEY)
+@Implements(SessionOld.KEY)
+@ItemSeed(key = SessionOld.KEY)
 @Command(
     name = "session",
     mixinStandardHelpOptions = true,
     description = "Open a session to a Librarian"
 )
-public abstract class Session extends ItemOld implements Callable<Integer>, Closeable {
+public abstract class SessionOld extends ItemOld implements Callable<Integer>, Closeable {
 
     public static final String KEY = "cg.sememe:session";
 
@@ -209,7 +209,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
      * @param librarian The librarian connection
      * @param context   The initial context as a Ref
      */
-    protected Session(LibrarianHandle librarian, Ref context) {
+    protected SessionOld(LibrarianHandle librarian, Ref context) {
         super(ItemID.fromString("cg.sememe:session")); // Seed constructor — deterministic IID
         this.activityLog = new ActivityLog();
         this.librarian = librarian;
@@ -224,7 +224,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
     /**
      * No-arg constructor for picocli (used by SessionShell).
      */
-    protected Session() {
+    protected SessionOld() {
         super(ItemID.fromString("cg.sememe:session"));
         this.activityLog = new ActivityLog();
     }
@@ -930,7 +930,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
      * Standalone entry point for Session command.
      */
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new SessionShell()).execute(args);
+        int exitCode = new CommandLine(new SessionOldShell()).execute(args);
         System.exit(exitCode);
     }
 
@@ -941,14 +941,14 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
     /**
      * Create a session with resolved librarian and options.
      */
-    public static Session create(LibrarianHandle librarian, SessionOptions opts) {
+    public static SessionOld create(LibrarianHandle librarian, SessionOptions opts) {
         return create(librarian, (Ref) null, opts);
     }
 
     /**
      * Create a session with resolved librarian, context Item, and options.
      */
-    public static Session create(LibrarianHandle librarian, ItemOld context, SessionOptions opts) {
+    public static SessionOld create(LibrarianHandle librarian, ItemOld context, SessionOptions opts) {
         Ref contextRef = context != null ? Ref.of(context.iid()) : null;
         return create(librarian, contextRef, opts);
     }
@@ -959,16 +959,16 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
      * <p>If context is null, the session defaults to the session item itself
      * (you are always somewhere — no bare "graph>" prompt).
      */
-    public static Session create(LibrarianHandle librarian, Ref context, SessionOptions opts) {
+    public static SessionOld create(LibrarianHandle librarian, Ref context, SessionOptions opts) {
         // Determine UI mode
         UIMode mode = determineMode(opts);
 
         // Create appropriate session — null context is handled by initializeItemView
-        Session session = switch (mode) {
-            case SKIA -> new GraphicalSession(librarian, context, RenderMode.FLAT);
-            case SPACE -> new GraphicalSession(librarian, context, RenderMode.SPATIAL);
-            case CLI, TUI -> new TextSession(librarian, context, mode, opts);
-            default -> new TextSession(librarian, context, UIMode.CLI, opts);
+        SessionOld session = switch (mode) {
+            case SKIA -> new GraphicalSessionOld(librarian, context, RenderMode.FLAT);
+            case SPACE -> new GraphicalSessionOld(librarian, context, RenderMode.SPATIAL);
+            case CLI, TUI -> new TextSessionOld(librarian, context, mode, opts);
+            default -> new TextSessionOld(librarian, context, UIMode.CLI, opts);
         };
 
         return session;
@@ -978,10 +978,10 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
      * Create a text-mode fallback session (TUI if supported, else CLI).
      * Used when a graphical session fails to initialize.
      */
-    public static Session createTextFallback(LibrarianHandle librarian, SessionOptions opts) {
-        UIMode mode = TextSession.isTuiSupported() ? UIMode.TUI : UIMode.CLI;
+    public static SessionOld createTextFallback(LibrarianHandle librarian, SessionOptions opts) {
+        UIMode mode = TextSessionOld.isTuiSupported() ? UIMode.TUI : UIMode.CLI;
         logger.info("Falling back to {} mode", mode);
-        return new TextSession(librarian, null, mode, opts);
+        return new TextSessionOld(librarian, null, mode, opts);
     }
 
     /**
@@ -992,7 +992,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
             String requested = opts.uiMode.toLowerCase();
             return switch (requested) {
                 case "tui" -> {
-                    if (!TextSession.isTuiSupported()) {
+                    if (!TextSessionOld.isTuiSupported()) {
                         throw new IllegalArgumentException(
                                 "TUI mode requested but not supported (no terminal or dumb terminal)");
                     }
@@ -1036,7 +1036,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
             return UIMode.SPACE;
         }
 
-        if (TextSession.isTuiSupported()) {
+        if (TextSessionOld.isTuiSupported()) {
             return UIMode.TUI;
         }
 
@@ -1317,7 +1317,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
     /**
      * Hook for subclasses to react when the context item's components change.
      *
-     * <p>Called after navigation. Subclasses (e.g., {@link GraphicalSession})
+     * <p>Called after navigation. Subclasses (e.g., {@link GraphicalSessionOld})
      * override this to rebuild the tick registry for live widget updates.
      *
      * @param item the item whose components changed
@@ -1551,7 +1551,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
         mixinStandardHelpOptions = true,
         description = "Open a session to a Librarian"
     )
-    public static class SessionShell extends Session {
+    public static class SessionOldShell extends SessionOld {
 
         @Mixin
         private SessionOptions opts = new SessionOptions();
@@ -1574,7 +1574,7 @@ public abstract class Session extends ItemOld implements Callable<Integer>, Clos
                 }
 
                 // 3. Create appropriate session (null ctx = session item default)
-                Session session = Session.create(resolvedHandle, ctx, opts);
+                SessionOld session = SessionOld.create(resolvedHandle, ctx, opts);
                 session.ownsLibrarian = true;
 
                 // 4. Run it
