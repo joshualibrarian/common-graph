@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.text;
 
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;

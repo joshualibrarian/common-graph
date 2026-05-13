@@ -1,13 +1,15 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Record;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.FrameRef;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
@@ -25,6 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class LibraryTest {
 
+    // Library is concrete and exposes both domain-object queries and the
+    // byte-store-specific contentIdsForDatum (which throws if the data store
+    // isn't a DataByteStore — but Library.inMemory() always is).
     private Library library;
 
     @BeforeEach
@@ -42,8 +47,8 @@ class LibraryTest {
     class DatumPersistence {
 
         @Test
-        @DisplayName("put returns the Datum's CID")
-        void putReturnsCid() {
+        @DisplayName("put returns the Datum's semantic identity (DatumID)")
+        void putReturnsDatumId() {
             Body body = Body.of(
                     ItemRef.of(ItemID.fromString("cg.predicate:authored")),
                     List.of(Binding.ref(
@@ -51,28 +56,29 @@ class LibraryTest {
                             ItemID.fromString("book")))
             );
 
-            ContentID cid = library.put(body);
-            assertThat(cid).isEqualTo(body.cid());
+            DatumID id = library.put(body);
+            assertThat(id).isEqualTo(body.datumId());
         }
 
         @Test
-        @DisplayName("get retrieves bytes after put")
-        void getRetrievesBytes() {
+        @DisplayName("fetchDatum retrieves the Datum after put")
+        void fetchDatumAfterPut() {
             Body body = Body.of(
                     ItemRef.of(ItemID.fromString("cg.predicate:authored")),
                     List.of()
             );
 
-            ContentID cid = library.put(body);
-            Optional<byte[]> retrieved = library.get(cid);
-            assertThat(retrieved).isPresent();
+            DatumID id = library.put(body);
+            assertThat(library.fetchDatum(id)).isPresent();
         }
 
         @Test
-        @DisplayName("get returns empty for unknown CID")
-        void getEmptyForUnknown() {
-            ContentID unknown = ContentID.of("never-stored".getBytes());
-            assertThat(library.get(unknown)).isEmpty();
+        @DisplayName("fetchDatum returns empty for unknown DatumID")
+        void fetchDatumEmptyForUnknown() {
+            DatumID unknown = new Body(
+                    ItemRef.of(ItemID.fromString("cg.predicate:never-stored")),
+                    List.of()).datumId();
+            assertThat(library.fetchDatum(unknown)).isEmpty();
         }
 
         @Test
@@ -82,15 +88,15 @@ class LibraryTest {
                     ItemRef.of(ItemID.fromString("cg.predicate:test")),
                     List.of()
             );
-            ContentID cid = library.put(body);
-            assertThat(library.has(cid)).isTrue();
+            DatumID id = library.put(body);
+            assertThat(library.has(id)).isTrue();
         }
 
         @Test
         @DisplayName("has returns false for unknown CID")
         void hasFalseForUnknown() {
             ContentID unknown = ContentID.of("not-here".getBytes());
-            assertThat(library.has(unknown)).isFalse();
+            assertThat(library.hasContent(unknown)).isFalse();
         }
 
         @Test
@@ -101,8 +107,8 @@ class LibraryTest {
                     List.of()
             );
 
-            ContentID first = library.put(body);
-            ContentID second = library.put(body);
+            DatumID first = library.put(body);
+            DatumID second = library.put(body);
             assertThat(second).isEqualTo(first);
         }
     }
@@ -118,9 +124,9 @@ class LibraryTest {
             ContentID cid = library.putContent(payload);
 
             assertThat(cid).isNotNull();
-            assertThat(library.has(cid)).isTrue();
+            assertThat(library.hasContent(cid)).isTrue();
 
-            Optional<byte[]> retrieved = library.get(cid);
+            Optional<byte[]> retrieved = library.getContent(cid);
             assertThat(retrieved).isPresent();
             assertThat(retrieved.get()).containsExactly(payload);
         }
@@ -146,7 +152,7 @@ class LibraryTest {
                     ItemRef.of(ItemID.fromString("cg.predicate:test")),
                     List.of()
             );
-            ContentID bodyCid = library.put(body);
+            DatumID bodyCid = library.put(body);
             assertThat(library.recordCidsForBody(bodyCid)).isEmpty();
         }
 
@@ -157,10 +163,10 @@ class LibraryTest {
                     ItemRef.of(ItemID.fromString("cg.predicate:test")),
                     List.of()
             );
-            ContentID bodyCid = library.put(body);
+            DatumID bodyCid = library.put(body);
 
             Record record = new Record(FrameRef.of(bodyCid), List.of(), new byte[]{1, 2, 3});
-            ContentID recordCid = library.put(record);
+            DatumID recordCid = library.put(record);
 
             assertThat(library.recordCidsForBody(bodyCid)).containsExactly(recordCid);
         }
@@ -172,12 +178,12 @@ class LibraryTest {
                     ItemRef.of(ItemID.fromString("cg.predicate:test")),
                     List.of()
             );
-            ContentID bodyCid = library.put(body);
+            DatumID bodyCid = library.put(body);
 
             Record r1 = new Record(FrameRef.of(bodyCid), List.of(), new byte[]{1});
             Record r2 = new Record(FrameRef.of(bodyCid), List.of(), new byte[]{2});
-            ContentID c1 = library.put(r1);
-            ContentID c2 = library.put(r2);
+            DatumID c1 = library.put(r1);
+            DatumID c2 = library.put(r2);
 
             assertThat(library.recordCidsForBody(bodyCid))
                     .containsExactlyInAnyOrder(c1, c2);
@@ -194,11 +200,11 @@ class LibraryTest {
                     ItemRef.of(ItemID.fromString("cg.predicate:b")),
                     List.of()
             );
-            ContentID cidA = library.put(bodyA);
-            ContentID cidB = library.put(bodyB);
+            DatumID cidA = library.put(bodyA);
+            DatumID cidB = library.put(bodyB);
 
             Record recordA = new Record(FrameRef.of(cidA), List.of(), new byte[]{1});
-            ContentID recordCidA = library.put(recordA);
+            DatumID recordCidA = library.put(recordA);
 
             assertThat(library.recordCidsForBody(cidA)).containsExactly(recordCidA);
             assertThat(library.recordCidsForBody(cidB)).isEmpty();
@@ -225,7 +231,7 @@ class LibraryTest {
                     ItemRef.of(typeIid),
                     List.of(Binding.ref(Manifest.ITEM_ID, itemIid))
             );
-            ContentID bodyCid = library.put(manifestBody);
+            DatumID bodyCid = library.put(manifestBody);
 
             assertThat(library.manifestCidsForType(typeIid)).containsExactly(bodyCid);
         }
@@ -257,8 +263,8 @@ class LibraryTest {
                     ItemRef.of(typeIid),
                     List.of(Binding.ref(Manifest.ITEM_ID, ItemID.fromString("doc-2")))
             );
-            ContentID c1 = library.put(m1);
-            ContentID c2 = library.put(m2);
+            DatumID c1 = library.put(m1);
+            DatumID c2 = library.put(m2);
 
             assertThat(library.manifestCidsForType(typeIid))
                     .containsExactlyInAnyOrder(c1, c2);
@@ -273,7 +279,7 @@ class LibraryTest {
                     ItemRef.of(typeA),
                     List.of(Binding.ref(Manifest.ITEM_ID, ItemID.fromString("a-1")))
             );
-            ContentID cidA = library.put(manifestA);
+            DatumID cidA = library.put(manifestA);
 
             assertThat(library.manifestCidsForType(typeA)).containsExactly(cidA);
             assertThat(library.manifestCidsForType(typeB)).isEmpty();
@@ -288,7 +294,7 @@ class LibraryTest {
                     ItemRef.of(typeIid, typeVid),
                     List.of(Binding.ref(Manifest.ITEM_ID, ItemID.fromString("doc-1")))
             );
-            ContentID bodyCid = library.put(manifestBody);
+            DatumID bodyCid = library.put(manifestBody);
 
             assertThat(library.manifestCidsForType(typeIid)).containsExactly(bodyCid);
         }
@@ -313,7 +319,7 @@ class LibraryTest {
                     ItemRef.of(ItemID.fromString("cg.archetype:document")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iid))
             );
-            ContentID bodyCid = library.put(manifestBody);
+            DatumID bodyCid = library.put(manifestBody);
 
             assertThat(library.manifestCidsForItem(iid)).containsExactly(bodyCid);
         }
@@ -348,8 +354,8 @@ class LibraryTest {
                             Binding.ref(Manifest.FOLLOWS, ItemID.fromString("v1-vid"))
                     )
             );
-            ContentID c1 = library.put(v1);
-            ContentID c2 = library.put(v2);
+            DatumID c1 = library.put(v1);
+            DatumID c2 = library.put(v2);
 
             assertThat(library.manifestCidsForItem(iid)).containsExactlyInAnyOrder(c1, c2);
         }
@@ -363,7 +369,7 @@ class LibraryTest {
                     ItemRef.of(ItemID.fromString("cg.archetype:document")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iidA))
             );
-            ContentID cidA = library.put(manifestA);
+            DatumID cidA = library.put(manifestA);
 
             assertThat(library.manifestCidsForItem(iidA)).containsExactly(cidA);
             assertThat(library.manifestCidsForItem(iidB)).isEmpty();
@@ -380,7 +386,7 @@ class LibraryTest {
                             Binding.literal(ThematicRole.Topic.IID, Literal.ofText("just a label"))
                     )
             );
-            ContentID bodyCid = library.put(manifestBody);
+            DatumID bodyCid = library.put(manifestBody);
 
             // The literal binding is silently skipped by the indexer; the ITEM_ID binding
             // still indexes correctly.
@@ -402,11 +408,120 @@ class LibraryTest {
                                     BindingTarget.iid(ItemID.fromString("some-target")))
                     )
             );
-            ContentID bodyCid = library.put(manifestBody);
+            DatumID bodyCid = library.put(manifestBody);
 
             // The qualified-key binding is indexed (its key includes the qualifier CBOR);
             // we don't query by it in Phase 1, but it must not break the simple-key lookup.
             assertThat(library.manifestCidsForItem(iid)).containsExactly(bodyCid);
+        }
+    }
+
+    @Nested
+    @DisplayName("DATUM_INDEX (semantic identity → wire-form realizations)")
+    class RefIndexing {
+
+        @Test
+        @DisplayName("contentIdsForDatum returns empty for an unindexed DatumID")
+        void contentIdsForUnindexedDatum() {
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("book")))
+            );
+            // Compute the DatumID without persisting.
+            assertThat(library.contentIdsForDatum(body.datumId())).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Persisted Datums are indexed by DatumID → ContentID")
+        void datumIndexedOnPut() {
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("book")))
+            );
+
+            DatumID datumId = library.put(body);
+            assertThat(datumId).isEqualTo(body.datumId());
+
+            // The DatumID resolves to exactly one realization: the ContentID of the stored bytes.
+            ContentID expectedContentId = ContentID.of(body.encodeBinary(Canonical.Scope.BODY));
+            assertThat(library.contentIdsForDatum(body.datumId())).containsExactly(expectedContentId);
+        }
+
+        @Test
+        @DisplayName("fetchDatum returns the Datum after put")
+        void fetchDatumAfterPut() {
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("book")))
+            );
+            library.put(body);
+
+            // Library returns domain objects, not bytes. The Datum round-trips
+            // through wire-form storage internally; we just see it as an object.
+            Optional<dev.everydaythings.graph.datum.Datum> fetched =
+                    library.fetchDatum(body.datumId());
+            assertThat(fetched).isPresent();
+            assertThat(fetched.get().datumId()).isEqualTo(body.datumId());
+            // The byte-store realization is still discoverable for tests that
+            // care about the wire form.
+            assertThat(library.contentIdsForDatum(body.datumId()))
+                    .containsExactly(ContentID.of(body.encodeBinary(Canonical.Scope.BODY)));
+        }
+
+        @Test
+        @DisplayName("Multiple Datums with different DatumIDs don't cross-pollinate")
+        void differentDatumIdsAreIsolated() {
+            Body bodyA = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("bookA")))
+            );
+            Body bodyB = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("bookB")))
+            );
+
+            library.put(bodyA);
+            library.put(bodyB);
+
+            ContentID expectedA = ContentID.of(bodyA.encodeBinary(Canonical.Scope.BODY));
+            ContentID expectedB = ContentID.of(bodyB.encodeBinary(Canonical.Scope.BODY));
+            assertThat(library.contentIdsForDatum(bodyA.datumId())).containsExactly(expectedA);
+            assertThat(library.contentIdsForDatum(bodyB.datumId())).containsExactly(expectedB);
+            assertThat(bodyA.datumId()).isNotEqualTo(bodyB.datumId());
+        }
+
+        @Test
+        @DisplayName("Records are indexed by DatumID too (Records are Datums)")
+        void recordsIndexedByDatumId() {
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:status")),
+                    List.of()
+            );
+            DatumID bodyCid = library.put(body);
+
+            // Construct and persist a Record over the body (any byte signature suffices for indexing).
+            Record record = Record.of(FrameRef.of(bodyCid), List.of(), new byte[]{1, 2, 3});
+            library.put(record);
+
+            ContentID expectedRecordCid = ContentID.of(record.encodeBinary(Canonical.Scope.BODY));
+            assertThat(library.contentIdsForDatum(record.datumId())).containsExactly(expectedRecordCid);
+        }
+
+        @Test
+        @DisplayName("delete removes the DATUM_INDEX entry")
+        void deleteRemovesRefIndex() {
+            Body body = Body.of(
+                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("book")))
+            );
+            library.put(body);
+
+            ContentID expectedCid = ContentID.of(body.encodeBinary(Canonical.Scope.BODY));
+            assertThat(library.contentIdsForDatum(body.datumId())).containsExactly(expectedCid);
+
+            library.deleteContent(expectedCid);
+
+            assertThat(library.contentIdsForDatum(body.datumId())).isEmpty();
         }
     }
 }

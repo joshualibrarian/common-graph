@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical.CgTag;
+import dev.everydaythings.graph.encoding.Canonical.CgTag;
 
 /**
  * HEARTBEAT — "I'm still here".

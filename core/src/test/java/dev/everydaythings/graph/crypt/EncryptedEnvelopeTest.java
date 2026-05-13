@@ -1,17 +1,13 @@
 package dev.everydaythings.graph.crypt;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.crypt.Algorithm;
-import dev.everydaythings.graph.crypt.EncryptionPublicKey;
-import dev.everydaythings.graph.crypt.InMemoryVault;
-import dev.everydaythings.graph.crypt.Vault;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.identity.Algorithm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +42,7 @@ class EncryptedEnvelopeTest {
         @Test
         void encryptDecryptRoundTrip() {
             byte[] plaintext = "Hello, encrypted world!".getBytes();
-            byte[] plaintextCid = Hash.DEFAULT.digest(plaintext);
+            byte[] plaintextCid = Digest.Sha256.digest(plaintext);
 
             EncryptedEnvelope envelope = EnvelopeOps.encryptAnonymous(
                     plaintext, plaintextCid, null,
@@ -83,7 +79,7 @@ class EncryptedEnvelopeTest {
         @Test
         void tamperedCiphertextFails() {
             byte[] plaintext = "Sensitive data".getBytes();
-            byte[] plaintextCid = Hash.DEFAULT.digest(plaintext);
+            byte[] plaintextCid = Digest.Sha256.digest(plaintext);
 
             EncryptedEnvelope envelope = EnvelopeOps.encryptAnonymous(
                     plaintext, plaintextCid, null,
@@ -111,7 +107,7 @@ class EncryptedEnvelopeTest {
         @Test
         void bothRecipientsCanDecrypt() {
             byte[] plaintext = "Group message".getBytes();
-            byte[] plaintextCid = Hash.DEFAULT.digest(plaintext);
+            byte[] plaintextCid = Digest.Sha256.digest(plaintext);
 
             EncryptedEnvelope envelope = EnvelopeOps.encryptAnonymous(
                     plaintext, plaintextCid, null,
@@ -135,7 +131,7 @@ class EncryptedEnvelopeTest {
         @Test
         void encodeDecodePreservesEnvelope() {
             byte[] plaintext = "CBOR round-trip test".getBytes();
-            byte[] plaintextCid = Hash.DEFAULT.digest(plaintext);
+            byte[] plaintextCid = Digest.Sha256.digest(plaintext);
 
             EncryptedEnvelope original = EnvelopeOps.encryptAnonymous(
                     plaintext, plaintextCid, null,
@@ -232,7 +228,7 @@ class EncryptedEnvelopeTest {
         @Test
         void signedEnvelopeDecrypts() {
             byte[] plaintext = "Authenticated message".getBytes();
-            byte[] plaintextCid = Hash.DEFAULT.digest(plaintext);
+            byte[] plaintextCid = Digest.Sha256.digest(plaintext);
 
             EncryptedEnvelope envelope = EnvelopeOps.encrypt(
                     plaintext, plaintextCid, null,

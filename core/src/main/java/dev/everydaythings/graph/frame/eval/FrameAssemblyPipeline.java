@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.FrameRecordOld;
 import dev.everydaythings.graph.item.ItemOld;
@@ -103,10 +103,9 @@ public class FrameAssemblyPipeline {
     }
 
     /**
-     * Extract an ItemID from a BindingTarget (IidTarget or RefTarget).
+     * Extract an ItemID from a {@link BindingTarget.RefTarget}.
      */
     private ItemID extractItemId(BindingTarget target) {
-        if (target instanceof BindingTarget.IidTarget iid) return iid.iid();
         if (target instanceof BindingTarget.RefTarget ref) return ref.asItemId();
         return null;
     }

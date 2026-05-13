@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.frame.ItemFrame;
+import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;

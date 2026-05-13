@@ -1,10 +1,7 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.crypt.Algorithm;
-import dev.everydaythings.graph.crypt.EncryptionPublicKey;
-import dev.everydaythings.graph.crypt.GraphPublicKey;
-import dev.everydaythings.graph.crypt.Vault;
+import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.identity.Algorithm;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
@@ -166,7 +163,7 @@ public final class EnvelopeOps {
 
         // Verify plaintext CID if present
         if (envelope.plaintextCid() != null) {
-            byte[] actualCid = Hash.DEFAULT.digest(plaintext);
+            byte[] actualCid = Digest.Sha256.digest(plaintext);
             if (!Arrays.equals(actualCid, envelope.plaintextCid())) {
                 throw new SecurityException(
                         "Plaintext CID mismatch: content integrity check failed after decryption");

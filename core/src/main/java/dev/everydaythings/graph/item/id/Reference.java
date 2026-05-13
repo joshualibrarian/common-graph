@@ -1,10 +1,9 @@
 package dev.everydaythings.graph.item.id;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Optional;
 
 /**
  * Universal reference in Common Graph — sealed sum type with three variants.

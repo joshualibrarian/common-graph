@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,22 +1,15 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.crypt.VarSig;
-import dev.everydaythings.graph.frame.*;
-import dev.everydaythings.graph.frame.Record;
-import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.datum.*;
+import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.id.FrameRef;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
-import dev.everydaythings.graph.item.user.Signer;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
+import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.Expects;
-import dev.everydaythings.graph.semantics.ThematicRole;
 import dev.everydaythings.graph.text.FrameDraftMerger;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.ParseContext;
@@ -63,7 +56,16 @@ public class Item {
         return IID;
     }
 
-    /** The item's stable cryptographic identity. */
+    /**
+     * The item's stable cryptographic identity, or {@code null} for an anonymous
+     * item (no identity at all — see {@link Librarian#anonymous()}).
+     *
+     * <p>Most items have an iid. Anonymous items are the exception: they exist
+     * only in memory, never sign anything, never appear as a binding target, and
+     * never participate in identity-keyed lookups. Any operation that requires a
+     * stable identity (commit, register, signing payload preparation) must guard
+     * with {@code Objects.requireNonNull(iid, ...)} at the boundary.
+     */
     protected final ItemID iid;
 
     /**
@@ -77,9 +79,16 @@ public class Item {
         this(iid, null);
     }
 
-    /** Runtime item — bound to a librarian. */
+    /**
+     * Runtime item — bound to a librarian.
+     *
+     * <p>{@code iid} may be null only for an anonymous item (an item that has
+     * no identity and never will). Anonymous items are constructed by the
+     * anonymous-Librarian path; they cannot commit, cannot be registered, and
+     * cannot be the target of a binding.
+     */
     public Item(ItemID iid, Librarian librarian) {
-        this.iid = Objects.requireNonNull(iid, "iid");
+        this.iid = iid;
         this.librarian = librarian;
     }
 
@@ -126,11 +135,11 @@ public class Item {
     }
 
     /**
-     * The current version ID — equivalent to the body's CID for {@link #current}.
+     * The current version ID — the structural identity of {@link #current}'s body.
      *
      * <p>Empty if no manifest is currently loaded.
      */
-    public Optional<ContentID> versionId() {
+    public Optional<dev.everydaythings.graph.item.id.DatumID> versionId() {
         return current != null ? Optional.of(current.versionId()) : Optional.empty();
     }
 
@@ -140,7 +149,7 @@ public class Item {
      * <p>Empty list for inception manifests, multiple entries for merge manifests,
      * or empty if no manifest is currently loaded.
      */
-    public List<ContentID> parents() {
+    public List<dev.everydaythings.graph.item.id.DatumID> parents() {
         return current != null ? current.parents() : List.of();
     }
 
@@ -196,8 +205,8 @@ public class Item {
     public Stream<Frame> endorsedFrames() {
         if (current == null || librarian == null) return Stream.empty();
         return current.endorses().stream()
-                .map(b -> ((BindingTarget.RefTarget) b.target()).asCid())
-                .flatMap(cid -> librarian.fetchFrame(cid).stream());
+                .map(b -> ((BindingTarget.RefTarget) b.target()).asDatumId())
+                .flatMap(id -> librarian.fetchFrame(id).stream());
     }
 
     /**
@@ -265,6 +274,9 @@ public class Item {
         if (librarian == null) {
             throw new IllegalStateException("Item has no librarian; cannot commit");
         }
+        if (iid == null) {
+            throw new IllegalStateException("Anonymous item has no identity; cannot commit");
+        }
         Objects.requireNonNull(signer, "signer");
         Objects.requireNonNull(bindings, "bindings");
 
@@ -283,10 +295,10 @@ public class Item {
         manifestBindings.addAll(bindings);
 
         Body body = Body.of(ItemRef.of(archetype()), manifestBindings);
-        ContentID bodyCid = librarian.persist(body);
+        librarian.persist(body);
 
-        VarSig signature = signer.sign(body.encodeBinary(Canonical.Scope.BODY));
-        Record record = Record.of(FrameRef.of(bodyCid), List.of(), signature);
+        VarSig signature = signer.sign(HashTree.signingPayload(body));
+        Record record = Record.of(FrameRef.of(body.datumId()), List.of(), signature);
         librarian.persist(record);
 
         Manifest committed = Manifest.of(body, List.of(record));
@@ -301,17 +313,20 @@ public class Item {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Item other)) return false;
+        // Anonymous items (null iid) have no shared identity and are equal only
+        // to themselves — handled by the `this == o` short-circuit above.
+        if (iid == null || other.iid == null) return false;
         return iid.equals(other.iid);
     }
 
     @Override
     public int hashCode() {
-        return iid.hashCode();
+        return iid == null ? System.identityHashCode(this) : iid.hashCode();
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + iid + "]";
+        return getClass().getSimpleName() + "[" + (iid == null ? "anonymous" : iid) + "]";
     }
 
     // ==================================================================================
@@ -378,62 +393,4 @@ public class Item {
     // Meta-archetypes (data-only seed declarations)
     // ==================================================================================
 
-    /**
-     * The root archetype — every item's manifest head transitively reaches here.
-     *
-     * <p>Self-typing: Archetype's manifest head references its own IID. Every other
-     * archetype (Item itself, Photograph, Code, Predicate, etc.) declares Archetype
-     * as its head, directly or through a chain.
-     */
-    @Seed.Item(key = Archetype.KEY)
-    public static final class Archetype {
-        public static final String KEY = "cg.archetype:archetype";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Archetype() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the root archetype — the kind-of-thing every item's manifest is, "
-                        + "the meta-root every head chain terminates at";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "archetype";
-
-        /**
-         * The universal item-hood rule: every instance — every item in the system —
-         * must carry an {@code ITEM_ID} binding on its manifest body. Propagates to
-         * every descendant via the head chain. Archetype itself is the bootstrap
-         * exception (no ITEM_ID binding on its own manifest).
-         */
-        @Seed.Frame(predicate = Expects.KEY,
-              field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
-        static final ItemID expectItemId = Manifest.ITEM_ID;
-    }
-
-    /**
-     * The archetype of all predicates — items that serve as the head of frame bodies.
-     *
-     * <p>Predicates have role-keyed EXPECTS declarations specifying what bindings
-     * their frame-instances must carry. Each concrete predicate (AUTHORED, TITLE,
-     * MOVE, IMPLEMENTATION, EXPECTS itself) is an instance of Predicate, with
-     * {@code head = Item.Predicate.KEY} on its {@code @Seed} annotation.
-     */
-    @Seed.Item(key = Predicate.KEY)
-    public static final class Predicate {
-        public static final String KEY = "cg.archetype:predicate";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Predicate() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the archetype of all predicates — items used as the head of frame bodies; "
-                        + "predicates declare role-keyed EXPECTS for their frame-instances";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "predicate";
-    }
 }

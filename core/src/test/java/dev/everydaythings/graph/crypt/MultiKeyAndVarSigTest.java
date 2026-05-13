@@ -1,5 +1,8 @@
 package dev.everydaythings.graph.crypt;
 
+import dev.everydaythings.graph.identity.Algorithm;
+import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.id.Varint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

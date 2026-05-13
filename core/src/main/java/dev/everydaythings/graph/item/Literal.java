@@ -1,17 +1,14 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.Implements;
+import dev.everydaythings.graph.encoding.Canonical;
 
 import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.crypt.MultiKey;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.library.LibraryOld;
-import dev.everydaythings.graph.value.IpAddress;
-import dev.everydaythings.graph.value.Quantity;
+import dev.everydaythings.graph.library_old.LibraryOld;
 import dev.everydaythings.graph.value.Value;
 import lombok.Getter;
 
@@ -72,80 +69,60 @@ public final class Literal implements BindingTarget {
      *   <li>Everything else → Tag(7, [typeIID_bytes, payload_cbor])</li>
      * </ul>
      */
+    /**
+     * Encode this Literal to CBOR. Only primitive-typed Literals are encodable
+     * after the cleanup; semantic types live as binding qualifiers, not as
+     * Literal valueTypes.
+     *
+     * <ul>
+     *   <li>{@link #TYPE_TEXT}    → bare CBOR TextString</li>
+     *   <li>{@link #TYPE_INTEGER} → bare CBOR Integer</li>
+     *   <li>{@link #TYPE_BOOLEAN} → bare CBOR Boolean</li>
+     *   <li>{@link #TYPE_BYTES}   → bare CBOR ByteString</li>
+     *   <li>{@link #TYPE_INSTANT} → CBOR Tag 1 wrapping epoch-millis integer
+     *       (Tag 1 is CBOR's standard tag for epoch time; it isn't a CG-specific
+     *       wrapper, so it stays in the encoding.)</li>
+     * </ul>
+     */
     @Override
     public CBORObject toCborTree(Canonical.Scope scope) {
         CBORObject payloadCbor = payloadNode();
-
-        // Shorthand: bare CBOR primitives
         if (TYPE_TEXT.equals(valueType)) return payloadCbor;
         if (TYPE_INTEGER.equals(valueType)) return payloadCbor;
         if (TYPE_BOOLEAN.equals(valueType)) return payloadCbor;
-
-        // Shorthand: standard CBOR Tag 1 for instants
+        if (TYPE_BYTES.equals(valueType)) return payloadCbor;
         if (TYPE_INSTANT.equals(valueType)) {
             return CBORObject.FromObjectAndTag(payloadCbor, 1);
         }
-
-        // Long form: Tag 7 [typeIID, payload]
-        CBORObject arr = CBORObject.NewArray();
-        arr.Add(CBORObject.FromByteArray(valueType.encodeBinary()));
-        arr.Add(payloadCbor);
-        return CBORObject.FromObjectAndTag(arr, Canonical.CgTag.VALUE);
+        throw new IllegalStateException(
+                "Literal valueType " + valueType + " is not a primitive encoding type; "
+                        + "semantic types must move to binding qualifiers");
     }
 
     /**
-     * Decode a Literal from CBOR, accepting both shorthand and long form.
+     * Decode a Literal from CBOR. Recognized shapes:
      *
      * <ul>
      *   <li>Bare TextString → TYPE_TEXT</li>
-     *   <li>Bare Integer → TYPE_INTEGER</li>
-     *   <li>Bare Boolean → TYPE_BOOLEAN</li>
-     *   <li>Tag(1, millis) → TYPE_INSTANT</li>
-     *   <li>Tag(7, [typeIID, payload]) → custom type</li>
-     *   <li>Array [typeIID_bytes, payload_bytes] → legacy long form (no tag)</li>
+     *   <li>Bare Integer    → TYPE_INTEGER</li>
+     *   <li>Bare Boolean    → TYPE_BOOLEAN</li>
+     *   <li>Bare ByteString → TYPE_BYTES</li>
+     *   <li>Tag(1, millis)  → TYPE_INSTANT</li>
      * </ul>
      */
     @dev.everydaythings.graph.item.Factory
     public static Literal fromCborTree(CBORObject node) {
         if (node == null || node.isNull()) return null;
-
-        // Tag 1: Instant (epoch millis)
         if (node.HasMostOuterTag(1)) {
-            CBORObject inner = node.UntagOne();
-            return ofCbor(TYPE_INSTANT, inner);
+            return ofCbor(TYPE_INSTANT, node.UntagOne());
         }
-
-        // Tag 7: Explicit typed value [typeIID, payload]
-        if (node.HasMostOuterTag(Canonical.CgTag.VALUE)) {
-            CBORObject inner = node.UntagOne();
-            if (inner.getType() == CBORType.Array && inner.size() == 2) {
-                ItemID typeId = new ItemID(inner.get(0).GetByteString());
-                CBORObject payloadCbor = inner.get(1);
-                return ofCbor(typeId, payloadCbor);
-            }
-        }
-
-        // Bare primitives (shorthand)
         return switch (node.getType()) {
             case TextString -> ofCbor(TYPE_TEXT, node);
-            case Integer -> ofCbor(TYPE_INTEGER, node);
-            case Boolean -> ofCbor(TYPE_BOOLEAN, node);
-            // Legacy: bare array [typeIID_bytes, payload_bytes]
-            case Array -> {
-                if (node.size() == 2 && node.get(0).getType() == CBORType.ByteString) {
-                    ItemID typeId = new ItemID(node.get(0).GetByteString());
-                    CBORObject payloadCbor;
-                    if (node.get(1).getType() == CBORType.ByteString) {
-                        payloadCbor = CBORObject.DecodeFromBytes(node.get(1).GetByteString());
-                    } else {
-                        payloadCbor = node.get(1);
-                    }
-                    yield ofCbor(typeId, payloadCbor);
-                }
-                // Fall back to default Canonical decoding
-                yield Canonical.fromCborTree(node, Literal.class, Canonical.Scope.RECORD);
-            }
-            default -> throw new IllegalArgumentException("Cannot decode Literal from CBOR: " + node.getType());
+            case Integer    -> ofCbor(TYPE_INTEGER, node);
+            case Boolean    -> ofCbor(TYPE_BOOLEAN, node);
+            case ByteString -> ofCbor(TYPE_BYTES, node);
+            default -> throw new IllegalArgumentException(
+                    "Cannot decode Literal from CBOR: " + node.getType());
         };
     }
 
@@ -165,16 +142,20 @@ public final class Literal implements BindingTarget {
     /** Well-known type for instant/timestamp values (epoch millis). */
     public static final ItemID TYPE_INSTANT = ItemID.fromString("cg.value:instant");
 
-    /** Well-known type for opaque CBOR payloads (structured config, policy, etc.). */
-    public static final ItemID TYPE_CBOR = ItemID.fromString("cg.value:cbor");
+    /** Well-known type for raw byte strings (encoded as bare CBOR ByteString). */
+    public static final ItemID TYPE_BYTES = ItemID.fromString("cg.value:bytes");
 
-    /* ------------------------ Well-known address type IDs ------------------------ */
+    // Removed: TYPE_CBOR. Opaque structured-CBOR payloads now encode as plain
+    // byte strings (TYPE_BYTES, bare CBOR ByteString shorthand). Consumers that
+    // need to re-decode the bytes as CBOR can do so explicitly via
+    // CBORObject.DecodeFromBytes(lit.asBytes()).
 
-    /** Well-known type for Java class addresses (fully qualified class names). */
-    public static final ItemID TYPE_JAVA_CLASS = ItemID.fromString("cg.address:java-class");
-
-    /** Well-known type for multikey-encoded public keys (codec varint + raw key bytes). */
-    public static final ItemID TYPE_MULTIKEY = ItemID.fromString("cg.value:multikey");
+    /* ------------------------ Removed semantic types ------------------------ */
+    // Semantic-narrowing types (JAVA_CLASS, MULTIKEY) used to live here as
+    // Literal.TYPE_* constants and conflated encoding with semantic meaning. They
+    // now live as binding-qualifier sememes — see CoreVocabulary.JavaClass and
+    // CoreVocabulary.Multikey. The target literal is just the underlying
+    // encoding-primitive (text or bytes), and the qualifier carries the meaning.
 
     /* ------------------------ Convenience factories (default types) ------------------------ */
 
@@ -200,26 +181,45 @@ public final class Literal implements BindingTarget {
         return ofInstantMillis(TYPE_INSTANT, instant);
     }
 
-    /** Create a Java class address literal. */
+    /**
+     * Create a literal carrying a fully-qualified Java class name as plain text.
+     *
+     * <p>Producing the FQCN as text is the encoding; the "this text is a Java class
+     * name" semantic claim belongs on the surrounding binding's qualifiers (see
+     * {@code CoreVocabulary.JavaClass}). The factory is kept as a convenience for
+     * code that's building such bindings; the legacy {@code TYPE_JAVA_CLASS}
+     * valueType is no longer used.
+     */
     public static Literal ofJavaClass(String className) {
-        return ofText(TYPE_JAVA_CLASS, className);
+        return ofText(className);
     }
 
-    /** Create a Java class address literal from a Class object. */
+    /** Create a literal carrying a Java class's fully-qualified name as plain text. */
     public static Literal ofJavaClass(Class<?> clazz) {
-        return ofText(TYPE_JAVA_CLASS, clazz.getName());
+        return ofText(clazz.getName());
     }
 
     /**
-     * Create a multikey literal carrying a self-describing public key.
+     * Create a literal carrying a multikey-encoded public key as plain bytes.
      *
-     * <p>The literal's payload is a CBOR ByteString of the multikey-encoded bytes
-     * (codec varint followed by raw key bytes). The codec identifies the key type
-     * (Ed25519, X25519, etc.).
+     * <p>Produces a bytes-shaped Literal — the encoding is just bytes; "these
+     * bytes are a multikey" is the semantic claim on the surrounding binding's
+     * qualifiers (see {@code CoreVocabulary.Multikey}). The factory stays as a
+     * convenience.
      */
     public static Literal ofMultiKey(MultiKey key) {
         Objects.requireNonNull(key, "key");
-        return ofCbor(TYPE_MULTIKEY, CBORObject.FromByteArray(key.encoded()));
+        return ofBytes(key.encoded());
+    }
+
+    /**
+     * Create a literal carrying raw bytes — encoded as bare CBOR ByteString.
+     * Use a binding qualifier (e.g. {@code CoreVocabulary.Multikey}) to declare
+     * what the bytes mean.
+     */
+    public static Literal ofBytes(byte[] raw) {
+        Objects.requireNonNull(raw, "raw");
+        return ofCbor(TYPE_BYTES, CBORObject.FromByteArray(raw));
     }
 
     /* ------------------------ Factories (payload encoders) ------------------------ */
@@ -247,73 +247,11 @@ public final class Literal implements BindingTarget {
         return ofCbor(valueType, CBORObject.FromInt64(instant.toEpochMilli()));
     }
 
-    public static Literal ofIp(ItemID valueType, IpAddress ip) {
-        Objects.requireNonNull(ip, "ip");
-        return ofCbor(valueType, CBORObject.FromByteArray(ip.bytes()));
-    }
-
-    public static Literal ofQuantity(ItemID valueType, Quantity q) {
-        Objects.requireNonNull(q, "q");
-        byte[] bytes = q.encodeBinary(Canonical.Scope.BODY);
-        return new Literal(valueType, bytes);
-    }
-
-    /* ------------------------ Generic Value factory ------------------------ */
-
-    /**
-     * Create a Literal from any Value that declares its type via @Implements.
-     *
-     * <p>This enables generic conversion from annotated Value instances to Literals
-     * without needing type-specific factory methods like ofText(), ofInteger(), etc.
-     *
-     * <p>Example:
-     * <pre>{@code
-     * @Implements("cg.value:endpoint")
-     * public final class Endpoint implements Value { ... }
-     *
-     * Endpoint ep = Endpoint.cg(host, 8080);
-     * Literal lit = Literal.of(ep);  // Type discovered from annotation
-     * }</pre>
-     *
-     * @param value The Value (must have @Implements annotation)
-     * @return A Literal with the discovered type and encoded payload
-     * @throws IllegalArgumentException if the value's class lacks @Implements
-     */
-    public static Literal of(Value value) {
-        Objects.requireNonNull(value, "value");
-        ItemID type = discoverValueType(value.getClass());
-        byte[] payload = value.encodeBinary(Canonical.Scope.RECORD);
-        return new Literal(type, payload);
-    }
-
-    /**
-     * Create a Literal from a Value with an explicit type override.
-     *
-     * <p>Use this when you need to specify a different type than the default
-     * declared via @Implements, or when the class lacks the annotation.
-     *
-     * @param valueType The value type ID to use
-     * @param value The Value to encode
-     * @return A Literal with the specified type and encoded payload
-     */
-    public static Literal of(ItemID valueType, Value value) {
-        Objects.requireNonNull(valueType, "valueType");
-        Objects.requireNonNull(value, "value");
-        byte[] payload = value.encodeBinary(Canonical.Scope.RECORD);
-        return new Literal(valueType, payload);
-    }
-
-    /**
-     * Discover the value type ID for a Value class via @Implements annotation.
-     */
-    private static ItemID discoverValueType(Class<?> clazz) {
-        Implements impl = clazz.getAnnotation(Implements.class);
-        if (impl != null) {
-            return ItemID.fromString(impl.value());
-        }
-        throw new IllegalArgumentException(
-                "Class " + clazz.getName() + " needs @Implements annotation to use Literal.of().");
-    }
+    // Removed: ofIp(IpAddress), ofQuantity(Quantity), of(ItemID, Value).
+    // Semantic Value types (IpAddress, Quantity, Endpoint, etc.) no longer
+    // carry their type in the Literal's valueType; the binding's qualifiers
+    // carry the semantic narrowing, and the target encodes as a plain CBOR
+    // primitive (bytes/integer/text/etc.).
 
     /* ------------------------ Generic decoder ------------------------ */
 
@@ -368,25 +306,25 @@ public final class Literal implements BindingTarget {
     }
 
     /**
-     * Get the Java class name if this is a Java class address literal.
+     * Get the text payload as a fully-qualified Java class name.
      *
-     * @throws IllegalStateException if not a Java class literal or payload is not text
+     * <p>Callers should already know — via the binding's qualifiers — that this
+     * literal carries a class name; this method just exposes the text. Throws if
+     * the payload isn't a text literal.
      */
     public String asJavaClassName() {
-        if (!TYPE_JAVA_CLASS.equals(valueType)) {
-            throw new IllegalStateException("Not a Java class literal: " + valueType);
-        }
         return asText();
     }
 
     /**
-     * Load the Java class if this is a Java class address literal.
+     * Load the Java class named by this literal's text payload.
      *
      * @return The loaded class
-     * @throws IllegalStateException if not a Java class literal or class not found
+     * @throws IllegalStateException if the class isn't on the classpath, or the
+     *         payload isn't text
      */
     public Class<?> asJavaClass() {
-        String className = asJavaClassName();
+        String className = asText();
         try {
             return Class.forName(className, false, Thread.currentThread().getContextClassLoader());
         } catch (ClassNotFoundException e) {
@@ -395,14 +333,11 @@ public final class Literal implements BindingTarget {
     }
 
     /**
-     * Decode the payload as a {@link MultiKey} if this is a multikey literal.
-     *
-     * @throws IllegalStateException if not a multikey literal
+     * Decode the bytes payload as a {@link MultiKey}. Callers should already know
+     * — via the binding's qualifiers ({@code CoreVocabulary.Multikey}) — that
+     * this literal carries a multikey; this method just decodes the bytes.
      */
     public MultiKey asMultiKey() {
-        if (!TYPE_MULTIKEY.equals(valueType)) {
-            throw new IllegalStateException("Not a multikey literal: " + valueType);
-        }
         return MultiKey.decode(asBytes());
     }
 

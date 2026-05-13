@@ -1,9 +1,8 @@
 package dev.everydaythings.graph.item.id;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Encoding;
-import dev.everydaythings.graph.Hash;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.TextBase;
 import dev.everydaythings.graph.item.Factory;
 import io.ipfs.multibase.Multibase;
 import io.ipfs.multihash.Multihash;
@@ -76,8 +75,8 @@ public abstract class HashID implements Canonical {
         this.multihash = Multihash.deserialize(requireNonNull(serializedMultihash));
     }
 
-    protected HashID(byte[] rawDigest, Hash type) {
-        this.multihash = new Multihash(type.multihashType, rawDigest);
+    protected HashID(byte[] rawDigest, Multihash.Type type) {
+        this.multihash = new Multihash(type, rawDigest);
     }
 
     protected HashID(String text) {
@@ -85,11 +84,11 @@ public abstract class HashID implements Canonical {
     }
 
     protected HashID() {
-        this(randomID(KEY_LENGTH), Hash.ID);
+        this(randomID(KEY_LENGTH), Multihash.Type.id);
     }
 
-    public Hash hashType() {
-        return Hash.of(multihash.getType());
+    public Multihash.Type hashType() {
+        return multihash.getType();
     }
 
     /**
@@ -130,7 +129,7 @@ public abstract class HashID implements Canonical {
 
     /** Lean text: {@code prefix() + base32/base64url(multihash-bytes)}. */
     public String encodeText() {
-        return prefix() + Encoding.DEFAULT.encode(multihash.toBytes());
+        return prefix() + TextBase.Base32Lower.encode(multihash.toBytes());
     }
 
     /** Subclasses override to prepend e.g. "iid:". */

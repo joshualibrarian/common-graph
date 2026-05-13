@@ -1,90 +1,389 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Datum;
-import dev.everydaythings.graph.frame.Record;
-import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.encoding.Encoding;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.HashID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.library.data.DataByteStore;
+import dev.everydaythings.graph.library.data.DataStore;
+import dev.everydaythings.graph.library.index.RefIndexStore;
+import dev.everydaythings.graph.library.index.TokenIndexStore;
+import dev.everydaythings.graph.library.index.TokenPosting;
+import dev.everydaythings.graph.library.puremap.PureMapDataStore;
+import dev.everydaythings.graph.library.puremap.PureMapRefIndexStore;
+import dev.everydaythings.graph.library.puremap.PureMapTokenIndexStore;
+import dev.everydaythings.graph.library.rocksdb.RocksDataStore;
+import dev.everydaythings.graph.library.rocksdb.RocksRefIndexStore;
+import dev.everydaythings.graph.library.rocksdb.RocksTokenIndexStore;
 import dev.everydaythings.graph.library.skiplist.SkipListDataStore;
-import dev.everydaythings.graph.library.skiplist.SkipListIndexStore;
-import dev.everydaythings.graph.library.tokens.Posting;
-import dev.everydaythings.graph.library.tokens.SkipListTokenDictionary;
-import dev.everydaythings.graph.library.tokens.TokenDictionary;
-import dev.everydaythings.graph.value.Decimal;
+import dev.everydaythings.graph.library.skiplist.SkipListRefIndexStore;
+import dev.everydaythings.graph.library.skiplist.SkipListTokenIndexStore;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * The new Library — composes a {@link DataStore} (primary truth) with an
- * {@link IndexStore} (derived, rebuildable). Owned by a {@code Librarian} as the
- * local-storage backing for a Common Graph node.
+ * A Common Graph node's local storage. Composes three stores — a
+ * {@link DataStore} (primary truth), a {@link RefIndexStore} (query
+ * indexes), and a {@link TokenIndexStore} (text lookup) — and coordinates
+ * write-side indexing across them on every Datum that lands.
  *
- * <p>Library's job is to:
+ * <p>Each store has multiple implementations (pure-map, SkipList, MapDB,
+ * RocksDB...). Pick any combination via the {@link Builder}; static factories
+ * cover common cases:
+ *
  * <ul>
- *   <li>Persist Datums (and content blobs) to the DataStore's OBJECTS column.</li>
- *   <li>Walk each newly-stored Datum's bindings and write index entries to the
- *       IndexStore's three indexes (forward bindings, reverse bindings, type).</li>
- *   <li>Expose query methods backed by those indexes.</li>
- *   <li>Allow indexes to be dropped and rebuilt by walking OBJECTS.</li>
+ *   <li>{@link #inMemory()} — all SkipList in RAM.</li>
+ *   <li>{@link #atPath(Path)} — all SkipList plus a {@code .librarian/format}
+ *       marker at the path.</li>
+ *   <li>{@link #anonymous()} — pure-map data + SkipList indexes; cheapest
+ *       for tests that don't need persistence or rich token resolution.</li>
+ *   <li>{@link #builder()} — full control over the triple.</li>
  * </ul>
  *
- * <p>Minimal first cut: just persist + retrieve, with the indexing logic and
- * query methods to be added piece by piece. The Librarian uses Library through
- * a clean facade — callers (Items) never reach past the Librarian to Library
- * directly.
+ * <p>Library returns domain objects ({@link Datum}, {@link Body},
+ * {@link Record}, {@link Frame}, {@link Manifest}) rather than bytes. The
+ * decode boundary lives inside the {@link DataStore}.
  *
  * <p>For the storage architecture, see
  * <a href="../../../../../../../../../docs/storage.md">storage.md</a>.
  */
-public class Library implements AutoCloseable {
+public final class Library implements AutoCloseable {
 
-    private final DataStore dataStore;
-    private final IndexStore indexStore;
-    private final TokenDictionary tokenDictionary;
+    private final DataStore data;
+    private final RefIndexStore index;
+    private final TokenIndexStore tokens;
+    private final Optional<Path> rootPath;
+    private volatile Set<ItemID> knownLanguagesCache;
 
-    private Library(DataStore dataStore, IndexStore indexStore, TokenDictionary tokenDictionary) {
-        this.dataStore = Objects.requireNonNull(dataStore, "dataStore");
-        this.indexStore = Objects.requireNonNull(indexStore, "indexStore");
-        this.tokenDictionary = Objects.requireNonNull(tokenDictionary, "tokenDictionary");
+    private Library(DataStore data, RefIndexStore index, TokenIndexStore tokens,
+                    Optional<Path> rootPath) {
+        this.data = Objects.requireNonNull(data, "data");
+        this.index = Objects.requireNonNull(index, "index");
+        this.tokens = Objects.requireNonNull(tokens, "tokens");
+        this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
     }
 
-    /**
-     * Create an in-memory Library backed by SkipList stores. Zero-dependency,
-     * pure Java; suitable for tests, ephemeral runs, and demos.
-     *
-     * <p>When persistent storage lands, parallel factories
-     * ({@code Library.atPath(Path)}, etc.) will provide the same self-managed
-     * pattern — the caller never assembles stores by hand.
-     */
+    // ==================================================================================
+    // Builder + static factories
+    // ==================================================================================
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /** All-SkipList in-memory Library; no filesystem footprint. */
     public static Library inMemory() {
-        return new Library(
-                SkipListDataStore.create(),
-                SkipListIndexStore.create(),
-                SkipListTokenDictionary.create());
+        return builder()
+                .data(SkipListDataStore.create())
+                .refIndex(SkipListRefIndexStore.create())
+                .tokens(SkipListTokenIndexStore.create())
+                .build();
     }
 
     /**
-     * Close the Library and any backing stores that hold resources. Safe to
-     * call multiple times; in-memory backings are no-ops.
+     * All-SkipList Library rooted at {@code path}. Writes the
+     * {@code .librarian/format} marker on first open; validates on subsequent.
+     * Data itself currently stays in RAM until persistent SkipList backing
+     * lands.
      */
+    public static Library atPath(Path path) {
+        Objects.requireNonNull(path, "path");
+        return builder()
+                .data(SkipListDataStore.create())
+                .refIndex(SkipListRefIndexStore.create())
+                .tokens(SkipListTokenIndexStore.create())
+                .path(path)
+                .build();
+    }
+
+    /**
+     * Pure-map data + SkipList indexes. No encoder, no filesystem footprint.
+     * The cheapest Library for tests that don't need persistence or signing.
+     */
+    public static Library anonymous() {
+        return builder()
+                .data(PureMapDataStore.create())
+                .refIndex(PureMapRefIndexStore.create())
+                .tokens(PureMapTokenIndexStore.create())
+                .build();
+    }
+
+    /**
+     * All-RocksDB Library rooted at {@code path}. Writes the format marker and
+     * opens three RocksDB column-family groups (one each for data, ref index,
+     * token index) under {@code path/data}, {@code path/ref-index},
+     * {@code path/token-index}.
+     */
+    public static Library rocksDb(Path path) {
+        Objects.requireNonNull(path, "path");
+        return builder()
+                .data(RocksDataStore.atPath(path))
+                .refIndex(RocksRefIndexStore.atPath(path))
+                .tokens(RocksTokenIndexStore.atPath(path))
+                .path(path)
+                .build();
+    }
+
+    /**
+     * All-MapDB Library rooted at {@code path}. Lightweight pure-Java embedded
+     * persistence — good fit for tests with on-disk requirements without
+     * RocksDB's native-library overhead, or for embedded deployments.
+     * Creates {@code path/data.mapdb}, {@code path/ref-index.mapdb},
+     * {@code path/token-index.mapdb}, plus the format marker.
+     */
+    public static Library mapDb(Path path) {
+        Objects.requireNonNull(path, "path");
+        return builder()
+                .data(dev.everydaythings.graph.library.mapdb.MapDbDataStore.atPath(path))
+                .refIndex(dev.everydaythings.graph.library.mapdb.MapDbRefIndexStore.atPath(path))
+                .tokens(dev.everydaythings.graph.library.mapdb.MapDbTokenIndexStore.atPath(path))
+                .path(path)
+                .build();
+    }
+
+    public static final class Builder {
+        private DataStore data;
+        private RefIndexStore index;
+        private TokenIndexStore tokens;
+        private Path path;
+
+        private Builder() {}
+
+        public Builder data(DataStore store) { this.data = store; return this; }
+        public Builder refIndex(RefIndexStore store) { this.index = store; return this; }
+        public Builder tokens(TokenIndexStore store) { this.tokens = store; return this; }
+
+        /**
+         * Filesystem root for the Library. Optional. If set, the builder writes
+         * the {@code .librarian/format} marker (or validates it if it exists)
+         * using the data store's encoder. Ignored for stores with no encoder.
+         */
+        public Builder path(Path path) { this.path = path; return this; }
+
+        public Library build() {
+            Objects.requireNonNull(data, "data");
+            Objects.requireNonNull(index, "index");
+            Objects.requireNonNull(tokens, "tokens");
+            Optional<Path> root = Optional.ofNullable(path);
+            // Write or validate the format marker if a path is given and the
+            // data store has an encoder.
+            if (root.isPresent() && data.encoder().isPresent()) {
+                FormatMarker.write(root.get(), data.encoder().get());
+            }
+            return new Library(data, index, tokens, root);
+        }
+    }
+
+    // ==================================================================================
+    // Encoding
+    // ==================================================================================
+
+    /** Delegates to the data store's encoder, if any. */
+    public Optional<Encoding> encoder() {
+        return data.encoder();
+    }
+
+    /** Filesystem root, if this Library was built with one. */
+    public Optional<Path> rootPath() {
+        return rootPath;
+    }
+
+    // ==================================================================================
+    // Object persistence — compose the three stores
+    // ==================================================================================
+
+    public DatumID put(Datum datum) {
+        Objects.requireNonNull(datum, "datum");
+        DatumID id = data.put(datum);
+        index.index(datum, id);
+        tokens.index(datum, id);
+        if (datum instanceof Body) knownLanguagesCache = null;
+        return id;
+    }
+
+    public ContentID putContent(byte[] bytes) {
+        return data.putContent(bytes);
+    }
+
+    public Optional<byte[]> getContent(ContentID cid) {
+        return data.getContent(cid);
+    }
+
+    public boolean hasContent(ContentID cid) {
+        return data.hasContent(cid);
+    }
+
+    public boolean deleteContent(ContentID cid) {
+        // If the bytes decode to a Datum, unindex it first; then delete the
+        // bytes. Otherwise it's a raw content blob; just delete.
+        Optional<byte[]> bytesOpt = data.getContent(cid);
+        if (bytesOpt.isEmpty()) return false;
+        Datum d = DataByteStore.decodeDatum(bytesOpt.get());
+        if (d != null) {
+            index.unindex(d, d.datumId());
+            tokens.unindex(d, d.datumId());
+            return data.delete(d.datumId());
+        }
+        return data.deleteContent(cid);
+    }
+
+    public boolean has(DatumID datumId) {
+        return data.has(datumId);
+    }
+
+    public boolean delete(DatumID datumId) {
+        Datum d = data.get(datumId).orElse(null);
+        if (d == null) return false;
+        index.unindex(d, datumId);
+        tokens.unindex(d, datumId);
+        return data.delete(datumId);
+    }
+
+    // ==================================================================================
+    // Domain-object fetch API
+    // ==================================================================================
+
+    public Optional<Datum> fetchDatum(DatumID datumId) {
+        return data.get(datumId);
+    }
+
+    public Optional<Body> fetchBody(DatumID datumId) {
+        return data.get(datumId).filter(Body.class::isInstance).map(Body.class::cast);
+    }
+
+    public Optional<Record> fetchRecord(DatumID datumId) {
+        return data.get(datumId).filter(Record.class::isInstance).map(Record.class::cast);
+    }
+
+    public Optional<Frame> fetchFrame(DatumID bodyId) {
+        return fetchBody(bodyId).map(body -> Frame.of(body, loadRecords(bodyId)));
+    }
+
+    public Optional<Manifest> fetchManifest(DatumID bodyId) {
+        return fetchBody(bodyId).flatMap(body -> {
+            try {
+                return Optional.of(Manifest.of(body, loadRecords(bodyId)));
+            } catch (IllegalArgumentException e) {
+                return Optional.empty();
+            }
+        });
+    }
+
+    private List<Record> loadRecords(DatumID bodyId) {
+        return index.recordsForBody(bodyId).stream()
+                .map(this::fetchRecord)
+                .flatMap(Optional::stream)
+                .toList();
+    }
+
+    // ==================================================================================
+    // Index queries
+    // ==================================================================================
+
+    public List<DatumID> recordCidsForBody(DatumID bodyId) {
+        return index.recordsForBody(bodyId);
+    }
+
+    public List<DatumID> manifestCidsForItem(ItemID itemIid) {
+        return index.manifestsForItem(itemIid);
+    }
+
+    public List<DatumID> manifestCidsForType(ItemID typeIid) {
+        return index.manifestsForType(typeIid);
+    }
+
+    public List<DatumID> bodyCidsForReferenceBinding(ItemID role, ItemID target) {
+        return index.bodiesByReferenceBinding(role, target);
+    }
+
+    // ==================================================================================
+    // Token dictionary
+    // ==================================================================================
+
+    public List<TokenPosting> lookupToken(String token) {
+        return tokens.lookup(token, this::fetchDatum)
+                .map(this::enrichScope)
+                .toList();
+    }
+
+    public List<TokenPosting> lookupTokenPrefix(String tokenPrefix, int limit) {
+        return tokens.prefix(tokenPrefix, limit, this::fetchDatum)
+                .map(this::enrichScope)
+                .toList();
+    }
+
+    /**
+     * Promote a Language-archetype qualifier from features to the {@code scope}
+     * field. Caches the set of known languages on first call; cache is
+     * invalidated whenever a new Body lands.
+     */
+    private TokenPosting enrichScope(TokenPosting p) {
+        if (p.scope() != null || p.features().isEmpty()) return p;
+        Set<ItemID> languages = knownLanguages();
+        for (ItemID feature : p.features()) {
+            if (languages.contains(feature)) {
+                Set<ItemID> remaining = new HashSet<>(p.features());
+                remaining.remove(feature);
+                return new TokenPosting(p.token(), p.target(), p.predicate(), feature,
+                        remaining, p.weight(), p.source());
+            }
+        }
+        return p;
+    }
+
+    private Set<ItemID> knownLanguages() {
+        Set<ItemID> cached = knownLanguagesCache;
+        if (cached != null) return cached;
+        ItemID langArchetype = dev.everydaythings.graph.linguistics.Language.IID;
+        Set<ItemID> langs = new HashSet<>();
+        for (DatumID manifestId : index.manifestsForType(langArchetype)) {
+            fetchManifest(manifestId).ifPresent(m -> {
+                ItemID iid = m.itemId();
+                if (iid != null) langs.add(iid);
+            });
+        }
+        cached = Set.copyOf(langs);
+        knownLanguagesCache = cached;
+        return cached;
+    }
+
+    // ==================================================================================
+    // Byte-store passthroughs — for tests that need to inspect the realization layer.
+    // ==================================================================================
+
+    /**
+     * Resolve a DatumID to the ContentIDs of its locally-held wire-form
+     * realizations. Byte-backed-specific; throws if the data store isn't a
+     * {@link DataByteStore}.
+     */
+    public List<ContentID> contentIdsForDatum(DatumID datumId) {
+        if (!(data instanceof DataByteStore bds)) {
+            throw new UnsupportedOperationException(
+                    "contentIdsForDatum requires a DataByteStore; data store is "
+                            + data.getClass().getSimpleName());
+        }
+        return bds.contentIdsForDatum(datumId);
+    }
+
+    // ==================================================================================
+    // Lifecycle
+    // ==================================================================================
+
     @Override
     public void close() {
-        closeQuietly(dataStore);
-        closeQuietly(indexStore);
-        closeQuietly(tokenDictionary);
+        closeQuietly(data);
+        closeQuietly(index);
+        closeQuietly(tokens);
     }
 
     private static void closeQuietly(Object o) {
@@ -92,409 +391,8 @@ public class Library implements AutoCloseable {
             try {
                 c.close();
             } catch (Exception ignored) {
-                // best-effort close
+                // best-effort
             }
         }
-    }
-
-    // ==================================================================================
-    // Object persistence
-    // ==================================================================================
-
-    /**
-     * Persist a Datum's encoded bytes into OBJECTS, returning the CID. Side-effects
-     * the IndexStore with any applicable index entries.
-     *
-     * <p>Currently wired indexes:
-     * <ul>
-     *   <li>RECORDS_BY_BODY — for Records, keyed on (body-CID, record-CID).</li>
-     *   <li>TYPE_INDEX — for archetypal Bodies (those with an ITEM_ID binding),
-     *       keyed on (head-IID, vid-slot, item-IID, body-CID).</li>
-     *   <li>FORWARD_BINDINGS — for any binding (on Body or Record) whose target is
-     *       a reference, keyed on (role, qual-count, qualifiers..., target-multihash, datum-CID).</li>
-     * </ul>
-     *
-     * <p>TODO: REVERSE_BINDINGS, plus literal/inline-frame target encoding for FORWARD_BINDINGS.
-     */
-    public ContentID put(Datum datum) {
-        Objects.requireNonNull(datum, "datum");
-        ContentID cid = datum.cid();
-        byte[] bytes = datum.encodeBinary(Canonical.Scope.BODY);
-        dataStore.db(DataStore.Column.OBJECTS).key(cid).put(bytes);
-        index(datum, cid);
-        return cid;
-    }
-
-    /**
-     * Persist arbitrary content bytes (a content blob, not a Datum) into OBJECTS,
-     * returning the CID computed from the bytes.
-     */
-    public ContentID putContent(byte[] bytes) {
-        Objects.requireNonNull(bytes, "bytes");
-        ContentID cid = ContentID.of(bytes);
-        dataStore.db(DataStore.Column.OBJECTS).key(cid).put(bytes);
-        return cid;
-    }
-
-    /**
-     * Retrieve raw bytes from OBJECTS by CID.
-     *
-     * @return the encoded bytes, or empty if not found locally
-     */
-    public Optional<byte[]> get(ContentID cid) {
-        Objects.requireNonNull(cid, "cid");
-        byte[] bytes = dataStore.db(DataStore.Column.OBJECTS).key(cid).get();
-        return Optional.ofNullable(bytes);
-    }
-
-    /**
-     * Whether the local OBJECTS store has bytes for the given CID.
-     */
-    public boolean has(ContentID cid) {
-        Objects.requireNonNull(cid, "cid");
-        return dataStore.db(DataStore.Column.OBJECTS).key(cid).exists();
-    }
-
-    /**
-     * Delete a Datum from local storage, tearing down its index entries first.
-     *
-     * <p>Symmetric inverse of {@link #put}: fetches the Datum at {@code cid},
-     * computes the index entries it would have written, removes them, then removes
-     * the OBJECTS entry. Idempotent — returns {@code false} if the CID isn't
-     * present locally; otherwise {@code true} after deletion.
-     *
-     * <p>This deletes only the named Datum. Cascading (e.g., deleting an item's
-     * manifests + their records) is the caller's responsibility — the caller
-     * decides what's a logical group and how to tear it down.
-     */
-    public boolean delete(ContentID cid) {
-        Objects.requireNonNull(cid, "cid");
-        Optional<byte[]> bytes = get(cid);
-        if (bytes.isEmpty()) return false;
-
-        Datum datum = decodeDatum(bytes.get());
-        if (datum != null) {
-            unindex(datum, cid);
-        }
-
-        dataStore.db(DataStore.Column.OBJECTS).key(cid).delete();
-        return true;
-    }
-
-    private static Datum decodeDatum(byte[] bytes) {
-        try {
-            com.upokecenter.cbor.CBORObject node = com.upokecenter.cbor.CBORObject.DecodeFromBytes(bytes);
-            if (node.getType() != com.upokecenter.cbor.CBORType.Array) return null;
-            int size = node.size();
-            if (size == 2) return Body.fromCborTree(node);
-            if (size == 3) return Record.fromCborTree(node);
-            return null;
-        } catch (RuntimeException e) {
-            return null;
-        }
-    }
-
-    private void unindex(Datum datum, ContentID cid) {
-        if (datum instanceof Record record) {
-            ContentID bodyCid = record.headRef().bodyCid();
-            byte[] key = concat(bodyCid.encodeBinary(), cid.encodeBinary());
-            indexStore.db(IndexStore.Column.RECORDS_BY_BODY).key(key).delete();
-        } else if (datum instanceof Body body) {
-            body.binding(CompoundKey.of(Manifest.ITEM_ID)).ifPresent(itemIdBinding -> {
-                byte[] key = composeTypeIndexKey(body, itemIdBinding, cid);
-                indexStore.db(IndexStore.Column.TYPE_INDEX).key(key).delete();
-            });
-        }
-        unindexBindings(datum, cid);
-        unindexTokens(datum, cid);
-    }
-
-    private void unindexBindings(Datum datum, ContentID datumCid) {
-        for (Binding b : datum.bindings()) {
-            composeForwardKey(b, datumCid).ifPresent(key ->
-                    indexStore.db(IndexStore.Column.FORWARD_BINDINGS).key(key).delete()
-            );
-        }
-    }
-
-    // ==================================================================================
-    // Index queries
-    // ==================================================================================
-
-    /**
-     * Find the CIDs of all records that attest the given body, by prefix-scanning
-     * the RECORDS_BY_BODY index.
-     *
-     * <p>Returns an empty list if no records are indexed against the body — either
-     * because none exist or because none have been persisted to this Library.
-     */
-    public List<ContentID> recordCidsForBody(ContentID bodyCid) {
-        Objects.requireNonNull(bodyCid, "bodyCid");
-        byte[] prefix = bodyCid.encodeBinary();
-        List<ContentID> recordCids = new ArrayList<>();
-        indexStore.forEach(IndexStore.Column.RECORDS_BY_BODY, prefix, (key, value) -> {
-            byte[] suffix = Arrays.copyOfRange(key, prefix.length, key.length);
-            recordCids.add(new ContentID(suffix));
-        });
-        return List.copyOf(recordCids);
-    }
-
-    /**
-     * Find the body-CIDs of all archetypal manifests claiming the given item-IID, by
-     * prefix-scanning FORWARD_BINDINGS for the {@code ITEM_ID} role with that target.
-     *
-     * <p>Returns one entry per manifest version persisted locally for the item.
-     * The caller picks the "current" one per its policy (HEAD logic is not yet
-     * wired; for now, expect at most one entry in single-version-per-item tests).
-     */
-    public List<ContentID> manifestCidsForItem(ItemID itemIid) {
-        return bodyCidsForReferenceBinding(Manifest.ITEM_ID, itemIid);
-    }
-
-    /**
-     * Find the body-CIDs of all bodies that have a simple-key (no qualifiers) binding
-     * with the given role pointing at the given reference target.
-     *
-     * <p>Generalizes {@link #manifestCidsForItem} — the manifest-by-iid lookup is just
-     * the special case where role = ITEM_ID. Other useful queries:
-     * <ul>
-     *   <li>{@code bodyCidsForReferenceBinding(THEME, X)} — frames where the THEME role
-     *       points at X. Used for things like "which IMPLEMENTS frames target this
-     *       concept?" combined with a head-filter.</li>
-     *   <li>{@code bodyCidsForReferenceBinding(AGENT, X)} — frames where AGENT points
-     *       at X.</li>
-     * </ul>
-     *
-     * <p>This is a Phase 1 query; doesn't yet support qualified-key matches. Caller
-     * fetches each result body to apply additional filters (head, qualifiers, etc.).
-     */
-    public List<ContentID> bodyCidsForReferenceBinding(ItemID role, ItemID target) {
-        Objects.requireNonNull(role, "role");
-        Objects.requireNonNull(target, "target");
-        byte[] roleBytes = role.encodeBinary();
-        byte[] targetBytes = target.encodeBinary();
-        byte[] prefix = concat(roleBytes, new byte[]{0}, targetBytes);
-        List<ContentID> bodyCids = new ArrayList<>();
-        indexStore.forEach(IndexStore.Column.FORWARD_BINDINGS, prefix, (key, value) -> {
-            byte[] bodyCidBytes = Arrays.copyOfRange(key, prefix.length, key.length);
-            bodyCids.add(new ContentID(bodyCidBytes));
-        });
-        return List.copyOf(bodyCids);
-    }
-
-    /**
-     * Find the body-CIDs of all archetypal manifests whose head references the given
-     * type sememe, by prefix-scanning TYPE_INDEX.
-     *
-     * <p>Returns matches regardless of whether the body's head was version-pinned;
-     * the prefix scan covers both pinned and unpinned manifests of the type. Returns
-     * an empty list if no manifests of that type have been persisted locally.
-     */
-    public List<ContentID> manifestCidsForType(ItemID typeIid) {
-        Objects.requireNonNull(typeIid, "typeIid");
-        byte[] prefix = typeIid.encodeBinary();
-        List<ContentID> bodyCids = new ArrayList<>();
-        indexStore.forEach(IndexStore.Column.TYPE_INDEX, prefix, (key, value) -> {
-            // Layout: head-IID | vid-slot | item-IID | body-CID
-            int off = prefix.length;
-            int vidLen = key[off] & 0xFF;
-            off += 1 + vidLen;
-            HashID.Slice itemIidSlice = HashID.splitLeadingMultihashFromByteArray(key, off);
-            off = itemIidSlice.next();
-            byte[] bodyCidBytes = Arrays.copyOfRange(key, off, key.length);
-            bodyCids.add(new ContentID(bodyCidBytes));
-        });
-        return List.copyOf(bodyCids);
-    }
-
-    // ==================================================================================
-    // Token Dictionary
-    // ==================================================================================
-
-    /**
-     * Look up postings for an exact token. Returns ranked Postings ordered by
-     * descending weight; empty if the token has no entries or if all entries'
-     * datums fail to resolve locally.
-     */
-    public List<Posting> lookupToken(String token) {
-        return tokenDictionary.lookup(token, this::fetchDatum).toList();
-    }
-
-    /**
-     * Prefix search for autocomplete. Returns up to {@code limit} ranked
-     * Postings whose tokens begin with {@code tokenPrefix}.
-     */
-    public List<Posting> lookupTokenPrefix(String tokenPrefix, int limit) {
-        return tokenDictionary.prefix(tokenPrefix, limit, this::fetchDatum).toList();
-    }
-
-    /**
-     * Index a single token-bearing binding. Token-indexing is currently
-     * driven explicitly by callers; auto-indexing on {@link #put} will be
-     * added when per-predicate weight policy is settled.
-     */
-    public void indexToken(String token, ContentID datum, CompoundKey bindingKey, Decimal weight) {
-        tokenDictionary.index(token, datum, bindingKey, weight, null);
-    }
-
-    /**
-     * Resolve a CID to its decoded Datum (Body or Record). Used as the
-     * datum-resolver passed to {@link TokenDictionary#lookup} so the dictionary
-     * can assemble rich Postings from minimal stored entries.
-     */
-    private Optional<Datum> fetchDatum(ContentID cid) {
-        return get(cid).map(Library::decodeDatum);
-    }
-
-    // ==================================================================================
-    // Indexing (write-side)
-    // ==================================================================================
-
-    private static final byte[] EMPTY_VALUE = new byte[0];
-
-    private void index(Datum datum, ContentID cid) {
-        if (datum instanceof Record record) {
-            ContentID bodyCid = record.headRef().bodyCid();
-            byte[] key = concat(bodyCid.encodeBinary(), cid.encodeBinary());
-            indexStore.db(IndexStore.Column.RECORDS_BY_BODY).key(key).put(EMPTY_VALUE);
-        } else if (datum instanceof Body body) {
-            body.binding(CompoundKey.of(Manifest.ITEM_ID)).ifPresent(itemIdBinding -> {
-                byte[] key = composeTypeIndexKey(body, itemIdBinding, cid);
-                indexStore.db(IndexStore.Column.TYPE_INDEX).key(key).put(EMPTY_VALUE);
-            });
-        }
-        indexBindings(datum, cid);
-        indexTokens(datum, cid);
-    }
-
-    /**
-     * Walk every binding whose target is a text Literal and add a token-dictionary
-     * entry for its surface text. Per-predicate weight policy is not yet wired —
-     * everything indexes at weight 1.0.
-     */
-    private void indexTokens(Datum datum, ContentID datumCid) {
-        for (Binding b : datum.bindings()) {
-            extractIndexableText(b.target()).ifPresent(text -> {
-                CompoundKey bindingKey = CompoundKey.of(b.role(), b.qualifiers());
-                tokenDictionary.index(text, datumCid, bindingKey, Decimal.ofInt(1), null);
-            });
-        }
-    }
-
-    private void unindexTokens(Datum datum, ContentID datumCid) {
-        for (Binding b : datum.bindings()) {
-            extractIndexableText(b.target()).ifPresent(text -> {
-                CompoundKey bindingKey = CompoundKey.of(b.role(), b.qualifiers());
-                tokenDictionary.remove(text, datumCid, bindingKey, null);
-            });
-        }
-    }
-
-    private static Optional<String> extractIndexableText(BindingTarget target) {
-        if (target instanceof Literal lit && Literal.TYPE_TEXT.equals(lit.valueType())) {
-            String text = lit.asText();
-            if (text == null || text.isBlank()) return Optional.empty();
-            return Optional.of(text);
-        }
-        return Optional.empty();
-    }
-
-    private void indexBindings(Datum datum, ContentID datumCid) {
-        for (Binding b : datum.bindings()) {
-            composeForwardKey(b, datumCid).ifPresent(key ->
-                    indexStore.db(IndexStore.Column.FORWARD_BINDINGS).key(key).put(EMPTY_VALUE)
-            );
-        }
-    }
-
-    private static Optional<byte[]> composeForwardKey(Binding binding, ContentID datumCid) {
-        Optional<byte[]> targetBytes = extractReferenceMultihash(binding.target());
-        if (targetBytes.isEmpty()) return Optional.empty();
-        int qualCount = binding.qualifiers().size();
-        if (qualCount > 0xFF) {
-            throw new IllegalStateException("Binding has more than 255 qualifiers; key layout assumes 1-byte count");
-        }
-        byte[] roleBytes = binding.role().encodeBinary();
-        byte[] qualBytes = encodeQualifiers(binding.qualifiers());
-        byte[] cidBytes = datumCid.encodeBinary();
-        return Optional.of(concat(
-                roleBytes,
-                new byte[]{(byte) qualCount},
-                qualBytes,
-                targetBytes.get(),
-                cidBytes
-        ));
-    }
-
-    private static Optional<byte[]> extractReferenceMultihash(BindingTarget target) {
-        if (target instanceof BindingTarget.IidTarget iid) {
-            return Optional.of(iid.iid().encodeBinary());
-        }
-        if (target instanceof BindingTarget.RefTarget refTarget) {
-            // Phase 1: only handle simple references (no frame-key drill-down).
-            // TODO: compound RefTargets (with frame key or portion) deferred.
-            if (refTarget.isCompound()) return Optional.empty();
-            return Optional.of(refTarget.asItemId().encodeBinary());
-        }
-        // TODO: Literal targets and FrameTarget deferred — encoding scheme not settled.
-        return Optional.empty();
-    }
-
-    private static byte[] encodeQualifiers(List<FrameToken> qualifiers) {
-        if (qualifiers.isEmpty()) return new byte[0];
-        List<byte[]> parts = new ArrayList<>(qualifiers.size());
-        int total = 0;
-        for (FrameToken q : qualifiers) {
-            byte[] qBytes = q.toCbor().EncodeToBytes();
-            parts.add(qBytes);
-            total += qBytes.length;
-        }
-        byte[] result = new byte[total];
-        int offset = 0;
-        for (byte[] p : parts) {
-            System.arraycopy(p, 0, result, offset, p.length);
-            offset += p.length;
-        }
-        return result;
-    }
-
-    private static byte[] composeTypeIndexKey(Body body, Binding itemIdBinding, ContentID bodyCid) {
-        ItemRef head = body.headRef();
-        byte[] headIid = head.iid().encodeBinary();
-        byte[] vidSlot = encodeVidSlot(head.version());
-        byte[] itemIid = extractItemId(itemIdBinding.target()).encodeBinary();
-        byte[] bodyCidBytes = bodyCid.encodeBinary();
-        return concat(headIid, vidSlot, itemIid, bodyCidBytes);
-    }
-
-    private static byte[] encodeVidSlot(Optional<ContentID> vid) {
-        if (vid.isEmpty()) return new byte[]{0};
-        byte[] vidBytes = vid.get().encodeBinary();
-        if (vidBytes.length > 0xFF) {
-            throw new IllegalStateException("VID exceeds 255 bytes; layout assumes 1-byte length prefix");
-        }
-        byte[] result = new byte[1 + vidBytes.length];
-        result[0] = (byte) vidBytes.length;
-        System.arraycopy(vidBytes, 0, result, 1, vidBytes.length);
-        return result;
-    }
-
-    private static ItemID extractItemId(BindingTarget target) {
-        if (target instanceof BindingTarget.IidTarget iid) return iid.iid();
-        if (target instanceof BindingTarget.RefTarget ref) return ref.asItemId();
-        throw new IllegalStateException(
-                "ITEM_ID target must be a reference, got " + target.getClass().getSimpleName());
-    }
-
-    private static byte[] concat(byte[]... parts) {
-        int total = 0;
-        for (byte[] p : parts) total += p.length;
-        byte[] out = new byte[total];
-        int offset = 0;
-        for (byte[] p : parts) {
-            System.arraycopy(p, 0, out, offset, p.length);
-            offset += p.length;
-        }
-        return out;
     }
 }

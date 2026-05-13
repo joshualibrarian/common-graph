@@ -1,13 +1,14 @@
 package dev.everydaythings.graph.semantics;
 
+import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -34,7 +35,7 @@ import java.util.Optional;
  * the runnable class." Other implementations could exist (different nodes, different
  * apps); each item's manifest declares its own IMPLEMENTATION binding.
  */
-@Seed.Item(key = Create.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Item(key = Create.KEY, head = CoreVocabulary.Predicate.KEY)
 @Seed.Embodies(key = Create.KEY)
 public class Create extends Item {
 
@@ -72,10 +73,10 @@ public class Create extends Item {
         ItemID conceptIid = extractIid(themeBinding.get().target());
         if (conceptIid == null) return;
 
-        List<ContentID> candidateBodyCids = librarian.library()
+        List<DatumID> candidateBodyCids = librarian.library()
                 .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, conceptIid);
 
-        for (ContentID bodyCid : candidateBodyCids) {
+        for (DatumID bodyCid : candidateBodyCids) {
             Frame candidate = librarian.fetchFrame(bodyCid).orElse(null);
             if (candidate == null) continue;
             if (!isImplementsFrame(candidate)) continue;
@@ -110,19 +111,27 @@ public class Create extends Item {
     private static Class<? extends Item> readJavaImplementation(Frame frame) {
         for (Binding b : frame.body().bindings()) {
             if (!ThematicRole.Agent.IID.equals(b.role())) continue;
-            // Must be qualified by the Java runtime.
-            boolean javaQualified = b.qualifiers().stream()
-                    .anyMatch(q -> q instanceof CompoundKey.Sememe s
-                            && Runtimes.Java.IID.equals(s.id()));
-            if (!javaQualified) continue;
+            // Must carry both the Java runtime qualifier and the JavaClass qualifier
+            // (which marks the text target as a fully-qualified class name).
+            boolean javaQualified = false;
+            boolean classNameQualified = false;
+            for (var q : b.qualifiers()) {
+                if (q instanceof CompoundKey.Sememe s) {
+                    if (Runtimes.Java.IID.equals(s.id())) javaQualified = true;
+                    if (dev.everydaythings.graph.CoreVocabulary.JavaClass.IID.equals(s.id())) {
+                        classNameQualified = true;
+                    }
+                }
+            }
+            if (!javaQualified || !classNameQualified) continue;
             if (!(b.target() instanceof Literal lit)) continue;
-            if (!Literal.TYPE_JAVA_CLASS.equals(lit.valueType())) continue;
             try {
-                Class<?> clazz = lit.asJavaClass();
+                Class<?> clazz = Class.forName(lit.asText(), false,
+                        Thread.currentThread().getContextClassLoader());
                 if (Item.class.isAssignableFrom(clazz)) {
                     return (Class<? extends Item>) clazz;
                 }
-            } catch (RuntimeException ignored) {
+            } catch (ClassNotFoundException | RuntimeException ignored) {
                 // class not on classpath; not runnable here
             }
         }
@@ -130,7 +139,6 @@ public class Create extends Item {
     }
 
     private static ItemID extractIid(BindingTarget target) {
-        if (target instanceof BindingTarget.IidTarget iid) return iid.iid();
         if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
             return ref.asItemId();
         }

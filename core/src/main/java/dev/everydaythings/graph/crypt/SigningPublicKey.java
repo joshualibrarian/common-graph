@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,8 +15,8 @@ public final class SigningPublicKey extends GraphPublicKey {
 
     @Builder
     private static SigningPublicKey build(PublicKey jcaPublicKey,
-                                         Algorithm.Sign algorithm, byte[] spki,
-                                         ItemID owner, Clock clock) {
+                                          Algorithm.Sign algorithm, byte[] spki,
+                                          ItemID owner, Clock clock) {
 
         Objects.requireNonNull(jcaPublicKey, "jcaPublicKey");
 

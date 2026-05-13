@@ -1,13 +1,14 @@
 package dev.everydaythings.graph.text;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.linguistics.Language;
@@ -67,7 +68,7 @@ class RoundTripTest {
     @Test
     @DisplayName("round-trip 'Add{5, Multiply{3,2}}' ↔ '5 + 3 * 2' (precedence-implicit nesting)")
     void mixedPrecedenceImplicit() {
-        ContentID multCid = persistBinary(Multiply.IID, 3, 2);
+        DatumID multCid = persistBinary(Multiply.IID, 3, 2);
         FrameMap original = binary(Add.IID, Literal.ofInteger(5), BindingTarget.ref(multCid));
         roundTrip(original);
     }
@@ -75,7 +76,7 @@ class RoundTripTest {
     @Test
     @DisplayName("round-trip 'Multiply{Add{5,3}, 2}' ↔ '(5 + 3) * 2' (parens needed)")
     void parensNeeded() {
-        ContentID addCid = persistBinary(Add.IID, 5, 3);
+        DatumID addCid = persistBinary(Add.IID, 5, 3);
         FrameMap original = binary(Multiply.IID, BindingTarget.ref(addCid), Literal.ofInteger(2));
         roundTrip(original);
     }
@@ -83,7 +84,7 @@ class RoundTripTest {
     @Test
     @DisplayName("round-trip 'Power{2, Power{3,4}}' ↔ '2 ^ 3 ^ 4' (right-assoc)")
     void rightAssocChain() {
-        ContentID innerPower = persistBinary(Power.IID, 3, 4);
+        DatumID innerPower = persistBinary(Power.IID, 3, 4);
         FrameMap original = binary(Power.IID, Literal.ofInteger(2), BindingTarget.ref(innerPower));
         roundTrip(original);
     }
@@ -91,7 +92,7 @@ class RoundTripTest {
     @Test
     @DisplayName("round-trip 'Subtract{Subtract{5,3}, 2}' ↔ '5 - 3 - 2' (left-assoc)")
     void leftAssocChain() {
-        ContentID innerSub = persistBinary(Subtract.IID, 5, 3);
+        DatumID innerSub = persistBinary(Subtract.IID, 5, 3);
         FrameMap original = binary(Subtract.IID, BindingTarget.ref(innerSub), Literal.ofInteger(2));
         roundTrip(original);
     }
@@ -106,7 +107,7 @@ class RoundTripTest {
     @Test
     @DisplayName("round-trip 'Add{Negate{5}, 3}' ↔ '-5 + 3' (unary as binary operand)")
     void unaryAsBinaryOperand() {
-        ContentID negCid = persistUnary(Negate.IID, Literal.ofInteger(5));
+        DatumID negCid = persistUnary(Negate.IID, Literal.ofInteger(5));
         FrameMap original = binary(Add.IID, BindingTarget.ref(negCid), Literal.ofInteger(3));
         roundTrip(original);
     }
@@ -158,7 +159,7 @@ class RoundTripTest {
     }
 
     /** Persist a binary frame body and return its CID — for using as a sub-frame target. */
-    private ContentID persistBinary(ItemID predicate, long left, long right) {
+    private DatumID persistBinary(ItemID predicate, long left, long right) {
         Body body = Body.of(
                 ItemRef.of(predicate),
                 List.of(
@@ -168,7 +169,7 @@ class RoundTripTest {
     }
 
     /** Persist a unary frame body and return its CID. */
-    private ContentID persistUnary(ItemID predicate, BindingTarget operand) {
+    private DatumID persistUnary(ItemID predicate, BindingTarget operand) {
         Body body = Body.of(
                 ItemRef.of(predicate),
                 List.of(new Binding(ThematicRole.Theme.IID, operand)));
@@ -187,8 +188,15 @@ class RoundTripTest {
         if (fm == null || fm.predicate() == null) return "<empty>";
         StringBuilder sb = new StringBuilder();
         sb.append(fm.predicate().value().iid().compactDisplay()).append("{");
+        // Canonical describe order: sort bindings by their role's structural
+        // hash so a FrameMap (caller-ordered) and a Body (canonical-ordered)
+        // describe identically when they hold the same content.
+        List<BindingMap> sorted = new java.util.ArrayList<>(fm.bindings());
+        sorted.sort(java.util.Comparator.comparing(
+                b -> b.role().value().iid(),
+                dev.everydaythings.graph.encoding.HashTree.CANONICAL));
         boolean first = true;
-        for (BindingMap b : fm.bindings()) {
+        for (BindingMap b : sorted) {
             if (!first) sb.append(", ");
             first = false;
             sb.append(b.role().value().iid().compactDisplay()).append("=");
@@ -201,8 +209,16 @@ class RoundTripTest {
         if (body == null || !(body.head() instanceof ItemRef ref)) return "<empty>";
         StringBuilder sb = new StringBuilder();
         sb.append(ref.iid().compactDisplay()).append("{");
+        // Sort bindings by role-IID hash for stable describe output that matches
+        // the FrameMap path above. Body's own canonical sort is by whole-binding
+        // hash (different criterion); we re-sort here for test-comparison
+        // consistency.
+        List<Binding> sorted = new java.util.ArrayList<>(body.bindings());
+        sorted.sort(java.util.Comparator.comparing(
+                Binding::role,
+                dev.everydaythings.graph.encoding.HashTree.CANONICAL));
         boolean first = true;
-        for (Binding b : body.bindings()) {
+        for (Binding b : sorted) {
             if (!first) sb.append(", ");
             first = false;
             sb.append(b.role().compactDisplay()).append("=");
@@ -221,12 +237,12 @@ class RoundTripTest {
             return describe(fmt.frameMap());
         }
         if (target instanceof BindingTarget.RefTarget rt) {
-            Optional<Frame> frame = lib.fetchFrame(rt.asCid());
+            Optional<Frame> frame = lib.fetchFrame(rt.asDatumId());
             return frame.map(f -> describeBody(f.body()))
-                    .orElseGet(() -> "ref(" + rt.asCid().compactDisplay() + ")");
+                    .orElseGet(() -> "ref(" + rt.asDatumId().compactDisplay() + ")");
         }
-        if (target instanceof BindingTarget.IidTarget iid) {
-            return "iid(" + iid.iid().compactDisplay() + ")";
+        if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
+            return "iid(" + ref.asItemId().compactDisplay() + ")";
         }
         return target == null ? "<null>" : target.toString();
     }

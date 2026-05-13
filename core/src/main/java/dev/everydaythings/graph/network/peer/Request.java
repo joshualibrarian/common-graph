@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.network.peer;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.CgTag;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 
@@ -71,7 +70,11 @@ public record Request(
 
     @Override
     public int tag() {
-        return CgTag.REQUEST;
+        // Legacy peer-protocol tag, slated for replacement when peer protocol
+        // is ported to vocabulary-driven dispatch (task #37). Tag 11 was
+        // reclaimed for REDACTED (Merkle elision marker); this old code path
+        // continues to use 11 by inline literal until the protocol is rewritten.
+        return 11;
     }
 
     @Override

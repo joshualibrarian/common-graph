@@ -1,10 +1,11 @@
 package dev.everydaythings.graph.item.id;
 
-import dev.everydaythings.graph.Hash;
+import io.ipfs.multibase.Multibase;
 import io.ipfs.multihash.Multihash;
-import lombok.extern.log4j.Log4j2;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Objects.requireNonNull;
@@ -54,7 +55,26 @@ public final class ItemID extends HashID {
 
     private static ItemID computeFromString(String s) {
         byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
-        return new ItemID(Hash.DEFAULT.digest(bytes), Hash.DEFAULT);
+        return new ItemID(sha256(bytes), Multihash.Type.sha2_256);
+    }
+
+    /**
+     * Protocol-pinned SHA-256 used for canonical-key → IID derivation. Inlined
+     * here (rather than routed through the {@code Digest} archetype) to avoid a
+     * class-init cycle: {@code Digest}'s inner-class seed items each call
+     * {@link #fromString(String)} for their own KEYs, so this primitive must
+     * not depend on {@code Digest} being initialized.
+     *
+     * <p>Algorithm choice for ItemID derivation is network-pinned — every party
+     * must agree forever or canonical-key→IID mappings diverge. SHA-256 is the
+     * protocol commitment.
+     */
+    private static byte[] sha256(byte[] input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     /**
@@ -70,7 +90,7 @@ public final class ItemID extends HashID {
      */
     public static ItemID fromMultikeyBytes(byte[] multikeyBytes) {
         requireNonNull(multikeyBytes, "multikeyBytes");
-        return new ItemID(Hash.DEFAULT.digest(multikeyBytes), Hash.DEFAULT);
+        return new ItemID(sha256(multikeyBytes), Multihash.Type.sha2_256);
     }
 
     /** Strict: requires iid: prefix. */
@@ -80,7 +100,7 @@ public final class ItemID extends HashID {
         if (!text.startsWith(IID_PREFIX)) throw new IllegalArgumentException("ItemID must start with " + IID_PREFIX);
         String token = text.substring(IID_PREFIX.length());
         if (token.isEmpty()) throw new IllegalArgumentException("empty iid token");
-        return new ItemID(Hash.decode(token));
+        return new ItemID(Multihash.deserialize(Multibase.decode(token)).toBytes());
     }
 
     public ItemID(Multihash multihash) {
@@ -91,7 +111,7 @@ public final class ItemID extends HashID {
         super(multihashBytes);
     }
 
-    public ItemID(byte[] rawDigest, Hash type) {
+    public ItemID(byte[] rawDigest, Multihash.Type type) {
         super(rawDigest, type);
     }
 

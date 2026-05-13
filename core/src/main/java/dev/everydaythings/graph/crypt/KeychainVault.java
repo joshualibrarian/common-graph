@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.crypt.Algorithm;
+import dev.everydaythings.graph.identity.Algorithm;
 
 import java.nio.file.Path;
 import java.security.PublicKey;

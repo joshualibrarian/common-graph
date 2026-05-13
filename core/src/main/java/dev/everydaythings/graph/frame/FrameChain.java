@@ -1,11 +1,13 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.library.LibraryOld;
-import dev.everydaythings.graph.library.LibraryIndex;
+import dev.everydaythings.graph.library_old.LibraryOld;
+import dev.everydaythings.graph.library_old.LibraryIndex;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -324,10 +326,6 @@ public class FrameChain {
     private static ContentID extractFollowsCid(Binding b) {
         if (b.target() instanceof BindingTarget.RefTarget ref) {
             return ref.asCid();
-        }
-        if (b.target() instanceof BindingTarget.IidTarget iid) {
-            // Backward compat: might be stored as IID
-            return new ContentID(iid.iid().encodeBinary());
         }
         return null;
     }

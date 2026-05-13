@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.crypt;
 
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.frame.ItemFrame;
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.InspectEntry;
 import dev.everydaythings.graph.frame.Inspectable;
 import dev.everydaythings.graph.item.Factory;

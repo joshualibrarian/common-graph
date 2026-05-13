@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 
 /**
  * Canonicalization rules applied to numeric values.

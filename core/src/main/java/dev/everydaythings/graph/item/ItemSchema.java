@@ -1,12 +1,12 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.Implements;
 
 import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameConfig;
 import dev.everydaythings.graph.frame.EndorsementsTable;
 import dev.everydaythings.graph.frame.FrameOld;
@@ -181,7 +181,7 @@ public class ItemSchema {
         } else if (target instanceof AddressSpace.ParsedAddress addr) {
             targetValue = Literal.ofText(addr.canonical());
         } else if (target instanceof Value value) {
-            targetValue = Literal.of(value);
+            targetValue = Literal.ofBytes(value.encodeBinary(Canonical.Scope.RECORD));
         } else if (target instanceof String str) {
             targetValue = Literal.ofText(str);
         } else if (target instanceof Number num) {
@@ -194,8 +194,8 @@ public class ItemSchema {
         }
 
         return new FrameBodyOld(spec.predicate(), java.util.List.of(
-                new dev.everydaythings.graph.frame.Binding(spec.selfRole(), BindingTarget.iid(item.iid())),
-                new dev.everydaythings.graph.frame.Binding(spec.valueRole(), targetValue)));
+                new dev.everydaythings.graph.datum.Binding(spec.selfRole(), BindingTarget.iid(item.iid())),
+                new dev.everydaythings.graph.datum.Binding(spec.valueRole(), targetValue)));
     }
 
     // ==================================================================================
@@ -425,7 +425,7 @@ public class ItemSchema {
                                         FrameConfig existingConfig,
                                         Consumer<FrameBodyOld> storeFrameBody) {
 
-        ContentID snapshotCid = new ContentID(Hash.DEFAULT.digest(plaintextBytes), Hash.DEFAULT);
+        ContentID snapshotCid = new ContentID(Digest.Sha256.digest(plaintextBytes), Digest.Sha256.MULTIHASH_TYPE);
         ContentID encryptedCid = null;
 
         boolean shouldEncrypt = encryptionContext != null
@@ -437,10 +437,10 @@ public class ItemSchema {
             if (!recipients.isEmpty()) {
                 // Encrypt the plaintext into a Tag 10 envelope
                 var envelope = dev.everydaythings.graph.crypt.EnvelopeOps.encryptAnonymous(
-                        plaintextBytes, Hash.DEFAULT.digest(plaintextBytes), null,
+                        plaintextBytes, Digest.Sha256.digest(plaintextBytes), null,
                         encryptionContext.aeadAlgorithm(), recipients);
                 byte[] envelopeBytes = envelope.encodeBinary(Canonical.Scope.RECORD);
-                encryptedCid = new ContentID(Hash.DEFAULT.digest(envelopeBytes), Hash.DEFAULT);
+                encryptedCid = new ContentID(Digest.Sha256.digest(envelopeBytes), Digest.Sha256.MULTIHASH_TYPE);
 
                 // Store the encrypted envelope (not the plaintext)
                 if (storePayload != null) storePayload.accept(envelopeBytes);
@@ -486,19 +486,19 @@ public class ItemSchema {
                                             FrameConfig existingConfig,
                                             FrameOld frame,
                                             Consumer<FrameBodyOld> storeFrameBody) {
-        java.util.List<dev.everydaythings.graph.frame.Binding> bindings = new java.util.ArrayList<>();
+        java.util.List<dev.everydaythings.graph.datum.Binding> bindings = new java.util.ArrayList<>();
 
         ItemID topicId = ThematicRole.Topic.IID;
 
         // Content — Topic role
         if (snapshotCid != null) {
-            bindings.add(new dev.everydaythings.graph.frame.Binding(
+            bindings.add(new dev.everydaythings.graph.datum.Binding(
                     topicId, BindingTarget.ref(snapshotCid)));
         }
 
         // Encrypted envelope — compound key (TOPIC, ENCRYPTED)
         if (encryptedCid != null) {
-            bindings.add(dev.everydaythings.graph.frame.Binding.qualified(
+            bindings.add(dev.everydaythings.graph.datum.Binding.qualified(
                     topicId, java.util.List.of(new CompoundKey.Sememe(CoreVocabulary.Encrypted.IID)),
                     BindingTarget.ref(encryptedCid)));
         }
@@ -506,15 +506,15 @@ public class ItemSchema {
         // Config — Config role
         if (existingConfig != null && existingConfig.policy() != null) {
             byte[] configBytes = existingConfig.encodeBinary(Canonical.Scope.RECORD);
-            bindings.add(new dev.everydaythings.graph.frame.Binding(
+            bindings.add(new dev.everydaythings.graph.datum.Binding(
                     ThematicRole.Config.IID,
-                    new Literal(Literal.TYPE_CBOR, configBytes)));
+                    Literal.ofBytes(configBytes)));
         }
 
         // Add self-binding: the owning item participates via the spec's selfRole (default THEME)
         ItemID selfRole = (spec != null) ? spec.selfRole() : ThematicRole.Theme.IID;
-        java.util.List<dev.everydaythings.graph.frame.Binding> allBindings = new java.util.ArrayList<>();
-        allBindings.add(new dev.everydaythings.graph.frame.Binding(selfRole, BindingTarget.iid(item.iid())));
+        java.util.List<dev.everydaythings.graph.datum.Binding> allBindings = new java.util.ArrayList<>();
+        allBindings.add(new dev.everydaythings.graph.datum.Binding(selfRole, BindingTarget.iid(item.iid())));
         allBindings.addAll(bindings);
         FrameBodyOld body = new FrameBodyOld(typeId, allBindings);
 

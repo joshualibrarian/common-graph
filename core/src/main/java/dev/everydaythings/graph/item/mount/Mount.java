@@ -2,7 +2,7 @@ package dev.everydaythings.graph.item.mount;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.Factory;
 
 /**

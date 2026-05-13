@@ -1,15 +1,17 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.crypt.MultiKey;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Next;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Rotation;
 import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.CoreVocabulary;
+import dev.everydaythings.graph.semantics.CoreVocabulary.Sequence;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,7 +48,7 @@ class RotationTest {
                 )
         );
 
-        assertThat(Rotation.readFollows(body)).contains(priorEventCid);
+        assertThat(Signer.readFollows(body)).contains(priorEventCid);
     }
 
     @Test
@@ -61,13 +63,13 @@ class RotationTest {
                         Binding.ref(ThematicRole.Theme.IID, lib.iid()),
                         new Binding(
                                 ThematicRole.Attribute.IID,
-                                List.of(new CompoundKey.Sememe(CoreVocabulary.Sequence.IID)),
+                                List.of(new CompoundKey.Sememe(Sequence.IID)),
                                 Literal.ofInteger(3)
                         )
                 )
         );
 
-        assertThat(Rotation.readSequence(body)).contains(3L);
+        assertThat(Signer.readSequence(body)).contains(3L);
     }
 
     @Test
@@ -85,20 +87,20 @@ class RotationTest {
                         Binding.ref(ThematicRole.Theme.IID, lib.iid()),
                         new Binding(
                                 ThematicRole.Instrument.IID,
-                                List.of(),
+                                List.of(new CompoundKey.Sememe(Multikey.IID)),
                                 Literal.ofMultiKey(currentKey)
                         ),
                         new Binding(
                                 ThematicRole.Instrument.IID,
-                                List.of(new CompoundKey.Sememe(CoreVocabulary.Next.IID)),
+                                List.of(new CompoundKey.Sememe(Next.IID)),
                                 BindingTarget.ref(nextDigest)
                         )
                 )
         );
 
         // currentKeys should NOT include the NEXT-qualified one
-        assertThat(Inception.currentKeys(body)).hasSize(1);
+        assertThat(Signer.committedKeys(body)).hasSize(1);
         // nextKeyDigests should return only the NEXT-qualified ones
-        assertThat(Rotation.nextKeyDigests(body)).containsExactly(nextDigest);
+        assertThat(Signer.nextKeyDigests(body)).containsExactly(nextDigest);
     }
 }

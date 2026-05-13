@@ -1,10 +1,7 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.encoding.Canonical;
 import lombok.Getter;
-
-import java.util.Objects;
 
 /**
  * Multi-fidelity visual identity for an item or element.

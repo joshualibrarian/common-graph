@@ -1,9 +1,10 @@
 package dev.everydaythings.graph.operator;
 
+import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.CompoundKey;
@@ -56,7 +57,7 @@ import java.util.Optional;
  * count and types. Future runtimes (GraalVM polyglot, etc.) may carry alternate
  * implementations of the same contract through IMPLEMENTS frames.
  */
-@Seed.Item(key = Operator.KEY, head = Item.Predicate.KEY)
+@Seed.Item(key = Operator.KEY, head = CoreVocabulary.Predicate.KEY)
 public abstract class Operator extends Item {
 
     /** Canonical key for the operator concept itself — the archetype of all operators. */
@@ -341,8 +342,8 @@ public abstract class Operator extends Item {
                 ThematicRole.Attribute.IID, NotationVocabulary.Associativity.IID);
         return lexemeFrame.binding(attributeAssociativity)
                 .map(Binding::target)
-                .filter(t -> t instanceof BindingTarget.IidTarget)
-                .map(t -> ((BindingTarget.IidTarget) t).iid());
+                .filter(t -> t instanceof BindingTarget.RefTarget ref && !ref.isCompound())
+                .map(t -> ((BindingTarget.RefTarget) t).asItemId());
     }
 
     private static int indexOfTokenSpan(List<TokenSpan> tokens, TextSpan span) {

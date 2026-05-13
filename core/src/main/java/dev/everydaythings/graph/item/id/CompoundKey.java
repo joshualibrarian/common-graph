@@ -2,7 +2,7 @@ package dev.everydaythings.graph.item.id;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.Factory;
 
 import java.util.ArrayList;
@@ -44,7 +44,20 @@ public final class CompoundKey implements Canonical, Comparable<CompoundKey> {
 
     private CompoundKey(ItemID head, List<FrameToken> qualifiers) {
         this.head = Objects.requireNonNull(head, "CompoundKey head must not be null");
-        this.qualifiers = qualifiers == null ? List.of() : List.copyOf(qualifiers);
+        this.qualifiers = canonicalSortQualifiers(qualifiers);
+    }
+
+    /**
+     * Qualifiers are a multiset — sorted canonically (by structural hash,
+     * bitwise) so two keys with the same qualifiers in different orders are
+     * equal. Mirrors how {@code Binding} canonicalizes its qualifier list.
+     */
+    private static List<FrameToken> canonicalSortQualifiers(List<FrameToken> qualifiers) {
+        if (qualifiers == null || qualifiers.isEmpty()) return List.of();
+        if (qualifiers.size() == 1) return List.copyOf(qualifiers);
+        List<FrameToken> sorted = new ArrayList<>(qualifiers);
+        sorted.sort(dev.everydaythings.graph.encoding.HashTree.CANONICAL);
+        return List.copyOf(sorted);
     }
 
     // ==================================================================================

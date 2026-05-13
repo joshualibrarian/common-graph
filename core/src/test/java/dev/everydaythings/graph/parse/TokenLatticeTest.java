@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.parse;
 
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.CompoundKey;

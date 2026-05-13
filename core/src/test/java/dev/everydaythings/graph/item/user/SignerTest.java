@@ -1,15 +1,14 @@
 package dev.everydaythings.graph.item.user;
 
-import dev.everydaythings.graph.crypt.Algorithm;
-import dev.everydaythings.graph.crypt.MultiKey;
-import dev.everydaythings.graph.crypt.VarSig;
+import dev.everydaythings.graph.identity.Algorithm;
+import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.id.Ref;
 
 /**

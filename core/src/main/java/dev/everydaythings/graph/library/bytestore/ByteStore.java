@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.library.bytestore;
 
-import dev.everydaythings.graph.library.Service;
 import dev.everydaythings.graph.library.WriteTransaction;
 
 import java.util.Iterator;
@@ -17,7 +16,8 @@ import java.util.function.BiConsumer;
  *   <li>Simple maps for testing</li>
  * </ul>
  *
- * <p>All ByteStores are {@link Service}s with lifecycle management (start/stop/status).
+ * <p>All ByteStores are {@link AutoCloseable}; {@link #close()} releases the
+ * backing.
  *
  * <p>The fluent API provides a clean way to work with stores:
  * <pre>{@code
@@ -35,50 +35,10 @@ import java.util.function.BiConsumer;
  *
  * @param <E> the column schema enum type
  */
-public interface ByteStore<E extends Enum<E> & ColumnSchema> extends Service {
+public interface ByteStore<E extends Enum<E> & ColumnSchema> extends AutoCloseable {
 
-    // ==================================================================================
-    // Service Implementation
-    // ==================================================================================
-
-    /**
-     * Check if the store is currently open.
-     *
-     * <p>Implementations should return true if the underlying database is open
-     * and ready for operations.
-     *
-     * @return true if open
-     */
-    boolean isOpen();
-
-    /**
-     * Derive status from open state.
-     */
     @Override
-    default Status status() {
-        return isOpen() ? Status.RUNNING : Status.STOPPED;
-    }
-
-    /**
-     * Start is a no-op if already running.
-     *
-     * <p>ByteStores are typically opened during construction.
-     * Restart requires creating a new instance.
-     */
-    @Override
-    default void start() {
-        if (isOpen()) return;
-        throw new UnsupportedOperationException(
-            "ByteStore cannot be restarted after close. Create a new instance.");
-    }
-
-    /**
-     * Stop delegates to close.
-     */
-    @Override
-    default void stop() {
-        // Subclasses provide actual close implementation
-    }
+    void close();
 
     // ==================================================================================
     // Fluent API

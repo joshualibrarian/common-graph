@@ -1,10 +1,11 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.frame.ItemFrame;
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.dispatch.Vocabulary;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameAware;
 import dev.everydaythings.graph.frame.FrameContext;
 import dev.everydaythings.graph.frame.eval.FrameAssemblyContext;
@@ -17,7 +18,6 @@ import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.FrameRecordOld;
 import dev.everydaythings.graph.runtime.LibrarianOld;
 import lombok.extern.log4j.Log4j2;
-import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.frame.EndorsementsTable;
 import dev.everydaythings.graph.frame.FrameOld;
@@ -27,8 +27,8 @@ import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.user.SignerOld;
-import dev.everydaythings.graph.library.ItemStore;
-import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
+import dev.everydaythings.graph.library_old.ItemStore;
+import dev.everydaythings.graph.library_old.workingtree.WorkingTreeStore;
 import dev.everydaythings.graph.policy.PolicySet;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.ui.scene.Scene;
@@ -162,7 +162,7 @@ public class ItemOld {
     private boolean dirty;
 
     /** Item-level bindings to include in the next manifest. */
-    private transient List<dev.everydaythings.graph.frame.Binding> itemBindings;
+    private transient List<dev.everydaythings.graph.datum.Binding> itemBindings;
 
     // ==================================================================================
     // Schema Access (cached per class via ItemScanner)
@@ -968,7 +968,7 @@ public class ItemOld {
                 BindingTarget topic = f.body().binding(ThematicRole.Topic.IID);
                 if (topic instanceof Literal lit) return lit.payload();
                 // Or the whole body may encode the config
-                return f.body().encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
+                return f.body().encodeBinary(Canonical.Scope.RECORD);
             }
         }
 
@@ -983,7 +983,7 @@ public class ItemOld {
                             .binding(ThematicRole.Topic.IID);
                     if (topic instanceof Literal lit) return lit.payload();
                     return predFrame.get().body()
-                            .encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
+                            .encodeBinary(Canonical.Scope.RECORD);
                 }
             }
         }
@@ -1515,7 +1515,7 @@ public class ItemOld {
      * Add an item-level binding. Included in the manifest at commit time.
      * Identity bindings affect the VID; non-identity bindings are record-scope.
      */
-    public void addBinding(dev.everydaythings.graph.frame.Binding binding) {
+    public void addBinding(dev.everydaythings.graph.datum.Binding binding) {
         if (itemBindings == null) itemBindings = new java.util.ArrayList<>();
         itemBindings.add(binding);
         dirty = true;
@@ -1524,7 +1524,7 @@ public class ItemOld {
     /**
      * Get item-level bindings (pending for next manifest).
      */
-    public List<dev.everydaythings.graph.frame.Binding> itemBindings() {
+    public List<dev.everydaythings.graph.datum.Binding> itemBindings() {
         return itemBindings != null ? itemBindings : List.of();
     }
 

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ItemFrame;
@@ -143,10 +143,28 @@ public class Language extends ItemOld {
     /** ISO 639-3 code → English name, loaded from bundled resource. */
     private static final Map<String, String> LANGUAGE_NAMES = loadLanguageNames();
 
+    /**
+     * Read the bundled {@code /iso-639-3.tsv} (3-letter code → English name)
+     * into a map. Malformed or missing resource yields an empty map; this is
+     * a best-effort one-shot at class-init time.
+     */
     private static Map<String, String> loadLanguageNames() {
         Map<String, String> map = new java.util.HashMap<>();
-        for (String[] entry : dev.everydaythings.graph.library.SeedVocabulary.loadLanguageCodes()) {
-            map.put(entry[0], entry[1]);
+        try (java.io.InputStream is = Language.class.getResourceAsStream("/iso-639-3.tsv")) {
+            if (is == null) return Map.of();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("#") || line.isBlank()) continue;
+                    String[] parts = line.split("\t", 2);
+                    if (parts.length == 2 && parts[0].length() == 3) {
+                        map.put(parts[0], parts[1]);
+                    }
+                }
+            }
+        } catch (java.io.IOException e) {
+            // best-effort: empty map on read failure
         }
         return Map.copyOf(map);
     }
@@ -356,8 +374,9 @@ public class Language extends ItemOld {
         BindingTarget target = body.binding(role);
         if (target == null) return null;
         // Skip if it's the owner
-        if (target instanceof BindingTarget.IidTarget iid
-                && ownerIid != null && iid.iid().equals(ownerIid)) return null;
+        if (target instanceof BindingTarget.RefTarget ref
+                && !ref.isCompound()
+                && ownerIid != null && ref.asItemId().equals(ownerIid)) return null;
         return expressTarget(target, ownerIid, lib);
     }
 
@@ -409,17 +428,11 @@ public class Language extends ItemOld {
             return express(ft.body(), ownerIid, lib);
         }
 
-        if (target instanceof BindingTarget.IidTarget iid) {
-            if (lib != null) {
-                return lib.get(iid.iid()).map(ItemOld::displayToken).orElse(null);
-            }
-            return iid.iid().displayAtWidth(12);
-        }
-
         if (target instanceof BindingTarget.RefTarget ref) {
             if (lib != null) {
                 return lib.get(ref.asItemId()).map(ItemOld::displayToken).orElse(null);
             }
+            return ref.asItemId().displayAtWidth(12);
         }
 
         return null;

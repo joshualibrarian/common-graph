@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
 import dev.everydaythings.graph.item.ComponentScanner;
 import dev.everydaythings.graph.item.Tick;
 

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.dispatch;
 
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.EndorsementsTable;

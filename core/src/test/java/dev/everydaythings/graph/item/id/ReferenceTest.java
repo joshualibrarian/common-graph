@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.item.id;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Hash;
+import dev.everydaythings.graph.encoding.Canonical;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ class ReferenceTest {
     static final ItemID OTHER_IID = ItemID.fromString("cg:item/test-2");
     static final ContentID VID = ContentID.of("version-1".getBytes());
     static final ContentID CID = ContentID.of("content-bytes".getBytes());
-    static final ContentID BODY_CID = ContentID.of("body-bytes".getBytes());
+    static final DatumID BODY_ID = DatumID.of("body-bytes".getBytes());
 
     static final ItemID THEME = ItemID.fromString("cg:role/theme");
     static final ItemID ENG = ItemID.fromString("cg:language/eng");
@@ -90,7 +90,7 @@ class ReferenceTest {
         @DisplayName("CBOR Tag-6 round-trip")
         void cborRoundTrip() {
             ItemRef original = ItemRef.of(IID, VID);
-            CBORObject cbor = original.toCborTree(dev.everydaythings.graph.Canonical.Scope.BODY);
+            CBORObject cbor = original.toCborTree(Canonical.Scope.BODY);
             assertThat(cbor.isTagged()).isTrue();
             assertThat(cbor.HasMostOuterTag(6)).isTrue();
             Reference decoded = Reference.fromCborTree(cbor);
@@ -148,7 +148,7 @@ class ReferenceTest {
         @DisplayName("CBOR Tag-6 round-trip")
         void cborRoundTrip() {
             ContentRef original = ContentRef.of(CID);
-            CBORObject cbor = original.toCborTree(dev.everydaythings.graph.Canonical.Scope.BODY);
+            CBORObject cbor = original.toCborTree(Canonical.Scope.BODY);
             Reference decoded = Reference.fromCborTree(cbor);
             assertThat(decoded).isEqualTo(original);
         }
@@ -168,8 +168,8 @@ class ReferenceTest {
         @Test
         @DisplayName("whole-frame construction")
         void wholeFrame() {
-            FrameRef ref = FrameRef.of(BODY_CID);
-            assertThat(ref.bodyCid()).isEqualTo(BODY_CID);
+            FrameRef ref = FrameRef.of(BODY_ID);
+            assertThat(ref.bodyId()).isEqualTo(BODY_ID);
             assertThat(ref.key()).isEmpty();
             assertThat(ref.portion()).isEmpty();
             assertThat(ref.variant()).isEqualTo(Reference.Variant.FRAME);
@@ -179,7 +179,7 @@ class ReferenceTest {
         @DisplayName("with key construction")
         void withKey() {
             CompoundKey key = CompoundKey.of(THEME, ENG);
-            FrameRef ref = FrameRef.of(BODY_CID, key);
+            FrameRef ref = FrameRef.of(BODY_ID, key);
             assertThat(ref.key()).contains(key);
             assertThat(ref.portion()).isEmpty();
         }
@@ -189,7 +189,7 @@ class ReferenceTest {
         void withKeyAndPortion() {
             CompoundKey key = CompoundKey.of(THEME);
             Selector portion = Selector.byteRange(10, 20);
-            FrameRef ref = FrameRef.of(BODY_CID, key, portion);
+            FrameRef ref = FrameRef.of(BODY_ID, key, portion);
             assertThat(ref.key()).contains(key);
             assertThat(ref.portion()).contains(portion);
         }
@@ -198,14 +198,14 @@ class ReferenceTest {
         @DisplayName("rejects portion without key")
         void rejectsPortionWithoutKey() {
             Selector portion = Selector.byteRange(0, 10);
-            assertThatThrownBy(() -> new FrameRef(BODY_CID, Optional.empty(), Optional.of(portion)))
+            assertThatThrownBy(() -> new FrameRef(BODY_ID, Optional.empty(), Optional.of(portion)))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         @DisplayName("text round-trip whole frame")
         void textRoundTripWhole() {
-            FrameRef original = FrameRef.of(BODY_CID);
+            FrameRef original = FrameRef.of(BODY_ID);
             String text = original.encodeText();
             assertThat(text).startsWith("#");
             assertThat(text).doesNotContain("\\");
@@ -217,12 +217,12 @@ class ReferenceTest {
         @DisplayName("text round-trip with key")
         void textRoundTripWithKey() {
             CompoundKey key = CompoundKey.of(THEME);
-            FrameRef original = FrameRef.of(BODY_CID, key);
+            FrameRef original = FrameRef.of(BODY_ID, key);
             String text = original.encodeText();
             assertThat(text).startsWith("#");
             assertThat(text).contains("\\");
             FrameRef decoded = FrameRef.parseText(text);
-            assertThat(decoded.bodyCid()).isEqualTo(original.bodyCid());
+            assertThat(decoded.bodyId()).isEqualTo(original.bodyId());
             assertThat(decoded.key()).isPresent();
             assertThat(decoded.key().get().head()).isEqualTo(THEME);
         }
@@ -230,7 +230,7 @@ class ReferenceTest {
         @Test
         @DisplayName("binary round-trip whole frame")
         void binaryRoundTripWhole() {
-            FrameRef original = FrameRef.of(BODY_CID);
+            FrameRef original = FrameRef.of(BODY_ID);
             byte[] bytes = original.toRefBytes();
             assertThat(bytes[0]).isEqualTo(Reference.PREFIX_FRAME);
             Reference decoded = Reference.fromRefBytes(bytes);
@@ -241,7 +241,7 @@ class ReferenceTest {
         @DisplayName("binary round-trip with key")
         void binaryRoundTripWithKey() {
             CompoundKey key = CompoundKey.of(THEME, ENG);
-            FrameRef original = FrameRef.of(BODY_CID, key);
+            FrameRef original = FrameRef.of(BODY_ID, key);
             byte[] bytes = original.toRefBytes();
             Reference decoded = Reference.fromRefBytes(bytes);
             assertThat(decoded).isEqualTo(original);
@@ -250,8 +250,8 @@ class ReferenceTest {
         @Test
         @DisplayName("CBOR Tag-6 round-trip whole frame")
         void cborRoundTripWhole() {
-            FrameRef original = FrameRef.of(BODY_CID);
-            CBORObject cbor = original.toCborTree(dev.everydaythings.graph.Canonical.Scope.BODY);
+            FrameRef original = FrameRef.of(BODY_ID);
+            CBORObject cbor = original.toCborTree(Canonical.Scope.BODY);
             Reference decoded = Reference.fromCborTree(cbor);
             assertThat(decoded).isEqualTo(original);
         }
@@ -282,7 +282,7 @@ class ReferenceTest {
         @Test
         @DisplayName("# → FrameRef")
         void parseFrameRef() {
-            FrameRef original = FrameRef.of(BODY_CID);
+            FrameRef original = FrameRef.of(BODY_ID);
             Reference parsed = Reference.parse(original.encodeText());
             assertThat(parsed).isInstanceOf(FrameRef.class);
             assertThat(parsed).isEqualTo(original);
@@ -331,7 +331,7 @@ class ReferenceTest {
         @Test
         @DisplayName("0x23 → FrameRef")
         void frameRefBytes() {
-            FrameRef original = FrameRef.of(BODY_CID);
+            FrameRef original = FrameRef.of(BODY_ID);
             byte[] bytes = original.toRefBytes();
             Reference decoded = Reference.fromRefBytes(bytes);
             assertThat(decoded).isInstanceOf(FrameRef.class);

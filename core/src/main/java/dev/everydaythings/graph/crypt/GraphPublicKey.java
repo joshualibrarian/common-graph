@@ -1,7 +1,8 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Hash;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Getter;
 
@@ -55,7 +56,7 @@ public abstract class GraphPublicKey implements Canonical {
     public final byte[] keyId() {
         byte[] k = kidCache;
         if (k == null) {
-            k = Hash.DEFAULT.digest(spki);
+            k = Digest.Sha256.digest(spki);
             kidCache = k;
         }
         return k;

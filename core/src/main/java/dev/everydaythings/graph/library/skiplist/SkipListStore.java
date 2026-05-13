@@ -24,19 +24,6 @@ public interface SkipListStore<E extends Enum<E> & ColumnSchema> extends ByteSto
     Opened<E> opened();
 
     // ==================================================================================
-    // Service Implementation
-    // ==================================================================================
-
-    /**
-     * Check if the store is open.
-     */
-    @Override
-    default boolean isOpen() {
-        Opened<E> o = opened();
-        return o != null && !o.isClosed();
-    }
-
-    // ==================================================================================
     // Static Factory
     // ==================================================================================
 

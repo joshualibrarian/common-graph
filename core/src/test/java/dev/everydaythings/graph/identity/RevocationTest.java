@@ -1,13 +1,14 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Compromise;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Revocation;
 import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.CoreVocabulary;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,8 +36,13 @@ class RevocationTest {
                 List.of(Binding.ref(ThematicRole.Theme.IID, retiring))
         );
 
-        assertThat(Revocation.readTargetIid(body)).contains(retiring);
-        assertThat(Revocation.readTargetCid(body)).isEmpty();
+        // After IidTarget retirement, item refs and content refs share the same
+        // RefTarget wire shape (multihash bytes), so readTargetCid will also
+        // succeed for an identity-pointing ref — the bytes are interpretable
+        // either way. The identity-vs-content distinction now lives at the
+        // application/semantic layer (predicate purpose, qualifiers, or lookup
+        // context), not at the binding-target's structural type.
+        assertThat(Signer.readTheme(body)).contains(retiring);
     }
 
     @Test
@@ -56,7 +62,7 @@ class RevocationTest {
                 ))
         );
 
-        assertThat(Revocation.readTargetCid(body)).contains(frameCid);
+        assertThat(Signer.readThemeCid(body)).contains(frameCid);
     }
 
     @Test
@@ -69,11 +75,11 @@ class RevocationTest {
                 ItemRef.of(Revocation.IID),
                 List.of(
                         Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("compromised")),
-                        Binding.ref(ThematicRole.Purpose.IID, CoreVocabulary.Compromise.IID)
+                        Binding.ref(ThematicRole.Purpose.IID, Compromise.IID)
                 )
         );
 
-        assertThat(Revocation.readReason(body)).contains(CoreVocabulary.Compromise.IID);
+        assertThat(Signer.readPurpose(body)).contains(Compromise.IID);
     }
 
     @Test
@@ -87,6 +93,6 @@ class RevocationTest {
                 List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("retired")))
         );
 
-        assertThat(Revocation.readReason(body)).isEmpty();
+        assertThat(Signer.readPurpose(body)).isEmpty();
     }
 }

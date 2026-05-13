@@ -137,8 +137,9 @@ public final class PresenceVocabulary {
                 if (!presentPredicate.equals(frame.body().predicate())) continue;
                 // Check if the AGENT binding matches our signer
                 var agentTarget = frame.body().binding(ItemID.fromString(ThematicRole.Agent.KEY));
-                if (agentTarget instanceof dev.everydaythings.graph.frame.BindingTarget.IidTarget iidTarget
-                        && signerId.equals(iidTarget.iid())) {
+                if (agentTarget instanceof dev.everydaythings.graph.datum.BindingTarget.RefTarget refTarget
+                        && !refTarget.isCompound()
+                        && signerId.equals(refTarget.asItemId())) {
                     toRemove.add(frame.frameKey());
                 }
             }

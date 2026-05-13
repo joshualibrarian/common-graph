@@ -3,14 +3,15 @@ package dev.everydaythings.graph.linguistics;
 import com.ibm.icu.util.ULocale;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -110,13 +111,69 @@ public class Language extends Item {
             return framemap;
         }
 
-        List<BindingTarget> targets = framemap.bindings().stream()
-                .map(b -> b.target().value())
-                .toList();
+        List<BindingTarget> targets = operandTargetsByRole(framemap);
         Optional<Rendered> result = renderOperation(
                 framemap.predicate().value().iid(), targets, params);
         if (result.isEmpty()) return framemap;
         return framemap.withText(result.get().text);
+    }
+
+    /**
+     * Extract operator operand targets from a {@link FrameMap} by semantic role
+     * rather than by binding position. Bindings on a Datum are a multiset
+     * (canonically sorted by structural hash, not insertion order), so the
+     * convention for operators is: THEME → left/sole operand, GOAL → right
+     * operand. Any binding without one of these roles is appended in iteration
+     * order — a fallback for non-operator predicates.
+     */
+    private static List<BindingTarget> operandTargetsByRole(FrameMap framemap) {
+        BindingTarget theme = null;
+        BindingTarget goal = null;
+        List<BindingTarget> others = new java.util.ArrayList<>();
+        for (var bm : framemap.bindings()) {
+            ItemID role = bm.role().value() != null ? bm.role().value().iid() : null;
+            BindingTarget target = bm.target().value();
+            if (role == null) { others.add(target); continue; }
+            if (theme == null && ThematicRole.Theme.IID.equals(role)) {
+                theme = target;
+            } else if (goal == null && ThematicRole.Goal.IID.equals(role)) {
+                goal = target;
+            } else {
+                others.add(target);
+            }
+        }
+        List<BindingTarget> ordered = new java.util.ArrayList<>();
+        if (theme != null) ordered.add(theme);
+        if (goal != null) ordered.add(goal);
+        ordered.addAll(others);
+        return ordered;
+    }
+
+    /**
+     * Extract operator operand targets from a {@link Body} by semantic role.
+     * Counterpart to {@link #operandTargetsByRole(FrameMap)} used when
+     * recursing into a fetched inner body during rendering.
+     */
+    private static List<BindingTarget> operandTargetsByRole(Body body) {
+        BindingTarget theme = null;
+        BindingTarget goal = null;
+        List<BindingTarget> others = new java.util.ArrayList<>();
+        for (Binding b : body.bindings()) {
+            ItemID role = b.role();
+            BindingTarget target = b.target();
+            if (theme == null && ThematicRole.Theme.IID.equals(role)) {
+                theme = target;
+            } else if (goal == null && ThematicRole.Goal.IID.equals(role)) {
+                goal = target;
+            } else {
+                others.add(target);
+            }
+        }
+        List<BindingTarget> ordered = new java.util.ArrayList<>();
+        if (theme != null) ordered.add(theme);
+        if (goal != null) ordered.add(goal);
+        ordered.addAll(others);
+        return ordered;
     }
 
     /**
@@ -176,13 +233,12 @@ public class Language extends Item {
                                  ItemID outerAssociativity, boolean isLeftOperand,
                                  ParseParams params) {
         if (target instanceof BindingTarget.RefTarget rt) {
-            ContentID cid = rt.asCid();
+            DatumID cid = rt.asDatumId();
             Optional<Frame> innerFrame = librarian().fetchFrame(cid);
             if (innerFrame.isEmpty()) return renderLiteral(target);
             Body inner = innerFrame.get().body();
             if (!(inner.head() instanceof ItemRef ref)) return renderLiteral(target);
-            List<BindingTarget> innerTargets = inner.bindings().stream()
-                    .map(Binding::target).toList();
+            List<BindingTarget> innerTargets = operandTargetsByRole(inner);
             Optional<Rendered> innerOpt = renderOperation(ref.iid(), innerTargets, params);
             if (innerOpt.isEmpty()) return renderLiteral(target);
             Rendered r = innerOpt.get();
@@ -282,8 +338,8 @@ public class Language extends Item {
                 ThematicRole.Attribute.IID, NotationVocabulary.Associativity.IID);
         return lexemeFrame.binding(attributeAssociativity)
                 .map(Binding::target)
-                .filter(t -> t instanceof BindingTarget.IidTarget)
-                .map(t -> ((BindingTarget.IidTarget) t).iid());
+                .filter(t -> t instanceof BindingTarget.RefTarget ref && !ref.isCompound())
+                .map(t -> ((BindingTarget.RefTarget) t).asItemId());
     }
 
     /**

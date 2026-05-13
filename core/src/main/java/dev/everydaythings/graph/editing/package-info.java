@@ -1,7 +1,7 @@
 /**
  * Schema-driven editing for Canonical types.
  *
- * <p>This package provides the foundation for editing any {@link dev.everydaythings.graph.Canonical}
+ * <p>This package provides the foundation for editing any {@link dev.everydaythings.graph.encoding.Canonical}
  * object through its {@code @Canon} field schema. The key classes are:
  *
  * <ul>

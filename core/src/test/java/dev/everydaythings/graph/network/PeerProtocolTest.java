@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.peer.PeerProtocol;
@@ -85,8 +85,9 @@ class PeerProtocolTest {
         assertThat(lib1PeersWith).isNotEmpty();
         assertThat(lib1PeersWith).anyMatch(r ->
                 r.homeId().equals(lib1.iid()) &&
-                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.IID) instanceof BindingTarget.IidTarget target &&
-                target.iid().equals(lib2.iid())
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.IID) instanceof BindingTarget.RefTarget target &&
+                !target.isCompound() &&
+                target.asItemId().equals(lib2.iid())
         );
 
         // lib1 should have reachable-at frame for lib2
@@ -102,8 +103,9 @@ class PeerProtocolTest {
         assertThat(lib2PeersWith).isNotEmpty();
         assertThat(lib2PeersWith).anyMatch(r ->
                 r.homeId().equals(lib2.iid()) &&
-                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.IID) instanceof BindingTarget.IidTarget target &&
-                target.iid().equals(lib1.iid())
+                r.binding(dev.everydaythings.graph.language.ThematicRole.Goal.IID) instanceof BindingTarget.RefTarget target &&
+                !target.isCompound() &&
+                target.asItemId().equals(lib1.iid())
         );
 
         // lib2 should have reachable-at frame for lib1

@@ -1,14 +1,17 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.crypt.VarSig;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,10 +37,22 @@ class ItemTest {
         }
 
         @Test
-        @DisplayName("Item rejects null iid")
-        void rejectsNullIid() {
-            assertThatThrownBy(() -> new Item(null))
-                    .isInstanceOf(NullPointerException.class);
+        @DisplayName("Item permits null iid (anonymous — no identity)")
+        void permitsNullIid() {
+            Item item = new Item((ItemID) null);
+            assertThat(item.iid()).isNull();
+            assertThat(item.toString()).contains("anonymous");
+        }
+
+        @Test
+        @DisplayName("Anonymous items are equal only to themselves (no shared identity)")
+        void anonymousEqualityIsByReference() {
+            Item a = new Item((ItemID) null);
+            Item b = new Item((ItemID) null);
+            assertThat(a).isEqualTo(a);
+            assertThat(a).isNotEqualTo(b);
+            // Distinct anonymous items must not collide in identity-keyed maps.
+            assertThat(a.hashCode()).isNotEqualTo(b.hashCode());
         }
 
         @Test
@@ -264,9 +279,9 @@ class ItemTest {
                             ItemID.fromString("cg.role:theme"),
                             ItemID.fromString("hobbit")))
             );
-            ContentID presentCid = lib.persist(presentFrame);
+            DatumID presentCid = lib.persist(presentFrame);
 
-            ContentID missingCid = ContentID.of("never-stored".getBytes());
+            DatumID missingCid = DatumID.of("never-stored".getBytes());
 
             ItemID iid = ItemID.fromString("doc");
             Body manifestBody = Body.of(
@@ -306,10 +321,10 @@ class ItemTest {
         }
 
         @Test
-        @DisplayName("Librarian subclass returns Librarian.ARCHETYPE")
+        @DisplayName("Librarian subclass returns Librarian.IID")
         void librarianArchetype() {
             Librarian lib = Librarian.inMemory();
-            assertThat(lib.archetype()).isEqualTo(Librarian.ARCHETYPE);
+            assertThat(lib.archetype()).isEqualTo(Librarian.IID);
             assertThat(lib.archetype()).isNotEqualTo(Signer.ARCHETYPE);
         }
     }
@@ -349,7 +364,7 @@ class ItemTest {
             Item item = new Item(ItemID.fromString("doc-1"), lib);
 
             Manifest v1 = item.commit(List.of());
-            ContentID v1Cid = v1.versionId();
+            DatumID v1Cid = v1.versionId();
 
             Manifest v2 = item.commit(List.of());
 
@@ -397,8 +412,7 @@ class ItemTest {
             assertThat(manifest.records()).hasSize(1);
             VarSig sig = manifest.records().get(0).varsig();
 
-            byte[] signedBytes = manifest.body().encodeBinary(
-                    dev.everydaythings.graph.Canonical.Scope.BODY);
+            byte[] signedBytes = HashTree.signingPayload(manifest.body());
             assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig))
                     .isTrue();
         }
@@ -410,8 +424,9 @@ class ItemTest {
             Item item = new Item(ItemID.fromString("doc-1"), lib);
 
             Manifest manifest = item.commit(List.of());
-            ContentID bodyCid = manifest.versionId();
-            ContentID recordCid = manifest.records().get(0).cid();
+            DatumID bodyCid = manifest.versionId();
+            ContentID recordCid = ContentID.of(
+                    manifest.records().get(0).encodeBinary(Canonical.Scope.BODY));
 
             assertThat(lib.has(bodyCid)).isTrue();
             assertThat(lib.has(recordCid)).isTrue();
@@ -442,7 +457,7 @@ class ItemTest {
                     ItemRef.of(ItemID.fromString("cg.predicate:authored")),
                     List.of()
             );
-            ContentID endorsedCid = lib.persist(endorsed);
+            DatumID endorsedCid = lib.persist(endorsed);
 
             Binding endorsement = new Binding(Manifest.ENDORSES, BindingTarget.ref(endorsedCid));
             Manifest manifest = item.commit(List.of(endorsement));
@@ -462,8 +477,7 @@ class ItemTest {
             Manifest manifest = item.commit(alice, List.of());
 
             VarSig sig = manifest.records().get(0).varsig();
-            byte[] signedBytes = manifest.body().encodeBinary(
-                    dev.everydaythings.graph.Canonical.Scope.BODY);
+            byte[] signedBytes = HashTree.signingPayload(manifest.body());
             // Alice's public key verifies — not the librarian's.
             assertThat(Signer.verify(alice.signingPublicKey().orElseThrow(), signedBytes, sig)).isTrue();
             assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig)).isFalse();

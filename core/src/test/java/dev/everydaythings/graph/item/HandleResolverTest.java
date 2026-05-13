@@ -1,14 +1,14 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.Implements;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.library.SeedItemFactory;
+import dev.everydaythings.graph.library_old.SeedItemFactory;
 import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

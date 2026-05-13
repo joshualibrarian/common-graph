@@ -21,7 +21,7 @@ import dev.everydaythings.graph.language.CoreVocabulary;
  * <p>Contains Sememe seeds for: the bridge concept, the BRIDGES predicate,
  * protocol-specific bridge types, and foreign identity resolution.
  *
- * <p>Seeds are discovered by {@link dev.everydaythings.graph.library.SeedVocabulary}
+ * <p>Seeds are discovered by {@link dev.everydaythings.graph.library_old.SeedVocabulary}
  * via classpath scanning of {@code @Seed} fields.
  */
 public final class BridgeVocabulary {

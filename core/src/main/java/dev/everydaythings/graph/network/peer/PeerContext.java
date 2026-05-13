@@ -1,9 +1,10 @@
 package dev.everydaythings.graph.network.peer;
 
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.ManifestOld;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.FrameRecordOld;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -91,7 +92,7 @@ public class PeerContext {
      */
     public void storeManifest(ManifestOld manifest) {
         // Librarian's storeManifest takes bytes
-        byte[] encoded = manifest.encodeBinary(dev.everydaythings.graph.Canonical.Scope.RECORD);
+        byte[] encoded = manifest.encodeBinary(Canonical.Scope.RECORD);
         librarian.storeManifest(encoded);
     }
 
@@ -144,7 +145,8 @@ public class PeerContext {
         FrameBodyOld reachableAtBody = FrameBodyOld.of(
                 RoutingVocabulary.ReachableAt.IID,
                 remoteId,
-                Map.of(ThematicRole.Goal.IID, Literal.of(endpoint)));
+                Map.of(ThematicRole.Goal.IID, Literal.ofBytes(
+                        endpoint.encodeBinary(Canonical.Scope.RECORD))));
         FrameRecordOld reachableAtRecord = FrameRecordOld.create(reachableAtBody, librarian);
         librarian.library().storeFrame(reachableAtBody, reachableAtRecord);
         log.info("Created reachable-at frame: {} -> {}", remoteId.encodeText(), endpoint);

@@ -1,44 +1,41 @@
 package dev.everydaythings.graph.item.id;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Encoding;
+import dev.everydaythings.graph.encoding.TextBase;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Reference to a specific frame body, content-addressed by its CID, optionally drilling
- * into a binding-key and a portion of that binding's content.
+ * Reference to a specific Datum body, semantically addressed by its DatumID, optionally
+ * drilling into a binding-key and a portion of that binding's content.
  *
  * <p>Text form:
  * <ul>
- *   <li>{@code #<CID>} — the whole frame body</li>
- *   <li>{@code #<CID>\<key>} — a specific binding within the frame</li>
- *   <li>{@code #<CID>\<key>\<portion>} — a portion of the binding's content</li>
+ *   <li>{@code #<DatumID>} — the whole frame body</li>
+ *   <li>{@code #<DatumID>\<key>} — a specific binding within the frame</li>
+ *   <li>{@code #<DatumID>\<key>\<portion>} — a portion of the binding's content</li>
  * </ul>
  *
  * <p>Binary form (inside Tag 6):
  * <pre>
- * 0x23 &lt;multihash-CID&gt; [ 0x5C &lt;key-bytes&gt; [ 0x5C &lt;portion-bytes&gt; ] ]
+ * 0x23 &lt;multihash-DatumID&gt; [ 0x5C &lt;key-bytes&gt; [ 0x5C &lt;portion-bytes&gt; ] ]
  * </pre>
  *
- * <p>The key is encoded as the CBOR-array form of a {@link CompoundKey}. The portion
- * spec is currently the encoded text bytes of a {@link Selector} (UTF-8). Both are
- * length-known via the surrounding structure (key by self-delimiting CBOR, portion
- * by reading to end of payload).
+ * <p>The reference target is a {@link DatumID} — the semantic identity computed by
+ * recursive Merkle hashing over a Datum's structure. References survive re-encoding
+ * and redaction because DatumID is invariant under those transformations.
  *
- * @param bodyCid the frame body's content hash
+ * @param bodyId  the frame body's structural identity (DatumID)
  * @param key     optional binding-key drill-down
  * @param portion optional portion-spec drill-down within the binding's content
  */
-public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Selector> portion)
+public record FrameRef(DatumID bodyId, Optional<CompoundKey> key, Optional<Selector> portion)
         implements Reference {
 
     public FrameRef {
-        Objects.requireNonNull(bodyCid, "bodyCid");
+        Objects.requireNonNull(bodyId, "bodyId");
         Objects.requireNonNull(key, "key (use Optional.empty() for whole-frame ref)");
         Objects.requireNonNull(portion, "portion (use Optional.empty() for no portion)");
         if (portion.isPresent() && key.isEmpty()) {
@@ -48,18 +45,18 @@ public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Se
     }
 
     /** Reference the whole frame body. */
-    public static FrameRef of(ContentID bodyCid) {
-        return new FrameRef(bodyCid, Optional.empty(), Optional.empty());
+    public static FrameRef of(DatumID bodyId) {
+        return new FrameRef(bodyId, Optional.empty(), Optional.empty());
     }
 
     /** Reference a specific binding within the frame. */
-    public static FrameRef of(ContentID bodyCid, CompoundKey key) {
-        return new FrameRef(bodyCid, Optional.of(key), Optional.empty());
+    public static FrameRef of(DatumID bodyId, CompoundKey key) {
+        return new FrameRef(bodyId, Optional.of(key), Optional.empty());
     }
 
     /** Reference a portion of a specific binding's content within the frame. */
-    public static FrameRef of(ContentID bodyCid, CompoundKey key, Selector portion) {
-        return new FrameRef(bodyCid, Optional.of(key), Optional.of(portion));
+    public static FrameRef of(DatumID bodyId, CompoundKey key, Selector portion) {
+        return new FrameRef(bodyId, Optional.of(key), Optional.of(portion));
     }
 
     @Override
@@ -71,7 +68,7 @@ public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Se
     public byte[] toRefBytes() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(PREFIX_FRAME & 0xFF);
-        out.writeBytes(bodyCid.encodeBinary());
+        out.writeBytes(bodyId.encodeBinary());
         if (key.isPresent()) {
             Reference.writeSeparator(out);
             byte[] keyBytes = key.get().toCborTree(Scope.BODY).EncodeToBytes();
@@ -88,7 +85,7 @@ public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Se
     public String encodeText() {
         StringBuilder sb = new StringBuilder();
         sb.append('#');
-        sb.append(Encoding.DEFAULT.encode(bodyCid.encodeBinary()));
+        sb.append(TextBase.Base32Lower.encode(bodyId.encodeBinary()));
         if (key.isPresent()) {
             sb.append('\\');
             sb.append(key.get().toCanonicalString());
@@ -115,15 +112,15 @@ public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Se
             throw new IllegalArgumentException(
                     "FrameRef payload must start with '#' (0x23)");
         }
-        HashID.Slice cidSlice = Reference.readMultihash(bytes, 1);
-        ContentID bodyCid = new ContentID(cidSlice.bytes());
-        int pos = cidSlice.next();
+        HashID.Slice idSlice = Reference.readMultihash(bytes, 1);
+        DatumID bodyId = new DatumID(idSlice.bytes());
+        int pos = idSlice.next();
         if (pos == bytes.length) {
-            return new FrameRef(bodyCid, Optional.empty(), Optional.empty());
+            return new FrameRef(bodyId, Optional.empty(), Optional.empty());
         }
         if (bytes[pos] != SEPARATOR) {
             throw new IllegalArgumentException(
-                    "FrameRef expected separator (0x5C) after CID, got 0x"
+                    "FrameRef expected separator (0x5C) after DatumID, got 0x"
                             + String.format("%02x", bytes[pos] & 0xFF));
         }
         pos++;
@@ -132,7 +129,7 @@ public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Se
         CompoundKey key = CompoundKey.fromCborTree(keyCbor);
         int afterKey = pos + keyCbor.EncodeToBytes().length;
         if (afterKey == bytes.length) {
-            return new FrameRef(bodyCid, Optional.of(key), Optional.empty());
+            return new FrameRef(bodyId, Optional.of(key), Optional.empty());
         }
         if (bytes[afterKey] != SEPARATOR) {
             throw new IllegalArgumentException(
@@ -144,7 +141,7 @@ public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Se
                 bytes, portionStart, bytes.length - portionStart,
                 java.nio.charset.StandardCharsets.UTF_8);
         Selector portion = Selector.fromText(portionText);
-        return new FrameRef(bodyCid, Optional.of(key), Optional.of(portion));
+        return new FrameRef(bodyId, Optional.of(key), Optional.of(portion));
     }
 
     /**
@@ -158,22 +155,22 @@ public record FrameRef(ContentID bodyCid, Optional<CompoundKey> key, Optional<Se
         String body = text.substring(1);
         int firstSep = body.indexOf('\\');
         if (firstSep < 0) {
-            ContentID cid = new ContentID(io.ipfs.multibase.Multibase.decode(body));
-            return new FrameRef(cid, Optional.empty(), Optional.empty());
+            DatumID id = new DatumID(io.ipfs.multibase.Multibase.decode(body));
+            return new FrameRef(id, Optional.empty(), Optional.empty());
         }
-        String cidText = body.substring(0, firstSep);
-        String afterCid = body.substring(firstSep + 1);
-        ContentID cid = new ContentID(io.ipfs.multibase.Multibase.decode(cidText));
-        int secondSep = afterCid.indexOf('\\');
+        String idText = body.substring(0, firstSep);
+        String afterId = body.substring(firstSep + 1);
+        DatumID id = new DatumID(io.ipfs.multibase.Multibase.decode(idText));
+        int secondSep = afterId.indexOf('\\');
         if (secondSep < 0) {
-            CompoundKey key = CompoundKey.fromCanonicalString(afterCid);
-            return new FrameRef(cid, Optional.of(key), Optional.empty());
+            CompoundKey key = CompoundKey.fromCanonicalString(afterId);
+            return new FrameRef(id, Optional.of(key), Optional.empty());
         }
-        String keyText = afterCid.substring(0, secondSep);
-        String portionText = afterCid.substring(secondSep + 1);
+        String keyText = afterId.substring(0, secondSep);
+        String portionText = afterId.substring(secondSep + 1);
         CompoundKey key = CompoundKey.fromCanonicalString(keyText);
         Selector portion = Selector.fromText(portionText);
-        return new FrameRef(cid, Optional.of(key), Optional.of(portion));
+        return new FrameRef(id, Optional.of(key), Optional.of(portion));
     }
 
     /**

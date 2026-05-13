@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.item.id.ItemID;
 
 /**
@@ -36,7 +36,7 @@ public interface LanguageRuntime {
      * <ul>
      *   <li>{@link dev.everydaythings.graph.item.Literal} with
      *       {@code TYPE_JAVA_CLASS} → Java class name</li>
-     *   <li>{@link dev.everydaythings.graph.frame.BindingTarget.FrameTarget}
+     *   <li>{@link dev.everydaythings.graph.datum.BindingTarget.FrameTarget}
      *       → formula (FrameBody tree)</li>
      *   <li>Future: CID referencing WASM bytes, Python script, etc.</li>
      * </ul>

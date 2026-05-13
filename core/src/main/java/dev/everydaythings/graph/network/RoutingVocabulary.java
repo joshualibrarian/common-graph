@@ -14,7 +14,7 @@ import dev.everydaythings.graph.language.ThematicRole;
  *
  * <p>Contains all Sememe seeds for peer-to-peer networking: reachability,
  * peering, acknowledgement, and identification. These are discovered by
- * {@link dev.everydaythings.graph.library.SeedVocabulary} via classpath
+ * {@link dev.everydaythings.graph.library_old.SeedVocabulary} via classpath
  * scanning of {@code @Seed} fields.
  *
  * <p>Core system verbs (create, get, list, edit, etc.) remain in

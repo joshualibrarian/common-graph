@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
 /**
  * A browsable entry within a frame, visible in INSPECT mode.
  *

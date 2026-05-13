@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network.peer;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ContentID;

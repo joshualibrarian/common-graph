@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.value;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;

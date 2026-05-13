@@ -1,12 +1,14 @@
 package dev.everydaythings.graph.semantics;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -88,9 +90,9 @@ class DeleteTest {
             Item item = new Item(iid, lib);
             item.commit(List.of());
 
-            ContentID manifestCid = lib.library().manifestCidsForItem(iid).getFirst();
+            DatumID manifestCid = lib.library().manifestCidsForItem(iid).getFirst();
             // Commit auto-produced a record for the manifest.
-            List<ContentID> recordCids = lib.library().recordCidsForBody(manifestCid);
+            List<DatumID> recordCids = lib.library().recordCidsForBody(manifestCid);
             assertThat(recordCids).hasSize(1);
 
             Body deleteBody = Body.of(
@@ -142,7 +144,8 @@ class DeleteTest {
                     ItemRef.of(Delete.IID),
                     List.of(Binding.ref(ThematicRole.Theme.IID, iid))
             );
-            ContentID deleteFrameCid = lib.assembleFrame(deleteBody, lib).body().cid();
+            ContentID deleteFrameCid = ContentID.of(
+                    lib.assembleFrame(deleteBody, lib).body().encodeBinary(Canonical.Scope.BODY));
 
             // The item is gone, but the DELETE frame's body remains.
             assertThat(lib.library().manifestCidsForItem(iid)).isEmpty();
@@ -221,7 +224,8 @@ class DeleteTest {
                     ItemRef.of(Delete.IID),
                     List.of(Binding.ref(ThematicRole.Theme.IID, iid))
             );
-            ContentID frameCid = lib.assembleFrame(deleteBody, alice).body().cid();
+            ContentID frameCid = ContentID.of(
+                    lib.assembleFrame(deleteBody, alice).body().encodeBinary(Canonical.Scope.BODY));
 
             // The DELETE frame is in storage even though it wasn't honored.
             assertThat(lib.has(frameCid)).isTrue();
@@ -240,7 +244,7 @@ class DeleteTest {
                     ItemRef.of(ItemID.fromString("cg.predicate:test")),
                     List.of()
             );
-            ContentID cid = lib.persist(body);
+            DatumID cid = lib.persist(body);
 
             assertThat(lib.library().delete(cid)).isTrue();
             assertThat(lib.library().delete(cid)).isFalse();  // already gone
@@ -254,8 +258,8 @@ class DeleteTest {
             Item item = new Item(iid, lib);
             item.commit(List.of());
 
-            ContentID manifestCid = lib.library().manifestCidsForItem(iid).getFirst();
-            ContentID recordCid = lib.library().recordCidsForBody(manifestCid).getFirst();
+            DatumID manifestCid = lib.library().manifestCidsForItem(iid).getFirst();
+            DatumID recordCid = lib.library().recordCidsForBody(manifestCid).getFirst();
 
             // Delete the record directly.
             lib.library().delete(recordCid);

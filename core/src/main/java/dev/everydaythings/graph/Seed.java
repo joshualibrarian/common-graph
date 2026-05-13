@@ -282,34 +282,76 @@ public class Seed {
     }
 
     /**
-     * Declares that this Java class IS the seed item identified by the given canonical key.
+     * Declares that this Java class IS the item identified by the given canonical key.
      *
-     * <p>{@code @Seed.Embodies(K)} is the <i>singleton case</i>: it asserts that this
-     * Java class is the runtime form of THE K item itself. It must be paired with
-     * {@code @Seed.Item(K)} on the same class — that pairing is what makes the
-     * relationship meaningful. Bootstrap rejects {@code @Seed.Embodies} without a
-     * matching {@code @Seed.Item}.
+     * <p>Two modes:
      *
-     * <p><b>Effect on data:</b> when both annotations are present with the same key,
-     * bootstrap adds an {@code IMPLEMENTATION} binding to the seed manifest pointing at
-     * this class. Future {@code fetchItem(K.IID)} calls hydrate as an instance of this
-     * class. No IMPLEMENTS frame is published for this annotation alone.
+     * <h4>Single-level (default — {@code archetype} empty)</h4>
      *
-     * <p>The class must extend {@code Item} and have a public
+     * <p>{@code @Seed.Embodies(K)} asserts "this Java class is the runtime form of
+     * THE K item itself." Must be paired with {@code @Seed.Item(K)} on the same
+     * class. Bootstrap adds an {@code IMPLEMENTATION → ofJavaClass(this)} binding
+     * to K's seed manifest; future {@code fetchItem(K.IID)} hydrates as an
+     * instance of this class.
+     *
+     * <p>Used for the typical pattern where a Java class IS a sememe/predicate
+     * (Inception, Create, English, etc.). The seed and its embodiment share one IID.
+     *
+     * <h4>Two-level ({@code archetype} set)</h4>
+     *
+     * <p>{@code @Seed.Embodies(key=CK, archetype=AK)} asserts "this Java class
+     * embodies a <i>code-item</i> at IID {@code CK} that implements archetype
+     * {@code AK}." Must be paired with {@code @Seed.Item(AK)} on the same class
+     * — the {@code @Seed.Item} creates the archetype seed; this annotation
+     * creates a separate CodeItem at {@code CK}.
+     *
+     * <p>Bootstrap mints a CodeItem manifest (head = {@code cg.archetype:code})
+     * carrying:
+     * <ul>
+     *   <li>{@code ITEM_ID → CK}</li>
+     *   <li>{@code IMPLEMENTATION → ofJavaClass(this)} — the runtime form</li>
+     *   <li>{@code ENDORSES → <each HANDLES frame>} — one per {@code @Handler}
+     *       method on the class, exposing the dispatch surface as data</li>
+     * </ul>
+     *
+     * <p>Bootstrap ALSO adds {@code IMPLEMENTATION → @CK} to the archetype's
+     * manifest, so {@code resolveImplementationClass} on the archetype walks
+     * archetype → CodeItem → class-literal.
+     *
+     * <p>The two-level mode is what makes the polyglot story work: a Clojure
+     * Librarian (different class, same archetype) gets its OWN CodeItem at its
+     * own CK with its own method-name HANDLES, while the archetype contract
+     * stays shared.
+     *
+     * <p>In both modes the class must extend {@code Item} and have a public
      * {@code (ItemID, Librarian)} constructor — that's the contract for hydration.
      *
-     * <p>Distinct from {@link Mints}: {@code @Seed.Embodies(K)} declares "I AM the K
-     * seed item" (singleton); {@code @Seed.Mints(K)} declares "I AM the runtime form of
-     * any instance of K" (instance-class). They can coexist for the same key on
-     * different Java classes — a concept can have both its own Java embodiment AND a
-     * separate class for its instances.
+     * <p>Distinct from {@link Mints}: {@code @Seed.Embodies} declares "I AM
+     * this specific item" (singleton); {@code @Seed.Mints(K)} declares "I AM the
+     * runtime form of any instance of K" (instance-class). They can coexist on
+     * different classes for the same key.
      */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
     public static @interface Embodies {
 
-        /** Canonical key of the seed item this class embodies. Must match a {@code @Seed.Item} key on the same class. */
+        /**
+         * Canonical key of the item this class embodies. In single-level mode this
+         * must match a {@code @Seed.Item} key on the same class. In two-level mode
+         * (when {@link #archetype} is set) this is the CodeItem's key — distinct
+         * from the archetype key declared in {@code @Seed.Item}.
+         */
         String key();
+
+        /**
+         * Canonical key of the archetype this code-item implements. When empty
+         * (default), the annotation runs in single-level mode and {@link #key}
+         * must match the {@code @Seed.Item} key on the same class. When set,
+         * two-level mode kicks in: {@link #key} names a separate CodeItem and
+         * this value names the archetype it implements (which must have a
+         * {@code @Seed.Item} declaration on the same class).
+         */
+        String archetype() default "";
     }
 
     /**

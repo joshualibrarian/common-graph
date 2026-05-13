@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.game;
 
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.id.ItemID;
 
 import java.nio.ByteBuffer;

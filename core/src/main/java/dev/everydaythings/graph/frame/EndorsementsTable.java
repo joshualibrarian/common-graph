@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.Factory;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;

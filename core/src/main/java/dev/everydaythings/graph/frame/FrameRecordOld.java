@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.frame;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.user.SignerOld;

@@ -1,44 +1,38 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.crypt.MultiKey;
-import dev.everydaythings.graph.crypt.VarSig;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.item.id.DatumID;
+import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests exercising a non-Librarian Signer ("alice") publishing her
- * own INCEPTION via a librarian, then having the librarian's KEL-aware
- * verification recognize her signatures.
+ * Integration tests exercising a non-Librarian Signer ("alice") whose INCEPTION
+ * is published automatically on construction via {@link Signer#inMemory(Librarian)},
+ * then having the librarian's KEL-aware verification recognize her signatures.
  *
  * <p>The Librarian-self-INCEPTION case is covered by {@link LibrarianInceptionTest};
- * this exercises the more general path: any Signer with signing capability,
- * bound to a librarian, can publish its own INCEPTION and become a recognized
- * identity to that librarian.
+ * this exercises the more general path: any Signer constructed with a vault and a
+ * librarian publishes its INCEPTION as part of construction and becomes a
+ * recognized identity to that librarian.
  */
 class AliceInceptionTest {
 
     @Test
-    @DisplayName("alice publishes her own INCEPTION via lib; lib recognizes her keys")
+    @DisplayName("alice's INCEPTION published on construction; lib recognizes her keys")
     void aliceIncepts() {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Signer alice = Signer.inMemory();
-        alice.bindLibrarian(lib);
-
-        Optional<Frame> inception = alice.publishSelfInception();
-        assertThat(inception).isPresent();
+        Signer alice = Signer.inMemory(lib);
 
         // lib's KEL-derived view of alice now includes her current signing key
-        List<MultiKey> aliceKeys = lib.signingKeysForIdentity(alice.iid());
+        List<MultiKey> aliceKeys = lib.currentKeys(alice.iid(), IdentityVocabulary.Signing.IID);
         assertThat(aliceKeys).containsExactly(alice.signingPublicKey().orElseThrow());
     }
 
@@ -48,9 +42,7 @@ class AliceInceptionTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Signer alice = Signer.inMemory();
-        alice.bindLibrarian(lib);
-        alice.publishSelfInception();
+        Signer alice = Signer.inMemory(lib);
 
         byte[] message = "hello from alice".getBytes();
         VarSig sig = alice.sign(message);
@@ -64,13 +56,8 @@ class AliceInceptionTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Signer alice = Signer.inMemory();
-        alice.bindLibrarian(lib);
-        alice.publishSelfInception();
-
-        Signer bob = Signer.inMemory();
-        bob.bindLibrarian(lib);
-        bob.publishSelfInception();
+        Signer alice = Signer.inMemory(lib);
+        Signer bob = Signer.inMemory(lib);
 
         byte[] message = "ostensibly from alice".getBytes();
         VarSig bobSig = bob.sign(message);
@@ -87,32 +74,35 @@ class AliceInceptionTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Signer alice = Signer.inMemory();
-        alice.bindLibrarian(lib);
+        Signer alice = Signer.inMemory(lib);
 
-        Frame inception = alice.publishSelfInception().orElseThrow();
-        assertThat(Inception.isSelfAttested(inception)).isTrue();
+        DatumID inceptionId = alice.vault().orElseThrow()
+                .chainHead(IdentityVocabulary.Signing.IID).orElseThrow();
+        Frame inception = lib.fetchFrame(inceptionId).orElseThrow();
+        assertThat(Signer.isSelfAttested(inception)).isTrue();
     }
 
     @Test
-    @DisplayName("identity-only Signer (no vault) cannot publishSelfInception")
-    void identityOnlyCannotIncept() {
+    @DisplayName("identity-only Signer (no vault) has no KEL entry")
+    void identityOnlyHasNoKel() {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Signer ghost = new Signer(dev.everydaythings.graph.item.id.ItemID.fromString("ghost"));
+        Signer ghost = new Signer(ItemID.fromString("ghost"));
         ghost.bindLibrarian(lib);
 
-        assertThat(ghost.publishSelfInception()).isEmpty();
-        assertThat(lib.signingKeysForIdentity(ghost.iid())).isEmpty();
+        assertThat(ghost.canSign()).isFalse();
+        assertThat(lib.currentKeys(ghost.iid(), IdentityVocabulary.Signing.IID)).isEmpty();
     }
 
     @Test
-    @DisplayName("Signer without librarian binding cannot publishSelfInception")
-    void unboundCannotIncept() {
+    @DisplayName("vault-only Signer (no librarian) does not auto-incept")
+    void vaultOnlyDoesNotAutoIncept() {
         Signer floater = Signer.inMemory();
-        // No bindLibrarian call.
 
-        assertThat(floater.publishSelfInception()).isEmpty();
+        // No librarian binding — can still sign in-place but nothing published
+        assertThat(floater.canSign()).isTrue();
+        assertThat(floater.vault().orElseThrow()
+                .chainHead(IdentityVocabulary.Signing.IID)).isEmpty();
     }
 }

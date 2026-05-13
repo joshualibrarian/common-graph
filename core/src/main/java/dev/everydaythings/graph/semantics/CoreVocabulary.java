@@ -33,22 +33,6 @@ public final class CoreVocabulary {
     // Sequence / chain mechanics
     // ==================================================================================
 
-    /** Forward reference — the "next" of something committed by digest before reveal. */
-    @Seed.Item(key = Next.KEY)
-    public static final class Next {
-        public static final String KEY = "cg.sememe:next";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Next() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss = "the one immediately following in sequence";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishAdjectiveLemma = "next";
-    }
-
     /** Sequence — explicit ordinal position in a chain (defense-in-depth alongside hash chain). */
     @Seed.Item(key = Sequence.KEY)
     public static final class Sequence {
@@ -151,85 +135,4 @@ public final class CoreVocabulary {
         static final String englishNounLemma = "delegator";
     }
 
-    // ==================================================================================
-    // General concepts often used as reasons (for revocation, retraction, withdrawal)
-    // ==================================================================================
-
-    /** Compromise — an exposure or breach (cryptographic, structural, or social). */
-    @Seed.Item(key = Compromise.KEY)
-    public static final class Compromise {
-        public static final String KEY = "cg.sememe:compromise";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Compromise() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "an exposure or breach — cryptographic, structural, or social";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "compromise";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "compromise";
-    }
-
-    /** Retirement — routine cessation of use; no incident. */
-    @Seed.Item(key = Retirement.KEY)
-    public static final class Retirement {
-        public static final String KEY = "cg.sememe:retirement";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Retirement() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "routine cessation of use or service; no incident, just no longer active";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "retirement";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "retire";
-    }
-
-    /** Fraud — deceit, intentional misrepresentation. */
-    @Seed.Item(key = Fraud.KEY)
-    public static final class Fraud {
-        public static final String KEY = "cg.sememe:fraud";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Fraud() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss = "deceit; intentional misrepresentation";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "fraud";
-    }
-
-    /** Mistake — an honest error, no malice. */
-    @Seed.Item(key = Mistake.KEY)
-    public static final class Mistake {
-        public static final String KEY = "cg.sememe:mistake";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Mistake() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss = "an honest error; no malice intended";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "mistake";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "mistake";
-    }
 }

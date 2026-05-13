@@ -17,13 +17,21 @@ Fuzzy matching is the family of techniques that compute continuous similarity sc
 
 This is a foundational architectural commitment.  All fuzzy methods discussed below are downstream of the discrete primitive.  The Datum, the indexes, the trust matrix — all stay exactly the same.  Fuzzy matching is added as a query-layer module, not as a redefinition of the foundation.
 
+## Graph-fuzzy is categorically different from text-fuzzy
+
+A point worth surfacing early, because intuitions imported from text-anchored systems can mislead.  In those systems, "fuzzy" is limited to proximity in some text-derived feature space — embedding cosine, edit distance, n-gram overlap, co-occurrence statistics.  All of those derive from how text *looks* or *appears together*.  They can't distinguish *structurally equivalent* from *merely semantically nearby*.
+
+In a graph-structured model, fuzzy can mean **structurally similar** — same predicates in equivalent positions, same role-fillers, same neighbor topology.  Two items can have zero lexical overlap but be structurally indistinguishable.  Two items can share many surface lexemes yet sit in structurally distinct positions.  The frame-graph version of similarity is closer to *isomorphism* than to *proximity*: it asks "do these two items play the same role in the surrounding structure?" — a question text-based similarity can't even pose.
+
+This is a categorical capability, not a technical detail.  Because the frame model carries explicit schema — every frame has a predicate (NAME, CLASS, AUTHORED, CHESS_MOVE...) and every binding has a role (THEME, AGENT, GOAL...), both of which are themselves semantic entities — structural similarity can be *parameterized* by which schema elements matter.  The same kernel, weighted differently, answers different questions (see § F: *Schema-weighted similarity* below).  Text-anchored systems can't do that — they don't have explicit predicate-or-role distinctions to weight by, only the text itself.
+
 ## Use cases
 
 A non-exhaustive list, with the kind of question each answers:
 
 - **Frame similarity search.** "Find frames structurally similar to this one, regardless of authorship."  Useful for browsing, deduplication discovery, and cross-vocabulary alignment.
 - **Pattern matching with partial templates.** "Find frames matching this template, where some bindings are wildcards."  Extends the `ANY`-based query model with graded-relevance ranking when many candidates match the template.
-- **Near-duplicate detection.** "Multiple signers asserted nearly the same MOVE in this chess game — surface them as a candidate cluster."  Useful for merge/consolidation flows.
+- **Near-duplicate detection and merge candidate surfacing.** "Multiple signers asserted nearly the same MOVE in this chess game — surface them as a candidate cluster."  "These two items appear to refer to the same referent."  Feeds candidates into the system's signed-merge mechanism (where users propose A↔B merges that propagate via trust-graph acceptance).
 - **Sememe proximity.** "Find sememes close in meaning to this one without an exact EQUALS chain."  Useful for cross-vocabulary mapping, for query relaxation, and for AI/human-curated vocabulary alignment.
 - **Query relaxation.** "An exact query returned nothing; expand to similar candidates and rank them."  Useful for tolerant search UIs.
 - **Auto-suggestion during authoring.** "Given the partial frame the user is composing, suggest likely next bindings based on similar completed frames."  Useful for interactive editors.
@@ -35,6 +43,19 @@ These all share a shape: given a query frame (or sememe, or partial template) an
 ## Approaches
 
 Multiple similarity methods are valid for different purposes, and CG should accommodate several rather than committing to one.  This is informed by Tauser's quantitative finding [1]: across multiple programming languages and embedding methods, no single embedding scheme reliably preserves structural similarity in vector space.  Different methods win on different problems.  The architecture should reflect that.
+
+The methods below are ordered roughly from lightweight to heavy.  Real systems should ascend that ladder only as far as needed for the question being asked.
+
+### Baseline. Index-based overlap (the obvious cases, free)
+
+Many merge candidates and related-concept clusters are visible from the data structure itself, without invoking any similarity machinery at all.  Two surfacing patterns fall out of the existing indexes:
+
+- **Shared concrete bindings.**  If two identifiers A and B both carry `VALUE[NAME, LAST] → "Tolkien"` and `VALUE[NAME, FIRST] → "John"`, a query against the token dictionary returns both items for the same string targets.  Shared identity-class bindings (names, dates, external IDs) are a strong eyebrow-raiser that takes a single index lookup to surface.
+- **Shared neighbor co-references.**  If frames mentioning A and frames mentioning B repeatedly share *the same other-targets* (both have `AUTHORED({theme: The Hobbit})`, both have `BORN_IN({location: Bloemfontein})`), the structural co-reference is index-discoverable: walk the FORWARD_BINDINGS index for A's items, walk for B's, look for predicate+target pair overlap.  Weighted by overlap frequency, this surfaces candidate pairs without any similarity computation.
+
+This tier catches the obvious cases — high-frequency referents, well-known entities, simple namesakes — with the indexes the librarian already maintains.  No specialized engine.  No precomputed fingerprints.
+
+The fuzzy methods below extend the capability to the harder cases: structurally similar items with no lexical overlap, near-isomorphic frame patterns across vocabularies, related concepts that share no specific names.  But the foundation is *already* shape-matchable in basic ways.  Fuzzy methods are an enhancement layer, not a prerequisite — and the discovery hierarchy is genuinely tiered: simple index overlap → structural fingerprinting → semantic-graph similarity → embeddings.
 
 ### A. Compositional similarity (frame-by-frame, recursive)
 
@@ -114,6 +135,23 @@ Some bindings carry value-typed targets where domain-appropriate distance functi
 
 These are leaf-level functions invoked from the compositional similarity recursion at the appropriate target types.
 
+### F. Schema-weighted similarity (same kernel, different question)
+
+A consequence of the frame model's explicit schema — every frame has a predicate and every binding has a role, both semantically meaningful: similarity can be parameterized by *which kinds of evidence count*.  The same underlying structural kernel (WL, compositional, or other), weighted differently across predicates and role-positions in an item's frame-neighborhood, answers categorically different questions:
+
+| Question being asked | What to weight heavily |
+|---|---|
+| "Are these the same referent?" | Frames with identity-asserting predicates: NAME, BIRTHDATE, SERIAL_NUMBER, EXTERNAL_ID — with the items as THEME |
+| "Are these ontologically related?" | Frames with classification predicates: CLASS, KIND, IS_A, HAS_PART, HABITAT |
+| "Do these play similar narrative roles?" | Role-position participation across many predicates: how often the items appear as AGENT, PATIENT, GOAL of various event frames |
+| "Are these structurally interchangeable in expressions?" | Operator-predicate participation with matching role-position alignment |
+
+Illustrative example.  A `Rat` item and a `Ferret` item will likely have *high ontological similarity* — both are small mammalian animals with overlapping CLASS, HABITAT, DIET, PREDATOR_OF, PREY_OF frame neighborhoods.  The same two items will have *low referent similarity* — no shared NAME, BIRTHDATE, or external-identifier frames.  The same structural kernel surfaces both signals; the weighting determines which question the query is actually asking.
+
+Text-anchored similarity has to conflate these — only the text is available, and the text doesn't carry predicate-or-role distinctions.  CG's explicit schema (predicates have meanings; roles within frames have meanings) makes weighted similarity possible: the schema is already in the data, and the kernel uses it.
+
+This is largely unexplored territory; the exact behavior under various weighting schemes remains to be characterized.  But the architecture supports it cleanly — similarity is parameterized at query time by which schema elements matter for the question being asked.  Different deployments and different query intents can dial up or down the contribution of any predicate class or role class.
+
 ## Composition and configuration
 
 Real fuzzy queries combine signals.  A "find frames like this" query might want:
@@ -178,6 +216,7 @@ A short list of capabilities that emerge once fuzzy matching is in place:
 - "Suggest sememes from the user's vocabulary that align with WordNet's definition of X" — cross-vocabulary mapping.
 - "What frames in this corpus are most similar to a frame this AI just proposed?" — provenance-checking against AI-generated content.
 - "Group by similarity, then show me clusters where multiple trusted signers converged" — emergent consensus detection.
+- "Ask the same kernel three different questions: same-referent vs related-concept vs same-narrative-role, just by re-weighting which predicates and roles count" — multiple distinct similarity semantics from one underlying mechanism, possible because every frame's predicate AND every binding's role are themselves semantic entities.
 
 None of these require changing the data model.  All of them require *only* a similarity score and a way to filter/rank by it.
 
@@ -194,6 +233,7 @@ None of these require changing the data model.  All of them require *only* a sim
 Open questions, deliberately unsettled:
 
 - **Default composite scorer.**  When no similarity method is specified, what's the right default combination of WL + sememe-graph + per-binding type-specific functions?  Likely tunable per deployment.
+- **Schema-weighting schemes for common questions.**  The schema-weighted approach (§ F) is architecturally clean but unexplored empirically.  What weighting catches "same referent" reliably across heterogeneous vocabularies?  What weighting is useful for "ontologically related but distinct"?  How sensitive is the result to small perturbations in the weighting vector?  An open research thread once the substrate is in place.
 - **Trust-weighted similarity.**  How does the trust matrix participate in similarity computation?  Should similarity scores incorporate trust weighting on the connecting evidence (e.g., EQUALS frames between sememes), or stay vocabulary-blind?  Probably both, exposed as alternative similarity methods.
 - **Fuzzy hash for content references.**  For media content (images, audio, video) referenced by CID, perceptual fuzzy hashes would enable "find similar images" queries.  Out of scope for the core fuzzy-matching layer but composable with it via type-specific similarity functions.
 - **Similarity-driven frame creation.**  The eventual reverse direction: given a similarity score and a trusted neighborhood, *propose* new frames that fit the pattern.  This is the territory Tauser's RL-based program synthesis covers; CG's analogue would be AI-assisted authoring informed by structural neighborhood.  Future.

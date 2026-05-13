@@ -1,11 +1,12 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Delegation;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.CoreVocabulary;
 import dev.everydaythings.graph.semantics.ThematicRole;
@@ -40,7 +41,7 @@ class DelegationTest {
                 )
         );
 
-        assertThat(Delegation.readDelegator(body)).contains(parent);
+        assertThat(Signer.readAgent(body)).contains(parent);
     }
 
     @Test
@@ -60,7 +61,7 @@ class DelegationTest {
                 )
         );
 
-        assertThat(Delegation.readDelegate(body)).contains(child);
+        assertThat(Signer.readTheme(body)).contains(child);
     }
 
     @Test
@@ -79,7 +80,7 @@ class DelegationTest {
                 )
         );
 
-        assertThat(Delegation.readPurposes(body))
+        assertThat(Signer.readPurposes(body))
                 .containsExactlyInAnyOrder(IdentityVocabulary.Signing.IID, IdentityVocabulary.Encryption.IID);
     }
 
@@ -104,7 +105,7 @@ class DelegationTest {
                 )
         );
 
-        assertThat(Delegation.readExpires(body)).contains(expires);
+        assertThat(Signer.readExpires(body)).contains(expires);
     }
 
     @Test
@@ -121,6 +122,6 @@ class DelegationTest {
                 )
         );
 
-        assertThat(Delegation.readPurposes(body)).isEmpty();
+        assertThat(Signer.readPurposes(body)).isEmpty();
     }
 }

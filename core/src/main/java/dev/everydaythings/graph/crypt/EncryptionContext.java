@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.crypt;
 
+import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.policy.PolicySet;
 

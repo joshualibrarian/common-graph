@@ -1,12 +1,13 @@
 package dev.everydaythings.graph.text;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.linguistics.Language;
@@ -56,7 +57,7 @@ class LanguageRenderTest {
                                 ThematicRole.Value.IID,
                                 List.of(new dev.everydaythings.graph.item.id.CompoundKey.Sememe(NotationVocabulary.Infix.IID)),
                                 Literal.ofText("+"))));
-        ContentID symbolCid = lib.persist(symbolBody);
+        DatumID symbolCid = lib.persist(symbolBody);
 
         // 3. Commit ADD's manifest with ENDORSES binding pointing at the Lexeme body.
         add.commit(lib, List.of(
@@ -191,7 +192,7 @@ class LanguageRenderTest {
                                 ThematicRole.Value.IID,
                                 List.of(new dev.everydaythings.graph.item.id.CompoundKey.Sememe(NotationVocabulary.Infix.IID)),
                                 Literal.ofText("+"))));
-        ContentID symbolCid = lib.persist(symbolBody);
+        DatumID symbolCid = lib.persist(symbolBody);
         add.commit(lib, List.of(
                 new Binding(Manifest.ENDORSES, BindingTarget.ref(symbolCid))));
 
@@ -233,7 +234,7 @@ class LanguageRenderTest {
     }
 
     /** Persist a binary frame body (predicate + two integer operands) and return its CID. */
-    private static ContentID persistBinary(Librarian lib, ItemID predicate,
+    private static DatumID persistBinary(Librarian lib, ItemID predicate,
                                            long leftValue, long rightValue) {
         Body body = Body.of(
                 ItemRef.of(predicate),
@@ -244,7 +245,7 @@ class LanguageRenderTest {
     }
 
     /** Persist a unary frame body (predicate + one operand) and return its CID. */
-    private static ContentID persistUnary(Librarian lib, ItemID predicate, BindingTarget operand) {
+    private static DatumID persistUnary(Librarian lib, ItemID predicate, BindingTarget operand) {
         Body body = Body.of(
                 ItemRef.of(predicate),
                 List.of(new Binding(ThematicRole.Theme.IID, operand)));
@@ -271,7 +272,7 @@ class LanguageRenderTest {
         lib.bootstrap();
 
         // GOAL of ADD = MULTIPLY { THEME → 3, GOAL → 2 } (precedence 20 > add's 10)
-        ContentID multiplyCid = persistBinary(lib, Multiply.IID, 3, 2);
+        DatumID multiplyCid = persistBinary(lib, Multiply.IID, 3, 2);
         FrameMap framemap = addFrameMap(
                 Literal.ofInteger(5),
                 BindingTarget.ref(multiplyCid));
@@ -287,7 +288,7 @@ class LanguageRenderTest {
         lib.bootstrap();
 
         // Outer MULTIPLY { THEME → ADD{5,3}, GOAL → 2 }
-        ContentID addCid = persistBinary(lib, Add.IID, 5, 3);
+        DatumID addCid = persistBinary(lib, Add.IID, 5, 3);
         FrameMap framemap = new FrameMap(
                 null,
                 new Part<>(ItemRef.of(Multiply.IID), Decimal.parse("1.0"), List.of()),
@@ -313,7 +314,7 @@ class LanguageRenderTest {
         lib.bootstrap();
 
         // Outer SUBTRACT { THEME → SUBTRACT{5,3}, GOAL → 2 } — represents (5 - 3) - 2
-        ContentID innerSubCid = persistBinary(lib, Subtract.IID, 5, 3);
+        DatumID innerSubCid = persistBinary(lib, Subtract.IID, 5, 3);
         FrameMap framemap = new FrameMap(
                 null,
                 new Part<>(ItemRef.of(Subtract.IID), Decimal.parse("1.0"), List.of()),
@@ -339,7 +340,7 @@ class LanguageRenderTest {
         lib.bootstrap();
 
         // Outer ADD { THEME → 5, GOAL → SUBTRACT{3, 2} } — represents 5 + (3 - 2)
-        ContentID innerSubCid = persistBinary(lib, Subtract.IID, 3, 2);
+        DatumID innerSubCid = persistBinary(lib, Subtract.IID, 3, 2);
         FrameMap framemap = addFrameMap(
                 Literal.ofInteger(5),
                 BindingTarget.ref(innerSubCid));
@@ -366,7 +367,7 @@ class LanguageRenderTest {
         lib.bootstrap();
 
         // NEGATE { THEME → ADD{5,3} } — Negate prec 25 > Add prec 10, so inner needs parens.
-        ContentID addCid = persistBinary(lib, Add.IID, 5, 3);
+        DatumID addCid = persistBinary(lib, Add.IID, 5, 3);
         FrameMap framemap = unaryFrameMap(Negate.IID, BindingTarget.ref(addCid));
 
         FrameMap rendered = new Language(Language.IID, lib).render(framemap, ParseParams.defaults());
@@ -379,7 +380,7 @@ class LanguageRenderTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        ContentID innerNegCid = persistUnary(lib, Negate.IID, Literal.ofInteger(5));
+        DatumID innerNegCid = persistUnary(lib, Negate.IID, Literal.ofInteger(5));
         FrameMap framemap = unaryFrameMap(Negate.IID, BindingTarget.ref(innerNegCid));
 
         FrameMap rendered = new Language(Language.IID, lib).render(framemap, ParseParams.defaults());
@@ -393,7 +394,7 @@ class LanguageRenderTest {
         lib.bootstrap();
 
         // ADD { THEME → NEGATE{5}, GOAL → 3 } — Negate prec 25 > Add prec 10, no parens.
-        ContentID negCid = persistUnary(lib, Negate.IID, Literal.ofInteger(5));
+        DatumID negCid = persistUnary(lib, Negate.IID, Literal.ofInteger(5));
         FrameMap framemap = addFrameMap(
                 BindingTarget.ref(negCid),
                 Literal.ofInteger(3));
@@ -429,7 +430,7 @@ class LanguageRenderTest {
                                 ThematicRole.Attribute.IID,
                                 List.of(new dev.everydaythings.graph.item.id.CompoundKey.Sememe(NotationVocabulary.Associativity.IID)),
                                 BindingTarget.iid(NotationVocabulary.Left.IID))));
-        ContentID lexCid = lib.persist(lexBody);
+        DatumID lexCid = lib.persist(lexBody);
         op.commit(lib, List.of(
                 new Binding(Manifest.ENDORSES, BindingTarget.ref(lexCid))));
     }
@@ -455,7 +456,7 @@ class LanguageRenderTest {
         wirePostfix(lib, factorialIid, "!", 30L);
 
         // FACTORIAL { THEME → ADD{5,3} } — Factorial prec 30 > Add prec 10, inner needs parens.
-        ContentID addCid = persistBinary(lib, Add.IID, 5, 3);
+        DatumID addCid = persistBinary(lib, Add.IID, 5, 3);
         FrameMap framemap = unaryFrameMap(factorialIid, BindingTarget.ref(addCid));
 
         FrameMap rendered = new Language(Language.IID, lib).render(framemap, ParseParams.defaults());
@@ -469,7 +470,7 @@ class LanguageRenderTest {
         ItemID factorialIid = ItemID.fromString("test.predicate:factorial");
         wirePostfix(lib, factorialIid, "!", 30L);
 
-        ContentID innerFactCid = persistUnary(lib, factorialIid, Literal.ofInteger(5));
+        DatumID innerFactCid = persistUnary(lib, factorialIid, Literal.ofInteger(5));
         FrameMap framemap = unaryFrameMap(factorialIid, BindingTarget.ref(innerFactCid));
 
         FrameMap rendered = new Language(Language.IID, lib).render(framemap, ParseParams.defaults());

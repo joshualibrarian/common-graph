@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.crypt.Algorithm;
+import dev.everydaythings.graph.identity.Algorithm;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;

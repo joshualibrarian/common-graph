@@ -16,7 +16,7 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.Ref;
 import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.user.SignerOld;
-import dev.everydaythings.graph.library.ItemStore;
+import dev.everydaythings.graph.library_old.ItemStore;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.network.RoutingVocabulary;
 import dev.everydaythings.graph.crypt.SigningPublicKey;
@@ -239,15 +239,24 @@ public class HostOld extends SignerOld {
         List<DeviceInfo> result = new ArrayList<>();
         for (FrameOld frame : frames()) {
             if (DeviceVocabulary.Device.IID.equals(frame.type())) {
-                List<CompoundKey.FrameToken> quals = frame.frameKey().qualifiers();
-                if (!quals.isEmpty()
-                        && quals.getFirst() instanceof CompoundKey.Sememe sem
-                        && deviceType.equals(sem.id())) {
+                if (hasSememeQualifier(frame.frameKey().qualifiers(), deviceType)) {
                     extractDeviceInfo(frame, result);
                 }
             }
         }
         return result;
+    }
+
+    /**
+     * Scan a qualifier list for a Sememe matching the given ItemID. Qualifiers
+     * are sorted canonically by structural hash (HashTree.CANONICAL), so the
+     * deviceType could appear at any position regardless of insertion order.
+     */
+    private static boolean hasSememeQualifier(List<CompoundKey.FrameToken> quals, ItemID target) {
+        for (CompoundKey.FrameToken q : quals) {
+            if (q instanceof CompoundKey.Sememe sem && target.equals(sem.id())) return true;
+        }
+        return false;
     }
 
     /**
@@ -302,14 +311,18 @@ public class HostOld extends SignerOld {
     }
 
     private static void extractDeviceInfo(FrameOld frame, List<DeviceInfo> result) {
+        // Qualifiers are canonical-hash sorted, so position is not predictable.
+        // The device frame key is (DEVICE, deviceTypeSememe, deviceIdLiteral) —
+        // pull each by type rather than by position.
         List<CompoundKey.FrameToken> quals = frame.frameKey().qualifiers();
         ItemID deviceType = null;
         String deviceId = null;
-        if (quals.size() >= 1 && quals.get(0) instanceof CompoundKey.Sememe sem) {
-            deviceType = sem.id();
-        }
-        if (quals.size() >= 2 && quals.get(1) instanceof CompoundKey.Literal lit) {
-            deviceId = lit.value();
+        for (CompoundKey.FrameToken q : quals) {
+            if (deviceType == null && q instanceof CompoundKey.Sememe sem) {
+                deviceType = sem.id();
+            } else if (deviceId == null && q instanceof CompoundKey.Literal lit) {
+                deviceId = lit.value();
+            }
         }
         result.add(new DeviceInfo(frame.frameKey(), deviceType, deviceId, frame.instance()));
     }

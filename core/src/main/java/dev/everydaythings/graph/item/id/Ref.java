@@ -2,8 +2,9 @@ package dev.everydaythings.graph.item.id;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Encoding;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.TextBase;
+import io.ipfs.multibase.Multibase;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Factory;
 
@@ -493,17 +494,17 @@ public final class Ref implements Canonical {
 
     /** Multibase-encode a HashID's multihash bytes. */
     private static String encodeMultihash(HashID id) {
-        return Encoding.DEFAULT.encode(id.encodeBinary());
+        return TextBase.Base32Lower.encode(id.encodeBinary());
     }
 
     /** Decode a multibase string to an ItemID. */
     private static ItemID decodeMultihash(String multibase) {
-        return new ItemID(Encoding.decode(multibase));
+        return new ItemID(Multibase.decode(multibase));
     }
 
     /** Decode a multibase string to raw multihash bytes. */
     private static byte[] decodeMultihashBytes(String multibase) {
-        return Encoding.decode(multibase);
+        return Multibase.decode(multibase);
     }
 
     /** Find the next structural marker position, or end of string. */

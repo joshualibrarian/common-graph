@@ -3,7 +3,8 @@ package dev.everydaythings.graph.library.bytestore;
 import dev.everydaythings.graph.item.ManifestOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
+import dev.everydaythings.graph.library_old.skiplist.SkipListItemStore;
+import dev.everydaythings.graph.library_old.ItemStore;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,9 +45,9 @@ class MemoryItemStoreTest {
             ItemID contentId = ItemID.fromString("test:content");
             byte[] value = "hello".getBytes();
 
-            store.db(dev.everydaythings.graph.library.ItemStore.Column.OBJECTS).key(contentId).put(value);
+            store.db(ItemStore.Column.OBJECTS).key(contentId).put(value);
 
-            byte[] retrieved = store.db(dev.everydaythings.graph.library.ItemStore.Column.OBJECTS).key(contentId).get();
+            byte[] retrieved = store.db(ItemStore.Column.OBJECTS).key(contentId).get();
             assertThat(retrieved).isEqualTo(value);
         }
     }

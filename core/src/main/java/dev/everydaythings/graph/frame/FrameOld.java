@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -159,7 +161,7 @@ public final class FrameOld implements Canonical {
         if (body == null) return;
         // Encode PolicySet directly into the config map
         byte[] configBytes = policy.encodeBinary(Canonical.Scope.RECORD);
-        Literal configLiteral = new Literal(Literal.TYPE_CBOR, configBytes);
+        Literal configLiteral = Literal.ofBytes(configBytes);
         setBody(body.withConfig(ThematicRole.Config.IID, configLiteral));
     }
 

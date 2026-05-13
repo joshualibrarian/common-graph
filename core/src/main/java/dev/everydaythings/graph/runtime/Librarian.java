@@ -1,35 +1,33 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.crypt.VarSig;
-import dev.everydaythings.graph.crypt.vault.InMemoryVault;
-import dev.everydaythings.graph.crypt.vault.Vault;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Datum;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.Record;
+import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.identity.vault.InMemoryVault;
+import dev.everydaythings.graph.identity.vault.Vault;
+import dev.everydaythings.graph.datum.*;
+import dev.everydaythings.graph.datum.Record;
+import dev.everydaythings.graph.identity.IdentityVocabulary;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.item.SeedProcessor;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.FrameRef;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.library.Library;
-import dev.everydaythings.graph.library.tokens.Posting;
-import com.upokecenter.cbor.CBORObject;
+import dev.everydaythings.graph.library.index.TokenPosting;
+import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.semantics.ThematicRole;
 import lombok.Getter;
 
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -49,20 +47,38 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>For the storage architecture, see
  * <a href="../../../../../../../../../docs/storage.md">storage.md</a>.
  */
+@Seed.Item(key = Librarian.KEY)
+@Seed.Embodies(key = Librarian.CODE_KEY, archetype = Librarian.KEY)
 public class Librarian extends Signer {
 
     /** Canonical key for Librarian-the-archetype. */
     public static final String KEY = "cg.archetype:librarian";
 
     /** The archetype IID for Librarian instances. */
-    public static final ItemID ARCHETYPE = ItemID.fromString(KEY);
+    public static final ItemID IID = ItemID.fromString(KEY);
+
+    /**
+     * Canonical key for the CodeItem representing THIS Java implementation of Librarian.
+     *
+     * <p>The CodeItem's manifest is minted at bootstrap by
+     * {@link Seed.Embodies @Seed.Embodies}'s two-level mode. It carries the class
+     * literal as IMPLEMENTATION and endorses one HANDLES frame per
+     * {@link Handler @Handler}-annotated method on this class — attributing the
+     * predicate→method-name mapping to this specific implementation. A different
+     * Librarian implementation (e.g., Clojure, Python) would have its own CodeItem
+     * with its own key and its own HANDLES in its own naming convention.
+     */
+    public static final String CODE_KEY = "cg.code:librarian-java-default";
+
+    /** IID of the CodeItem for this Java implementation of Librarian. */
+    public static final ItemID CODE_IID = ItemID.fromString(CODE_KEY);
 
     @Override
     public ItemID archetype() {
-        return ARCHETYPE;
+        return IID;
     }
 
-    /** The local storage manager (always present). */
+    /** The local storage manager (always present). Owns the encoder. */
     @Getter
     private final Library library;
 
@@ -91,14 +107,67 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Full constructor — identity, vault holding signing material, storage, and
-     * (optional) filesystem footprint. Most callers should use a factory method
-     * ({@link #inMemory()}, etc.) rather than calling this directly.
+     * Full constructor — vault holding signing material, storage, and (optional)
+     * filesystem footprint. Most callers should use a factory method
+     * ({@link #ephemeral()}, etc.) rather than calling this directly.
+     *
+     * <p>The IID is derived from the vault's initial signing public key. During
+     * construction this Librarian binds itself as its own librarian and then
+     * publishes its four-datum genesis (INCEPTION body+record on the signing
+     * track plus the Librarian's own item-manifest body+record). When the
+     * constructor returns, the Librarian is a fully-published graph identity.
      */
-    public Librarian(ItemID iid, Vault vault, Library library, Optional<Path> rootPath) {
-        super(iid, vault);
+    public Librarian(Vault vault, Library library, Optional<Path> rootPath) {
+        super(vault);
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
+        bindLibrarian(this);
+        selfIncept();
+    }
+
+    /**
+     * Anonymous constructor — no identity, no vault, no inception. The Librarian
+     * exists purely as a routing / fetch / cache context with no cryptographic
+     * standing. Attempts to commit, sign, or self-incept will fail.
+     */
+    private Librarian(Library library) {
+        super((ItemID) null);
+        this.library = Objects.requireNonNull(library, "library");
+        this.rootPath = Optional.empty();
+        bindLibrarian(this);
+    }
+
+    // ==================================================================================
+    // Encoder convenience — delegates to the Library's encoder
+    //
+    // Library owns the encoder. These methods exist for callers that hold a
+    // Librarian reference and want a one-liner. They throw if the underlying
+    // Library has no encoder (i.e., pure-in-memory backends — once those land).
+    // ==================================================================================
+
+    /** The encoding this Librarian uses, if any. Delegates to {@link Library#encoder}. */
+    public Optional<dev.everydaythings.graph.encoding.Encoding> encoder() {
+        return library.encoder();
+    }
+
+    private dev.everydaythings.graph.encoding.Encoding requireEncoder() {
+        return library.encoder().orElseThrow(() -> new IllegalStateException(
+                "Librarian has no encoder (pure-in-memory Library); encode/decode not available"));
+    }
+
+    /** Encode a value to bytes. Throws if the Library has no encoder. */
+    public byte[] encode(Object value) {
+        return requireEncoder().encode(value);
+    }
+
+    /** Decode bytes back to a typed value. Throws if the Library has no encoder. */
+    public Object decode(byte[] bytes) {
+        return requireEncoder().decode(bytes);
+    }
+
+    /** Walk a value as a {@link dev.everydaythings.graph.encoding.Node} tree. Throws if no encoder. */
+    public dev.everydaythings.graph.encoding.Node walk(Object value) {
+        return requireEncoder().walk(value);
     }
 
     // ==================================================================================
@@ -106,24 +175,104 @@ public class Librarian extends Signer {
     // ==================================================================================
 
     /**
-     * Create an in-memory Librarian for tests, demos, or ephemeral runs.
+     * Create an ephemeral signed Librarian — full identity and signing capability,
+     * but everything lives in memory.
      *
      * <p>Storage is backed by SkipList stores (zero-dependency, pure Java). No
      * filesystem footprint. Identity is a freshly-generated random ItemID; signing
      * is wired with a fresh in-memory vault holding two Ed25519 keypairs
-     * (current + pre-rotation next).
+     * (current + pre-rotation next). Inception runs during construction.
+     *
+     * <p>For tests that need signing but not persistence; for one-shot tools that
+     * sign transient frames and discard them.
      */
+    public static Librarian ephemeral() {
+        // Still byte-backed: bootstrap + token-indexed parse pipelines rely on
+        // the byte-store token dictionary. Once token indexing is wired into
+        // PureMapLibrary (blocked on task #48 — Posting.source flip from
+        // ContentID to DatumID), ephemeral will switch to Library.anonymous().
+        return new Librarian(
+                InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
+                Library.inMemory(),
+                Optional.empty());
+    }
+
+    // (anonymous() factory below)
+
+    /**
+     * Backwards-compatible alias for {@link #ephemeral()}.
+     *
+     * @deprecated use {@link #ephemeral()} for signed in-memory mode, or
+     *             {@link #anonymous()} for the no-identity / no-signing variant.
+     */
+    @Deprecated
     public static Librarian inMemory() {
-        Library library = Library.inMemory();
-        Vault vault = InMemoryVault.generate(Signer.DEFAULT_ALGORITHM);
-        // Derive IID from the initial signing public key — cryptographically
-        // binds identity to key (closes the IID-preemption gap).
-        ItemID iid = ItemID.fromMultikeyBytes(
-                vault.signingPublicKey().orElseThrow().encoded());
-        Librarian lib = new Librarian(iid, vault, library, Optional.empty());
-        // Self-register so frames referencing the librarian's own IID route correctly.
-        lib.register(lib);
-        return lib;
+        return ephemeral();
+    }
+
+    /**
+     * Create an anonymous Librarian — no identity, no vault, no inception. The
+     * cheapest possible runtime context: storage is in-memory only, nothing
+     * gets signed, nothing requires identity.
+     *
+     * <p>For tests that don't need identity at all, or for one-shot tools that
+     * only need to fetch / look up / route without ever attesting anything.
+     * Attempting to sign, commit, or self-incept on an anonymous Librarian
+     * throws {@link IllegalStateException}.
+     */
+    public static Librarian anonymous() {
+        return new Librarian(Library.anonymous());
+    }
+
+    /**
+     * Create a fresh persistent Librarian at the given filesystem path.
+     *
+     * <p>Full production startup: generates a fresh vault, opens a byte-backed
+     * Library at the path (writing the {@code .librarian/format} marker on
+     * first use), and publishes the four-datum genesis (INCEPTION body+record
+     * on the signing track + the Librarian's own item manifest body+record).
+     *
+     * <p>Persistence is currently partial — the filesystem footprint is the
+     * format marker only. RocksDB-backed data stores are pending in cleanup;
+     * until they land, the data itself stays in-memory and is lost when the
+     * Librarian closes. The factory shape and marker contract, however, are
+     * the API the system commits to.
+     *
+     * @throws IllegalStateException if a marker already exists for a
+     *                               different encoder
+     */
+    public static Librarian fresh(java.nio.file.Path path) {
+        Objects.requireNonNull(path, "path");
+        return new Librarian(
+                InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
+                Library.atPath(path),
+                Optional.of(path));
+    }
+
+    /**
+     * Load an existing persistent Librarian from the given filesystem path.
+     *
+     * <p>Reads the {@code .librarian/format} marker, validates the encoder
+     * matches the runtime, and opens the byte-backed Library at the path.
+     *
+     * <p>Vault loading (and therefore re-acquiring the original signing
+     * identity) is deferred to a follow-on stage — the design memo flags
+     * encrypted-vault disk persistence as a separate concern. Until vault
+     * loading lands, {@code load(path)} throws — call {@link #fresh(java.nio.file.Path)}
+     * instead, or use {@link #ephemeral()} for transient signing.
+     */
+    public static Librarian load(java.nio.file.Path path) {
+        Objects.requireNonNull(path, "path");
+        // Validate the marker file exists and matches the runtime encoder.
+        // The Library would do this anyway when atPath() is called, but
+        // surfacing the check here keeps the failure mode obvious.
+        dev.everydaythings.graph.library.FormatMarker.verify(path, dev.everydaythings.graph.encoding.CgCbor.codec());
+        throw new UnsupportedOperationException(
+                "Librarian.load(path) requires vault disk-persistence, which is "
+                        + "designed but not yet implemented. The format marker at "
+                        + path + " is valid, but the vault holding the original "
+                        + "signing identity cannot yet be re-loaded. See the "
+                        + "Stage 4 follow-on in the librarian-startup-flow design memo.");
     }
 
     // ==================================================================================
@@ -150,12 +299,10 @@ public class Librarian extends Signer {
      * cache infrastructure.
      */
     public void bootstrap() {
-        dev.everydaythings.graph.item.SeedProcessor.bootstrap(this);
-        // Publish self-INCEPTION via the inherited Signer.publishSelfInception() —
-        // requires this Librarian to be its own librarian binding (set up by
-        // bindLibrarian below) so the assembleFrame call has a target.
-        if (this.librarian == null) bindLibrarian(this);
-        publishSelfInception();
+        SeedProcessor.bootstrap(this);
+        // Self-inception now happens during construction (see
+        // {@link #Librarian(Vault, Library, Optional)}); bootstrap is only
+        // responsible for seed vocabulary discovery.
     }
 
     // ==================================================================================
@@ -163,22 +310,36 @@ public class Librarian extends Signer {
     // ==================================================================================
 
     /**
-     * Fetch raw bytes from the local Library by CID.
+     * Fetch raw bytes from the local Library by ContentID.
      *
      * <p>Returns the bytes if the Library has them locally. Networking and
      * external-source resolution will be added later; this minimal version
      * is local-only.
      */
     public Optional<byte[]> fetch(ContentID cid) {
-        return library.get(cid);
+        return library.getContent(cid);
     }
 
     /**
-     * Persist a Datum (Body or Record) to the local Library, returning its CID.
-     *
-     * <p>Indexing has not yet been wired; this currently writes only to OBJECTS.
+     * Fetch the canonical wire bytes for a Datum by its semantic identity.
+     * Re-encodes the Datum on demand via its CG-CBOR canonical form.
      */
-    public ContentID persist(Datum datum) {
+    public Optional<byte[]> fetch(DatumID datumId) {
+        return library.fetchDatum(datumId).map(d ->
+                d.encodeBinary(dev.everydaythings.graph.encoding.Canonical.Scope.BODY));
+    }
+
+    /** Whether the local Library has any realization for the given DatumID. */
+    public boolean has(DatumID datumId) {
+        return library.has(datumId);
+    }
+
+    /**
+     * Persist a Datum (Body or Record) to the local Library, returning its semantic
+     * identity (DatumID). Indexes are written as side-effects; storage internally
+     * keys bytes by ContentID, with DATUM_INDEX bridging DatumID → ContentID.
+     */
+    public DatumID persist(Datum datum) {
         return library.put(datum);
     }
 
@@ -192,7 +353,7 @@ public class Librarian extends Signer {
      * "dig deeper" / federated queries will extend this to consult peers
      * transparently.
      */
-    public List<Posting> lookupToken(String token) {
+    public List<TokenPosting> lookupToken(String token) {
         return library.lookupToken(token);
     }
 
@@ -201,8 +362,54 @@ public class Librarian extends Signer {
      * {@code limit} Postings whose tokens begin with {@code tokenPrefix},
      * ordered by descending weight.
      */
-    public List<Posting> lookupTokenPrefix(String tokenPrefix, int limit) {
+    public List<TokenPosting> lookupTokenPrefix(String tokenPrefix, int limit) {
         return library.lookupTokenPrefix(tokenPrefix, limit);
+    }
+
+    /**
+     * Unified token lookup — the handler for {@link Lookup#IID LOOKUP} frames.
+     *
+     * <p>If {@code limit} is {@code null}, performs an exact (point) lookup.
+     * Otherwise performs a prefix (range) lookup capped at the given limit.
+     *
+     * <p>Direct in-VM callers can invoke this method straight; the same method
+     * is also reachable through the frame-dispatch pipeline via the
+     * {@link Handler} annotation, which keys it to the LOOKUP predicate.
+     *
+     * <p>Returns response frames (rather than raw Postings) so the result fits
+     * the actor-model pipeline uniformly. Each posting becomes a frame body
+     * carrying the surface form, target item, predicate kind, etc. — the same
+     * fields a remote caller would receive.
+     */
+    @Handler(predicate = Lookup.KEY)
+    public List<Frame> lookup(String token, Integer limit) {
+        Objects.requireNonNull(token, "token");
+        List<TokenPosting> postings = (limit == null)
+                ? library.lookupToken(token)
+                : library.lookupTokenPrefix(token, limit);
+        List<Frame> responses = new ArrayList<>(postings.size());
+        for (TokenPosting p : postings) {
+            responses.add(postingToFrame(p));
+        }
+        return responses;
+    }
+
+    /**
+     * Wrap a {@link TokenPosting} as a {@link Frame}
+     * for return through the dispatch pipeline. The frame is ephemeral by
+     * convention (no records, never persisted) — it's the answer to a LOOKUP,
+     * relevant only to the asking client at this moment.
+     */
+    private static Frame postingToFrame(TokenPosting p) {
+        FrameBuilder fb = Frame.compose(Lookup.IID)
+                .with(ThematicRole.Value.IID, p.token());
+        if (p.target() != null) {
+            fb.theme(p.target());
+        }
+        if (p.predicate() != null) {
+            fb.with(ThematicRole.Topic.IID, p.predicate());
+        }
+        return fb.build();
     }
 
     /**
@@ -214,119 +421,278 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Fetch and decode a Frame (body + records aggregate) by its body CID.
+     * Handle a {@link Create} frame — instantiate a fresh item, commit its
+     * initial manifest, and fire the post-construct hook.
      *
-     * <p>Returns empty if the body bytes aren't found locally OR if they decode as
-     * something other than a 2-element body array. The Frame's records list is
-     * populated from the RECORDS_BY_BODY index — any records persisted against
-     * this body via {@link #persist} are included; missing record bytes are
-     * silently dropped.
+     * <p>The CREATE frame's bindings:
+     * <ul>
+     *   <li>{@code THEME} (required) — archetype IID of the kind to create</li>
+     *   <li>{@code INSTRUMENT} (optional) — specific implementation; if absent,
+     *       falls back to the archetype's own {@code IMPLEMENTATION} binding</li>
+     *   <li>Other bindings — carried forward as initial bindings on the new item</li>
+     * </ul>
+     *
+     * <p>The new item's IID is deterministically derived from the CREATE frame's
+     * body DatumID. The initial manifest is signed by this librarian (Phase 1;
+     * eventually we'll honor the AGENT identity if signing material is available).
+     *
+     * <p>No CREATED response frame is emitted — the CREATE frame itself is the
+     * audit-worthy record of "this item was made." The new item is discoverable
+     * via {@link #fetchItem} once created.
      */
-    public Optional<Frame> fetchFrame(ContentID cid) {
-        return fetchBody(cid).map(body -> Frame.of(body, loadRecords(cid)));
+    @Handler(predicate = Create.KEY)
+    public List<Frame> createItem(Frame createFrame) {
+        Objects.requireNonNull(createFrame, "createFrame");
+
+        ItemID archetype = readReferencedIid(createFrame, ThematicRole.Theme.IID);
+        if (archetype == null) {
+            throw new IllegalArgumentException(
+                    "CREATE frame missing required THEME (archetype) binding");
+        }
+
+        Class<? extends Item> implClass = resolveImplementationClass(createFrame, archetype);
+        ItemID newIid = mintIidFromCreateFrame(createFrame);
+
+        Item item;
+        try {
+            item = implClass.getConstructor(ItemID.class, Librarian.class)
+                    .newInstance(newIid, this);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(
+                    "Failed to instantiate " + implClass.getName()
+                            + " for CREATE (requires public (ItemID, Librarian) constructor)", e);
+        }
+        register(item);
+        item.commit(List.of());   // librarian signs the initial manifest
+
+        // Fire the post-construct hook. Any archetype with @Handler(predicate=Construct.KEY)
+        // gets to set up domain-specific initial state. Default: no-op.
+        Frame constructFrame = Frame.compose(Construct.IID)
+                .theme(newIid)
+                .build();
+        submit(constructFrame);
+
+        return List.of();
     }
 
     /**
-     * Fetch and decode a Manifest (archetypal body + records aggregate) by its body CID.
+     * Resolve the Java class to instantiate for a CREATE. Priority:
+     * <ol>
+     *   <li>{@code INSTRUMENT} binding on the CREATE frame, if present.</li>
+     *   <li>Otherwise, the archetype's own {@code IMPLEMENTATION} binding.</li>
+     * </ol>
      *
-     * <p>Returns empty if the body bytes aren't found locally, decode as a Record
-     * rather than a Body, or decode as a non-archetypal body (no ITEM_ID binding).
-     * Records are loaded the same way as {@link #fetchFrame}.
+     * <p>INSTRUMENT may target a Java-class {@link Literal} directly, or an item
+     * reference. When an item ref, we fetch the implementation item and read its
+     * own {@code IMPLEMENTATION} binding.
      */
-    public Optional<Manifest> fetchManifest(ContentID cid) {
-        return fetchBody(cid).flatMap(body -> {
-            try {
-                return Optional.of(Manifest.of(body, loadRecords(cid)));
-            } catch (IllegalArgumentException e) {
-                return Optional.empty();
+    private Class<? extends Item> resolveImplementationClass(Frame createFrame, ItemID archetype) {
+        // Step 1: caller-provided INSTRUMENT?
+        Optional<Binding> instrumentBinding = createFrame.body()
+                .binding(CompoundKey.of(ThematicRole.Instrument.IID));
+        if (instrumentBinding.isPresent()) {
+            return resolveImplementationFromBinding(
+                    instrumentBinding.get(),
+                    "INSTRUMENT on CREATE frame");
+        }
+        // Step 2: archetype's IMPLEMENTATION binding
+        Item archetypeItem = fetchItem(archetype)
+                .orElseThrow(() -> new IllegalStateException(
+                        "CREATE archetype " + archetype + " has no local manifest; "
+                                + "can't resolve implementation"));
+        Manifest manifest = archetypeItem.current();
+        if (manifest == null) {
+            throw new IllegalStateException(
+                    "CREATE archetype " + archetype + " has no current manifest");
+        }
+        Binding implBinding = manifest.implementation()
+                .orElseThrow(() -> new IllegalStateException(
+                        "CREATE archetype " + archetype + " has no IMPLEMENTATION binding "
+                                + "and no INSTRUMENT was supplied"));
+        return resolveImplementationFromBinding(
+                implBinding,
+                "IMPLEMENTATION on archetype " + archetype);
+    }
+
+    /**
+     * Read a Java class from an IMPLEMENTATION-shaped binding. Two cases:
+     * <ul>
+     *   <li>The binding is qualified by {@link CoreVocabulary.JavaClass} and its
+     *       target is a text {@link Literal} — used directly.</li>
+     *   <li>The binding's target is an item reference — fetch that item and
+     *       follow its own IMPLEMENTATION binding one level.</li>
+     * </ul>
+     */
+    private Class<? extends Item> resolveImplementationFromBinding(
+            Binding binding, String contextDescription) {
+        // Direct Java-class binding: qualifier JavaClass + text Literal target.
+        if (Manifest.isJavaClassBinding(binding)) {
+            if (!(binding.target() instanceof Literal lit)) {
+                throw new IllegalStateException(contextDescription
+                        + " is JavaClass-qualified but target is not a Literal: "
+                        + binding.target().getClass().getSimpleName());
             }
-        });
+            return loadItemClass(lit.asText(), contextDescription);
+        }
+        // Item reference — fetch the impl item and follow its IMPLEMENTATION binding.
+        ItemID implItemIid = extractReferencedIidFromTarget(binding.target());
+        if (implItemIid == null) {
+            throw new IllegalStateException(contextDescription
+                    + " is neither a JavaClass binding nor an item reference: "
+                    + binding.target().getClass().getSimpleName());
+        }
+        Item implItem = fetchItem(implItemIid)
+                .orElseThrow(() -> new IllegalStateException(contextDescription
+                        + " references item " + implItemIid + " which has no local manifest"));
+        Manifest manifest = implItem.current();
+        if (manifest == null) {
+            throw new IllegalStateException(contextDescription
+                    + " references item " + implItemIid + " with no current manifest");
+        }
+        Binding nested = manifest.implementation()
+                .orElseThrow(() -> new IllegalStateException(contextDescription
+                        + " references item " + implItemIid
+                        + " which lacks an IMPLEMENTATION binding"));
+        if (!Manifest.isJavaClassBinding(nested)
+                || !(nested.target() instanceof Literal lit)) {
+            throw new IllegalStateException(contextDescription
+                    + " via item " + implItemIid
+                    + " ultimately did not resolve to a JavaClass binding");
+        }
+        return loadItemClass(lit.asText(), contextDescription);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Class<? extends Item> loadItemClass(String className, String ctx) {
+        Class<?> raw;
+        try {
+            raw = Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(ctx + " names class " + className
+                    + " which is not on the classpath", e);
+        }
+        if (!Item.class.isAssignableFrom(raw)) {
+            throw new IllegalStateException(ctx + " class " + className
+                    + " does not extend Item");
+        }
+        return (Class<? extends Item>) raw;
+    }
+
+    /**
+     * Mint a deterministic IID for a freshly-created item from the CREATE frame's
+     * body DatumID. Same CREATE frame → same IID (idempotent); different CREATEs
+     * → different IIDs.
+     */
+    private static ItemID mintIidFromCreateFrame(Frame createFrame) {
+        return ItemID.fromMultikeyBytes(createFrame.body().datumId().encodeBinary());
+    }
+
+    /**
+     * Handle a {@link dev.everydaythings.graph.semantics.Delete} frame —
+     * a request to remove an item from local storage.
+     *
+     * <p>Phase 1 authorization: honor only DELETEs whose records carry a
+     * signature verifiable against this librarian's own KEL. Self-signed →
+     * cascade-delete the targeted item's manifests and records, evict from
+     * cache. Other-signed → silent no-op (the DELETE frame is already in
+     * storage as durable data; we just don't act on it).
+     *
+     * <p>Per-librarian sovereignty: each librarian decides independently. The
+     * same DELETE frame propagating to multiple peers will be honored by
+     * some and ignored by others based on each peer's trust matrix. Phase 2
+     * extends authorization beyond self-signed (trust-graph-weighted).
+     *
+     * <p>Endorsed frames and other items referencing the target are NOT
+     * cascaded — those may be referenced elsewhere; dangling references are
+     * an accepted cost, reconciled by future GC.
+     */
+    @Handler(predicate = dev.everydaythings.graph.semantics.Delete.KEY)
+    public List<Frame> deleteItem(Frame deleteFrame) {
+        Objects.requireNonNull(deleteFrame, "deleteFrame");
+        ItemID targetIid = readReferencedIid(deleteFrame, ThematicRole.Theme.IID);
+        if (targetIid == null) return List.of();
+
+        if (!isAuthorizedByThisLibrarian(deleteFrame)) return List.of();
+
+        // Cascade: tear down the item's manifests + their records.
+        for (DatumID manifestId : library.manifestCidsForItem(targetIid)) {
+            for (DatumID recordId : library.recordCidsForBody(manifestId)) {
+                library.delete(recordId);
+            }
+            library.delete(manifestId);
+        }
+        evict(targetIid);
+        return List.of();
+    }
+
+    /**
+     * Phase 1 authorization check for DELETE: returns true iff at least one of
+     * the frame's records was signed by this librarian's own KEL-committed key.
+     * Conceptually: "am I being asked to honor my own request?"
+     */
+    private boolean isAuthorizedByThisLibrarian(Frame frame) {
+        byte[] signedBytes = HashTree.signingPayload(frame.body());
+        for (Record record : frame.records()) {
+            if (verifySignedAsIdentity(iid(), signedBytes, record.varsig())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ItemID readReferencedIid(Frame frame, ItemID role) {
+        return frame.body()
+                .binding(CompoundKey.of(role))
+                .map(b -> extractReferencedIidFromTarget(b.target()))
+                .orElse(null);
+    }
+
+    private static ItemID extractReferencedIidFromTarget(BindingTarget target) {
+        if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) return ref.asItemId();
+        return null;
+    }
+
+    /**
+     * Fetch a Frame (body + records aggregate) by its body's semantic identity.
+     *
+     * <p>Delegates to {@link Library#fetchFrame} — Library owns the decode
+     * boundary; this method is a thin facade for callers that hold a Librarian
+     * reference.
+     */
+    public Optional<Frame> fetchFrame(DatumID bodyId) {
+        return library.fetchFrame(bodyId);
+    }
+
+    /**
+     * Fetch a Manifest (archetypal body + records aggregate) by its body's
+     * semantic identity. Delegates to {@link Library#fetchManifest}.
+     */
+    public Optional<Manifest> fetchManifest(DatumID bodyId) {
+        return library.fetchManifest(bodyId);
     }
 
     /** Whether the local Library has bytes for the given CID. */
     public boolean has(ContentID cid) {
-        return library.has(cid);
-    }
-
-    /**
-     * Return the currently-committed signing keys for the given identity, derived
-     * from its KEL — i.e., the {@code INSTRUMENT} bindings on the most recent valid
-     * INCEPTION (or ROTATION, when that's wired) frame published with
-     * {@code THEME = iid} and {@code PURPOSE = Signing}.
-     *
-     * <p>Phase 1 simplification: only INCEPTION frames are considered (no rotation
-     * chain replay yet). When multiple INCEPTIONs exist for one identity (which
-     * shouldn't happen normally — the bootstrap-twice case), this picks the latest
-     * by {@code TIME} binding. Returns empty list if no valid INCEPTION is found.
-     *
-     * <p>Used by verification: a signature on a frame from {@code @some-identity}
-     * is honored only if it verifies against one of these committed keys.
-     *
-     * <p>Future: caches the result keyed by (identity, purpose); invalidates on new
-     * INCEPTION/ROTATION assembly. ROTATION chain replay walks {@code FOLLOWS} back
-     * to INCEPTION, validating preimage match at each step.
-     */
-    public List<dev.everydaythings.graph.crypt.MultiKey> signingKeysForIdentity(ItemID identityIid) {
-        Objects.requireNonNull(identityIid, "identityIid");
-        List<ContentID> candidateCids = library
-                .bodyCidsForReferenceBinding(dev.everydaythings.graph.semantics.ThematicRole.Theme.IID, identityIid);
-
-        Frame chosen = null;
-        java.time.Instant chosenTime = java.time.Instant.MIN;
-        for (ContentID cid : candidateCids) {
-            Frame frame = fetchFrame(cid).orElse(null);
-            if (frame == null) continue;
-            if (!isInceptionForSigning(frame, identityIid)) continue;
-            java.time.Instant frameTime = readTime(frame.body()).orElse(java.time.Instant.MIN);
-            if (frameTime.isAfter(chosenTime)) {
-                chosen = frame;
-                chosenTime = frameTime;
-            }
-        }
-        if (chosen == null) return List.of();
-        return dev.everydaythings.graph.identity.Inception.currentKeys(chosen.body());
-    }
-
-    private static boolean isInceptionForSigning(Frame frame, ItemID identityIid) {
-        if (!(frame.body().head() instanceof ItemRef ref)) return false;
-        if (!dev.everydaythings.graph.identity.Inception.IID.equals(ref.iid())) return false;
-        return dev.everydaythings.graph.identity.Inception.readTheme(frame.body())
-                       .filter(identityIid::equals).isPresent()
-                && dev.everydaythings.graph.identity.Inception.readPurpose(frame.body())
-                       .filter(dev.everydaythings.graph.identity.IdentityVocabulary.Signing.IID::equals)
-                       .isPresent();
+        return library.hasContent(cid);
     }
 
     /**
      * Verify that the given signature is valid for the given message under one of
      * the signing keys committed by the given identity's KEL.
      *
-     * <p>This is the identity-aware counterpart to {@link Signer#verify(dev.everydaythings.graph.crypt.MultiKey, byte[], VarSig)}:
+     * <p>Identity-aware counterpart to {@link Signer#verify(MultiKey, byte[], VarSig)}:
      * instead of taking an explicit MultiKey, takes an IID and consults the
-     * locally-known INCEPTION/ROTATION frames for that identity.
+     * locally-known INCEPTION/ROTATION frames for that identity via the inherited
+     * {@link Signer#currentKeys(ItemID, ItemID)}.
      *
      * @return true if the signature verifies against any currently-committed
      *         signing key for {@code identityIid}; false otherwise
      */
     public boolean verifySignedAsIdentity(ItemID identityIid, byte[] message, VarSig varsig) {
-        for (dev.everydaythings.graph.crypt.MultiKey key : signingKeysForIdentity(identityIid)) {
+        for (MultiKey key : currentKeys(identityIid, IdentityVocabulary.Signing.IID)) {
             if (Signer.verify(key, message, varsig)) return true;
         }
         return false;
-    }
-
-    private static Optional<java.time.Instant> readTime(Body body) {
-        return body.binding(dev.everydaythings.graph.item.id.CompoundKey.of(
-                        dev.everydaythings.graph.semantics.ThematicRole.Time.IID))
-                .flatMap(b -> {
-                    if (!(b.target() instanceof Literal lit)) return Optional.empty();
-                    if (!Literal.TYPE_INSTANT.equals(lit.valueType())) return Optional.empty();
-                    try {
-                        return Optional.of(lit.asInstantMillis());
-                    } catch (RuntimeException ignored) {
-                        return Optional.empty();
-                    }
-                });
     }
 
     /**
@@ -346,10 +712,10 @@ public class Librarian extends Signer {
         Item cached = itemCache.get(iid);
         if (cached != null) return Optional.of(cached);
 
-        List<ContentID> manifestCids = library.manifestCidsForItem(iid);
+        List<DatumID> manifestCids = library.manifestCidsForItem(iid);
         if (manifestCids.isEmpty()) return Optional.empty();
         // TODO: when HEAD logic exists, pick the right manifest. For now, take the first.
-        ContentID chosen = manifestCids.getFirst();
+        DatumID chosen = manifestCids.getFirst();
         return fetchManifest(chosen).map(manifest -> {
             Item item = hydrateItem(iid, manifest);
             item.bindManifest(manifest);
@@ -378,6 +744,16 @@ public class Librarian extends Signer {
      * constructor, or the constructor throws.
      */
     private Item hydrateItem(ItemID iid, Manifest manifest) {
+        // Code-archetype manifests are metadata about an implementation, not items
+        // whose runtime form is the embodied class. Their IMPLEMENTATION binding
+        // describes "what code I represent" (class literal), not "how to hydrate
+        // me." Return a bare Item carrying the manifest; callers walk endorsements
+        // for the actual API surface.
+        if (manifest.body().head() instanceof ItemRef ref
+                && CoreVocabulary.Code.IID.equals(ref.iid())) {
+            return new Item(iid, this);
+        }
+
         Optional<Binding> impl = manifest.implementation();
         if (impl.isEmpty()) {
             return new Item(iid, this);
@@ -394,24 +770,26 @@ public class Librarian extends Signer {
     }
 
     private static Class<? extends Item> resolveImplementationClass(Binding binding, ItemID iid) {
+        if (!Manifest.isJavaClassBinding(binding)) {
+            throw new IllegalStateException(
+                    "Manifest for " + iid + " has IMPLEMENTATION binding without "
+                            + "JavaClass qualifier; cannot hydrate");
+        }
         if (!(binding.target() instanceof Literal lit)) {
             throw new IllegalStateException(
                     "Manifest for " + iid + " has IMPLEMENTATION binding whose target is "
                             + binding.target().getClass().getSimpleName()
-                            + "; expected a Java-class Literal");
+                            + "; expected a text Literal");
         }
-        if (!Literal.TYPE_JAVA_CLASS.equals(lit.valueType())) {
-            throw new IllegalStateException(
-                    "Manifest for " + iid + " has IMPLEMENTATION literal of type "
-                            + lit.valueType() + "; expected " + Literal.TYPE_JAVA_CLASS);
-        }
+        String className = lit.asText();
         Class<?> clazz;
         try {
-            clazz = lit.asJavaClass();
-        } catch (RuntimeException e) {
+            clazz = Class.forName(className, false,
+                    Thread.currentThread().getContextClassLoader());
+        } catch (ClassNotFoundException e) {
             throw new IllegalStateException(
                     "Manifest for " + iid + " declares IMPLEMENTATION class "
-                            + lit.asJavaClassName() + " which is not on the classpath", e);
+                            + className + " which is not on the classpath", e);
         }
         if (!Item.class.isAssignableFrom(clazz)) {
             throw new IllegalStateException(
@@ -435,11 +813,14 @@ public class Librarian extends Signer {
      */
     public void register(Item item) {
         Objects.requireNonNull(item, "item");
+        if (item.iid() == null) {
+            throw new IllegalArgumentException("Anonymous item has no identity; cannot register");
+        }
         itemCache.put(item.iid(), item);
     }
 
     /**
-     * Remove an item from the cache. Used by {@link dev.everydaythings.graph.semantics.Delete}
+     * Remove an item from the cache. Used by the DELETE handler
      * after honoring a delete request — the cache must drop the now-deleted item
      * so future {@code fetchItem} calls return empty (storage is also gone).
      */
@@ -474,14 +855,230 @@ public class Librarian extends Signer {
         Objects.requireNonNull(body, "body");
         Objects.requireNonNull(signer, "signer");
 
-        ContentID bodyCid = persist(body);
-        VarSig signature = signer.sign(body.encodeBinary(Canonical.Scope.BODY));
-        Record record = Record.of(FrameRef.of(bodyCid), List.of(), signature);
+        persist(body);
+        VarSig signature = signer.sign(HashTree.signingPayload(body));
+        Record record = Record.of(FrameRef.of(body.datumId()), List.of(), signature);
         persist(record);
 
         Frame frame = Frame.of(body, List.of(record));
         notifyReferencedItems(frame);
+        // Also run @Handler dispatch so callers that use the old assembleFrame
+        // path still get full actor-model behavior. submit() does the same on
+        // its newer entry path.
+        ItemID predicateIid = ((ItemRef) body.head()).iid();
+        dispatchToHandlers(frame, predicateIid);
         return frame;
+    }
+
+    // ==================================================================================
+    // Submit (the unified entry point for the actor model)
+    // ==================================================================================
+
+    /**
+     * Submit a {@link Frame} to the runtime. The frame is the message; this is
+     * the send operation. Three phases happen in order:
+     *
+     * <ol>
+     *   <li><b>Persist</b> — if the predicate is not marked ephemeral via
+     *       {@code CONFIG[RETENTION] → @Ephemeral}, the body and any attached
+     *       records are written to local storage.</li>
+     *   <li><b>Notify</b> — items referenced by the frame learn it happened via
+     *       {@link Item#onFrameAssembled}, regardless of retention.</li>
+     *   <li><b>Dispatch</b> — any {@code @Handler}-annotated method on this
+     *       Librarian whose predicate matches the frame's head is invoked. Its
+     *       return value (if any) becomes response frames.</li>
+     * </ol>
+     *
+     * <p>Response frames carry the handler's result back to the caller through
+     * the {@link SubmitResult}. They are not themselves auto-submitted —
+     * persisting query responses would be storage-toxic.
+     *
+     * @param frame the frame being sent
+     * @return submitted frame + response frames from handlers (if any)
+     */
+    public SubmitResult submit(Frame frame) {
+        Objects.requireNonNull(frame, "frame");
+        ItemID predicateIid = ((ItemRef) frame.body().head()).iid();
+        boolean ephemeral = isEphemeral(predicateIid);
+
+        if (!ephemeral) {
+            persist(frame.body());
+            for (Record r : frame.records()) {
+                persist(r);
+            }
+        }
+
+        notifyReferencedItems(frame);
+        List<Frame> responses = dispatchToHandlers(frame, predicateIid);
+
+        return SubmitResult.of(frame, responses);
+    }
+
+    /**
+     * Check whether the given predicate's manifest carries the ephemeral
+     * retention CONFIG. Looks up the predicate item locally; if not found,
+     * defaults to durable (non-ephemeral) — frames against unknown predicates
+     * are persisted.
+     */
+    private boolean isEphemeral(ItemID predicateIid) {
+        return fetchItem(predicateIid)
+                .map(this::hasEphemeralRetention)
+                .orElse(false);
+    }
+
+    private boolean hasEphemeralRetention(Item predicate) {
+        return predicate.endorsedFramesByPredicate(
+                        CoreVocabulary.Config.IID)
+                .anyMatch(this::isRetentionEphemeral);
+    }
+
+    private boolean isRetentionEphemeral(Frame configFrame) {
+        return configFrame.body()
+                .binding(CompoundKey.of(
+                        ThematicRole.Value.IID,
+                        CoreVocabulary.Retention.IID))
+                .map(b -> b.target() instanceof BindingTarget.RefTarget ref
+                        && !ref.isCompound()
+                        && CoreVocabulary.Ephemeral.IID.equals(ref.asItemId()))
+                .orElse(false);
+    }
+
+    /**
+     * Data-driven dispatch: fetch the {@link #CODE_IID CodeItem} for this
+     * Librarian implementation, walk its endorsed HANDLES frames, find one
+     * whose {@code THEME} matches the incoming predicate, read its {@code INSTRUMENT}
+     * text literal as the Java method name to invoke, reflect on the method,
+     * and call it.
+     *
+     * <p>The {@code @Handler} Java annotation is the seed-time hint that
+     * generates the HANDLES frames + CodeItem manifest during {@link #bootstrap};
+     * at runtime, the endorsed frames are the source of truth. A different
+     * implementation (e.g., a Clojure Librarian) would publish its own
+     * CodeItem with its own method names, and dispatch there would resolve
+     * differently — but the predicate vocabulary is the shared protocol.
+     */
+    private List<Frame> dispatchToHandlers(Frame frame, ItemID predicateIid) {
+        Item codeItem = fetchItem(CODE_IID).orElse(null);
+        if (codeItem == null) return List.of();
+
+        Iterator<Frame> it = codeItem
+                .endorsedFramesByPredicate(CoreVocabulary.Handles.IID)
+                .iterator();
+        while (it.hasNext()) {
+            Frame handlesFrame = it.next();
+            if (!themeMatches(handlesFrame, predicateIid)) continue;
+
+            String methodName = readInstrumentText(handlesFrame);
+            if (methodName == null) continue;
+
+            java.lang.reflect.Method m = findHandlerMethod(methodName);
+            if (m == null) continue;
+
+            try {
+                Object[] args = extractHandlerArgs(m, frame);
+                Object result = m.invoke(this, args);
+                if (result == null) return List.of();
+                if (result instanceof List<?> list) {
+                    List<Frame> out = new ArrayList<>(list.size());
+                    for (Object o : list) {
+                        if (o instanceof Frame f) out.add(f);
+                    }
+                    return out;
+                }
+                if (result instanceof Frame f) return List.of(f);
+                return List.of();
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(
+                        "Handler invocation failed for predicate " + predicateIid, e);
+            }
+        }
+        return List.of();
+    }
+
+    /** Whether a HANDLES frame's THEME binding targets the given predicate. */
+    private static boolean themeMatches(Frame handlesFrame, ItemID predicateIid) {
+        return handlesFrame.body()
+                .binding(CompoundKey.of(ThematicRole.Theme.IID))
+                .map(b -> extractReferencedIidFromTarget(b.target()))
+                .filter(predicateIid::equals)
+                .isPresent();
+    }
+
+    /** Read the INSTRUMENT binding's text literal from a HANDLES frame. */
+    private static String readInstrumentText(Frame handlesFrame) {
+        return handlesFrame.body()
+                .binding(CompoundKey.of(ThematicRole.Instrument.IID))
+                .filter(b -> b.target() instanceof Literal)
+                .map(b -> ((Literal) b.target()).asText())
+                .orElse(null);
+    }
+
+    /**
+     * Find a {@link Handler}-annotated method on {@code Librarian.class} by
+     * name. Walking the declared methods costs O(N) where N is small; for now
+     * this is fine and avoids caching state.
+     */
+    private static java.lang.reflect.Method findHandlerMethod(String name) {
+        for (java.lang.reflect.Method m : Librarian.class.getDeclaredMethods()) {
+            if (m.isAnnotationPresent(Handler.class) && m.getName().equals(name)) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Phase 1 parameter extraction for handlers. Maps frame bindings to method
+     * parameters by simple type-and-role conventions:
+     * <ul>
+     *   <li>{@code String} ← THEME binding's text literal</li>
+     *   <li>{@code Integer} ← ATTRIBUTE[LIMIT] binding's integer literal (null if absent)</li>
+     * </ul>
+     * A more general scheme (role→position from HANDLES metadata) will land
+     * later.
+     */
+    private static Object[] extractHandlerArgs(java.lang.reflect.Method m, Frame frame) {
+        Class<?>[] paramTypes = m.getParameterTypes();
+        Object[] args = new Object[paramTypes.length];
+        for (int i = 0; i < paramTypes.length; i++) {
+            Class<?> pt = paramTypes[i];
+            if (pt == String.class) {
+                args[i] = readThemeText(frame);
+            } else if (pt == Integer.class) {
+                args[i] = readLimitInteger(frame);
+            } else if (pt == Frame.class) {
+                args[i] = frame;
+            } else {
+                throw new IllegalStateException(
+                        "Unsupported handler param type for now: " + pt.getName());
+            }
+        }
+        return args;
+    }
+
+    private static String readThemeText(Frame frame) {
+        return frame.body()
+                .binding(CompoundKey.of(
+                        ThematicRole.Theme.IID))
+                .filter(b -> b.target() instanceof Literal)
+                .map(b -> ((Literal) b.target()).asText())
+                .orElse(null);
+    }
+
+    private static Integer readLimitInteger(Frame frame) {
+        return frame.body()
+                .binding(CompoundKey.of(
+                        ThematicRole.Attribute.IID,
+                        CoreVocabulary.Limit.IID))
+                .filter(b -> b.target() instanceof Literal)
+                .map(b -> {
+                    try {
+                        return (int) ((Literal) b.target()).asInteger();
+                    } catch (RuntimeException e) {
+                        return null;
+                    }
+                })
+                .orElse(null);
     }
 
     private void notifyReferencedItems(Frame frame) {
@@ -514,41 +1111,10 @@ public class Librarian extends Signer {
     }
 
     private static Optional<ItemID> extractReferencedIid(BindingTarget target) {
-        if (target instanceof BindingTarget.IidTarget iid) {
-            return Optional.of(iid.iid());
-        }
         if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
             return Optional.of(ref.asItemId());
         }
         return Optional.empty();
     }
 
-    private Optional<Body> fetchBody(ContentID cid) {
-        return fetch(cid).flatMap(bytes -> {
-            try {
-                CBORObject node = CBORObject.DecodeFromBytes(bytes);
-                return Optional.of(Body.fromCborTree(node));
-            } catch (RuntimeException e) {
-                return Optional.empty();
-            }
-        });
-    }
-
-    private Optional<Record> fetchRecord(ContentID cid) {
-        return fetch(cid).flatMap(bytes -> {
-            try {
-                CBORObject node = CBORObject.DecodeFromBytes(bytes);
-                return Optional.of(Record.fromCborTree(node));
-            } catch (RuntimeException e) {
-                return Optional.empty();
-            }
-        });
-    }
-
-    private List<Record> loadRecords(ContentID bodyCid) {
-        return library.recordCidsForBody(bodyCid).stream()
-                .map(this::fetchRecord)
-                .flatMap(Optional::stream)
-                .toList();
-    }
 }

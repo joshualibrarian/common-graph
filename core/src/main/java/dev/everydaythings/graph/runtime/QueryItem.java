@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemOld;
@@ -17,7 +17,7 @@ import dev.everydaythings.graph.language.SememeGloss;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
-import dev.everydaythings.graph.library.LibraryOld;
+import dev.everydaythings.graph.library_old.LibraryOld;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.SceneNode;
 

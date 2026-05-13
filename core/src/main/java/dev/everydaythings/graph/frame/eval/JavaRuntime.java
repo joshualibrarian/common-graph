@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -14,12 +14,12 @@ import java.util.Optional;
 /**
  * Language runtime for Java implementations.
  *
- * <p>Handles Java code references from IMPLEMENTED_BY frames:
- * <ul>
- *   <li><b>Java class names</b> — {@link Literal} with {@code TYPE_JAVA_CLASS}.
- *       The class is loaded and checked for {@link PredicateBehavior}. If it
- *       implements the interface directly, it's used as-is.</li>
- * </ul>
+ * <p>Handles Java code references from IMPLEMENTED_BY frames: text {@link Literal}
+ * targets are interpreted as fully-qualified class names. The class is loaded and
+ * checked for {@link PredicateBehavior}. If it implements the interface directly,
+ * it's used as-is. The actual "is this a Java class name?" determination is the
+ * caller's responsibility (typically via a JavaClass qualifier on the binding);
+ * resolve() tolerantly returns null if loading fails.
  *
  * <p>The Java runtime is NOT sandboxed — it runs in the host JVM with full
  * access. Untrusted code should use sandboxed runtimes (WASM, formula).
@@ -36,9 +36,7 @@ public final class JavaRuntime implements LanguageRuntime {
 
     @Override
     public PredicateBehavior resolve(BindingTarget codeReference, ItemID predicate, Scope scope) {
-        // Java class reference from IMPLEMENTED_BY frame
-        if (codeReference instanceof Literal lit
-                && Literal.TYPE_JAVA_CLASS.equals(lit.valueType())) {
+        if (codeReference instanceof Literal lit) {
             return resolveJavaClass(lit, predicate, scope);
         }
         return null;

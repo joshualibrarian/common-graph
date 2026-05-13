@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.id.ItemID;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.frame.ItemFrame;
-import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 import dev.everydaythings.graph.item.Tick;

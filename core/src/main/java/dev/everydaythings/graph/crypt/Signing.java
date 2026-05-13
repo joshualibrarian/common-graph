@@ -1,7 +1,8 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.item.id.HashID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.user.SignerOld;
@@ -134,7 +135,7 @@ public final class Signing implements Canonical {
 
     /** Hash of {@link #payloadToSign()} used as compact binding material for each Sig. */
     public byte[] payloadHash() {
-        return Hash.DEFAULT.digest(payloadToSign());
+        return Digest.Sha256.digest(payloadToSign());
     }
 
     // --- Verification ---
@@ -151,7 +152,7 @@ public final class Signing implements Canonical {
 
         if (!Objects.equals(this.targetId, target.targetId())) return false;
 
-        byte[] computed = Hash.DEFAULT.digest(target.bodyToSign());
+        byte[] computed = Digest.Sha256.digest(target.bodyToSign());
         if (!Arrays.equals(this.targetBodyHash, computed)) return false;
 
         return verifyAgainst(keys, payloadHash());
@@ -274,7 +275,7 @@ public final class Signing implements Canonical {
      * Default hasher using SHA-256 multihash.
      */
     public static Hasher defaultHasher() {
-        return data -> Hash.DEFAULT.digestToMultihash(data).toBytes();
+        return data -> Digest.Sha256.toMultihash(data).toBytes();
     }
 
     public static final class Sig implements Canonical {
@@ -398,7 +399,7 @@ public final class Signing implements Canonical {
         }
 
         default byte[] targetBodyHash() {
-            return Hash.DEFAULT.digest(bodyToSign());
+            return Digest.Sha256.digest(bodyToSign());
         }
     }
 }

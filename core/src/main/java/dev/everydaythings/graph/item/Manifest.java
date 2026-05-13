@@ -1,11 +1,12 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.frame.AttributedBody;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Record;
+import dev.everydaythings.graph.datum.AttributedBody;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.ManifestBuilder;
+import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -87,6 +88,14 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
+     * Open a fluent builder for a manifest with the given archetype and item IID.
+     * The builder auto-injects the {@code ITEM_ID} binding.
+     */
+    public static ManifestBuilder compose(ItemID archetype, ItemID itemId) {
+        return new ManifestBuilder(archetype, itemId);
+    }
+
+    /**
      * The item's identity — read from the {@code ITEM_ID} binding.
      */
     public ItemID itemId() {
@@ -97,10 +106,10 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
-     * The version ID — equivalent to the body's CID.
+     * The version ID — the body's structural identity (DatumID).
      */
-    public ContentID versionId() {
-        return bodyCID();
+    public dev.everydaythings.graph.item.id.DatumID versionId() {
+        return body().datumId();
     }
 
     /**
@@ -109,9 +118,9 @@ public final class Manifest extends AttributedBody {
      * <p>Returns an empty list for an inception manifest (no parents).
      * Multi-IID FOLLOWS indicates a merge of multiple parent versions.
      */
-    public List<ContentID> parents() {
+    public List<dev.everydaythings.graph.item.id.DatumID> parents() {
         return body().bindingsByRole(FOLLOWS).stream()
-                .map(b -> readCidFromTarget(b.target(), FOLLOWS_KEY))
+                .map(b -> readDatumIdFromTarget(b.target(), FOLLOWS_KEY))
                 .toList();
     }
 
@@ -126,12 +135,28 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
-     * Implementation reference — read from the {@code IMPLEMENTATION} binding.
+     * Implementation reference — the first binding with role {@code IMPLEMENTATION},
+     * regardless of qualifiers.
+     *
+     * <p>A manifest can have multiple IMPLEMENTATION bindings narrowed by different
+     * qualifiers (e.g., {@code IMPLEMENTATION:[JavaClass]} alongside
+     * {@code IMPLEMENTATION:[Wasm]}). This convenience returns the first one;
+     * callers needing all variants should use {@link #implementations()}.
      *
      * <p>Returns empty if no implementation is declared.
      */
     public Optional<Binding> implementation() {
-        return body().binding(CompoundKey.of(IMPLEMENTATION));
+        List<Binding> all = body().bindingsByRole(IMPLEMENTATION);
+        return all.isEmpty() ? Optional.empty() : Optional.of(all.get(0));
+    }
+
+    /**
+     * All IMPLEMENTATION bindings on this manifest, regardless of qualifiers.
+     * Callers filter by qualifier (e.g., {@link #isJavaClassBinding}) to pick the
+     * right implementation form.
+     */
+    public List<Binding> implementations() {
+        return body().bindingsByRole(IMPLEMENTATION);
     }
 
     /**
@@ -149,18 +174,40 @@ public final class Manifest extends AttributedBody {
      * {@link dev.everydaythings.graph.item.Item#commit} to declare which Java
      * class should hydrate this item's manifests, and by callers who want to
      * include it explicitly in their bindings.
+     *
+     * <p>Shape: {@code IMPLEMENTATION:[JavaClass] → text(fqcn)}. The qualifier
+     * names the binding's semantic narrowing — "this text is a Java class name."
+     * The target is plain text; encoding-primitive typing (text vs binary) is
+     * CBOR's job, semantic narrowing is the qualifier's job.
      */
     public static Binding javaImplementation(Class<?> clazz) {
-        return new Binding(IMPLEMENTATION, dev.everydaythings.graph.item.Literal.ofJavaClass(clazz));
+        return new Binding(
+                IMPLEMENTATION,
+                java.util.List.of(new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                        CoreVocabulary.JavaClass.IID)),
+                dev.everydaythings.graph.item.Literal.ofText(clazz.getName()));
+    }
+
+    /**
+     * Whether a binding is a Java-class binding — a binding whose qualifiers
+     * include {@link CoreVocabulary.JavaClass}. Readers consult this to decide
+     * whether to interpret the binding's text target as a fully-qualified Java
+     * class name.
+     */
+    public static boolean isJavaClassBinding(Binding b) {
+        for (var q : b.qualifiers()) {
+            if (q instanceof dev.everydaythings.graph.item.id.CompoundKey.Sememe s
+                    && CoreVocabulary.JavaClass.IID.equals(s.id())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Read an ItemID from a binding target, expecting a reference target shape.
      */
     private static ItemID readIidFromTarget(BindingTarget target, String role) {
-        if (target instanceof BindingTarget.IidTarget iidTarget) {
-            return iidTarget.iid();
-        }
         if (target instanceof BindingTarget.RefTarget refTarget) {
             return refTarget.asItemId();
         }
@@ -170,16 +217,13 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
-     * Read a ContentID from a binding target, expecting a reference target shape.
+     * Read a DatumID from a binding target, expecting a reference target shape.
      */
-    private static ContentID readCidFromTarget(BindingTarget target, String role) {
+    private static dev.everydaythings.graph.item.id.DatumID readDatumIdFromTarget(BindingTarget target, String role) {
         if (target instanceof BindingTarget.RefTarget refTarget) {
             // RefTarget wraps a Ref; for FOLLOWS the target is conceptually a VID
-            // (which is a ContentID). We return ContentID derived from the ref's bytes.
-            return new ContentID(refTarget.asItemId().encodeBinary());
-        }
-        if (target instanceof BindingTarget.IidTarget iidTarget) {
-            return new ContentID(iidTarget.iid().encodeBinary());
+            // (which is the prior body's DatumID). Derive from the ref's bytes.
+            return new dev.everydaythings.graph.item.id.DatumID(refTarget.asItemId().encodeBinary());
         }
         throw new IllegalStateException(
                 role + " binding target must be a reference, got "

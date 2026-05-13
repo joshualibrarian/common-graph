@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.id.ItemID;

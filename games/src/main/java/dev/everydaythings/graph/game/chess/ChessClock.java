@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.game.chess;
 
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.Tick;
 import dev.everydaythings.graph.ui.scene.Scene;
 import dev.everydaythings.graph.ui.scene.Scene.Direction;

@@ -2,7 +2,7 @@ package dev.everydaythings.graph.item;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.frame.EndorsementsTable;
 import dev.everydaythings.graph.frame.FrameEndorsement;
 import lombok.Getter;

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.id;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

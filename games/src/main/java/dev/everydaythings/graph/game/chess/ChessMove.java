@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.game.chess;
 
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.eval.ParseContext;
 import dev.everydaythings.graph.frame.eval.ParseContribution;

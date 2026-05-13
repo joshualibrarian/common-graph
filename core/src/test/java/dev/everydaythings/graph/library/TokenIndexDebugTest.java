@@ -3,7 +3,7 @@ package dev.everydaythings.graph.library;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.library.dictionary.TokenExtractor;
+import dev.everydaythings.graph.library_old.dictionary.TokenExtractor;
 import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Test;
 

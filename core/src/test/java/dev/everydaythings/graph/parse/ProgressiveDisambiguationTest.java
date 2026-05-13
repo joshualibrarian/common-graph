@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.parse;
 
 import dev.everydaythings.graph.parse.ExpressionToken.*;
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.Literal;

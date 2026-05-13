@@ -1,14 +1,12 @@
 package dev.everydaythings.graph.crypt;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Hash;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.HashID;
-import dev.everydaythings.graph.crypt.Algorithm;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -73,7 +71,7 @@ public final class EncryptedEnvelope implements Canonical {
 
     /** The CID of this envelope (hash of the encoded bytes). */
     public ContentID contentId() {
-        return new ContentID(Hash.DEFAULT.digest(encodeBinary(Scope.RECORD)));
+        return new ContentID(Digest.Sha256.digest(encodeBinary(Scope.RECORD)));
     }
 
     /** The plaintext CID as a ContentID. */

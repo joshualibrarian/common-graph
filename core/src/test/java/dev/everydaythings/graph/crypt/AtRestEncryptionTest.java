@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.crypt;
 
 import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.library.ItemStore;
-import dev.everydaythings.graph.library.LibraryOld;
+import dev.everydaythings.graph.library_old.ItemStore;
+import dev.everydaythings.graph.library_old.LibraryOld;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.runtime.LibrarianOld;
 import org.junit.jupiter.api.Nested;

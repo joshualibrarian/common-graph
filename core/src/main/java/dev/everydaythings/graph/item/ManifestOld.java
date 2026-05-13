@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.Hash;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameEndorsement;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.item.user.SignerOld;
@@ -108,7 +108,7 @@ public final class ManifestOld implements Signing.Target {
 
         // Precompute caches for newly-built instances
         this.bodyBytes = encodeBinary(Canonical.Scope.BODY);
-        this.vid = new ContentID(Hash.DEFAULT.digest(this.bodyBytes), Hash.DEFAULT);
+        this.vid = new ContentID(Digest.Sha256.digest(this.bodyBytes), Digest.Sha256.MULTIHASH_TYPE);
     }
 
     /**
@@ -292,7 +292,7 @@ public final class ManifestOld implements Signing.Target {
                 local = vid;
                 if (local == null) {
                     byte[] body = encodeBinary(Canonical.Scope.BODY);
-                    local = new ContentID(Hash.DEFAULT.digest(body), Hash.DEFAULT);
+                    local = new ContentID(Digest.Sha256.digest(body), Digest.Sha256.MULTIHASH_TYPE);
                     vid = local;
                 }
             }

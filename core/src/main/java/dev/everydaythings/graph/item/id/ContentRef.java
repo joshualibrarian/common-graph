@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.id;
 
-import dev.everydaythings.graph.Encoding;
+import dev.everydaythings.graph.encoding.TextBase;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
@@ -42,7 +42,7 @@ public record ContentRef(ContentID cid) implements Reference {
 
     @Override
     public String encodeText() {
-        return "~" + Encoding.DEFAULT.encode(cid.encodeBinary());
+        return "~" + TextBase.Base32Lower.encode(cid.encodeBinary());
     }
 
     @Override

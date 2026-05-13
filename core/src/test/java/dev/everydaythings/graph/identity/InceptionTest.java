@@ -1,12 +1,13 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.crypt.MultiKey;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Body;
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.id.ItemRef;
-import dev.everydaythings.graph.item.user.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +36,7 @@ class InceptionTest {
 
             Body body = inceptionBody(lib, lib.signingPublicKey().orElseThrow());
 
-            assertThat(Inception.readTheme(body)).contains(lib.iid());
+            assertThat(Signer.readTheme(body)).contains(lib.iid());
         }
 
         @Test
@@ -46,7 +47,7 @@ class InceptionTest {
 
             Body body = inceptionBody(lib, lib.signingPublicKey().orElseThrow());
 
-            assertThat(Inception.readPurpose(body)).contains(IdentityVocabulary.Signing.IID);
+            assertThat(Signer.readPurpose(body)).contains(IdentityVocabulary.Signing.IID);
         }
 
         @Test
@@ -58,7 +59,7 @@ class InceptionTest {
             MultiKey libKey = lib.signingPublicKey().orElseThrow();
             Body body = inceptionBody(lib, libKey);
 
-            List<MultiKey> keys = Inception.currentKeys(body);
+            List<MultiKey> keys = Signer.committedKeys(body);
             assertThat(keys).hasSize(1);
             assertThat(keys.get(0)).isEqualTo(libKey);
         }
@@ -77,7 +78,7 @@ class InceptionTest {
             Body body = inceptionBody(lib, lib.signingPublicKey().orElseThrow());
             Frame frame = lib.assembleFrame(body, lib);
 
-            assertThat(Inception.isSelfAttested(frame)).isTrue();
+            assertThat(Signer.isSelfAttested(frame)).isTrue();
         }
 
         @Test
@@ -91,7 +92,7 @@ class InceptionTest {
             Body body = inceptionBody(lib, lib.signingPublicKey().orElseThrow());
             Frame frame = lib.assembleFrame(body, alice);
 
-            assertThat(Inception.isSelfAttested(frame)).isFalse();
+            assertThat(Signer.isSelfAttested(frame)).isFalse();
         }
 
         @Test
@@ -110,7 +111,7 @@ class InceptionTest {
             );
             Frame frame = lib.assembleFrame(body, lib);
 
-            assertThat(Inception.isSelfAttested(frame)).isFalse();
+            assertThat(Signer.isSelfAttested(frame)).isFalse();
         }
     }
 
@@ -126,7 +127,7 @@ class InceptionTest {
                         Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Signing.IID),
                         new Binding(
                                 ThematicRole.Instrument.IID,
-                                List.of(),
+                                List.of(new CompoundKey.Sememe(Multikey.IID)),
                                 Literal.ofMultiKey(key)
                         )
                 )

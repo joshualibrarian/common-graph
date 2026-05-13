@@ -1,28 +1,28 @@
 package dev.everydaythings.graph.runtime;
 
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.ItemFrame;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.*;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.user.SignerOld;
-import dev.everydaythings.graph.library.skiplist.SkipListItemStore;
+import dev.everydaythings.graph.library_old.skiplist.SkipListItemStore;
 import dev.everydaythings.graph.network.session.SessionServer;
 import lombok.extern.log4j.Log4j2;
-import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.user.User;
-import dev.everydaythings.graph.library.directory.ItemDirectory;
-import dev.everydaythings.graph.library.ItemStore;
-import dev.everydaythings.graph.library.LibraryOld;
-import dev.everydaythings.graph.library.dictionary.TokenExtractor;
-import dev.everydaythings.graph.library.dictionary.TokenDictionary;
-import dev.everydaythings.graph.library.SeedVocabulary;
-import dev.everydaythings.graph.library.workingtree.WorkingTreeStore;
+import dev.everydaythings.graph.library_old.directory.ItemDirectory;
+import dev.everydaythings.graph.library_old.ItemStore;
+import dev.everydaythings.graph.library_old.LibraryOld;
+import dev.everydaythings.graph.library_old.dictionary.TokenExtractor;
+import dev.everydaythings.graph.library_old.dictionary.TokenDictionary;
+import dev.everydaythings.graph.library_old.SeedVocabulary;
+import dev.everydaythings.graph.library_old.workingtree.WorkingTreeStore;
 import dev.everydaythings.graph.language.Posting;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
@@ -417,42 +417,10 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
         // Set librarian reference
         this.librarian = this;
 
-        // Create the Library (must happen here, not in constructor,
-        // because super() triggers onFullyInitialized() before constructor body runs)
-        if (this.library == null) {
-            if (store != null && store.root() != null) {
-                // File-based: use RocksDB Library
-                this.library = LibraryOld.file(store.root().resolve("library"));
-            } else {
-                // In-memory: use SkipList Library
-                this.library = LibraryOld.memory();
-            }
-            this.library.setLibrarian(this);
-
-            // Register as live instance so getLive() can find it
-            // (ContentField annotation only registers during initializeComponents,
-            // but library is created here after that phase completes)
-            frames().setLive(
-                    CompoundKey.of(ItemID.fromString(CoreVocabulary.Library.KEY)),
-                    this.library);
-        }
-
-        // On fresh boot, import seed data into Library and release the seed store
-        if (freshBoot && library != null) {
-            if (store instanceof WorkingTreeStore wts) {
-                // File-based: import from seed store, swap fallback to Library
-                ItemStore seedStore = wts.fallback();
-                if (seedStore != null) {
-                    library.importFrom(seedStore, this::predicateIndexWeight);
-                    wts.setFallback(library.store());
-                }
-            } else {
-                // In-memory: the constructor's seed store IS this.store —
-                // import it into Library, then replace the reference so it can be GC'd
-                library.importFrom(this.store, this::predicateIndexWeight);
-                this.store = library.store();
-            }
-        }
+        // Storage construction (LibraryOld) has been stripped. The `library`
+        // field stays null; LibrarianOld no longer owns any storage. New code
+        // uses {@link Librarian} + {@link dev.everydaythings.graph.library.Library}
+        // instead.
 
         if (freshBoot) {
             onFirstBoot();
@@ -539,12 +507,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
                         "Head points to version " + vid + " but manifest not found"));
         this.base = vid;
 
-        // Swap fallback from seed store to RocksItemStore
-        // (Seed store was only needed during construction for type lookups)
-        ItemStore fallback = wts.fallback();
-        if (fallback != null && fallback != library.store()) {
-            wts.setFallback(library.store());
-        }
+        // Storage swap (library.store()) stripped — no library owned anymore.
 
         // Refresh network endpoints
         gatherEndpoints();
@@ -585,11 +548,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
         // Stop network
         stopNetwork();
 
-        // Close Library (closes store, index, directory, tokenDict)
-        if (library != null) {
-            try { library.close(); } catch (Exception ignore) {}
-        }
-        // Close working tree store
+        // Library is gone (storage stripped). Close just the working tree store.
         if (store != null) {
             try { store.close(); } catch (Exception ignore) {}
         }
@@ -1440,7 +1399,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
                 if (body == null) continue;
                 if (!predicate.equals(body.predicate())) continue;
 
-                dev.everydaythings.graph.frame.BindingTarget vt = body.binding(ThematicRole.Value.IID);
+                dev.everydaythings.graph.datum.BindingTarget vt = body.binding(ThematicRole.Value.IID);
                 if (vt instanceof dev.everydaythings.graph.item.Literal lit
                         && dev.everydaythings.graph.item.Literal.TYPE_TEXT.equals(lit.valueType())) {
                     try {
@@ -1485,7 +1444,8 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
         ItemID item = body.homeId();
         // The AGENT binding identifies who this ephemeral frame belongs to
         BindingTarget agentTarget = body.binding(ItemID.fromString(ThematicRole.Agent.KEY));
-        ItemID agent = (agentTarget instanceof BindingTarget.IidTarget iid) ? iid.iid() : null;
+        ItemID agent = (agentTarget instanceof BindingTarget.RefTarget ref && !ref.isCompound())
+                ? ref.asItemId() : null;
         if (item == null || agent == null) {
             // Ephemeral frames require both item context and agent attribution
             logger.warn("Ephemeral frame missing item or agent: predicate={}", body.predicate());
@@ -1680,8 +1640,8 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
                 .findFirst()
                 .ifPresent(body -> {
                     BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
-                    if (tgt instanceof BindingTarget.IidTarget target) {
-                        get(target.iid(), User.class).ifPresent(this::setPrincipal);
+                    if (tgt instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
+                        get(ref.asItemId(), User.class).ifPresent(this::setPrincipal);
                     }
                 });
 
@@ -1721,8 +1681,8 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
                 .findFirst()
                 .ifPresent(body -> {
                     BindingTarget tgt = body.binding(ItemID.fromString("cg.role:goal"));
-                    if (tgt instanceof BindingTarget.IidTarget target) {
-                        get(target.iid(), HostOld.class).ifPresent(h -> this.host = h);
+                    if (tgt instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
+                        get(ref.asItemId(), HostOld.class).ifPresent(h -> this.host = h);
                     }
                 });
 
@@ -1884,9 +1844,8 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
      * @return The TokenDictionary, or null if library not yet initialized
      */
     public TokenDictionary tokenIndex() {
-        return library != null
-                ? library.tokenDictionary().orElse(null)
-                : null;
+        // Storage stripped — old librarian has no token dictionary.
+        return null;
     }
 
     // ==================================================================================

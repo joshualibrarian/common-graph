@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.semantics;
 
+import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.id.ItemID;
 
@@ -19,7 +20,7 @@ import dev.everydaythings.graph.item.id.ItemID;
  * minting via CREATE. Future work may add trust-weighted ordering when multiple
  * implementations exist for the same concept.
  */
-@Seed.Item(key = Implements.KEY, head = dev.everydaythings.graph.item.Item.Predicate.KEY)
+@Seed.Item(key = Implements.KEY, head = CoreVocabulary.Predicate.KEY)
 public final class Implements {
 
     public static final String KEY = "cg.sememe:implements";

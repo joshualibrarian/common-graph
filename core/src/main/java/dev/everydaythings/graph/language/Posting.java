@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.language;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;

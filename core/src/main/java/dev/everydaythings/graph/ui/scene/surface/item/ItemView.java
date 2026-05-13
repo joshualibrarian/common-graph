@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.ui.scene.surface.item;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.dispatch.Vocabulary;
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ViewHandle;

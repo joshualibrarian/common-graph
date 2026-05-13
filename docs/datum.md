@@ -2,8 +2,6 @@
 
 This document describes the **Datum** — the unified structural primitive of Common Graph.  Bodies and records, both for frames and manifests, are all configurations of this single primitive.
 
-This design supersedes the prior architecture of separate `FrameBody`, `FrameRecord`, `Manifest`, and similar structures.  The unification eliminates duplicate code paths and clarifies the model: there is one primitive, configured for different conventional uses.
-
 ## The primitive
 
 A **Datum** is:
@@ -183,8 +181,7 @@ A binding is encoded as a CBOR array:
 Binding:
   [
     <key>,                  ; CompoundKey: head sememe + qualifiers
-    <target>,               ; the value (reference, literal, or inline frame)
-    <index-flag>            ; boolean: should this binding be indexed for reverse lookup
+    <target>                ; the value (reference, literal, or inline frame)
   ]
 
 CompoundKey:
@@ -195,6 +192,8 @@ CompoundKey:
     [<qualifier>, ...]      ; qualifiers (multihash IIDs or literals)
   ]
 ```
+
+Bindings are pure semantic data — no author-set flags. Indexing decisions are the librarian's policy, computed from the binding's role + target type rather than carried on the binding itself. Different librarians (or the same librarian under different policies) may index the same body differently without changing the body's content or hash.
 
 The **CompoundKey** is the universal compound semantic address used in two places:
 
@@ -237,18 +236,154 @@ multikey-bytes = <varint key-type-code><key-data>
 
 Same multicodec table as varsig.  An Ed25519 public key uses `0xed` (the same code applies to both keys and signatures of the same algorithm).
 
-### Signing payload
+### Structural hashing (Merkle)
 
-The signature in a record signs over the **first two elements of the record's encoded form** — that is, the head reference and the bindings, but NOT the signature itself.  Specifically:
+Datum hashes are computed **recursively over the Datum's natural structure** — not as a single flat hash over canonical bytes. This is what makes Tag 11 redaction (Merkle elision) possible: replace a subtree with `tag(11, <subtree-hash>)` and the parent's hash is unchanged because the input to the parent's hash function is the same — the child's hash, regardless of whether it came from a real subtree or a redaction marker.
+
+The hash function recurses through every structural component:
 
 ```
-signing-payload = hash( CBOR-encoding( [head-reference, bindings] ) )
+body-hash      = hash( head-hash, [binding-hash, ...] )
+record-hash    = hash( head-hash, [binding-hash, ...], signature-hash? )
+                 ; record signature is a positional byte-string, hashed independently
+
+binding-hash   = hash( role-hash, [qualifier-hash, ...], target-hash )
+
+head-hash      = hash( head-bytes )           ; head is a single Tag-6 reference
+role-hash      = hash( role-bytes )           ; role is a single sememe IID
+qualifier-hash = hash( qualifier-bytes )      ; one hash per qualifier in the list
+
+target-hash    = if inline Datum (Tag 23):  body-hash of that Datum  ; recurse
+                 else if Tag 11 marker:     the wrapped hash directly  ; short-circuit
+                 else:                       hash( target-bytes )       ; e.g., Tag 6 ref or literal
+```
+
+The hashes are computed once at write time. The wire format is unchanged — encoding is still canonical CBOR; only the hash function differs from a flat `hash(bytes)` to recursive `hash(component-hashes)`.
+
+#### Redaction granularities that fall out
+
+Because every structural element has its own hash, Tag 11 can plug in at any of them:
+
+| Redact what | Replacement form |
+|---|---|
+| Whole Datum (sub-tree, e.g., expression operand) | `tag(11, <body-hash>)` in place of the inline Tag-23 Datum |
+| Whole binding | `tag(11, <binding-hash>)` in place of a binding entry |
+| Binding's target only | binding becomes `[role, qualifiers, tag(11, <target-hash>)]` |
+| One qualifier in a binding | one qualifier in the list becomes `tag(11, <qualifier-hash>)`, others stay visible |
+| Role of a binding | binding becomes `[tag(11, <role-hash>), qualifiers, target]` |
+| Head of a body | body becomes `[tag(11, <head-hash>), bindings]` (extreme — disables dispatch but valid) |
+| Combinations | redact arbitrary sub-elements at independent granularities; everything else stays visible |
+
+The author chooses redaction granularity per element. "Reveal that an English title exists, but hide what it says" is `[role=NAME, qualifiers=[ENGLISH], target=tag(11,...)]`. "Hide the recipient of this DELIVER but prove a delivery happened" is achieved by redacting just that binding's target.
+
+### Shortcode encoding (compressed sememe references)
+
+Sememe references — roles, sememe-qualifiers, and (sometimes) target sememes — are typically encoded as Tag 6 references (`Tag(6, byte-string<"@" + multihash>)`) costing ~36 bytes each.  When a predicate or archetype's schema declares them as "expected" via an `EXPECTS` frame, encoders may substitute a **bare CBOR unsigned integer** (1–2 bytes) for the full reference.  This is the *shortcode* encoding.
+
+#### Schema declaration
+
+Predicates/archetypes assign shortcodes via `ATTRIBUTE[SHORTCODE]` on their EXPECTS frames:
+
+```
+CHESS_MOVE's manifest endorses:
+  [EXPECTS, { TOPIC[ROLE] → AGENT,  ATTRIBUTE[SHORTCODE] → 16 }]
+  [EXPECTS, { TOPIC[ROLE] → THEME,  ATTRIBUTE[SHORTCODE] → 17 }]
+  [EXPECTS, { TOPIC[ROLE] → SOURCE, ATTRIBUTE[SHORTCODE] → 18 }]
+  [EXPECTS, { TOPIC[ROLE] → GOAL,   ATTRIBUTE[SHORTCODE] → 19 }]
+```
+
+#### Wire form and decoder dispatch
+
+```
+Without shortcode:                              With shortcode:
+[Tag(6, "@" + AGENT-IID), ...]    ~36 bytes     [16, ...]                       1 byte
+```
+
+The decoder dispatches by CBOR major type at role/qualifier-sememe positions:
+- **Major type 0 (unsigned integer)** → shortcode, resolve via schema lookup
+- **Major type 6 (tag)** → full Tag 6 reference, use directly
+
+No ambiguity: a sememe role is NEVER a literal integer, so an integer in role position is always a shortcode.
+
+Bytes saved compared to full reference, per occurrence: ~35 bytes for shortcodes 0-23, ~34 bytes for 24-255.  For typical multi-binding bodies the cumulative savings are order-of-magnitude.
+
+#### Schema resolution walks the archetype chain
+
+Universal shortcodes are declared in the **Archetype** and **Predicate** meta-items' EXPECTS frames; specific archetypes/predicates inherit those.  Resolution walks the archetype chain from the Datum's head:
+
+```
+resolve_shortcode(code, head_iid):
+    current = fetch_item(head_iid)
+    while current is not null:
+        for expects in current.endorsedFrames(EXPECTS):
+            if expects.binding(ATTRIBUTE, SHORTCODE).target == code:
+                return expects.binding(TOPIC, ROLE).target
+        current = fetch_item(current.archetype)
+    error "shortcode unresolved"
+```
+
+Range structure (reservations are documentation, not enforcement; curation is by cumulative byte savings, not "appears at all"):
+
+| Range | Declared in | Purpose |
+|---|---|---|
+| **0–15** | Archetype meta-archetype | Manifest bindings that appear cumulatively often: FOLLOWS, ENDORSES, ARCHETYPE, IMPLEMENTATION, HANDLES, CONFIG.  Once-per-manifest entries like ITEM_ID are modest wins; included where room permits. |
+| **16–63** | Predicate meta-predicate | **The bulk of savings live here.**  Thematic roles (THEME, AGENT, GOAL, SOURCE, RECIPIENT, LOCATION, TIME, INSTRUMENT, ...) plus core schematic roles (VALUE, NAME).  These appear in nearly every frame. |
+| **64–127** | Specific archetypes | Archetype-specific roles |
+| **128–255** | Specific predicates | Predicate-specific roles |
+
+#### Encoding form does not affect DatumID
+
+The crucial property: **DatumID is computed over the fully-resolved structural form, not the wire form.**  During the structural Merkle walk that computes DatumID, integer shortcodes at role/qualifier positions are resolved to their full IIDs first, then hashed.  Tag 6 references are hashed directly.  Result: **same DatumID whether the encoding uses shortcodes or full refs.**
+
+```
+DatumID = Merkle-hash(fully-resolved structural form)   ← semantic identity, invariant under encoding form
+ContentID = hash(actual canonical bytes)                ← byte-form identity, varies per encoding
+```
+
+This decouples semantic identity from encoding choices:
+- Encoders may emit shortcoded or full-ref form based on context (peer has the schema or doesn't, want compactness or self-containment) without affecting semantic identity.
+- Re-encoding is lossless at the semantic layer.  Decode shortcoded, re-encode full-ref, DatumID is unchanged.
+- Signatures sign DatumID, so they remain valid across re-encoding.
+- Storage form is a librarian implementation choice.  Same Datum, multiple realizations (shortcoded, full-ref, redacted, encrypted) all hash to the same DatumID.
+
+The cost: DatumID computation requires schema availability to resolve shortcodes during the Merkle walk.  For cached/trusted predicates this is free; for unknown predicates the schema must be fetched.
+
+#### Append-only schemas; version pinning optional
+
+Default convention: predicates/archetypes use **append-only** shortcode schemas.  Once assigned, a shortcode is permanent within a predicate's lineage.  New versions may add new shortcodes (higher numbers) but never reassign existing ones.
+
+Under this convention, bare `@<predicate-IID>` head references work because the schema is monotonic — old shortcodes still mean the same thing in newer versions.
+
+Safety net: if a predicate's lineage isn't trusted as append-only, the head reference can **version-pin** with `@<predicate-IID>\<version-VID>`.  The decoder uses that specific version's schema for resolution.
+
+Pinning is optional and per-encoding-context — encoders pin when they need version stability and skip pinning when they don't (to save bytes).
+
+#### What gets shortcoded, and what doesn't
+
+| Element | Shortcode-able? |
+|---|---|
+| Binding role | Yes |
+| Sememe-typed qualifiers in compound keys | Yes |
+| Sememe-typed targets (when schema declares them) | Sometimes |
+| Literal targets (text, integers, booleans, bytes) | No — bare CBOR primitives stay bare |
+| Head of body or record | No — head is the schema entry point; always full Tag 6 ref |
+
+Frames may legitimately carry bindings the schema doesn't anticipate (TIME, DEBUG, supplementary).  Those use full Tag 6 references.  Encoders mix shortcoded and full-ref bindings naturally within the same Datum.
+
+### Signing payload
+
+The signature in a record signs over the **structural hash** of the record's first two components — that is, the head reference and the bindings, but NOT the signature itself:
+
+```
+signing-payload = hash( head-hash, [binding-hash, ...] )    ; same recursive structural form
 signature = sign( signer-private-key, signing-payload )
 ```
 
-This means the signature authenticates the body being attested (via the head reference) and the attestation context (signer, timestamp, any other bindings on the record).  Tampering with any of these invalidates verification.
+This means the signature authenticates the body being attested (via the head reference) and the attestation context (signer, timestamp, any other bindings on the record). Tampering with any of these — at any level of the structural hash tree — invalidates verification.
 
-The record's CID (its content hash) is computed over the *full* three-element form including the signature.  The signature does not sign over its own bytes (which would be circular).  The two operations — signing and content-addressing — are separate and independent.
+The record's CID (its content hash) is computed over the *full* three-element form including the signature. The signature does not sign over its own bytes (which would be circular). The two operations — signing and content-addressing — are separate and independent.
+
+A signature on a body that contains Tag 11 redactions is still valid: the structural hash short-circuits at the redaction marker and produces the same value it did when the original content was present. **Redaction does not invalidate signatures.** This is the key compliance property — share a redacted version of a signed body and the original signer's signature still verifies.
 
 ## Tag inventory after this redesign
 

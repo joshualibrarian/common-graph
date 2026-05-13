@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.crypt;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.encoding.Canonical;
 import lombok.NoArgsConstructor;
 
 /** Certificate BODY lives in BODY; signature lives in RECORD (detached over BODY). */

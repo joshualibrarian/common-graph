@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.frame.eval;
 
-import dev.everydaythings.graph.frame.Binding;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.value.OperatorOld;
 
@@ -40,7 +40,7 @@ public interface PredicateBehavior {
      * Evaluate this predicate with filled bindings.
      *
      * <p>The implementation controls evaluation order. Use
-     * {@link FrameEvaluator#resolve(dev.everydaythings.graph.frame.BindingTarget, Scope)}
+     * {@link FrameEvaluator#resolve(dev.everydaythings.graph.datum.BindingTarget, Scope)}
      * to eagerly evaluate individual binding targets, or
      * {@link FrameEvaluator#evaluate(FrameBodyOld, Scope)}
      * to evaluate nested frames.

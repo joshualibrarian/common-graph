@@ -1,8 +1,10 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.frame.Frame;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +28,7 @@ class LibrarianInceptionTest {
         lib.bootstrap();
 
         // Query for frames where THEME → lib.iid()
-        List<ContentID> frameCids = lib.library()
+        List<DatumID> frameCids = lib.library()
                 .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, lib.iid());
 
         // Find the INCEPTION among them
@@ -46,7 +48,7 @@ class LibrarianInceptionTest {
         lib.bootstrap();
 
         Frame inception = findInception(lib);
-        assertThat(Inception.isSelfAttested(inception)).isTrue();
+        assertThat(Signer.isSelfAttested(inception)).isTrue();
     }
 
     @Test
@@ -56,9 +58,9 @@ class LibrarianInceptionTest {
         lib.bootstrap();
 
         Frame inception = findInception(lib);
-        assertThat(Inception.readTheme(inception.body())).contains(lib.iid());
-        assertThat(Inception.readPurpose(inception.body())).contains(IdentityVocabulary.Signing.IID);
-        assertThat(Inception.currentKeys(inception.body()))
+        assertThat(Signer.readTheme(inception.body())).contains(lib.iid());
+        assertThat(Signer.readPurpose(inception.body())).contains(IdentityVocabulary.Signing.IID);
+        assertThat(Signer.committedKeys(inception.body()))
                 .containsExactly(lib.signingPublicKey().orElseThrow());
     }
 
@@ -70,28 +72,29 @@ class LibrarianInceptionTest {
 
         Frame inception = findInception(lib);
         ContentID expectedDigest = lib.signingNextKeyDigest().orElseThrow();
-        assertThat(dev.everydaythings.graph.identity.Rotation.nextKeyDigests(inception.body()))
+        assertThat(Signer.nextKeyDigests(inception.body()))
                 .containsExactly(expectedDigest);
     }
 
     @Test
-    @DisplayName("signingKeysForIdentity returns the librarian's incepted signing keys")
+    @DisplayName("currentKeys returns the librarian's incepted signing keys")
     void signingKeysFromKel() {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        assertThat(lib.signingKeysForIdentity(lib.iid()))
+        assertThat(lib.currentKeys(lib.iid(), IdentityVocabulary.Signing.IID))
                 .containsExactly(lib.signingPublicKey().orElseThrow());
     }
 
     @Test
-    @DisplayName("signingKeysForIdentity returns empty for an un-incepted identity")
+    @DisplayName("currentKeys returns empty for an un-incepted identity")
     void signingKeysForUnknownIdentity() {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        assertThat(lib.signingKeysForIdentity(
-                dev.everydaythings.graph.item.id.ItemID.fromString("some-stranger")))
+        assertThat(lib.currentKeys(
+                dev.everydaythings.graph.item.id.ItemID.fromString("some-stranger"),
+                IdentityVocabulary.Signing.IID))
                 .isEmpty();
     }
 

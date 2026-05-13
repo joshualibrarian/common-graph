@@ -4,7 +4,7 @@ import com.ibm.icu.util.ULocale;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
-import dev.everydaythings.graph.library.tokens.Posting;
+import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.text.AnchorTable.TokenAnchor;
@@ -87,7 +87,7 @@ public final class ParseEngine {
         Librarian librarian = orchestrator.librarian();
         ULocale locale = activeLocale(params, librarian);
 
-        Function<String, List<Posting>> lookup = librarian != null
+        Function<String, List<TokenPosting>> lookup = librarian != null
                 ? librarian::lookupToken
                 : (s -> List.of());
         TokenLattice lattice = TokenLattice.build(input, locale, lookup);
@@ -144,7 +144,7 @@ public final class ParseEngine {
 
         Map<ItemID, List<TextSpan>> spansByItem = new LinkedHashMap<>();
         for (TokenSpan ts : lattice.bestPath()) {
-            for (Posting p : ts.postings()) {
+            for (TokenPosting p : ts.postings()) {
                 ItemID iid = p.target();
                 if (iid == null) continue;
                 spansByItem.computeIfAbsent(iid, k -> new ArrayList<>()).add(ts.span());

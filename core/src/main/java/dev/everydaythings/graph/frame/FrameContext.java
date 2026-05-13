@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import lombok.Getter;

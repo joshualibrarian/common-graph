@@ -1,115 +1,61 @@
 package dev.everydaythings.graph.semantics;
 
-import dev.everydaythings.graph.Canonical;
+import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Frame;
-import dev.everydaythings.graph.frame.Record;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.library.Library;
-import dev.everydaythings.graph.runtime.Librarian;
-
-import java.util.List;
-import java.util.Optional;
+import dev.everydaythings.graph.linguistics.GrammaticalFeature;
+import dev.everydaythings.graph.linguistics.Gloss;
+import dev.everydaythings.graph.linguistics.Language;
+import dev.everydaythings.graph.linguistics.Lexeme;
+import dev.everydaythings.graph.linguistics.PartOfSpeech;
 
 /**
- * The abstract concept of deletion, embodied as a runtime item.
+ * The {@code DELETE} predicate — a request to remove an item from local storage.
  *
- * <p>A DELETE frame asks the librarian to remove an item from local storage.
- * The librarian honors it only when it can verify that the request was authored
- * by ITSELF — i.e., one of the frame's records carries a signature that verifies
- * with this librarian's public key.
+ * <p>A DELETE frame is a <i>request</i>: it claims "the signer wants this item gone."
+ * Each librarian receiving the frame decides independently whether to honor the
+ * request, based on its own trust matrix. Phase 1 honors only DELETEs whose
+ * records carry a signature verifiable against this librarian's own KEL — the
+ * implicit "I'm asking my own librarian to delete this" case. Other-signed
+ * DELETEs are stored as data but not acted upon.
  *
- * <p>This is the implicit-authorization rule: "if I created this DELETE, I'm
- * implicitly endorsing it; honor it." DELETE frames signed by other principals
- * are stored as data but NOT auto-honored — they require an explicit endorsement
- * (a record signing the DELETE frame) from this librarian before deletion happens.
- * That endorsement flow is a future round when authentication/trust matrices land.
- *
- * <p>When honored, DELETE removes:
+ * <p>When honored, the librarian's handler:
  * <ul>
- *   <li>All manifest body-CIDs for the targeted item</li>
- *   <li>Each manifest's records (via the RECORDS_BY_BODY index)</li>
- *   <li>The item's entry in the librarian's cache</li>
+ *   <li>Cascade-deletes the target item's manifest bodies and their records</li>
+ *   <li>Evicts the item from the in-memory cache</li>
+ *   <li>Does NOT cascade through endorsed frames — those may be referenced
+ *       elsewhere; dangling references are an accepted cost.</li>
  * </ul>
  *
- * <p>Endorsed frames and other items pointing at this item are NOT cascaded —
- * they may be referenced elsewhere (shared content). Dangling references are
- * the accepted cost; a future GC/sweep can reconcile orphans.
+ * <p>The DELETE frame itself is retained as audit data regardless of whether
+ * the action was taken — "the signer requested this; at time T; with this
+ * authorization claim."
  *
- * <p>The DELETE frame itself remains in storage as audit data — its existence
- * records "this item was deleted by this signer at this time."
+ * <p>Bindings:
+ * <ul>
+ *   <li>{@code THEME → @<item-iid>} — required: the item to delete.</li>
+ *   <li>{@code AGENT → @<signer>} — auto-populated from records.</li>
+ * </ul>
  */
-@Seed.Item(key = Delete.KEY)
-@Seed.Embodies(key = Delete.KEY)
-public class Delete extends Item {
+@Seed.Item(key = Delete.KEY, head = CoreVocabulary.Predicate.KEY)
+public final class Delete {
 
-    /** Canonical key for the delete sememe. POS-agnostic — this is a unit of meaning. */
-    public static final String KEY = "cg.sememe:delete";
-
-    /** The deterministic IID for the delete sememe. */
+    public static final String KEY = "cg.predicate:delete";
     public static final ItemID IID = ItemID.fromString(KEY);
 
-    public Delete(ItemID iid, Librarian librarian) {
-        super(iid, librarian);
-    }
+    private Delete() {}
 
-    @Override
-    public void onFrameAssembled(Frame frame) {
-        Optional<Binding> themeBinding =
-                frame.body().binding(CompoundKey.of(ThematicRole.Theme.IID));
-        if (themeBinding.isEmpty()) return;
+    @Seed.Frame(predicate = Gloss.KEY,
+      field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+    static final String englishGloss =
+            "the predicate for requesting removal of an item from local storage — "
+                    + "each librarian decides whether to honor based on its trust matrix";
 
-        ItemID targetIid = extractIid(themeBinding.get().target());
-        if (targetIid == null) return;
+    @Seed.Frame(predicate = Lexeme.KEY,
+      field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+    static final String englishVerbLemma = "delete";
 
-        // Authorization: only honor DELETEs we ourselves authored. Verify at
-        // least one of the frame's records was signed by this librarian's key.
-        if (!isAuthorizedByThisLibrarian(frame)) return;
-
-        // Cascade: tear down the item's manifests and their records.
-        Library library = librarian.library();
-        List<ContentID> manifestCids = library.manifestCidsForItem(targetIid);
-        for (ContentID manifestCid : manifestCids) {
-            for (ContentID recordCid : library.recordCidsForBody(manifestCid)) {
-                library.delete(recordCid);
-            }
-            library.delete(manifestCid);
-        }
-
-        librarian.evict(targetIid);
-    }
-
-    /**
-     * True if at least one of the frame's records carries a signature verifiable
-     * against the librarian's INCEPTED signing keys — i.e., this librarian (per
-     * its published KEL) attested at least one record on the frame.
-     *
-     * <p>Phase 1: consults {@link Librarian#verifySignedAsIdentity}, which derives
-     * keys from the librarian's own INCEPTION. When ROTATION lands, the same call
-     * walks the KEL chain to determine the currently-committed keys. The result
-     * is the same in trivial cases but the conceptual path goes through real
-     * key-state, not in-memory shortcuts.
-     */
-    private boolean isAuthorizedByThisLibrarian(Frame frame) {
-        byte[] signedBytes = frame.body().encodeBinary(Canonical.Scope.BODY);
-        for (Record record : frame.records()) {
-            if (librarian.verifySignedAsIdentity(librarian.iid(), signedBytes, record.varsig())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static ItemID extractIid(BindingTarget target) {
-        if (target instanceof BindingTarget.IidTarget iid) return iid.iid();
-        if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
-            return ref.asItemId();
-        }
-        return null;
-    }
+    @Seed.Frame(predicate = Lexeme.KEY,
+      field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+    static final String englishNounLemma = "deletion";
 }

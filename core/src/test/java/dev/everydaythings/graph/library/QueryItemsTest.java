@@ -1,11 +1,12 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.library_old.LibraryOld;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

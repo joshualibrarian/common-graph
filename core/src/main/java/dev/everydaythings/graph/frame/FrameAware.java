@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
 /**
  * Frame instances that need to know their context when placed on an item.
  *

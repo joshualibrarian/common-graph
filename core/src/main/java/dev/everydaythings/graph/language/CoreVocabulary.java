@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.dispatch.Created;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;

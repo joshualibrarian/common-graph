@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.text;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 
 import java.util.Objects;
 

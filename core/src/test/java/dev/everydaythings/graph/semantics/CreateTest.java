@@ -1,11 +1,12 @@
 package dev.everydaythings.graph.semantics;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -94,7 +95,7 @@ class CreateTest {
             lib.assembleFrame(createBody, lib);
 
             // A new chess game manifest now exists, archetypal under Chess.
-            List<ContentID> chessManifests = lib.library().manifestCidsForType(Chess.IID);
+            List<DatumID> chessManifests = lib.library().manifestCidsForType(Chess.IID);
             assertThat(chessManifests).hasSize(1);
 
             // The minted item hydrates as ChessGame (its commit auto-injected

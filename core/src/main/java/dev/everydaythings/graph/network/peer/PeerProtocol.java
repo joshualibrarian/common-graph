@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network.peer;
 
 import dev.everydaythings.graph.item.ManifestOld;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ContentID;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -460,8 +460,9 @@ public class PeerProtocol implements Protocol {
             // Check bindings
             if (!found && body.bindings() != null) {
                 for (BindingTarget target : body.bindings().values()) {
-                    if (target instanceof BindingTarget.IidTarget iidTarget
-                            && filter.item().equals(iidTarget.iid())) {
+                    if (target instanceof BindingTarget.RefTarget refTarget
+                            && !refTarget.isCompound()
+                            && filter.item().equals(refTarget.asItemId())) {
                         found = true;
                         break;
                     }

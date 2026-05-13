@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.id;
 
-import dev.everydaythings.graph.Encoding;
+import dev.everydaythings.graph.encoding.TextBase;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
@@ -60,10 +60,10 @@ public record ItemRef(ItemID iid, Optional<ContentID> version) implements Refere
     public String encodeText() {
         StringBuilder sb = new StringBuilder();
         sb.append('@');
-        sb.append(Encoding.DEFAULT.encode(iid.encodeBinary()));
+        sb.append(TextBase.Base32Lower.encode(iid.encodeBinary()));
         if (version.isPresent()) {
             sb.append('\\');
-            sb.append(Encoding.DEFAULT.encode(version.get().encodeBinary()));
+            sb.append(TextBase.Base32Lower.encode(version.get().encodeBinary()));
         }
         return sb.toString();
     }

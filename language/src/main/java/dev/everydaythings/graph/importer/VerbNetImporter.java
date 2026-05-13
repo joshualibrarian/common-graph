@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.importer;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.frame.FrameBodyOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.CompoundKey;

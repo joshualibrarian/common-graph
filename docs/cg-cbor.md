@@ -76,6 +76,19 @@ The target may be:
 - A Tag 23 inline frame (see below) for nested expression trees
 - A literal value: bare CBOR primitive (shorthand) or Tag 7 typed value
 
+### Shortcode dispatch (compressed sememe references)
+
+When a predicate or archetype's schema (via `EXPECTS` frames with `ATTRIBUTE[SHORTCODE]`) has registered a sememe with a numeric shortcode, encoders may substitute a **bare CBOR unsigned integer** for the full Tag 6 reference at role and sememe-qualifier positions in bindings. The decoder dispatches by CBOR major type:
+
+| At role/qualifier-sememe position | Interpretation |
+|---|---|
+| Major type 0 (unsigned integer) | Shortcode; resolve via schema lookup |
+| Major type 6 (tag) — Tag 6 | Full reference; use directly |
+
+Sememe roles are never literal integers in non-shortcoded form, so the dispatch is unambiguous.
+
+This is an encoding-layer optimization only. The Datum's semantic identity (DatumID) is computed over the fully-resolved structural form — meaning encoders may freely choose shortcoded or full-ref encoding without changing the DatumID. See `datum.md` § "Shortcode encoding" for the full design.
+
 ---
 
 ## Tag 6: CG-REF (Universal Reference)

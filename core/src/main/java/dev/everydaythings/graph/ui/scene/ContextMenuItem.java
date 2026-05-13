@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.Canonical;
-import dev.everydaythings.graph.Canonical.Canon;
+import dev.everydaythings.graph.encoding.Canonical;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

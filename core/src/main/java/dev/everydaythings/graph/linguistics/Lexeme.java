@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.linguistics;
 
+import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.id.ItemID;
@@ -38,7 +39,7 @@ import dev.everydaythings.graph.runtime.Librarian;
  * <p>Phase 1 keeps {@code onFrameAssembled} minimal — body persistence is enough.
  * Future: token-dictionary indexing for word→sememe lookup at parse time.
  */
-@Seed.Item(key = Lexeme.KEY, head = Item.Predicate.KEY)
+@Seed.Item(key = Lexeme.KEY, head = CoreVocabulary.Predicate.KEY)
 @Seed.Embodies(key = Lexeme.KEY)
 public class Lexeme extends Item {
 

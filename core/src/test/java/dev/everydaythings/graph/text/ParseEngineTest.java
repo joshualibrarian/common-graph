@@ -1,11 +1,12 @@
 package dev.everydaythings.graph.text;
 
-import dev.everydaythings.graph.frame.Binding;
-import dev.everydaythings.graph.frame.BindingTarget;
-import dev.everydaythings.graph.frame.Body;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.item.id.DatumID;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.runtime.Librarian;
@@ -59,7 +60,7 @@ class ParseEngineTest {
                                 ThematicRole.Value.IID,
                                 List.of(),
                                 Literal.ofText("+"))));
-        ContentID bodyCid = lib.persist(body);
+        DatumID bodyCid = lib.persist(body);
         assertThat(bodyCid).isNotNull();
 
         orchestrator = new Item(ItemID.fromString("test.orchestrator"), lib);

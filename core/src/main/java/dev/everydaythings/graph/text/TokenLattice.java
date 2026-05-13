@@ -2,7 +2,7 @@ package dev.everydaythings.graph.text;
 
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.util.ULocale;
-import dev.everydaythings.graph.library.tokens.Posting;
+import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.value.Decimal;
 import lombok.Getter;
 import lombok.Value;
@@ -32,7 +32,7 @@ import java.util.function.Function;
  * <h3>Span generation</h3>
  * For each grapheme range, the lattice may emit multiple competing spans:
  * <ul>
- *   <li><b>WORD</b> — the normalized text resolves to one or more {@link Posting}s
+ *   <li><b>WORD</b> — the normalized text resolves to one or more {@link TokenPosting}s
  *       in the dictionary. Multiple postings = ambiguous resolution.</li>
  *   <li><b>LITERAL</b> — the text parses as a number ({@link Decimal#parse}) or a
  *       quoted string. Literals always have high score regardless of dictionary.</li>
@@ -107,7 +107,7 @@ public final class TokenLattice {
      * @return the built lattice
      */
     public static TokenLattice build(String rawText, ULocale locale,
-                                     Function<String, List<Posting>> lookup) {
+                                     Function<String, List<TokenPosting>> lookup) {
         if (rawText == null || rawText.isEmpty()) {
             return new TokenLattice(rawText == null ? "" : rawText, locale, Map.of(), 0);
         }
@@ -151,16 +151,16 @@ public final class TokenLattice {
 
     private static void generateSpansForRange(
             String rawText, int graphemeStart, int graphemeEnd, String surfaceText,
-            Function<String, List<Posting>> lookup,
+            Function<String, List<TokenPosting>> lookup,
             Map<Integer, List<TokenSpan>> spansByStart, int wordCount) {
 
         TextSpan span = new TextSpan(graphemeStart, graphemeEnd);
 
         // Dictionary lookup
         String normalized = normalize(surfaceText);
-        List<Posting> postings = lookup.apply(normalized);
+        List<TokenPosting> postings = lookup.apply(normalized);
         if (postings != null && !postings.isEmpty()) {
-            List<Posting> sorted = sortedByWeight(postings);
+            List<TokenPosting> sorted = sortedByWeight(postings);
             Decimal baseScore = sorted.get(0).weight();
             Decimal score = wordCount > 1
                     ? plusBonus(baseScore, MULTI_WORD_BONUS_PER_WORD * (wordCount - 1))
@@ -398,8 +398,8 @@ public final class TokenLattice {
         return text.toLowerCase(Locale.ROOT).strip();
     }
 
-    private static List<Posting> sortedByWeight(List<Posting> postings) {
-        List<Posting> sorted = new ArrayList<>(postings);
+    private static List<TokenPosting> sortedByWeight(List<TokenPosting> postings) {
+        List<TokenPosting> sorted = new ArrayList<>(postings);
         sorted.sort((a, b) -> Double.compare(b.weight().toDouble(), a.weight().toDouble()));
         return List.copyOf(sorted);
     }
@@ -442,7 +442,7 @@ public final class TokenLattice {
     public static class TokenSpan {
         TextSpan span;
         String surfaceText;
-        List<Posting> postings;
+        List<TokenPosting> postings;
         Kind kind;
         Decimal score;
 
@@ -457,7 +457,7 @@ public final class TokenLattice {
             return second >= best * 0.8;
         }
 
-        public Posting bestPosting() {
+        public TokenPosting bestPosting() {
             return postings.isEmpty() ? null : postings.get(0);
         }
     }

@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;

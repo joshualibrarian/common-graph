@@ -2,7 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.user.Signer;
+import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;

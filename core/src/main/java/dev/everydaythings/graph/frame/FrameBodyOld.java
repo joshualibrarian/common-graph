@@ -1,12 +1,14 @@
 package dev.everydaythings.graph.frame;
 
+import dev.everydaythings.graph.datum.*;
+
+import dev.everydaythings.graph.encoding.Canonical;
 import dev.everydaythings.graph.item.Factory;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.ItemSeed;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.Canonical;
 import dev.everydaythings.graph.frame.ItemFrame.Bind;
 import dev.everydaythings.graph.item.Literal;
 import dev.everydaythings.graph.item.id.ContentID;
@@ -471,27 +473,20 @@ public final class FrameBodyOld implements Canonical {
     }
 
     /**
-     * Get the ItemID bound to a specific role (convenience for IidTarget bindings).
+     * Get the ItemID bound to a specific role.
      */
     public ItemID bindingId(ItemID role) {
         BindingTarget target = binding(role);
-        if (target instanceof BindingTarget.IidTarget iidTarget) return iidTarget.iid();
         if (target instanceof BindingTarget.RefTarget refTarget) return refTarget.asItemId();
         return null;
     }
 
     /**
-     * Get the Ref bound to a specific role (works for both IidTarget and RefTarget).
-     *
-     * <p>IidTarget is wrapped as a simple Ref. RefTarget returns its full Ref
-     * (which may include a compound frame key path).
+     * Get the Ref bound to a specific role (RefTarget only).
      */
     public dev.everydaythings.graph.item.id.Ref bindingRef(ItemID role) {
         BindingTarget target = binding(role);
         if (target instanceof BindingTarget.RefTarget refTarget) return refTarget.asRef();
-        if (target instanceof BindingTarget.IidTarget iidTarget) {
-            return iidTarget.iid() != null ? dev.everydaythings.graph.item.id.Ref.of(iidTarget.iid()) : null;
-        }
         return null;
     }
 
@@ -714,9 +709,6 @@ public final class FrameBodyOld implements Canonical {
     private static ContentID extractCidFromTarget(BindingTarget target) {
         if (target instanceof BindingTarget.RefTarget ref) {
             return ref.asCid();
-        }
-        if (target instanceof BindingTarget.IidTarget iid) {
-            return new ContentID(iid.iid().encodeBinary());
         }
         return null;
     }

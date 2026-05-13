@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.Canonical.CgTag;
+import dev.everydaythings.graph.encoding.Canonical.CgTag;
 import dev.everydaythings.graph.network.peer.Delivery;
 import dev.everydaythings.graph.network.peer.Request;
 import dev.everydaythings.graph.network.session.SessionMessage;
@@ -38,7 +38,7 @@ public interface ProtocolMessage {
         int tag = tagged.getMostOuterTag().ToInt32Checked();
         CBORObject map = tagged.UntagOne();
         return switch (tag) {
-            case CgTag.REQUEST   -> Request.fromCbor(map);
+            case 11              -> Request.fromCbor(map);   // legacy peer REQUEST tag; pre-task-#37 protocol
             case CgTag.DELIVERY  -> Delivery.fromCbor(map);
             case CgTag.AUTH      -> SessionMessage.decodeAuth(map);
             case CgTag.CONTEXT   -> SessionMessage.decodeContext(map);
