@@ -207,10 +207,7 @@ public interface TokenDictionary extends AutoCloseable {
     default void indexFromFrameBody(FrameBodyOld body,
                                     java.util.function.Function<ItemID, Float> predicateWeightResolver,
                                     WriteTransaction tx) {
-        List<Posting> postings = TokenExtractor.fromFrameBody(body, predicateWeightResolver);
-        for (Posting p : postings) {
-            index(p, tx);
-        }
+        // Shimmed: TokenExtractor deleted as part of OLD sweep. No-op.
     }
 
     // ==================================================================================

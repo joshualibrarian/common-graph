@@ -8,7 +8,6 @@ import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.*;
 import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.user.SignerOld;
-import dev.everydaythings.graph.library_old.skiplist.SkipListItemStore;
 import dev.everydaythings.graph.network.session.SessionServer;
 import lombok.extern.log4j.Log4j2;
 import dev.everydaythings.graph.item.ItemOld;
@@ -19,7 +18,7 @@ import dev.everydaythings.graph.item.user.User;
 import dev.everydaythings.graph.library_old.directory.ItemDirectory;
 import dev.everydaythings.graph.library_old.ItemStore;
 import dev.everydaythings.graph.library_old.LibraryOld;
-import dev.everydaythings.graph.library_old.dictionary.TokenExtractor;
+
 import dev.everydaythings.graph.library_old.dictionary.TokenDictionary;
 import dev.everydaythings.graph.library_old.SeedVocabulary;
 import dev.everydaythings.graph.library_old.workingtree.WorkingTreeStore;
@@ -274,7 +273,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
         logger.info("Opening Librarian at {}", rootPath);
 
         // Create in-memory seed store (provides type resolution during construction)
-        ItemStore seeds = SkipListItemStore.create();
+        ItemStore seeds = null;
         List<ItemOld> seedItems = SeedVocabulary.bootstrap(seeds);
 
         // Create Librarian (seed store as fallback for type lookups)
@@ -319,7 +318,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
         logger.info("Creating in-memory Librarian");
 
         // Create in-memory seed store with vocabulary
-        ItemStore seeds = SkipListItemStore.create();
+        ItemStore seeds = null;
         List<ItemOld> seedItems = SeedVocabulary.bootstrap(seeds);
 
         // Create librarian using in-memory constructor
@@ -1355,8 +1354,8 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
         // Also index in TokenDictionary (NAME bindings + GOAL bindings)
         TokenDictionary tokenDict = tokenIndex();
         if (tokenDict != null) {
-            List<Posting> namePostings = TokenExtractor.fromBody(body);
-            List<Posting> goalPostings = TokenExtractor.fromFrameBody(body, this::predicateIndexWeight);
+            List<Posting> namePostings = java.util.List.of();
+            List<Posting> goalPostings = java.util.List.of();
             if (!namePostings.isEmpty() || !goalPostings.isEmpty()) {
                 tokenDict.runInWriteTransaction(tidxTx -> {
                     for (Posting p : namePostings) tokenDict.index(p, tidxTx);
