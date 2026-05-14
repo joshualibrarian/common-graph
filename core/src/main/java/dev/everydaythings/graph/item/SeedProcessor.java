@@ -11,8 +11,8 @@ import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.runtime.Handler;
 import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.Expects;
-import dev.everydaythings.graph.semantics.Implements;
+import dev.everydaythings.graph.SchemaVocabulary;
+
 import dev.everydaythings.graph.semantics.Runtimes;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import dev.everydaythings.graph.CoreVocabulary;
@@ -208,7 +208,7 @@ public final class SeedProcessor {
         // CodeItem manifest endorses (and what other archetype-implementation
         // lookups will index).
         Body implementsBody = Body.of(
-                ItemRef.of(Implements.IID),
+                ItemRef.of(SchemaVocabulary.Implements.IID),
                 List.of(
                         Binding.ref(ThematicRole.Theme.IID, archetypeIid),
                         Binding.ref(ThematicRole.Agent.IID, codeIid)));
@@ -264,7 +264,7 @@ public final class SeedProcessor {
 
         // IMPLEMENTS { THEME → conceptIid, AGENT:[Runtimes.Java, JavaClass] → text(fqcn) }
         Body implementsBody = Body.of(
-                ItemRef.of(Implements.IID),
+                ItemRef.of(SchemaVocabulary.Implements.IID),
                 List.of(
                         Binding.ref(ThematicRole.Theme.IID, conceptIid),
                         new Binding(
@@ -304,7 +304,7 @@ public final class SeedProcessor {
                         .orElse(null);
                 if (endorsedBody == null) continue;
                 if (endorsedBody.head() instanceof dev.everydaythings.graph.item.id.ItemRef ref
-                        && Expects.IID.equals(ref.iid())) {
+                        && SchemaVocabulary.Expects.IID.equals(ref.iid())) {
                     return;  // Found at least one EXPECTS endorsement; we're good.
                 }
             }
@@ -312,7 +312,7 @@ public final class SeedProcessor {
         throw new IllegalStateException(
                 "@Seed.Mints(\"" + conceptIid + "\") on " + mintsClassName
                         + " — concept has no EXPECTS endorsements declaring its instance schema; "
-                        + "add @Seed.Frame(predicate = Expects.KEY, ...) to the seed class");
+                        + "add @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY, ...) to the seed class");
     }
 
     /**

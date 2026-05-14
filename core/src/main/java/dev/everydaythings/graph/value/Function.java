@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.value;
+import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.eval.ParseContext;
@@ -48,7 +49,7 @@ public class Function extends Sememe {
     // INSTANCE FIELDS (shared by all functions)
     // ==================================================================================
 
-    @Getter @ItemFrame(predicate = CoreVocabulary.Arity.KEY)
+    @Getter @ItemFrame(predicate = SchemaVocabulary.Arity.KEY)
     private int minArity;
 
     @Getter @ItemFrame(predicate = CoreVocabulary.Bounds.KEY)

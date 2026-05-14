@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.language;
+import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.frame.FrameOld;
 import dev.everydaythings.graph.frame.ItemFrame;
@@ -35,7 +36,7 @@ import dev.everydaythings.graph.runtime.LibrarianOld;
  * </ul>
  *
  * @see CoreVocabulary.Durability
- * @see CoreVocabulary.Ephemeral
+ * @see SchemaVocabulary.Ephemeral
  */
 public final class PresenceVocabulary {
 
@@ -179,7 +180,7 @@ public final class PresenceVocabulary {
         // CONFIG:[DURABILITY] → EPHEMERAL (predicate-level default)
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Config.KEY, qualifiers = {CoreVocabulary.Durability.KEY}))
-        static final ItemID durability = CoreVocabulary.Ephemeral.IID;
+        static final ItemID durability = SchemaVocabulary.Ephemeral.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
@@ -211,7 +212,7 @@ public final class PresenceVocabulary {
         // CONFIG:[DURABILITY] → EPHEMERAL
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Config.KEY, qualifiers = {CoreVocabulary.Durability.KEY}))
-        static final ItemID durability = CoreVocabulary.Ephemeral.IID;
+        static final ItemID durability = SchemaVocabulary.Ephemeral.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
@@ -243,7 +244,7 @@ public final class PresenceVocabulary {
         // CONFIG:[DURABILITY] → EPHEMERAL
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Config.KEY, qualifiers = {CoreVocabulary.Durability.KEY}))
-        static final ItemID durability = CoreVocabulary.Ephemeral.IID;
+        static final ItemID durability = SchemaVocabulary.Ephemeral.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))
@@ -275,7 +276,7 @@ public final class PresenceVocabulary {
         // CONFIG:[DURABILITY] → EPHEMERAL
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Config.KEY, qualifiers = {CoreVocabulary.Durability.KEY}))
-        static final ItemID durability = CoreVocabulary.Ephemeral.IID;
+        static final ItemID durability = SchemaVocabulary.Ephemeral.IID;
 
         @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
                    fieldAs = @Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY, ThematicRole.Agent.KEY}))

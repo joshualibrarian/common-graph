@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.semantics;
 
+import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
@@ -49,12 +50,12 @@ class CreateTest {
         public static final ItemID IID = ItemID.fromString(KEY);
 
         /** Chess instances expect an AGENT role (the player). */
-        @Seed.Frame(predicate = Expects.KEY,
+        @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
               field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
         static final ItemID expectsAgent = ThematicRole.Agent.IID;
 
         /** Chess instances expect a THEME role (e.g., the game/board state). */
-        @Seed.Frame(predicate = Expects.KEY,
+        @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
               field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
         static final ItemID expectsTheme = ThematicRole.Theme.IID;
 

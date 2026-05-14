@@ -8,7 +8,7 @@ import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.linguistics.Lexeme;
 import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.semantics.Expects;
+import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import static dev.everydaythings.graph.Seed.*;
 
@@ -214,141 +214,9 @@ public final class CoreVocabulary {
     }
 
     // ==================================================================================
-    // Universal qualifiers — used in EXPECTS, HANDLES, and other metadata declarations
+    // Universal qualifiers — Required, Arity, Retention, Ephemeral, Limit — moved
+    // to SchemaVocabulary, alongside the Expects and Implements predicates.
     // ==================================================================================
-
-    /**
-     * Required — qualifier on EXPECTS bindings declaring that the expected
-     * binding or frame must be present (not optional).
-     *
-     * <p>Without {@code Required}, an EXPECTS declaration is a permitted/known
-     * shape; with it, instances missing the expectation are structurally
-     * invalid. Used as one of the qualifiers on the binding inside an EXPECTS
-     * frame body.
-     */
-    @Seed.Item(key = Required.KEY)
-    public static final class Required {
-        public static final String KEY = "cg.qualifier:required";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Required() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier marking an EXPECTS declaration as mandatory rather than "
-                        + "merely permitted";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishAdjectiveLemma = "required";
-    }
-
-    /**
-     * Arity — qualifier on {@link ThematicRole.Attribute} bindings declaring an
-     * arity (count of expected arguments / bindings).
-     *
-     * <p>Used in HANDLES frames as {@code ATTRIBUTE[ARITY] → integer} to indicate
-     * how many bindings the handler expects on the incoming frame, and in
-     * operator/function declarations to declare their argument count.
-     *
-     * <p>The pattern {@code ATTRIBUTE[<kind>] → value} is generic — Arity is one
-     * such kind. Other kinds (Priority, Return-shape, etc.) attach the same way
-     * and can be added as needed without inventing new roles.
-     */
-    @Seed.Item(key = Arity.KEY)
-    public static final class Arity {
-        public static final String KEY = "cg.qualifier:arity";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Arity() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier on ATTRIBUTE bindings declaring an arity — a count of "
-                        + "expected arguments or bindings";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "arity";
-    }
-
-    /**
-     * Retention — qualifier on CONFIG bindings declaring how the system should
-     * treat the frame for persistence.
-     *
-     * <p>Used as {@code CONFIG[RETENTION] → @Ephemeral} on predicate manifests
-     * to mark a predicate's frames as non-persisted (queries, transient UI
-     * events, scene updates, keystrokes, etc.). Absence of any RETENTION binding
-     * is the default — the frame is retained.
-     */
-    @Seed.Item(key = Retention.KEY)
-    public static final class Retention {
-        public static final String KEY = "cg.qualifier:retention";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Retention() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier on CONFIG bindings declaring the frame's persistence policy";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "retention";
-    }
-
-    /**
-     * Ephemeral — value sememe for CONFIG[RETENTION] indicating that frames of
-     * the marked predicate are not persisted by the librarian (no body or record
-     * written to storage). Handlers still fire and response frames flow back to
-     * the submitter; nothing is durably recorded.
-     *
-     * <p>Used as the target of {@code CONFIG[RETENTION] → @Ephemeral} on a
-     * predicate's manifest body. Default retention (no binding) is durable.
-     */
-    @Seed.Item(key = Ephemeral.KEY)
-    public static final class Ephemeral {
-        public static final String KEY = "cg.value:ephemeral";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Ephemeral() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "value marking a predicate's frames as non-persisted — handler fires, "
-                        + "response flows back, nothing stored";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishAdjectiveLemma = "ephemeral";
-    }
-
-    /**
-     * Limit — qualifier on ATTRIBUTE bindings declaring a result-count cap.
-     *
-     * <p>Used on LOOKUP frames as {@code ATTRIBUTE[LIMIT] → integer} to switch
-     * the lookup from exact-match (point query) to prefix-match (range scan)
-     * with the given upper bound on returned postings.
-     *
-     * <p>The pattern {@code ATTRIBUTE[<kind>] → value} is generic — Limit is one
-     * such kind alongside Arity.
-     */
-    @Seed.Item(key = Limit.KEY)
-    public static final class Limit {
-        public static final String KEY = "cg.qualifier:limit";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Limit() {}
-
-        @Seed.Frame(predicate = Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier on ATTRIBUTE bindings declaring a result-count cap "
-                        + "for set-returning queries";
-
-        @Seed.Frame(predicate = Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "limit";
-    }
 
     /**
      * The root archetype — every item's manifest head transitively reaches here.
@@ -379,7 +247,7 @@ public final class CoreVocabulary {
          * every descendant via the head chain. Archetype itself is the bootstrap
          * exception (no ITEM_ID binding on its own manifest).
          */
-        @Frame(predicate = Expects.KEY,
+        @Frame(predicate = SchemaVocabulary.Expects.KEY,
               field = @Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
         static final ItemID expectItemId = Manifest.ITEM_ID;
     }

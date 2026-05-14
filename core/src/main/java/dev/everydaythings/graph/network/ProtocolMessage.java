@@ -47,8 +47,8 @@ public interface ProtocolMessage {
             case CgTag.SUBSCRIBE -> SessionMessage.decodeSubscribe(map);
             case CgTag.EVENT     -> SessionMessage.decodeEvent(map);
             case CgTag.STREAM    -> SessionMessage.decodeStream(map);
-            case CgTag.HEARTBEAT -> Heartbeat.INSTANCE;
-            case CgTag.ACK       -> Ack.fromCbor(map);
+            case CgTag.HEARTBEAT -> HeartbeatOld.INSTANCE;
+            case CgTag.ACK       -> AckOld.fromCbor(map);
             case CgTag.ERROR     -> ProtocolError.fromCbor(map);
             default -> throw new IllegalArgumentException("Unknown protocol tag: " + tag);
         };

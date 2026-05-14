@@ -3,8 +3,8 @@ package dev.everydaythings.graph.web;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.network.Ack;
-import dev.everydaythings.graph.network.Heartbeat;
+import dev.everydaythings.graph.network.AckOld;
+import dev.everydaythings.graph.network.HeartbeatOld;
 import dev.everydaythings.graph.network.ProtocolError;
 import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.session.SessionMessage;
@@ -98,9 +98,9 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
 
             if (message instanceof SessionMessage sm) {
                 handleSessionMessage(ctx, sm);
-            } else if (message instanceof Heartbeat) {
+            } else if (message instanceof HeartbeatOld) {
                 // Respond with heartbeat
-                sendMessage(ctx, Heartbeat.INSTANCE);
+                sendMessage(ctx, HeartbeatOld.INSTANCE);
             }
             // Ignore Ack, ProtocolError from client
         } catch (Exception e) {
@@ -243,7 +243,7 @@ public class WebSocketSessionHandler extends SimpleChannelInboundHandler<BinaryW
         } else {
             subscriptions.remove(m.itemId());
         }
-        sendMessage(ctx, new Ack(0));
+        sendMessage(ctx, new AckOld(0));
     }
 
     // =========================================================================

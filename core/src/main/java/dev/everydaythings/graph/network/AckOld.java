@@ -9,7 +9,7 @@ import dev.everydaythings.graph.encoding.Canonical.CgTag;
  * <p>Shared by both peer and session protocols.
  * Replaces {@code SessionMessage.OkResponse}.
  */
-public record Ack(long requestId) implements ProtocolMessage {
+public record AckOld(long requestId) implements ProtocolMessage {
 
     @Override
     public int tag() {
@@ -23,7 +23,7 @@ public record Ack(long requestId) implements ProtocolMessage {
         return obj;
     }
 
-    public static Ack fromCbor(CBORObject obj) {
-        return new Ack(obj.get("requestId").AsInt64Value());
+    public static AckOld fromCbor(CBORObject obj) {
+        return new AckOld(obj.get("requestId").AsInt64Value());
     }
 }

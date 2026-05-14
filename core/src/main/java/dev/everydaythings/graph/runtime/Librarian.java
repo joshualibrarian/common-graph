@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.runtime;
+import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.encoding.HashTree;
@@ -22,6 +23,7 @@ import dev.everydaythings.graph.item.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.library.index.TokenPosting;
+import dev.everydaythings.graph.network.parley.Parley;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import lombok.Getter;
@@ -90,6 +92,17 @@ public class Librarian extends Signer {
     private final Optional<Path> rootPath;
 
     /**
+     * The {@link Parley} protocol instance — the librarian's "talking to other
+     * parties" surface. Owns connections (local + remote), handles codec
+     * point-and-grunt, and dispatches incoming Datums to {@code @Handler} methods.
+     *
+     * <p>Always present; behaviour is currently stubbed (Parley is structural
+     * scaffolding pending wire-up).
+     */
+    @Getter
+    private final Parley parley;
+
+    /**
      * Item cache: one canonical instance per IID. {@link #fetchItem} consults this
      * before hydrating from storage; {@link #register} adds explicit entries.
      * {@link Item#commit} auto-registers, so a committed item is always findable.
@@ -104,6 +117,7 @@ public class Librarian extends Signer {
         super(iid);
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
+        this.parley = new Parley(this);
     }
 
     /**
@@ -121,6 +135,7 @@ public class Librarian extends Signer {
         super(vault);
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
+        this.parley = new Parley(this);
         bindLibrarian(this);
         selfIncept();
     }
@@ -134,6 +149,7 @@ public class Librarian extends Signer {
         super((ItemID) null);
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Optional.empty();
+        this.parley = new Parley(this);
         bindLibrarian(this);
     }
 
@@ -936,10 +952,10 @@ public class Librarian extends Signer {
         return configFrame.body()
                 .binding(CompoundKey.of(
                         ThematicRole.Value.IID,
-                        CoreVocabulary.Retention.IID))
+                        SchemaVocabulary.Retention.IID))
                 .map(b -> b.target() instanceof BindingTarget.RefTarget ref
                         && !ref.isCompound()
-                        && CoreVocabulary.Ephemeral.IID.equals(ref.asItemId()))
+                        && SchemaVocabulary.Ephemeral.IID.equals(ref.asItemId()))
                 .orElse(false);
     }
 
@@ -1069,7 +1085,7 @@ public class Librarian extends Signer {
         return frame.body()
                 .binding(CompoundKey.of(
                         ThematicRole.Attribute.IID,
-                        CoreVocabulary.Limit.IID))
+                        SchemaVocabulary.Limit.IID))
                 .filter(b -> b.target() instanceof Literal)
                 .map(b -> {
                     try {

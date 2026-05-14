@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.language;
+import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.frame.eval.ParseContext;
@@ -510,7 +511,7 @@ public class Sememe extends ItemOld {
      * Returns the durability policy for frames of this predicate.
      *
      * <p>Reads CONFIG bindings qualified with DURABILITY from this predicate's
-     * frames. Returns the target ItemID (e.g., {@link CoreVocabulary.Ephemeral#IID})
+     * frames. Returns the target ItemID (e.g., {@link SchemaVocabulary.Ephemeral#IID})
      * or {@code null} if no durability policy is declared (meaning: default/persistent).
      *
      * <p>This is the mechanism by which presence predicates (AVATAR_STATE, TYPING,
@@ -541,7 +542,7 @@ public class Sememe extends ItemOld {
      */
     public boolean isEphemeral() {
         ItemID d = durability();
-        return d != null && d.equals(ItemID.fromString(CoreVocabulary.Ephemeral.KEY));
+        return d != null && d.equals(ItemID.fromString(SchemaVocabulary.Ephemeral.KEY));
     }
 
     // ==================================================================================

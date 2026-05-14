@@ -11,9 +11,9 @@ import dev.everydaythings.graph.encoding.Canonical.CgTag;
  *
  * @see dev.everydaythings.graph.network.transport.HeartbeatHandler
  */
-public record Heartbeat() implements ProtocolMessage {
+public record HeartbeatOld() implements ProtocolMessage {
 
-    public static final Heartbeat INSTANCE = new Heartbeat();
+    public static final HeartbeatOld INSTANCE = new HeartbeatOld();
 
     @Override
     public int tag() {

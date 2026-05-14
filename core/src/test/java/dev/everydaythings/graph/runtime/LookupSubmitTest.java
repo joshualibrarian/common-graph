@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.runtime;
+import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.datum.Body;
@@ -80,7 +81,7 @@ class LookupSubmitTest {
         Frame lookup = (Frame) Frame.compose(Lookup.IID)
                 .theme("c")
                 .binding(dev.everydaythings.graph.semantics.ThematicRole.Attribute.IID)
-                    .qualifier(CoreVocabulary.Limit.IID)
+                    .qualifier(SchemaVocabulary.Limit.IID)
                     .target(50L)
                 .build();
 

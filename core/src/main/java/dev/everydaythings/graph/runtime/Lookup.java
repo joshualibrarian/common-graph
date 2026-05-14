@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.runtime;
+import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
@@ -56,6 +57,6 @@ public final class Lookup {
      * CONFIG[RETENTION] → Ephemeral: LOOKUP frames are not persisted.
      */
     @Seed.Frame(predicate = CoreVocabulary.Config.KEY,
-      field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {CoreVocabulary.Retention.KEY}))
-    static final ItemID retention = CoreVocabulary.Ephemeral.IID;
+      field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {SchemaVocabulary.Retention.KEY}))
+    static final ItemID retention = SchemaVocabulary.Ephemeral.IID;
 }

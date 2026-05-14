@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.semantics;
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
@@ -98,7 +99,7 @@ public class Create extends Item {
 
     private static boolean isImplementsFrame(Frame frame) {
         if (!(frame.body().head() instanceof ItemRef itemRef)) return false;
-        return Implements.IID.equals(itemRef.iid());
+        return SchemaVocabulary.Implements.IID.equals(itemRef.iid());
     }
 
     /**

@@ -3,8 +3,8 @@ package dev.everydaythings.graph.network.session;
 import dev.everydaythings.graph.item.ItemOld;
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.network.Ack;
-import dev.everydaythings.graph.network.Heartbeat;
+import dev.everydaythings.graph.network.AckOld;
+import dev.everydaythings.graph.network.HeartbeatOld;
 import dev.everydaythings.graph.network.ProtocolCodec;
 import dev.everydaythings.graph.network.ProtocolError;
 import dev.everydaythings.graph.network.ProtocolMessage;
@@ -193,7 +193,7 @@ public class SessionServer implements AutoCloseable {
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             if (msg instanceof SessionMessage sm) {
                 handleSessionMessage(ctx, session, sm);
-            } else if (msg instanceof Ack || msg instanceof ProtocolError || msg instanceof Heartbeat) {
+            } else if (msg instanceof AckOld || msg instanceof ProtocolError || msg instanceof HeartbeatOld) {
                 // Handled by pipeline or ignored
             }
         }
@@ -375,7 +375,7 @@ public class SessionServer implements AutoCloseable {
             logger.info("Session {} unsubscribed from {}", session.sessionId, m.itemId().encodeText());
         }
 
-        sendMessage(ctx, new Ack(0));
+        sendMessage(ctx, new AckOld(0));
     }
 
     // =========================================================================

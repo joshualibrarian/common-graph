@@ -2,8 +2,7 @@ package dev.everydaythings.graph.network.session;
 
 import dev.everydaythings.graph.item.id.ItemID;
 import dev.everydaythings.graph.language.Posting;
-import dev.everydaythings.graph.network.Ack;
-import dev.everydaythings.graph.network.Heartbeat;
+import dev.everydaythings.graph.network.HeartbeatOld;
 import dev.everydaythings.graph.network.ProtocolCodec;
 import dev.everydaythings.graph.network.ProtocolError;
 import dev.everydaythings.graph.network.ProtocolMessage;
@@ -20,7 +19,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -163,7 +161,7 @@ public class SessionClient implements AutoCloseable {
                 if (future != null) {
                     pendingResponse = null;
                     future.complete(pm);
-                } else if (!(msg instanceof Heartbeat)) {
+                } else if (!(msg instanceof HeartbeatOld)) {
                     log.warn("Received message with no pending request: {}", msg.getClass().getSimpleName());
                 }
             }

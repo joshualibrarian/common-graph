@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.value;
+import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.frame.eval.ParseContext;
@@ -618,7 +619,7 @@ public class OperatorOld extends Sememe {
     // INSTANCE FIELDS (shared by all operators)
     // ==================================================================================
 
-    @Getter @ItemFrame(predicate = CoreVocabulary.Arity.KEY)
+    @Getter @ItemFrame(predicate = SchemaVocabulary.Arity.KEY)
     private int arity;
 
     @Getter @ItemFrame(predicate = CoreVocabulary.Precedence.KEY)

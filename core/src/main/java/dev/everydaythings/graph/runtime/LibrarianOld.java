@@ -6,7 +6,6 @@ import dev.everydaythings.graph.frame.ItemFrame;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.item.*;
-import dev.everydaythings.graph.item.id.CompoundKey;
 import dev.everydaythings.graph.item.user.SignerOld;
 import dev.everydaythings.graph.network.session.SessionServer;
 import lombok.extern.log4j.Log4j2;
@@ -38,7 +37,7 @@ import dev.everydaythings.graph.network.peer.PeerConnection;
 import dev.everydaythings.graph.network.peer.RemotePeer;
 import dev.everydaythings.graph.network.transport.UnixPeerConnection;
 import dev.everydaythings.graph.network.transport.UnixSocketServer;
-import dev.everydaythings.graph.network.Heartbeat;
+import dev.everydaythings.graph.network.HeartbeatOld;
 import dev.everydaythings.graph.network.ProtocolMessage;
 import dev.everydaythings.graph.network.peer.Delivery;
 import dev.everydaythings.graph.network.peer.Request;
@@ -991,7 +990,7 @@ public final class LibrarianOld extends SignerOld implements AutoCloseable, Daem
             switch (message) {
                 case Delivery delivery -> handleLocalDelivery(connection, delivery);
                 case Request request -> handleLocalRequest(connection, request);
-                case Heartbeat ignored -> {} // ignore
+                case HeartbeatOld ignored -> {} // ignore
                 default -> logger.debug("Ignoring {} from local client", message.getClass().getSimpleName());
             }
         } catch (Exception e) {
