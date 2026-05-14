@@ -1,12 +1,16 @@
 package dev.everydaythings.graph.datum;
 
+import dev.everydaythings.graph.canonical.CgTag;
+
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.identity.VarSig;
-import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.item.id.FrameRef;
-import dev.everydaythings.graph.item.id.Reference;
+import dev.everydaythings.graph.canonical.Factory;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.Reference;
 
 import java.util.List;
 import java.util.Objects;
@@ -82,7 +86,7 @@ public final class Record extends Datum {
         arr.Add(head.toCborTree(scope));
         arr.Add(encodeBindingsArray(scope));
         arr.Add(CBORObject.FromByteArray(signature));
-        return CBORObject.FromObjectAndTag(arr, Canonical.CgTag.DATUM);
+        return CBORObject.FromObjectAndTag(arr, CgTag.DATUM);
     }
 
     // merkleDigest is inherited from Datum — the encoding-agnostic walker
@@ -100,7 +104,7 @@ public final class Record extends Datum {
     @Factory
     public static Record fromCborTree(CBORObject node) {
         Objects.requireNonNull(node, "node");
-        if (node.isTagged() && node.HasMostOuterTag(Canonical.CgTag.DATUM)) {
+        if (node.isTagged() && node.HasMostOuterTag(CgTag.DATUM)) {
             node = node.UntagOne();
         }
         if (node.getType() != CBORType.Array || node.size() != 3) {

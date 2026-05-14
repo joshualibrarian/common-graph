@@ -2,8 +2,8 @@ package dev.everydaythings.graph.text;
 
 import com.ibm.icu.util.ULocale;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.runtime.Librarian;

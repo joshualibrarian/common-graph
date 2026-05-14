@@ -1,13 +1,15 @@
 package dev.everydaythings.graph.semantics;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Scope;
+
+import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.DisplayName;
@@ -145,7 +147,7 @@ class DeleteTest {
                     List.of(Binding.ref(ThematicRole.Theme.IID, iid))
             );
             ContentID deleteFrameCid = ContentID.of(
-                    lib.assembleFrame(deleteBody, lib).body().encodeBinary(Canonical.Scope.BODY));
+                    lib.assembleFrame(deleteBody, lib).body().encodeBinary(Scope.BODY));
 
             // The item is gone, but the DELETE frame's body remains.
             assertThat(lib.library().manifestCidsForItem(iid)).isEmpty();
@@ -225,7 +227,7 @@ class DeleteTest {
                     List.of(Binding.ref(ThematicRole.Theme.IID, iid))
             );
             ContentID frameCid = ContentID.of(
-                    lib.assembleFrame(deleteBody, alice).body().encodeBinary(Canonical.Scope.BODY));
+                    lib.assembleFrame(deleteBody, alice).body().encodeBinary(Scope.BODY));
 
             // The DELETE frame is in storage even though it wasn't honored.
             assertThat(lib.has(frameCid)).isTrue();

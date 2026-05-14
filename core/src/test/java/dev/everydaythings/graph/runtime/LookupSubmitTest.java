@@ -1,10 +1,8 @@
 package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.SchemaVocabulary;
 
-import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

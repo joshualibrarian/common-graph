@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.identity.vault.DelegationConditions;
 import dev.everydaythings.graph.identity.vault.InMemoryVault;
@@ -11,12 +11,12 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Next;
@@ -473,12 +473,14 @@ public class Signer extends Item {
     }
 
     private static ContentID extractContentId(BindingTarget target) {
-        if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
-            try {
-                return ref.asCid();
-            } catch (RuntimeException ignored) {
-                return null;
-            }
+        if (target instanceof BindingTarget.RefTarget ref) {
+            // Prefer ContentRef-shaped targets (the canonical encoding for
+            // raw content like next-key digests). Fall back to FrameRef body
+            // CIDs (for content-of-a-datum references like FOLLOWS).
+            ContentID cid = ref.asCid();
+            if (cid != null) return cid;
+            DatumID datumId = ref.asDatumId();
+            if (datumId != null) return ContentID.of(datumId.encodeBinary());
         }
         return null;
     }

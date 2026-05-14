@@ -1,16 +1,16 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.canonical.CgTag;
+
+import dev.everydaythings.graph.canonical.Scope;
+
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.id.*;
+import dev.everydaythings.graph.canonical.Factory;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.frame.FrameBodyOld;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.HashID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.value.Literal;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -48,9 +48,9 @@ public interface BindingTarget extends Canonical {
         if (node == null || node.isNull()) return null;
         if (node.isTagged()) {
             int tag = node.getMostOuterTag().ToInt32Checked();
-            if (tag == Canonical.CgTag.REF) return RefTarget.fromCborTree(node);
-            if (tag == Canonical.CgTag.REDACTED) return RedactedTarget.fromCborTree(node);
-            if (tag == Canonical.CgTag.DATUM) return FrameTarget.fromCborTree(node);
+            if (tag == CgTag.REF) return RefTarget.fromCborTree(node);
+            if (tag == CgTag.REDACTED) return RedactedTarget.fromCborTree(node);
+            if (tag == CgTag.DATUM) return FrameTarget.fromCborTree(node);
             if (tag == 1) return Literal.fromCborTree(node);
         }
         return switch (node.getType()) {
@@ -63,87 +63,106 @@ public interface BindingTarget extends Canonical {
 
     /**
      * Convenience factory for item references in bindings — produces a
-     * {@link RefTarget} (Tag 6 encoding) wrapping the given ItemID.
-     *
-     * <p>Item references are always Tag-6 encoded now; the legacy bare-ByteString
-     * IidTarget encoding has been retired. Callers can keep using the same
-     * factory; the returned type is just a different concrete BindingTarget.
+     * {@link RefTarget} wrapping an {@link ItemRef}.
      */
-    static RefTarget iid(ItemID iid) { return new RefTarget(Ref.of(iid)); }
-
-    /** Convenience factory for unified references (Tag 6). */
-    static RefTarget ref(HashID ref) { return new RefTarget(Ref.of(new ItemID(ref.encodeBinary()))); }
-
-    /** Convenience factory for compound references (Tag 6 with frame key). */
-    static RefTarget ref(Ref ref) { return new RefTarget(ref); }
-
-    /** Convenience factory for inline nested frames (Tag 23). */
-    static FrameTarget frame(FrameBodyOld body) { return new FrameTarget(body); }
+    static RefTarget iid(ItemID iid) { return new RefTarget(ItemRef.of(iid)); }
 
     /**
-     * Unified reference target using CG-CBOR Tag 6 (REF).
+     * Convenience factory wrapping a {@link DatumID} as a {@link FrameRef} —
+     * common for ENDORSES bindings and version-id references.
+     */
+    static RefTarget ref(DatumID datumId) { return new RefTarget(FrameRef.of(datumId)); }
+
+    /**
+     * Convenience factory wrapping a {@link ContentID} as a {@link ContentRef}.
+     */
+    static RefTarget ref(ContentID cid) { return new RefTarget(ContentRef.of(cid)); }
+
+    /** Convenience factory wrapping any {@link Reference} (caller picks the variant). */
+    static RefTarget ref(Reference reference) { return new RefTarget(reference); }
+
+    /** Convenience factory for inline nested datums (Tag 12). */
+    static FrameTarget frame(Body body) { return new FrameTarget(body); }
+
+    /**
+     * Reference-valued binding target — wraps a {@link Reference} (the sealed
+     * {@link ItemRef}/{@link ContentRef}/{@link FrameRef} sum type).
      *
-     * <p>Holds a full {@link Ref} which supports both simple item references
-     * (bare ItemID) and compound references (item + frame key path).
-     * The wire format uses the Ref binary encoding inside Tag 6.
+     * <p>Encoded as CG-CBOR Tag 6 wrapping the Reference's binary payload.
      *
-     * <p>For simple references, {@link #asItemId()} returns the target.
-     * For compound references, {@link #asRef()} returns the full Ref
-     * including the frame key path.
+     * <p>The convenience accessors return the underlying target of the
+     * appropriate variant, or {@code null} when the variant doesn't match —
+     * callers gate on {@link #isCompound()} or directly inspect
+     * {@link #asReference()} when they need disambiguation.
      */
     final class RefTarget implements BindingTarget {
-        private final Ref ref;
+        private final Reference reference;
 
-        public RefTarget(Ref ref) {
-            this.ref = Objects.requireNonNull(ref, "ref");
+        public RefTarget(Reference reference) {
+            this.reference = Objects.requireNonNull(reference, "reference");
         }
 
-        /** The full Ref (may include frame key for compound references). */
-        public Ref asRef() { return ref; }
+        /** The underlying Reference (use {@code instanceof} to disambiguate the variant). */
+        public Reference asReference() { return reference; }
 
-        /** The target ItemID (ignoring any frame key). */
-        public ItemID asItemId() { return ref.target(); }
+        /**
+         * For an {@link ItemRef}, the target {@link ItemID}; {@code null} otherwise.
+         */
+        public ItemID asItemId() {
+            return reference instanceof ItemRef ir ? ir.iid() : null;
+        }
 
-        /** The target as a ContentID. */
+        /**
+         * For a {@link ContentRef}, the target {@link ContentID}; {@code null} otherwise.
+         */
         public ContentID asCid() {
-            return new ContentID(ref.target().encodeBinary());
+            return reference instanceof ContentRef cr ? cr.cid() : null;
         }
 
-        /** The target as a DatumID (semantic identity of a referenced Datum). */
-        public dev.everydaythings.graph.item.id.DatumID asDatumId() {
-            return new dev.everydaythings.graph.item.id.DatumID(ref.target().encodeBinary());
+        /**
+         * For a {@link FrameRef}, the body's {@link DatumID}; {@code null} otherwise.
+         */
+        public DatumID asDatumId() {
+            return reference instanceof FrameRef fr ? fr.bodyId() : null;
         }
 
-        /** Whether this is a compound reference (has a frame key path). */
-        public boolean isCompound() { return ref.frameKey() != null; }
+        /**
+         * Whether this is anything other than a bare unpinned {@link ItemRef}.
+         *
+         * <p>True for ItemRefs pinned to a version, ContentRefs, and FrameRefs.
+         * False for the common case: a bare item reference with no version/key/portion.
+         */
+        public boolean isCompound() {
+            if (reference instanceof ItemRef ir) return ir.isPinned();
+            return true;
+        }
 
         @Override
         public CBORObject toCborTree(Scope scope) {
-            return ref.toCborTree(scope);
+            return reference.toCborTree(scope);
         }
 
         @Factory
         public static RefTarget fromCborTree(CBORObject node) {
             if (node == null || node.isNull()) return null;
-            Ref decoded = Ref.fromCborTree(node);
-            return new RefTarget(decoded);
+            return new RefTarget(Reference.fromCborTree(node));
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof RefTarget other)) return false;
-            return Objects.equals(ref, other.ref);
+            return Objects.equals(reference, other.reference);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(ref);
+            return Objects.hash(reference);
         }
 
         @Override
         public String toString() {
-            return "Ref(" + ref.encodeText() + ")";
+            return "Ref(" + reference.encodeText() + ")";
         }
     }
 
@@ -153,31 +172,28 @@ public interface BindingTarget extends Canonical {
      * <p>Encodes as CG-CBOR Tag 12 (DATUM) wrapping the inner body's CBOR. Same
      * tag as outer-level Body/Record encoding — the wire shape of an inline
      * datum and an outer datum is identical, and decoders dispatch by context.
-     *
-     * <p>This class still wraps the legacy {@link FrameBodyOld}; it will be
-     * superseded by a generic DatumTarget wrapping a {@link Datum} when
-     * FrameBodyOld is retired.
      */
     final class FrameTarget implements BindingTarget {
-        private final FrameBodyOld body;
+        private final Body body;
 
-        public FrameTarget(FrameBodyOld body) {
+        public FrameTarget(Body body) {
             this.body = Objects.requireNonNull(body, "body");
         }
 
-        public FrameBodyOld body() { return body; }
+        public Body body() { return body; }
 
         @Override
         public CBORObject toCborTree(Scope scope) {
-            return CBORObject.FromObjectAndTag(body.toCborTree(scope), Canonical.CgTag.DATUM);
+            return CBORObject.FromObjectAndTag(body.toCborTree(scope), CgTag.DATUM);
         }
 
         @Factory
         public static FrameTarget fromCborTree(CBORObject node) {
             if (node == null || node.isNull()) return null;
             CBORObject inner = node.isTagged() ? node.UntagOne() : node;
-            FrameBodyOld body = FrameBodyOld.fromCborTree(inner);
-            return body != null ? new FrameTarget(body) : null;
+            // TODO: Body.fromCborTree once wired up; for now FrameTarget decode is
+            // a no-op stub. Inline-datum targets are written but not yet round-tripped.
+            return null;
         }
 
         @Override
@@ -240,7 +256,7 @@ public interface BindingTarget extends Canonical {
         public CBORObject toCborTree(Scope scope) {
             return CBORObject.FromObjectAndTag(
                     CBORObject.FromByteArray(wrappedHash),
-                    Canonical.CgTag.REDACTED);
+                    CgTag.REDACTED);
         }
 
         @Factory

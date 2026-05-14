@@ -1,16 +1,18 @@
 package dev.everydaythings.graph.library.index;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.HashID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
 import dev.everydaythings.graph.semantics.ThematicRole;
@@ -116,7 +118,7 @@ public interface TokenIndexByteStore extends TokenIndexStore, ByteStore<TokenInd
     private byte[] entryKey(String normalizedToken, DatumID datumId, CompoundKey bindingKey) {
         byte[] tokenBytes = normalizedToken.getBytes(StandardCharsets.UTF_8);
         byte[] datumBytes = datumId.encodeBinary();
-        byte[] compoundKeyBytes = bindingKey.toCborTree(Canonical.Scope.BODY).EncodeToBytes();
+        byte[] compoundKeyBytes = bindingKey.toCborTree(Scope.BODY).EncodeToBytes();
         return KeyEncoder.cat(tokenBytes, new byte[]{NULL_TERMINATOR}, datumBytes, compoundKeyBytes);
     }
 

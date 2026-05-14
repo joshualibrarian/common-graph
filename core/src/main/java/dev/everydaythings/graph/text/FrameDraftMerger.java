@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.datum.BindingTarget;
-import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.CompoundKey.FrameToken;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
 import dev.everydaythings.graph.text.FrameMap.Part;
 import dev.everydaythings.graph.value.Decimal;

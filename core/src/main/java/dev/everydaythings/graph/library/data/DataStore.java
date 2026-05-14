@@ -2,8 +2,8 @@ package dev.everydaythings.graph.library.data;
 
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.encoding.Encoding;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
 
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;

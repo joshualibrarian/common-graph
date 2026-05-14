@@ -7,9 +7,9 @@ import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.identity.IdentityVocabulary;
 import dev.everydaythings.graph.identity.Signer;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
 
 import java.util.Optional;
 

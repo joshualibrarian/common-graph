@@ -3,7 +3,7 @@ package dev.everydaythings.graph.operator.compare;
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;

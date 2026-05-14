@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
+import dev.everydaythings.graph.id.ItemID;
 
 import java.util.List;
 import java.util.Map;
@@ -16,7 +18,7 @@ import java.util.Map;
  * formulas are acceptable. Each map in the list represents a dimensional formula
  * (Dimension IID → exponent), matching the format used by Unit.dimensions().
  */
-@Canonical.Canonization(classType = Canonical.ClassCollectionType.ARRAY)
+@Canonization(classType = Canonical.ClassCollectionType.ARRAY)
 public final class UnitRules implements Canonical {
 
     public enum AllowedDimsKind { ANY, DIMENSIONLESS, LIST }

@@ -1,9 +1,10 @@
 package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
@@ -93,7 +94,7 @@ class LibrarianInceptionTest {
         lib.bootstrap();
 
         assertThat(lib.currentKeys(
-                dev.everydaythings.graph.item.id.ItemID.fromString("some-stranger"),
+                ItemID.fromString("some-stranger"),
                 IdentityVocabulary.Signing.IID))
                 .isEmpty();
     }

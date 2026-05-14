@@ -5,7 +5,7 @@ import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -151,7 +151,7 @@ class SignerTest {
             // the Signer's actual IID — this is the cryptographic binding
             // that closes the IID-preemption gap.
             assertThat(s.iid())
-                    .isEqualTo(dev.everydaythings.graph.item.id.ItemID.fromMultikeyBytes(pk.encoded()));
+                    .isEqualTo(ItemID.fromMultikeyBytes(pk.encoded()));
         }
 
         @Test

@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+@Canonization(classType = Canonical.ClassCollectionType.MAP)
 public class ContextMenuItem implements Canonical {
 
     @Canon(order = 0) private String label;

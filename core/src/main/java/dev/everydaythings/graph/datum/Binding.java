@@ -1,25 +1,19 @@
 package dev.everydaythings.graph.datum;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.encoding.HashTree;
-import dev.everydaythings.graph.frame.FrameBodyOld;
-import dev.everydaythings.graph.frame.ItemFrame;
-import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.Implements;
-import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.language.CoreVocabulary;
-import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.SememeGloss;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.id.Reference;
+import dev.everydaythings.graph.canonical.Factory;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.CompoundKey.FrameToken;
+import dev.everydaythings.graph.id.ItemID;
 import lombok.Getter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -47,45 +41,7 @@ import java.util.Objects;
  * @see BindingTarget
  */
 @Getter
-@Implements(Binding.KEY)
-@ItemSeed(key = Binding.KEY)
 public final class Binding implements Canonical {
-
-    public static final String KEY = "cg.structure:binding";
-    public static final ItemID IID = ItemID.fromString(KEY);
-
-    @ItemFrame(predicate = SememeGloss.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Value.KEY, qualifiers = {Language.ENGLISH_KEY}))
-    static final String seedGloss = "a role binding within a frame — key→value with semantic function";
-
-    // EXPECTS — array position 0, 1, 2, 3, 4 (declaration order = position)
-    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
-    static final ItemID expectRole = ItemID.fromString(ThematicRole.KEY);
-
-    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBodyOld.TYPE_KEY, Qualifiers.KEY}))
-    static final ItemID expectQualifiers = Qualifiers.IID;
-
-    @ItemFrame(predicate = CoreVocabulary.Expects.KEY,
-               fieldAs = @ItemFrame.Bind(role = ThematicRole.Topic.KEY, qualifiers = {FrameBodyOld.TYPE_KEY, Target.KEY}))
-    static final ItemID expectTarget = Target.IID;
-
-    // TODO: @ItemFrame.Bind annotation still has identity/index properties; remove
-    // them when the seed pipeline gets reworked for the new model.
-
-    // Field-name sememes for array positions
-    @ItemSeed(key = Qualifiers.KEY)
-    static class Qualifiers {
-        static final String KEY = "cg.structure:qualifiers";
-        static final ItemID IID = ItemID.fromString(KEY);
-    }
-
-    @ItemSeed(key = Target.KEY)
-    static class Target {
-        static final String KEY = "cg.structure:target";
-        static final ItemID IID = ItemID.fromString(KEY);
-    }
 
     /** The semantic function — what KIND of binding (NAME, THEME, AGENT, ...). */
     private final ItemID role;
@@ -245,9 +201,9 @@ public final class Binding implements Canonical {
     }
 
     /**
-     * Create a binding with a compound reference (item + frame key path).
+     * Create a binding wrapping a {@link Reference} as the target.
      */
-    public static Binding ref(ItemID role, dev.everydaythings.graph.item.id.Ref target) {
+    public static Binding ref(ItemID role, Reference target) {
         return new Binding(role, BindingTarget.ref(target));
     }
 
@@ -257,14 +213,6 @@ public final class Binding implements Canonical {
     public static Binding literal(ItemID role, BindingTarget target) {
         return new Binding(role, target);
     }
-
-    /**
-     * Create a binding with an inline nested frame.
-     */
-    public static Binding frame(ItemID role, FrameBodyOld body) {
-        return new Binding(role, new BindingTarget.FrameTarget(body));
-    }
-
 
     // ==================================================================================
     // CBOR Encoding

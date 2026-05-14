@@ -1,6 +1,7 @@
 package dev.everydaythings.graph;
 
 import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.value.Literal;
 
 import java.lang.annotation.*;
 
@@ -132,8 +133,8 @@ public class Seed {
      * <ul>
      *   <li>{@code String} → text Literal</li>
      *   <li>{@code String[]} → multiple bindings (one per array element) on multiple frames</li>
-     *   <li>{@code dev.everydaythings.graph.item.id.ItemID} → IidTarget</li>
-     *   <li>{@code dev.everydaythings.graph.item.id.ItemID[]} → multiple bindings</li>
+     *   <li>{@code dev.everydaythings.graph.id.ItemID} → IidTarget</li>
+     *   <li>{@code dev.everydaythings.graph.id.ItemID[]} → multiple bindings</li>
      *   <li>{@code Class<?>} → Java-class Literal</li>
      *   <li>{@code byte[]} → binary Literal (raw bytes, untyped)</li>
      *   <li>{@code Boolean} / {@code boolean} → boolean Literal</li>
@@ -256,7 +257,7 @@ public class Seed {
 
         /**
          * Text literal target. Non-empty value indicates "set" — this binding's target is
-         * a text {@link dev.everydaythings.graph.item.Literal}. Used in {@code bindings[]} only.
+         * a text {@link Literal}. Used in {@code bindings[]} only.
          */
         String text() default "";
 

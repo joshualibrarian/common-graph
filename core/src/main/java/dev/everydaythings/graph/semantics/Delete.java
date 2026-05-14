@@ -2,7 +2,7 @@ package dev.everydaythings.graph.semantics;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;

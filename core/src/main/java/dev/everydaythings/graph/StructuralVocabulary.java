@@ -1,6 +1,6 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.semantics.ThematicRole;

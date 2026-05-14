@@ -1,13 +1,16 @@
 package dev.everydaythings.graph.library.data;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
+import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 
 import java.util.Arrays;
@@ -53,7 +56,7 @@ public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
     @Override
     default DatumID put(Datum datum) {
         java.util.Objects.requireNonNull(datum, "datum");
-        byte[] bytes = datum.encodeBinary(dev.everydaythings.graph.encoding.Canonical.Scope.BODY);
+        byte[] bytes = datum.encodeBinary(Scope.BODY);
         ContentID cid = ContentID.of(bytes);
         db(DataStore.Column.OBJECTS).key(cid).put(bytes);
         // Bridge: DatumID → ContentID. Key = DatumID-bytes | ContentID-bytes.

@@ -1,16 +1,15 @@
 package dev.everydaythings.graph.text;
 
+import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
@@ -194,7 +193,7 @@ class RoundTripTest {
         List<BindingMap> sorted = new java.util.ArrayList<>(fm.bindings());
         sorted.sort(java.util.Comparator.comparing(
                 b -> b.role().value().iid(),
-                dev.everydaythings.graph.encoding.HashTree.CANONICAL));
+                HashTree.CANONICAL));
         boolean first = true;
         for (BindingMap b : sorted) {
             if (!first) sb.append(", ");
@@ -216,7 +215,7 @@ class RoundTripTest {
         List<Binding> sorted = new java.util.ArrayList<>(body.bindings());
         sorted.sort(java.util.Comparator.comparing(
                 Binding::role,
-                dev.everydaythings.graph.encoding.HashTree.CANONICAL));
+                HashTree.CANONICAL));
         boolean first = true;
         for (Binding b : sorted) {
             if (!first) sb.append(", ");

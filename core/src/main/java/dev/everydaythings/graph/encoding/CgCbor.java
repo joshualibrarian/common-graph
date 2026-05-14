@@ -1,17 +1,23 @@
 package dev.everydaythings.graph.encoding;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.canonical.Node;
+import dev.everydaythings.graph.canonical.Walker;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.Reference;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.Reference;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -165,7 +171,7 @@ public final class CgCbor {
     private static final class CodecAdapter implements Encoding {
         static final CodecAdapter INSTANCE = new CodecAdapter();
 
-        @Override public dev.everydaythings.graph.item.id.ItemID encoding() { return Encoding.CgCborV1.IID; }
+        @Override public ItemID encoding() { return Encoding.CgCborV1.IID; }
         @Override public byte formatCode() { return (byte) Encoding.CgCborV1.FORMAT_CODE; }
         @Override public byte[] encode(Object value) { return CgCbor.encode(value); }
         @Override public Object decode(byte[] bytes) { return CgCbor.decode(bytes); }
@@ -241,9 +247,9 @@ public final class CgCbor {
     private static CBORObject encodeBindingTarget(BindingTarget t) {
         return switch (t) {
             case BindingTarget.RefTarget rt -> CBORObject.FromCBORObjectAndTag(
-                    CBORObject.FromByteArray(rt.asRef().toRefBytes()), TAG_REF);
+                    CBORObject.FromByteArray(rt.asReference().toRefBytes()), TAG_REF);
             case BindingTarget.FrameTarget ft -> CBORObject.FromCBORObjectAndTag(
-                    ft.body().toCborTree(Canonical.Scope.BODY), TAG_DATUM);
+                    ft.body().toCborTree(Scope.BODY), TAG_DATUM);
             case BindingTarget.RedactedTarget rt -> CBORObject.FromCBORObjectAndTag(
                     CBORObject.FromByteArray(rt.wrappedHash()), TAG_REDACTED);
             case Literal lit -> encodeLiteral(lit);

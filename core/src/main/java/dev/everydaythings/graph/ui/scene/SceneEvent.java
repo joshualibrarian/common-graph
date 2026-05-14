@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -41,7 +43,7 @@ import lombok.experimental.Accessors;
  */
 @Getter
 @Accessors(fluent = true)
-@Canonical.Canonization
+@Canonization
 public class SceneEvent implements Canonical {
 
     @Canon(order = 0) private String on;

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 
 import java.util.List;
 

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.library.bytestore;
 
-import dev.everydaythings.graph.item.id.*;
+import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.id.*;
 
 import java.net.Inet4Address;
 import java.net.Inet6Address;

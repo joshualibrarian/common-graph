@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
+import dev.everydaythings.graph.id.ItemID;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -60,7 +62,7 @@ import java.util.Map;
  */
 @Getter
 @Accessors(fluent = true)
-@Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+@Canonization(classType = Canonical.ClassCollectionType.MAP)
 public class SceneNode implements Canonical {
 
     // =================================================================================
@@ -313,7 +315,7 @@ public class SceneNode implements Canonical {
     /** Per-side border width, style, and color. Cascade prefix: {@code border.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @Canonization(classType = Canonical.ClassCollectionType.MAP)
     public static class Border implements Canonical {
         @Canon(order = 0)  private Object topWidth;
         @Canon(order = 1)  private String topStyle;
@@ -356,7 +358,7 @@ public class SceneNode implements Canonical {
     /** Per-axis rotation, scale, transform origin, elevation, position. Cascade prefix: {@code transform.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @Canonization(classType = Canonical.ClassCollectionType.MAP)
     public static class Transform implements Canonical {
         // Rotation per-axis — String "45deg" → Float after presentation
         @Canon(order = 0) private Object rotationX;
@@ -408,7 +410,7 @@ public class SceneNode implements Canonical {
     /** Font and text styling — 11 fields. Cascade prefix: {@code typography.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @Canonization(classType = Canonical.ClassCollectionType.MAP)
     public static class Typography implements Canonical {
         @Canon(order = 0)  private String fontFamily;
         /** Font size — String "1.2em" → Float after presentation. */
@@ -460,7 +462,7 @@ public class SceneNode implements Canonical {
     /** Background color, image, size, gradient. Cascade prefix: {@code background.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @Canonization(classType = Canonical.ClassCollectionType.MAP)
     public static class Background implements Canonical {
         /** Background color — String "#1E1E2E" → Integer after presentation. */
         @Canon(order = 0) private Object color;
@@ -484,7 +486,7 @@ public class SceneNode implements Canonical {
     /** State-driven property animation. Cascade prefix: {@code transition.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @Canonization(classType = Canonical.ClassCollectionType.MAP)
     public static class Transition implements Canonical {
         /** Transition property: "all", "backgroundColor", "opacity, backgroundColor". */
         @Canon(order = 0) private String property;
@@ -509,7 +511,7 @@ public class SceneNode implements Canonical {
     /** Keyframe timeline animation. Cascade prefix: {@code animation.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @Canonization(classType = Canonical.ClassCollectionType.MAP)
     public static class Animation implements Canonical {
         /** Animation duration: "2s", "500ms" → Float after presentation. */
         @Canon(order = 0) private Object duration;
@@ -546,7 +548,7 @@ public class SceneNode implements Canonical {
     /** Container layout: flow direction, gap, alignment, grid dimensions. Cascade prefix: {@code layout.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @Canonization(classType = Canonical.ClassCollectionType.MAP)
     public static class Layout implements Canonical {
         /** Flow mode: "vertical", "horizontal", "stack", "grid". */
         @Canon(order = 0) private String mode;
@@ -576,7 +578,7 @@ public class SceneNode implements Canonical {
     /** A keyframe in an animation timeline — percentage stop with property values. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization
+    @Canonization
     public static class Keyframe implements Canonical {
         @Canon(order = 0) private float at;
         @Canon(order = 1) private Map<String, String> properties;
@@ -594,7 +596,7 @@ public class SceneNode implements Canonical {
     /** A state declaration — the runtime holds the actual value. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization
+    @Canonization
     public static class StateDecl implements Canonical {
         @Canon(order = 0) private String key;
         @Canon(order = 1) private String defaultValue;
@@ -612,7 +614,7 @@ public class SceneNode implements Canonical {
     /** A semantic token — a sememe reference with grammatical features. */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization
+    @Canonization
     public static class SemanticToken implements Canonical {
         @Canon(order = 0) private ItemID sememe;
         @Canon(order = 1) private List<ItemID> features;

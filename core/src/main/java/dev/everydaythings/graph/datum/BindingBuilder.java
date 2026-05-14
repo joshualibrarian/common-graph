@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.CompoundKey.FrameToken;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.CompoundKey.FrameToken;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.identity.Signer;
 
 import java.time.Instant;

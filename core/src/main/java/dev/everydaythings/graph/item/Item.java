@@ -1,13 +1,14 @@
 package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.id.DatumID;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.item.id.FrameRef;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.text.FrameDraftMerger;
@@ -30,9 +31,10 @@ import java.util.stream.Stream;
  * that don't have a specific archetype implementation. Subclasses extend Item to
  * add archetype-specific fields and behavior.
  *
- * <p>Identity-and-bootstrap is in place. Other concerns (manifest state, frame
- * access, field reflection, vocabulary, lifecycle hooks) will be migrated piece
- * by piece from {@link ItemOld} as their requirements become clear.
+ * <p>Identity-and-bootstrap, manifest state, the frame-assembled hook, commit,
+ * and the text-pipeline entry points are wired. Other concerns (field reflection
+ * for declarative frame fields, lifecycle hooks beyond {@code onFrameAssembled})
+ * accrue here piece by piece as their requirements become clear.
  */
 @Getter
 @Seed.Item(key = dev.everydaythings.graph.item.Item.KEY)
@@ -139,7 +141,7 @@ public class Item {
      *
      * <p>Empty if no manifest is currently loaded.
      */
-    public Optional<dev.everydaythings.graph.item.id.DatumID> versionId() {
+    public Optional<DatumID> versionId() {
         return current != null ? Optional.of(current.versionId()) : Optional.empty();
     }
 
@@ -149,7 +151,7 @@ public class Item {
      * <p>Empty list for inception manifests, multiple entries for merge manifests,
      * or empty if no manifest is currently loaded.
      */
-    public List<dev.everydaythings.graph.item.id.DatumID> parents() {
+    public List<DatumID> parents() {
         return current != null ? current.parents() : List.of();
     }
 

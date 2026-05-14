@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.text;
 
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ItemRef;
 import lombok.Builder;
 import lombok.Value;
 import lombok.With;

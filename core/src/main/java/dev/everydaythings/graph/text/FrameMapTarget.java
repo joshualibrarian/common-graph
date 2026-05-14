@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.text;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.datum.BindingTarget;
 

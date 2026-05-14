@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.identity.vault;
 
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
@@ -14,13 +14,13 @@ import dev.everydaythings.graph.identity.IdentityVocabulary.Delegation;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Revocation;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Rotation;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.FrameRef;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Next;
 import dev.everydaythings.graph.semantics.CoreVocabulary.Expires;

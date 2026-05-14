@@ -2,13 +2,12 @@ package dev.everydaythings.graph;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.linguistics.Lexeme;
 import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import static dev.everydaythings.graph.Seed.*;
 

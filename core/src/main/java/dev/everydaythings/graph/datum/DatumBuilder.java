@@ -1,7 +1,8 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.item.ManifestBuilder;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.semantics.ThematicRole;
 
 import java.time.Instant;

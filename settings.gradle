@@ -1,3 +1,3 @@
 rootProject.name = 'common-graph'
 
-include ':core', ':language', ':language:english', ':language:german', ':games', ':media', ':ui', ':web'
+include ':core'

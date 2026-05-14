@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
@@ -173,20 +173,8 @@ public class SceneCompiler {
         return source;
     }
 
-    public static double elevationToMeters(String spec) {
-        if (spec == null || spec.isEmpty() || "0".equals(spec)) return 0;
-        SizeValue sv = SizeValue.parse(spec, "m");
-        if (sv == null) return 0;
-        return switch (sv.unit()) {
-            case "mm" -> sv.value() / 1000.0;
-            case "cm" -> sv.value() / 100.0;
-            case "m" -> sv.value();
-            case "km" -> sv.value() * 1000.0;
-            default -> sv.value();
-        };
-    }
-
-    static double parseDimension(String spec) { return elevationToMeters(spec); }
+    // TODO: elevationToMeters / parseDimension — were using deleted SizeValue.
+    // Restore alongside the new dimension/quantity vocabulary when needed.
 
     // ==================================================================================
     // Container from class annotation
@@ -213,7 +201,7 @@ public class SceneCompiler {
             try { c.aspectRatio(Float.parseFloat(ann.aspectRatio())); }
             catch (NumberFormatException ignored) {}
         }
-        if (!ann.depth().isEmpty()) c.elevation(elevationToMeters(ann.depth()));
+        // TODO: depth/elevation parsing — was using deleted elevationToMeters/SizeValue.
         return c;
     }
 

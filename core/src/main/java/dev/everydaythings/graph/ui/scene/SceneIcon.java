@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
 import lombok.Getter;
 
 /**
@@ -17,7 +19,7 @@ import lombok.Getter;
  * Cascade: missing levels fall back — no model? use image. No image? use glyph.
  */
 @Getter
-@Canonical.Canonization
+@Canonization
 public class SceneIcon implements Canonical {
 
     @Canon(order = 0)

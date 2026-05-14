@@ -1,11 +1,15 @@
 package dev.everydaythings.graph.datum;
 
+import dev.everydaythings.graph.canonical.CgTag;
+
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.item.id.ItemRef;
-import dev.everydaythings.graph.item.id.Reference;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Factory;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.Reference;
 
 import java.util.List;
 import java.util.Objects;
@@ -55,7 +59,7 @@ public final class Body extends Datum {
         CBORObject arr = CBORObject.NewArray();
         arr.Add(head.toCborTree(scope));
         arr.Add(encodeBindingsArray(scope));
-        return CBORObject.FromObjectAndTag(arr, Canonical.CgTag.DATUM);
+        return CBORObject.FromObjectAndTag(arr, CgTag.DATUM);
     }
 
     /**
@@ -70,7 +74,7 @@ public final class Body extends Datum {
     @Factory
     public static Body fromCborTree(CBORObject node) {
         Objects.requireNonNull(node, "node");
-        if (node.isTagged() && node.HasMostOuterTag(Canonical.CgTag.DATUM)) {
+        if (node.isTagged() && node.HasMostOuterTag(CgTag.DATUM)) {
             node = node.UntagOne();
         }
         if (node.getType() != CBORType.Array || node.size() != 2) {

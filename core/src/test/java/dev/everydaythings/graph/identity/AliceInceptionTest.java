@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

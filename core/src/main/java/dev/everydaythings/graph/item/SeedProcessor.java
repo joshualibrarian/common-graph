@@ -4,11 +4,10 @@ import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.Handler;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.SchemaVocabulary;
@@ -16,6 +15,7 @@ import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.semantics.Runtimes;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.value.Literal;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
@@ -303,7 +303,7 @@ public final class SeedProcessor {
                         .map(f -> f.body())
                         .orElse(null);
                 if (endorsedBody == null) continue;
-                if (endorsedBody.head() instanceof dev.everydaythings.graph.item.id.ItemRef ref
+                if (endorsedBody.head() instanceof ItemRef ref
                         && SchemaVocabulary.Expects.IID.equals(ref.iid())) {
                     return;  // Found at least one EXPECTS endorsement; we're good.
                 }

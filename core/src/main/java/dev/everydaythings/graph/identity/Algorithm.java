@@ -1,8 +1,10 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.item.Factory;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Factory;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import java.util.*;

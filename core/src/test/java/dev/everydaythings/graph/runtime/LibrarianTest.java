@@ -1,20 +1,23 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.Scope;
+
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.FrameRef;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.library.index.TokenPosting;
 import org.junit.jupiter.api.DisplayName;
@@ -295,8 +298,8 @@ class LibrarianTest {
 
             assertThat(frame.body()).isEqualTo(body);
             assertThat(frame.records()).hasSize(1);
-            assertThat(lib.has(ContentID.of(frame.body().encodeBinary(Canonical.Scope.BODY)))).isTrue();
-            assertThat(lib.has(ContentID.of(frame.records().get(0).encodeBinary(Canonical.Scope.BODY)))).isTrue();
+            assertThat(lib.has(ContentID.of(frame.body().encodeBinary(Scope.BODY)))).isTrue();
+            assertThat(lib.has(ContentID.of(frame.records().get(0).encodeBinary(Scope.BODY)))).isTrue();
         }
 
         @Test
@@ -505,7 +508,7 @@ class LibrarianTest {
                             Binding.ref(Manifest.ITEM_ID, iid),
                             new Binding(
                                     Manifest.IMPLEMENTATION,
-                                    java.util.List.of(new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                                    java.util.List.of(new CompoundKey.Sememe(
                                             dev.everydaythings.graph.CoreVocabulary.JavaClass.IID)),
                                     Literal.ofText("does.not.Exist"))
                     )
@@ -700,11 +703,11 @@ class LibrarianTest {
                             new Binding(
                                     dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
                                     List.of(
-                                            new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                                            new CompoundKey.Sememe(
                                                     dev.everydaythings.graph.linguistics.Language.English.IID),
-                                            new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                                            new CompoundKey.Sememe(
                                                     dev.everydaythings.graph.linguistics.PartOfSpeech.Verb.IID),
-                                            new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                                            new CompoundKey.Sememe(
                                                     dev.everydaythings.graph.linguistics.GrammaticalFeature.Lemma.IID)),
                                     Literal.ofText(token))));
 

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.linguistics;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 
 /**
  * Grammatical feature sememes — narrowing qualifiers on lexemes and other

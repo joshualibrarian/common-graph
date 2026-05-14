@@ -1,13 +1,15 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
 
 /**
  * Canonicalization rules applied to numeric values.
  *
  * Keep this conservative: the core promise is deterministic encoding.
  */
-@Canonical.Canonization(classType = Canonical.ClassCollectionType.ARRAY)
+@Canonization(classType = Canonical.ClassCollectionType.ARRAY)
 public final class CanonRules implements Canonical {
 
     public enum Rounding { HALF_EVEN, HALF_UP, FLOOR, CEILING, TRUNC }

@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -16,7 +18,7 @@ import java.util.List;
  */
 @Getter
 @Accessors(fluent = true)
-@Canonical.Canonization
+@Canonization
 public class Gradient implements Canonical {
 
     /** "linear" or "radial". */
@@ -70,7 +72,7 @@ public class Gradient implements Canonical {
      */
     @Getter
     @Accessors(fluent = true)
-    @Canonical.Canonization
+    @Canonization
     public static class ColorStop implements Canonical {
 
         /** Color — String "#RRGGBB" → Integer 0xFFRRGGBB after presentation. */

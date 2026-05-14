@@ -1,16 +1,18 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.Scope;
+
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.FrameRef;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,7 +65,7 @@ class DatumIntegrationTest {
                 Binding.ref(THEME, hobbit)
         ));
         DatumID bodyId = body.datumId();
-        ContentID bodyCid = ContentID.of(body.encodeBinary(Canonical.Scope.BODY));
+        ContentID bodyCid = ContentID.of(body.encodeBinary(Scope.BODY));
 
         // Build a record body (head + bindings, no signature yet) for signing
         Record proto = Record.of(
@@ -153,9 +155,9 @@ class DatumIntegrationTest {
         assertThat(v2.endorses()).hasSize(2);
 
         // CBOR round-trip preserves identity
-        Body decoded = Body.fromCborTree(v2Body.toCborTree(Canonical.Scope.BODY));
-        assertThat(ContentID.of(decoded.encodeBinary(Canonical.Scope.BODY)))
-                .isEqualTo(ContentID.of(v2Body.encodeBinary(Canonical.Scope.BODY)));
+        Body decoded = Body.fromCborTree(v2Body.toCborTree(Scope.BODY));
+        assertThat(ContentID.of(decoded.encodeBinary(Scope.BODY)))
+                .isEqualTo(ContentID.of(v2Body.encodeBinary(Scope.BODY)));
         Manifest reconstituted = Manifest.of(decoded);
         assertThat(reconstituted.itemId()).isEqualTo(iid);
         assertThat(reconstituted.parents()).hasSize(1);

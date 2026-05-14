@@ -2,7 +2,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import lombok.extern.log4j.Log4j2;
 
 /**

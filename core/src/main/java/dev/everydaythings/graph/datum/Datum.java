@@ -1,10 +1,12 @@
 package dev.everydaythings.graph.datum;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.encoding.HashTree;
-import dev.everydaythings.graph.encoding.Walker;
-import dev.everydaythings.graph.item.id.*;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.canonical.Walker;
+import dev.everydaythings.graph.id.*;
 import lombok.Getter;
 
 import java.util.ArrayList;

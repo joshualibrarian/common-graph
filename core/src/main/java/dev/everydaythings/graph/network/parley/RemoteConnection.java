@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network.parley;
 
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.item.id.ContentID;
+import dev.everydaythings.graph.id.ContentID;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.concurrent.CompletableFuture;

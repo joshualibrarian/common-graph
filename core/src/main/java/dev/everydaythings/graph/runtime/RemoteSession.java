@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.identity.vault.Vault;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.network.parley.Parley;
 import dev.everydaythings.graph.network.parley.RemoteConnection;
 import lombok.extern.log4j.Log4j2;

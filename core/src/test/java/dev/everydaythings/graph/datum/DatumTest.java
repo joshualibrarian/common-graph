@@ -1,17 +1,19 @@
 package dev.everydaythings.graph.datum;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.FrameRef;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,7 +46,7 @@ class DatumTest {
 
             assertThat(body.head()).isEqualTo(ItemRef.of(PRED));
             assertThat(body.bindings()).hasSize(2);
-            assertThat(ContentID.of(body.encodeBinary(Canonical.Scope.BODY))).isNotNull();
+            assertThat(ContentID.of(body.encodeBinary(Scope.BODY))).isNotNull();
         }
 
         @Test
@@ -55,19 +57,19 @@ class DatumTest {
                     Binding.ref(THEME, HOBBIT)
             ));
 
-            CBORObject cbor = original.toCborTree(Canonical.Scope.BODY);
+            CBORObject cbor = original.toCborTree(Scope.BODY);
             Body decoded = Body.fromCborTree(cbor);
 
             assertThat(decoded).isEqualTo(original);
-            assertThat(ContentID.of(decoded.encodeBinary(Canonical.Scope.BODY)))
-                    .isEqualTo(ContentID.of(original.encodeBinary(Canonical.Scope.BODY)));
+            assertThat(ContentID.of(decoded.encodeBinary(Scope.BODY)))
+                    .isEqualTo(ContentID.of(original.encodeBinary(Scope.BODY)));
         }
 
         @Test
         @DisplayName("CBOR encoding is a 2-element array")
         void cborTwoElement() {
             Body body = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
-            CBORObject cbor = body.toCborTree(Canonical.Scope.BODY);
+            CBORObject cbor = body.toCborTree(Scope.BODY);
             assertThat(cbor.getType()).isEqualTo(com.upokecenter.cbor.CBORType.Array);
             assertThat(cbor.size()).isEqualTo(2);
         }
@@ -76,7 +78,7 @@ class DatumTest {
         @DisplayName("decode rejects 3-element array")
         void rejectsRecordShape() {
             CBORObject record = CBORObject.NewArray();
-            record.Add(ItemRef.of(PRED).toCborTree(Canonical.Scope.BODY));
+            record.Add(ItemRef.of(PRED).toCborTree(Scope.BODY));
             record.Add(CBORObject.NewArray());
             record.Add(CBORObject.FromByteArray(new byte[]{0x01}));
 
@@ -88,7 +90,7 @@ class DatumTest {
         @DisplayName("decode rejects non-ItemRef head")
         void rejectsNonItemRefHead() {
             CBORObject body = CBORObject.NewArray();
-            body.Add(FrameRef.of(DatumID.of("x".getBytes())).toCborTree(Canonical.Scope.BODY));
+            body.Add(FrameRef.of(DatumID.of("x".getBytes())).toCborTree(Scope.BODY));
             body.Add(CBORObject.NewArray());
 
             assertThatThrownBy(() -> Body.fromCborTree(body))
@@ -100,8 +102,8 @@ class DatumTest {
         void equalBodiesEqualCids() {
             Body a = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
             Body b = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
-            assertThat(ContentID.of(a.encodeBinary(Canonical.Scope.BODY)))
-                    .isEqualTo(ContentID.of(b.encodeBinary(Canonical.Scope.BODY)));
+            assertThat(ContentID.of(a.encodeBinary(Scope.BODY)))
+                    .isEqualTo(ContentID.of(b.encodeBinary(Scope.BODY)));
         }
 
         @Test
@@ -120,7 +122,7 @@ class DatumTest {
 
             // DatumID (Merkle structural hash) is computed differently from
             // ContentID (canonical bytes hash); they should not coincide.
-            ContentID aContentId = ContentID.of(a.encodeBinary(Canonical.Scope.BODY));
+            ContentID aContentId = ContentID.of(a.encodeBinary(Scope.BODY));
             assertThat(a.datumId().encodeBinary()).isNotEqualTo(aContentId.encodeBinary());
         }
 
@@ -131,13 +133,13 @@ class DatumTest {
             BindingTarget original = BindingTarget.iid(HOBBIT);
 
             // Compute what the original target contributes to the Merkle hash.
-            byte[] originalContribution = dev.everydaythings.graph.encoding.HashTree.hashOf(
-                    original, dev.everydaythings.graph.encoding.HashTree.DEFAULT_DIGEST);
+            byte[] originalContribution = HashTree.hashOf(
+                    original, HashTree.DEFAULT_DIGEST);
 
             // A RedactedTarget wrapping that same hash should contribute identically.
             BindingTarget redacted = new BindingTarget.RedactedTarget(originalContribution);
-            assertThat(dev.everydaythings.graph.encoding.HashTree.hashOf(
-                    redacted, dev.everydaythings.graph.encoding.HashTree.DEFAULT_DIGEST))
+            assertThat(HashTree.hashOf(
+                    redacted, HashTree.DEFAULT_DIGEST))
                     .isEqualTo(originalContribution);
 
             // Construct a body with the original target, and another with the
@@ -150,8 +152,8 @@ class DatumTest {
             assertThat(full.datumId()).isEqualTo(redactedBody.datumId());
 
             // But their canonical bytes differ — the wire forms are different.
-            assertThat(ContentID.of(full.encodeBinary(Canonical.Scope.BODY)))
-                    .isNotEqualTo(ContentID.of(redactedBody.encodeBinary(Canonical.Scope.BODY)));
+            assertThat(ContentID.of(full.encodeBinary(Scope.BODY)))
+                    .isNotEqualTo(ContentID.of(redactedBody.encodeBinary(Scope.BODY)));
         }
 
         @Test
@@ -204,7 +206,7 @@ class DatumTest {
             VarSig varsig = VarSig.of(Algorithm.Sign.ED25519, sig);
 
             Record original = Record.of(FrameRef.of(bodyId), List.of(), varsig);
-            CBORObject cbor = original.toCborTree(Canonical.Scope.BODY);
+            CBORObject cbor = original.toCborTree(Scope.BODY);
             Record decoded = Record.fromCborTree(cbor);
 
             assertThat(decoded).isEqualTo(original);
@@ -218,7 +220,7 @@ class DatumTest {
             Record record = Record.of(FrameRef.of(bodyId), List.of(),
                     VarSig.of(Algorithm.Sign.ED25519, sig));
 
-            CBORObject cbor = record.toCborTree(Canonical.Scope.BODY);
+            CBORObject cbor = record.toCborTree(Scope.BODY);
             assertThat(cbor.getType()).isEqualTo(com.upokecenter.cbor.CBORType.Array);
             assertThat(cbor.size()).isEqualTo(3);
         }
@@ -227,7 +229,7 @@ class DatumTest {
         @DisplayName("decode rejects 2-element array")
         void rejectsBodyShape() {
             CBORObject body = CBORObject.NewArray();
-            body.Add(FrameRef.of(DatumID.of("x".getBytes())).toCborTree(Canonical.Scope.BODY));
+            body.Add(FrameRef.of(DatumID.of("x".getBytes())).toCborTree(Scope.BODY));
             body.Add(CBORObject.NewArray());
 
             assertThatThrownBy(() -> Record.fromCborTree(body))
@@ -238,7 +240,7 @@ class DatumTest {
         @DisplayName("decode rejects non-FrameRef head")
         void rejectsNonFrameRefHead() {
             CBORObject record = CBORObject.NewArray();
-            record.Add(ItemRef.of(PRED).toCborTree(Canonical.Scope.BODY));
+            record.Add(ItemRef.of(PRED).toCborTree(Scope.BODY));
             record.Add(CBORObject.NewArray());
             record.Add(CBORObject.FromByteArray(new byte[]{0x01}));
 
@@ -285,7 +287,7 @@ class DatumTest {
 
             assertThat(frame.body()).isEqualTo(body);
             assertThat(frame.records()).isEmpty();
-            assertThat(frame.bodyCID()).isEqualTo(ContentID.of(body.encodeBinary(Canonical.Scope.BODY)));
+            assertThat(frame.bodyCID()).isEqualTo(ContentID.of(body.encodeBinary(Scope.BODY)));
         }
 
         @Test

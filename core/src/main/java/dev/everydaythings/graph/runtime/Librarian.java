@@ -1,8 +1,12 @@
 package dev.everydaythings.graph.runtime;
+
+import dev.everydaythings.graph.canonical.Scope;
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.canonical.Node;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.identity.vault.InMemoryVault;
@@ -11,15 +15,15 @@ import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.identity.IdentityVocabulary;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.SeedProcessor;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.FrameRef;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.library.index.TokenPosting;
@@ -181,8 +185,8 @@ public class Librarian extends Signer {
         return requireEncoder().decode(bytes);
     }
 
-    /** Walk a value as a {@link dev.everydaythings.graph.encoding.Node} tree. Throws if no encoder. */
-    public dev.everydaythings.graph.encoding.Node walk(Object value) {
+    /** Walk a value as a {@link Node} tree. Throws if no encoder. */
+    public Node walk(Object value) {
         return requireEncoder().walk(value);
     }
 
@@ -342,7 +346,7 @@ public class Librarian extends Signer {
      */
     public Optional<byte[]> fetch(DatumID datumId) {
         return library.fetchDatum(datumId).map(d ->
-                d.encodeBinary(dev.everydaythings.graph.encoding.Canonical.Scope.BODY));
+                d.encodeBinary(Scope.BODY));
     }
 
     /** Whether the local Library has any realization for the given DatumID. */

@@ -5,10 +5,10 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.index.RefIndexStore;
 
 import java.util.List;

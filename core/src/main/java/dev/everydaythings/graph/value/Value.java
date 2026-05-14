@@ -1,7 +1,9 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.item.id.Ref;
+import dev.everydaythings.graph.canonical.Scope;
+
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.id.Reference;
 
 /**
  * Marker interface for values that can be relation literals.
@@ -39,10 +41,10 @@ public interface Value extends Canonical {
     // ==================================================================================
 
     /**
-     * Values don't inherently have a stable ref.
+     * Values don't inherently have a stable reference.
      * The tree wraps them with context when displayed.
      */
-    default Ref ref() {
+    default Reference ref() {
         return null;
     }
 

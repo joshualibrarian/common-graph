@@ -1,10 +1,10 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.item.Literal;
+import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;

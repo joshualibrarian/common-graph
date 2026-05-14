@@ -1,8 +1,6 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.Implements;
-import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.value.DisplayWidth;
+import dev.everydaythings.graph.canonical.Canon;
 import lombok.Getter;
 
 /**
@@ -18,12 +16,7 @@ import lombok.Getter;
  * and suitable for quantities with units.
  */
 @Getter
-@Implements("cg.value:decimal")
-@ItemSeed(key = "cg.value:decimal")
 public final class Decimal implements Numeric {
-
-    /** Display width: decimal numbers are typically 4-12 characters */
-    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(3, 8, 20, Unit.lookupSeed(Unit.CharacterWidth.IID));
 
     @Canon(order = 1)
     private final long unscaled;

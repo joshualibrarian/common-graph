@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.linguistics;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 
 /**
  * Part-of-speech sememes — grammatical category targets of {@code POS}-qualified

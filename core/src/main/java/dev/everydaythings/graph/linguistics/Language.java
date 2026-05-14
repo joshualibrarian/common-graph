@@ -1,19 +1,17 @@
 package dev.everydaythings.graph.linguistics;
 
 import com.ibm.icu.util.ULocale;
-import dev.everydaythings.graph.Implements;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.Librarian;
 import dev.everydaythings.graph.semantics.ThematicRole;
 import dev.everydaythings.graph.text.FrameMap;
@@ -43,7 +41,6 @@ import java.util.Optional;
  * codes follow BCP-47 ({@code cg.lang:en-US}, {@code cg.lang:de-CH}, etc.).
  */
 @Seed.Item(key = Language.KEY)
-@Implements(Language.KEY)
 public class Language extends Item {
 
     /** Canonical key for the language meta-sememe. */

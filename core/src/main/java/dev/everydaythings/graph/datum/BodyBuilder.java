@@ -1,9 +1,10 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.identity.VarSig;
-import dev.everydaythings.graph.item.Literal;
-import dev.everydaythings.graph.item.id.FrameRef;
+import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.FrameRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.semantics.ThematicRole;
 
@@ -113,7 +114,7 @@ public abstract class BodyBuilder<SELF extends BodyBuilder<SELF, R>, R> extends 
             return Record.of(FrameRef.of(body.datumId()), finalBindings, sig);
         }
 
-        private static boolean hasRole(List<Binding> bindings, dev.everydaythings.graph.item.id.ItemID role) {
+        private static boolean hasRole(List<Binding> bindings, ItemID role) {
             for (Binding b : bindings) {
                 if (b.role().equals(role) && b.qualifiers().isEmpty()) return true;
             }

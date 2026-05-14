@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.index;
 
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.value.Decimal;
 
 import java.util.Objects;

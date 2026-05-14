@@ -1,16 +1,18 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.encoding.HashTree;
+import dev.everydaythings.graph.canonical.Scope;
+
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.DatumID;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.runtime.Librarian;
 import org.junit.jupiter.api.DisplayName;
@@ -426,7 +428,7 @@ class ItemTest {
             Manifest manifest = item.commit(List.of());
             DatumID bodyCid = manifest.versionId();
             ContentID recordCid = ContentID.of(
-                    manifest.records().get(0).encodeBinary(Canonical.Scope.BODY));
+                    manifest.records().get(0).encodeBinary(Scope.BODY));
 
             assertThat(lib.has(bodyCid)).isTrue();
             assertThat(lib.has(recordCid)).isTrue();

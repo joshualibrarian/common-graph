@@ -2,13 +2,14 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
 import dev.everydaythings.graph.linguistics.Lexeme;
 import dev.everydaythings.graph.linguistics.PartOfSpeech;
 import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.value.Literal;
 
 /**
  * The {@code CREATE} predicate — instantiate a fresh item.
@@ -25,7 +26,7 @@ import dev.everydaythings.graph.semantics.ThematicRole;
  *   <li>{@code AGENT → @<signer>} — auto-populated from the CREATE frame's records;
  *       identifies who authorized the creation.</li>
  *   <li>{@code INSTRUMENT → @<implementation>} — optional: a specific
- *       implementation to use. Can be a Java-class {@link dev.everydaythings.graph.item.Literal}
+ *       implementation to use. Can be a Java-class {@link Literal}
  *       or an item reference. When absent, the librarian falls back to the
  *       archetype's own IMPLEMENTATION binding (Phase 2: trust-matrix-weighted
  *       selection among available implementations).</li>

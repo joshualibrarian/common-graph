@@ -1,10 +1,12 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.encoding.Canonical;
-import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.Implements;
-import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
+import dev.everydaythings.graph.canonical.Factory;
 import lombok.Getter;
 
 import java.util.Objects;
@@ -33,9 +35,7 @@ import java.util.Objects;
  * }</pre>
  */
 @Getter
-@Implements("cg.value:endpoint")
-@ItemSeed(key = "cg.value:endpoint")
-@Canonical.Canonization(classType = Canonical.ClassCollectionType.MAP)
+@Canonization(classType = Canonical.ClassCollectionType.MAP)
 public final class Endpoint implements Value {
 
     /** Default protocol for Common Graph communication. */

@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.value;
 
+import dev.everydaythings.graph.canonical.Scope;
+
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.item.Factory;
-import dev.everydaythings.graph.Implements;
-import dev.everydaythings.graph.item.ItemSeed;
+import dev.everydaythings.graph.canonical.Factory;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -16,12 +16,7 @@ import java.util.Objects;
  *
  * <p>Encodes as a CBOR byte string containing the raw IP bytes (4 or 16).
  */
-@Implements("cg.value:ip")
-@ItemSeed(key = "cg.value:ip")
 public final class IpAddress implements Value {
-
-    /** Display width: IPv4 is short (15 chars), IPv6 can be long (39 chars) */
-    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(8, 15, 40, Unit.lookupSeed(Unit.CharacterWidth.IID));
 
     private final byte[] bytes; // 4 or 16
 

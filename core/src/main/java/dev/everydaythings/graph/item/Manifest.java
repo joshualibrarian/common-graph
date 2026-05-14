@@ -5,11 +5,12 @@ import dev.everydaythings.graph.datum.AttributedBody;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.datum.ManifestBuilder;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.value.Literal;
 
 import java.util.List;
 import java.util.Optional;
@@ -108,7 +109,7 @@ public final class Manifest extends AttributedBody {
     /**
      * The version ID — the body's structural identity (DatumID).
      */
-    public dev.everydaythings.graph.item.id.DatumID versionId() {
+    public DatumID versionId() {
         return body().datumId();
     }
 
@@ -118,7 +119,7 @@ public final class Manifest extends AttributedBody {
      * <p>Returns an empty list for an inception manifest (no parents).
      * Multi-IID FOLLOWS indicates a merge of multiple parent versions.
      */
-    public List<dev.everydaythings.graph.item.id.DatumID> parents() {
+    public List<DatumID> parents() {
         return body().bindingsByRole(FOLLOWS).stream()
                 .map(b -> readDatumIdFromTarget(b.target(), FOLLOWS_KEY))
                 .toList();
@@ -183,9 +184,9 @@ public final class Manifest extends AttributedBody {
     public static Binding javaImplementation(Class<?> clazz) {
         return new Binding(
                 IMPLEMENTATION,
-                java.util.List.of(new dev.everydaythings.graph.item.id.CompoundKey.Sememe(
+                java.util.List.of(new CompoundKey.Sememe(
                         CoreVocabulary.JavaClass.IID)),
-                dev.everydaythings.graph.item.Literal.ofText(clazz.getName()));
+                Literal.ofText(clazz.getName()));
     }
 
     /**
@@ -196,7 +197,7 @@ public final class Manifest extends AttributedBody {
      */
     public static boolean isJavaClassBinding(Binding b) {
         for (var q : b.qualifiers()) {
-            if (q instanceof dev.everydaythings.graph.item.id.CompoundKey.Sememe s
+            if (q instanceof CompoundKey.Sememe s
                     && CoreVocabulary.JavaClass.IID.equals(s.id())) {
                 return true;
             }
@@ -217,16 +218,20 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
-     * Read a DatumID from a binding target, expecting a reference target shape.
+     * Read a DatumID from a binding target, expecting a {@link FrameRef}-shaped
+     * reference target (the typical FOLLOWS/ENDORSES shape — a body CID).
      */
-    private static dev.everydaythings.graph.item.id.DatumID readDatumIdFromTarget(BindingTarget target, String role) {
+    private static DatumID readDatumIdFromTarget(BindingTarget target, String role) {
         if (target instanceof BindingTarget.RefTarget refTarget) {
-            // RefTarget wraps a Ref; for FOLLOWS the target is conceptually a VID
-            // (which is the prior body's DatumID). Derive from the ref's bytes.
-            return new dev.everydaythings.graph.item.id.DatumID(refTarget.asItemId().encodeBinary());
+            DatumID datumId = refTarget.asDatumId();
+            if (datumId != null) return datumId;
+            // Backwards-compatible fallback: derive a DatumID from an ItemRef's
+            // bytes (handles older callers that wrapped a CID as an ItemRef).
+            ItemID iid = refTarget.asItemId();
+            if (iid != null) return new DatumID(iid.encodeBinary());
         }
         throw new IllegalStateException(
-                role + " binding target must be a reference, got "
+                role + " binding target must be a frame reference, got "
                         + target.getClass().getSimpleName());
     }
 }

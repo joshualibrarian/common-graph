@@ -2,8 +2,8 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.item.id.ItemRef;
+import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.semantics.Create;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

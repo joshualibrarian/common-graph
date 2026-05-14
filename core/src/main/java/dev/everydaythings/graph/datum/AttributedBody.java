@@ -1,10 +1,12 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Scope;
+
+import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.item.id.CompoundKey;
-import dev.everydaythings.graph.item.id.ContentID;
-import dev.everydaythings.graph.item.id.Reference;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.Reference;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -50,7 +52,7 @@ public abstract class AttributedBody {
 
     /** The body's CID — hash of the encoded body bytes under the default codec. */
     public ContentID bodyCID() {
-        return ContentID.of(body.encodeBinary(Canonical.Scope.BODY));
+        return ContentID.of(body.encodeBinary(Scope.BODY));
     }
 
     /** Find the first body binding whose (role, qualifiers) matches the given key. */

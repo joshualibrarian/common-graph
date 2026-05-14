@@ -82,11 +82,6 @@ dependencies {
     implementation "io.github.classgraph:classgraph:${classgraphVersion}"
 
     // -------------------------------------------------------------------------
-    // JLine (compileOnly — Eval.java uses JLine; to be moved to :ui later)
-    // -------------------------------------------------------------------------
-    compileOnly "org.jline:jline:${jlineVersion}"
-
-    // -------------------------------------------------------------------------
     // Semantic Web (test only)
     // -------------------------------------------------------------------------
     testImplementation "org.apache.jena:jena-arq:${jenaVersion}"

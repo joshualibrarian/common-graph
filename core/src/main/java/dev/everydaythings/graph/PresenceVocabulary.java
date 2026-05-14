@@ -1,6 +1,7 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.item.id.ItemID;
+import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.linguistics.GrammaticalFeature;
 import dev.everydaythings.graph.linguistics.Gloss;
 import dev.everydaythings.graph.linguistics.Language;
@@ -28,7 +29,7 @@ import static dev.everydaythings.graph.Seed.*;
  *       {@code CONFIG:[RETENTION] → EPHEMERAL} (see
  *       {@link SchemaVocabulary.Ephemeral}).</li>
  *   <li><b>Streaming</b> (video, audio) — TOPIC bindings on a PRESENT frame
- *       referencing a content {@link dev.everydaythings.graph.item.id.ContentID}
+ *       referencing a content {@link ContentID}
  *       chain.</li>
  * </ul>
  *

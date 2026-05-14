@@ -1,9 +1,7 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.Implements;
-import dev.everydaythings.graph.item.ItemSeed;
-import dev.everydaythings.graph.item.id.ItemID;
-import dev.everydaythings.graph.value.DisplayWidth;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.id.ItemID;
 import lombok.Getter;
 
 import java.util.Objects;
@@ -15,12 +13,7 @@ import java.util.Objects;
  * 1 inch and 25.4 mm are NOT the same quantity object; conversion happens at evaluation time.
  */
 @Getter
-@Implements("cg.value:quantity")
-@ItemSeed(key = "cg.value:quantity")
 public final class Quantity implements Value {
-
-    /** Display width: quantities can be shown very compact (emoji + number) or full with unit */
-    public static final DisplayWidth DISPLAY_WIDTH = DisplayWidth.of(4, 10, 25, Unit.lookupSeed(Unit.CharacterWidth.IID));
 
     @Canon(order = 1)
     private final Decimal value;
@@ -43,9 +36,9 @@ public final class Quantity implements Value {
 
     @Override
     public String token() {
-        Unit resolved = Unit.lookupSeed(unit);
-        String unitLabel = resolved != null ? resolved.symbol() : unit.toString();
-        return value.token() + " " + unitLabel;
+        // TODO: resolve unit symbol via Unit sememe lookup once the
+        // unit/dimension vocabulary is restored.
+        return value.token() + " " + unit;
     }
 
     @Override

@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.encoding.Canonical;
+import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.canonical.Canonization;
 
 import java.util.Optional;
 
@@ -10,7 +12,7 @@ import java.util.Optional;
  * <p>Bounds are expressed as Decimal values for exact comparison.
  * Both min and max are optional (nullable).
  */
-@Canonical.Canonization(classType = Canonical.ClassCollectionType.ARRAY)
+@Canonization(classType = Canonical.ClassCollectionType.ARRAY)
 public final class Bounds implements Canonical {
 
     @Canon(order = 0)
