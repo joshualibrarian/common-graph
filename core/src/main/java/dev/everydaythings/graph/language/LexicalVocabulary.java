@@ -317,4 +317,30 @@ public final class LexicalVocabulary {
             super(iid, librarian);
         }
     }
+
+    /**
+     * The ASSIGNED_ROLE predicate — frames on a lexeme declaring which thematic
+     * role the lexeme assigns to its object. Used primarily for prepositions and
+     * other function words that govern role-assignment in the surrounding frame.
+     *
+     * <p>At parse time, when a preposition (or similar function word) is recognized
+     * in input, the parser looks up its ASSIGNED_ROLE frame to know which slot the
+     * following noun phrase fills in the surrounding frame.
+     *
+     * <p>Lives in LexicalVocabulary because role-assignment is a property of the
+     * lexical system, not specifically of prepositions — verbs and adverbs can also
+     * govern role-assignment in some languages.
+     */
+    @Seed.Item(key = AssignedRole.KEY, head = CoreVocabulary.Predicate.KEY)
+    public static final class AssignedRole {
+        public static final String KEY = "cg.predicate:assigned-role";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private AssignedRole() {}
+
+        @Frame(predicate = Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "declares which thematic role a lexeme (typically a preposition or "
+                        + "other function word) assigns to its object";
+    }
 }

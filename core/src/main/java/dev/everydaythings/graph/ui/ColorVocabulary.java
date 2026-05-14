@@ -44,7 +44,7 @@ public final class ColorVocabulary {
 
     @Item(key = White.KEY)
     public static final class White {
-        public static final String KEY = "cg:color/white";
+        public static final String KEY = "cg.color:white";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0xFFFFFF;
         private White() {}
@@ -65,7 +65,7 @@ public final class ColorVocabulary {
 
     @Item(key = Black.KEY)
     public static final class Black {
-        public static final String KEY = "cg:color/black";
+        public static final String KEY = "cg.color:black";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0x000000;
         private Black() {}
@@ -86,7 +86,7 @@ public final class ColorVocabulary {
 
     @Item(key = Gray.KEY)
     public static final class Gray {
-        public static final String KEY = "cg:color/gray";
+        public static final String KEY = "cg.color:gray";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0x808080;
         private Gray() {}
@@ -111,7 +111,7 @@ public final class ColorVocabulary {
 
     @Item(key = Red.KEY)
     public static final class Red {
-        public static final String KEY = "cg:color/red";
+        public static final String KEY = "cg.color:red";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0xFF0000;
         private Red() {}
@@ -132,7 +132,7 @@ public final class ColorVocabulary {
 
     @Item(key = Green.KEY)
     public static final class Green {
-        public static final String KEY = "cg:color/green";
+        public static final String KEY = "cg.color:green";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0x00FF00;
         private Green() {}
@@ -153,7 +153,7 @@ public final class ColorVocabulary {
 
     @Item(key = Blue.KEY)
     public static final class Blue {
-        public static final String KEY = "cg:color/blue";
+        public static final String KEY = "cg.color:blue";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0x0000FF;
         private Blue() {}
@@ -178,7 +178,7 @@ public final class ColorVocabulary {
 
     @Item(key = Yellow.KEY)
     public static final class Yellow {
-        public static final String KEY = "cg:color/yellow";
+        public static final String KEY = "cg.color:yellow";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0xFFFF00;
         private Yellow() {}
@@ -199,7 +199,7 @@ public final class ColorVocabulary {
 
     @Item(key = Cyan.KEY)
     public static final class Cyan {
-        public static final String KEY = "cg:color/cyan";
+        public static final String KEY = "cg.color:cyan";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0x00FFFF;
         private Cyan() {}
@@ -220,7 +220,7 @@ public final class ColorVocabulary {
 
     @Item(key = Magenta.KEY)
     public static final class Magenta {
-        public static final String KEY = "cg:color/magenta";
+        public static final String KEY = "cg.color:magenta";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0xFF00FF;
         private Magenta() {}
@@ -245,7 +245,7 @@ public final class ColorVocabulary {
 
     @Item(key = Orange.KEY)
     public static final class Orange {
-        public static final String KEY = "cg:color/orange";
+        public static final String KEY = "cg.color:orange";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0xFF8000;
         private Orange() {}
@@ -266,7 +266,7 @@ public final class ColorVocabulary {
 
     @Item(key = Purple.KEY)
     public static final class Purple {
-        public static final String KEY = "cg:color/purple";
+        public static final String KEY = "cg.color:purple";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0x800080;
         private Purple() {}
@@ -287,7 +287,7 @@ public final class ColorVocabulary {
 
     @Item(key = Pink.KEY)
     public static final class Pink {
-        public static final String KEY = "cg:color/pink";
+        public static final String KEY = "cg.color:pink";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0xFFC0CB;
         private Pink() {}
@@ -308,7 +308,7 @@ public final class ColorVocabulary {
 
     @Item(key = Brown.KEY)
     public static final class Brown {
-        public static final String KEY = "cg:color/brown";
+        public static final String KEY = "cg.color:brown";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         public static final int RGB = 0x8B4513;
         private Brown() {}

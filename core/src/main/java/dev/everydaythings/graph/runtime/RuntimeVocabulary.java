@@ -128,7 +128,7 @@ public final class RuntimeVocabulary {
      *   <li>{@code AGENT → @<creator>} — same agent who created (carried through).</li>
      * </ul>
      */
-    @Item(key = Construct.KEY, head = CoreVocabulary.Predicate.KEY)
+    @Seed.Item(key = Construct.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Construct {
 
         public static final String KEY = "cg.predicate:construct";

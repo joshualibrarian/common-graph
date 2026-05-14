@@ -117,35 +117,6 @@ public final class SchemaVocabulary {
     }
 
     /**
-     * Arity — qualifier on {@link ThematicRole.Attribute} bindings declaring an
-     * arity (count of expected arguments / bindings).
-     *
-     * <p>Used in HANDLES frames as {@code ATTRIBUTE[ARITY] → integer} to indicate
-     * how many bindings the handler expects on the incoming frame, and in
-     * operator/function declarations to declare their argument count.
-     *
-     * <p>The pattern {@code ATTRIBUTE[<kind>] → value} is generic — Arity is one
-     * such kind. Other kinds (Priority, Return-shape, etc.) attach the same way
-     * and can be added as needed without inventing new roles.
-     */
-    @Seed.Item(key = Arity.KEY)
-    public static final class Arity {
-        public static final String KEY = "cg.qualifier:arity";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
-        private Arity() {}
-
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier on ATTRIBUTE bindings declaring an arity — a count of "
-                        + "expected arguments or bindings";
-
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "arity";
-    }
-
-    /**
      * Retention — qualifier on CONFIG bindings declaring how the system should
      * treat the frame for persistence.
      *
