@@ -1,16 +1,12 @@
 package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /**
  * The addition operator — predicate for {@code ADD { THEME → x, GOAL → y }} frames.
@@ -35,9 +31,9 @@ public class Add extends Operator {
     public static final String KEY = "cg.predicate:add";
 
     /** Deterministic IID for the addition predicate. */
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
-    @Seed.Frame(predicate = Gloss.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "the operation of summing two quantities";
 
@@ -47,7 +43,7 @@ public class Add extends Operator {
      * multiply/divide) and Associativity (Left, so {@code 5+3+2} groups as
      * {@code (5+3)+2}).
      */
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {NotationVocabulary.Infix.KEY}),
           bindings = {
@@ -60,19 +56,19 @@ public class Add extends Operator {
           })
     static final String symbol = "+";
 
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String[] englishVerbLemmas = {"add", "sum"};
 
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "addition";
 
-    public Add(ItemID iid) {
+    public Add(ItemRef iid) {
         super(iid);
     }
 
-    public Add(ItemID iid, Librarian librarian) {
+    public Add(ItemRef iid, Librarian librarian) {
         super(iid, librarian);
     }
 

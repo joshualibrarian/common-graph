@@ -1,16 +1,14 @@
 package dev.everydaythings.graph.canonical;
 
-import dev.everydaythings.graph.canonical.Scope;
-
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.Reference;
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.id.Reference;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.HashID;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +42,7 @@ public final class Walker {
     // ==================================================================================
     // Leaf-type discriminators (embedded as the first byte of every Leaf's rawBytes)
     //
-    // These bytes are part of the identity protocol — every DatumID containing a
+    // These bytes are part of the identity protocol — every DatumRef containing a
     // leaf of that type depends on the byte value. They must remain stable. Add
     // new ones as needed; never renumber existing ones.
     // ==================================================================================
@@ -59,10 +57,12 @@ public final class Walker {
     public static final byte LEAF_BYTES   = 0x04;
     /** Instant leaf: {@code [0x05, <8-byte big-endian signed millis>]}. */
     public static final byte LEAF_INSTANT = 0x05;
-    /** ItemID leaf: {@code [0x10, <multihash bytes>]}. */
+    /** ItemRef leaf: {@code [0x10, <multihash bytes>]}. */
     public static final byte LEAF_ITEM_ID = 0x10;
-    /** Reference leaf: {@code [0x11, <ref-bytes (prefix + multihash + sub-parts)>]}. */
+    /** HashID leaf: {@code [0x11, <ref-bytes (prefix + multihash + sub-parts)>]}. */
     public static final byte LEAF_REFERENCE = 0x11;
+    /** BigInteger leaf: {@code [0x12, <two's-complement bytes>]}. */
+    public static final byte LEAF_BIGINT = 0x12;
 
     // ==================================================================================
     // Public API
@@ -74,8 +74,8 @@ public final class Walker {
      * <p>Dispatch is on the runtime class of the value. Standard primitives
      * ({@link String}, {@link Long}, {@link Boolean}, {@code byte[]},
      * {@link Instant}) produce {@link Node.Leaf} nodes. CG types ({@link Datum},
-     * {@link Binding}, {@link BindingTarget}, {@link Reference}, {@link ItemID},
-     * {@link Literal}) produce the appropriate composite or leaf forms.
+     * {@link Binding}, {@link BindingTarget}, {@link HashID}, {@link ItemRef})
+     * produce the appropriate composite or leaf forms.
      * {@link List} and {@link java.util.Map} produce {@link Node.Array} and
      * {@link Node.Map} respectively.
      */
@@ -88,19 +88,83 @@ public final class Walker {
             case Boolean b    -> leafBoolean(b);
             case byte[] bs    -> leafBytes(bs);
             case Instant ins  -> leafInstant(ins);
-            case ItemID id    -> leafItemID(id);
-            case Reference r  -> leafReference(r);
-            case Datum d      -> walkDatum(d);
-            case Binding b    -> walkBinding(b);
-            case Literal lit  -> walkLiteral(lit);
-            case BindingTarget t  -> walkBindingTarget(t);
-            case CompoundKey.Sememe s  -> leafItemID(s.id());
-            case CompoundKey.Literal l -> leafString(l.value());
-            case List<?> list -> walkList(list);
+            case java.math.BigInteger bi -> leafBigInteger(bi);
+            case java.math.BigDecimal bd -> walkBigDecimal(bd);
+            case dev.everydaythings.graph.value.Rational r -> walkRational(r);
+            case HashID r        -> leafReference(r);
+            case Datum d         -> walkDatum(d);
+            case BindingTarget t -> walkBindingTarget(t);
+            case List<?> list    -> walkList(list);
             case java.util.Map<?,?> m -> walkMap(m);
-            default -> throw new IllegalArgumentException(
-                    "Walker cannot walk value of type " + value.getClass().getName());
+            default -> walkGeneric(value);
         };
+    }
+
+    /**
+     * Generic annotation-driven walk. Mirrors {@code CgCbor.encodeGeneric}:
+     *
+     * <ul>
+     *   <li>{@code @Encode} → invoke, recursively walk the returned value
+     *       (transparent wrappers like Sememe / Text fall here).</li>
+     *   <li>{@code @Layout(ARRAY|MAP)} → walk {@code @Order} fields as an
+     *       array (or map) Node.</li>
+     * </ul>
+     */
+    private static Node walkGeneric(Object value) {
+        Class<?> cls = value.getClass();
+        java.lang.reflect.Method encode = Leaves.findAnyEncode(cls);
+        if (encode != null) {
+            Object result = Leaves.invokeEncode(value, encode);
+            return walk(result);
+        }
+        Layout layout = cls.getAnnotation(Layout.class);
+        if (layout != null) {
+            return walkStructure(value, cls, layout);
+        }
+        throw new IllegalArgumentException(
+                "Walker cannot walk value of type " + cls.getName());
+    }
+
+    private static Node walkStructure(Object value, Class<?> cls, Layout layout) {
+        java.util.List<java.lang.reflect.Field> ordered = orderedFields(cls);
+        if (layout.value() == Layout.Kind.MAP) {
+            java.util.List<Node.Entry> entries = new ArrayList<>(ordered.size());
+            for (java.lang.reflect.Field f : ordered) {
+                Object v = readField(value, f);
+                if (v == null) continue;
+                entries.add(new Node.Entry(leafString(f.getName()), walk(v)));
+            }
+            return new Node.Map(entries);
+        }
+        java.util.List<Node> children = new ArrayList<>(ordered.size());
+        for (java.lang.reflect.Field f : ordered) {
+            children.add(walk(readField(value, f)));
+        }
+        return Node.array(children);
+    }
+
+    private static java.util.List<java.lang.reflect.Field> orderedFields(Class<?> cls) {
+        java.util.List<java.lang.reflect.Field> result = new ArrayList<>();
+        for (Class<?> c = cls; c != null && c != Object.class; c = c.getSuperclass()) {
+            for (java.lang.reflect.Field f : c.getDeclaredFields()) {
+                if (f.isAnnotationPresent(Order.class)) {
+                    f.setAccessible(true);
+                    result.add(f);
+                }
+            }
+        }
+        result.sort(java.util.Comparator.comparingInt(
+                f -> f.getAnnotation(Order.class).value()));
+        return result;
+    }
+
+    private static Object readField(Object value, java.lang.reflect.Field f) {
+        try {
+            return f.get(value);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot read @Order field " + f.getName() + " on "
+                    + value.getClass().getName(), e);
+        }
     }
 
     /**
@@ -114,7 +178,7 @@ public final class Walker {
      */
     public static Node walkBodyPart(Datum d) {
         List<Node> bindingNodes = new ArrayList<>(d.bindings().size());
-        for (Binding b : d.bindings()) bindingNodes.add(walkBinding(b));
+        for (Binding b : d.bindings()) bindingNodes.add(walk(b));
         return Node.array(walk(d.head()), Node.array(bindingNodes));
     }
 
@@ -126,7 +190,7 @@ public final class Walker {
         List<Node> children = new ArrayList<>(3);
         children.add(walk(d.head()));
         List<Node> bindingNodes = new ArrayList<>(d.bindings().size());
-        for (Binding b : d.bindings()) bindingNodes.add(walkBinding(b));
+        for (Binding b : d.bindings()) bindingNodes.add(walk(b));
         children.add(Node.array(bindingNodes));
         if (d instanceof Record r) {
             children.add(leafBytes(r.signature()));
@@ -134,42 +198,14 @@ public final class Walker {
         return Node.array(children);
     }
 
-    private static Node walkBinding(Binding b) {
-        List<Node> qualifierNodes = new ArrayList<>(b.qualifiers().size());
-        for (CompoundKey.FrameToken q : b.qualifiers()) qualifierNodes.add(walk(q));
-        return Node.array(
-                leafItemID(b.role()),
-                Node.array(qualifierNodes),
-                walkBindingTarget(b.target()));
-    }
-
-    private static Node walkBindingTarget(BindingTarget t) {
+    private static Node walkBindingTarget(Object t) {
         return switch (t) {
             case BindingTarget.RefTarget rt -> leafRefBytes(rt.asReference(), rt.asReference().toRefBytes());
-            case BindingTarget.FrameTarget ft -> walkBodyFromOld(ft);
+            case BindingTarget.FrameTarget ft -> walkDatum(ft.body());
             case BindingTarget.RedactedTarget rt -> new Node.Hashed(rt.wrappedHash());
-            case Literal lit -> walkLiteral(lit);
             default -> throw new IllegalArgumentException(
                     "Unsupported BindingTarget: " + t.getClass().getName());
         };
-    }
-
-    private static Node walkBodyFromOld(BindingTarget.FrameTarget ft) {
-        // FrameTarget currently wraps the legacy FrameBodyOld type. Until it
-        // migrates to wrap a Datum directly, the body's contribution to the
-        // walk is its canonical encoded form treated as opaque bytes.
-        return leafBytes(ft.body().encodeBinary(Scope.BODY));
-    }
-
-    private static Node walkLiteral(Literal lit) {
-        ItemID type = lit.valueType();
-        if (Literal.TYPE_TEXT.equals(type))    return leafString(lit.asText());
-        if (Literal.TYPE_INTEGER.equals(type)) return leafLong(lit.asInteger());
-        if (Literal.TYPE_BOOLEAN.equals(type)) return leafBoolean(lit.asBoolean());
-        if (Literal.TYPE_BYTES.equals(type))   return leafBytes(lit.asBytes());
-        if (Literal.TYPE_INSTANT.equals(type)) return leafInstant(lit.asInstantMillis());
-        throw new IllegalArgumentException(
-                "Literal valueType " + type + " is not a primitive encoding type");
     }
 
     private static Node walkList(List<?> list) {
@@ -213,16 +249,33 @@ public final class Walker {
         return Node.leaf(instant, prefixed(LEAF_INSTANT, bytes));
     }
 
-    private static Node.Leaf leafItemID(ItemID id) {
+    private static Node.Leaf leafBigInteger(java.math.BigInteger bi) {
+        return Node.leaf(bi, prefixed(LEAF_BIGINT, bi.toByteArray()));
+    }
+
+    private static Node walkBigDecimal(java.math.BigDecimal bd) {
+        // Canonical form: [exp, mantissa] — exp = -scale, mantissa is a BigInteger.
+        return Node.array(
+                leafLong(-bd.scale()),
+                leafBigInteger(bd.unscaledValue()));
+    }
+
+    private static Node walkRational(dev.everydaythings.graph.value.Rational r) {
+        return Node.array(
+                leafBigInteger(r.numerator()),
+                leafBigInteger(r.denominator()));
+    }
+
+    private static Node.Leaf leafItemID(ItemRef id) {
         return Node.leaf(id, prefixed(LEAF_ITEM_ID, id.encodeBinary()));
     }
 
-    private static Node.Leaf leafReference(Reference ref) {
+    private static Node.Leaf leafReference(HashID ref) {
         return leafRefBytes(ref, ref.toRefBytes());
     }
 
     /**
-     * Reference-leaf helper. Carries an arbitrary "value" alongside the
+     * HashID-leaf helper. Carries an arbitrary "value" alongside the
      * ref bytes so callers can use any object as the leaf's typed value.
      */
     private static Node.Leaf leafRefBytes(Object value, byte[] refBytes) {

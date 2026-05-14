@@ -1,30 +1,38 @@
 package dev.everydaythings.graph.id;
 
-import dev.everydaythings.graph.encoding.TextBase;
+import dev.everydaythings.graph.canonical.Decode;
+import dev.everydaythings.graph.encoding.Digest;
+import io.ipfs.multibase.Multibase;
+import io.ipfs.multihash.Multihash;
 
-import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 
 /**
- * Reference to raw content, addressed by content hash.
+ * HashID to raw content, addressed by content hash.
  *
  * <p>Text form: {@code ~<CID>}.
- *
- * <p>Binary form (inside Tag 6): {@code 0x7E <multihash-CID>}.
+ * <p>Binary form (inside CBOR Tag 6): {@code 0x7E <multihash-CID>}.
  *
  * <p>Used for opaque content blobs — bytes addressed solely by their hash, with no
- * structural interpretation. For structured frame bodies, use {@link FrameRef}.
- *
- * @param cid the content's hash identity
+ * structural interpretation. For structured frame bodies, use {@link DatumRef}.
  */
-public record ContentRef(ContentID cid) implements Reference {
+public final class ContentRef extends HashID {
 
-    public ContentRef {
-        Objects.requireNonNull(cid, "cid");
+    public ContentRef(Multihash multihash) {
+        super(multihash);
     }
 
-    public static ContentRef of(ContentID cid) {
-        return new ContentRef(cid);
+    public ContentRef(byte[] serializedMultihash) {
+        super(serializedMultihash);
+    }
+
+    public ContentRef(byte[] rawDigest, Multihash.Type type) {
+        super(rawDigest, type);
+    }
+
+    @Override
+    public byte prefixByte() {
+        return PREFIX_CONTENT;
     }
 
     @Override
@@ -32,56 +40,81 @@ public record ContentRef(ContentID cid) implements Reference {
         return Variant.CONTENT;
     }
 
-    @Override
-    public byte[] toRefBytes() {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.write(PREFIX_CONTENT & 0xFF);
-        out.writeBytes(cid.encodeBinary());
-        return out.toByteArray();
+    /** Self-reference (kept for call-site compatibility with the legacy {@code cid()} accessor). */
+    public ContentRef cid() {
+        return this;
     }
 
-    @Override
-    public String encodeText() {
-        return "~" + TextBase.Base32Lower.encode(cid.encodeBinary());
-    }
+    // ==================================================================================
+    // Factories
+    // ==================================================================================
 
-    @Override
-    public String toString() {
-        return encodeText();
+    /** Pass-through factory (kept for migration-time call-site compatibility). */
+    public static ContentRef of(ContentRef cid) {
+        return cid;
     }
 
     /**
-     * Decode a ContentRef from its full binary form (including the leading prefix byte).
-     *
-     * <p>Package-private; called by {@link Reference#fromRefBytes(byte[])}.
+     * Create a ContentRef by hashing raw content bytes.
+     * Uses {@link Digest#Sha256} — the protocol-pinned default for content addressing.
      */
+    public static ContentRef of(byte[] content) {
+        Objects.requireNonNull(content, "content");
+        byte[] digest = Digest.Sha256.digest(content);
+        return new ContentRef(digest, Digest.Sha256.MULTIHASH_TYPE);
+    }
+
+    /** Parse a content ref from text, guessing the format. */
+    public static ContentRef bestGuess(String token) {
+        if (token == null || token.isEmpty()) {
+            throw new IllegalArgumentException("empty content token");
+        }
+        String t = token.startsWith("~") ? token.substring(1) : token;
+        return new ContentRef(Multihash.deserialize(Multibase.decode(t)).toBytes());
+    }
+
+    // ==================================================================================
+    // @Decode entry points
+    // ==================================================================================
+
+    @Decode
+    public static ContentRef fromBinary(byte[] refBytes) {
+        return fromRefBytesPayload(refBytes);
+    }
+
+    @Decode
+    public static ContentRef fromText(String text) {
+        return parseText(text);
+    }
+
+    // ==================================================================================
+    // Wire decode helpers (package-private)
+    // ==================================================================================
+
     static ContentRef fromRefBytesPayload(byte[] bytes) {
         if (bytes.length < 1 || bytes[0] != PREFIX_CONTENT) {
-            throw new IllegalArgumentException(
-                    "ContentRef payload must start with '~' (0x7E)");
+            throw new IllegalArgumentException("ContentRef payload must start with '~' (0x7E)");
         }
-        HashID.Slice cidSlice = Reference.readMultihash(bytes, 1);
+        HashID.Slice cidSlice = readMultihash(bytes, 1);
         if (cidSlice.next() != bytes.length) {
-            throw new IllegalArgumentException(
-                    "ContentRef has unexpected trailing bytes after CID");
+            throw new IllegalArgumentException("ContentRef has unexpected trailing bytes");
         }
-        return new ContentRef(new ContentID(cidSlice.bytes()));
+        return new ContentRef(Multihash.deserialize(cidSlice.bytes()));
     }
 
-    /**
-     * Parse a ContentRef from text form: {@code ~<CID>}.
-     */
     static ContentRef parseText(String text) {
         if (text == null || text.isEmpty() || text.charAt(0) != '~') {
-            throw new IllegalArgumentException(
-                    "ContentRef text must start with '~', got: " + text);
+            throw new IllegalArgumentException("ContentRef text must start with '~', got: " + text);
         }
         String body = text.substring(1);
         if (body.indexOf('\\') >= 0) {
-            throw new IllegalArgumentException(
-                    "ContentRef has no sub-parts, '\\' is not allowed");
+            throw new IllegalArgumentException("ContentRef has no sub-parts, '\\' is not allowed");
         }
-        ContentID cid = new ContentID(io.ipfs.multibase.Multibase.decode(body));
-        return new ContentRef(cid);
+        return new ContentRef(Multibase.decode(body));
+    }
+
+    @Override
+    public String emoji() {
+        return "📄";
     }
 }

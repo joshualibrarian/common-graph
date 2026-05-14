@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
@@ -320,8 +320,8 @@ public class SceneCompiler {
             List<SceneNode.SemanticToken> tokens = new ArrayList<>();
             for (Scene.Text.Token tok : semantic.value()) {
                 tokens.add(new SceneNode.SemanticToken()
-                        .sememe(ItemID.fromString(tok.sememe()))
-                        .features(Arrays.stream(tok.features()).map(ItemID::fromString).toList()));
+                        .sememe(ItemRef.fromString(tok.sememe()))
+                        .features(Arrays.stream(tok.features()).map(ItemRef::fromString).toList()));
             }
             SceneNode t = tokens.isEmpty() ? SceneNode.ofText("") : SceneNode.ofTokens(tokens);
             if (semantic.style().length > 0) t.classes(semantic.style());
@@ -432,10 +432,10 @@ public class SceneCompiler {
                         if (item instanceof SceneNode.SemanticToken st) tokens.add(st);
                     }
                     t = SceneNode.ofTokens(tokens);
-                } else if (result instanceof ItemID iid) {
+                } else if (result instanceof ItemRef iid) {
                     t = SceneNode.ofSememe(iid);
                 } else {
-                    ItemID iid = extractItemId(result);
+                    ItemRef iid = extractItemId(result);
                     t = iid != null ? SceneNode.ofSememe(iid) : SceneNode.ofText(result.toString());
                 }
                 if (semanticAnn.style().length > 0) t.classes(semanticAnn.style());
@@ -455,7 +455,7 @@ public class SceneCompiler {
             Scene.Text.Literal literalAnn = m.getAnnotation(Scene.Text.Literal.class);
             if (literalAnn != null) {
                 SceneNode t = SceneNode.ofText(result.toString());
-                if (!literalAnn.format().isEmpty()) t.format(ItemID.fromString(literalAnn.format()));
+                if (!literalAnn.format().isEmpty()) t.format(ItemRef.fromString(literalAnn.format()));
                 if (literalAnn.style().length > 0) t.classes(literalAnn.style());
                 if (!literalAnn.fontSize().isEmpty()) t.fontSize(literalAnn.fontSize());
                 if (!literalAnn.fontFamily().isEmpty()) t.fontFamily(literalAnn.fontFamily());
@@ -691,11 +691,11 @@ public class SceneCompiler {
         }
     }
 
-    private static ItemID extractItemId(Object obj) {
+    private static ItemRef extractItemId(Object obj) {
         try {
             Method iidMethod = obj.getClass().getMethod("iid");
             Object iid = iidMethod.invoke(obj);
-            if (iid instanceof ItemID id) return id;
+            if (iid instanceof ItemRef id) return id;
         } catch (Exception ignored) {}
         return null;
     }

@@ -7,11 +7,10 @@ import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.CompoundKey.FrameToken;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.CompoundKey.Qualifier;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.HashID;
-import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 
@@ -38,11 +37,11 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
     // ==================================================================================
 
     @Override
-    default void index(Datum datum, DatumID id) {
+    default void index(Datum datum, DatumRef id) {
         Objects.requireNonNull(datum, "datum");
         Objects.requireNonNull(id, "id");
         if (datum instanceof Record record) {
-            DatumID bodyId = record.headRef().bodyId();
+            DatumRef bodyId = record.headRef().bodyId();
             byte[] key = concat(bodyId.encodeBinary(), id.encodeBinary());
             db(RefIndexStore.Column.RECORDS_BY_BODY).key(key).put(EMPTY_VALUE);
         } else if (datum instanceof Body body) {
@@ -55,11 +54,11 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
     }
 
     @Override
-    default void unindex(Datum datum, DatumID id) {
+    default void unindex(Datum datum, DatumRef id) {
         Objects.requireNonNull(datum, "datum");
         Objects.requireNonNull(id, "id");
         if (datum instanceof Record record) {
-            DatumID bodyId = record.headRef().bodyId();
+            DatumRef bodyId = record.headRef().bodyId();
             byte[] key = concat(bodyId.encodeBinary(), id.encodeBinary());
             db(RefIndexStore.Column.RECORDS_BY_BODY).key(key).delete();
         } else if (datum instanceof Body body) {
@@ -90,27 +89,27 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
     // ==================================================================================
 
     @Override
-    default List<DatumID> recordsForBody(DatumID bodyId) {
+    default List<DatumRef> recordsForBody(DatumRef bodyId) {
         Objects.requireNonNull(bodyId, "bodyId");
         byte[] prefix = bodyId.encodeBinary();
-        List<DatumID> recordIds = new ArrayList<>();
+        List<DatumRef> recordIds = new ArrayList<>();
         forEach(RefIndexStore.Column.RECORDS_BY_BODY, prefix, (key, value) -> {
             byte[] suffix = Arrays.copyOfRange(key, prefix.length, key.length);
-            recordIds.add(new DatumID(suffix));
+            recordIds.add(new DatumRef(suffix));
         });
         return List.copyOf(recordIds);
     }
 
     @Override
-    default List<DatumID> manifestsForItem(ItemID itemIid) {
+    default List<DatumRef> manifestsForItem(ItemRef itemIid) {
         return bodiesByReferenceBinding(Manifest.ITEM_ID, itemIid);
     }
 
     @Override
-    default List<DatumID> manifestsForType(ItemID typeIid) {
+    default List<DatumRef> manifestsForType(ItemRef typeIid) {
         Objects.requireNonNull(typeIid, "typeIid");
         byte[] prefix = typeIid.encodeBinary();
-        List<DatumID> bodyIds = new ArrayList<>();
+        List<DatumRef> bodyIds = new ArrayList<>();
         forEach(RefIndexStore.Column.TYPE_INDEX, prefix, (key, value) -> {
             // Layout: head-IID | vid-slot | item-IID | body-CID
             int off = prefix.length;
@@ -119,22 +118,22 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
             HashID.Slice itemIidSlice = HashID.splitLeadingMultihashFromByteArray(key, off);
             off = itemIidSlice.next();
             byte[] bodyIdBytes = Arrays.copyOfRange(key, off, key.length);
-            bodyIds.add(new DatumID(bodyIdBytes));
+            bodyIds.add(new DatumRef(bodyIdBytes));
         });
         return List.copyOf(bodyIds);
     }
 
     @Override
-    default List<DatumID> bodiesByReferenceBinding(ItemID role, ItemID target) {
+    default List<DatumRef> bodiesByReferenceBinding(ItemRef role, ItemRef target) {
         Objects.requireNonNull(role, "role");
         Objects.requireNonNull(target, "target");
         byte[] roleBytes = role.encodeBinary();
         byte[] targetBytes = target.encodeBinary();
         byte[] prefix = concat(concat(roleBytes, new byte[]{0}), targetBytes);
-        List<DatumID> bodyIds = new ArrayList<>();
+        List<DatumRef> bodyIds = new ArrayList<>();
         forEach(RefIndexStore.Column.FORWARD_BINDINGS, prefix, (key, value) -> {
             byte[] bodyIdBytes = Arrays.copyOfRange(key, prefix.length, key.length);
-            bodyIds.add(new DatumID(bodyIdBytes));
+            bodyIds.add(new DatumRef(bodyIdBytes));
         });
         return List.copyOf(bodyIds);
     }
@@ -158,20 +157,19 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
                 targetBytes.get(), cidBytes));
     }
 
-    private static Optional<byte[]> extractReferenceMultihash(BindingTarget target) {
-        if (target instanceof BindingTarget.RefTarget refTarget) {
-            if (refTarget.isCompound()) return Optional.empty();
-            return Optional.of(refTarget.asItemId().encodeBinary());
+    private static Optional<byte[]> extractReferenceMultihash(Object target) {
+        if (target instanceof ItemRef ir && !ir.isPinned()) {
+            return Optional.of(ir.encodeBinary());
         }
         return Optional.empty();
     }
 
-    private static byte[] encodeQualifiers(List<FrameToken> qualifiers) {
+    private static byte[] encodeQualifiers(List<Qualifier> qualifiers) {
         if (qualifiers.isEmpty()) return new byte[0];
         List<byte[]> parts = new ArrayList<>(qualifiers.size());
         int total = 0;
-        for (FrameToken q : qualifiers) {
-            byte[] qBytes = q.toCbor().EncodeToBytes();
+        for (Qualifier q : qualifiers) {
+            byte[] qBytes = dev.everydaythings.graph.encoding.CgCbor.encode(q);
             parts.add(qBytes);
             total += qBytes.length;
         }
@@ -193,7 +191,7 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
         return concatAll(headIid, vidSlot, itemIid, bodyIdBytes);
     }
 
-    private static byte[] encodeVidSlot(Optional<ContentID> vid) {
+    private static byte[] encodeVidSlot(Optional<ContentRef> vid) {
         if (vid.isEmpty()) return new byte[]{0};
         byte[] vidBytes = vid.get().encodeBinary();
         if (vidBytes.length > 0xFF) {
@@ -205,10 +203,10 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
         return result;
     }
 
-    private static ItemID extractItemId(BindingTarget target) {
-        if (target instanceof BindingTarget.RefTarget ref) return ref.asItemId();
+    private static ItemRef extractItemId(Object target) {
+        if (target instanceof ItemRef ir) return ir;
         throw new IllegalStateException(
-                "ITEM_ID target must be a reference, got " + target.getClass().getSimpleName());
+                "ITEM_ID target must be an ItemRef, got " + target.getClass().getSimpleName());
     }
 
     private static byte[] concat(byte[] a, byte[] b) {

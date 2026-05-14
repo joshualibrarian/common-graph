@@ -2,20 +2,16 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.runtime.Handler;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.SchemaVocabulary;
 
-import dev.everydaythings.graph.semantics.Runtimes;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.RuntimeVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.value.Literal;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
@@ -76,7 +72,7 @@ public final class SeedProcessor {
             for (ClassInfo classInfo : mintsClasses) {
                 Class<?> cls = classInfo.loadClass();
                 Seed.Mints mints = cls.getAnnotation(Seed.Mints.class);
-                ItemID conceptIid = ItemID.fromString(mints.key());
+                ItemRef conceptIid = ItemRef.fromString(mints.key());
                 requireExpects(librarian, conceptIid, cls.getName());
                 processMints(librarian, cls);
             }
@@ -110,7 +106,7 @@ public final class SeedProcessor {
                                         + embodies.key() + "\") on the same class");
                     }
                 } else if (librarian.library()
-                        .manifestCidsForItem(ItemID.fromString(embodies.archetype()))
+                        .manifestCidsForItem(ItemRef.fromString(embodies.archetype()))
                         .isEmpty()) {
                     throw new IllegalStateException(
                             "@Seed.Embodies(key=" + embodies.key()
@@ -145,7 +141,7 @@ public final class SeedProcessor {
         if (seedItem == null) return;
 
         List<Binding> bindings = new ArrayList<>();
-        bindings.add(Binding.ref(Manifest.ITEM_ID, ItemID.fromString(seedItem.key())));
+        bindings.add(Binding.ref(Manifest.ITEM_ID, ItemRef.fromString(seedItem.key())));
 
         // Single-level @Seed.Embodies (same key as @Seed.Item) is a self-embodiment
         // shortcut: the archetype IS its own runtime form, class literal pinned here.
@@ -160,8 +156,8 @@ public final class SeedProcessor {
             bindings.add(Manifest.javaImplementation(cls));
         }
 
-        for (DatumID frameCid : buildEndorsedFrames(librarian, cls)) {
-            bindings.add(new Binding(Manifest.ENDORSES, BindingTarget.ref(frameCid)));
+        for (DatumRef frameCid : buildEndorsedFrames(librarian, cls)) {
+            bindings.add(new Binding(Manifest.ENDORSES, frameCid));
         }
 
         String itemContext = cls.getName() + " (@Seed.Item)";
@@ -170,7 +166,7 @@ public final class SeedProcessor {
         }
 
         librarian.persist(Body.of(
-                ItemRef.of(ItemID.fromString(seedItem.head())),
+                ItemRef.of(ItemRef.fromString(seedItem.head())),
                 bindings));
     }
 
@@ -180,7 +176,7 @@ public final class SeedProcessor {
      *
      * <p>Two manifests are minted, both heads carry their own structural meaning:
      * <ul>
-     *   <li><b>CodeItem manifest</b> — head = {@link CoreVocabulary.Code}, ITEM_ID =
+     *   <li><b>CodeItem manifest</b> — head = {@link RuntimeVocabulary.Code}, ITEM_ID =
      *       the CodeItem's key. Carries the class literal as IMPLEMENTATION (placeholder
      *       — the binding's role will move to a qualifier-bearing form in the Literal
      *       cleanup), endorses one HANDLES frame per {@code @Handler} method, and
@@ -198,13 +194,13 @@ public final class SeedProcessor {
         if (embodies == null || embodies.archetype().isEmpty()) return;
 
         // No validateRuntimeClass — code-items can represent classes (like Librarian)
-        // that aren't constructible via the standard (ItemID, Librarian) contract.
+        // that aren't constructible via the standard (ItemRef, Librarian) contract.
         // The class literal on the CodeItem is metadata; hydration-contract
         // conformance is checked at instantiation time.
-        ItemID codeIid = ItemID.fromString(embodies.key());
-        ItemID archetypeIid = ItemID.fromString(embodies.archetype());
+        ItemRef codeIid = ItemRef.fromString(embodies.key());
+        ItemRef archetypeIid = ItemRef.fromString(embodies.archetype());
 
-        // Mint the standalone IMPLEMENTS frame first — its DatumID is what the
+        // Mint the standalone IMPLEMENTS frame first — its DatumRef is what the
         // CodeItem manifest endorses (and what other archetype-implementation
         // lookups will index).
         Body implementsBody = Body.of(
@@ -212,39 +208,39 @@ public final class SeedProcessor {
                 List.of(
                         Binding.ref(ThematicRole.Theme.IID, archetypeIid),
                         Binding.ref(ThematicRole.Agent.IID, codeIid)));
-        DatumID implementsCid = librarian.persist(implementsBody);
+        DatumRef implementsCid = librarian.persist(implementsBody);
 
         // CodeItem manifest: head = Code, ITEM_ID + class literal +
         // ENDORSES (the IMPLEMENTS frame + each HANDLES frame).
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(Manifest.ITEM_ID, codeIid));
         bindings.add(Manifest.javaImplementation(cls));
-        bindings.add(new Binding(Manifest.ENDORSES, BindingTarget.ref(implementsCid)));
-        for (DatumID handlesCid : buildHandlesFrames(librarian, cls)) {
-            bindings.add(new Binding(Manifest.ENDORSES, BindingTarget.ref(handlesCid)));
+        bindings.add(new Binding(Manifest.ENDORSES, implementsCid));
+        for (DatumRef handlesCid : buildHandlesFrames(librarian, cls)) {
+            bindings.add(new Binding(Manifest.ENDORSES, handlesCid));
         }
-        librarian.persist(Body.of(ItemRef.of(CoreVocabulary.Code.IID), bindings));
+        librarian.persist(Body.of(ItemRef.of(RuntimeVocabulary.Code.IID), bindings));
     }
 
     /**
-     * Build and persist one HANDLES frame body per {@link Handler}-annotated method
+     * Build and persist one HANDLES frame body per {@link Seed.Handler}-annotated method
      * on the class, returning their DatumIDs (suitable as ENDORSES targets on a
      * CodeItem manifest).
      *
      * <p>Each body has shape {@code head=HANDLES, THEME→@predicate, INSTRUMENT→"<method>"}.
      */
-    private static List<DatumID> buildHandlesFrames(Librarian librarian, Class<?> cls) {
-        List<DatumID> cids = new ArrayList<>();
+    private static List<DatumRef> buildHandlesFrames(Librarian librarian, Class<?> cls) {
+        List<DatumRef> cids = new ArrayList<>();
         for (Method m : cls.getDeclaredMethods()) {
-            Handler ann = m.getAnnotation(Handler.class);
+            Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
             if (ann == null) continue;
             Body body = Body.of(
                     ItemRef.of(CoreVocabulary.Handles.IID),
                     List.of(
                             Binding.ref(ThematicRole.Theme.IID,
-                                    ItemID.fromString(ann.predicate())),
+                                    ItemRef.fromString(ann.predicate())),
                             new Binding(ThematicRole.Instrument.IID,
-                                    Literal.ofText(m.getName()))));
+                                    m.getName())));
             cids.add(librarian.persist(body));
         }
         return cids;
@@ -260,9 +256,9 @@ public final class SeedProcessor {
 
         validateRuntimeClass(cls, "@Mints");
 
-        ItemID conceptIid = ItemID.fromString(mints.key());
+        ItemRef conceptIid = ItemRef.fromString(mints.key());
 
-        // IMPLEMENTS { THEME → conceptIid, AGENT:[Runtimes.Java, JavaClass] → text(fqcn) }
+        // IMPLEMENTS { THEME → conceptIid, AGENT:[RuntimeVocabulary.Java, JavaClass] → text(fqcn) }
         Body implementsBody = Body.of(
                 ItemRef.of(SchemaVocabulary.Implements.IID),
                 List.of(
@@ -270,9 +266,9 @@ public final class SeedProcessor {
                         new Binding(
                                 ThematicRole.Agent.IID,
                                 List.of(
-                                        new CompoundKey.Sememe(Runtimes.Java.IID),
-                                        new CompoundKey.Sememe(CoreVocabulary.JavaClass.IID)),
-                                Literal.ofText(cls.getName()))));
+                                        new CompoundKey.Sememe(RuntimeVocabulary.Java.IID),
+                                        new CompoundKey.Sememe(RuntimeVocabulary.JavaClass.IID)),
+                                cls.getName())));
         librarian.persist(implementsBody);
     }
 
@@ -285,20 +281,19 @@ public final class SeedProcessor {
      * <p>The check walks: K's seed manifest → ENDORSES bindings → fetched body's
      * head matches EXPECTS sememe.
      */
-    private static void requireExpects(Librarian librarian, ItemID conceptIid, String mintsClassName) {
+    private static void requireExpects(Librarian librarian, ItemRef conceptIid, String mintsClassName) {
         // The seed manifest must already be persisted (pass 1 ran first).
-        List<DatumID> manifestCids = librarian.library().manifestCidsForItem(conceptIid);
+        List<DatumRef> manifestCids = librarian.library().manifestCidsForItem(conceptIid);
         if (manifestCids.isEmpty()) {
             throw new IllegalStateException(
                     "@Mints(\"" + conceptIid + "\") on " + mintsClassName
                             + " — no seed manifest found for the concept; declare @Seed for it");
         }
-        for (DatumID manifestCid : manifestCids) {
+        for (DatumRef manifestCid : manifestCids) {
             Manifest manifest = librarian.fetchManifest(manifestCid).orElse(null);
             if (manifest == null) continue;
             for (Binding endorses : manifest.endorses()) {
-                if (!(endorses.target() instanceof BindingTarget.RefTarget refTarget)) continue;
-                DatumID frameCid = refTarget.asDatumId();
+                if (!(endorses.target() instanceof DatumRef frameCid)) continue;
                 Body endorsedBody = librarian.fetchFrame(frameCid)
                         .map(f -> f.body())
                         .orElse(null);
@@ -317,7 +312,7 @@ public final class SeedProcessor {
 
     /**
      * Validate that a class meets the runtime-form contract: extends Item and has
-     * a public {@code (ItemID, Librarian)} constructor. Used for both
+     * a public {@code (ItemRef, Librarian)} constructor. Used for both
      * {@code @Seed.Embodies} (when paired with {@code @Seed.Item}) and {@code @Seed.Mints}.
      */
     private static void validateRuntimeClass(Class<?> cls, String annotationName) {
@@ -326,11 +321,11 @@ public final class SeedProcessor {
                     annotationName + " class " + cls.getName() + " must extend Item");
         }
         try {
-            cls.getConstructor(ItemID.class, Librarian.class);
+            cls.getConstructor(ItemRef.class, Librarian.class);
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException(
                     annotationName + " class " + cls.getName()
-                            + " must have a public (ItemID, Librarian) constructor", e);
+                            + " must have a public (ItemRef, Librarian) constructor", e);
         }
     }
 
@@ -347,11 +342,11 @@ public final class SeedProcessor {
      * TokenDictionary if they carry text targets) but are not included in the returned
      * list — they don't appear in the seed manifest's ENDORSES.
      */
-    private static List<DatumID> buildEndorsedFrames(Librarian librarian, Class<?> cls) {
+    private static List<DatumRef> buildEndorsedFrames(Librarian librarian, Class<?> cls) {
         Seed.Item seedItem = cls.getAnnotation(Seed.Item.class);
-        ItemID seedIid = seedItem != null ? ItemID.fromString(seedItem.key()) : null;
+        ItemRef seedIid = seedItem != null ? ItemRef.fromString(seedItem.key()) : null;
 
-        List<DatumID> endorsedCids = new ArrayList<>();
+        List<DatumRef> endorsedCids = new ArrayList<>();
         for (Field field : cls.getDeclaredFields()) {
             Seed.Frame[] frames = field.getAnnotationsByType(Seed.Frame.class);
             if (frames.length == 0) continue;
@@ -373,7 +368,7 @@ public final class SeedProcessor {
             for (Seed.Frame frame : frames) {
                 List<Body> frameBodies = buildFrameBodiesForBind(frame, fieldValue, cls, field, seedIid);
                 for (Body body : frameBodies) {
-                    DatumID cid = librarian.persist(body);
+                    DatumRef cid = librarian.persist(body);
                     if (frame.endorse()) {
                         endorsedCids.add(cid);
                     }
@@ -403,8 +398,8 @@ public final class SeedProcessor {
      */
     private static List<Body> buildFrameBodiesForBind(Seed.Frame frame, Object fieldValue,
                                                       Class<?> declaringClass, Field field,
-                                                      ItemID seedIid) {
-        ItemID predicateIid = ItemID.fromString(frame.predicate());
+                                                      ItemRef seedIid) {
+        ItemRef predicateIid = ItemRef.fromString(frame.predicate());
 
         Seed.Binding classAnnotation = frame.clazz();
         Seed.Binding fieldAnnotation = frame.field();
@@ -413,7 +408,7 @@ public final class SeedProcessor {
         boolean hasFieldBinding = !fieldAnnotation.role().isEmpty();
 
         Binding classBinding = hasClassBinding
-                ? buildImplicitBinding(classAnnotation, BindingTarget.iid(seedIid))
+                ? buildImplicitBinding(classAnnotation, seedIid)
                 : null;
 
         // Pre-build the static extra bindings — same on every body produced.
@@ -433,9 +428,9 @@ public final class SeedProcessor {
         }
 
         // Field-role binding present: walk targets (arrays produce multiple bodies).
-        List<BindingTarget> targets = targetsFromValue(fieldValue, declaringClass, field);
+        List<Object> targets = targetsFromValue(fieldValue, declaringClass, field);
         List<Body> bodies = new ArrayList<>(targets.size());
-        for (BindingTarget target : targets) {
+        for (Object target : targets) {
             List<Binding> bindings = new ArrayList<>(2 + extras.size());
             if (classBinding != null) bindings.add(classBinding);
             bindings.add(buildImplicitBinding(fieldAnnotation, target));
@@ -453,8 +448,8 @@ public final class SeedProcessor {
      * ignored in these slots.
      */
     private static Binding buildImplicitBinding(Seed.Binding ann,
-                                                BindingTarget target) {
-        ItemID role = ItemID.fromString(ann.role());
+                                                Object target) {
+        ItemRef role = ItemRef.fromString(ann.role());
         return new Binding(role, qualifiersFromAnnotation(ann), target);
     }
 
@@ -468,23 +463,23 @@ public final class SeedProcessor {
      * came from — used only in error messages.
      */
     private static Binding buildExplicitBinding(Seed.Binding ann, String context) {
-        ItemID role = ItemID.fromString(ann.role());
-        BindingTarget target = explicitTarget(ann, context);
+        ItemRef role = ItemRef.fromString(ann.role());
+        Object target = explicitTarget(ann, context);
         return new Binding(role, qualifiersFromAnnotation(ann), target);
     }
 
-    private static List<CompoundKey.FrameToken> qualifiersFromAnnotation(
+    private static List<CompoundKey.Qualifier> qualifiersFromAnnotation(
             Seed.Binding ann) {
         String[] keys = ann.qualifiers();
         if (keys.length == 0) return List.of();
-        List<CompoundKey.FrameToken> qualifiers = new ArrayList<>(keys.length);
+        List<CompoundKey.Qualifier> qualifiers = new ArrayList<>(keys.length);
         for (String key : keys) {
-            qualifiers.add(new CompoundKey.Sememe(ItemID.fromString(key)));
+            qualifiers.add(new CompoundKey.Sememe(ItemRef.fromString(key)));
         }
         return qualifiers;
     }
 
-    private static BindingTarget explicitTarget(Seed.Binding ann, String context) {
+    private static Object explicitTarget(Seed.Binding ann, String context) {
         boolean hasText = !ann.text().isEmpty();
         boolean hasInteger = ann.integer().length > 0;
         boolean hasBool = ann.bool().length > 0;
@@ -497,49 +492,49 @@ public final class SeedProcessor {
                             + " must specify exactly one of text/integer/bool/ref (found "
                             + set + ")");
         }
-        if (hasText) return Literal.ofText(ann.text());
-        if (hasInteger) return Literal.ofInteger(ann.integer()[0]);
-        if (hasBool) return Literal.ofBoolean(ann.bool()[0]);
-        return BindingTarget.iid(ItemID.fromString(ann.ref()));
+        if (hasText) return ann.text();
+        if (hasInteger) return (long) (ann.integer()[0]);
+        if (hasBool) return ann.bool()[0];
+        return ItemRef.fromString(ann.ref());
     }
 
     @SuppressWarnings("unchecked")
-    private static List<BindingTarget> targetsFromValue(Object value, Class<?> declaringClass, Field field) {
+    private static List<Object> targetsFromValue(Object value, Class<?> declaringClass, Field field) {
         if (value instanceof String s) {
-            return List.of(Literal.ofText(s));
+            return List.of(s);
         }
         if (value instanceof String[] arr) {
-            List<BindingTarget> ts = new ArrayList<>(arr.length);
-            for (String s : arr) ts.add(Literal.ofText(s));
+            List<Object> ts = new ArrayList<>(arr.length);
+            for (String s : arr) ts.add(s);
             return ts;
         }
-        if (value instanceof ItemID id) {
-            return List.of(BindingTarget.iid(id));
+        if (value instanceof ItemRef id) {
+            return List.of(id);
         }
-        if (value instanceof ItemID[] ids) {
-            List<BindingTarget> ts = new ArrayList<>(ids.length);
-            for (ItemID id : ids) ts.add(BindingTarget.iid(id));
+        if (value instanceof ItemRef[] ids) {
+            List<Object> ts = new ArrayList<>(ids.length);
+            for (ItemRef id : ids) ts.add(id);
             return ts;
         }
         if (value instanceof Class<?> c) {
             // Plain text target; the binding's qualifiers (declared on @Seed.Frame
             // or @Seed.Binding) carry the JavaClass narrowing semantically.
-            return List.of(Literal.ofText(c.getName()));
+            return List.of(c.getName());
         }
         if (value instanceof byte[] bytes) {
-            return List.of(Literal.ofBytes(bytes));
+            return List.of(bytes);
         }
         if (value instanceof Boolean b) {
-            return List.of(Literal.ofBoolean(b));
+            return List.of(b);
         }
         if (value instanceof Long l) {
-            return List.of(Literal.ofInteger(l));
+            return List.of((long) (l));
         }
         if (value instanceof Integer i) {
-            return List.of(Literal.ofInteger(i.longValue()));
+            return List.of((long) (i.longValue()));
         }
         if (value instanceof Instant instant) {
-            return List.of(Literal.ofInstant(instant));
+            return List.of(instant);
         }
         throw new IllegalArgumentException(
                 "Unsupported @Seed.Frame field type: " + value.getClass()

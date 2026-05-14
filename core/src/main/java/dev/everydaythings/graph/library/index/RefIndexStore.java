@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.library.index;
 
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
 
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
@@ -31,29 +31,29 @@ public interface RefIndexStore extends AutoCloseable {
     // ==================================================================================
 
     /** Walk the Datum's bindings and head, write all applicable index entries. */
-    void index(Datum datum, DatumID id);
+    void index(Datum datum, DatumRef id);
 
     /** Reverse of {@link #index} — remove all entries this Datum's indexing wrote. */
-    void unindex(Datum datum, DatumID id);
+    void unindex(Datum datum, DatumRef id);
 
     // ==================================================================================
     // Query API
     // ==================================================================================
 
     /** DatumIDs of all records attesting the given body. */
-    List<DatumID> recordsForBody(DatumID bodyId);
+    List<DatumRef> recordsForBody(DatumRef bodyId);
 
     /** Body-DatumIDs of all archetypal manifests claiming the given item identity. */
-    List<DatumID> manifestsForItem(ItemID itemIid);
+    List<DatumRef> manifestsForItem(ItemRef itemIid);
 
     /** Body-DatumIDs of all archetypal manifests whose head references the given type sememe. */
-    List<DatumID> manifestsForType(ItemID typeIid);
+    List<DatumRef> manifestsForType(ItemRef typeIid);
 
     /**
      * Body-DatumIDs of all bodies with a simple-key (no qualifiers) binding
      * for {@code role} pointing at {@code target} as a reference.
      */
-    List<DatumID> bodiesByReferenceBinding(ItemID role, ItemID target);
+    List<DatumRef> bodiesByReferenceBinding(ItemRef role, ItemRef target);
 
     // ==================================================================================
     // Column schema (used by byte-backed backends; in-memory backends ignore)

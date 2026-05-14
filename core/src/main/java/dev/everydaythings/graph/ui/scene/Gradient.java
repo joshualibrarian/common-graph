@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Order;
 import dev.everydaythings.graph.canonical.Canonical;
-import dev.everydaythings.graph.canonical.Canonization;
+import dev.everydaythings.graph.canonical.Layout;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -18,27 +18,27 @@ import java.util.List;
  */
 @Getter
 @Accessors(fluent = true)
-@Canonization
+@Layout
 public class Gradient implements Canonical {
 
     /** "linear" or "radial". */
-    @Canon(order = 0)
+    @Order(0)
     private String type;
 
     /** Angle in degrees for linear gradients (0 = upward, 90 = rightward). */
-    @Canon(order = 1)
+    @Order(1)
     private float angle;
 
     /** Shape for radial gradients: "circle" or "ellipse". */
-    @Canon(order = 2)
+    @Order(2)
     private String shape;
 
     /** Center position for radial gradients: "center", "top left", "50% 50%". */
-    @Canon(order = 3)
+    @Order(3)
     private String position;
 
     /** Color stops along the gradient. */
-    @Canon(order = 4)
+    @Order(4)
     private List<ColorStop> stops;
 
     public Gradient() {}
@@ -72,15 +72,15 @@ public class Gradient implements Canonical {
      */
     @Getter
     @Accessors(fluent = true)
-    @Canonization
+    @Layout
     public static class ColorStop implements Canonical {
 
         /** Color — String "#RRGGBB" → Integer 0xFFRRGGBB after presentation. */
-        @Canon(order = 0)
+        @Order(0)
         private Object color;
 
         /** Position along the gradient, 0-100 (percentage). */
-        @Canon(order = 1)
+        @Order(1)
         private float at;
 
         public ColorStop() {}

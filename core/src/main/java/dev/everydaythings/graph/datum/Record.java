@@ -1,24 +1,19 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.CgTag;
-
-import dev.everydaythings.graph.canonical.Scope;
-
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.canonical.Canonical;
+import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.canonical.Factory;
-import dev.everydaythings.graph.id.FrameRef;
-import dev.everydaythings.graph.id.Reference;
-
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.HashID;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * A Datum that attests a body. Has a signature slot (varsig-formatted bytes).
  *
- * <p>The head is a {@link FrameRef} pointing at the body this record attests.
+ * <p>The head is a {@link DatumRef} pointing at the body this record attests.
  * The simple whole-frame form ({@code #<body-CID>}) is used; record heads do not
  * drill into bindings or portions.
  *
@@ -37,7 +32,7 @@ public final class Record extends Datum {
 
     private final byte[] signature;
 
-    public Record(FrameRef head, List<Binding> bindings, byte[] signature) {
+    public Record(DatumRef head, List<Binding> bindings, byte[] signature) {
         super(head, bindings);
         Objects.requireNonNull(signature, "signature");
         if (signature.length == 0) {
@@ -50,7 +45,7 @@ public final class Record extends Datum {
     /**
      * Create a Record with the given head, bindings, and signature.
      */
-    public static Record of(FrameRef head, List<Binding> bindings, byte[] signature) {
+    public static Record of(DatumRef head, List<Binding> bindings, byte[] signature) {
         return new Record(head, bindings, signature);
     }
 
@@ -60,14 +55,14 @@ public final class Record extends Datum {
      * <p>Convenience for the common case where the signature is being constructed
      * from a typed VarSig rather than raw bytes.
      */
-    public static Record of(FrameRef head, List<Binding> bindings, VarSig signature) {
+    public static Record of(DatumRef head, List<Binding> bindings, VarSig signature) {
         Objects.requireNonNull(signature, "signature");
         return new Record(head, bindings, signature.encoded());
     }
 
-    /** The head as a {@link FrameRef} (typed accessor; head() returns Reference). */
-    public FrameRef headRef() {
-        return (FrameRef) head;
+    /** The head as a {@link DatumRef} (typed accessor; head() returns HashID). */
+    public DatumRef headRef() {
+        return (DatumRef) head;
     }
 
     /** The raw varsig-encoded signature bytes (defensive copy). */
@@ -78,15 +73,6 @@ public final class Record extends Datum {
     /** The signature decoded as a {@link VarSig}. */
     public VarSig varsig() {
         return VarSig.decode(signature);
-    }
-
-    @Override
-    public CBORObject toCborTree(Scope scope) {
-        CBORObject arr = CBORObject.NewArray();
-        arr.Add(head.toCborTree(scope));
-        arr.Add(encodeBindingsArray(scope));
-        arr.Add(CBORObject.FromByteArray(signature));
-        return CBORObject.FromObjectAndTag(arr, CgTag.DATUM);
     }
 
     // merkleDigest is inherited from Datum — the encoding-agnostic walker
@@ -104,7 +90,7 @@ public final class Record extends Datum {
     @Factory
     public static Record fromCborTree(CBORObject node) {
         Objects.requireNonNull(node, "node");
-        if (node.isTagged() && node.HasMostOuterTag(CgTag.DATUM)) {
+        if (node.isTagged() && node.HasMostOuterTag(CgCbor.TAG_RECORD)) {
             node = node.UntagOne();
         }
         if (node.getType() != CBORType.Array || node.size() != 3) {
@@ -112,14 +98,10 @@ public final class Record extends Datum {
                     "Record requires a 3-element CBOR array, got " + node.getType()
                             + (node.getType() == CBORType.Array ? " of size " + node.size() : ""));
         }
-        Reference headRef = Reference.fromCborTree(node.get(0));
-        if (!(headRef instanceof FrameRef frameRef)) {
+        HashID headRef = HashID.fromCborTree(node.get(0));
+        if (!(headRef instanceof DatumRef datumRef)) {
             throw new IllegalArgumentException(
-                    "Record head must be a FrameRef (#-prefix), got " + headRef.variant());
-        }
-        if (frameRef.key().isPresent() || frameRef.portion().isPresent()) {
-            throw new IllegalArgumentException(
-                    "Record head must be a whole-frame FrameRef (#<CID>); drill-down not allowed");
+                    "Record head must be a DatumRef (#-prefix), got " + headRef.variant());
         }
         CBORObject bindingsArr = node.get(1);
         if (bindingsArr.getType() != CBORType.Array) {
@@ -132,7 +114,7 @@ public final class Record extends Datum {
             throw new IllegalArgumentException(
                     "Record signature must be a CBOR byte string, got " + sigNode.getType());
         }
-        return new Record(frameRef, bindings, sigNode.GetByteString());
+        return new Record(datumRef, bindings, sigNode.GetByteString());
     }
 
     private static List<Binding> decodeBindings(CBORObject arr) {

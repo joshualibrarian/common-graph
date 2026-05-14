@@ -2,11 +2,10 @@ package dev.everydaythings.graph.text;
 
 import com.ibm.icu.util.ULocale;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.index.TokenPosting;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.AnchorTable.TokenAnchor;
 import dev.everydaythings.graph.text.TokenLattice.TokenSpan;
 
@@ -142,17 +141,17 @@ public final class ParseEngine {
     private static AnchorTable buildInitialAnchors(TokenLattice lattice, Librarian librarian) {
         if (librarian == null) return AnchorTable.empty();
 
-        Map<ItemID, List<TextSpan>> spansByItem = new LinkedHashMap<>();
+        Map<ItemRef, List<TextSpan>> spansByItem = new LinkedHashMap<>();
         for (TokenSpan ts : lattice.bestPath()) {
             for (TokenPosting p : ts.postings()) {
-                ItemID iid = p.target();
+                ItemRef iid = p.target();
                 if (iid == null) continue;
                 spansByItem.computeIfAbsent(iid, k -> new ArrayList<>()).add(ts.span());
             }
         }
 
         List<TokenAnchor> tokenAnchors = new ArrayList<>();
-        for (Map.Entry<ItemID, List<TextSpan>> entry : spansByItem.entrySet()) {
+        for (Map.Entry<ItemRef, List<TextSpan>> entry : spansByItem.entrySet()) {
             Optional<Item> opt = librarian.fetchItem(entry.getKey());
             if (opt.isEmpty()) continue;
             Item item = opt.get();

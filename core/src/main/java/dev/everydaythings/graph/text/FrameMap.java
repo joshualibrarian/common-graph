@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.datum.BindingTarget;
-import dev.everydaythings.graph.id.CompoundKey.FrameToken;
+import dev.everydaythings.graph.id.CompoundKey.Qualifier;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.value.Decimal;
+import java.math.BigDecimal;
 import lombok.Value;
 import lombok.With;
 
@@ -21,7 +21,7 @@ import java.util.List;
  * </ul>
  *
  * <p>Null fields signify "no opinion" — empty contributions are sparse FrameMaps
- * with most parts left null. Confidence is {@link Decimal} in {@code [0, 1]} by
+ * with most parts left null. Confidence is {@link BigDecimal} in {@code [0, 1]} by
  * convention; max confidence (1.0) acts as a lock that cannot be outweighed.
  *
  * <p>See {@code docs/text.md} for the full design.
@@ -59,7 +59,7 @@ public class FrameMap {
     @Value @With
     public static class Part<T> {
         T value;
-        Decimal confidence;
+        BigDecimal confidence;
         List<TextSpan> spans;
     }
 
@@ -73,7 +73,7 @@ public class FrameMap {
     @Value @With
     public static class BindingMap {
         Part<ItemRef> role;
-        List<Part<FrameToken>> qualifiers;
-        Part<BindingTarget> target;
+        List<Part<Qualifier>> qualifiers;
+        Part<Object> target;
     }
 }

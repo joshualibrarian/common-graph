@@ -1,17 +1,10 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.CgTag;
-
-import dev.everydaythings.graph.canonical.Scope;
-
-import dev.everydaythings.graph.canonical.Canonical;
-import dev.everydaythings.graph.id.*;
 import dev.everydaythings.graph.canonical.Factory;
-
+import dev.everydaythings.graph.encoding.CgCbor;
+import dev.everydaythings.graph.id.*;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.value.Literal;
-
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -21,43 +14,48 @@ import java.util.Objects;
  * <p>A binding target is the value side of a role binding in a frame.
  * Implementations:
  * <ul>
- *   <li>{@link RefTarget} — unified reference (Tag 6) to any HashID (ItemID or ContentID)</li>
+ *   <li>{@link RefTarget} — unified reference (Tag 6) to any HashID (ItemRef or ContentRef)</li>
  *   <li>{@link IidTarget} — legacy reference to another Item (encodes as bare ByteString)</li>
  *   <li>{@link FrameTarget} — inline nested frame (Tag 23) for expression trees</li>
  *   <li>{@link RedactedTarget} — Merkle redaction marker (Tag 11) wrapping the
  *       hash of an elided subtree. Short-circuits during structural Merkle hashing.</li>
- *   <li>{@link Literal} — inline typed value</li>
+ *   <li>Raw Java values ({@link String}, {@link Long}, {@link Boolean},
+ *       {@code byte[]}, {@link java.time.Instant}, etc.) — inline typed value</li>
  * </ul>
  */
-public interface BindingTarget extends Canonical {
+public interface BindingTarget {
 
     /**
-     * Decode a BindingTarget from CBOR.
+     * Decode a binding target from CBOR. Returns raw types (no wrapper):
      *
-     * <p>Dispatch:
      * <ul>
-     *   <li>Tag 6 (REF)     → {@link RefTarget}      — reference</li>
-     *   <li>Tag 11 (REDACTED) → {@link RedactedTarget} — Merkle elision</li>
-     *   <li>Tag 12 (DATUM)  → {@link FrameTarget}    — inline nested datum</li>
-     *   <li>Tag 1           → {@link Literal}         — instant (epoch millis)</li>
-     *   <li>Bare TextString / Integer / Boolean / ByteString → {@link Literal}</li>
+     *   <li>Tag {@link CgCbor#TAG_REF}      → {@link HashID}               — bare reference</li>
+     *   <li>Tag {@link CgCbor#TAG_REDACTED} → {@link RedactedTarget}       — Merkle elision marker</li>
+     *   <li>Tag {@link CgCbor#TAG_BODY}     → {@link Body}                 — inline nested body</li>
+     *   <li>Tag 1                            → {@link java.time.Instant}   — epoch-millis time</li>
+     *   <li>Bare {@code TextString}          → {@link String}</li>
+     *   <li>Bare {@code Integer}             → {@link Long}</li>
+     *   <li>Bare {@code Boolean}             → {@link Boolean}</li>
+     *   <li>Bare {@code ByteString}          → {@code byte[]}</li>
      * </ul>
      */
     @Factory
-    static BindingTarget fromCborTree(CBORObject node) {
+    static Object fromCborTree(CBORObject node) {
         if (node == null || node.isNull()) return null;
         if (node.isTagged()) {
             int tag = node.getMostOuterTag().ToInt32Checked();
-            if (tag == CgTag.REF) return RefTarget.fromCborTree(node);
-            if (tag == CgTag.REDACTED) return RedactedTarget.fromCborTree(node);
-            if (tag == CgTag.DATUM) return FrameTarget.fromCborTree(node);
-            if (tag == 1) return Literal.fromCborTree(node);
+            if (tag == CgCbor.TAG_REF) return HashID.fromCborTree(node);
+            if (tag == CgCbor.TAG_REDACTED) return RedactedTarget.fromCborTree(node);
+            if (tag == CgCbor.TAG_BODY) return Body.fromCborTree(node);
+            if (tag == 1) return java.time.Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
         }
         return switch (node.getType()) {
-            case TextString, Integer, Boolean, ByteString
-                    -> Literal.fromCborTree(node);
+            case TextString -> node.AsString();
+            case Integer    -> node.AsInt64Value();
+            case Boolean    -> node.AsBoolean();
+            case ByteString -> node.GetByteString();
             default -> throw new IllegalArgumentException(
-                    "Cannot decode BindingTarget from CBOR type: " + node.getType());
+                    "Cannot decode binding target from CBOR type: " + node.getType());
         };
     }
 
@@ -65,30 +63,30 @@ public interface BindingTarget extends Canonical {
      * Convenience factory for item references in bindings — produces a
      * {@link RefTarget} wrapping an {@link ItemRef}.
      */
-    static RefTarget iid(ItemID iid) { return new RefTarget(ItemRef.of(iid)); }
+    static RefTarget iid(ItemRef iid) { return new RefTarget(ItemRef.of(iid)); }
 
     /**
-     * Convenience factory wrapping a {@link DatumID} as a {@link FrameRef} —
+     * Convenience factory wrapping a {@link DatumRef} as a {@link DatumRef} —
      * common for ENDORSES bindings and version-id references.
      */
-    static RefTarget ref(DatumID datumId) { return new RefTarget(FrameRef.of(datumId)); }
+    static RefTarget ref(DatumRef datumId) { return new RefTarget(DatumRef.of(datumId)); }
 
     /**
-     * Convenience factory wrapping a {@link ContentID} as a {@link ContentRef}.
+     * Convenience factory wrapping a {@link ContentRef} as a {@link ContentRef}.
      */
-    static RefTarget ref(ContentID cid) { return new RefTarget(ContentRef.of(cid)); }
+    static RefTarget ref(ContentRef cid) { return new RefTarget(ContentRef.of(cid)); }
 
-    /** Convenience factory wrapping any {@link Reference} (caller picks the variant). */
-    static RefTarget ref(Reference reference) { return new RefTarget(reference); }
+    /** Convenience factory wrapping any {@link HashID} (caller picks the variant). */
+    static RefTarget ref(HashID reference) { return new RefTarget(reference); }
 
     /** Convenience factory for inline nested datums (Tag 12). */
     static FrameTarget frame(Body body) { return new FrameTarget(body); }
 
     /**
-     * Reference-valued binding target — wraps a {@link Reference} (the sealed
-     * {@link ItemRef}/{@link ContentRef}/{@link FrameRef} sum type).
+     * HashID-valued binding target — wraps a {@link HashID} (the sealed
+     * {@link ItemRef}/{@link ContentRef}/{@link DatumRef} sum type).
      *
-     * <p>Encoded as CG-CBOR Tag 6 wrapping the Reference's binary payload.
+     * <p>Encoded as CG-CBOR Tag 6 wrapping the HashID's binary payload.
      *
      * <p>The convenience accessors return the underlying target of the
      * appropriate variant, or {@code null} when the variant doesn't match —
@@ -96,34 +94,34 @@ public interface BindingTarget extends Canonical {
      * {@link #asReference()} when they need disambiguation.
      */
     final class RefTarget implements BindingTarget {
-        private final Reference reference;
+        private final HashID reference;
 
-        public RefTarget(Reference reference) {
+        public RefTarget(HashID reference) {
             this.reference = Objects.requireNonNull(reference, "reference");
         }
 
-        /** The underlying Reference (use {@code instanceof} to disambiguate the variant). */
-        public Reference asReference() { return reference; }
+        /** The underlying HashID (use {@code instanceof} to disambiguate the variant). */
+        public HashID asReference() { return reference; }
 
         /**
-         * For an {@link ItemRef}, the target {@link ItemID}; {@code null} otherwise.
+         * For an {@link ItemRef}, the target {@link ItemRef}; {@code null} otherwise.
          */
-        public ItemID asItemId() {
+        public ItemRef asItemId() {
             return reference instanceof ItemRef ir ? ir.iid() : null;
         }
 
         /**
-         * For a {@link ContentRef}, the target {@link ContentID}; {@code null} otherwise.
+         * For a {@link ContentRef}, the target {@link ContentRef}; {@code null} otherwise.
          */
-        public ContentID asCid() {
+        public ContentRef asCid() {
             return reference instanceof ContentRef cr ? cr.cid() : null;
         }
 
         /**
-         * For a {@link FrameRef}, the body's {@link DatumID}; {@code null} otherwise.
+         * For a {@link DatumRef}, the body's {@link DatumRef}; {@code null} otherwise.
          */
-        public DatumID asDatumId() {
-            return reference instanceof FrameRef fr ? fr.bodyId() : null;
+        public DatumRef asDatumId() {
+            return reference instanceof DatumRef fr ? fr.bodyId() : null;
         }
 
         /**
@@ -137,15 +135,10 @@ public interface BindingTarget extends Canonical {
             return true;
         }
 
-        @Override
-        public CBORObject toCborTree(Scope scope) {
-            return reference.toCborTree(scope);
-        }
-
         @Factory
         public static RefTarget fromCborTree(CBORObject node) {
             if (node == null || node.isNull()) return null;
-            return new RefTarget(Reference.fromCborTree(node));
+            return new RefTarget(HashID.fromCborTree(node));
         }
 
         @Override
@@ -181,11 +174,6 @@ public interface BindingTarget extends Canonical {
         }
 
         public Body body() { return body; }
-
-        @Override
-        public CBORObject toCborTree(Scope scope) {
-            return CBORObject.FromObjectAndTag(body.toCborTree(scope), CgTag.DATUM);
-        }
 
         @Factory
         public static FrameTarget fromCborTree(CBORObject node) {
@@ -224,7 +212,7 @@ public interface BindingTarget extends Canonical {
      * the original target contributed; using it directly in the parent's hash
      * computation produces the same parent hash as if the original target were
      * present. This is what makes signatures survive redaction: the signed
-     * DatumID is invariant across redactions because the Merkle root is.
+     * DatumRef is invariant across redactions because the Merkle root is.
      *
      * <p>The marker carries only the raw multihash bytes. It carries no type
      * information, no predicate, no size — by design. Redaction context (who,
@@ -250,13 +238,6 @@ public interface BindingTarget extends Canonical {
         /** The wrapped structural Merkle hash (raw multihash bytes). */
         public byte[] wrappedHash() {
             return wrappedHash.clone();
-        }
-
-        @Override
-        public CBORObject toCborTree(Scope scope) {
-            return CBORObject.FromObjectAndTag(
-                    CBORObject.FromByteArray(wrappedHash),
-                    CgTag.REDACTED);
         }
 
         @Factory

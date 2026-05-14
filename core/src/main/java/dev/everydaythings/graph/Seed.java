@@ -1,7 +1,7 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.semantics.ThematicRole;
-import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 
 import java.lang.annotation.*;
 
@@ -30,7 +30,7 @@ public class Seed {
     /**
      * Declares that this Java class is a seed item with the given canonical key.
      *
-     * <p>At {@link dev.everydaythings.graph.runtime.Librarian#bootstrap bootstrap},
+     * <p>At {@link Librarian#bootstrap bootstrap},
      * the {@link SeedProcessor} discovers every {@code @Seed.Item}-annotated class
      * and persists a manifest body for it (unsigned), with {@code ITEM_ID → key.IID}.
      * Any {@link Frame @Seed.Frame}-annotated static fields contribute endorsed frames.
@@ -52,7 +52,7 @@ public class Seed {
      * @Seed.Item(key = MyConcept.KEY)
      * public class MyConcept {
      *     public static final String KEY = "cg.sememe:my-concept";
-     *     public static final ItemID IID = ItemID.fromString(KEY);
+     *     public static final ItemRef IID = ItemRef.fromString(KEY);
      * }
      * }</pre>
      *
@@ -133,8 +133,8 @@ public class Seed {
      * <ul>
      *   <li>{@code String} → text Literal</li>
      *   <li>{@code String[]} → multiple bindings (one per array element) on multiple frames</li>
-     *   <li>{@code dev.everydaythings.graph.id.ItemID} → IidTarget</li>
-     *   <li>{@code dev.everydaythings.graph.id.ItemID[]} → multiple bindings</li>
+     *   <li>{@code dev.everydaythings.graph.id.ItemRef} → IidTarget</li>
+     *   <li>{@code dev.everydaythings.graph.id.ItemRef[]} → multiple bindings</li>
      *   <li>{@code Class<?>} → Java-class Literal</li>
      *   <li>{@code byte[]} → binary Literal (raw bytes, untyped)</li>
      *   <li>{@code Boolean} / {@code boolean} → boolean Literal</li>
@@ -325,7 +325,7 @@ public class Seed {
      * stays shared.
      *
      * <p>In both modes the class must extend {@code Item} and have a public
-     * {@code (ItemID, Librarian)} constructor — that's the contract for hydration.
+     * {@code (ItemRef, Librarian)} constructor — that's the contract for hydration.
      *
      * <p>Distinct from {@link Mints}: {@code @Seed.Embodies} declares "I AM
      * this specific item" (singleton); {@code @Seed.Mints(K)} declares "I AM the
@@ -376,7 +376,7 @@ public class Seed {
      * binding. The {@link dev.everydaythings.graph.semantics.Create} sememe consults
      * IMPLEMENTS frames to find runnable mint targets when CREATE frames target K.
      *
-     * <p>The class must extend {@code Item} and have a public {@code (ItemID, Librarian)}
+     * <p>The class must extend {@code Item} and have a public {@code (ItemRef, Librarian)}
      * constructor — that's the contract for instantiation.
      *
      * <p>Conceptual instantiability — whether K is the kind of concept that has
@@ -397,5 +397,39 @@ public class Seed {
 
         /** Canonical key of the concept whose instances this class mints. */
         String key();
+    }
+
+    /**
+     * Marks a method as the handler for frames whose head is a given predicate.
+     *
+     * <p>The {@link Librarian} dispatch layer scans the receiving item's class at
+     * invocation time, locates the method whose {@code @Handler(predicate=...)}
+     * matches the incoming frame's head IID, decomposes the frame's bindings into
+     * method parameters, and invokes the method. Return values become response
+     * frames.
+     *
+     * <p>Eventual seed-time work: the scan also produces a HANDLES frame endorsed
+     * by the embodying archetype, so the dispatch table is queryable as data and
+     * inheritable across language runtimes. For Phase 1, only the Java-reflection
+     * path is implemented; the HANDLES frames are pending.
+     *
+     * <p>The Java method named here is the truth — direct in-VM callers can invoke
+     * it without constructing a frame. The annotation marks it as <i>also</i>
+     * reachable via frame dispatch.
+     *
+     * <p>Phase 1 parameter mapping (will be refined):
+     * <ul>
+     *   <li>String parameter ↔ THEME binding's text literal</li>
+     *   <li>Integer parameter ↔ ATTRIBUTE[LIMIT] binding's integer literal (may be null)</li>
+     * </ul>
+     * This is enough for LOOKUP; a more general role→position scheme will land
+     * when more handlers exist.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public static @interface Handler {
+
+        /** Canonical key of the predicate whose frames this method handles. */
+        String predicate();
     }
 }

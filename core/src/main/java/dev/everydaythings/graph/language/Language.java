@@ -1,0 +1,372 @@
+package dev.everydaythings.graph.language;
+
+import com.ibm.icu.util.ULocale;
+import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.text.FrameMap;
+import dev.everydaythings.graph.text.ParseParams;
+import dev.everydaythings.graph.operator.NotationVocabulary;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Language items — both the meta-sememe identifying a language scope and the Java
+ * base class for concrete language implementations (English, German, chess-notation,
+ * sub-Languages like English-US/English-GB, etc.).
+ *
+ * <p>The outer class itself is the language meta-sememe ({@code cg.sememe:language}),
+ * usable as a qualifier on EXPECTS bindings declaring "the target is a language."
+ * Inner static classes (English, etc.) are seed declarations for specific languages.
+ *
+ * <p>Concrete Language subclasses live in their own modules (e.g., the {@code :english}
+ * module hosts the English class with its grammar rules and irregular morphology).
+ * Each subclass overrides {@link #locale()}, {@link #parse(dev.everydaythings.graph.text.ParseContext)},
+ * and {@link #render(FrameMap, ParseParams)} as needed. Languages typically embody
+ * singleton items via {@code @Embodies}.
+ *
+ * <p>Canonical-key prefix for specific languages: {@code cg.lang:} followed by the
+ * ISO 639-3 three-letter code (e.g., {@code cg.lang:eng} for English). Sub-Language
+ * codes follow BCP-47 ({@code cg.lang:en-US}, {@code cg.lang:de-CH}, etc.).
+ */
+@Seed.Item(key = Language.KEY)
+public class Language extends Item {
+
+    /** Canonical key for the language meta-sememe. */
+    public static final String KEY = "cg.sememe:language";
+
+    /** The deterministic IID for the language meta-sememe. */
+    public static final ItemRef IID = ItemRef.fromString(KEY);
+
+    /** Seed/siloed constructor (no librarian). */
+    public Language(ItemRef iid) {
+        super(iid);
+    }
+
+    /** Runtime constructor — bound to a librarian. */
+    public Language(ItemRef iid, Librarian librarian) {
+        super(iid, librarian);
+    }
+
+    /**
+     * The locale for this Language, used by ICU services (number formatting, date
+     * formatting, plural rules, grapheme/word break iteration, collation).
+     *
+     * <p>Default returns {@link ULocale#ROOT} — concrete Languages and sub-Languages
+     * override with their specific locale (e.g., English-US returns {@code "en-US"},
+     * German-CH returns {@code "de-CH"}).
+     */
+    public ULocale locale() {
+        return ULocale.ROOT;
+    }
+
+    /**
+     * Render a frame to text.
+     *
+     * <p>The base implementation handles universal pre-linguistic notation. If the
+     * framemap's predicate has an endorsed operator-form Lexeme frame, output is
+     * assembled by fixity:
+     * <ul>
+     *   <li><b>Infix</b> — {@code <left> <symbol> <right>} (requires two bindings).</li>
+     *   <li><b>Prefix</b> — {@code <symbol><operand>} for symbolic operators
+     *       ({@code -5}, {@code !x}); {@code <symbol> <operand>} for word operators
+     *       (one binding).</li>
+     * </ul>
+     *
+     * <p>Sub-frames in operand position are rendered recursively, with parentheses
+     * inserted whenever the inner predicate's precedence is lower than the outer's,
+     * or equal at a position where the outer's associativity demands grouping.
+     *
+     * <p>Concrete Languages (English, German, etc.) override to add prose forms for
+     * predicates they have lexemes for; they call {@code super.render(...)} as a
+     * fallback for predicates they don't have prose for, so math notation works in any
+     * Language by default. Sub-Languages further override for regional variations.
+     *
+     * <p>v1 limitations: postfix/mixfix/circumfix not yet handled; prefix-call form
+     * (functions like {@code sqrt(5)}) not yet handled; leaf-target rendering for
+     * refs is a placeholder; spans on the output FrameMap are not populated.
+     *
+     * @param framemap the frame to render
+     * @param params   render parameters (mode, verbosity, register, etc.)
+     * @return a FrameMap with text populated; unchanged if rendering rules don't apply
+     */
+    public FrameMap render(FrameMap framemap, ParseParams params) {
+        if (framemap == null || framemap.predicate() == null
+                || framemap.predicate().value() == null
+                || librarian() == null) {
+            return framemap;
+        }
+
+        List<Object> targets = operandTargetsByRole(framemap);
+        Optional<Rendered> result = renderOperation(
+                framemap.predicate().value().iid(), targets, params);
+        if (result.isEmpty()) return framemap;
+        return framemap.withText(result.get().text);
+    }
+
+    /**
+     * Extract operator operand targets from a {@link FrameMap} by semantic role
+     * rather than by binding position. Bindings on a Datum are a multiset
+     * (canonically sorted by structural hash, not insertion order), so the
+     * convention for operators is: THEME → left/sole operand, GOAL → right
+     * operand. Any binding without one of these roles is appended in iteration
+     * order — a fallback for non-operator predicates.
+     */
+    private static List<Object> operandTargetsByRole(FrameMap framemap) {
+        Object theme = null;
+        Object goal = null;
+        List<Object> others = new java.util.ArrayList<>();
+        for (var bm : framemap.bindings()) {
+            ItemRef role = bm.role().value() != null ? bm.role().value().iid() : null;
+            Object target = bm.target().value();
+            if (role == null) { others.add(target); continue; }
+            if (theme == null && ThematicRole.Theme.IID.equals(role)) {
+                theme = target;
+            } else if (goal == null && ThematicRole.Goal.IID.equals(role)) {
+                goal = target;
+            } else {
+                others.add(target);
+            }
+        }
+        List<Object> ordered = new java.util.ArrayList<>();
+        if (theme != null) ordered.add(theme);
+        if (goal != null) ordered.add(goal);
+        ordered.addAll(others);
+        return ordered;
+    }
+
+    /**
+     * Extract operator operand targets from a {@link Body} by semantic role.
+     * Counterpart to {@link #operandTargetsByRole(FrameMap)} used when
+     * recursing into a fetched inner body during rendering.
+     */
+    private static List<Object> operandTargetsByRole(Body body) {
+        Object theme = null;
+        Object goal = null;
+        List<Object> others = new java.util.ArrayList<>();
+        for (Binding b : body.bindings()) {
+            ItemRef role = b.role();
+            Object target = b.target();
+            if (theme == null && ThematicRole.Theme.IID.equals(role)) {
+                theme = target;
+            } else if (goal == null && ThematicRole.Goal.IID.equals(role)) {
+                goal = target;
+            } else {
+                others.add(target);
+            }
+        }
+        List<Object> ordered = new java.util.ArrayList<>();
+        if (theme != null) ordered.add(theme);
+        if (goal != null) ordered.add(goal);
+        ordered.addAll(others);
+        return ordered;
+    }
+
+    /**
+     * Internal operator render. Looks up the predicate's operator-form Lexeme frame,
+     * dispatches by fixity (infix → binary, prefix → unary), recursively renders
+     * each operand, and assembles the surface form. Returns the text plus the
+     * predicate's own precedence so a caller can decide whether to wrap this
+     * rendering in parens when it appears inside a larger expression.
+     */
+    private Optional<Rendered> renderOperation(ItemRef predicateIid,
+                                               List<Object> targets,
+                                               ParseParams params) {
+        Optional<Item> predItem = librarian().fetchItem(predicateIid);
+        if (predItem.isEmpty()) return Optional.empty();
+
+        Optional<OperatorForm> formOpt = lookupOperatorForm(predItem.get());
+        if (formOpt.isEmpty()) return Optional.empty();
+        OperatorForm form = formOpt.get();
+
+        if (NotationVocabulary.Infix.IID.equals(form.fixity)) {
+            if (targets.size() != 2) return Optional.empty();
+            String left = renderOperand(targets.get(0), form.precedence, form.associativity, true, params);
+            String right = renderOperand(targets.get(1), form.precedence, form.associativity, false, params);
+            if (left == null || right == null) return Optional.empty();
+            return Optional.of(new Rendered(
+                    left + " " + form.symbol + " " + right, form.precedence));
+        }
+        if (NotationVocabulary.Prefix.IID.equals(form.fixity)) {
+            if (targets.size() != 1) return Optional.empty();
+            // Treat the single operand as the "right side" so right-associative
+            // chains (e.g. --5) and same-precedence siblings render without parens.
+            String operand = renderOperand(targets.get(0), form.precedence, form.associativity, false, params);
+            if (operand == null) return Optional.empty();
+            String separator = isWordSymbol(form.symbol) ? " " : "";
+            return Optional.of(new Rendered(form.symbol + separator + operand, form.precedence));
+        }
+        if (NotationVocabulary.Postfix.IID.equals(form.fixity)) {
+            if (targets.size() != 1) return Optional.empty();
+            // Treat the single operand as the "left side" so left-associative
+            // postfix chains (e.g. n!!) and same-precedence siblings render without parens.
+            String operand = renderOperand(targets.get(0), form.precedence, form.associativity, true, params);
+            if (operand == null) return Optional.empty();
+            String separator = isWordSymbol(form.symbol) ? " " : "";
+            return Optional.of(new Rendered(operand + separator + form.symbol, form.precedence));
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Render one operand position. A {@link BindingTarget.RefTarget} pointing at a
+     * stored frame body is fetched via the librarian and recursed via
+     * {@link #renderOperation}, with parens decided by {@link #needsParens}. Other
+     * targets (literals, IID refs, legacy inline FrameTarget) fall through to
+     * {@link #renderLiteral}.
+     */
+    private String renderOperand(Object target, long outerPrecedence,
+                                 ItemRef outerAssociativity, boolean isLeftOperand,
+                                 ParseParams params) {
+        if (target instanceof BindingTarget.RefTarget rt) {
+            DatumRef cid = rt.asDatumId();
+            Optional<Frame> innerFrame = librarian().fetchFrame(cid);
+            if (innerFrame.isEmpty()) return renderLiteral(target);
+            Body inner = innerFrame.get().body();
+            if (!(inner.head() instanceof ItemRef ref)) return renderLiteral(target);
+            List<Object> innerTargets = operandTargetsByRole(inner);
+            Optional<Rendered> innerOpt = renderOperation(ref.iid(), innerTargets, params);
+            if (innerOpt.isEmpty()) return renderLiteral(target);
+            Rendered r = innerOpt.get();
+            boolean wrap = needsParens(r.precedence, outerPrecedence,
+                    outerAssociativity, isLeftOperand);
+            return wrap ? "(" + r.text + ")" : r.text;
+        }
+        return renderLiteral(target);
+    }
+
+    /** Word symbol = leading code point is a letter (so {@code "not"} → space, {@code "-"} → no space). */
+    private static boolean isWordSymbol(String symbol) {
+        return !symbol.isEmpty() && Character.isLetter(symbol.codePointAt(0));
+    }
+
+    /**
+     * Standard precedence-and-associativity parens rule:
+     * <ul>
+     *   <li>Inner precedence higher than outer → no parens (binds tighter, safe).</li>
+     *   <li>Inner precedence lower than outer → parens (would otherwise rebind).</li>
+     *   <li>Equal precedence: depends on which side and the outer's associativity.
+     *       For left-associative, the right operand needs parens; for right-associative,
+     *       the left operand needs parens; for non-associative, both sides need parens.</li>
+     * </ul>
+     */
+    private static boolean needsParens(long innerPrecedence, long outerPrecedence,
+                                       ItemRef outerAssociativity, boolean innerIsLeftOperand) {
+        if (innerPrecedence > outerPrecedence) return false;
+        if (innerPrecedence < outerPrecedence) return true;
+        if (outerAssociativity.equals(NotationVocabulary.Left.IID)) {
+            return !innerIsLeftOperand;
+        }
+        if (outerAssociativity.equals(NotationVocabulary.Right.IID)) {
+            return innerIsLeftOperand;
+        }
+        return true;
+    }
+
+    /** Fixity sememes recognized by the operator-form lookup, in match-priority order. */
+    private static final List<ItemRef> RECOGNIZED_FIXITIES = List.of(
+            NotationVocabulary.Infix.IID,
+            NotationVocabulary.Prefix.IID,
+            NotationVocabulary.Postfix.IID);
+
+    /**
+     * Find the first endorsed operator-form Lexeme frame on the item and extract its
+     * surface form: symbol text, precedence, associativity, fixity. An "operator-form
+     * Lexeme" has a VALUE binding qualified by one of {@link NotationVocabulary.Infix},
+     * {@link NotationVocabulary.Prefix}, or {@link NotationVocabulary.Postfix}.
+     */
+    private static Optional<OperatorForm> lookupOperatorForm(Item item) {
+        return item.endorsedFramesByPredicate(LexicalVocabulary.Lexeme.IID)
+                .map(Language::readOperatorForm)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+    }
+
+    /** Try each recognized fixity in turn; return the first VALUE-binding match with metadata. */
+    private static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
+        for (ItemRef fixity : RECOGNIZED_FIXITIES) {
+            CompoundKey valueWithFixity = CompoundKey.of(ThematicRole.Value.IID, fixity);
+            Optional<Binding> valueBinding = lexemeFrame.binding(valueWithFixity);
+            if (valueBinding.isEmpty()) continue;
+            Optional<String> symbol = readTextLiteral(valueBinding.get().target());
+            if (symbol.isEmpty()) continue;
+            long precedence = readPrecedence(lexemeFrame).orElse(0L);
+            ItemRef associativity = readAssociativity(lexemeFrame).orElse(NotationVocabulary.Left.IID);
+            return Optional.of(new OperatorForm(symbol.get(), precedence, associativity, fixity));
+        }
+        return Optional.empty();
+    }
+
+    /** Pull a text-literal value out of a binding target, if present. */
+    private static Optional<String> readTextLiteral(Object target) {
+        return target instanceof String s ? Optional.of(s) : Optional.empty();
+    }
+
+    /** Read the precedence integer from an operator-form Lexeme's ATTRIBUTE[Precedence] binding. */
+    private static Optional<Long> readPrecedence(Frame lexemeFrame) {
+        CompoundKey attributePrecedence = CompoundKey.of(
+                ThematicRole.Attribute.IID, NotationVocabulary.Precedence.IID);
+        return lexemeFrame.binding(attributePrecedence)
+                .map(Binding::target)
+                .filter(t -> t instanceof Long)
+                .map(t -> (Long) t);
+    }
+
+    /** Read the associativity sememe IID from an operator-form Lexeme's ATTRIBUTE[Associativity] binding. */
+    private static Optional<ItemRef> readAssociativity(Frame lexemeFrame) {
+        CompoundKey attributeAssociativity = CompoundKey.of(
+                ThematicRole.Attribute.IID, NotationVocabulary.Associativity.IID);
+        return lexemeFrame.binding(attributeAssociativity)
+                .map(Binding::target)
+                .filter(t -> t instanceof ItemRef ir && !ir.isPinned())
+                .map(t -> (ItemRef) t);
+    }
+
+    /**
+     * Render a literal binding target as text. Numbers format via {@code toString},
+     * text passes through; other targets fall back to {@code toString()}.
+     */
+    private static String renderLiteral(Object target) {
+        if (target == null) return null;
+        if (target instanceof String s) return s;
+        return target.toString();
+    }
+
+    /**
+     * Internal carrier for a recursively-rendered sub-expression: the surface text
+     * plus the precedence of the predicate that produced it (so the caller can
+     * decide whether to wrap in parens).
+     */
+    private record Rendered(String text, long precedence) {}
+
+    /**
+     * Internal carrier for the surface metadata of an operator-form Lexeme:
+     * its symbol text, precedence, associativity, and fixity (which drives whether
+     * it renders as infix, prefix, or postfix).
+     */
+    private record OperatorForm(String symbol, long precedence,
+                                ItemRef associativity, ItemRef fixity) {}
+
+    /**
+     * English — ISO 639-3 code "eng". Static-key holder for {@code @Bind} references.
+     *
+     * <p>The seed declaration and Java implementation for English live in the
+     * {@code :english} module's {@code English} class. This inner class exists only to
+     * provide the {@code KEY}/{@code IID} constants for {@code @Bind} qualifiers used
+     * across {@code :core} (which can't depend on {@code :english}).
+     */
+    public static final class English {
+        public static final String KEY = "cg.lang:eng";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private English() {}
+    }
+}

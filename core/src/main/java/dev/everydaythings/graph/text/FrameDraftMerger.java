@@ -1,12 +1,11 @@
 package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.datum.BindingTarget;
-import dev.everydaythings.graph.id.CompoundKey.FrameToken;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.CompoundKey.Qualifier;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
 import dev.everydaythings.graph.text.FrameMap.Part;
-import dev.everydaythings.graph.value.Decimal;
+import java.math.BigDecimal;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -74,7 +73,7 @@ public final class FrameDraftMerger {
         // predicate lost the bid, its bindings shouldn't somehow survive in another
         // operator's frame. Sources that didn't claim a predicate (e.g., the prior
         // draft, or a binding-only contribution) keep their bindings unconditionally.
-        ItemID winnerIid = (mergedPredicate == null || mergedPredicate.value() == null)
+        ItemRef winnerIid = (mergedPredicate == null || mergedPredicate.value() == null)
                 ? null : mergedPredicate.value().iid();
 
         // Group bindings by their compound key (role + qualifiers) and keep only the
@@ -85,7 +84,7 @@ public final class FrameDraftMerger {
         for (FrameMap source : sources) {
             // Skip bindings from a source whose predicate lost — see above.
             if (source.predicate() != null && source.predicate().value() != null) {
-                ItemID sourceIid = source.predicate().value().iid();
+                ItemRef sourceIid = source.predicate().value().iid();
                 if (winnerIid != null && !Objects.equals(sourceIid, winnerIid)) {
                     continue;
                 }
@@ -157,7 +156,7 @@ public final class FrameDraftMerger {
         Part<T> winner = parts.get(0);
         for (int i = 1; i < parts.size(); i++) {
             Part<T> candidate = parts.get(i);
-            if (candidate.confidence().toDouble() > winner.confidence().toDouble()) {
+            if (candidate.confidence().doubleValue() > winner.confidence().doubleValue()) {
                 winner = candidate;
             }
         }
@@ -202,8 +201,8 @@ public final class FrameDraftMerger {
         Candidate winner = outermost.get(0);
         for (int i = 1; i < outermost.size(); i++) {
             Candidate cand = outermost.get(i);
-            if (cand.source.predicate().confidence().toDouble()
-                    > winner.source.predicate().confidence().toDouble()) {
+            if (cand.source.predicate().confidence().doubleValue()
+                    > winner.source.predicate().confidence().doubleValue()) {
                 winner = cand;
             }
         }
@@ -251,7 +250,7 @@ public final class FrameDraftMerger {
         if (b.role() != null && b.role().value() != null) {
             sb.append(b.role().value().iid());
         }
-        for (Part<FrameToken> q : b.qualifiers()) {
+        for (Part<Qualifier> q : b.qualifiers()) {
             sb.append('|');
             if (q != null && q.value() != null) sb.append(q.value());
         }
@@ -261,7 +260,7 @@ public final class FrameDraftMerger {
     /** Use the target's confidence as the dominant signal for binding ranking. */
     private static double bindingConfidence(BindingMap b) {
         if (b.target() == null || b.target().confidence() == null) return 0.0;
-        return b.target().confidence().toDouble();
+        return b.target().confidence().doubleValue();
     }
 
     /**
@@ -270,7 +269,7 @@ public final class FrameDraftMerger {
      * resolved, subsequent rounds shouldn't overturn it. Just below 1.0 to avoid
      * the strict "lock" interpretation but high enough to win all comparisons.
      */
-    private static final Decimal NESTED_BINDING_CONFIDENCE = Decimal.parse("0.999");
+    private static final BigDecimal NESTED_BINDING_CONFIDENCE = new BigDecimal("0.999");
 
     /**
      * If any of the loser FrameMaps has a claim region that covers this binding's
@@ -290,7 +289,7 @@ public final class FrameDraftMerger {
 
         for (FrameMap loser : losers) {
             if (claimContainsSpan(loser, targetSpan)) {
-                BindingTarget nestedTarget = new FrameMapTarget(loser);
+                Object nestedTarget = new FrameMapTarget(loser);
                 return new BindingMap(
                         binding.role(),
                         binding.qualifiers(),

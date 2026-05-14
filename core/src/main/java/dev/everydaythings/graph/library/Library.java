@@ -6,9 +6,9 @@ import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.data.DataByteStore;
 import dev.everydaythings.graph.library.data.DataStore;
 import dev.everydaythings.graph.library.index.RefIndexStore;
@@ -63,7 +63,7 @@ public final class Library implements AutoCloseable {
     private final RefIndexStore index;
     private final TokenIndexStore tokens;
     private final Optional<Path> rootPath;
-    private volatile Set<ItemID> knownLanguagesCache;
+    private volatile Set<ItemRef> knownLanguagesCache;
 
     private Library(DataStore data, RefIndexStore index, TokenIndexStore tokens,
                     Optional<Path> rootPath) {
@@ -202,28 +202,28 @@ public final class Library implements AutoCloseable {
     // Object persistence — compose the three stores
     // ==================================================================================
 
-    public DatumID put(Datum datum) {
+    public DatumRef put(Datum datum) {
         Objects.requireNonNull(datum, "datum");
-        DatumID id = data.put(datum);
+        DatumRef id = data.put(datum);
         index.index(datum, id);
         tokens.index(datum, id);
         if (datum instanceof Body) knownLanguagesCache = null;
         return id;
     }
 
-    public ContentID putContent(byte[] bytes) {
+    public ContentRef putContent(byte[] bytes) {
         return data.putContent(bytes);
     }
 
-    public Optional<byte[]> getContent(ContentID cid) {
+    public Optional<byte[]> getContent(ContentRef cid) {
         return data.getContent(cid);
     }
 
-    public boolean hasContent(ContentID cid) {
+    public boolean hasContent(ContentRef cid) {
         return data.hasContent(cid);
     }
 
-    public boolean deleteContent(ContentID cid) {
+    public boolean deleteContent(ContentRef cid) {
         // If the bytes decode to a Datum, unindex it first; then delete the
         // bytes. Otherwise it's a raw content blob; just delete.
         Optional<byte[]> bytesOpt = data.getContent(cid);
@@ -237,11 +237,11 @@ public final class Library implements AutoCloseable {
         return data.deleteContent(cid);
     }
 
-    public boolean has(DatumID datumId) {
+    public boolean has(DatumRef datumId) {
         return data.has(datumId);
     }
 
-    public boolean delete(DatumID datumId) {
+    public boolean delete(DatumRef datumId) {
         Datum d = data.get(datumId).orElse(null);
         if (d == null) return false;
         index.unindex(d, datumId);
@@ -253,23 +253,23 @@ public final class Library implements AutoCloseable {
     // Domain-object fetch API
     // ==================================================================================
 
-    public Optional<Datum> fetchDatum(DatumID datumId) {
+    public Optional<Datum> fetchDatum(DatumRef datumId) {
         return data.get(datumId);
     }
 
-    public Optional<Body> fetchBody(DatumID datumId) {
+    public Optional<Body> fetchBody(DatumRef datumId) {
         return data.get(datumId).filter(Body.class::isInstance).map(Body.class::cast);
     }
 
-    public Optional<Record> fetchRecord(DatumID datumId) {
+    public Optional<Record> fetchRecord(DatumRef datumId) {
         return data.get(datumId).filter(Record.class::isInstance).map(Record.class::cast);
     }
 
-    public Optional<Frame> fetchFrame(DatumID bodyId) {
+    public Optional<Frame> fetchFrame(DatumRef bodyId) {
         return fetchBody(bodyId).map(body -> Frame.of(body, loadRecords(bodyId)));
     }
 
-    public Optional<Manifest> fetchManifest(DatumID bodyId) {
+    public Optional<Manifest> fetchManifest(DatumRef bodyId) {
         return fetchBody(bodyId).flatMap(body -> {
             try {
                 return Optional.of(Manifest.of(body, loadRecords(bodyId)));
@@ -279,7 +279,7 @@ public final class Library implements AutoCloseable {
         });
     }
 
-    private List<Record> loadRecords(DatumID bodyId) {
+    private List<Record> loadRecords(DatumRef bodyId) {
         return index.recordsForBody(bodyId).stream()
                 .map(this::fetchRecord)
                 .flatMap(Optional::stream)
@@ -290,19 +290,19 @@ public final class Library implements AutoCloseable {
     // Index queries
     // ==================================================================================
 
-    public List<DatumID> recordCidsForBody(DatumID bodyId) {
+    public List<DatumRef> recordCidsForBody(DatumRef bodyId) {
         return index.recordsForBody(bodyId);
     }
 
-    public List<DatumID> manifestCidsForItem(ItemID itemIid) {
+    public List<DatumRef> manifestCidsForItem(ItemRef itemIid) {
         return index.manifestsForItem(itemIid);
     }
 
-    public List<DatumID> manifestCidsForType(ItemID typeIid) {
+    public List<DatumRef> manifestCidsForType(ItemRef typeIid) {
         return index.manifestsForType(typeIid);
     }
 
-    public List<DatumID> bodyCidsForReferenceBinding(ItemID role, ItemID target) {
+    public List<DatumRef> bodyCidsForReferenceBinding(ItemRef role, ItemRef target) {
         return index.bodiesByReferenceBinding(role, target);
     }
 
@@ -329,10 +329,10 @@ public final class Library implements AutoCloseable {
      */
     private TokenPosting enrichScope(TokenPosting p) {
         if (p.scope() != null || p.features().isEmpty()) return p;
-        Set<ItemID> languages = knownLanguages();
-        for (ItemID feature : p.features()) {
+        Set<ItemRef> languages = knownLanguages();
+        for (ItemRef feature : p.features()) {
             if (languages.contains(feature)) {
-                Set<ItemID> remaining = new HashSet<>(p.features());
+                Set<ItemRef> remaining = new HashSet<>(p.features());
                 remaining.remove(feature);
                 return new TokenPosting(p.token(), p.target(), p.predicate(), feature,
                         remaining, p.weight(), p.source());
@@ -341,14 +341,14 @@ public final class Library implements AutoCloseable {
         return p;
     }
 
-    private Set<ItemID> knownLanguages() {
-        Set<ItemID> cached = knownLanguagesCache;
+    private Set<ItemRef> knownLanguages() {
+        Set<ItemRef> cached = knownLanguagesCache;
         if (cached != null) return cached;
-        ItemID langArchetype = dev.everydaythings.graph.linguistics.Language.IID;
-        Set<ItemID> langs = new HashSet<>();
-        for (DatumID manifestId : index.manifestsForType(langArchetype)) {
+        ItemRef langArchetype = dev.everydaythings.graph.language.Language.IID;
+        Set<ItemRef> langs = new HashSet<>();
+        for (DatumRef manifestId : index.manifestsForType(langArchetype)) {
             fetchManifest(manifestId).ifPresent(m -> {
-                ItemID iid = m.itemId();
+                ItemRef iid = m.itemId();
                 if (iid != null) langs.add(iid);
             });
         }
@@ -362,11 +362,11 @@ public final class Library implements AutoCloseable {
     // ==================================================================================
 
     /**
-     * Resolve a DatumID to the ContentIDs of its locally-held wire-form
+     * Resolve a DatumRef to the ContentIDs of its locally-held wire-form
      * realizations. Byte-backed-specific; throws if the data store isn't a
      * {@link DataByteStore}.
      */
-    public List<ContentID> contentIdsForDatum(DatumID datumId) {
+    public List<ContentRef> contentIdsForDatum(DatumRef datumId) {
         if (!(data instanceof DataByteStore bds)) {
             throw new UnsupportedOperationException(
                     "contentIdsForDatum requires a DataByteStore; data store is "

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 
 import java.util.List;
 
@@ -36,7 +36,7 @@ public final class Frame extends AttributedBody {
      * Open a fluent builder for a propositional frame whose head is the given
      * predicate IID.
      */
-    public static FrameBuilder compose(ItemID predicate) {
+    public static FrameBuilder compose(ItemRef predicate) {
         return new FrameBuilder(predicate);
     }
 }

@@ -2,13 +2,9 @@ package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /**
  * Identity vocabulary — the sememes and predicates whose meaning is tied to the
@@ -49,19 +45,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Signing.KEY)
     public static final class Signing {
         public static final String KEY = "cg.purpose:signing";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Signing() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the cryptographic signing-key track of an identity (e.g., Ed25519)";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "signing";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "sign";
     }
@@ -70,19 +66,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Encryption.KEY)
     public static final class Encryption {
         public static final String KEY = "cg.purpose:encryption";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Encryption() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the cryptographic encryption-key track of an identity (e.g., X25519)";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "encryption";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "encrypt";
     }
@@ -106,19 +102,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Inception.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Inception {
         public static final String KEY = "cg.sememe:inception";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Inception() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the founding key-state declaration for one identity's one key-track";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "inception";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "incept";
     }
@@ -135,19 +131,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Rotation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Rotation {
         public static final String KEY = "cg.sememe:rotation";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Rotation() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "evolving an identity's committed keys for one key-track, with pre-rotation reveal";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "rotation";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "rotate";
     }
@@ -164,19 +160,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Delegation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Delegation {
         public static final String KEY = "cg.sememe:delegation";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Delegation() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "a parent identity's authorization for a child identity to operate under its authority";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "delegation";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "delegate";
     }
@@ -200,19 +196,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Revocation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Revocation {
         public static final String KEY = "cg.sememe:revocation";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Revocation() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the generic withdrawal of any prior assertion — \"I take it back\"";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "revocation";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "revoke";
     }
@@ -247,19 +243,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Encrypt.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Encrypt {
         public static final String KEY = "cg.sememe:encrypt";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Encrypt() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "an event asserting that some bytes have been encrypted for specific recipients";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "encryption";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "encrypt";
     }
@@ -280,10 +276,10 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Multikey.KEY)
     public static final class Multikey {
         public static final String KEY = "cg.value:multikey";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Multikey() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier marking a binding's bytes target as a multikey-encoded "
@@ -302,14 +298,14 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Next.KEY)
     public static final class Next {
         public static final String KEY = "cg.sememe:next";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Next() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "the one immediately following in sequence";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "next";
     }
@@ -327,10 +323,10 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Keywrap.KEY)
     public static final class Keywrap {
         public static final String KEY = "cg.value:keywrap";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Keywrap() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier marking a binding's bytes target as a wrapped data encryption key "
@@ -350,10 +346,10 @@ public final class IdentityVocabulary {
     @Seed.Item(key = EphemeralPubkey.KEY)
     public static final class EphemeralPubkey {
         public static final String KEY = "cg.value:ephemeral-pubkey";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private EphemeralPubkey() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier marking a binding's bytes target as a sender's ephemeral public "
@@ -371,19 +367,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Compromise.KEY)
     public static final class Compromise {
         public static final String KEY = "cg.sememe:compromise";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Compromise() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "an exposure or breach — cryptographic, structural, or social";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "compromise";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "compromise";
     }
@@ -392,19 +388,19 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Retirement.KEY)
     public static final class Retirement {
         public static final String KEY = "cg.sememe:retirement";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Retirement() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "routine cessation of use or service; no incident, just no longer active";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "retirement";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "retire";
     }
@@ -413,14 +409,14 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Fraud.KEY)
     public static final class Fraud {
         public static final String KEY = "cg.sememe:fraud";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Fraud() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "deceit; intentional misrepresentation";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "fraud";
     }
@@ -429,18 +425,18 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Mistake.KEY)
     public static final class Mistake {
         public static final String KEY = "cg.sememe:mistake";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Mistake() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "an honest error; no malice intended";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "mistake";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "mistake";
     }
@@ -468,13 +464,30 @@ public final class IdentityVocabulary {
     @Seed.Item(key = X25519_AES256GCM_HKDF.KEY)
     public static final class X25519_AES256GCM_HKDF {
         public static final String KEY = "cg.algo:x25519-aes256gcm-hkdf-sha256";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private X25519_AES256GCM_HKDF() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD "
                         + "ciphersuite for hybrid encryption with per-recipient key wrap";
     }
+
+    /** Delegator — one who delegates authority, responsibility, or a task. */
+    @Seed.Item(key = Delegator.KEY)
+    public static final class Delegator {
+        public static final String KEY = "cg.sememe:delegator";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private Delegator() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "one who delegates authority, responsibility, or a task";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "delegator";
+    }
+
 }

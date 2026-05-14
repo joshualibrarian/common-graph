@@ -1,12 +1,11 @@
 package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.VarSig;
-import dev.everydaythings.graph.value.Literal;
-import dev.everydaythings.graph.id.FrameRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.identity.Signer;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.language.ThematicRole;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -107,14 +106,14 @@ public abstract class BodyBuilder<SELF extends BodyBuilder<SELF, R>, R> extends 
             if (!hasRole(finalBindings, ThematicRole.Time.IID)) {
                 finalBindings.add(new Binding(
                         ThematicRole.Time.IID,
-                        Literal.ofInstant(Instant.now())));
+                        Instant.now()));
             }
 
             VarSig sig = signer.sign(HashTree.signingPayload(body));
-            return Record.of(FrameRef.of(body.datumId()), finalBindings, sig);
+            return Record.of(DatumRef.of(body.datumId()), finalBindings, sig);
         }
 
-        private static boolean hasRole(List<Binding> bindings, ItemID role) {
+        private static boolean hasRole(List<Binding> bindings, ItemRef role) {
             for (Binding b : bindings) {
                 if (b.role().equals(role) && b.qualifiers().isEmpty()) return true;
             }

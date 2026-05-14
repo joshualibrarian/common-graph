@@ -2,8 +2,8 @@ package dev.everydaythings.graph.library.puremap;
 
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.encoding.Encoding;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.library.data.DataStore;
 
 import java.util.Map;
@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Pure-in-memory {@link DataStore} — holds live {@link Datum} objects in a
- * {@code Map<DatumID, Datum>}. No encoder, no bytes, no ContentIDs.
+ * {@code Map<DatumRef, Datum>}. No encoder, no bytes, no ContentIDs.
  *
  * <p>The content-blob API ({@link #putContent}, {@link #getContent}, etc.) is
  * supported via a separate in-memory map; pure-map mode CAN hold blobs, just
@@ -21,8 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class PureMapDataStore implements DataStore {
 
-    private final Map<DatumID, Datum> datums = new ConcurrentHashMap<>();
-    private final Map<ContentID, byte[]> blobs = new ConcurrentHashMap<>();
+    private final Map<DatumRef, Datum> datums = new ConcurrentHashMap<>();
+    private final Map<ContentRef, byte[]> blobs = new ConcurrentHashMap<>();
 
     PureMapDataStore() {}
 
@@ -41,26 +41,26 @@ public final class PureMapDataStore implements DataStore {
     // ==================================================================================
 
     @Override
-    public DatumID put(Datum datum) {
+    public DatumRef put(Datum datum) {
         Objects.requireNonNull(datum, "datum");
         datums.put(datum.datumId(), datum);
         return datum.datumId();
     }
 
     @Override
-    public Optional<Datum> get(DatumID datumId) {
+    public Optional<Datum> get(DatumRef datumId) {
         Objects.requireNonNull(datumId, "datumId");
         return Optional.ofNullable(datums.get(datumId));
     }
 
     @Override
-    public boolean has(DatumID datumId) {
+    public boolean has(DatumRef datumId) {
         Objects.requireNonNull(datumId, "datumId");
         return datums.containsKey(datumId);
     }
 
     @Override
-    public boolean delete(DatumID datumId) {
+    public boolean delete(DatumRef datumId) {
         Objects.requireNonNull(datumId, "datumId");
         return datums.remove(datumId) != null;
     }
@@ -70,28 +70,28 @@ public final class PureMapDataStore implements DataStore {
     // ==================================================================================
 
     @Override
-    public ContentID putContent(byte[] bytes) {
+    public ContentRef putContent(byte[] bytes) {
         Objects.requireNonNull(bytes, "bytes");
-        ContentID cid = ContentID.of(bytes);
+        ContentRef cid = ContentRef.of(bytes);
         blobs.put(cid, bytes.clone());
         return cid;
     }
 
     @Override
-    public Optional<byte[]> getContent(ContentID cid) {
+    public Optional<byte[]> getContent(ContentRef cid) {
         Objects.requireNonNull(cid, "cid");
         byte[] bytes = blobs.get(cid);
         return Optional.ofNullable(bytes == null ? null : bytes.clone());
     }
 
     @Override
-    public boolean hasContent(ContentID cid) {
+    public boolean hasContent(ContentRef cid) {
         Objects.requireNonNull(cid, "cid");
         return blobs.containsKey(cid);
     }
 
     @Override
-    public boolean deleteContent(ContentID cid) {
+    public boolean deleteContent(ContentRef cid) {
         Objects.requireNonNull(cid, "cid");
         return blobs.remove(cid) != null;
     }
@@ -101,7 +101,7 @@ public final class PureMapDataStore implements DataStore {
     // ==================================================================================
 
     /** Read-only view of the held datums — used by sibling PureMap index stores. */
-    Map<DatumID, Datum> datumsView() {
+    Map<DatumRef, Datum> datumsView() {
         return datums;
     }
 

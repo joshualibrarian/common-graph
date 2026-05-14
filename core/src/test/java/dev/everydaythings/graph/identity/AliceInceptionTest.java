@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -76,7 +76,7 @@ class AliceInceptionTest {
 
         Signer alice = Signer.inMemory(lib);
 
-        DatumID inceptionId = alice.vault().orElseThrow()
+        DatumRef inceptionId = alice.vault().orElseThrow()
                 .chainHead(IdentityVocabulary.Signing.IID).orElseThrow();
         Frame inception = lib.fetchFrame(inceptionId).orElseThrow();
         assertThat(Signer.isSelfAttested(inception)).isTrue();
@@ -88,7 +88,7 @@ class AliceInceptionTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Signer ghost = new Signer(ItemID.fromString("ghost"));
+        Signer ghost = new Signer(ItemRef.fromString("ghost"));
         ghost.bindLibrarian(lib);
 
         assertThat(ghost.canSign()).isFalse();

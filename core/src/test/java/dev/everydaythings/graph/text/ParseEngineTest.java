@@ -1,20 +1,17 @@
 package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.value.Literal;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.text.AnchorTable.TokenAnchor;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
 import dev.everydaythings.graph.text.FrameMap.Part;
 import dev.everydaythings.graph.text.TokenLattice.TokenSpan;
-import dev.everydaythings.graph.value.Decimal;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,8 +33,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class ParseEngineTest {
 
-    private static final ItemID ADD_IID = ItemID.fromString("test.predicate:add");
-    private static final ItemID SYMBOL_PREDICATE = ItemID.fromString("test.predicate:symbol");
+    private static final ItemRef ADD_IID = ItemRef.fromString("test.predicate:add");
+    private static final ItemRef SYMBOL_PREDICATE = ItemRef.fromString("test.predicate:symbol");
 
     private Librarian lib;
     private Item orchestrator;
@@ -58,11 +55,11 @@ class ParseEngineTest {
                         new Binding(
                                 ThematicRole.Value.IID,
                                 List.of(),
-                                Literal.ofText("+"))));
-        DatumID bodyCid = lib.persist(body);
+                                "+")));
+        DatumRef bodyCid = lib.persist(body);
         assertThat(bodyCid).isNotNull();
 
-        orchestrator = new Item(ItemID.fromString("test.orchestrator"), lib);
+        orchestrator = new Item(ItemRef.fromString("test.orchestrator"), lib);
     }
 
     @Nested
@@ -142,7 +139,7 @@ class ParseEngineTest {
             // operators' precedence-and-fitness-derived confidences).
             lib = Librarian.inMemory();
             lib.bootstrap();
-            realOrchestrator = new Item(ItemID.fromString("test.real-orchestrator"), lib);
+            realOrchestrator = new Item(ItemRef.fromString("test.real-orchestrator"), lib);
         }
 
         private FrameMap parse(String input) {
@@ -331,7 +328,7 @@ class ParseEngineTest {
         }
     }
 
-    private static BindingMap findBinding(FrameMap fm, ItemID role) {
+    private static BindingMap findBinding(FrameMap fm, ItemRef role) {
         for (BindingMap b : fm.bindings()) {
             if (b.role() != null && b.role().value() != null
                     && b.role().value().iid().equals(role)) {
@@ -342,7 +339,7 @@ class ParseEngineTest {
     }
 
     private static long integerValue(BindingMap b) {
-        return ((Literal) b.target().value()).asInteger();
+        return (Long) b.target().value();
     }
 
     /**
@@ -357,10 +354,10 @@ class ParseEngineTest {
      */
     static class AddSememe extends Item {
 
-        private static final Decimal PREDICATE_CONFIDENCE = Decimal.parse("0.95");
-        private static final Decimal BINDING_CONFIDENCE = Decimal.parse("0.9");
+        private static final BigDecimal PREDICATE_CONFIDENCE = new BigDecimal("0.95");
+        private static final BigDecimal BINDING_CONFIDENCE = new BigDecimal("0.9");
 
-        AddSememe(ItemID iid, Librarian librarian) {
+        AddSememe(ItemRef iid, Librarian librarian) {
             super(iid, librarian);
         }
 
@@ -407,9 +404,9 @@ class ParseEngineTest {
         }
 
         /** Build a binding for the given role from a neighboring token, or null if no usable target. */
-        private static BindingMap makeBinding(TokenSpan token, ItemID role) {
+        private static BindingMap makeBinding(TokenSpan token, ItemRef role) {
             if (token == null) return null;
-            BindingTarget target = tokenToBindingTarget(token);
+            Object target = tokenToBindingTarget(token);
             if (target == null) return null;
             return new BindingMap(
                     new Part<>(ItemRef.of(role), BINDING_CONFIDENCE, List.of()),
@@ -418,16 +415,16 @@ class ParseEngineTest {
         }
 
         /** Convert a token to a BindingTarget. Integer literals → Literal.ofInteger; word with posting → IID ref. */
-        private static BindingTarget tokenToBindingTarget(TokenSpan token) {
+        private static Object tokenToBindingTarget(TokenSpan token) {
             if (token.kind() == TokenLattice.Kind.LITERAL) {
                 try {
-                    return Literal.ofInteger(Long.parseLong(token.surfaceText().trim()));
+                    return (long) (Long.parseLong(token.surfaceText().trim()));
                 } catch (NumberFormatException e) {
                     return null;
                 }
             }
             if (!token.postings().isEmpty()) {
-                return BindingTarget.iid(token.postings().get(0).target());
+                return token.postings().get(0).target();
             }
             return null;
         }

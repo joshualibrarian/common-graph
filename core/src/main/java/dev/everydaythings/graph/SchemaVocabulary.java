@@ -1,12 +1,8 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
+
 import static dev.everydaythings.graph.Seed.*;
 
 /**
@@ -63,7 +59,7 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Expects.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Expects {
         public static final String KEY = "cg.sememe:expects";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Expects() {}
     }
 
@@ -86,7 +82,7 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Implements.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Implements {
         public static final String KEY = "cg.sememe:implements";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Implements() {}
     }
 
@@ -106,16 +102,16 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Required.KEY)
     public static final class Required {
         public static final String KEY = "cg.qualifier:required";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Required() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier marking an EXPECTS declaration as mandatory rather than "
                         + "merely permitted";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "required";
     }
@@ -135,16 +131,16 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Arity.KEY)
     public static final class Arity {
         public static final String KEY = "cg.qualifier:arity";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Arity() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier on ATTRIBUTE bindings declaring an arity — a count of "
                         + "expected arguments or bindings";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "arity";
     }
@@ -161,15 +157,15 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Retention.KEY)
     public static final class Retention {
         public static final String KEY = "cg.qualifier:retention";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Retention() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier on CONFIG bindings declaring the frame's persistence policy";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "retention";
     }
@@ -186,16 +182,16 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Ephemeral.KEY)
     public static final class Ephemeral {
         public static final String KEY = "cg.value:ephemeral";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Ephemeral() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "value marking a predicate's frames as non-persisted — handler fires, "
                         + "response flows back, nothing stored";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "ephemeral";
     }
@@ -213,16 +209,16 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Limit.KEY)
     public static final class Limit {
         public static final String KEY = "cg.qualifier:limit";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Limit() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier on ATTRIBUTE bindings declaring a result-count cap "
                         + "for set-returning queries";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "limit";
     }

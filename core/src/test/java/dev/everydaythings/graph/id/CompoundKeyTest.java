@@ -1,11 +1,13 @@
 package dev.everydaythings.graph.id;
 
+import dev.everydaythings.graph.encoding.CgCbor;
+
 import dev.everydaythings.graph.canonical.Scope;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CompoundKeyTest {
 
-    static final ItemID TITLE = ItemID.fromString("cg:pred/title");
-    static final ItemID GLOSS = ItemID.fromString("cg:pred/gloss");
-    static final ItemID ENG = ItemID.fromString("cg:language/eng");
-    static final ItemID CONTENT = ItemID.fromString("cg:pred/content");
-    static final ItemID EXPRESSION = ItemID.fromString("cg:pred/expression");
+    static final ItemRef TITLE = ItemRef.fromString("cg:pred/title");
+    static final ItemRef GLOSS = ItemRef.fromString("cg:pred/gloss");
+    static final ItemRef ENG = ItemRef.fromString("cg:language/eng");
+    static final ItemRef CONTENT = ItemRef.fromString("cg:pred/content");
+    static final ItemRef EXPRESSION = ItemRef.fromString("cg:pred/expression");
 
     @Nested
     @DisplayName("Factory methods")
@@ -60,21 +62,21 @@ class CompoundKeyTest {
             assertThat(key.size()).isEqualTo(2);
             assertThat(key.head()).isEqualTo(EXPRESSION);
             assertThat(key.qualifiers()).hasSize(1);
-            assertThat(key.qualifiers().get(0)).isInstanceOf(CompoundKey.Literal.class);
-            assertThat(((CompoundKey.Literal) key.qualifiers().get(0)).value()).isEqualTo("x");
+            assertThat(key.qualifiers().get(0)).isInstanceOf(CompoundKey.Text.class);
+            assertThat(((CompoundKey.Text) key.qualifiers().get(0)).value()).isEqualTo("x");
             assertThat(key.isSemantic()).isFalse();
         }
 
         @Test
         @DisplayName("mixed sememe and literal qualifiers")
         void mixedQualifiers() {
-            ItemID hostId = ItemID.fromString("cg:item/host-1");
+            ItemRef hostId = ItemRef.fromString("cg:item/host-1");
             CompoundKey key = CompoundKey.of(EXPRESSION, hostId, "Display-0");
 
             assertThat(key.size()).isEqualTo(3);
             assertThat(key.qualifiers()).hasSize(2);
             assertThat(key.qualifiers().get(0)).isInstanceOf(CompoundKey.Sememe.class);
-            assertThat(key.qualifiers().get(1)).isInstanceOf(CompoundKey.Literal.class);
+            assertThat(key.qualifiers().get(1)).isInstanceOf(CompoundKey.Text.class);
             assertThat(key.isSemantic()).isFalse();
         }
 
@@ -95,9 +97,9 @@ class CompoundKeyTest {
         @Test
         @DisplayName("explicit qualifier list factory")
         void explicitQualifierList() {
-            List<CompoundKey.FrameToken> qualifiers = List.of(
+            List<CompoundKey.Qualifier> qualifiers = List.of(
                     new CompoundKey.Sememe(ENG),
-                    new CompoundKey.Literal("hello"));
+                    new CompoundKey.Text("hello"));
             CompoundKey key = CompoundKey.of(GLOSS, qualifiers);
 
             assertThat(key.head()).isEqualTo(GLOSS);
@@ -105,9 +107,9 @@ class CompoundKeyTest {
         }
 
         @Test
-        @DisplayName("FrameToken can be passed directly as qualifier")
+        @DisplayName("Qualifier can be passed directly as qualifier")
         void frameTokenDirectly() {
-            CompoundKey.FrameToken sememe = new CompoundKey.Sememe(ENG);
+            CompoundKey.Qualifier sememe = new CompoundKey.Sememe(ENG);
             CompoundKey key = CompoundKey.of(GLOSS, sememe);
 
             assertThat(key.qualifiers()).hasSize(1);
@@ -187,8 +189,8 @@ class CompoundKeyTest {
         @DisplayName("head-only key survives encode/decode")
         void headOnly() {
             CompoundKey original = CompoundKey.of(TITLE);
-            CBORObject cbor = original.toCborTree(Scope.BODY);
-            CompoundKey decoded = CompoundKey.fromCborTree(cbor);
+            CBORObject cbor = CgCbor.toCbor(original);
+            CompoundKey decoded = CgCbor.decodeCompoundKey(cbor);
 
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.head()).isEqualTo(TITLE);
@@ -198,8 +200,8 @@ class CompoundKeyTest {
         @DisplayName("compound sememe key survives encode/decode")
         void compoundSememe() {
             CompoundKey original = CompoundKey.of(GLOSS, ENG);
-            CBORObject cbor = original.toCborTree(Scope.BODY);
-            CompoundKey decoded = CompoundKey.fromCborTree(cbor);
+            CBORObject cbor = CgCbor.toCbor(original);
+            CompoundKey decoded = CgCbor.decodeCompoundKey(cbor);
 
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.size()).isEqualTo(2);
@@ -209,22 +211,22 @@ class CompoundKeyTest {
         @DisplayName("key with literal qualifier survives encode/decode")
         void withLiteralQualifier() {
             CompoundKey original = CompoundKey.of(EXPRESSION, "x");
-            CBORObject cbor = original.toCborTree(Scope.BODY);
-            CompoundKey decoded = CompoundKey.fromCborTree(cbor);
+            CBORObject cbor = CgCbor.toCbor(original);
+            CompoundKey decoded = CgCbor.decodeCompoundKey(cbor);
 
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.qualifiers().get(0))
-                    .isInstanceOfSatisfying(CompoundKey.Literal.class,
+                    .isInstanceOfSatisfying(CompoundKey.Text.class,
                             l -> assertThat(l.value()).isEqualTo("x"));
         }
 
         @Test
         @DisplayName("mixed qualifiers survive encode/decode")
         void mixedQualifiers() {
-            ItemID hostId = ItemID.fromString("cg:item/host-1");
+            ItemRef hostId = ItemRef.fromString("cg:item/host-1");
             CompoundKey original = CompoundKey.of(EXPRESSION, hostId, "Display-0");
-            CBORObject cbor = original.toCborTree(Scope.BODY);
-            CompoundKey decoded = CompoundKey.fromCborTree(cbor);
+            CBORObject cbor = CgCbor.toCbor(original);
+            CompoundKey decoded = CgCbor.decodeCompoundKey(cbor);
 
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.size()).isEqualTo(3);
@@ -234,8 +236,8 @@ class CompoundKeyTest {
         @DisplayName("binary round-trip via encodeBinary")
         void binaryRoundTrip() {
             CompoundKey original = CompoundKey.of(GLOSS, ENG);
-            byte[] bytes = original.encodeBinary(Scope.BODY);
-            CompoundKey decoded = CompoundKey.fromCborTree(CBORObject.DecodeFromBytes(bytes));
+            byte[] bytes = CgCbor.encode(original);
+            CompoundKey decoded = CgCbor.decodeCompoundKey(CBORObject.DecodeFromBytes(bytes));
 
             assertThat(decoded).isEqualTo(original);
         }
@@ -244,7 +246,7 @@ class CompoundKeyTest {
         @DisplayName("rejects empty CBOR array")
         void rejectsEmptyArray() {
             CBORObject empty = CBORObject.NewArray();
-            assertThatThrownBy(() -> CompoundKey.fromCborTree(empty))
+            assertThatThrownBy(() -> CgCbor.decodeCompoundKey(empty))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
@@ -311,7 +313,7 @@ class CompoundKeyTest {
         @DisplayName("tokens() returns head as first element")
         void tokensIncludesHead() {
             CompoundKey key = CompoundKey.of(GLOSS, ENG);
-            List<CompoundKey.FrameToken> all = key.tokens();
+            List<CompoundKey.Qualifier> all = key.tokens();
 
             assertThat(all).hasSize(2);
             assertThat(all.get(0)).isInstanceOfSatisfying(CompoundKey.Sememe.class,

@@ -111,7 +111,7 @@ public @interface Scene {
     /** Direct label text for this field. */
     String label() default "";
 
-    /** Reference to another field's ID that acts as the label for this field. */
+    /** HashID to another field's ID that acts as the label for this field. */
     String labeledBy() default "";
 
     // ===== Layout Hints =====
@@ -633,7 +633,7 @@ public @interface Scene {
          * <p>The method returns a value that renders itself in the user's locale
          * and language:
          * <ul>
-         *   <li>{@code Sememe} / {@code ItemID} — resolved to a word via the lexeme system</li>
+         *   <li>{@code Sememe} / {@code ItemRef} — resolved to a word via the lexeme system</li>
          *   <li>{@code Quantity} — locale-formatted number + unit symbol</li>
          *   <li>{@code List<SemanticToken>} — sequence of meaning tokens → composed text</li>
          *   <li>{@code Frame} — semantic assertion → the language system generates a sentence</li>
@@ -1289,7 +1289,7 @@ public @interface Scene {
 
         /**
          * 2D image fallback — mid fidelity in the chain (glyph → image → mesh).
-         * ContentID reference or classpath path to a 2D image asset.
+         * ContentRef reference or classpath path to a 2D image asset.
          */
         String image() default "";
 
@@ -1308,7 +1308,7 @@ public @interface Scene {
         /** Radius for sphere/cylinder shapes (e.g., "0.5m", "30cm"). */
         String radius() default "0.5m";
 
-        /** ContentID reference or classpath path to mesh asset (overrides shape). */
+        /** ContentRef reference or classpath path to mesh asset (overrides shape). */
         String mesh() default "";
 
         /** Material color as hex int (e.g., 0xFF0000 for red). */
@@ -1479,7 +1479,7 @@ public @interface Scene {
         /** Canonical ordering for deterministic serialization and layout. -1 = declaration order. */
         int order() default -1;
 
-        /** Content reference to audio asset (handle name or ContentID). */
+        /** Content reference to audio asset (handle name or ContentRef). */
         String src() default "";
 
         /** Position X (e.g., "5m"). */

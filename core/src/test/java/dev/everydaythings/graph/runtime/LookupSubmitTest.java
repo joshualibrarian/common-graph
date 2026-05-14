@@ -2,7 +2,10 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.librarian.LibrarianVocabulary;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +34,7 @@ class LookupSubmitTest {
 
         // Build a LOOKUP frame for a token we know is bootstrapped ("handler"
         // is the English noun lemma for the Handles sememe).
-        Frame lookup = Frame.compose(Lookup.IID)
+        Frame lookup = Frame.compose(LibrarianVocabulary.Lookup.IID)
                 .theme("handler")
                 .build();
 
@@ -57,7 +60,7 @@ class LookupSubmitTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Frame lookup = Frame.compose(Lookup.IID)
+        Frame lookup = Frame.compose(LibrarianVocabulary.Lookup.IID)
                 .theme("handler")
                 .build();
         lib.submit(lookup);
@@ -76,9 +79,9 @@ class LookupSubmitTest {
 
         // Build a LOOKUP with both THEME and ATTRIBUTE[LIMIT]. Exit the binding
         // sub-builder via a parent method (.theme via forwarding), then build.
-        Frame lookup = (Frame) Frame.compose(Lookup.IID)
+        Frame lookup = (Frame) Frame.compose(LibrarianVocabulary.Lookup.IID)
                 .theme("c")
-                .binding(dev.everydaythings.graph.semantics.ThematicRole.Attribute.IID)
+                .binding(ThematicRole.Attribute.IID)
                     .qualifier(SchemaVocabulary.Limit.IID)
                     .target(50L)
                 .build();
@@ -95,7 +98,7 @@ class LookupSubmitTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Frame lookup = Frame.compose(Lookup.IID)
+        Frame lookup = Frame.compose(LibrarianVocabulary.Lookup.IID)
                 .theme("absolutely-not-a-real-token-xyzzy")
                 .build();
 
@@ -109,7 +112,7 @@ class LookupSubmitTest {
         Librarian lib = Librarian.inMemory();
 
         // A made-up predicate with no @Handler on Librarian
-        ItemID custom = ItemID.fromString("test.predicate:nonexistent");
+        ItemRef custom = ItemRef.fromString("test.predicate:nonexistent");
         Frame frame = Frame.compose(custom)
                 .theme("anything")
                 .build();

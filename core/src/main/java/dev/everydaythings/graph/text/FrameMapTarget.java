@@ -39,12 +39,8 @@ public final class FrameMapTarget implements BindingTarget {
         return frameMap;
     }
 
-    @Override
-    public CBORObject toCborTree(Scope scope) {
-        throw new UnsupportedOperationException(
-                "FrameMapTarget is transient (parse-time only); convert to RefTarget "
-                        + "via persistence before encoding to CBOR.");
-    }
+    // FrameMapTarget is transient (parse-time only) — never encoded.
+    // Convert to RefTarget via persistence before crossing a codec boundary.
 
     @Override
     public boolean equals(Object o) {

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.parley;
 
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import lombok.extern.log4j.Log4j2;
 
 /**

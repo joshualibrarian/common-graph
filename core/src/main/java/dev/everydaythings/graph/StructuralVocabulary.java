@@ -1,9 +1,10 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.LexicalVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
+
 import static dev.everydaythings.graph.Seed.*;
 
 /**
@@ -44,10 +45,10 @@ public final class StructuralVocabulary {
     @Seed.Item(key = OpenGroup.KEY)
     public static final class OpenGroup {
         public static final String KEY = "cg.syntax:open-group";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private OpenGroup() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "opens a group or parenthesized expression";
     }
@@ -55,10 +56,10 @@ public final class StructuralVocabulary {
     @Seed.Item(key = CloseGroup.KEY)
     public static final class CloseGroup {
         public static final String KEY = "cg.syntax:close-group";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private CloseGroup() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "closes a group or parenthesized expression";
     }
@@ -70,10 +71,10 @@ public final class StructuralVocabulary {
     @Seed.Item(key = Separator.KEY)
     public static final class Separator {
         public static final String KEY = "cg.syntax:separator";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Separator() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "separates arguments, list elements, or clause boundaries";
@@ -82,10 +83,10 @@ public final class StructuralVocabulary {
     @Seed.Item(key = Sequence.KEY)
     public static final class Sequence {
         public static final String KEY = "cg.syntax:sequence";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Sequence() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "separates sequential expressions or statements";
     }
@@ -97,10 +98,10 @@ public final class StructuralVocabulary {
     @Seed.Item(key = Pipe.KEY)
     public static final class Pipe {
         public static final String KEY = "cg.syntax:pipe";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Pipe() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "explicit chain break; pipe output to next expression";
     }
@@ -112,10 +113,10 @@ public final class StructuralVocabulary {
     @Seed.Item(key = Access.KEY)
     public static final class Access {
         public static final String KEY = "cg.syntax:access";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Access() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "property access; navigating into an item";
     }

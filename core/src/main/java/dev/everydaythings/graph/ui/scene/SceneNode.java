@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Order;
 import dev.everydaythings.graph.canonical.Canonical;
-import dev.everydaythings.graph.canonical.Canonization;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.canonical.Layout;
+import dev.everydaythings.graph.id.ItemRef;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -62,7 +62,7 @@ import java.util.Map;
  */
 @Getter
 @Accessors(fluent = true)
-@Canonization(classType = Canonical.ClassCollectionType.MAP)
+@Layout(Layout.Kind.MAP)
 public class SceneNode implements Canonical {
 
     // =================================================================================
@@ -78,161 +78,161 @@ public class SceneNode implements Canonical {
         BODY
     }
 
-    @Canon(order = 0)
+    @Order(0)
     private NodeType type;
 
     // =================================================================================
     // Identity
     // =================================================================================
 
-    @Canon(order = 1)
+    @Order(1)
     private String id;
 
     @Getter(lombok.AccessLevel.NONE)
-    @Canon(order = 2)
+    @Order(2)
     private List<String> classes;
 
     // =================================================================================
     // Box Model
     // =================================================================================
 
-    @Canon(order = 10)
+    @Order(10)
     private String width;
 
-    @Canon(order = 11)
+    @Order(11)
     private String height;
 
     /** Min width constraint — String "200px" → Float 200.0f after presentation. */
-    @Canon(order = 12)
+    @Order(12)
     private Object minWidth;
 
     /** Max width constraint — String "80%" → Float after presentation. */
-    @Canon(order = 13)
+    @Order(13)
     private Object maxWidth;
 
     /** Min height constraint. */
-    @Canon(order = 14)
+    @Order(14)
     private Object minHeight;
 
     /** Max height constraint. */
-    @Canon(order = 15)
+    @Order(15)
     private Object maxHeight;
 
-    @Canon(order = 16)
+    @Order(16)
     private String margin;
 
-    @Canon(order = 17)
+    @Order(17)
     private String padding;
 
     /** Corner radius — String "4px" → Float 4.0f after presentation. */
-    @Canon(order = 30)
+    @Order(30)
     private Object corner;
 
-    @Canon(order = 35)
+    @Order(35)
     private String overflow;
 
     /** Opacity — String "0.8" → Float 0.8f after presentation. */
-    @Canon(order = 51)
+    @Order(51)
     private Object opacity;
 
     // =================================================================================
     // Nested Visual Groups
     // =================================================================================
 
-    @Canon(order = 18)
+    @Order(18)
     private Border border;
 
-    @Canon(order = 31)
+    @Order(31)
     private Background background;
 
-    @Canon(order = 40)
+    @Order(40)
     private Typography typography;
 
-    @Canon(order = 60)
+    @Order(60)
     private Transform transform;
 
-    @Canon(order = 75)
+    @Order(75)
     private Transition transition;
 
-    @Canon(order = 79)
+    @Order(79)
     private Animation animation;
 
     /** Container flow + grid layout. Custom getter returns the mode string for back-compat. */
     @Getter(lombok.AccessLevel.NONE)
-    @Canon(order = 200)
+    @Order(200)
     private Layout layout;
 
     // =================================================================================
     // Interaction
     // =================================================================================
 
-    @Canon(order = 90)
+    @Order(90)
     private List<SceneEvent> events;
 
-    @Canon(order = 91)
+    @Order(91)
     private boolean capturesFocus;
 
-    @Canon(order = 92)
+    @Order(92)
     private String cursor;
 
-    @Canon(order = 93)
+    @Order(93)
     private boolean editable;
 
     // =================================================================================
     // Data Binding
     // =================================================================================
 
-    @Canon(order = 100)
+    @Order(100)
     private String bind;
 
     /** Visibility — String expression → Boolean after resolution. */
-    @Canon(order = 101)
+    @Order(101)
     private Object visible;
 
     // =================================================================================
     // State Declarations
     // =================================================================================
 
-    @Canon(order = 105)
+    @Order(105)
     private List<StateDecl> state;
 
     /** Conditional property blocks: condition → (dotted-property → value). */
-    @Canon(order = 106)
+    @Order(106)
     private Map<String, Map<String, String>> when;
 
     // =================================================================================
     // Anchor Positioning (child-side, takes node out of parent flow)
     // =================================================================================
 
-    @Canon(order = 208) private String anchorTop;
-    @Canon(order = 209) private String anchorRight;
-    @Canon(order = 210) private String anchorBottom;
-    @Canon(order = 211) private String anchorLeft;
+    @Order(208) private String anchorTop;
+    @Order(209) private String anchorRight;
+    @Order(210) private String anchorBottom;
+    @Order(211) private String anchorLeft;
 
     // =================================================================================
     // Container Content (type == CONTAINER)
     // =================================================================================
 
-    @Canon(order = 220)
+    @Order(220)
     private List<SceneNode> children;
 
-    @Canon(order = 221)
+    @Order(221)
     private String repeat;
 
-    @Canon(order = 222)
+    @Order(222)
     private SceneNode childTemplate;
 
     // =================================================================================
     // Text Content (type == TEXT)
     // =================================================================================
 
-    @Canon(order = 300)
+    @Order(300)
     private String text;
 
-    @Canon(order = 301)
-    private ItemID format;
+    @Order(301)
+    private ItemRef format;
 
-    @Canon(order = 302)
+    @Order(302)
     private List<SemanticToken> tokens;
 
     // =================================================================================
@@ -240,51 +240,51 @@ public class SceneNode implements Canonical {
     // =================================================================================
 
     /** Geometric shape: "circle", "line", "rect", "sphere", "cone", "cylinder", "box". */
-    @Canon(order = 400)
+    @Order(400)
     private String shape;
 
     /** 2D image path or CID (SVG, PNG, JPEG, WebP, GIF). */
-    @Canon(order = 401)
+    @Order(401)
     private String image;
 
     /** 3D model path or CID (GLB, GLTF). */
-    @Canon(order = 402)
+    @Order(402)
     private String model;
 
     /** Unicode glyph (single character or emoji). */
-    @Canon(order = 403)
+    @Order(403)
     private String glyph;
 
     /** Text description fallback. */
-    @Canon(order = 404)
+    @Order(404)
     private String alt;
 
     /** Fill color — String "#color" → Integer 0xFFcolor after presentation. */
-    @Canon(order = 410)
+    @Order(410)
     private Object fill;
 
     /** Stroke color — String "#color" → Integer 0xFFcolor after presentation. */
-    @Canon(order = 411)
+    @Order(411)
     private Object strokeColor;
 
     /** Stroke width — String "2px" → Float 2.0f after presentation. */
-    @Canon(order = 412)
+    @Order(412)
     private Object strokeWidth;
 
     /** Radius for circle/sphere shapes. */
-    @Canon(order = 413)
+    @Order(413)
     private String radius;
 
     /** SVG path data (the 'd' attribute) for shape="path". */
-    @Canon(order = 414)
+    @Order(414)
     private String pathData;
 
     /** Material reference (PBR properties). */
-    @Canon(order = 420)
+    @Order(420)
     private String material;
 
     /** Named surfaces on this body's geometry (e.g., "front" → container for that face). */
-    @Canon(order = 430)
+    @Order(430)
     private Map<String, SceneNode> surfaces;
 
     // =================================================================================
@@ -315,20 +315,20 @@ public class SceneNode implements Canonical {
     /** Per-side border width, style, and color. Cascade prefix: {@code border.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @dev.everydaythings.graph.canonical.Layout(dev.everydaythings.graph.canonical.Layout.Kind.MAP)
     public static class Border implements Canonical {
-        @Canon(order = 0)  private Object topWidth;
-        @Canon(order = 1)  private String topStyle;
-        @Canon(order = 2)  private Object topColor;
-        @Canon(order = 3)  private Object rightWidth;
-        @Canon(order = 4)  private String rightStyle;
-        @Canon(order = 5)  private Object rightColor;
-        @Canon(order = 6)  private Object bottomWidth;
-        @Canon(order = 7)  private String bottomStyle;
-        @Canon(order = 8)  private Object bottomColor;
-        @Canon(order = 9)  private Object leftWidth;
-        @Canon(order = 10) private String leftStyle;
-        @Canon(order = 11) private Object leftColor;
+        @Order(0)  private Object topWidth;
+        @Order(1)  private String topStyle;
+        @Order(2)  private Object topColor;
+        @Order(3)  private Object rightWidth;
+        @Order(4)  private String rightStyle;
+        @Order(5)  private Object rightColor;
+        @Order(6)  private Object bottomWidth;
+        @Order(7)  private String bottomStyle;
+        @Order(8)  private Object bottomColor;
+        @Order(9)  private Object leftWidth;
+        @Order(10) private String leftStyle;
+        @Order(11) private Object leftColor;
 
         public Border() {}
 
@@ -358,31 +358,31 @@ public class SceneNode implements Canonical {
     /** Per-axis rotation, scale, transform origin, elevation, position. Cascade prefix: {@code transform.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @dev.everydaythings.graph.canonical.Layout(dev.everydaythings.graph.canonical.Layout.Kind.MAP)
     public static class Transform implements Canonical {
         // Rotation per-axis — String "45deg" → Float after presentation
-        @Canon(order = 0) private Object rotationX;
-        @Canon(order = 1) private Object rotationY;
-        @Canon(order = 2) private Object rotationZ;
+        @Order(0) private Object rotationX;
+        @Order(1) private Object rotationY;
+        @Order(2) private Object rotationZ;
 
         // Scale per-axis — String "1.5" → Float after presentation (default 1.0)
-        @Canon(order = 3) private Object scaleX;
-        @Canon(order = 4) private Object scaleY;
-        @Canon(order = 5) private Object scaleZ;
+        @Order(3) private Object scaleX;
+        @Order(4) private Object scaleY;
+        @Order(5) private Object scaleZ;
 
         /** Transform origin — "center" (default), "top left", "50% 0%", "50% 50% 20px". */
-        @Canon(order = 6) private String origin;
+        @Order(6) private String origin;
 
         /**
          * Raises (positive) or recesses (negative) the node above its parent surface.
          * Drives drop shadows in 2D, real Z displacement in 3D.
          * String "4px" / "-2px" / "1cm" → Float after presentation.
          */
-        @Canon(order = 7) private Object elevation;
+        @Order(7) private Object elevation;
 
-        @Canon(order = 8)  private double posX;
-        @Canon(order = 9)  private double posY;
-        @Canon(order = 10) private double posZ;
+        @Order(8)  private double posX;
+        @Order(9)  private double posY;
+        @Order(10) private double posZ;
 
         public Transform() {}
 
@@ -410,28 +410,28 @@ public class SceneNode implements Canonical {
     /** Font and text styling — 11 fields. Cascade prefix: {@code typography.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @dev.everydaythings.graph.canonical.Layout(dev.everydaythings.graph.canonical.Layout.Kind.MAP)
     public static class Typography implements Canonical {
-        @Canon(order = 0)  private String fontFamily;
+        @Order(0)  private String fontFamily;
         /** Font size — String "1.2em" → Float after presentation. */
-        @Canon(order = 1)  private Object fontSize;
-        @Canon(order = 2)  private String fontWeight;
+        @Order(1)  private Object fontSize;
+        @Order(2)  private String fontWeight;
         /** Font style — "italic" or "normal". */
-        @Canon(order = 3)  private String fontStyle;
+        @Order(3)  private String fontStyle;
         /** Text decoration — "underline", "line-through", "overline", or space-separated combination. */
-        @Canon(order = 4)  private String textDecoration;
+        @Order(4)  private String textDecoration;
         /** Text alignment — "left", "center", "right", "justify". */
-        @Canon(order = 5)  private String textAlign;
+        @Order(5)  private String textAlign;
         /** Line height — String "1.5" or "24px" → Float after presentation. */
-        @Canon(order = 6)  private Object lineHeight;
+        @Order(6)  private Object lineHeight;
         /** Letter spacing — String "0.5px" → Float after presentation. */
-        @Canon(order = 7)  private Object letterSpacing;
+        @Order(7)  private Object letterSpacing;
         /** Text overflow — "ellipsis", "clip". */
-        @Canon(order = 8)  private String textOverflow;
+        @Order(8)  private String textOverflow;
         /** White space handling — "normal", "nowrap", "pre", "pre-wrap". */
-        @Canon(order = 9)  private String whiteSpace;
+        @Order(9)  private String whiteSpace;
         /** Foreground color — String "#CDD6F4" → Integer after presentation. */
-        @Canon(order = 10) private Object foreground;
+        @Order(10) private Object foreground;
 
         public Typography() {}
 
@@ -462,16 +462,16 @@ public class SceneNode implements Canonical {
     /** Background color, image, size, gradient. Cascade prefix: {@code background.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @dev.everydaythings.graph.canonical.Layout(dev.everydaythings.graph.canonical.Layout.Kind.MAP)
     public static class Background implements Canonical {
         /** Background color — String "#1E1E2E" → Integer after presentation. */
-        @Canon(order = 0) private Object color;
+        @Order(0) private Object color;
         /** Background image resource path (SVG, PNG, JPEG, WebP, GIF). */
-        @Canon(order = 1) private String image;
+        @Order(1) private String image;
         /** Background image sizing: "fill", "cover", "contain", or null for natural size. */
-        @Canon(order = 2) private String size;
+        @Order(2) private String size;
         /** Background gradient — linear or radial with color stops. */
-        @Canon(order = 3) private Gradient gradient;
+        @Order(3) private Gradient gradient;
 
         public Background() {}
 
@@ -486,16 +486,16 @@ public class SceneNode implements Canonical {
     /** State-driven property animation. Cascade prefix: {@code transition.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @dev.everydaythings.graph.canonical.Layout(dev.everydaythings.graph.canonical.Layout.Kind.MAP)
     public static class Transition implements Canonical {
         /** Transition property: "all", "backgroundColor", "opacity, backgroundColor". */
-        @Canon(order = 0) private String property;
+        @Order(0) private String property;
         /** Transition duration: "0.3s" → Float after presentation. */
-        @Canon(order = 1) private Object duration;
+        @Order(1) private Object duration;
         /** Transition easing: "ease-out", "spring", "cubic-bezier(...)". */
-        @Canon(order = 2) private String easing;
+        @Order(2) private String easing;
         /** Transition delay: "0.1s" → Float after presentation. */
-        @Canon(order = 3) private Object delay;
+        @Order(3) private Object delay;
 
         public Transition() {}
 
@@ -511,24 +511,24 @@ public class SceneNode implements Canonical {
     /** Keyframe timeline animation. Cascade prefix: {@code animation.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @dev.everydaythings.graph.canonical.Layout(dev.everydaythings.graph.canonical.Layout.Kind.MAP)
     public static class Animation implements Canonical {
         /** Animation duration: "2s", "500ms" → Float after presentation. */
-        @Canon(order = 0) private Object duration;
+        @Order(0) private Object duration;
         /** Iteration count: "infinite", "3", "1". */
-        @Canon(order = 1) private String iterationCount;
+        @Order(1) private String iterationCount;
         /** Direction: "normal", "reverse", "alternate", "alternate-reverse". */
-        @Canon(order = 2) private String direction;
+        @Order(2) private String direction;
         /** Easing between keyframes — same functions as transition easing. */
-        @Canon(order = 3) private String easing;
+        @Order(3) private String easing;
         /** Delay before animation starts: "0.5s" → Float after presentation. */
-        @Canon(order = 4) private Object delay;
+        @Order(4) private Object delay;
         /** Fill mode: "none", "forwards", "backwards", "both". */
-        @Canon(order = 5) private String fillMode;
+        @Order(5) private String fillMode;
         /** Play state: "running", "paused". */
-        @Canon(order = 6) private String playState;
+        @Order(6) private String playState;
         /** Keyframe sequence — list of percentage stops with property values. */
-        @Canon(order = 7) private List<Keyframe> keyframes;
+        @Order(7) private List<Keyframe> keyframes;
 
         public Animation() {}
 
@@ -548,18 +548,18 @@ public class SceneNode implements Canonical {
     /** Container layout: flow direction, gap, alignment, grid dimensions. Cascade prefix: {@code layout.*}. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization(classType = Canonical.ClassCollectionType.MAP)
+    @dev.everydaythings.graph.canonical.Layout(dev.everydaythings.graph.canonical.Layout.Kind.MAP)
     public static class Layout implements Canonical {
         /** Flow mode: "vertical", "horizontal", "stack", "grid". */
-        @Canon(order = 0) private String mode;
+        @Order(0) private String mode;
         /** Gap between children — String "0.5em" → Float after presentation. */
-        @Canon(order = 1) private Object gap;
-        @Canon(order = 2) private String align;
-        @Canon(order = 3) private String justify;
-        @Canon(order = 4) private boolean wrap;
-        @Canon(order = 5) private int columns;
-        @Canon(order = 6) private int rows;
-        @Canon(order = 7) private float aspectRatio;
+        @Order(1) private Object gap;
+        @Order(2) private String align;
+        @Order(3) private String justify;
+        @Order(4) private boolean wrap;
+        @Order(5) private int columns;
+        @Order(6) private int rows;
+        @Order(7) private float aspectRatio;
 
         public Layout() {}
 
@@ -578,10 +578,10 @@ public class SceneNode implements Canonical {
     /** A keyframe in an animation timeline — percentage stop with property values. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization
+    @dev.everydaythings.graph.canonical.Layout
     public static class Keyframe implements Canonical {
-        @Canon(order = 0) private float at;
-        @Canon(order = 1) private Map<String, String> properties;
+        @Order(0) private float at;
+        @Order(1) private Map<String, String> properties;
 
         public Keyframe() {}
 
@@ -596,10 +596,10 @@ public class SceneNode implements Canonical {
     /** A state declaration — the runtime holds the actual value. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization
+    @dev.everydaythings.graph.canonical.Layout
     public static class StateDecl implements Canonical {
-        @Canon(order = 0) private String key;
-        @Canon(order = 1) private String defaultValue;
+        @Order(0) private String key;
+        @Order(1) private String defaultValue;
 
         public StateDecl() {}
 
@@ -614,23 +614,23 @@ public class SceneNode implements Canonical {
     /** A semantic token — a sememe reference with grammatical features. */
     @Getter
     @Accessors(fluent = true)
-    @Canonization
+    @dev.everydaythings.graph.canonical.Layout
     public static class SemanticToken implements Canonical {
-        @Canon(order = 0) private ItemID sememe;
-        @Canon(order = 1) private List<ItemID> features;
+        @Order(0) private ItemRef sememe;
+        @Order(1) private List<ItemRef> features;
 
         public SemanticToken() {}
 
-        public SemanticToken sememe(ItemID sememe) { this.sememe = sememe; return this; }
-        public SemanticToken features(List<ItemID> features) { this.features = features; return this; }
+        public SemanticToken sememe(ItemRef sememe) { this.sememe = sememe; return this; }
+        public SemanticToken features(List<ItemRef> features) { this.features = features; return this; }
 
-        public static SemanticToken of(ItemID sememe) {
+        public static SemanticToken of(ItemRef sememe) {
             SemanticToken t = new SemanticToken();
             t.sememe = sememe;
             t.features = List.of();
             return t;
         }
-        public static SemanticToken of(ItemID sememe, ItemID... features) {
+        public static SemanticToken of(ItemRef sememe, ItemRef... features) {
             SemanticToken t = new SemanticToken();
             t.sememe = sememe;
             t.features = List.of(features);
@@ -666,7 +666,7 @@ public class SceneNode implements Canonical {
         return n;
     }
 
-    public static SceneNode ofText(String text, ItemID format) {
+    public static SceneNode ofText(String text, ItemRef format) {
         SceneNode n = new SceneNode();
         n.type = NodeType.TEXT;
         n.text = text;
@@ -674,7 +674,7 @@ public class SceneNode implements Canonical {
         return n;
     }
 
-    public static SceneNode ofSememe(ItemID sememe) {
+    public static SceneNode ofSememe(ItemRef sememe) {
         SceneNode n = new SceneNode();
         n.type = NodeType.TEXT;
         n.tokens = List.of(SemanticToken.of(sememe));
@@ -1413,7 +1413,7 @@ public class SceneNode implements Canonical {
     public SceneNode repeat(String expr)    { this.repeat = expr; return this; }
     public SceneNode childTemplate(SceneNode template) { this.childTemplate = template; return this; }
     public SceneNode text(String t)         { this.text = t; return this; }
-    public SceneNode format(ItemID f)       { this.format = f; return this; }
+    public SceneNode format(ItemRef f)       { this.format = f; return this; }
     public SceneNode tokens(List<SemanticToken> t) { this.tokens = t; return this; }
     public SceneNode shape(String s)        { this.shape = s; return this; }
     public SceneNode image(String i)        { this.image = i; return this; }

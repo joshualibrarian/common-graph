@@ -3,11 +3,10 @@ package dev.everydaythings.graph.library.mapdb;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.Library;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,10 +27,10 @@ class MapDbLibraryTest {
     void roundtripDatum(@TempDir Path root) {
         try (Library lib = Library.mapDb(root)) {
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("test.predicate:authored")),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("test.item:book"))));
+                    ItemRef.of(ItemRef.fromString("test.predicate:authored")),
+                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("test.item:book"))));
 
-            DatumID id = lib.put(body);
+            DatumRef id = lib.put(body);
             assertThat(id).isEqualTo(body.datumId());
 
             Optional<Datum> fetched = lib.fetchDatum(id);
@@ -51,10 +50,10 @@ class MapDbLibraryTest {
     @Test
     @DisplayName("Reopen on the same path validates marker and persists data")
     void reopenPersists(@TempDir Path root) {
-        DatumID id;
+        DatumRef id;
         Body body = Body.of(
-                ItemRef.of(ItemID.fromString("test.predicate:authored")),
-                List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("test.item:book"))));
+                ItemRef.of(ItemRef.fromString("test.predicate:authored")),
+                List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("test.item:book"))));
         try (Library first = Library.mapDb(root)) {
             id = first.put(body);
         }
@@ -67,14 +66,14 @@ class MapDbLibraryTest {
     @DisplayName("Ref-index queries work over MapDB-backed RefIndexStore")
     void refIndexQueries(@TempDir Path root) {
         try (Library lib = Library.mapDb(root)) {
-            ItemID role = ThematicRole.Theme.IID;
-            ItemID target = ItemID.fromString("test.item:target-x");
+            ItemRef role = ThematicRole.Theme.IID;
+            ItemRef target = ItemRef.fromString("test.item:target-x");
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("test.predicate:test")),
+                    ItemRef.of(ItemRef.fromString("test.predicate:test")),
                     List.of(Binding.ref(role, target)));
-            DatumID id = lib.put(body);
+            DatumRef id = lib.put(body);
 
-            List<DatumID> matches = lib.bodyCidsForReferenceBinding(role, target);
+            List<DatumRef> matches = lib.bodyCidsForReferenceBinding(role, target);
             assertThat(matches).containsExactly(id);
         }
     }

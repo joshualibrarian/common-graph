@@ -3,16 +3,13 @@ package dev.everydaythings.graph.operator;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.text.AnchorTable.TokenAnchor;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
@@ -25,7 +22,7 @@ import dev.everydaythings.graph.text.ParseParams;
 import dev.everydaythings.graph.text.TextSpan;
 import dev.everydaythings.graph.text.TokenLattice;
 import dev.everydaythings.graph.text.TokenLattice.TokenSpan;
-import dev.everydaythings.graph.value.Decimal;
+import java.math.BigDecimal;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,13 +61,13 @@ public abstract class Operator extends Item {
     public static final String KEY = "cg.sememe:operator";
 
     /** Deterministic IID for the operator concept. */
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
-    protected Operator(ItemID iid) {
+    protected Operator(ItemRef iid) {
         super(iid);
     }
 
-    protected Operator(ItemID iid, Librarian librarian) {
+    protected Operator(ItemRef iid, Librarian librarian) {
         super(iid, librarian);
     }
 
@@ -160,8 +157,8 @@ public abstract class Operator extends Item {
         double predConf = pickConfidence(fitness, form.precedence());
         double bindConf = predConf * 0.95;
 
-        Decimal predicateConfidence = Decimal.parse(formatConfidence(predConf));
-        Decimal bindingConfidence = Decimal.parse(formatConfidence(bindConf));
+        BigDecimal predicateConfidence = new BigDecimal(formatConfidence(predConf));
+        BigDecimal bindingConfidence = new BigDecimal(formatConfidence(bindConf));
 
         List<BindingMap> bindings = new ArrayList<>();
         if (NotationVocabulary.Infix.IID.equals(form.fixity())) {
@@ -252,7 +249,7 @@ public abstract class Operator extends Item {
      * no left operand (a poor fit for infix) yields a weak bid that lets a
      * better-fitting prefix operator win the symbol-collision tie. Result in [0, 1].
      */
-    private static double contextFitness(ItemID fixity, Operand left, Operand right) {
+    private static double contextFitness(ItemRef fixity, Operand left, Operand right) {
         if (NotationVocabulary.Infix.IID.equals(fixity)) {
             // Infix wants both operands. Both present = full fit; one missing = half.
             int neighbors = (left != null ? 1 : 0) + (right != null ? 1 : 0);
@@ -288,7 +285,7 @@ public abstract class Operator extends Item {
         return precFactor * fitness;
     }
 
-    /** Format a [0, 1] confidence as a fixed-precision Decimal-parseable string. */
+    /** Format a [0, 1] confidence as a fixed-precision BigDecimal-parseable string. */
     private static String formatConfidence(double value) {
         return String.format(java.util.Locale.ROOT, "%.4f",
                 Math.max(0.0, Math.min(0.9999, value)));
@@ -302,7 +299,7 @@ public abstract class Operator extends Item {
      * Returns empty if no operator-form lexeme is endorsed.
      */
     private Optional<OperatorForm> ownOperatorForm() {
-        return endorsedFramesByPredicate(Lexeme.IID)
+        return endorsedFramesByPredicate(LexicalVocabulary.Lexeme.IID)
                 .map(Operator::readOperatorForm)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -310,13 +307,13 @@ public abstract class Operator extends Item {
     }
 
     private static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
-        for (ItemID fixity : List.of(NotationVocabulary.Infix.IID,
+        for (ItemRef fixity : List.of(NotationVocabulary.Infix.IID,
                 NotationVocabulary.Prefix.IID,
                 NotationVocabulary.Postfix.IID)) {
             CompoundKey valueWithFixity = CompoundKey.of(ThematicRole.Value.IID, fixity);
             if (lexemeFrame.binding(valueWithFixity).isPresent()) {
                 long precedence = readPrecedence(lexemeFrame).orElse(0L);
-                ItemID associativity = readAssociativity(lexemeFrame)
+                ItemRef associativity = readAssociativity(lexemeFrame)
                         .orElse(NotationVocabulary.Left.IID);
                 return Optional.of(new OperatorForm(fixity, precedence, associativity));
             }
@@ -330,20 +327,18 @@ public abstract class Operator extends Item {
                 ThematicRole.Attribute.IID, NotationVocabulary.Precedence.IID);
         return lexemeFrame.binding(attributePrecedence)
                 .map(Binding::target)
-                .filter(t -> t instanceof Literal)
-                .map(t -> (Literal) t)
-                .filter(lit -> Literal.TYPE_INTEGER.equals(lit.valueType()))
-                .map(Literal::asInteger);
+                .filter(t -> t instanceof Long)
+                .map(t -> (Long) t);
     }
 
     /** Read the associativity sememe IID from an operator-form Lexeme's ATTRIBUTE[Associativity] binding. */
-    private static Optional<ItemID> readAssociativity(Frame lexemeFrame) {
+    private static Optional<ItemRef> readAssociativity(Frame lexemeFrame) {
         CompoundKey attributeAssociativity = CompoundKey.of(
                 ThematicRole.Attribute.IID, NotationVocabulary.Associativity.IID);
         return lexemeFrame.binding(attributeAssociativity)
                 .map(Binding::target)
-                .filter(t -> t instanceof BindingTarget.RefTarget ref && !ref.isCompound())
-                .map(t -> ((BindingTarget.RefTarget) t).asItemId());
+                .filter(t -> t instanceof ItemRef ir && !ir.isPinned())
+                .map(t -> (ItemRef) t);
     }
 
     private static int indexOfTokenSpan(List<TokenSpan> tokens, TextSpan span) {
@@ -354,7 +349,7 @@ public abstract class Operator extends Item {
     }
 
     /** Build a role binding from a resolved operand, or null if no usable operand. */
-    private static BindingMap makeBinding(Operand op, ItemID role, Decimal confidence) {
+    private static BindingMap makeBinding(Operand op, ItemRef role, BigDecimal confidence) {
         if (op == null) return null;
         return new BindingMap(
                 new Part<>(ItemRef.of(role), confidence, List.of()),
@@ -373,7 +368,7 @@ public abstract class Operator extends Item {
     // outer-predicate position over inner operators.
 
     /** Either a literal/ref operand from a single token, or a parens-wrapped sub-FrameMap. */
-    private record Operand(BindingTarget target, List<TextSpan> spans) {}
+    private record Operand(Object target, List<TextSpan> spans) {}
 
     private static Operand resolveLeftOperand(ParseContext ctx, int anchorIdx) {
         if (anchorIdx <= 0) return null;
@@ -384,7 +379,7 @@ public abstract class Operator extends Item {
             TokenSpan openTok = ctx.tokens().get(openIdx);
             return parenGroupOperand(ctx, openTok, immediate);
         }
-        BindingTarget target = tokenTarget(immediate);
+        Object target = tokenTarget(immediate);
         if (target == null) return null;
         return new Operand(target, List.of(immediate.span()));
     }
@@ -398,7 +393,7 @@ public abstract class Operator extends Item {
             TokenSpan closeTok = ctx.tokens().get(closeIdx);
             return parenGroupOperand(ctx, immediate, closeTok);
         }
-        BindingTarget target = tokenTarget(immediate);
+        Object target = tokenTarget(immediate);
         if (target == null) return null;
         return new Operand(target, List.of(immediate.span()));
     }
@@ -476,20 +471,20 @@ public abstract class Operator extends Item {
     }
 
     /** Convert a token to a BindingTarget. Integer literals → Literal.ofInteger; other → IID ref via posting. */
-    private static BindingTarget tokenTarget(TokenSpan token) {
+    private static Object tokenTarget(TokenSpan token) {
         if (token.kind() == TokenLattice.Kind.LITERAL) {
             try {
-                return Literal.ofInteger(Long.parseLong(token.surfaceText().trim()));
+                return (long) (Long.parseLong(token.surfaceText().trim()));
             } catch (NumberFormatException e) {
                 return null;
             }
         }
         if (!token.postings().isEmpty()) {
-            return BindingTarget.iid(token.postings().get(0).target());
+            return token.postings().get(0).target();
         }
         return null;
     }
 
     /** Internal carrier for parsed operator-form metadata: fixity, precedence, associativity. */
-    private record OperatorForm(ItemID fixity, long precedence, ItemID associativity) {}
+    private record OperatorForm(ItemRef fixity, long precedence, ItemRef associativity) {}
 }

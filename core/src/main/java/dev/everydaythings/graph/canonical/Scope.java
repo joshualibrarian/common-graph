@@ -9,7 +9,7 @@ import dev.everydaythings.graph.canonical.Scope;
  * <ul>
  *   <li>{@link #BODY} — exclude signatures and other non-identity bindings;
  *       the resulting bytes feed the structural Merkle hash that defines a
- *       Body's {@code DatumID}.</li>
+ *       Body's {@code DatumRef}.</li>
  *   <li>{@link #RECORD} — include everything, signatures and all; the full
  *       wire form that crosses Parley or hits the OBJECTS store.</li>
  * </ul>

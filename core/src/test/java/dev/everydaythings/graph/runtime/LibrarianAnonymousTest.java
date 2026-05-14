@@ -2,9 +2,9 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.semantics.Create;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.librarian.LibrarianVocabulary;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -105,7 +105,7 @@ class LibrarianAnonymousTest {
     @DisplayName("register(...) accepts a normal item with an iid")
     void registerAcceptsNormalItem() {
         Librarian lib = Librarian.anonymous();
-        Item item = new Item(ItemID.fromString("test.anonymous-host:some-item"), lib);
+        Item item = new Item(ItemRef.fromString("test.anonymous-host:some-item"), lib);
         lib.register(item);
         assertThat(lib.fetchItem(item.iid())).contains(item);
     }
@@ -114,7 +114,7 @@ class LibrarianAnonymousTest {
     @DisplayName("fetchItem on an unknown iid returns empty (no signing required)")
     void fetchUnknown() {
         Librarian lib = Librarian.anonymous();
-        ItemID iid = ItemID.fromString("test.anonymous:nothing-here");
+        ItemRef iid = ItemRef.fromString("test.anonymous:nothing-here");
         assertThat(lib.fetchItem(iid)).isEmpty();
     }
 
@@ -125,7 +125,7 @@ class LibrarianAnonymousTest {
         // Build a propositional body with a head — anonymous Librarian can
         // persist + route this. Notification fires for items that exist in the
         // cache; we don't register anything so the routing loop is a no-op.
-        Body body = Body.of(ItemRef.of(Create.IID), List.of());
+        Body body = Body.of(ItemRef.of(LibrarianVocabulary.Create.IID), List.of());
         // submit() should not throw — anonymous can route, just can't sign.
         SubmitResult result = lib.submit(dev.everydaythings.graph.datum.Frame.of(body, List.of()));
         assertThat(result).isNotNull();

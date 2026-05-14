@@ -1,53 +1,224 @@
 package dev.everydaythings.graph.id;
 
-import dev.everydaythings.graph.canonical.Scope;
-
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.canonical.Canonical;
+import com.upokecenter.cbor.CBORType;
+import dev.everydaythings.graph.canonical.Encode;
 import dev.everydaythings.graph.encoding.TextBase;
-import dev.everydaythings.graph.canonical.Factory;
-import io.ipfs.multibase.Multibase;
 import io.ipfs.multihash.Multihash;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
 
+import java.io.ByteArrayOutputStream;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public abstract class HashID implements Canonical {
+/**
+ * Universal hash-based reference in Common Graph — the sealed family of
+ * prefix-tagged multihash references.
+ *
+ * <p>Three variants, distinguished by leading prefix byte:
+ * <ul>
+ *   <li>{@link ItemRef}    ({@code @<IID>[\<VID>]}) — references an item, optionally pinned to a version</li>
+ *   <li>{@link ContentRef} ({@code ~<CID>})        — references raw content bytes by content hash</li>
+ *   <li>{@link DatumRef}   ({@code #<DatumRef>})    — references a specific Datum body by its semantic Merkle identity</li>
+ * </ul>
+ *
+ * <h3>Binary form (the bytes inside CBOR Tag 6)</h3>
+ * <pre>
+ * &lt;prefix-byte&gt; &lt;multihash&gt; [ 0x5C &lt;multihash&gt; ]*
+ *
+ * prefix-byte = 0x40 (@) | 0x7E (~) | 0x23 (#)
+ * </pre>
+ *
+ * <h3>Text form</h3>
+ * <pre>
+ * @&lt;multibase(IID)&gt;[\&lt;multibase(VID)&gt;]   — item
+ * ~&lt;multibase(CID)&gt;                       — content
+ * #&lt;multibase(DatumRef)&gt;                    — datum
+ * </pre>
+ *
+ * <h3>Self-describing bytes</h3>
+ *
+ * <p>The {@link #toRefBytes()} method returns the full self-describing wire
+ * form — prefix byte + multihash + any variant-specific sub-parts. This is
+ * what {@code @Encode} on this class produces: the codec wraps the result
+ * in CBOR Tag 6 to emit it as a value.
+ *
+ * <p>The {@link #multihash()} accessor returns just the raw multihash bytes
+ * (no prefix). Used internally when building nested ref-bytes (e.g., an
+ * {@link ItemRef}'s pinned-version sub-part) and at index/hash callsites
+ * that want the bare digest.
+ */
+public abstract sealed class HashID permits ItemRef, ContentRef, DatumRef {
 
     public static final int KEY_LENGTH = 32;
 
-        /**
-     * 32 random bytes (256-bit)
-     */
-    public static byte[] randomID(int bytes) {
-        SecureRandom rng = new SecureRandom();
-        byte[] b = new byte[bytes];
-        rng.nextBytes(b);
-        return b;
+    /** Prefix byte for {@link ItemRef}: {@code '@'} (0x40). */
+    public static final byte PREFIX_ITEM    = 0x40;
+    /** Prefix byte for {@link ContentRef}: {@code '~'} (0x7E). */
+    public static final byte PREFIX_CONTENT = 0x7E;
+    /** Prefix byte for {@link DatumRef}: {@code '#'} (0x23). */
+    public static final byte PREFIX_DATUM   = 0x23;
+    /** Universal sub-part separator byte: {@code '\\'} (0x5C). */
+    public static final byte SEPARATOR      = 0x5C;
+
+    protected final Multihash multihash;
+
+    protected HashID(Multihash multihash) {
+        this.multihash = Objects.requireNonNull(multihash);
     }
 
-    public static boolean containsWhitespace(String s) {
-        for (int i = 0; i < s.length(); i++) {
-            if (Character.isWhitespace(s.charAt(i))) return true;
-        }
-        return false;
+    protected HashID(byte[] serializedMultihash) {
+        this.multihash = Multihash.deserialize(Objects.requireNonNull(serializedMultihash));
     }
+
+    protected HashID(byte[] rawDigest, Multihash.Type type) {
+        this.multihash = new Multihash(type, rawDigest);
+    }
+
+    /** Variant prefix byte: {@code @}, {@code ~}, or {@code #}. */
+    public abstract byte prefixByte();
+
+    /** Variant marker. */
+    public abstract Variant variant();
+
+    /** Multihash algorithm. */
+    public Multihash.Type hashType() {
+        return multihash.getType();
+    }
+
     /**
-     * A self-delimiting multihash slice
-     * (the multihash bytes themselves, and the index of the next unread byte).
+     * Raw multihash bytes — no prefix, no sub-parts. Used for index keys,
+     * hash inputs, and assembling sub-parts inside other refs.
      */
+    public byte[] multihash() {
+        return multihash.toBytes();
+    }
+
+    /**
+     * Alias for {@link #multihash()} — kept for call-site compatibility
+     * with the legacy {@code ItemRef/ContentRef/DatumRef.encodeBinary()} API.
+     * Returns raw multihash bytes (no prefix). New code should prefer
+     * {@link #multihash()}.
+     */
+    public byte[] encodeBinary() {
+        return multihash.toBytes();
+    }
+
+    /**
+     * Self-describing wire bytes: {@code prefix + multihash + sub-parts}.
+     * This is the value's "bare bytes" — what the codec wraps in CBOR Tag 6
+     * to emit at value position.
+     */
+    @Encode
+    public byte[] toRefBytes() {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(prefixByte() & 0xFF);
+        out.writeBytes(multihash.toBytes());
+        writeSubParts(out);
+        return out.toByteArray();
+    }
+
+    /** Override to append additional sub-parts after the primary multihash. */
+    protected void writeSubParts(ByteArrayOutputStream out) {
+        // default: no sub-parts
+    }
+
+    /**
+     * Self-describing text form: {@code prefix-char + multibase(...) + text-sub-parts}.
+     */
+    public String encodeText() {
+        StringBuilder sb = new StringBuilder();
+        sb.append((char) (prefixByte() & 0xFF));
+        sb.append(TextBase.Base32Lower.encode(multihash.toBytes()));
+        appendTextSubParts(sb);
+        return sb.toString();
+    }
+
+    /** Override to append additional text sub-parts. */
+    protected void appendTextSubParts(StringBuilder sb) {
+        // default: no sub-parts
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof HashID other)) return false;
+        return Arrays.equals(toRefBytes(), other.toRefBytes());
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(toRefBytes());
+    }
+
+    @Override
+    public String toString() {
+        return encodeText();
+    }
+
+    /**
+     * Decode from full ref-bytes (with prefix). Dispatches to the right variant.
+     */
+    public static HashID fromRefBytes(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("HashID payload cannot be empty");
+        }
+        byte prefix = bytes[0];
+        return switch (prefix) {
+            case PREFIX_ITEM    -> ItemRef.fromRefBytesPayload(bytes);
+            case PREFIX_CONTENT -> ContentRef.fromRefBytesPayload(bytes);
+            case PREFIX_DATUM   -> DatumRef.fromRefBytesPayload(bytes);
+            default -> throw new IllegalArgumentException(
+                    "Unknown HashID prefix byte: 0x" + String.format("%02x", prefix & 0xFF));
+        };
+    }
+
+    /**
+     * Parse from text form. Dispatches on the leading prefix character.
+     */
+    public static HashID parse(String text) {
+        if (text == null || text.isEmpty()) {
+            throw new IllegalArgumentException("HashID text cannot be empty");
+        }
+        char prefix = text.charAt(0);
+        return switch (prefix) {
+            case '@' -> ItemRef.parseText(text);
+            case '~' -> ContentRef.parseText(text);
+            case '#' -> DatumRef.parseText(text);
+            default -> throw new IllegalArgumentException(
+                    "Unknown HashID prefix character: '" + prefix + "'");
+        };
+    }
+
+    /**
+     * Decode from CBOR Tag 6 wrapping the ref-bytes.
+     */
+    public static HashID fromCborTree(CBORObject node) {
+        if (node == null) {
+            throw new IllegalArgumentException("HashID CBOR cannot be null");
+        }
+        if (!node.isTagged() || !node.HasMostOuterTag(
+                dev.everydaythings.graph.encoding.CgCbor.TAG_REF)) {
+            throw new IllegalArgumentException(
+                    "HashID must be CBOR Tag "
+                            + dev.everydaythings.graph.encoding.CgCbor.TAG_REF
+                            + ", got tag "
+                            + (node.isTagged() ? node.getMostOuterTag() : "(none)"));
+        }
+        CBORObject inner = node.UntagOne();
+        if (inner.getType() != CBORType.ByteString) {
+            throw new IllegalArgumentException(
+                    "HashID Tag-6 payload must be a byte string, got: " + inner.getType());
+        }
+        return fromRefBytes(inner.GetByteString());
+    }
+
+    /** A self-delimiting multihash slice — bytes and the next-read index. */
     public record Slice(byte[] bytes, int next) {}
 
     /**
      * Reads one self-delimiting multihash starting at {@code off}.
-     * Current framing: 1-byte alg, 1-byte len, then {@code len} digest bytes.
-     * Adjust framing if your wire changes.
+     * Framing: 1-byte alg, 1-byte len, then {@code len} digest bytes.
      */
     public static Slice splitLeadingMultihashFromByteArray(byte[] buf, int off) {
         if (buf == null || off < 0 || off + 2 > buf.length) {
@@ -66,222 +237,66 @@ public abstract class HashID implements Canonical {
         return new Slice(mh, end);
     }
 
-    @EqualsAndHashCode.Include
-    protected Multihash multihash;
-
-    protected HashID(Multihash multihash) {
-        this.multihash = requireNonNull(multihash);
+    /** Alias for {@link #splitLeadingMultihashFromByteArray}. */
+    public static Slice readMultihash(byte[] buf, int off) {
+        return splitLeadingMultihashFromByteArray(buf, off);
     }
 
-    protected HashID(byte[] serializedMultihash) {
-        this.multihash = Multihash.deserialize(requireNonNull(serializedMultihash));
+    /** Write the separator byte (0x5C) between multihash sub-parts. */
+    public static void writeSeparator(ByteArrayOutputStream out) {
+        out.write(SEPARATOR & 0xFF);
     }
 
-    protected HashID(byte[] rawDigest, Multihash.Type type) {
-        this.multihash = new Multihash(type, rawDigest);
+    /** Generate a random byte array of the given length. */
+    public static byte[] randomID(int bytes) {
+        SecureRandom rng = new SecureRandom();
+        byte[] b = new byte[bytes];
+        rng.nextBytes(b);
+        return b;
     }
 
-    protected HashID(String text) {
-        this.multihash = Multihash.deserialize(Multibase.decode(text));
-    }
-
-    protected HashID() {
-        this(randomID(KEY_LENGTH), Multihash.Type.id);
-    }
-
-    public Multihash.Type hashType() {
-        return multihash.getType();
-    }
-
-    /**
-     * Encode as CBOR byte string containing the raw multihash bytes.
-     */
-    @Override
-    public CBORObject toCborTree(Scope scope) {
-        return CBORObject.FromByteArray(multihash.toBytes());
-    }
-
-    @Override
-    public byte[] encodeBinary(Scope scope) {
-        return toCborTree(scope).EncodeToBytes();
-    }
-
-    /**
-     * Raw multihash bytes (for use when building CG-REF tags, etc.).
-     */
-    public byte[] encodeBinary() {
-        return multihash.toBytes();
-    }
-
-    /**
-     * Decode a HashID from binary form.
-     * Since all HashID subclasses serialize identically (raw multihash bytes),
-     * we return an ItemID as the generic concrete implementation.
-     * Callers needing specific subtypes should use those classes' constructors directly.
-     */
-    @Factory
-    public static HashID decodeBinary(byte[] bytes) {
-        return new ItemID(bytes);
-    }
-
-    @Override
-    public String encodeText(Scope scope) {
-        return encodeText();
-    }
-
-    /** Lean text: {@code prefix() + base32/base64url(multihash-bytes)}. */
-    public String encodeText() {
-        return prefix() + TextBase.Base32Lower.encode(multihash.toBytes());
-    }
-
-    /** Subclasses override to prepend e.g. "iid:". */
-    public String prefix() {
-        return EMPTY;
-    }
-
-    @Override
-    public String toString() {
-        return encodeText();
-    }
-
-    // ==================================================================================
-    // Display Methods
-    // ==================================================================================
-
-    /**
-     * IDs are self-referential values, not graph nodes with paths.
-     * They don't have a parent Item that contains them.
-     */
-    public Reference ref() {
-        return null;
-    }
-
-    /**
-     * IDs are leaf values - they don't expand to children.
-     */
-    public boolean isExpandable() {
+    public static boolean containsWhitespace(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            if (Character.isWhitespace(s.charAt(i))) return true;
+        }
         return false;
     }
 
-    // ==================================================================================
-    // Self-Rendering - Each ID type knows how to display itself
-    // ==================================================================================
+    /** Whether this is a compound reference (has sub-parts beyond the primary multihash). */
+    public boolean isCompound() {
+        return false;
+    }
 
-    /**
-     * Display width specification for columns containing this type.
-     *
-     * <p>IDs are flexible: they can be as small as 1 character (emoji) or
-     * as large as 45 characters (full hash). They render progressively:
-     * <ul>
-     *   <li>1 ch: just emoji</li>
-     *   <li>4 ch: emoji + "…"</li>
-     *   <li>10 ch: emoji + abbreviated hash</li>
-     *   <li>45 ch: full encoded text</li>
-     * </ul>
-     */
-    // DisplayWidth removed during the OLD-code sweep; restore alongside the new
-    // display/render pipeline when that lands.
-
-    /**
-     * Emoji for compact single-character display.
-     * Subclasses override with their specific emoji.
-     */
+    /** UI emoji — overridden per variant. */
     public String emoji() {
         return "#";
     }
 
-    /**
-     * Display token - the encoded hash text.
-     */
+    /** UI display token — the encoded text. */
     public String displayToken() {
         return encodeText();
     }
 
     /**
-     * Render at a specific width (in characters).
-     *
-     * <p>Progressive rendering:
-     * <ul>
-     *   <li>1-2 ch: emoji only</li>
-     *   <li>3-5 ch: emoji + "…"</li>
-     *   <li>6-12 ch: emoji + short hash + "…"</li>
-     *   <li>13+ ch: emoji + longer hash + "…" (or full if fits)</li>
-     * </ul>
-     *
-     * @param widthChars Available width in characters
-     * @return Display string that fits within the width
+     * Progressive display at a target character width.
      */
     public String displayAtWidth(int widthChars) {
-        if (widthChars <= 2) {
-            return emoji();
-        }
-
+        if (widthChars <= 2) return emoji();
         String full = encodeText();
         String em = emoji();
-
-        // Account for emoji (assume 2 chars wide) + space
         int available = widthChars - 3;
-
-        if (available >= full.length()) {
-            // Full text fits
-            return em + " " + full;
-        }
-
-        if (available <= 1) {
-            // Just emoji + ellipsis
-            return em + "…";
-        }
-
-        // Truncate with ellipsis
+        if (available >= full.length()) return em + " " + full;
+        if (available <= 1) return em + "…";
         return em + " " + full.substring(0, available - 1) + "…";
     }
 
-    /**
-     * Compact display - just the emoji.
-     * Used in tight table cells (1-2 characters).
-     */
-    public String compactDisplay() {
-        return emoji();
-    }
+    public String shortDisplay()    { return displayAtWidth(12); }
+    public String mediumDisplay()   { return displayAtWidth(20); }
+    public String fullDisplay()     { return encodeText(); }
+    public String compactDisplay()  { return emoji(); }
 
-    /**
-     * Short display - emoji + abbreviated hash.
-     * Used when some context is available (8-12 characters).
-     */
-    public String shortDisplay() {
-        return displayAtWidth(12);
-    }
-
-    /**
-     * Medium display - emoji + more of the hash with trailing ellipsis.
-     * Used when moderate space is available (15-20 characters).
-     */
-    public String mediumDisplay() {
-        return displayAtWidth(20);
-    }
-
-    /**
-     * Full display - complete encoded text.
-     * Used in tooltips and expanded views.
-     */
-    public String fullDisplay() {
-        return encodeText();
-    }
-
-    @Getter
-    @AllArgsConstructor
-    public enum IdType {
-        MANIFEST ('@', ContentID.class),
-        CONTENT ('\\', ContentID.class),
-        CHUNK ('!', HashID.class),
-        BUNDLE ('^', HashID.class);
-
-//        String textPrefix;
-        final char binaryPrefix;
-        final Class<? extends HashID> idClass;
-
-        public byte tag() {
-            return (byte) binaryPrefix;
-        }
+    /** The three variants of a HashID. */
+    public enum Variant {
+        ITEM, CONTENT, DATUM
     }
 }

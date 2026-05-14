@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.ContentRef;
 
 /**
  * Base exception for all Library operations.
@@ -40,11 +40,11 @@ public class LibraryException extends RuntimeException {
             super(message);
         }
 
-        public NotFound(ItemID iid) {
+        public NotFound(ItemRef iid) {
             super("Item not found: " + iid);
         }
 
-        public NotFound(ItemID iid, ContentID vid) {
+        public NotFound(ItemRef iid, ContentRef vid) {
             super("Manifest not found: " + iid + "@" + vid);
         }
     }
@@ -55,7 +55,7 @@ public class LibraryException extends RuntimeException {
             super(message);
         }
 
-        public AlreadyExists(ItemID iid) {
+        public AlreadyExists(ItemRef iid) {
             super("Item already exists: " + iid);
         }
     }
@@ -81,7 +81,7 @@ public class LibraryException extends RuntimeException {
             super(message);
         }
 
-        public LocationNotFound(ItemID iid) {
+        public LocationNotFound(ItemRef iid) {
             super("Location not found for: " + iid);
         }
     }

@@ -1,16 +1,12 @@
 package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /** The modulo (remainder) operator. Infix, left-associative, precedence 20. */
 @Seed.Item(key = Modulo.KEY,
@@ -20,14 +16,14 @@ import dev.everydaythings.graph.semantics.ThematicRole;
 public class Modulo extends Operator {
 
     public static final String KEY = "cg.predicate:modulo";
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
-    @Seed.Frame(predicate = Gloss.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "the remainder after integer division";
 
     /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {NotationVocabulary.Infix.KEY}),
           bindings = {
@@ -40,12 +36,12 @@ public class Modulo extends Operator {
           })
     static final String symbol = "%";
 
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "modulo";
 
-    public Modulo(ItemID iid) { super(iid); }
-    public Modulo(ItemID iid, Librarian librarian) { super(iid, librarian); }
+    public Modulo(ItemRef iid) { super(iid); }
+    public Modulo(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     @Override
     public Object execute(Object... operands) {

@@ -1,13 +1,12 @@
 package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +28,7 @@ class LibrarianInceptionTest {
         lib.bootstrap();
 
         // Query for frames where THEME → lib.iid()
-        List<DatumID> frameCids = lib.library()
+        List<DatumRef> frameCids = lib.library()
                 .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, lib.iid());
 
         // Find the INCEPTION among them
@@ -72,7 +71,7 @@ class LibrarianInceptionTest {
         lib.bootstrap();
 
         Frame inception = findInception(lib);
-        ContentID expectedDigest = lib.signingNextKeyDigest().orElseThrow();
+        ContentRef expectedDigest = lib.signingNextKeyDigest().orElseThrow();
         assertThat(Signer.nextKeyDigests(inception.body()))
                 .containsExactly(expectedDigest);
     }
@@ -94,7 +93,7 @@ class LibrarianInceptionTest {
         lib.bootstrap();
 
         assertThat(lib.currentKeys(
-                ItemID.fromString("some-stranger"),
+                ItemRef.fromString("some-stranger"),
                 IdentityVocabulary.Signing.IID))
                 .isEmpty();
     }

@@ -41,14 +41,14 @@ public final class HashTree {
 
     /**
      * Default Merkle-walk algorithm. SHA-256 is the network protocol commitment
-     * for now; the multihash framing on the resulting DatumID self-describes
+     * for now; the multihash framing on the resulting DatumRef self-describes
      * the algorithm so future migrations remain unambiguous.
      */
     public static final Multihash.Type DEFAULT_DIGEST = Multihash.Type.sha2_256;
 
     /**
      * Kind discriminator prefixes embedded in the hashed material at every
-     * composition level. Stable forever; changing one rotates every DatumID
+     * composition level. Stable forever; changing one rotates every DatumRef
      * that contains that kind of node.
      */
     public static final byte KIND_LEAF  = 0x00;

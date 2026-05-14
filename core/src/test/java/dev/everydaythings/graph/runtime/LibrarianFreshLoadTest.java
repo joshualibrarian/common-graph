@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.encoding.Encoding;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

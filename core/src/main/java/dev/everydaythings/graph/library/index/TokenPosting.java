@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.library.index;
 
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.value.Decimal;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
+import java.math.BigDecimal;
 
 import java.util.Objects;
 import java.util.Set;
@@ -29,22 +29,22 @@ import java.util.Set;
  *   <li><b>features</b> — additional qualifier sememes (POS, lemma, plural,
  *       format). Interpretation depends on the predicate.</li>
  *   <li><b>weight</b> — ranking score; higher is more relevant.</li>
- *   <li><b>source</b> — semantic identity (DatumID) of the datum that
+ *   <li><b>source</b> — semantic identity (DatumRef) of the datum that
  *       produced this posting. Lineage / dedup / cache-invalidation handle.</li>
  * </ul>
  *
- * <p>Stored as {@link Decimal} rather than {@code float} for the weight to
+ * <p>Stored as {@link BigDecimal} rather than {@code float} for the weight to
  * comply with CG-CBOR's prohibition on IEEE 754 floats, should the result
  * ever be encoded canonically.
  */
 public record TokenPosting(
         String token,
-        ItemID target,
-        ItemID predicate,
-        ItemID scope,
-        Set<ItemID> features,
-        Decimal weight,
-        DatumID source) {
+        ItemRef target,
+        ItemRef predicate,
+        ItemRef scope,
+        Set<ItemRef> features,
+        BigDecimal weight,
+        DatumRef source) {
 
     public TokenPosting {
         Objects.requireNonNull(token, "token");

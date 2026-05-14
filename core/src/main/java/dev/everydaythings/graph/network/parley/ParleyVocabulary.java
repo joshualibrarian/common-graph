@@ -2,13 +2,9 @@ package dev.everydaythings.graph.network.parley;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.ThematicRole;
 import static dev.everydaythings.graph.Seed.*;
 
 /**
@@ -41,16 +37,16 @@ public final class ParleyVocabulary {
     @Seed.Item(key = Hello.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Hello {
         public static final String KEY = "cg.predicate:hello";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Hello() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "opening frame of a Parley conversation — carries the sender's "
                         + "current identity and any gossip the counterparty might want";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
             qualifiers = {Language.English.KEY, PartOfSpeech.Interjection.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishInterjection = "hello";

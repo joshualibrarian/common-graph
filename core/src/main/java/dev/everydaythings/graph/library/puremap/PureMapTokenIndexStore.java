@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.puremap;
 
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.library.index.TokenIndexStore;
 import dev.everydaythings.graph.library.index.TokenPosting;
 
@@ -27,24 +27,24 @@ public final class PureMapTokenIndexStore implements TokenIndexStore {
     }
 
     @Override
-    public void index(Datum datum, DatumID datumId) {
+    public void index(Datum datum, DatumRef datumId) {
         // no-op
     }
 
     @Override
-    public void unindex(Datum datum, DatumID datumId) {
+    public void unindex(Datum datum, DatumRef datumId) {
         // no-op
     }
 
     @Override
     public Stream<TokenPosting> lookup(String token,
-                                       Function<DatumID, Optional<Datum>> datumResolver) {
+                                       Function<DatumRef, Optional<Datum>> datumResolver) {
         return Stream.empty();
     }
 
     @Override
     public Stream<TokenPosting> prefix(String tokenPrefix, int limit,
-                                       Function<DatumID, Optional<Datum>> datumResolver) {
+                                       Function<DatumRef, Optional<Datum>> datumResolver) {
         return Stream.empty();
     }
 

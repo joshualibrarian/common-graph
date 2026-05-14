@@ -1,20 +1,18 @@
 package dev.everydaythings.graph.item;
 
-import dev.everydaythings.graph.canonical.Scope;
+import dev.everydaythings.graph.encoding.CgCbor;
 
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,7 +31,7 @@ class ItemTest {
         @Test
         @DisplayName("Item carries its iid")
         void carriesIid() {
-            ItemID iid = ItemID.fromString("test-item");
+            ItemRef iid = ItemRef.fromString("test-item");
             Item item = new Item(iid);
             assertThat(item.iid()).isEqualTo(iid);
         }
@@ -41,7 +39,7 @@ class ItemTest {
         @Test
         @DisplayName("Item permits null iid (anonymous — no identity)")
         void permitsNullIid() {
-            Item item = new Item((ItemID) null);
+            Item item = new Item((ItemRef) null);
             assertThat(item.iid()).isNull();
             assertThat(item.toString()).contains("anonymous");
         }
@@ -49,8 +47,8 @@ class ItemTest {
         @Test
         @DisplayName("Anonymous items are equal only to themselves (no shared identity)")
         void anonymousEqualityIsByReference() {
-            Item a = new Item((ItemID) null);
-            Item b = new Item((ItemID) null);
+            Item a = new Item((ItemRef) null);
+            Item b = new Item((ItemRef) null);
             assertThat(a).isEqualTo(a);
             assertThat(a).isNotEqualTo(b);
             // Distinct anonymous items must not collide in identity-keyed maps.
@@ -60,7 +58,7 @@ class ItemTest {
         @Test
         @DisplayName("Equality based on iid")
         void equalsByIid() {
-            ItemID iid = ItemID.fromString("same-iid");
+            ItemRef iid = ItemRef.fromString("same-iid");
             Item a = new Item(iid);
             Item b = new Item(iid);
             assertThat(a).isEqualTo(b);
@@ -70,15 +68,15 @@ class ItemTest {
         @Test
         @DisplayName("Different iids produce unequal items")
         void differentIids() {
-            Item a = new Item(ItemID.fromString("a"));
-            Item b = new Item(ItemID.fromString("b"));
+            Item a = new Item(ItemRef.fromString("a"));
+            Item b = new Item(ItemRef.fromString("b"));
             assertThat(a).isNotEqualTo(b);
         }
 
         @Test
         @DisplayName("Concrete instantiation works")
         void canInstantiate() {
-            Item item = new Item(ItemID.random());
+            Item item = new Item(ItemRef.random());
             assertThat(item).isNotNull();
             assertThat(item.iid()).isNotNull();
         }
@@ -91,7 +89,7 @@ class ItemTest {
         @Test
         @DisplayName("Single-arg constructor leaves librarian null")
         void noLibrarianByDefault() {
-            Item item = new Item(ItemID.random());
+            Item item = new Item(ItemRef.random());
             assertThat(item.librarian()).isNull();
         }
 
@@ -99,21 +97,21 @@ class ItemTest {
         @DisplayName("Two-arg constructor accepts a librarian")
         void constructorWithLibrarian() {
             Librarian lib = Librarian.inMemory();
-            Item item = new Item(ItemID.random(), lib);
+            Item item = new Item(ItemRef.random(), lib);
             assertThat(item.librarian()).isSameAs(lib);
         }
 
         @Test
         @DisplayName("Two-arg constructor accepts null librarian")
         void constructorWithNullLibrarian() {
-            Item item = new Item(ItemID.random(), null);
+            Item item = new Item(ItemRef.random(), null);
             assertThat(item.librarian()).isNull();
         }
 
         @Test
         @DisplayName("bindLibrarian rebinds")
         void bindLibrarian() {
-            Item item = new Item(ItemID.random());
+            Item item = new Item(ItemRef.random());
             assertThat(item.librarian()).isNull();
 
             Librarian lib = Librarian.inMemory();
@@ -125,7 +123,7 @@ class ItemTest {
         @DisplayName("bindLibrarian can replace an existing binding")
         void rebind() {
             Librarian first = Librarian.inMemory();
-            Item item = new Item(ItemID.random(), first);
+            Item item = new Item(ItemRef.random(), first);
 
             Librarian second = Librarian.inMemory();
             item.bindLibrarian(second);
@@ -151,7 +149,7 @@ class ItemTest {
         @Test
         @DisplayName("New item has no current manifest")
         void noCurrentByDefault() {
-            Item item = new Item(ItemID.random());
+            Item item = new Item(ItemRef.random());
             assertThat(item.current()).isNull();
             assertThat(item.versionId()).isEmpty();
             assertThat(item.parents()).isEmpty();
@@ -161,11 +159,11 @@ class ItemTest {
         @Test
         @DisplayName("bindManifest attaches a manifest")
         void bindManifest() {
-            ItemID iid = ItemID.fromString("test-item");
+            ItemRef iid = ItemRef.fromString("test-item");
             Item item = new Item(iid);
 
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iid))
             );
             Manifest manifest = Manifest.of(manifestBody);
@@ -178,20 +176,20 @@ class ItemTest {
         @Test
         @DisplayName("Replacing manifest with bindManifest works (git-checkout style)")
         void replaceManifest() {
-            ItemID iid = ItemID.fromString("test-item");
+            ItemRef iid = ItemRef.fromString("test-item");
             Item item = new Item(iid);
 
             Body bodyV1 = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iid))
             );
             Manifest v1 = Manifest.of(bodyV1);
 
             Body bodyV2 = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Binding.ref(Manifest.FOLLOWS, ItemID.fromString("v1-as-iid"))
+                            Binding.ref(Manifest.FOLLOWS, ItemRef.fromString("v1-as-iid"))
                     )
             );
             Manifest v2 = Manifest.of(bodyV2);
@@ -207,13 +205,13 @@ class ItemTest {
         @Test
         @DisplayName("Convenience accessors delegate to current manifest")
         void delegatedAccessors() {
-            ItemID iid = ItemID.fromString("doc-item");
+            ItemRef iid = ItemRef.fromString("doc-item");
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-1")),
-                            Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-2"))
+                            Binding.ref(Manifest.ENDORSES, ItemRef.fromString("frame-1")),
+                            Binding.ref(Manifest.ENDORSES, ItemRef.fromString("frame-2"))
                     )
             );
             Manifest manifest = Manifest.of(body);
@@ -228,9 +226,9 @@ class ItemTest {
         @Test
         @DisplayName("Unbinding manifest by passing null clears state")
         void unbind() {
-            ItemID iid = ItemID.fromString("test");
+            ItemRef iid = ItemRef.fromString("test");
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iid))
             );
             Item item = new Item(iid);
@@ -250,19 +248,19 @@ class ItemTest {
         @Test
         @DisplayName("No manifest → empty stream")
         void noManifest() {
-            Item item = new Item(ItemID.random(), Librarian.inMemory());
+            Item item = new Item(ItemRef.random(), Librarian.inMemory());
             assertThat(item.endorsedFrames()).isEmpty();
         }
 
         @Test
         @DisplayName("No librarian → empty stream")
         void noLibrarian() {
-            ItemID iid = ItemID.fromString("orphan");
+            ItemRef iid = ItemRef.fromString("orphan");
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-1"))
+                            Binding.ref(Manifest.ENDORSES, ItemRef.fromString("frame-1"))
                     )
             );
             Item item = new Item(iid);
@@ -276,22 +274,22 @@ class ItemTest {
             Librarian lib = Librarian.inMemory();
 
             Body presentFrame = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
                     List.of(Binding.ref(
-                            ItemID.fromString("cg.role:theme"),
-                            ItemID.fromString("hobbit")))
+                            ItemRef.fromString("cg.role:theme"),
+                            ItemRef.fromString("hobbit")))
             );
-            DatumID presentCid = lib.persist(presentFrame);
+            DatumRef presentCid = lib.persist(presentFrame);
 
-            DatumID missingCid = DatumID.of("never-stored".getBytes());
+            DatumRef missingCid = DatumRef.of("never-stored".getBytes());
 
-            ItemID iid = ItemID.fromString("doc");
+            ItemRef iid = ItemRef.fromString("doc");
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            new Binding(Manifest.ENDORSES, BindingTarget.ref(presentCid)),
-                            new Binding(Manifest.ENDORSES, BindingTarget.ref(missingCid))
+                            new Binding(Manifest.ENDORSES, presentCid),
+                            new Binding(Manifest.ENDORSES, missingCid)
                     )
             );
             Item item = new Item(iid, lib);
@@ -310,14 +308,14 @@ class ItemTest {
         @Test
         @DisplayName("bare Item returns Item.IID")
         void bareItemArchetype() {
-            Item item = new Item(ItemID.random());
+            Item item = new Item(ItemRef.random());
             assertThat(item.archetype()).isEqualTo(Item.IID);
         }
 
         @Test
         @DisplayName("Signer subclass returns Signer.ARCHETYPE")
         void signerArchetype() {
-            Signer s = new Signer(ItemID.random());
+            Signer s = new Signer(ItemRef.random());
             assertThat(s.archetype()).isEqualTo(Signer.ARCHETYPE);
             assertThat(s.archetype()).isNotEqualTo(Item.IID);
         }
@@ -338,7 +336,7 @@ class ItemTest {
         @Test
         @DisplayName("commit with no librarian throws")
         void commitWithoutLibrarianThrows() {
-            Item item = new Item(ItemID.random());
+            Item item = new Item(ItemRef.random());
             assertThatThrownBy(() -> item.commit(List.of()))
                     .isInstanceOf(IllegalStateException.class);
         }
@@ -347,7 +345,7 @@ class ItemTest {
         @DisplayName("inception commit produces a manifest with ITEM_ID and no FOLLOWS")
         void inceptionCommit() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             Item item = new Item(iid, lib);
             assertThat(item.versionId()).isEmpty();
 
@@ -363,10 +361,10 @@ class ItemTest {
         @DisplayName("sequential commit FOLLOWS the previous version")
         void sequentialCommitLinksVersions() {
             Librarian lib = Librarian.inMemory();
-            Item item = new Item(ItemID.fromString("doc-1"), lib);
+            Item item = new Item(ItemRef.fromString("doc-1"), lib);
 
             Manifest v1 = item.commit(List.of());
-            DatumID v1Cid = v1.versionId();
+            DatumRef v1Cid = v1.versionId();
 
             Manifest v2 = item.commit(List.of());
 
@@ -378,7 +376,7 @@ class ItemTest {
         @DisplayName("commit body uses the item's archetype as the head")
         void commitBodyHasArchetypeHead() {
             Librarian lib = Librarian.inMemory();
-            Item item = new Item(ItemID.fromString("doc-1"), lib);
+            Item item = new Item(ItemRef.fromString("doc-1"), lib);
 
             Manifest manifest = item.commit(List.of());
 
@@ -392,7 +390,7 @@ class ItemTest {
         void signerCommitUsesSignerArchetype() {
             Librarian lib = Librarian.inMemory();
             // Use Signer-typed item bound to the librarian for storage.
-            Signer s = new Signer(ItemID.fromString("alice")) {};
+            Signer s = new Signer(ItemRef.fromString("alice")) {};
             // Need a librarian on the Signer; bindLibrarian:
             s.bindLibrarian(lib);
 
@@ -406,7 +404,7 @@ class ItemTest {
         @DisplayName("commit's record signature verifies with the signer's public key")
         void commitRecordSignatureVerifies() {
             Librarian lib = Librarian.inMemory();
-            Item item = new Item(ItemID.fromString("doc-1"), lib);
+            Item item = new Item(ItemRef.fromString("doc-1"), lib);
 
             Manifest manifest = item.commit(List.of());
 
@@ -423,12 +421,12 @@ class ItemTest {
         @DisplayName("committed body and record are persisted to the librarian")
         void committedBytesArePersisted() {
             Librarian lib = Librarian.inMemory();
-            Item item = new Item(ItemID.fromString("doc-1"), lib);
+            Item item = new Item(ItemRef.fromString("doc-1"), lib);
 
             Manifest manifest = item.commit(List.of());
-            DatumID bodyCid = manifest.versionId();
-            ContentID recordCid = ContentID.of(
-                    manifest.records().get(0).encodeBinary(Scope.BODY));
+            DatumRef bodyCid = manifest.versionId();
+            ContentRef recordCid = ContentRef.of(
+                    CgCbor.encode(manifest.records().get(0)));
 
             assertThat(lib.has(bodyCid)).isTrue();
             assertThat(lib.has(recordCid)).isTrue();
@@ -438,7 +436,7 @@ class ItemTest {
         @DisplayName("after commit, librarian.fetchItem returns the item with the same current manifest")
         void fetchItemAfterCommit() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             Item item = new Item(iid, lib);
             Manifest committed = item.commit(List.of());
 
@@ -451,17 +449,17 @@ class ItemTest {
         @DisplayName("commit-supplied bindings appear in the manifest body alongside ITEM_ID")
         void additionalBindingsPropagate() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             Item item = new Item(iid, lib);
 
             // Persist a frame body so we can endorse it.
             Body endorsed = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
                     List.of()
             );
-            DatumID endorsedCid = lib.persist(endorsed);
+            DatumRef endorsedCid = lib.persist(endorsed);
 
-            Binding endorsement = new Binding(Manifest.ENDORSES, BindingTarget.ref(endorsedCid));
+            Binding endorsement = new Binding(Manifest.ENDORSES, endorsedCid);
             Manifest manifest = item.commit(List.of(endorsement));
 
             assertThat(manifest.endorses()).hasSize(1);
@@ -473,7 +471,7 @@ class ItemTest {
         void commitWithExplicitSigner() {
             Librarian lib = Librarian.inMemory();
             Signer alice = Signer.inMemory();
-            Item item = new Item(ItemID.fromString("doc-1"), lib);
+            Item item = new Item(ItemRef.fromString("doc-1"), lib);
 
             // Storage goes through `lib`; signing is done by `alice`.
             Manifest manifest = item.commit(alice, List.of());

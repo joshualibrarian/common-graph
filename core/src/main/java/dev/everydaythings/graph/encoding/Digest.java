@@ -2,13 +2,9 @@ package dev.everydaythings.graph.encoding;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.ThematicRole;
 import io.ipfs.multihash.Multihash;
 
 import java.security.MessageDigest;
@@ -48,18 +44,18 @@ public final class Digest {
     public static final String KEY = "cg.archetype:digest";
 
     /** The archetype IID for Digest. */
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     private Digest() {}
 
-    @Seed.Frame(predicate = Gloss.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "a fixed-length cryptographic fingerprint of arbitrary input bytes, "
                     + "produced by a one-way hash function — used for content addressing, "
                     + "integrity verification, and forward commitment";
 
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "digest";
 
@@ -71,10 +67,10 @@ public final class Digest {
     @Seed.Item(key = MultihashCode.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class MultihashCode {
         public static final String KEY = "cg.predicate:multihash-code";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private MultihashCode() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the multihash code byte identifying a hash algorithm in the IPFS multihash table";
@@ -84,10 +80,10 @@ public final class Digest {
     @Seed.Item(key = DigestLength.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class DigestLength {
         public static final String KEY = "cg.predicate:digest-length";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private DigestLength() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the length in bytes of digests produced by a hash algorithm";
@@ -101,7 +97,7 @@ public final class Digest {
     @Seed.Item(key = Sha256.KEY, head = Digest.KEY)
     public static final class Sha256 {
         public static final String KEY = "cg.digest:sha2-256";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -116,11 +112,11 @@ public final class Digest {
 
         private Sha256() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "SHA-2 256-bit cryptographic hash function";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "SHA-256";
 
@@ -139,7 +135,7 @@ public final class Digest {
     @Seed.Item(key = Sha512.KEY, head = Digest.KEY)
     public static final class Sha512 {
         public static final String KEY = "cg.digest:sha2-512";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -154,7 +150,7 @@ public final class Digest {
 
         private Sha512() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "SHA-2 512-bit cryptographic hash function";
 
@@ -171,7 +167,7 @@ public final class Digest {
     @Seed.Item(key = Sha3_256.KEY, head = Digest.KEY)
     public static final class Sha3_256 {
         public static final String KEY = "cg.digest:sha3-256";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -186,7 +182,7 @@ public final class Digest {
 
         private Sha3_256() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "SHA-3 256-bit cryptographic hash function";
 
@@ -203,7 +199,7 @@ public final class Digest {
     @Seed.Item(key = Blake3.KEY, head = Digest.KEY)
     public static final class Blake3 {
         public static final String KEY = "cg.digest:blake3";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -218,7 +214,7 @@ public final class Digest {
 
         private Blake3() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "BLAKE3 cryptographic hash function (256-bit output)";
 
@@ -235,7 +231,7 @@ public final class Digest {
     @Seed.Item(key = Blake2b_256.KEY, head = Digest.KEY)
     public static final class Blake2b_256 {
         public static final String KEY = "cg.digest:blake2b-256";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -250,7 +246,7 @@ public final class Digest {
 
         private Blake2b_256() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "BLAKE2b cryptographic hash function (256-bit output)";
 
@@ -300,7 +296,7 @@ public final class Digest {
      * Lookup the Multihash.Type → its corresponding Digest IID. Useful when
      * decoding raw multihash bytes into Digest-instance identity.
      */
-    public static ItemID iidForMultihashType(Multihash.Type type) {
+    public static ItemRef iidForMultihashType(Multihash.Type type) {
         if (type == Multihash.Type.sha2_256)   return Sha256.IID;
         if (type == Multihash.Type.sha2_512)   return Sha512.IID;
         if (type == Multihash.Type.sha3_256)   return Sha3_256.IID;

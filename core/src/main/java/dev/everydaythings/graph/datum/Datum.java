@@ -1,14 +1,9 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.Scope;
-
-import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.canonical.Walker;
 import dev.everydaythings.graph.id.*;
 import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -36,22 +31,22 @@ import java.util.stream.Collectors;
  * other wire format. Identity (the {@link #id} field) is computed via the
  * encoder-agnostic {@link HashTree} protocol at construction time.
  */
-public sealed abstract class Datum implements Canonical permits Body, Record {
+public sealed abstract class Datum permits Body, Record {
 
     /** The head reference: the sememe (for bodies) or body CID (for records). */
     @Getter
-    protected final Reference head;
+    protected final HashID head;
 
     /** The bindings carried by this Datum, in canonical order. */
     @Getter
     protected final List<Binding> bindings;
 
     /**
-     * The {@link ContentID} of the specific byte realization this Datum was decoded
+     * The {@link ContentRef} of the specific byte realization this Datum was decoded
      * from, if known. {@code null} for in-memory constructed Datums.
      */
     @Getter
-    protected ContentID source;
+    protected ContentRef source;
 
     /**
      * The Datum's structural semantic identity — the encoding-independent
@@ -60,12 +55,12 @@ public sealed abstract class Datum implements Canonical permits Body, Record {
      * populated.
      *
      * <p>The algorithm choice is in the multihash framing of the ID itself —
-     * given a DatumID, you know which algorithm was used.
+     * given a DatumRef, you know which algorithm was used.
      */
     @Getter
-    protected DatumID id;
+    protected DatumRef id;
 
-    protected Datum(Reference head, List<Binding> bindings) {
+    protected Datum(HashID head, List<Binding> bindings) {
         this.head = Objects.requireNonNull(head, "head");
         Objects.requireNonNull(bindings, "bindings");
         this.bindings = canonicalSort(bindings);
@@ -81,13 +76,13 @@ public sealed abstract class Datum implements Canonical permits Body, Record {
      */
     protected final void bindId() {
         byte[] digest = HashTree.hash(Walker.walk(this), HashTree.DEFAULT_DIGEST);
-        this.id = new DatumID(digest, HashTree.DEFAULT_DIGEST);
+        this.id = new DatumRef(digest, HashTree.DEFAULT_DIGEST);
     }
 
     /**
      * Record the byte realization this Datum was decoded from.
      */
-    public void bindSource(ContentID source) {
+    public void bindSource(ContentRef source) {
         this.source = source;
     }
 
@@ -129,7 +124,7 @@ public sealed abstract class Datum implements Canonical permits Body, Record {
     /**
      * Find all bindings with the given role (any qualifiers).
      */
-    public List<Binding> bindingsByRole(ItemID role) {
+    public List<Binding> bindingsByRole(ItemRef role) {
         Objects.requireNonNull(role, "role");
         return bindings.stream().filter(b -> b.role().equals(role)).collect(Collectors.toList());
     }
@@ -140,23 +135,11 @@ public sealed abstract class Datum implements Canonical permits Body, Record {
     }
 
     /**
-     * The DatumID — structural semantic identity. Alias for {@link #getId()},
+     * The DatumRef — structural semantic identity. Alias for {@link #getId()},
      * preserved for legacy API ergonomics.
      */
-    public DatumID datumId() {
+    public DatumRef datumId() {
         return id;
     }
 
-    /**
-     * Encode the bindings list as a CBOR array. Used by legacy Canonical
-     * encoding paths inside Body/Record; will be retired with the long-tail
-     * Canonical-interface migration.
-     */
-    protected CBORObject encodeBindingsArray(Scope scope) {
-        CBORObject arr = CBORObject.NewArray();
-        for (Binding b : bindings) {
-            arr.Add(b.toCborTree(scope));
-        }
-        return arr;
-    }
 }

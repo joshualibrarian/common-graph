@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.network.parley;
 
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.ContentRef;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +55,7 @@ public final class RemoteConnection implements AutoCloseable {
     }
 
     /** Send a raw content blob to the counterparty. */
-    public CompletableFuture<Void> send(ContentID cid, byte[] content) {
+    public CompletableFuture<Void> send(ContentRef cid, byte[] content) {
         // TODO: push raw content through tunnel (codec-prefixed if needed)
         return CompletableFuture.completedFuture(null);
     }

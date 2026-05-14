@@ -1,16 +1,12 @@
 package dev.everydaythings.graph.operator.compare;
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /** The equality comparison operator. Infix, non-associative, precedence 5. */
 @Seed.Item(key = Equal.KEY,
@@ -20,14 +16,14 @@ import dev.everydaythings.graph.semantics.ThematicRole;
 public class Equal extends Operator {
 
     public static final String KEY = "cg.predicate:equal";
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
-    @Seed.Frame(predicate = Gloss.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "equality test — true when operands are equal";
 
     /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {NotationVocabulary.Infix.KEY}),
           bindings = {
@@ -40,12 +36,12 @@ public class Equal extends Operator {
           })
     static final String symbol = "==";
 
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishAdjectiveLemma = "equal";
 
-    public Equal(ItemID iid) { super(iid); }
-    public Equal(ItemID iid, Librarian librarian) { super(iid, librarian); }
+    public Equal(ItemRef iid) { super(iid); }
+    public Equal(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     @Override
     public Object execute(Object... operands) {

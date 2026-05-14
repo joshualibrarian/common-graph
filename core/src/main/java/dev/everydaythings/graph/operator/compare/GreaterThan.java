@@ -1,14 +1,13 @@
 package dev.everydaythings.graph.operator.compare;
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /** Strict greater-than comparison. Infix, non-associative, precedence 5. */
 @Seed.Item(key = GreaterThan.KEY,
@@ -18,14 +17,14 @@ import dev.everydaythings.graph.semantics.ThematicRole;
 public class GreaterThan extends Operator {
 
     public static final String KEY = "cg.predicate:greater-than";
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
-    @Seed.Frame(predicate = Gloss.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "true when the left operand is strictly greater than the right";
 
     /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {NotationVocabulary.Infix.KEY}),
           bindings = {
@@ -38,8 +37,8 @@ public class GreaterThan extends Operator {
           })
     static final String symbol = ">";
 
-    public GreaterThan(ItemID iid) { super(iid); }
-    public GreaterThan(ItemID iid, Librarian librarian) { super(iid, librarian); }
+    public GreaterThan(ItemRef iid) { super(iid); }
+    public GreaterThan(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     @Override
     public Object execute(Object... operands) {

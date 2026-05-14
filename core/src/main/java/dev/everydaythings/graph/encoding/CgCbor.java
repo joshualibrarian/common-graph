@@ -1,12 +1,11 @@
 package dev.everydaythings.graph.encoding;
 
-import dev.everydaythings.graph.canonical.Scope;
-
 import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.canonical.Layout;
+import dev.everydaythings.graph.canonical.Leaves;
 import dev.everydaythings.graph.canonical.Node;
 import dev.everydaythings.graph.canonical.Walker;
 import dev.everydaythings.graph.datum.Binding;
@@ -14,10 +13,11 @@ import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.id.Reference;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.HashID;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ import java.util.List;
  * <p>The wire form is CG-CBOR-canonical: CG-CBOR sorts collections and emits
  * deterministically. That's a CG-CBOR-spec choice, not a Datum-identity
  * concern; an encoder that emits non-canonically would simply produce
- * additional ContentIDs for the same DatumID (wasteful, not broken).
+ * additional ContentIDs for the same DatumRef (wasteful, not broken).
  *
  * <p>There is no {@code Scope} parameter. Body and Record are distinct types;
  * if you want body-only bytes, encode a Body; if you want full record bytes,
@@ -58,28 +58,66 @@ public final class CgCbor {
     private CgCbor() {}
 
     // ==================================================================================
-    // CBOR tag layout (wire-level)
+    // CG-CBOR tag layout — definitive reference for wire-level tags.
+    //
+    // Two groups:
+    //   • Standard CBOR tags (RFC 8949), Tags 0-5 — interop primitives we
+    //     recognize on decode and emit when appropriate. Not "ours" — we
+    //     follow the standard.
+    //   • CG-CBOR tags (ours), Tags 6-13 — semantic primitives defined by
+    //     the CG-CBOR spec. Tag 6 (RATIONAL) extends the numeric primitives
+    //     immediately after the standard CBOR numeric tags (2/3 bignum,
+    //     4 decimal, 5 bigfloat); the remaining tags carry CG-native shapes.
     // ==================================================================================
 
-    /** CBOR standard tag — epoch-time integer. */
-    public static final int TAG_INSTANT  = 1;
-    /** CG-CBOR Tag 6 — Reference (item / content / frame). */
-    public static final int TAG_REF      = 6;
-    /** CG-CBOR Tag 7 — typed value envelope. */
-    public static final int TAG_VALUE    = 7;
-    /** CG-CBOR Tag 8 — signed envelope. */
-    public static final int TAG_SIG      = 8;
-    /** CG-CBOR Tag 9 — quantity (magnitude + unit). */
-    public static final int TAG_QTY      = 9;
-    /** CG-CBOR Tag 10 — encrypted envelope. */
-    public static final int TAG_ENCRYPTED = 10;
-    /** CG-CBOR Tag 11 — Merkle elision (redaction marker). */
-    public static final int TAG_REDACTED = 11;
-    /** CG-CBOR Tag 12 — Datum (head + bindings, optionally with signature). */
-    public static final int TAG_DATUM    = 12;
+    // ----- Standard CBOR tags we recognize (RFC 8949) -----
+
+    /** CBOR standard Tag 0 — text date-time string (RFC 3339). Accepted on decode. */
+    public static final int STD_DATETIME    = 0;
+
+    /** CBOR standard Tag 1 — epoch-based date-time (numeric). Emitted for {@code Instant}. */
+    public static final int STD_INSTANT     = 1;
+
+    /** CBOR standard Tag 2 — positive bignum (unsigned big integer as byte string). */
+    public static final int STD_POS_BIGNUM  = 2;
+
+    /** CBOR standard Tag 3 — negative bignum. */
+    public static final int STD_NEG_BIGNUM  = 3;
+
+    /** CBOR standard Tag 4 — decimal fraction {@code [exp, mantissa]}. Natural form for {@code BigDecimal}. */
+    public static final int STD_DECIMAL     = 4;
+
+    /** CBOR standard Tag 5 — bigfloat {@code [exp, mantissa]}. Accepted on decode. */
+    public static final int STD_BIGFLOAT    = 5;
+
+    // ----- CG-CBOR tags (ours) -----
+
+    /** CG-CBOR Tag 6 — RATIONAL: rational number {@code [numerator, denominator]}. */
+    public static final int TAG_RATIONAL  = 6;
+
+    /** CG-CBOR Tag 7 — REF: reference (ItemRef / ContentRef / DatumRef). */
+    public static final int TAG_REF       = 7;
+
+    /** CG-CBOR Tag 8 — BODY: Datum body shape {@code [head, [bindings]]}. */
+    public static final int TAG_BODY      = 8;
+
+    /** CG-CBOR Tag 9 — RECORD: Datum record shape {@code [head, [bindings], signature]}. */
+    public static final int TAG_RECORD    = 9;
+
+    /** CG-CBOR Tag 10 — SIG: signature bytes (varsig-encoded). */
+    public static final int TAG_SIG       = 10;
+
+    /** CG-CBOR Tag 11 — KEY: cryptographic key bytes (multikey-encoded). */
+    public static final int TAG_KEY       = 11;
+
+    /** CG-CBOR Tag 12 — REDACTED: Merkle elision marker carrying the preserved hash. */
+    public static final int TAG_REDACTED  = 12;
+
+    /** CG-CBOR Tag 13 — ENCRYPTED: encrypted-envelope marker. */
+    public static final int TAG_ENCRYPTED = 13;
 
     private static final CBOREncodeOptions CANONICAL =
-            CBOREncodeOptions.DefaultCtap2Canonical;
+            new CBOREncodeOptions("useIndefLengthStrings=false;allowduplicatekeys=false;float64=false");
 
     // ==================================================================================
     // Public API — encode
@@ -103,7 +141,7 @@ public final class CgCbor {
     /**
      * Decode bytes to a typed value, dispatching on CBOR shape. Returns the
      * natural Java type for the encoded value: {@link Datum} (Body or Record)
-     * for a Tag-12 array, {@link Reference} for a Tag-6 byte string,
+     * for a Tag-12 array, {@link HashID} for a Tag-6 byte string,
      * {@link Instant} for a Tag-1 integer, primitives ({@link String},
      * {@link Long}, {@link Boolean}, {@code byte[]}) for bare CBOR primitives,
      * {@link List} for a bare CBOR array, etc.
@@ -171,7 +209,7 @@ public final class CgCbor {
     private static final class CodecAdapter implements Encoding {
         static final CodecAdapter INSTANCE = new CodecAdapter();
 
-        @Override public ItemID encoding() { return Encoding.CgCborV1.IID; }
+        @Override public ItemRef encoding() { return Encoding.CgCborV1.IID; }
         @Override public byte formatCode() { return (byte) Encoding.CgCborV1.FORMAT_CODE; }
         @Override public byte[] encode(Object value) { return CgCbor.encode(value); }
         @Override public Object decode(byte[] bytes) { return CgCbor.decode(bytes); }
@@ -187,7 +225,11 @@ public final class CgCbor {
     // Internal — type dispatch: Object → CBORObject
     // ==================================================================================
 
-    private static CBORObject toCbor(Object value) {
+    /**
+     * Build a {@link CBORObject} tree for the given value without serializing
+     * to bytes. Useful for callers composing larger CBOR structures.
+     */
+    public static CBORObject toCbor(Object value) {
         if (value == null) return CBORObject.Null;
         return switch (value) {
             case String s    -> CBORObject.FromString(s);
@@ -196,15 +238,13 @@ public final class CgCbor {
             case Boolean b   -> b ? CBORObject.True : CBORObject.False;
             case byte[] b    -> CBORObject.FromByteArray(b);
             case Instant i   -> CBORObject.FromCBORObjectAndTag(
-                                    CBORObject.FromInt64(i.toEpochMilli()), TAG_INSTANT);
-            case ItemID id   -> CBORObject.FromByteArray(id.encodeBinary());
-            case Reference r -> CBORObject.FromCBORObjectAndTag(
-                                    CBORObject.FromByteArray(r.toRefBytes()), TAG_REF);
-            case Datum d     -> encodeDatum(d);
-            case Binding b   -> encodeBinding(b);
-            case Literal lit -> encodeLiteral(lit);
+                                    CBORObject.FromInt64(i.toEpochMilli()), STD_INSTANT);
+            case java.math.BigInteger bi -> encodeBigInteger(bi);
+            case java.math.BigDecimal bd -> encodeBigDecimal(bd);
+            case dev.everydaythings.graph.value.Rational r -> encodeRational(r);
+            case HashID r        -> encodeRef(r);
+            case Datum d         -> encodeDatum(d);
             case BindingTarget t -> encodeBindingTarget(t);
-            case CompoundKey.FrameToken t -> t.toCbor();
             case List<?> list -> {
                 CBORObject arr = CBORObject.NewArray();
                 for (Object e : list) arr.Add(toCbor(e));
@@ -217,53 +257,211 @@ public final class CgCbor {
                 }
                 yield map;
             }
-            default -> throw new IllegalArgumentException(
-                    "CgCbor cannot encode value of type " + value.getClass().getName());
+            default -> encodeGeneric(value);
         };
+    }
+
+    /**
+     * Generic annotation-driven encode. Two paths:
+     *
+     * <ul>
+     *   <li>{@code @Encode byte[]} → CBOR byte string (terminal leaf).</li>
+     *   <li>{@code @Encode String} → CBOR text string (terminal leaf).</li>
+     *   <li>{@code @Encode <any-other-type>} → recursively encode the
+     *       returned value (the codec applies the right framing for THAT
+     *       type — transparent wrappers like Sememe / Text fall here).</li>
+     *   <li>{@code @Layout(ARRAY|MAP)} → walk {@code @Order} fields and
+     *       emit as CBOR array (or map).</li>
+     * </ul>
+     */
+    private static CBORObject encodeGeneric(Object value) {
+        Class<?> cls = value.getClass();
+
+        // @Encode-annotated leaf or transparent wrapper
+        java.lang.reflect.Method encode = Leaves.findAnyEncode(cls);
+        if (encode != null) {
+            Object result = Leaves.invokeEncode(value, encode);
+            if (result instanceof byte[] b) return CBORObject.FromByteArray(b);
+            if (result instanceof String s) return CBORObject.FromString(s);
+            return toCbor(result);  // recurse — codec frames per type
+        }
+
+        // @Layout-annotated structure → walk @Order fields
+        Layout layout = cls.getAnnotation(Layout.class);
+        if (layout != null) {
+            return encodeStructure(value, cls, layout);
+        }
+
+        throw new IllegalArgumentException(
+                "CgCbor cannot encode value of type " + cls.getName());
+    }
+
+    /**
+     * Walk {@code @Order} fields on the given class and emit the values as a
+     * CBOR array (or map, when MAP layout). Used for structure types like
+     * Binding and CompoundKey.
+     */
+    private static CBORObject encodeStructure(Object value, Class<?> cls, Layout layout) {
+        java.util.List<java.lang.reflect.Field> ordered = orderedFields(cls);
+        if (layout.value() == Layout.Kind.MAP) {
+            CBORObject map = CBORObject.NewMap();
+            for (java.lang.reflect.Field f : ordered) {
+                Object v = readField(value, f);
+                if (v == null) continue;
+                map.Add(CBORObject.FromString(f.getName()), toCbor(v));
+            }
+            return map;
+        }
+        CBORObject arr = CBORObject.NewArray();
+        for (java.lang.reflect.Field f : ordered) {
+            Object v = readField(value, f);
+            arr.Add(toCbor(v));
+        }
+        return arr;
+    }
+
+    private static java.util.List<java.lang.reflect.Field> orderedFields(Class<?> cls) {
+        java.util.List<java.lang.reflect.Field> result = new ArrayList<>();
+        for (Class<?> c = cls; c != null && c != Object.class; c = c.getSuperclass()) {
+            for (java.lang.reflect.Field f : c.getDeclaredFields()) {
+                if (f.isAnnotationPresent(dev.everydaythings.graph.canonical.Order.class)) {
+                    f.setAccessible(true);
+                    result.add(f);
+                }
+            }
+        }
+        result.sort(java.util.Comparator.comparingInt(
+                f -> f.getAnnotation(dev.everydaythings.graph.canonical.Order.class).value()));
+        return result;
+    }
+
+    private static Object readField(Object value, java.lang.reflect.Field f) {
+        try {
+            return f.get(value);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot read @Order field " + f.getName() + " on "
+                    + value.getClass().getName(), e);
+        }
     }
 
     private static CBORObject encodeDatum(Datum d) {
         CBORObject arr = CBORObject.NewArray();
         arr.Add(toCbor(d.head()));
         CBORObject bindings = CBORObject.NewArray();
-        for (Binding b : d.bindings()) bindings.Add(encodeBinding(b));
+        for (Binding b : d.bindings()) bindings.Add(toCbor(b));
         arr.Add(bindings);
+        int tag;
         if (d instanceof Record r) {
             arr.Add(CBORObject.FromByteArray(r.signature()));
+            tag = TAG_RECORD;
+        } else {
+            tag = TAG_BODY;
         }
-        return CBORObject.FromCBORObjectAndTag(arr, TAG_DATUM);
+        return CBORObject.FromCBORObjectAndTag(arr, tag);
     }
 
-    private static CBORObject encodeBinding(Binding b) {
+    /** Wrap a HashID's payload bytes as CBOR Tag REF. */
+    private static CBORObject encodeRef(HashID ref) {
+        return CBORObject.FromCBORObjectAndTag(
+                CBORObject.FromByteArray(ref.toRefBytes()), TAG_REF);
+    }
+
+    /**
+     * Encode a {@link java.math.BigInteger} as a CBOR integer if it fits in
+     * an int64, otherwise as a CBOR-standard bignum (Tag 2 or Tag 3).
+     */
+    private static CBORObject encodeBigInteger(java.math.BigInteger bi) {
+        return CBORObject.FromEInteger(
+                com.upokecenter.numbers.EInteger.FromString(bi.toString()));
+    }
+
+    /**
+     * Encode a {@link java.math.BigDecimal} as CBOR Tag 4
+     * {@code [exp, mantissa]} (standard CBOR decimal fraction).
+     */
+    private static CBORObject encodeBigDecimal(java.math.BigDecimal bd) {
         CBORObject arr = CBORObject.NewArray();
-        arr.Add(CBORObject.FromByteArray(b.role().encodeBinary()));
-        CBORObject quals = CBORObject.NewArray();
-        for (CompoundKey.FrameToken q : b.qualifiers()) quals.Add(q.toCbor());
-        arr.Add(quals);
-        arr.Add(encodeBindingTarget(b.target()));
-        return arr;
+        arr.Add(CBORObject.FromInt32(-bd.scale()));            // exponent = -scale
+        arr.Add(encodeBigInteger(bd.unscaledValue()));         // mantissa
+        return CBORObject.FromCBORObjectAndTag(arr, STD_DECIMAL);
     }
 
-    private static CBORObject encodeBindingTarget(BindingTarget t) {
+    /**
+     * Encode a {@link dev.everydaythings.graph.value.Rational} as CBOR Tag
+     * RATIONAL wrapping a 2-element array {@code [numerator, denominator]}.
+     */
+    private static CBORObject encodeRational(
+            dev.everydaythings.graph.value.Rational r) {
+        CBORObject arr = CBORObject.NewArray();
+        arr.Add(encodeBigInteger(r.numerator()));
+        arr.Add(encodeBigInteger(r.denominator()));
+        return CBORObject.FromCBORObjectAndTag(arr, TAG_RATIONAL);
+    }
+
+    // ==================================================================================
+    // CompoundKey decoding
+    // ==================================================================================
+
+    /**
+     * Decode a CompoundKey from its CBOR array form: {@code [Tag6(head), [qualifiers]]}.
+     * Element 0 is a Tag-6 ItemRef (the head). Element 1 is a CBOR array of
+     * qualifiers — each Tag-6 (sememe) or CBOR text string (text qualifier).
+     */
+    public static CompoundKey decodeCompoundKey(CBORObject node) {
+        if (node == null || node.getType() != CBORType.Array || node.size() != 2) {
+            throw new IllegalArgumentException(
+                    "CompoundKey requires a 2-element CBOR array [head, [qualifiers]], got "
+                            + (node == null ? "null" : node.getType() + (node.getType() == CBORType.Array
+                                    ? " of size " + node.size() : "")));
+        }
+        ItemRef head = expectItemRef(node.get(0), "CompoundKey head");
+        CBORObject qualsArr = node.get(1);
+        if (qualsArr.getType() != CBORType.Array) {
+            throw new IllegalArgumentException(
+                    "CompoundKey qualifiers must be a CBOR array, got " + qualsArr.getType());
+        }
+        List<CompoundKey.Qualifier> quals = new ArrayList<>(qualsArr.size());
+        for (int i = 0; i < qualsArr.size(); i++) {
+            quals.add(decodeQualifier(qualsArr.get(i)));
+        }
+        return CompoundKey.of(head, quals);
+    }
+
+    private static CompoundKey.Qualifier decodeQualifier(CBORObject node) {
+        if (node.isTagged() && node.HasMostOuterTag(TAG_REF)) {
+            return new CompoundKey.Sememe(expectItemRef(node, "CompoundKey sememe qualifier"));
+        }
+        if (node.getType() == CBORType.TextString) {
+            return new CompoundKey.Text(node.AsString());
+        }
+        throw new IllegalArgumentException(
+                "CompoundKey qualifier must be Tag 6 (sememe) or text string, got: "
+                        + node.getType());
+    }
+
+    private static ItemRef expectItemRef(CBORObject node, String context) {
+        if (!node.isTagged() || !node.HasMostOuterTag(TAG_REF)) {
+            throw new IllegalArgumentException(
+                    context + " must be Tag 6 (ItemRef), got: " + node);
+        }
+        HashID ref = HashID.fromCborTree(node);
+        if (ref.variant() != HashID.Variant.ITEM) {
+            throw new IllegalArgumentException(
+                    context + " must be an ItemRef (prefix '@'), got: " + ref.variant());
+        }
+        return ((ItemRef) ref).iid();
+    }
+
+    private static CBORObject encodeBindingTarget(Object t) {
         return switch (t) {
             case BindingTarget.RefTarget rt -> CBORObject.FromCBORObjectAndTag(
                     CBORObject.FromByteArray(rt.asReference().toRefBytes()), TAG_REF);
-            case BindingTarget.FrameTarget ft -> CBORObject.FromCBORObjectAndTag(
-                    ft.body().toCborTree(Scope.BODY), TAG_DATUM);
+            case BindingTarget.FrameTarget ft -> encodeDatum(ft.body());
             case BindingTarget.RedactedTarget rt -> CBORObject.FromCBORObjectAndTag(
                     CBORObject.FromByteArray(rt.wrappedHash()), TAG_REDACTED);
-            case Literal lit -> encodeLiteral(lit);
             default -> throw new IllegalArgumentException(
                     "Unsupported BindingTarget: " + t.getClass().getName());
         };
-    }
-
-    private static CBORObject encodeLiteral(Literal lit) {
-        CBORObject inner = CBORObject.DecodeFromBytes(lit.payload());
-        if (Literal.TYPE_INSTANT.equals(lit.valueType())) {
-            return CBORObject.FromCBORObjectAndTag(inner, TAG_INSTANT);
-        }
-        return inner;
     }
 
     // ==================================================================================
@@ -275,10 +473,15 @@ public final class CgCbor {
         if (node.isTagged()) {
             int tag = node.getMostOuterTag().ToInt32Checked();
             return switch (tag) {
-                case TAG_INSTANT  -> Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
-                case TAG_REF      -> Reference.fromCborTree(node);
-                case TAG_DATUM    -> decodeDatum(node);
-                case TAG_REDACTED -> BindingTarget.RedactedTarget.fromCborTree(node);
+                case STD_INSTANT     -> Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
+                case STD_POS_BIGNUM,
+                     STD_NEG_BIGNUM  -> decodeBigInteger(node);
+                case STD_DECIMAL     -> decodeBigDecimal(node);
+                case TAG_RATIONAL    -> decodeRational(node);
+                case TAG_REF         -> HashID.fromCborTree(node);
+                case TAG_BODY        -> Body.fromCborTree(node);
+                case TAG_RECORD      -> Record.fromCborTree(node);
+                case TAG_REDACTED    -> BindingTarget.RedactedTarget.fromCborTree(node);
                 default -> throw new IllegalArgumentException(
                         "Unrecognized CBOR tag: " + tag);
             };
@@ -295,18 +498,33 @@ public final class CgCbor {
         };
     }
 
-    private static Datum decodeDatum(CBORObject tagged) {
+    /** Decode a CBOR integer or Tag-2/Tag-3 bignum to a {@link java.math.BigInteger}. */
+    private static java.math.BigInteger decodeBigInteger(CBORObject node) {
+        return new java.math.BigInteger(node.AsEIntegerValue().toString());
+    }
+
+    /** Decode a CBOR Tag-4 {@code [exp, mantissa]} to a {@link java.math.BigDecimal}. */
+    private static java.math.BigDecimal decodeBigDecimal(CBORObject tagged) {
         CBORObject inner = tagged.UntagOne();
-        if (inner.getType() != CBORType.Array) {
+        if (inner.getType() != CBORType.Array || inner.size() != 2) {
             throw new IllegalArgumentException(
-                    "Tag-12 (Datum) payload must be an array, got " + inner.getType());
+                    "Tag-4 (decimal) payload must be a 2-element array");
         }
-        return switch (inner.size()) {
-            case 2 -> Body.fromCborTree(tagged);
-            case 3 -> Record.fromCborTree(tagged);
-            default -> throw new IllegalArgumentException(
-                    "Datum array must have 2 (Body) or 3 (Record) elements, got " + inner.size());
-        };
+        int exp = inner.get(0).AsInt32();
+        java.math.BigInteger mantissa = decodeBigInteger(inner.get(1));
+        return new java.math.BigDecimal(mantissa, -exp);
+    }
+
+    /** Decode a CBOR Tag-RATIONAL to a {@link dev.everydaythings.graph.value.Rational}. */
+    private static dev.everydaythings.graph.value.Rational decodeRational(CBORObject tagged) {
+        CBORObject inner = tagged.UntagOne();
+        if (inner.getType() != CBORType.Array || inner.size() != 2) {
+            throw new IllegalArgumentException(
+                    "Tag-" + TAG_RATIONAL + " (rational) payload must be a 2-element array");
+        }
+        return new dev.everydaythings.graph.value.Rational(
+                decodeBigInteger(inner.get(0)),
+                decodeBigInteger(inner.get(1)));
     }
 
     private static List<Object> decodeArray(CBORObject node) {

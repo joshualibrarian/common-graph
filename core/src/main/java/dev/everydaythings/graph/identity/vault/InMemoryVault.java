@@ -5,7 +5,6 @@ import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
@@ -14,18 +13,15 @@ import dev.everydaythings.graph.identity.IdentityVocabulary.Delegation;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Revocation;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Rotation;
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.FrameRef;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Next;
-import dev.everydaythings.graph.semantics.CoreVocabulary.Expires;
-import dev.everydaythings.graph.semantics.CoreVocabulary.Sequence;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.CoreVocabulary.Expires;
+import dev.everydaythings.graph.CoreVocabulary.Sequence;
+import dev.everydaythings.graph.language.ThematicRole;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -75,7 +71,7 @@ public final class InMemoryVault implements Vault {
         final Algorithm.Sign algorithm;
         KeyPair currentKeyPair;
         KeyPair nextKeyPair;
-        DatumID chainHead;     // null = un-incepted
+        DatumRef chainHead;     // null = un-incepted
         long sequence;         // 0 before INCEPTION; 1 after; +1 per ROTATION
 
         PurposeState(Algorithm.Sign algorithm, KeyPair currentKeyPair, KeyPair nextKeyPair) {
@@ -87,10 +83,10 @@ public final class InMemoryVault implements Vault {
         }
     }
 
-    private final Map<ItemID, PurposeState> purposes;
-    private final ItemID identity;  // stable across rotations — derived from initial signing pubkey
+    private final Map<ItemRef, PurposeState> purposes;
+    private final ItemRef identity;  // stable across rotations — derived from initial signing pubkey
 
-    private InMemoryVault(Map<ItemID, PurposeState> purposes, ItemID identity) {
+    private InMemoryVault(Map<ItemRef, PurposeState> purposes, ItemRef identity) {
         this.purposes = purposes;
         this.identity = identity;
     }
@@ -109,9 +105,9 @@ public final class InMemoryVault implements Vault {
                 algorithm,
                 generateKeyPair(algorithm),
                 generateKeyPair(algorithm));
-        Map<ItemID, PurposeState> purposes = new HashMap<>();
+        Map<ItemRef, PurposeState> purposes = new HashMap<>();
         purposes.put(IdentityVocabulary.Signing.IID, signing);
-        ItemID identity = ItemID.fromMultikeyBytes(
+        ItemRef identity = ItemRef.fromMultikeyBytes(
                 MultiKey.of(algorithm, rawPublicKey(signing.currentKeyPair.getPublic(), algorithm))
                         .encoded());
         return new InMemoryVault(purposes, identity);
@@ -127,33 +123,33 @@ public final class InMemoryVault implements Vault {
     // ==================================================================================
 
     @Override
-    public ItemID identity() {
+    public ItemRef identity() {
         return identity;
     }
 
     @Override
-    public Optional<MultiKey> publicKey(ItemID purpose) {
+    public Optional<MultiKey> publicKey(ItemRef purpose) {
         PurposeState state = purposes.get(purpose);
         if (state == null) return Optional.empty();
         return Optional.of(currentPublicKey(state));
     }
 
     @Override
-    public Optional<ContentID> nextKeyDigest(ItemID purpose) {
+    public Optional<ContentRef> nextKeyDigest(ItemRef purpose) {
         PurposeState state = purposes.get(purpose);
         if (state == null) return Optional.empty();
-        return Optional.of(ContentID.of(nextPublicKey(state).encoded()));
+        return Optional.of(ContentRef.of(nextPublicKey(state).encoded()));
     }
 
     @Override
-    public Optional<DatumID> chainHead(ItemID purpose) {
+    public Optional<DatumRef> chainHead(ItemRef purpose) {
         PurposeState state = purposes.get(purpose);
         if (state == null || state.chainHead == null) return Optional.empty();
         return Optional.of(state.chainHead);
     }
 
     @Override
-    public long sequence(ItemID purpose) {
+    public long sequence(ItemRef purpose) {
         PurposeState state = purposes.get(purpose);
         return state == null ? 0L : state.sequence;
     }
@@ -163,7 +159,7 @@ public final class InMemoryVault implements Vault {
     // ==================================================================================
 
     @Override
-    public Frame incept(ItemID purpose) {
+    public Frame incept(ItemRef purpose) {
         Objects.requireNonNull(purpose, "purpose");
         PurposeState state = requirePurpose(purpose);
         if (state.chainHead != null) {
@@ -171,7 +167,7 @@ public final class InMemoryVault implements Vault {
                     "Purpose " + purpose + " has already been incepted (sequence=" + state.sequence + ")");
         }
         MultiKey currentKey = currentPublicKey(state);
-        ContentID nextDigest = ContentID.of(nextPublicKey(state).encoded());
+        ContentRef nextDigest = ContentRef.of(nextPublicKey(state).encoded());
 
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(ThematicRole.Theme.IID, identity));
@@ -179,19 +175,19 @@ public final class InMemoryVault implements Vault {
         bindings.add(new Binding(
                 ThematicRole.Instrument.IID,
                 List.of(new CompoundKey.Sememe(Multikey.IID)),
-                Literal.ofMultiKey(currentKey)));
+                currentKey.encoded()));
         bindings.add(new Binding(
                 ThematicRole.Instrument.IID,
                 List.of(new CompoundKey.Sememe(Next.IID)),
-                BindingTarget.ref(nextDigest)));
+                nextDigest));
         bindings.add(new Binding(
                 ThematicRole.Time.IID,
                 List.of(),
-                Literal.ofInstant(Instant.now())));
+                Instant.now()));
 
         Body body = Body.of(ItemRef.of(Inception.IID), bindings);
         VarSig sig = signWith(state.currentKeyPair, state.algorithm, HashTree.signingPayload(body));
-        Record record = Record.of(FrameRef.of(body.datumId()), List.of(), sig);
+        Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         state.chainHead = body.datumId();
         state.sequence = 1L;
@@ -200,7 +196,7 @@ public final class InMemoryVault implements Vault {
     }
 
     @Override
-    public Frame rotate(ItemID purpose) {
+    public Frame rotate(ItemRef purpose) {
         Objects.requireNonNull(purpose, "purpose");
         PurposeState state = requirePurpose(purpose);
         if (state.chainHead == null) {
@@ -215,7 +211,7 @@ public final class InMemoryVault implements Vault {
                 rawPublicKey(newCurrent.getPublic(), state.algorithm));
         MultiKey newNextPublic = MultiKey.of(state.algorithm,
                 rawPublicKey(newNext.getPublic(), state.algorithm));
-        ContentID newNextDigest = ContentID.of(newNextPublic.encoded());
+        ContentRef newNextDigest = ContentRef.of(newNextPublic.encoded());
 
         long newSequence = state.sequence + 1L;
 
@@ -225,30 +221,30 @@ public final class InMemoryVault implements Vault {
         bindings.add(new Binding(
                 ThematicRole.Follows.IID,
                 List.of(),
-                BindingTarget.ref(state.chainHead)));
+                state.chainHead));
         bindings.add(new Binding(
                 ThematicRole.Attribute.IID,
                 List.of(new CompoundKey.Sememe(Sequence.IID)),
-                Literal.ofInteger(newSequence)));
+                (long) (newSequence)));
         bindings.add(new Binding(
                 ThematicRole.Instrument.IID,
                 List.of(new CompoundKey.Sememe(Multikey.IID)),
-                Literal.ofMultiKey(newCurrentPublic)));
+                newCurrentPublic.encoded()));
         bindings.add(new Binding(
                 ThematicRole.Instrument.IID,
                 List.of(new CompoundKey.Sememe(Next.IID)),
-                BindingTarget.ref(newNextDigest)));
+                newNextDigest));
         bindings.add(new Binding(
                 ThematicRole.Time.IID,
                 List.of(),
-                Literal.ofInstant(Instant.now())));
+                Instant.now()));
 
         Body body = Body.of(ItemRef.of(Rotation.IID), bindings);
         byte[] payload = HashTree.signingPayload(body);
         VarSig sigOld = signWith(oldCurrent, state.algorithm, payload);
         VarSig sigNew = signWith(newCurrent, state.algorithm, payload);
 
-        FrameRef bodyRef = FrameRef.of(body.datumId());
+        DatumRef bodyRef = DatumRef.of(body.datumId());
         Record recordOld = Record.of(bodyRef, List.of(), sigOld);
         Record recordNew = Record.of(bodyRef, List.of(), sigNew);
 
@@ -261,7 +257,7 @@ public final class InMemoryVault implements Vault {
     }
 
     @Override
-    public Frame delegate(ItemID delegateId, ItemID purpose, DelegationConditions conditions) {
+    public Frame delegate(ItemRef delegateId, ItemRef purpose, DelegationConditions conditions) {
         Objects.requireNonNull(delegateId, "delegateId");
         Objects.requireNonNull(purpose, "purpose");
         Objects.requireNonNull(conditions, "conditions");
@@ -275,21 +271,21 @@ public final class InMemoryVault implements Vault {
         conditions.expiresAt().ifPresent(expiresAt -> bindings.add(new Binding(
                 ThematicRole.Attribute.IID,
                 List.of(new CompoundKey.Sememe(Expires.IID)),
-                Literal.ofInstant(expiresAt))));
+                expiresAt)));
         bindings.add(new Binding(
                 ThematicRole.Time.IID,
                 List.of(),
-                Literal.ofInstant(Instant.now())));
+                Instant.now()));
 
         Body body = Body.of(ItemRef.of(Delegation.IID), bindings);
         VarSig sig = signWith(signingState.currentKeyPair, signingState.algorithm, HashTree.signingPayload(body));
-        Record record = Record.of(FrameRef.of(body.datumId()), List.of(), sig);
+        Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         return Frame.of(body, List.of(record));
     }
 
     @Override
-    public Frame revoke(BindingTarget target, ItemID reason) {
+    public Frame revoke(Object target, ItemRef reason) {
         Objects.requireNonNull(target, "target");
         // Revocations are signed by the signing key.
         PurposeState signingState = requirePurpose(IdentityVocabulary.Signing.IID);
@@ -302,11 +298,11 @@ public final class InMemoryVault implements Vault {
         bindings.add(new Binding(
                 ThematicRole.Time.IID,
                 List.of(),
-                Literal.ofInstant(Instant.now())));
+                Instant.now()));
 
         Body body = Body.of(ItemRef.of(Revocation.IID), bindings);
         VarSig sig = signWith(signingState.currentKeyPair, signingState.algorithm, HashTree.signingPayload(body));
-        Record record = Record.of(FrameRef.of(body.datumId()), List.of(), sig);
+        Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         return Frame.of(body, List.of(record));
     }
@@ -322,7 +318,7 @@ public final class InMemoryVault implements Vault {
     }
 
     @Override
-    public VarSig sign(byte[] message, ItemID purpose) {
+    public VarSig sign(byte[] message, ItemRef purpose) {
         PurposeState state = requirePurpose(purpose);
         return signWith(state.currentKeyPair, state.algorithm, message);
     }
@@ -343,7 +339,7 @@ public final class InMemoryVault implements Vault {
     }
 
     @Override
-    public Optional<ContentID> signingNextKeyDigest() {
+    public Optional<ContentRef> signingNextKeyDigest() {
         return nextKeyDigest(IdentityVocabulary.Signing.IID);
     }
 
@@ -352,7 +348,7 @@ public final class InMemoryVault implements Vault {
     // ==================================================================================
 
     /** Look up the state for a purpose; throw if absent (vault has no keys for it). */
-    private PurposeState requirePurpose(ItemID purpose) {
+    private PurposeState requirePurpose(ItemRef purpose) {
         PurposeState state = purposes.get(purpose);
         if (state == null) {
             throw new IllegalStateException(

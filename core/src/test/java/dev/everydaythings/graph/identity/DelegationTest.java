@@ -2,14 +2,12 @@ package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Delegation;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.CoreVocabulary;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -30,8 +28,8 @@ class DelegationTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        ItemID parent = ItemID.fromString("parent");
-        ItemID child = ItemID.fromString("child");
+        ItemRef parent = ItemRef.fromString("parent");
+        ItemRef child = ItemRef.fromString("child");
 
         Body body = Body.of(
                 ItemRef.of(Delegation.IID),
@@ -50,8 +48,8 @@ class DelegationTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        ItemID parent = ItemID.fromString("parent");
-        ItemID child = ItemID.fromString("child");
+        ItemRef parent = ItemRef.fromString("parent");
+        ItemRef child = ItemRef.fromString("child");
 
         Body body = Body.of(
                 ItemRef.of(Delegation.IID),
@@ -73,8 +71,8 @@ class DelegationTest {
         Body body = Body.of(
                 ItemRef.of(Delegation.IID),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, ItemID.fromString("parent")),
-                        Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("child")),
+                        Binding.ref(ThematicRole.Agent.IID, ItemRef.fromString("parent")),
+                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("child")),
                         Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Signing.IID),
                         Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Encryption.IID)
                 )
@@ -95,12 +93,12 @@ class DelegationTest {
         Body body = Body.of(
                 ItemRef.of(Delegation.IID),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, ItemID.fromString("parent")),
-                        Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("child")),
+                        Binding.ref(ThematicRole.Agent.IID, ItemRef.fromString("parent")),
+                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("child")),
                         new Binding(
                                 ThematicRole.Attribute.IID,
                                 List.of(new CompoundKey.Sememe(CoreVocabulary.Expires.IID)),
-                                Literal.ofInstant(expires)
+                                expires
                         )
                 )
         );
@@ -117,8 +115,8 @@ class DelegationTest {
         Body body = Body.of(
                 ItemRef.of(Delegation.IID),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, ItemID.fromString("parent")),
-                        Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("child"))
+                        Binding.ref(ThematicRole.Agent.IID, ItemRef.fromString("parent")),
+                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("child"))
                 )
         );
 

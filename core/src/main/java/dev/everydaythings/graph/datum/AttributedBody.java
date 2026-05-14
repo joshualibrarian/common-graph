@@ -1,12 +1,9 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.Scope;
-
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.Reference;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.HashID;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -41,7 +38,7 @@ public abstract class AttributedBody {
     private final List<Record> records;
 
     /** The head reference of the body (sememe ItemRef). */
-    public Reference head() {
+    public HashID head() {
         return body.head();
     }
 
@@ -50,10 +47,10 @@ public abstract class AttributedBody {
         return body.bindings().stream();
     }
 
-    /** The body's CID — hash of the encoded body bytes under the default codec. */
-    public ContentID bodyCID() {
-        return ContentID.of(body.encodeBinary(Scope.BODY));
-    }
+    // bodyCID() deleted: ContentRef is encoder-specific and belongs at the
+    // Library/codec boundary, not on a pure in-memory aggregate. Use
+    // {@code ContentRef.of(encoder.encode(body))} at the call site, or look
+    // up via the Library's DatumRef→ContentRef bridge.
 
     /** Find the first body binding whose (role, qualifiers) matches the given key. */
     public Optional<Binding> binding(CompoundKey key) {

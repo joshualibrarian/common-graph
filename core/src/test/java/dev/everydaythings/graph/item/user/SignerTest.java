@@ -5,7 +5,7 @@ import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,14 +22,14 @@ class SignerTest {
         @Test
         @DisplayName("Signer extends Item")
         void extendsItem() {
-            Signer s = new Signer(ItemID.random());
+            Signer s = new Signer(ItemRef.random());
             assertThat(s).isInstanceOf(Item.class);
         }
 
         @Test
         @DisplayName("Signer carries an iid")
         void carriesIid() {
-            ItemID iid = ItemID.fromString("test-signer");
+            ItemRef iid = ItemRef.fromString("test-signer");
             Signer s = new Signer(iid);
             assertThat(s.iid()).isEqualTo(iid);
         }
@@ -48,7 +48,7 @@ class SignerTest {
         @Test
         @DisplayName("identity-only Signer cannot sign")
         void cannotSign() {
-            Signer s = new Signer(ItemID.random());
+            Signer s = new Signer(ItemRef.random());
             assertThat(s.canSign()).isFalse();
             assertThat(s.signingAlgorithm()).isEmpty();
             assertThat(s.signingPublicKey()).isEmpty();
@@ -57,7 +57,7 @@ class SignerTest {
         @Test
         @DisplayName("sign() throws on identity-only Signer")
         void signThrows() {
-            Signer s = new Signer(ItemID.random());
+            Signer s = new Signer(ItemRef.random());
             assertThatThrownBy(() -> s.sign("hello".getBytes()))
                     .isInstanceOf(IllegalStateException.class);
         }
@@ -151,7 +151,7 @@ class SignerTest {
             // the Signer's actual IID — this is the cryptographic binding
             // that closes the IID-preemption gap.
             assertThat(s.iid())
-                    .isEqualTo(ItemID.fromMultikeyBytes(pk.encoded()));
+                    .isEqualTo(ItemRef.fromMultikeyBytes(pk.encoded()));
         }
 
         @Test

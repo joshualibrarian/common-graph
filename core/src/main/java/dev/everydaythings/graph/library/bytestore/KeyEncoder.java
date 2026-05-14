@@ -55,7 +55,7 @@ public enum KeyEncoder {
         }
     },
 
-    /** Base ItemID (32B random id). Accepts ItemID or any ItemScopedID (uses its scope). */
+    /** Base ItemRef (32B random id). Accepts ItemRef or any ItemScopedID (uses its scope). */
     ID {
         @Override public byte[] bytes(Object o) {
             if (o instanceof HashID id) return id.encodeBinary();
@@ -141,15 +141,6 @@ public enum KeyEncoder {
         }
     },
 
-    /** 1-byte tag prefix for composite keys (e.g., pin keys). */
-    TAG {
-        @Override public byte[] bytes(Object o) {
-            if (o instanceof HashID.IdType t) return new byte[] { t.tag() };
-            if (o instanceof Byte b) return new byte[] { b };
-            if (o instanceof Integer i) return new byte[] { (byte)(i & 0xff) };
-            throw type(o, "IdType | byte | int (0..255)");
-        }
-    },
     ;
 
     private static final byte[] EMPTY = new byte[0];

@@ -1,17 +1,14 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.Scope;
-
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.canonical.Canonical;
-import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.id.Reference;
 import dev.everydaythings.graph.canonical.Factory;
+import dev.everydaythings.graph.canonical.Layout;
+import dev.everydaythings.graph.canonical.Order;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.CompoundKey.FrameToken;
-import dev.everydaythings.graph.id.ItemID;
-import lombok.Getter;
+import dev.everydaythings.graph.id.CompoundKey.Qualifier;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.HashID;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,17 +37,31 @@ import java.util.Objects;
  *
  * @see BindingTarget
  */
-@Getter
-public final class Binding implements Canonical {
+@Layout(Layout.Kind.ARRAY)
+public final class Binding {
 
-    /** The semantic function — what KIND of binding (NAME, THEME, AGENT, ...). */
-    private final ItemID role;
+    /**
+     * The binding's key — head sememe plus qualifiers. The CompoundKey owns
+     * canonicalization of the qualifier multiset; Binding just carries it.
+     */
+    @Order(0) private final CompoundKey key;
 
-    /** Qualifiers — narrowing + constraints (sememes or literals, may be empty). */
-    private final List<FrameToken> qualifiers;
-
-    /** The bound value — CID, item ref, literal, or path. */
-    private final BindingTarget target;
+    /**
+     * The bound value. Any of:
+     * <ul>
+     *   <li>a {@link dev.everydaythings.graph.id.HashID} (ItemRef / ContentRef / DatumRef)
+     *       — reference to an item, content, or datum</li>
+     *   <li>a {@link Body} — inline nested frame</li>
+     *   <li>a {@link BindingTarget.RedactedTarget} — Merkle elision marker</li>
+     *   <li>a primitive: {@link String}, {@link Long}, {@link Boolean}, {@code byte[]},
+     *       {@link java.time.Instant}, {@link java.math.BigDecimal},
+     *       {@link java.math.BigInteger}, {@link dev.everydaythings.graph.value.Rational}</li>
+     * </ul>
+     * The codec dispatches on runtime type; what the value <i>means</i>
+     * (Java class name, multikey, IP address bytes, etc.) is carried by the
+     * binding's qualifiers, not by the target itself.
+     */
+    @Order(1) private final Object target;
 
     /** Live decoded value (transient, runtime only). */
     private transient Object instance;
@@ -60,41 +71,59 @@ public final class Binding implements Canonical {
     // ==================================================================================
 
     /**
-     * Full constructor — role + qualifiers + target.
-     *
-     * <p>The qualifiers list is canonicalized by sorting on each qualifier's CBOR
-     * encoding (lexicographic byte comparison). Qualifiers are a multiset — the
-     * order callers happen to supply them in must not affect the binding's identity.
+     * Primary constructor — a compound key and its target.
      */
-    public Binding(ItemID role, List<FrameToken> qualifiers, BindingTarget target) {
-        this.role = Objects.requireNonNull(role, "role");
-        this.qualifiers = canonicalSortQualifiers(qualifiers);
+    public Binding(CompoundKey key, Object target) {
+        this.key = Objects.requireNonNull(key, "key");
         this.target = Objects.requireNonNull(target, "target");
     }
 
-    private static List<FrameToken> canonicalSortQualifiers(List<FrameToken> qualifiers) {
-        if (qualifiers == null || qualifiers.isEmpty()) return List.of();
-        if (qualifiers.size() == 1) return List.copyOf(qualifiers);
-        List<FrameToken> sorted = new ArrayList<>(qualifiers);
-        sorted.sort(HashTree.CANONICAL);
-        return List.copyOf(sorted);
-    }
-
     /**
-     * Simple single-role binding (no qualifiers).
+     * Convenience: build a binding from role + qualifiers + target. The
+     * qualifier list is canonicalized inside CompoundKey.
      */
-    public Binding(ItemID role, BindingTarget target) {
-        this(role, List.of(), target);
+    public Binding(ItemRef role, List<Qualifier> qualifiers, Object target) {
+        this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target);
     }
 
     /**
-     * No-arg constructor for Canonical decode support.
+     * Convenience: simple single-role binding (no qualifiers).
+     */
+    public Binding(ItemRef role, Object target) {
+        this(CompoundKey.of(role), target);
+    }
+
+    /**
+     * No-arg constructor for legacy Canonical decode support.
      */
     @SuppressWarnings("unused")
     private Binding() {
-        this.role = null;
-        this.qualifiers = List.of();
+        this.key = null;
         this.target = null;
+    }
+
+    // ==================================================================================
+    // Accessors
+    // ==================================================================================
+
+    /** The compound key (head + qualifiers). */
+    public CompoundKey key() {
+        return key;
+    }
+
+    /** The semantic function — sugar for {@code key().head()}. */
+    public ItemRef role() {
+        return key == null ? null : key.head();
+    }
+
+    /** Qualifiers — sugar for {@code key().qualifiers()}. */
+    public List<Qualifier> qualifiers() {
+        return key == null ? List.of() : key.qualifiers();
+    }
+
+    /** The bound value. */
+    public Object target() {
+        return target;
     }
 
     // ==================================================================================
@@ -117,56 +146,17 @@ public final class Binding implements Canonical {
     }
 
     // ==================================================================================
-    // Key Accessors
+    // Key Predicates
     // ==================================================================================
 
-    /**
-     * Whether this is a simple (no qualifiers) binding.
-     */
+    /** Whether this is a simple (no qualifiers) binding. */
     public boolean isSimpleKey() {
-        return qualifiers.isEmpty();
+        return qualifiers().isEmpty();
     }
 
-    /**
-     * Whether this binding has any qualifiers.
-     */
+    /** Whether this binding has any qualifiers. */
     public boolean hasQualifiers() {
-        return !qualifiers.isEmpty();
-    }
-
-    /**
-     * Backward-compatible flat key — [role, sememe-qualifier₁, sememe-qualifier₂, ...].
-     *
-     * <p>Only includes sememe qualifiers (literal qualifiers are omitted since they
-     * can't be represented as ItemIDs). Use {@link #qualifiers()} for the full list.
-     */
-    public List<ItemID> key() {
-        if (qualifiers.isEmpty()) {
-            return role != null ? List.of(role) : List.of();
-        }
-        List<ItemID> result = new ArrayList<>();
-        if (role != null) result.add(role);
-        for (FrameToken q : qualifiers) {
-            if (q instanceof CompoundKey.Sememe s) result.add(s.id());
-        }
-        return List.copyOf(result);
-    }
-
-    /**
-     * Whether this binding's role + qualifiers match the given sequence.
-     *
-     * <p>First argument matches the role. Subsequent arguments match qualifiers
-     * (as Sememe tokens). All must be ItemIDs.
-     */
-    public boolean keyEquals(ItemID... parts) {
-        if (parts == null || parts.length == 0) return false;
-        if (!parts[0].equals(role)) return false;
-        if (parts.length - 1 != qualifiers.size()) return false;
-        for (int i = 1; i < parts.length; i++) {
-            FrameToken q = qualifiers.get(i - 1);
-            if (!(q instanceof CompoundKey.Sememe s) || !s.id().equals(parts[i])) return false;
-        }
-        return true;
+        return !qualifiers().isEmpty();
     }
 
     // ==================================================================================
@@ -174,11 +164,16 @@ public final class Binding implements Canonical {
     // ==================================================================================
 
     /**
-     * If the target is an IidTarget, return the referenced ItemID.
+     * If the target is a bare unpinned ItemRef, return it; otherwise null.
+     * Useful for callers wanting "the item this binding points at" with no
+     * version pin attached.
      */
-    public ItemID targetId() {
-        return target instanceof BindingTarget.RefTarget ref && !ref.isCompound()
-                ? ref.asItemId() : null;
+    public ItemRef targetId() {
+        if (target instanceof ItemRef ir && !ir.isPinned()) return ir;
+        if (target instanceof BindingTarget.RefTarget rt && !rt.isCompound()) {
+            return rt.asItemId();
+        }
+        return null;
     }
 
     // ==================================================================================
@@ -188,82 +183,54 @@ public final class Binding implements Canonical {
     /**
      * Create a binding with role, qualifiers, and target.
      */
-    public static Binding qualified(ItemID role, List<FrameToken> qualifiers,
-                                    BindingTarget target) {
+    public static Binding qualified(ItemRef role, List<Qualifier> qualifiers,
+                                    Object target) {
         return new Binding(role, qualifiers, target);
     }
 
     /**
      * Create a binding referencing an item.
      */
-    public static Binding ref(ItemID role, ItemID target) {
-        return new Binding(role, BindingTarget.iid(target));
+    public static Binding ref(ItemRef role, ItemRef target) {
+        return new Binding(role, target);
     }
 
     /**
-     * Create a binding wrapping a {@link Reference} as the target.
+     * Create a binding wrapping a {@link HashID} as the target.
      */
-    public static Binding ref(ItemID role, Reference target) {
-        return new Binding(role, BindingTarget.ref(target));
+    public static Binding ref(ItemRef role, HashID target) {
+        return new Binding(role, target);
     }
 
     /**
      * Create a binding with a literal value.
      */
-    public static Binding literal(ItemID role, BindingTarget target) {
+    public static Binding literal(ItemRef role, Object target) {
         return new Binding(role, target);
     }
 
     // ==================================================================================
-    // CBOR Encoding
+    // CBOR decoding (legacy entry point — codec calls this for polymorphic dispatch)
     // ==================================================================================
 
     /**
-     * Custom CBOR encoding: [role_bytes, qualifiers_array, target]
-     *
-     * <p>Qualifiers encode as FrameTokens: Sememe → byte string, Literal → text string.
-     */
-    @Override
-    public CBORObject toCborTree(Scope scope) {
-        CBORObject arr = CBORObject.NewArray();
-        arr.Add(CBORObject.FromByteArray(role.encodeBinary()));
-
-        CBORObject quals = CBORObject.NewArray();
-        for (FrameToken q : qualifiers) {
-            quals.Add(q.toCbor());
-        }
-        arr.Add(quals);
-
-        arr.Add(target.toCborTree(scope));
-        return arr;
-    }
-
-    /**
-     * Custom CBOR decoding.
+     * Custom CBOR decoding. Wire format:
+     * {@code [CompoundKey, BindingTarget]} — a 2-element array where the
+     * first element is a CompoundKey's CBOR ({@code [Tag6(head), [quals]]})
+     * and the second is the binding target.
      */
     @Factory
     public static Binding fromCborTree(CBORObject obj) {
         if (obj == null || obj.isNull()) return null;
-
-        // Format: [role_bytes, qualifiers_array, target]
-        ItemID role = new ItemID(obj.get(0).GetByteString());
-
-        List<FrameToken> quals = new ArrayList<>();
-        CBORObject qualsArr = obj.get(1);
-        if (qualsArr != null && !qualsArr.isNull() && qualsArr.getType() == CBORType.Array) {
-            for (int i = 0; i < qualsArr.size(); i++) {
-                CBORObject q = qualsArr.get(i);
-                if (q.getType() == CBORType.ByteString) {
-                    quals.add(new CompoundKey.Sememe(new ItemID(q.GetByteString())));
-                } else if (q.getType() == CBORType.TextString) {
-                    quals.add(new CompoundKey.Literal(q.AsString()));
-                }
-            }
+        if (obj.getType() != CBORType.Array || obj.size() != 2) {
+            throw new IllegalArgumentException(
+                    "Binding requires a 2-element CBOR array [key, target], got "
+                            + obj.getType() + (obj.getType() == CBORType.Array
+                                    ? " of size " + obj.size() : ""));
         }
-
-        BindingTarget target = BindingTarget.fromCborTree(obj.get(2));
-
-        return new Binding(role, quals, target);
+        CompoundKey key = dev.everydaythings.graph.encoding.CgCbor.decodeCompoundKey(obj.get(0));
+        Object target = BindingTarget.fromCborTree(obj.get(1));
+        return new Binding(key, target);
     }
 
     // ==================================================================================
@@ -273,9 +240,9 @@ public final class Binding implements Canonical {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("Binding{");
-        if (role != null) {
-            sb.append(role.displayAtWidth(12));
-            if (!qualifiers.isEmpty()) sb.append(":").append(qualifiers.size());
+        if (key != null) {
+            sb.append(key.head().displayAtWidth(12));
+            if (!key.qualifiers().isEmpty()) sb.append(":").append(key.qualifiers().size());
         }
         sb.append(" -> ").append(target);
         if (instance != null) sb.append(" [live]");
@@ -287,13 +254,12 @@ public final class Binding implements Canonical {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Binding other)) return false;
-        return Objects.equals(role, other.role)
-                && Objects.equals(qualifiers, other.qualifiers)
+        return Objects.equals(key, other.key)
                 && Objects.equals(target, other.target);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(role, qualifiers, target);
+        return Objects.hash(key, target);
     }
 }

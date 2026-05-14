@@ -1,16 +1,11 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.CgTag;
-
-import dev.everydaythings.graph.canonical.Scope;
-
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.canonical.Factory;
+import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.Reference;
-
+import dev.everydaythings.graph.id.HashID;
 import java.util.List;
 import java.util.Objects;
 
@@ -49,17 +44,9 @@ public final class Body extends Datum {
         return new Body(head, List.of());
     }
 
-    /** The head as an {@link ItemRef} (typed accessor; head() returns Reference). */
+    /** The head as an {@link ItemRef} (typed accessor; head() returns HashID). */
     public ItemRef headRef() {
         return (ItemRef) head;
-    }
-
-    @Override
-    public CBORObject toCborTree(Scope scope) {
-        CBORObject arr = CBORObject.NewArray();
-        arr.Add(head.toCborTree(scope));
-        arr.Add(encodeBindingsArray(scope));
-        return CBORObject.FromObjectAndTag(arr, CgTag.DATUM);
     }
 
     /**
@@ -74,7 +61,7 @@ public final class Body extends Datum {
     @Factory
     public static Body fromCborTree(CBORObject node) {
         Objects.requireNonNull(node, "node");
-        if (node.isTagged() && node.HasMostOuterTag(CgTag.DATUM)) {
+        if (node.isTagged() && node.HasMostOuterTag(CgCbor.TAG_BODY)) {
             node = node.UntagOne();
         }
         if (node.getType() != CBORType.Array || node.size() != 2) {
@@ -82,7 +69,7 @@ public final class Body extends Datum {
                     "Body requires a 2-element CBOR array, got " + node.getType()
                             + (node.getType() == CBORType.Array ? " of size " + node.size() : ""));
         }
-        Reference headRef = Reference.fromCborTree(node.get(0));
+        HashID headRef = HashID.fromCborTree(node.get(0));
         if (!(headRef instanceof ItemRef itemRef)) {
             throw new IllegalArgumentException(
                     "Body head must be an ItemRef (@-prefix), got " + headRef.variant());

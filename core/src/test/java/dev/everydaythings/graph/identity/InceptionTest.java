@@ -5,11 +5,10 @@ import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -128,7 +127,7 @@ class InceptionTest {
                         new Binding(
                                 ThematicRole.Instrument.IID,
                                 List.of(new CompoundKey.Sememe(Multikey.IID)),
-                                Literal.ofMultiKey(key)
+                                key.encoded()
                         )
                 )
         );

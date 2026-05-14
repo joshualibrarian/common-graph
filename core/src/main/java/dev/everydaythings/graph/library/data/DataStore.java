@@ -2,8 +2,8 @@ package dev.everydaythings.graph.library.data;
 
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.encoding.Encoding;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 
 import dev.everydaythings.graph.library.bytestore.ColumnSchema;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
@@ -26,13 +26,13 @@ import java.util.Optional;
  *
  * <p>Two parallel APIs:
  * <ul>
- *   <li><b>Datum API</b> — {@link #put(Datum)} / {@link #get(DatumID)} etc.
- *       The DataStore handles the DatumID → realized-bytes lookup internally
+ *   <li><b>Datum API</b> — {@link #put(Datum)} / {@link #get(DatumRef)} etc.
+ *       The DataStore handles the DatumRef → realized-bytes lookup internally
  *       (byte-backed impls maintain an internal DATUM_INDEX column for this
  *       bridge; pure-map impls hold live references directly).</li>
  *   <li><b>Content-blob API</b> — {@link #putContent(byte[])} /
- *       {@link #getContent(ContentID)} etc. For arbitrary bytes (audio, video,
- *       images, large binary data) addressed by ContentID, not Datums.</li>
+ *       {@link #getContent(ContentRef)} etc. For arbitrary bytes (audio, video,
+ *       images, large binary data) addressed by ContentRef, not Datums.</li>
  * </ul>
  *
  * @see DataByteStore
@@ -54,32 +54,32 @@ public interface DataStore extends AutoCloseable {
     // ==================================================================================
 
     /** Persist a Datum. Returns the Datum's semantic identity. */
-    DatumID put(Datum datum);
+    DatumRef put(Datum datum);
 
     /** Fetch a Datum by its semantic identity. */
-    Optional<Datum> get(DatumID datumId);
+    Optional<Datum> get(DatumRef datumId);
 
     /** Whether this store has the given Datum. */
-    boolean has(DatumID datumId);
+    boolean has(DatumRef datumId);
 
     /** Remove the given Datum. Returns true if anything was removed. */
-    boolean delete(DatumID datumId);
+    boolean delete(DatumRef datumId);
 
     // ==================================================================================
     // Content-blob API
     // ==================================================================================
 
     /** Persist arbitrary content bytes, returning the CID computed from them. */
-    ContentID putContent(byte[] bytes);
+    ContentRef putContent(byte[] bytes);
 
     /** Fetch raw bytes by CID. */
-    Optional<byte[]> getContent(ContentID cid);
+    Optional<byte[]> getContent(ContentRef cid);
 
     /** Whether this store has bytes for the given CID. */
-    boolean hasContent(ContentID cid);
+    boolean hasContent(ContentRef cid);
 
     /** Remove the content at the given CID. Returns true if anything was removed. */
-    boolean deleteContent(ContentID cid);
+    boolean deleteContent(ContentRef cid);
 
     // ==================================================================================
     // Column schema (used by byte-backed backends; pure-map backends ignore)
@@ -106,10 +106,10 @@ public interface DataStore extends AutoCloseable {
         OBJECTS("objects", null, 10, KeyEncoder.ID),
 
         /**
-         * Internal DatumID → ContentID bridge. Lets {@link #get(DatumID)}
+         * Internal DatumRef → ContentRef bridge. Lets {@link #get(DatumRef)}
          * resolve a semantic identity to its wire-form realization(s).
          *
-         * <p>Key: {@code DatumID-bytes | ContentID-bytes}, value: empty. Most
+         * <p>Key: {@code DatumRef-bytes | ContentRef-bytes}, value: empty. Most
          * Datums map 1→1; multiple realizations arise only when the same
          * semantic Datum is held in multiple wire forms (full + redacted).
          *

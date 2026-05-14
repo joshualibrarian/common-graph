@@ -3,7 +3,7 @@ package dev.everydaythings.graph.text;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.util.ULocale;
 import dev.everydaythings.graph.library.index.TokenPosting;
-import dev.everydaythings.graph.value.Decimal;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.Value;
 import lombok.With;
@@ -34,7 +34,7 @@ import java.util.function.Function;
  * <ul>
  *   <li><b>WORD</b> — the normalized text resolves to one or more {@link TokenPosting}s
  *       in the dictionary. Multiple postings = ambiguous resolution.</li>
- *   <li><b>LITERAL</b> — the text parses as a number ({@link Decimal#parse}) or a
+ *   <li><b>LITERAL</b> — the text parses as a number ({@link BigDecimal#parse}) or a
  *       quoted string. Literals always have high score regardless of dictionary.</li>
  *   <li><b>UNRESOLVED</b> — neither a dictionary hit nor a recognized literal. Low
  *       score but still in the lattice so coverage holds.</li>
@@ -65,8 +65,8 @@ public final class TokenLattice {
     public static final int MAX_WINDOW = 5;
 
     /** Default scores for different span kinds. */
-    private static final Decimal LITERAL_SCORE = Decimal.parse("0.9");
-    private static final Decimal UNRESOLVED_SCORE = Decimal.parse("0.1");
+    private static final BigDecimal LITERAL_SCORE = new BigDecimal("0.9");
+    private static final BigDecimal UNRESOLVED_SCORE = new BigDecimal("0.1");
     /** Score added per extra word when a multi-word window resolves. */
     private static final double MULTI_WORD_BONUS_PER_WORD = 0.1;
 
@@ -161,8 +161,8 @@ public final class TokenLattice {
         List<TokenPosting> postings = lookup.apply(normalized);
         if (postings != null && !postings.isEmpty()) {
             List<TokenPosting> sorted = sortedByWeight(postings);
-            Decimal baseScore = sorted.get(0).weight();
-            Decimal score = wordCount > 1
+            BigDecimal baseScore = sorted.get(0).weight();
+            BigDecimal score = wordCount > 1
                     ? plusBonus(baseScore, MULTI_WORD_BONUS_PER_WORD * (wordCount - 1))
                     : baseScore;
             addSpan(spansByStart, new TokenSpan(span, surfaceText, sorted, Kind.WORD, score));
@@ -215,7 +215,7 @@ public final class TokenLattice {
             List<TokenSpan> spans = spansByStart.get(pos);
             if (spans == null) continue;
             for (TokenSpan span : spans) {
-                double candidate = bestScore[pos] + span.score().toDouble();
+                double candidate = bestScore[pos] + span.score().doubleValue();
                 int endPos = span.span().end();
                 if (candidate > bestScore[endPos]) {
                     bestScore[endPos] = candidate;
@@ -276,7 +276,7 @@ public final class TokenLattice {
             List<TokenSpan> startingSpans = spansByStart.get(pos);
             if (startingSpans == null) continue;
             for (TokenSpan span : startingSpans) {
-                double scoreDelta = span.score().toDouble();
+                double scoreDelta = span.score().doubleValue();
                 int endPos = span.span().end();
                 for (PartialPath p : paths[pos]) {
                     paths[endPos].add(new PartialPath(p.score + scoreDelta, span, p));
@@ -400,20 +400,20 @@ public final class TokenLattice {
 
     private static List<TokenPosting> sortedByWeight(List<TokenPosting> postings) {
         List<TokenPosting> sorted = new ArrayList<>(postings);
-        sorted.sort((a, b) -> Double.compare(b.weight().toDouble(), a.weight().toDouble()));
+        sorted.sort((a, b) -> Double.compare(b.weight().doubleValue(), a.weight().doubleValue()));
         return List.copyOf(sorted);
     }
 
-    private static Decimal plusBonus(Decimal base, double bonus) {
-        // Convert via double — adequate for ranking; Decimal precision preserved on the original posting
-        return Decimal.parse(Double.toString(base.toDouble() + bonus));
+    private static BigDecimal plusBonus(BigDecimal base, double bonus) {
+        // Convert via double — adequate for ranking; BigDecimal precision preserved on the original posting
+        return new BigDecimal(Double.toString(base.doubleValue() + bonus));
     }
 
     private static boolean isNumericLiteral(String text) {
         String stripped = text.strip();
         if (stripped.isEmpty()) return false;
         try {
-            Decimal.parse(stripped);
+            new BigDecimal(stripped);
             return true;
         } catch (RuntimeException e) {
             return false;
@@ -444,7 +444,7 @@ public final class TokenLattice {
         String surfaceText;
         List<TokenPosting> postings;
         Kind kind;
-        Decimal score;
+        BigDecimal score;
 
         public boolean isResolved() {
             return !postings.isEmpty();
@@ -452,8 +452,8 @@ public final class TokenLattice {
 
         public boolean isAmbiguous() {
             if (postings.size() <= 1) return false;
-            double best = postings.get(0).weight().toDouble();
-            double second = postings.get(1).weight().toDouble();
+            double best = postings.get(0).weight().doubleValue();
+            double second = postings.get(1).weight().doubleValue();
             return second >= best * 0.8;
         }
 

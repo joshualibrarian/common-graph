@@ -1,16 +1,12 @@
 package dev.everydaythings.graph.operator.logic;
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /** The logical-OR operator. Infix, left-associative, precedence 0 (lowest binary). */
 @Seed.Item(key = Or.KEY,
@@ -20,14 +16,14 @@ import dev.everydaythings.graph.semantics.ThematicRole;
 public class Or extends Operator {
 
     public static final String KEY = "cg.predicate:or";
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
-    @Seed.Frame(predicate = Gloss.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "logical disjunction — true when at least one operand is true";
 
     /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {NotationVocabulary.Infix.KEY}),
           bindings = {
@@ -40,12 +36,12 @@ public class Or extends Operator {
           })
     static final String symbol = "||";
 
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Conjunction.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishConjunctionLemma = "or";
 
-    public Or(ItemID iid) { super(iid); }
-    public Or(ItemID iid, Librarian librarian) { super(iid, librarian); }
+    public Or(ItemRef iid) { super(iid); }
+    public Or(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     @Override
     public Object execute(Object... operands) {

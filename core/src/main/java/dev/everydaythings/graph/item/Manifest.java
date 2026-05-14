@@ -3,14 +3,12 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.datum.AttributedBody;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.FrameRef;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.runtime.RuntimeVocabulary;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +28,7 @@ import java.util.Optional;
  *   <tr><td>{@code ITEM_ID}</td><td>The item's identity (the IID this is a version of)</td></tr>
  *   <tr><td>{@code FOLLOWS}</td><td>Parent VIDs (zero for inception, multiple for merges)</td></tr>
  *   <tr><td>{@code ENDORSES}</td><td>Frame body CIDs that this version endorses as its content</td></tr>
- *   <tr><td>{@code IMPLEMENTATION}</td><td>Reference to the implementation that produced this version</td></tr>
+ *   <tr><td>{@code IMPLEMENTATION}</td><td>HashID to the implementation that produced this version</td></tr>
  *   <tr><td>{@code CONFIG:[...]}</td><td>Per-purpose configuration (retention, presentation, etc.)</td></tr>
  * </table>
  */
@@ -42,32 +40,32 @@ public final class Manifest extends AttributedBody {
     /** Canonical key for the ITEM_ID structural sememe. */
     public static final String ITEM_ID_KEY = CoreVocabulary.ItemId.KEY;
 
-    /** ItemID of the structural ITEM_ID sememe. */
-    public static final ItemID ITEM_ID = CoreVocabulary.ItemId.IID;
+    /** ItemRef of the structural ITEM_ID sememe. */
+    public static final ItemRef ITEM_ID = CoreVocabulary.ItemId.IID;
 
     /** Canonical key for the FOLLOWS structural sememe. */
     public static final String FOLLOWS_KEY = CoreVocabulary.Follows.KEY;
 
-    /** ItemID of the structural FOLLOWS sememe. */
-    public static final ItemID FOLLOWS = CoreVocabulary.Follows.IID;
+    /** ItemRef of the structural FOLLOWS sememe. */
+    public static final ItemRef FOLLOWS = CoreVocabulary.Follows.IID;
 
     /** Canonical key for the ENDORSES structural sememe. */
     public static final String ENDORSES_KEY = CoreVocabulary.Endorses.KEY;
 
-    /** ItemID of the structural ENDORSES sememe. */
-    public static final ItemID ENDORSES = CoreVocabulary.Endorses.IID;
+    /** ItemRef of the structural ENDORSES sememe. */
+    public static final ItemRef ENDORSES = CoreVocabulary.Endorses.IID;
 
     /** Canonical key for the IMPLEMENTATION structural sememe. */
     public static final String IMPLEMENTATION_KEY = CoreVocabulary.Implementation.KEY;
 
-    /** ItemID of the structural IMPLEMENTATION sememe. */
-    public static final ItemID IMPLEMENTATION = CoreVocabulary.Implementation.IID;
+    /** ItemRef of the structural IMPLEMENTATION sememe. */
+    public static final ItemRef IMPLEMENTATION = CoreVocabulary.Implementation.IID;
 
     /** Canonical key for the CONFIG structural sememe. */
     public static final String CONFIG_KEY = CoreVocabulary.Config.KEY;
 
-    /** ItemID of the structural CONFIG sememe. */
-    public static final ItemID CONFIG = CoreVocabulary.Config.IID;
+    /** ItemRef of the structural CONFIG sememe. */
+    public static final ItemRef CONFIG = CoreVocabulary.Config.IID;
 
     public Manifest(Body body, List<Record> records) {
         super(body, records);
@@ -92,14 +90,14 @@ public final class Manifest extends AttributedBody {
      * Open a fluent builder for a manifest with the given archetype and item IID.
      * The builder auto-injects the {@code ITEM_ID} binding.
      */
-    public static ManifestBuilder compose(ItemID archetype, ItemID itemId) {
+    public static ManifestBuilder compose(ItemRef archetype, ItemRef itemId) {
         return new ManifestBuilder(archetype, itemId);
     }
 
     /**
      * The item's identity — read from the {@code ITEM_ID} binding.
      */
-    public ItemID itemId() {
+    public ItemRef itemId() {
         Binding b = body().binding(CompoundKey.of(ITEM_ID))
                 .orElseThrow(() -> new IllegalStateException(
                         "Manifest body missing ITEM_ID binding (should have been validated at construction)"));
@@ -107,9 +105,9 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
-     * The version ID — the body's structural identity (DatumID).
+     * The version ID — the body's structural identity (DatumRef).
      */
-    public DatumID versionId() {
+    public DatumRef versionId() {
         return body().datumId();
     }
 
@@ -119,7 +117,7 @@ public final class Manifest extends AttributedBody {
      * <p>Returns an empty list for an inception manifest (no parents).
      * Multi-IID FOLLOWS indicates a merge of multiple parent versions.
      */
-    public List<DatumID> parents() {
+    public List<DatumRef> parents() {
         return body().bindingsByRole(FOLLOWS).stream()
                 .map(b -> readDatumIdFromTarget(b.target(), FOLLOWS_KEY))
                 .toList();
@@ -185,20 +183,20 @@ public final class Manifest extends AttributedBody {
         return new Binding(
                 IMPLEMENTATION,
                 java.util.List.of(new CompoundKey.Sememe(
-                        CoreVocabulary.JavaClass.IID)),
-                Literal.ofText(clazz.getName()));
+                        RuntimeVocabulary.JavaClass.IID)),
+                clazz.getName());
     }
 
     /**
      * Whether a binding is a Java-class binding — a binding whose qualifiers
-     * include {@link CoreVocabulary.JavaClass}. Readers consult this to decide
+     * include {@link RuntimeVocabulary.JavaClass}. Readers consult this to decide
      * whether to interpret the binding's text target as a fully-qualified Java
      * class name.
      */
     public static boolean isJavaClassBinding(Binding b) {
         for (var q : b.qualifiers()) {
             if (q instanceof CompoundKey.Sememe s
-                    && CoreVocabulary.JavaClass.IID.equals(s.id())) {
+                    && RuntimeVocabulary.JavaClass.IID.equals(s.id())) {
                 return true;
             }
         }
@@ -206,32 +204,25 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
-     * Read an ItemID from a binding target, expecting a reference target shape.
+     * Read an ItemRef from a binding target, expecting an ItemRef.
      */
-    private static ItemID readIidFromTarget(BindingTarget target, String role) {
-        if (target instanceof BindingTarget.RefTarget refTarget) {
-            return refTarget.asItemId();
-        }
+    private static ItemRef readIidFromTarget(Object target, String role) {
+        if (target instanceof ItemRef ir) return ir;
         throw new IllegalStateException(
-                role + " binding target must be a reference, got "
+                role + " binding target must be an ItemRef, got "
                         + target.getClass().getSimpleName());
     }
 
     /**
-     * Read a DatumID from a binding target, expecting a {@link FrameRef}-shaped
-     * reference target (the typical FOLLOWS/ENDORSES shape — a body CID).
+     * Read a DatumRef from a binding target, expecting a DatumRef (the typical
+     * FOLLOWS/ENDORSES shape — a body CID). Accepts ItemRef as a transitional
+     * fallback for legacy bindings.
      */
-    private static DatumID readDatumIdFromTarget(BindingTarget target, String role) {
-        if (target instanceof BindingTarget.RefTarget refTarget) {
-            DatumID datumId = refTarget.asDatumId();
-            if (datumId != null) return datumId;
-            // Backwards-compatible fallback: derive a DatumID from an ItemRef's
-            // bytes (handles older callers that wrapped a CID as an ItemRef).
-            ItemID iid = refTarget.asItemId();
-            if (iid != null) return new DatumID(iid.encodeBinary());
-        }
+    private static DatumRef readDatumIdFromTarget(Object target, String role) {
+        if (target instanceof DatumRef dr) return dr;
+        if (target instanceof ItemRef ir) return new DatumRef(ir.encodeBinary());
         throw new IllegalStateException(
-                role + " binding target must be a frame reference, got "
+                role + " binding target must be a DatumRef, got "
                         + target.getClass().getSimpleName());
     }
 }

@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.canonical.Scope;
+import dev.everydaythings.graph.encoding.CgCbor;
 
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.identity.VarSig;
@@ -11,12 +10,11 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.value.Literal;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.FrameRef;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.library.index.TokenPosting;
@@ -102,15 +100,15 @@ class LibrarianTest {
         void persistAndFetch() {
             Librarian lib = Librarian.inMemory();
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:test")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:test")),
                     List.of()
             );
 
-            DatumID cid = lib.persist(body);
+            DatumRef cid = lib.persist(body);
             assertThat(cid).isEqualTo(body.datumId());
 
-            Optional<byte[]> fetched = lib.fetch(cid);
-            assertThat(fetched).isPresent();
+            // fetch(DatumRef) was deleted — bytes live behind the DatumRef→ContentRef
+            // bridge; the `has(DatumRef)` check below proves storage round-tripped.
             assertThat(lib.has(cid)).isTrue();
         }
 
@@ -119,13 +117,13 @@ class LibrarianTest {
         void fetchFrameNoRecords() {
             Librarian lib = Librarian.inMemory();
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
                     List.of(Binding.ref(
-                            ItemID.fromString("cg.role:theme"),
-                            ItemID.fromString("hobbit")))
+                            ItemRef.fromString("cg.role:theme"),
+                            ItemRef.fromString("hobbit")))
             );
 
-            DatumID cid = lib.persist(body);
+            DatumRef cid = lib.persist(body);
             Optional<Frame> decoded = lib.fetchFrame(cid);
             assertThat(decoded).isPresent();
             assertThat(decoded.get().body()).isEqualTo(body);
@@ -137,12 +135,12 @@ class LibrarianTest {
         void fetchFrameWithRecords() {
             Librarian lib = Librarian.inMemory();
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
                     List.of()
             );
-            DatumID bodyCid = lib.persist(body);
+            DatumRef bodyCid = lib.persist(body);
 
-            Record record = new Record(FrameRef.of(bodyCid), List.of(), new byte[]{1, 2, 3});
+            Record record = new Record(DatumRef.of(bodyCid), List.of(), new byte[]{1, 2, 3});
             lib.persist(record);
 
             Optional<Frame> decoded = lib.fetchFrame(bodyCid);
@@ -155,13 +153,13 @@ class LibrarianTest {
         @DisplayName("fetchManifest returns archetypal bodies wrapped as a Manifest")
         void fetchManifest() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc");
+            ItemRef iid = ItemRef.fromString("doc");
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iid))
             );
 
-            DatumID cid = lib.persist(manifestBody);
+            DatumRef cid = lib.persist(manifestBody);
             Optional<Manifest> decoded = lib.fetchManifest(cid);
             assertThat(decoded).isPresent();
             assertThat(decoded.get().itemId()).isEqualTo(iid);
@@ -173,10 +171,10 @@ class LibrarianTest {
         void fetchManifestNonArchetypal() {
             Librarian lib = Librarian.inMemory();
             Body propositional = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
                     List.of()
             );
-            DatumID cid = lib.persist(propositional);
+            DatumRef cid = lib.persist(propositional);
             assertThat(lib.fetchManifest(cid)).isEmpty();
         }
 
@@ -184,7 +182,7 @@ class LibrarianTest {
         @DisplayName("fetch returns empty for unknown CID")
         void fetchEmpty() {
             Librarian lib = Librarian.inMemory();
-            ContentID unknown = ContentID.of("never-stored".getBytes());
+            ContentRef unknown = ContentRef.of("never-stored".getBytes());
             assertThat(lib.fetch(unknown)).isEmpty();
             assertThat(lib.has(unknown)).isFalse();
         }
@@ -194,7 +192,7 @@ class LibrarianTest {
         void persistContent() {
             Librarian lib = Librarian.inMemory();
             byte[] bytes = "hello world".getBytes();
-            ContentID cid = lib.persistContent(bytes);
+            ContentRef cid = lib.persistContent(bytes);
 
             Optional<byte[]> fetched = lib.fetch(cid);
             assertThat(fetched).isPresent();
@@ -210,7 +208,7 @@ class LibrarianTest {
         @DisplayName("fetchItem returns the same Java instance on repeated calls")
         void fetchItemMemoizes() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             new Item(iid, lib).commit(List.of());
 
             Item first = lib.fetchItem(iid).orElseThrow();
@@ -222,7 +220,7 @@ class LibrarianTest {
         @DisplayName("commit auto-registers the item")
         void commitRegisters() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             Item committed = new Item(iid, lib);
             committed.commit(List.of());
 
@@ -235,7 +233,7 @@ class LibrarianTest {
         @DisplayName("register makes an externally-constructed instance canonical")
         void explicitRegister() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             Item custom = new Item(iid, lib);
             lib.register(custom);
 
@@ -260,7 +258,7 @@ class LibrarianTest {
         static class CountingItem extends Item {
             final java.util.List<Frame> received = new java.util.ArrayList<>();
 
-            CountingItem(ItemID iid, Librarian lib) {
+            CountingItem(ItemRef iid, Librarian lib) {
                 super(iid, lib);
             }
 
@@ -274,7 +272,7 @@ class LibrarianTest {
         static class ThrowingItem extends Item {
             int callCount = 0;
 
-            ThrowingItem(ItemID iid, Librarian lib) {
+            ThrowingItem(ItemRef iid, Librarian lib) {
                 super(iid, lib);
             }
 
@@ -290,7 +288,7 @@ class LibrarianTest {
         void persists() {
             Librarian lib = Librarian.inMemory();
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:status")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:status")),
                     List.of()
             );
 
@@ -298,21 +296,21 @@ class LibrarianTest {
 
             assertThat(frame.body()).isEqualTo(body);
             assertThat(frame.records()).hasSize(1);
-            assertThat(lib.has(ContentID.of(frame.body().encodeBinary(Scope.BODY)))).isTrue();
-            assertThat(lib.has(ContentID.of(frame.records().get(0).encodeBinary(Scope.BODY)))).isTrue();
+            assertThat(lib.has(ContentRef.of(CgCbor.encode(frame.body())))).isTrue();
+            assertThat(lib.has(ContentRef.of(CgCbor.encode(frame.records().get(0))))).isTrue();
         }
 
         @Test
         @DisplayName("registered items referenced in body bindings receive onFrameAssembled")
         void referencedItemsNotified() {
             Librarian lib = Librarian.inMemory();
-            ItemID aliceId = ItemID.fromString("alice");
+            ItemRef aliceId = ItemRef.fromString("alice");
             CountingItem alice = new CountingItem(aliceId, lib);
             lib.register(alice);
 
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
-                    List.of(Binding.ref(ItemID.fromString("cg.role:agent"), aliceId))
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId))
             );
             Frame frame = lib.assembleFrame(body, lib);
 
@@ -323,8 +321,8 @@ class LibrarianTest {
         @DisplayName("items not referenced are not notified")
         void unreferencedNotNotified() {
             Librarian lib = Librarian.inMemory();
-            ItemID aliceId = ItemID.fromString("alice");
-            ItemID bobId = ItemID.fromString("bob");
+            ItemRef aliceId = ItemRef.fromString("alice");
+            ItemRef bobId = ItemRef.fromString("bob");
             CountingItem alice = new CountingItem(aliceId, lib);
             CountingItem bob = new CountingItem(bobId, lib);
             lib.register(alice);
@@ -332,8 +330,8 @@ class LibrarianTest {
 
             // Frame mentions only alice.
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
-                    List.of(Binding.ref(ItemID.fromString("cg.role:agent"), aliceId))
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId))
             );
             lib.assembleFrame(body, lib);
 
@@ -345,16 +343,16 @@ class LibrarianTest {
         @DisplayName("an item referenced by multiple bindings is notified exactly once (dedup)")
         void deduplicates() {
             Librarian lib = Librarian.inMemory();
-            ItemID aliceId = ItemID.fromString("alice");
+            ItemRef aliceId = ItemRef.fromString("alice");
             CountingItem alice = new CountingItem(aliceId, lib);
             lib.register(alice);
 
             // Frame mentions alice twice (two different roles).
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:self-loop")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:self-loop")),
                     List.of(
-                            Binding.ref(ItemID.fromString("cg.role:agent"), aliceId),
-                            Binding.ref(ItemID.fromString("cg.role:theme"), aliceId)
+                            Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId),
+                            Binding.ref(ItemRef.fromString("cg.role:theme"), aliceId)
                     )
             );
             lib.assembleFrame(body, lib);
@@ -368,9 +366,9 @@ class LibrarianTest {
             Librarian lib = Librarian.inMemory();
             // No item registered for "ghost".
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
-                    List.of(Binding.ref(ItemID.fromString("cg.role:agent"),
-                            ItemID.fromString("ghost")))
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
+                    List.of(Binding.ref(ItemRef.fromString("cg.role:agent"),
+                            ItemRef.fromString("ghost")))
             );
 
             // Should not throw.
@@ -382,18 +380,18 @@ class LibrarianTest {
         @DisplayName("an exception in one item's handler does not stop the chain")
         void exceptionsDontPropagate() {
             Librarian lib = Librarian.inMemory();
-            ItemID aliceId = ItemID.fromString("alice");
-            ItemID bobId = ItemID.fromString("bob");
+            ItemRef aliceId = ItemRef.fromString("alice");
+            ItemRef bobId = ItemRef.fromString("bob");
             ThrowingItem alice = new ThrowingItem(aliceId, lib);
             CountingItem bob = new CountingItem(bobId, lib);
             lib.register(alice);
             lib.register(bob);
 
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:co-mention")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:co-mention")),
                     List.of(
-                            Binding.ref(ItemID.fromString("cg.role:agent"), aliceId),
-                            Binding.ref(ItemID.fromString("cg.role:theme"), bobId)
+                            Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId),
+                            Binding.ref(ItemRef.fromString("cg.role:theme"), bobId)
                     )
             );
 
@@ -408,7 +406,7 @@ class LibrarianTest {
         void recordSignatureVerifies() {
             Librarian lib = Librarian.inMemory();
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:status")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:status")),
                     List.of()
             );
             Frame frame = lib.assembleFrame(body, lib);
@@ -428,7 +426,7 @@ class LibrarianTest {
         public static class TestThing extends Item {
             public final java.util.List<Frame> received = new java.util.ArrayList<>();
 
-            public TestThing(ItemID iid, Librarian lib) {
+            public TestThing(ItemRef iid, Librarian lib) {
                 super(iid, lib);
             }
 
@@ -442,20 +440,19 @@ class LibrarianTest {
         @DisplayName("commit auto-injects IMPLEMENTATION for non-bare-Item subclasses")
         void commitInjectsImplementationForSubclass() {
             Librarian lib = Librarian.inMemory();
-            TestThing thing = new TestThing(ItemID.random(), lib);
+            TestThing thing = new TestThing(ItemRef.random(), lib);
             Manifest committed = thing.commit(List.of());
 
             Optional<Binding> impl = committed.implementation();
             assertThat(impl).isPresent();
-            Literal lit = (Literal) impl.get().target();
-            assertThat(lit.asJavaClass()).isEqualTo(TestThing.class);
+            assertThat(impl.get().target()).isEqualTo(TestThing.class.getName());
         }
 
         @Test
         @DisplayName("commit does NOT inject IMPLEMENTATION for bare Item")
         void commitOmitsImplementationForBareItem() {
             Librarian lib = Librarian.inMemory();
-            Item bare = new Item(ItemID.random(), lib);
+            Item bare = new Item(ItemRef.random(), lib);
             Manifest committed = bare.commit(List.of());
 
             assertThat(committed.implementation()).isEmpty();
@@ -465,11 +462,11 @@ class LibrarianTest {
         @DisplayName("fetchItem hydrates as the subclass when manifest declares IMPLEMENTATION")
         void hydratesSubclassFromImplementation() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.random();
+            ItemRef iid = ItemRef.random();
             // Manually persist a manifest body — bypasses commit's auto-register
             // so fetchItem hits the storage hydration path.
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:test-thing")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
                             Manifest.javaImplementation(TestThing.class)
@@ -486,9 +483,9 @@ class LibrarianTest {
         @DisplayName("fetchItem falls back to bare Item when manifest has no IMPLEMENTATION")
         void fallsBackToBareItem() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.random();
+            ItemRef iid = ItemRef.random();
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:plain")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:plain")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iid))
             );
             lib.persist(manifestBody);
@@ -501,16 +498,16 @@ class LibrarianTest {
         @DisplayName("fetchItem throws when IMPLEMENTATION points at a non-existent class")
         void throwsOnUnloadableImplementation() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.random();
+            ItemRef iid = ItemRef.random();
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:bogus")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:bogus")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
                             new Binding(
                                     Manifest.IMPLEMENTATION,
                                     java.util.List.of(new CompoundKey.Sememe(
-                                            dev.everydaythings.graph.CoreVocabulary.JavaClass.IID)),
-                                    Literal.ofText("does.not.Exist"))
+                                            RuntimeVocabulary.JavaClass.IID)),
+                                    "does.not.Exist")
                     )
             );
             lib.persist(manifestBody);
@@ -525,9 +522,9 @@ class LibrarianTest {
         @DisplayName("fetchItem throws when IMPLEMENTATION class doesn't extend Item")
         void throwsOnNonItemClass() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.random();
+            ItemRef iid = ItemRef.random();
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:bogus")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:bogus")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
                             Manifest.javaImplementation(String.class)
@@ -544,10 +541,10 @@ class LibrarianTest {
         @DisplayName("hydrated subclass receives onFrameAssembled when frames reference it")
         void hydratedSubclassReceivesRouting() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.random();
+            ItemRef iid = ItemRef.random();
             // Persist a manifest declaring IMPLEMENTATION → TestThing.
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:test-thing")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
                             Manifest.javaImplementation(TestThing.class)
@@ -558,8 +555,8 @@ class LibrarianTest {
             // Assemble a frame referencing iid; routing internally fetches+hydrates
             // the TestThing, caches it, and calls onFrameAssembled.
             Body frameBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:mention")),
-                    List.of(Binding.ref(ItemID.fromString("cg.role:theme"), iid))
+                    ItemRef.of(ItemRef.fromString("cg.predicate:mention")),
+                    List.of(Binding.ref(ItemRef.fromString("cg.role:theme"), iid))
             );
             Frame assembled = lib.assembleFrame(frameBody, lib);
 
@@ -572,7 +569,7 @@ class LibrarianTest {
         @DisplayName("commit-then-fetch returns the same registered subclass instance")
         void commitThenFetchSameInstance() {
             Librarian lib = Librarian.inMemory();
-            TestThing thing = new TestThing(ItemID.random(), lib);
+            TestThing thing = new TestThing(ItemRef.random(), lib);
             thing.commit(List.of());
 
             // After commit, the cached instance IS the one we constructed.
@@ -589,19 +586,19 @@ class LibrarianTest {
         @DisplayName("fetchItem returns empty for an unknown IID")
         void unknownItem() {
             Librarian lib = Librarian.inMemory();
-            assertThat(lib.fetchItem(ItemID.fromString("nobody-here"))).isEmpty();
+            assertThat(lib.fetchItem(ItemRef.fromString("nobody-here"))).isEmpty();
         }
 
         @Test
         @DisplayName("fetchItem returns an Item bound to its current manifest")
         void fetchItemHydrates() {
             Librarian lib = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(Binding.ref(Manifest.ITEM_ID, iid))
             );
-            DatumID expectedVid = lib.persist(manifestBody);
+            DatumRef expectedVid = lib.persist(manifestBody);
 
             Optional<Item> loaded = lib.fetchItem(iid);
             assertThat(loaded).isPresent();
@@ -616,17 +613,17 @@ class LibrarianTest {
             Librarian lib = Librarian.inMemory();
 
             Body body = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
                     List.of(Binding.ref(
-                            ItemID.fromString("cg.role:theme"),
-                            ItemID.fromString("hobbit")))
+                            ItemRef.fromString("cg.role:theme"),
+                            ItemRef.fromString("hobbit")))
             );
-            DatumID bodyCid = lib.persist(body);
+            DatumRef bodyCid = lib.persist(body);
 
             // Sign the body's Merkle digest with the librarian's own keypair, persist the record.
             byte[] signedBytes = HashTree.signingPayload(body);
             VarSig signature = lib.sign(signedBytes);
-            Record record = Record.of(FrameRef.of(bodyCid), List.of(), signature);
+            Record record = Record.of(DatumRef.of(bodyCid), List.of(), signature);
             lib.persist(record);
 
             // Fetch the frame back; it should carry the persisted record.
@@ -648,20 +645,19 @@ class LibrarianTest {
             Librarian lib = Librarian.inMemory();
 
             Body endorsedFrame = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.predicate:authored")),
+                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
                     List.of(Binding.ref(
-                            ItemID.fromString("cg.role:theme"),
-                            ItemID.fromString("hobbit")))
+                            ItemRef.fromString("cg.role:theme"),
+                            ItemRef.fromString("hobbit")))
             );
-            DatumID frameCid = lib.persist(endorsedFrame);
+            DatumRef frameCid = lib.persist(endorsedFrame);
 
-            ItemID iid = ItemID.fromString("doc-1");
+            ItemRef iid = ItemRef.fromString("doc-1");
             Body manifestBody = Body.of(
-                    ItemRef.of(ItemID.fromString("cg.archetype:document")),
+                    ItemRef.of(ItemRef.fromString("cg.archetype:document")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            new Binding(Manifest.ENDORSES,
-                                    dev.everydaythings.graph.datum.BindingTarget.ref(frameCid))
+                            new Binding(Manifest.ENDORSES, frameCid)
                     )
             );
             lib.persist(manifestBody);
@@ -687,8 +683,8 @@ class LibrarianTest {
             // scope. Without bootstrap, scope would resolve to null.
             lib.bootstrap();
 
-            ItemID lexemePredicate = ItemID.fromString("test.predicate:lexeme");
-            ItemID targetSememe = ItemID.fromString("test.sememe:create");
+            ItemRef lexemePredicate = ItemRef.fromString("test.predicate:lexeme");
+            ItemRef targetSememe = ItemRef.fromString("test.sememe:create");
             // Use a token unique to this test so the bootstrap's auto-indexed
             // Lexeme frames don't add noise postings under the same token.
             String token = "test-token-wibblefrobnik";
@@ -698,18 +694,18 @@ class LibrarianTest {
                     ItemRef.of(lexemePredicate),
                     List.of(
                             Binding.ref(
-                                    dev.everydaythings.graph.semantics.ThematicRole.Theme.IID,
+                                    ThematicRole.Theme.IID,
                                     targetSememe),
                             new Binding(
-                                    dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
+                                    ThematicRole.Value.IID,
                                     List.of(
                                             new CompoundKey.Sememe(
-                                                    dev.everydaythings.graph.linguistics.Language.English.IID),
+                                                    dev.everydaythings.graph.language.Language.English.IID),
                                             new CompoundKey.Sememe(
-                                                    dev.everydaythings.graph.linguistics.PartOfSpeech.Verb.IID),
+                                                    dev.everydaythings.graph.language.PartOfSpeech.Verb.IID),
                                             new CompoundKey.Sememe(
-                                                    dev.everydaythings.graph.linguistics.GrammaticalFeature.Lemma.IID)),
-                                    Literal.ofText(token))));
+                                                    dev.everydaythings.graph.language.GrammaticalFeature.Lemma.IID)),
+                                    token)));
 
             // persist() walks the Body's text-typed bindings and writes token
             // index entries automatically — no explicit indexToken call needed.
@@ -730,16 +726,16 @@ class LibrarianTest {
             // scope stays null and all qualifiers remain in features. Assert
             // structurally: all three sememes are accounted for, in either
             // role.
-            java.util.Set<ItemID> allQualifiers = new java.util.HashSet<>(p.features());
+            java.util.Set<ItemRef> allQualifiers = new java.util.HashSet<>(p.features());
             if (p.scope() != null) allQualifiers.add(p.scope());
             assertThat(allQualifiers).containsExactlyInAnyOrder(
-                    dev.everydaythings.graph.linguistics.Language.English.IID,
-                    dev.everydaythings.graph.linguistics.PartOfSpeech.Verb.IID,
-                    dev.everydaythings.graph.linguistics.GrammaticalFeature.Lemma.IID);
-            // Source is the Body's semantic identity (DatumID) — flipped from
-            // ContentID as part of the store-domain refactor (task #48).
+                    dev.everydaythings.graph.language.Language.English.IID,
+                    dev.everydaythings.graph.language.PartOfSpeech.Verb.IID,
+                    dev.everydaythings.graph.language.GrammaticalFeature.Lemma.IID);
+            // Source is the Body's semantic identity (DatumRef) — flipped from
+            // ContentRef as part of the store-domain refactor (task #48).
             assertThat(p.source()).isEqualTo(body.datumId());
-            assertThat(p.weight().toDouble()).isEqualTo(1.0);
+            assertThat(p.weight().doubleValue()).isEqualTo(1.0);
         }
 
         @Test
@@ -754,19 +750,19 @@ class LibrarianTest {
         void autoIndexOnPut() {
             Librarian lib = Librarian.inMemory();
 
-            ItemID titlePredicate = ItemID.fromString("test.predicate:title");
-            ItemID movie = ItemID.fromString("test.item:movie");
+            ItemRef titlePredicate = ItemRef.fromString("test.predicate:title");
+            ItemRef movie = ItemRef.fromString("test.item:movie");
 
             Body body = Body.of(
                     ItemRef.of(titlePredicate),
                     List.of(
                             Binding.ref(
-                                    dev.everydaythings.graph.semantics.ThematicRole.Theme.IID,
+                                    ThematicRole.Theme.IID,
                                     movie),
                             new Binding(
-                                    dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
+                                    ThematicRole.Value.IID,
                                     List.of(),
-                                    Literal.ofText("The Shawshank Redemption"))));
+                                    "The Shawshank Redemption")));
 
             // Just persist — no explicit indexToken call.
             lib.persist(body);
@@ -779,7 +775,7 @@ class LibrarianTest {
             assertThat(p.token()).isEqualTo("the shawshank redemption");  // normalized
             assertThat(p.target()).isEqualTo(movie);
             assertThat(p.predicate()).isEqualTo(titlePredicate);
-            // Posting.source is the Body's semantic identity (DatumID).
+            // Posting.source is the Body's semantic identity (DatumRef).
             assertThat(p.source()).isEqualTo(body.datumId());
         }
 
@@ -788,13 +784,13 @@ class LibrarianTest {
         void caseFolding() {
             Librarian lib = Librarian.inMemory();
 
-            ItemID predicate = ItemID.fromString("test.predicate:lexeme");
+            ItemRef predicate = ItemRef.fromString("test.predicate:lexeme");
             Body body = Body.of(
                     ItemRef.of(predicate),
                     List.of(new Binding(
-                            dev.everydaythings.graph.semantics.ThematicRole.Value.IID,
+                            ThematicRole.Value.IID,
                             List.of(),
-                            Literal.ofText("Hello"))));
+                            "Hello")));
             // persist() walks the text binding and indexes it (with case-folded
             // normalization) automatically — no explicit indexToken call.
             lib.persist(body);

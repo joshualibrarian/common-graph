@@ -6,8 +6,7 @@ import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.library.index.RefIndexStore;
 
@@ -26,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class PureMapRefIndexStore implements RefIndexStore {
 
-    private final Map<DatumID, Datum> datums = new ConcurrentHashMap<>();
+    private final Map<DatumRef, Datum> datums = new ConcurrentHashMap<>();
 
     PureMapRefIndexStore() {}
 
@@ -39,14 +38,14 @@ public final class PureMapRefIndexStore implements RefIndexStore {
     // ==================================================================================
 
     @Override
-    public void index(Datum datum, DatumID id) {
+    public void index(Datum datum, DatumRef id) {
         Objects.requireNonNull(datum, "datum");
         Objects.requireNonNull(id, "id");
         datums.put(id, datum);
     }
 
     @Override
-    public void unindex(Datum datum, DatumID id) {
+    public void unindex(Datum datum, DatumRef id) {
         Objects.requireNonNull(id, "id");
         datums.remove(id);
     }
@@ -56,7 +55,7 @@ public final class PureMapRefIndexStore implements RefIndexStore {
     // ==================================================================================
 
     @Override
-    public List<DatumID> recordsForBody(DatumID bodyId) {
+    public List<DatumRef> recordsForBody(DatumRef bodyId) {
         Objects.requireNonNull(bodyId, "bodyId");
         return datums.values().stream()
                 .filter(Record.class::isInstance)
@@ -67,12 +66,12 @@ public final class PureMapRefIndexStore implements RefIndexStore {
     }
 
     @Override
-    public List<DatumID> manifestsForItem(ItemID itemIid) {
+    public List<DatumRef> manifestsForItem(ItemRef itemIid) {
         return bodiesByReferenceBinding(Manifest.ITEM_ID, itemIid);
     }
 
     @Override
-    public List<DatumID> manifestsForType(ItemID typeIid) {
+    public List<DatumRef> manifestsForType(ItemRef typeIid) {
         Objects.requireNonNull(typeIid, "typeIid");
         return datums.values().stream()
                 .filter(Body.class::isInstance)
@@ -84,7 +83,7 @@ public final class PureMapRefIndexStore implements RefIndexStore {
     }
 
     @Override
-    public List<DatumID> bodiesByReferenceBinding(ItemID role, ItemID target) {
+    public List<DatumRef> bodiesByReferenceBinding(ItemRef role, ItemRef target) {
         Objects.requireNonNull(role, "role");
         Objects.requireNonNull(target, "target");
         CompoundKey key = CompoundKey.of(role);

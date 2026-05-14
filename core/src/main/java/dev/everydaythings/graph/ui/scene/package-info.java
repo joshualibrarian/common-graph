@@ -143,7 +143,7 @@
  * <pre>{@code
  * void text(String content, List<String> styles);
  * void formattedText(String content, String format, List<String> styles);
- * void image(String alt, ContentID image, ContentID solid, String resource,
+ * void image(String alt, ContentRef image, ContentRef solid, String resource,
  *            String size, String fit, List<String> styles);
  * void beginBox(Direction direction, List<String> styles);
  * void beginBox(Direction direction, List<String> styles, BoxBorder border,

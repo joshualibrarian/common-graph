@@ -3,13 +3,9 @@ package dev.everydaythings.graph.encoding;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.canonical.Node;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.ThematicRole;
 
 /**
  * Encoding — the archetype of binary content encodings, AND the Java interface
@@ -53,16 +49,16 @@ public interface Encoding {
     String KEY = "cg.archetype:encoding";
 
     /** The archetype IID for Encoding. */
-    ItemID IID = ItemID.fromString(KEY);
+    ItemRef IID = ItemRef.fromString(KEY);
 
-    @Seed.Frame(predicate = Gloss.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     String englishGloss =
             "a specific binary representation for content — bytes interpreted "
                     + "under a named convention (CBOR profile, image format, "
                     + "text encoding, etc.)";
 
-    @Seed.Frame(predicate = Lexeme.KEY,
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     String englishNounLemma = "encoding";
 
@@ -75,14 +71,14 @@ public interface Encoding {
     // ==================================================================================
 
     /** The encoding instance this codec implements (e.g., {@code CgCborV1.IID}). */
-    default ItemID encoding() {
+    default ItemRef encoding() {
         throw new UnsupportedOperationException("encoding() not implemented");
     }
 
     /**
      * The CG-assigned one-byte FormatCode for this encoding. Used in the
      * {@code .librarian/format} marker file and as the leading byte of a
-     * ContentID for compact encoding-self-description.
+     * ContentRef for compact encoding-self-description.
      *
      * <p>Codec implementations override; passthrough encodings (CG stores +
      * forwards but never parses) return {@code 0x00} ({@link Unknown}).
@@ -152,7 +148,7 @@ public interface Encoding {
 
     /**
      * Relates an encoding to its CG-assigned one-byte format code (the wire
-     * byte prepended to a {@code ContentID}'s multihash for compact addressing).
+     * byte prepended to a {@code ContentRef}'s multihash for compact addressing).
      *
      * <p>Not every encoding has a FormatCode — only common ones we want
      * compactly addressable. Encodings without one are referenced by IID.
@@ -160,15 +156,15 @@ public interface Encoding {
     @Seed.Item(key = FormatCode.KEY, head = CoreVocabulary.Predicate.KEY)
     final class FormatCode {
         public static final String KEY = "cg.predicate:format-code";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private FormatCode() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the CG-assigned one-byte format code identifying a binary encoding";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "format code";
     }
@@ -180,10 +176,10 @@ public interface Encoding {
     @Seed.Item(key = MulticodecCode.KEY, head = CoreVocabulary.Predicate.KEY)
     final class MulticodecCode {
         public static final String KEY = "cg.predicate:multicodec-code";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private MulticodecCode() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the multicodec table code identifying an encoding (for IPFS interop)";
@@ -193,15 +189,15 @@ public interface Encoding {
     @Seed.Item(key = MimeType.KEY, head = CoreVocabulary.Predicate.KEY)
     final class MimeType {
         public static final String KEY = "cg.predicate:mime-type";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private MimeType() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the IANA-registered MIME type string identifying an encoding's content type";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "MIME type";
     }
@@ -222,7 +218,7 @@ public interface Encoding {
     @Seed.Item(key = Unknown.KEY, head = Encoding.KEY)
     final class Unknown {
         public static final String KEY = "cg.encoding:unknown";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -234,7 +230,7 @@ public interface Encoding {
 
         private Unknown() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "unknown encoding sentinel — bytes whose format is unrecognized";
@@ -244,7 +240,7 @@ public interface Encoding {
     @Seed.Item(key = CgCborV1.KEY, head = Encoding.KEY)
     final class CgCborV1 {
         public static final String KEY = "cg.encoding:cg-cbor-v1";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -260,12 +256,12 @@ public interface Encoding {
 
         private CgCborV1() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "Common Graph's deterministic CBOR profile (v1) — the default encoding for datums";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "CG-CBOR";
     }
@@ -276,7 +272,7 @@ public interface Encoding {
     @Seed.Item(key = ImageJpeg.KEY, head = Encoding.KEY)
     final class ImageJpeg {
         public static final String KEY = "cg.encoding:image/jpeg";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -288,11 +284,11 @@ public interface Encoding {
 
         private ImageJpeg() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "JPEG image format (ISO/IEC 10918)";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "JPEG";
     }
@@ -301,7 +297,7 @@ public interface Encoding {
     @Seed.Item(key = ImagePng.KEY, head = Encoding.KEY)
     final class ImagePng {
         public static final String KEY = "cg.encoding:image/png";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -313,11 +309,11 @@ public interface Encoding {
 
         private ImagePng() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Portable Network Graphics image format";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "PNG";
     }
@@ -326,7 +322,7 @@ public interface Encoding {
     @Seed.Item(key = ApplicationPdf.KEY, head = Encoding.KEY)
     final class ApplicationPdf {
         public static final String KEY = "cg.encoding:application/pdf";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -338,11 +334,11 @@ public interface Encoding {
 
         private ApplicationPdf() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Portable Document Format";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "PDF";
     }
@@ -351,7 +347,7 @@ public interface Encoding {
     @Seed.Item(key = ApplicationJson.KEY, head = Encoding.KEY)
     final class ApplicationJson {
         public static final String KEY = "cg.encoding:application/json";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -367,11 +363,11 @@ public interface Encoding {
 
         private ApplicationJson() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "JavaScript Object Notation";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "JSON";
     }
@@ -380,7 +376,7 @@ public interface Encoding {
     @Seed.Item(key = TextPlainUtf8.KEY, head = Encoding.KEY)
     final class TextPlainUtf8 {
         public static final String KEY = "cg.encoding:text/plain";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -392,7 +388,7 @@ public interface Encoding {
 
         private TextPlainUtf8() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Plain UTF-8 text";
     }

@@ -6,23 +6,20 @@ import dev.everydaythings.graph.identity.vault.DelegationConditions;
 import dev.everydaythings.graph.identity.vault.InMemoryVault;
 import dev.everydaythings.graph.identity.vault.Vault;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Next;
-import dev.everydaythings.graph.semantics.CoreVocabulary.Expires;
-import dev.everydaythings.graph.semantics.CoreVocabulary.Sequence;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.CoreVocabulary.Expires;
+import dev.everydaythings.graph.CoreVocabulary.Sequence;
+import dev.everydaythings.graph.language.ThematicRole;
 
 import java.security.PublicKey;
 import java.security.Signature;
@@ -57,7 +54,7 @@ import java.util.Optional;
  *       {@link Librarian} itself) that need to bind their librarian
  *       <i>after</i> the super-constructor returns. Inception is the caller's
  *       responsibility.</li>
- *   <li><b>{@link #Signer(ItemID)}</b> — identity-only Signer with no vault,
+ *   <li><b>{@link #Signer(ItemRef)}</b> — identity-only Signer with no vault,
  *       no signing capability. Used when hydrating remote/observed Signers
  *       whose private key isn't local.</li>
  * </ul>
@@ -68,7 +65,7 @@ public class Signer extends Item {
     public static final String KEY = "cg.archetype:signer";
 
     /** The archetype IID for Signer instances. */
-    public static final ItemID ARCHETYPE = ItemID.fromString(KEY);
+    public static final ItemRef ARCHETYPE = ItemRef.fromString(KEY);
 
     /** Default signing algorithm for in-memory Signers. */
     public static final Algorithm.Sign DEFAULT_ALGORITHM = Algorithm.Sign.ED25519;
@@ -77,7 +74,7 @@ public class Signer extends Item {
     private final Vault vault;
 
     @Override
-    public ItemID archetype() {
+    public ItemRef archetype() {
         return ARCHETYPE;
     }
 
@@ -87,7 +84,7 @@ public class Signer extends Item {
      * returns empty. Used when hydrating a Signer from a manifest where the
      * local node doesn't hold this principal's private key.
      */
-    public Signer(ItemID iid) {
+    public Signer(ItemRef iid) {
         super(iid);
         this.vault = null;
     }
@@ -182,7 +179,7 @@ public class Signer extends Item {
      * over the next signing public key's multikey-encoded bytes. Empty if no
      * vault is attached.
      */
-    public Optional<ContentID> signingNextKeyDigest() {
+    public Optional<ContentRef> signingNextKeyDigest() {
         return vault == null ? Optional.empty() : vault.signingNextKeyDigest();
     }
 
@@ -200,7 +197,7 @@ public class Signer extends Item {
      * additional purposes (e.g., the encryption track) after construction, or
      * for subclasses that need explicit control.
      */
-    protected Optional<Frame> inception(ItemID purpose) {
+    protected Optional<Frame> inception(ItemRef purpose) {
         if (vault == null || librarian == null) return Optional.empty();
         Frame frame = vault.incept(purpose);
         persistFrame(frame);
@@ -208,7 +205,7 @@ public class Signer extends Item {
     }
 
     /** Publish a ROTATION for the given purpose's key track. */
-    protected Optional<Frame> rotation(ItemID purpose) {
+    protected Optional<Frame> rotation(ItemRef purpose) {
         if (vault == null || librarian == null) return Optional.empty();
         Frame frame = vault.rotate(purpose);
         persistFrame(frame);
@@ -216,7 +213,7 @@ public class Signer extends Item {
     }
 
     /** Publish a DELEGATION granting the given delegate authority on the given purpose. */
-    protected Optional<Frame> delegation(ItemID delegateId, ItemID purpose,
+    protected Optional<Frame> delegation(ItemRef delegateId, ItemRef purpose,
                                          DelegationConditions conditions) {
         if (vault == null || librarian == null) return Optional.empty();
         Frame frame = vault.delegate(delegateId, purpose, conditions);
@@ -225,7 +222,7 @@ public class Signer extends Item {
     }
 
     /** Publish a REVOCATION targeting the given binding-target with an optional reason. */
-    protected Optional<Frame> revocation(BindingTarget target, ItemID reason) {
+    protected Optional<Frame> revocation(Object target, ItemRef reason) {
         if (vault == null || librarian == null) return Optional.empty();
         Frame frame = vault.revoke(target, reason);
         persistFrame(frame);
@@ -283,14 +280,14 @@ public class Signer extends Item {
      * happen normally — the bootstrap-twice case), the latest by {@code TIME}
      * binding wins. ROTATION chain replay comes in a later phase.
      */
-    public List<MultiKey> currentKeys(ItemID identity, ItemID purpose) {
+    public List<MultiKey> currentKeys(ItemRef identity, ItemRef purpose) {
         if (librarian == null) return List.of();
-        List<DatumID> candidates = librarian.library()
+        List<DatumRef> candidates = librarian.library()
                 .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, identity);
 
         Frame chosen = null;
         java.time.Instant chosenTime = java.time.Instant.MIN;
-        for (DatumID cid : candidates) {
+        for (DatumRef cid : candidates) {
             Frame frame = librarian.fetchFrame(cid).orElse(null);
             if (frame == null) continue;
             if (!isInceptionFor(frame, identity, purpose)) continue;
@@ -304,7 +301,7 @@ public class Signer extends Item {
         return committedKeys(chosen.body());
     }
 
-    private static boolean isInceptionFor(Frame frame, ItemID identity, ItemID purpose) {
+    private static boolean isInceptionFor(Frame frame, ItemRef identity, ItemRef purpose) {
         if (!(frame.body().head() instanceof ItemRef ref)) return false;
         if (!Inception.IID.equals(ref.iid())) return false;
         return readTheme(frame.body()).filter(identity::equals).isPresent()
@@ -320,29 +317,29 @@ public class Signer extends Item {
     // on Signer is fine for now. If broader use emerges they can promote to Body.
     // ==================================================================================
 
-    /** Read THEME → ItemID (non-compound ref target). */
-    public static Optional<ItemID> readTheme(Body body) {
+    /** Read THEME → ItemRef (non-compound ref target). */
+    public static Optional<ItemRef> readTheme(Body body) {
         return body.binding(CompoundKey.of(ThematicRole.Theme.IID))
                 .map(b -> extractIid(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
 
-    /** Read PURPOSE → ItemID. Used by INCEPTION/ROTATION/DELEGATION (single purpose). */
-    public static Optional<ItemID> readPurpose(Body body) {
+    /** Read PURPOSE → ItemRef. Used by INCEPTION/ROTATION/DELEGATION (single purpose). */
+    public static Optional<ItemRef> readPurpose(Body body) {
         return body.binding(CompoundKey.of(ThematicRole.Purpose.IID))
                 .map(b -> extractIid(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
 
-    /** Read AGENT → ItemID (delegator on a DELEGATION body). */
-    public static Optional<ItemID> readAgent(Body body) {
+    /** Read AGENT → ItemRef (delegator on a DELEGATION body). */
+    public static Optional<ItemRef> readAgent(Body body) {
         return body.binding(CompoundKey.of(ThematicRole.Agent.IID))
                 .map(b -> extractIid(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
 
-    /** Read FOLLOWS → ContentID (prior-event reference on a ROTATION body). */
-    public static Optional<ContentID> readFollows(Body body) {
+    /** Read FOLLOWS → ContentRef (prior-event reference on a ROTATION body). */
+    public static Optional<ContentRef> readFollows(Body body) {
         return body.binding(CompoundKey.of(ThematicRole.Follows.IID))
                 .map(b -> extractContentId(b.target()))
                 .filter(java.util.Objects::nonNull);
@@ -352,7 +349,7 @@ public class Signer extends Item {
      * Read THEME as a content reference — for REVOCATION targeting a frame body's
      * CID rather than an item's IID.
      */
-    public static Optional<ContentID> readThemeCid(Body body) {
+    public static Optional<ContentRef> readThemeCid(Body body) {
         return body.binding(CompoundKey.of(ThematicRole.Theme.IID))
                 .map(b -> extractContentId(b.target()))
                 .filter(java.util.Objects::nonNull);
@@ -368,9 +365,9 @@ public class Signer extends Item {
             if (!ThematicRole.Instrument.IID.equals(b.role())) continue;
             if (hasQualifier(b, Next.IID)) continue;
             if (!hasQualifier(b, Multikey.IID)) continue;
-            if (!(b.target() instanceof Literal lit)) continue;
+            if (!(b.target() instanceof byte[] keyBytes)) continue;
             try {
-                keys.add(lit.asMultiKey());
+                keys.add(MultiKey.decode(keyBytes));
             } catch (RuntimeException ignored) {
                 // bad key bytes; skip
             }
@@ -400,24 +397,18 @@ public class Signer extends Item {
         for (Binding b : body.bindings()) {
             if (!ThematicRole.Attribute.IID.equals(b.role())) continue;
             if (!hasQualifier(b, Sequence.IID)) continue;
-            if (!(b.target() instanceof Literal lit)) continue;
-            if (!Literal.TYPE_INTEGER.equals(lit.valueType())) continue;
-            try {
-                return Optional.of(lit.asInteger());
-            } catch (RuntimeException ignored) {
-                return Optional.empty();
-            }
+            if (b.target() instanceof Long n) return Optional.of(n);
         }
         return Optional.empty();
     }
 
     /** Extract INSTRUMENT[NEXT] pre-rotation commitments from an INCEPTION/ROTATION body. */
-    public static List<ContentID> nextKeyDigests(Body body) {
-        List<ContentID> digests = new ArrayList<>();
+    public static List<ContentRef> nextKeyDigests(Body body) {
+        List<ContentRef> digests = new ArrayList<>();
         for (Binding b : body.bindings()) {
             if (!ThematicRole.Instrument.IID.equals(b.role())) continue;
             if (!hasQualifier(b, Next.IID)) continue;
-            ContentID cid = extractContentId(b.target());
+            ContentRef cid = extractContentId(b.target());
             if (cid != null) digests.add(cid);
         }
         return digests;
@@ -427,11 +418,11 @@ public class Signer extends Item {
      * Read all PURPOSE bindings (multiset) from a DELEGATION body — the scope
      * sememes this delegation covers. Empty list means fully general authority.
      */
-    public static List<ItemID> readPurposes(Body body) {
-        List<ItemID> purposes = new ArrayList<>();
+    public static List<ItemRef> readPurposes(Body body) {
+        List<ItemRef> purposes = new ArrayList<>();
         for (Binding b : body.bindings()) {
             if (!ThematicRole.Purpose.IID.equals(b.role())) continue;
-            ItemID iid = extractIid(b.target());
+            ItemRef iid = extractIid(b.target());
             if (iid != null) purposes.add(iid);
         }
         return purposes;
@@ -442,50 +433,32 @@ public class Signer extends Item {
         for (Binding b : body.bindings()) {
             if (!ThematicRole.Attribute.IID.equals(b.role())) continue;
             if (!hasQualifier(b, Expires.IID)) continue;
-            if (!(b.target() instanceof Literal lit)) continue;
-            if (!Literal.TYPE_INSTANT.equals(lit.valueType())) continue;
-            try {
-                return Optional.of(lit.asInstantMillis());
-            } catch (RuntimeException ignored) {
-                return Optional.empty();
-            }
+            if (b.target() instanceof Instant t) return Optional.of(t);
         }
         return Optional.empty();
     }
 
     private static Optional<Instant> readTime(Body body) {
         return body.binding(CompoundKey.of(ThematicRole.Time.IID))
-                .flatMap(b -> {
-                    if (!(b.target() instanceof Literal lit)) return Optional.empty();
-                    try {
-                        return Optional.of(lit.asInstantMillis());
-                    } catch (RuntimeException ignored) {
-                        return Optional.empty();
-                    }
-                });
+                .flatMap(b -> b.target() instanceof Instant t
+                        ? Optional.of(t) : Optional.empty());
     }
 
-    private static ItemID extractIid(BindingTarget target) {
-        if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
-            return ref.asItemId();
-        }
+    private static ItemRef extractIid(Object target) {
+        if (target instanceof ItemRef ir && !ir.isPinned()) return ir;
         return null;
     }
 
-    private static ContentID extractContentId(BindingTarget target) {
-        if (target instanceof BindingTarget.RefTarget ref) {
-            // Prefer ContentRef-shaped targets (the canonical encoding for
-            // raw content like next-key digests). Fall back to FrameRef body
-            // CIDs (for content-of-a-datum references like FOLLOWS).
-            ContentID cid = ref.asCid();
-            if (cid != null) return cid;
-            DatumID datumId = ref.asDatumId();
-            if (datumId != null) return ContentID.of(datumId.encodeBinary());
-        }
+    private static ContentRef extractContentId(Object target) {
+        // Prefer ContentRef-shaped targets (the canonical encoding for raw
+        // content like next-key digests). Fall back to DatumRef body CIDs
+        // (for content-of-a-datum references like FOLLOWS).
+        if (target instanceof ContentRef cr) return cr;
+        if (target instanceof DatumRef dr) return ContentRef.of(dr.encodeBinary());
         return null;
     }
 
-    private static boolean hasQualifier(Binding b, ItemID qualifierIid) {
+    private static boolean hasQualifier(Binding b, ItemRef qualifierIid) {
         return b.qualifiers().stream()
                 .anyMatch(q -> q instanceof CompoundKey.Sememe s
                         && qualifierIid.equals(s.id()));

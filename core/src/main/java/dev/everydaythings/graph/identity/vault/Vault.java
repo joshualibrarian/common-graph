@@ -7,9 +7,9 @@ import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.identity.IdentityVocabulary;
 import dev.everydaythings.graph.identity.Signer;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.ItemRef;
 
 import java.util.Optional;
 
@@ -56,7 +56,7 @@ public interface Vault {
     // ==================================================================================
 
     /**
-     * The ItemID this vault is bound to — derived from the initial signing public
+     * The ItemRef this vault is bound to — derived from the initial signing public
      * key. Stable across rotations: the signing key changes, the IID does not.
      *
      * <p>Default implementation derives the IID from the current signing public
@@ -67,9 +67,9 @@ public interface Vault {
      * @throws IllegalStateException if this vault has no signing material to
      *         derive an identity from
      */
-    default ItemID identity() {
+    default ItemRef identity() {
         return signingPublicKey()
-                .map(mk -> ItemID.fromMultikeyBytes(mk.encoded()))
+                .map(mk -> ItemRef.fromMultikeyBytes(mk.encoded()))
                 .orElseThrow(() -> new IllegalStateException(
                         "Vault has no signing key; cannot derive identity"));
     }
@@ -83,7 +83,7 @@ public interface Vault {
     // ==================================================================================
 
     /** The current public key for this purpose, if any. */
-    default Optional<MultiKey> publicKey(ItemID purpose) {
+    default Optional<MultiKey> publicKey(ItemRef purpose) {
         if (IdentityVocabulary.Signing.IID.equals(purpose)) return signingPublicKey();
         if (IdentityVocabulary.Encryption.IID.equals(purpose)) return encryptionPublicKey();
         return Optional.empty();
@@ -94,18 +94,18 @@ public interface Vault {
      * next public key's multikey-encoded bytes. Empty if this purpose has no
      * forward commitment or the vault is locked.
      */
-    default Optional<ContentID> nextKeyDigest(ItemID purpose) {
+    default Optional<ContentRef> nextKeyDigest(ItemRef purpose) {
         if (IdentityVocabulary.Signing.IID.equals(purpose)) return signingNextKeyDigest();
         if (IdentityVocabulary.Encryption.IID.equals(purpose)) return encryptionNextKeyDigest();
         return Optional.empty();
     }
 
     /**
-     * The {@link DatumID} of the most recent establishment-event body on this
+     * The {@link DatumRef} of the most recent establishment-event body on this
      * purpose's KEL — INCEPTION on first establish, then each ROTATION. Empty if
      * this purpose has not been incepted yet (or the vault is locked).
      */
-    default Optional<DatumID> chainHead(ItemID purpose) {
+    default Optional<DatumRef> chainHead(ItemRef purpose) {
         return Optional.empty();
     }
 
@@ -113,7 +113,7 @@ public interface Vault {
      * The ordinal position of this purpose's KEL head. Zero before INCEPTION;
      * one after INCEPTION; increments with each ROTATION.
      */
-    default long sequence(ItemID purpose) {
+    default long sequence(ItemRef purpose) {
         return 0L;
     }
 
@@ -134,7 +134,7 @@ public interface Vault {
      * @throws IllegalStateException if this purpose has already been incepted
      * @throws VaultLockedException  if the vault is locked
      */
-    default Frame incept(ItemID purpose) {
+    default Frame incept(ItemRef purpose) {
         throw new UnsupportedOperationException(
                 getClass().getSimpleName() + ".incept(purpose) not yet implemented");
     }
@@ -150,7 +150,7 @@ public interface Vault {
      * @throws IllegalStateException if this purpose has not been incepted yet
      * @throws VaultLockedException  if the vault is locked
      */
-    default Frame rotate(ItemID purpose) {
+    default Frame rotate(ItemRef purpose) {
         throw new UnsupportedOperationException(
                 getClass().getSimpleName() + ".rotate(purpose) not yet implemented");
     }
@@ -161,7 +161,7 @@ public interface Vault {
      *
      * @throws VaultLockedException if the vault is locked
      */
-    default Frame delegate(ItemID delegateId, ItemID purpose, DelegationConditions conditions) {
+    default Frame delegate(ItemRef delegateId, ItemRef purpose, DelegationConditions conditions) {
         throw new UnsupportedOperationException(
                 getClass().getSimpleName() + ".delegate(...) not yet implemented");
     }
@@ -174,7 +174,7 @@ public interface Vault {
      *
      * @throws VaultLockedException if the vault is locked
      */
-    default Frame revoke(BindingTarget target, ItemID reason) {
+    default Frame revoke(Object target, ItemRef reason) {
         throw new UnsupportedOperationException(
                 getClass().getSimpleName() + ".revoke(...) not yet implemented");
     }
@@ -199,7 +199,7 @@ public interface Vault {
      * @throws IllegalStateException if this vault holds no keys for the given purpose
      * @throws VaultLockedException  if the vault is locked
      */
-    default VarSig sign(byte[] message, ItemID purpose) {
+    default VarSig sign(byte[] message, ItemRef purpose) {
         if (IdentityVocabulary.Signing.IID.equals(purpose)) return sign(message);
         throw new UnsupportedOperationException(
                 "Sign with purpose " + purpose + " not yet implemented");
@@ -242,7 +242,7 @@ public interface Vault {
      * the next signing public key's multikey-encoded bytes. Published in
      * {@code INSTRUMENT [NEXT]} on signing-track INCEPTION / ROTATION events.
      */
-    Optional<ContentID> signingNextKeyDigest();
+    Optional<ContentRef> signingNextKeyDigest();
 
     /** Whether this vault can currently sign (has a signing key and isn't locked). */
     default boolean canSign() {
@@ -265,7 +265,7 @@ public interface Vault {
     }
 
     /** The pre-rotation commitment for the encryption track. */
-    default Optional<ContentID> encryptionNextKeyDigest() {
+    default Optional<ContentRef> encryptionNextKeyDigest() {
         return Optional.empty();
     }
 

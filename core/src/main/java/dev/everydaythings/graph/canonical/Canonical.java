@@ -1,14 +1,10 @@
 package dev.everydaythings.graph.canonical;
 
-import dev.everydaythings.graph.canonical.CgTag;
-
-import dev.everydaythings.graph.canonical.Scope;
-
 import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import com.upokecenter.numbers.EInteger;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ItemRef;
 
 import java.lang.reflect.*;
 import java.math.BigInteger;
@@ -36,64 +32,55 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public interface Canonical {
 
-    ClassCollectionType DEFAULT_CLASS_COLLECTION_TYPE = ClassCollectionType.ARRAY;
+    Layout.Kind DEFAULT_LAYOUT_KIND = Layout.Kind.ARRAY;
 
-    enum ClassCollectionType {
-        MAP,
-        ARRAY
-    }
-
-    // Scope (BODY/RECORD) and CgTag have moved to top-level types in this
-    // package — see Scope.java and CgTag.java. Their previous inner definitions
-    // here are deleted; references rewrite as Scope.BODY / CgTag.REF / etc.
+    // ClassCollectionType, Scope, and CgTag have all moved to top-level types in
+    // this package — see Layout.Kind, Scope, and CgTag respectively.
 
     /**
      * CG-CBOR type mappings from CBOR representations to CG ValueTypes.
      *
-     * <p>This enum defines the "shorthand conventions" - how bare CBOR primitives
-     * and standard CBOR tags map to CG value types. When a value can be represented
-     * as one of these forms, no explicit {@link CgTag#VALUE} wrapper is needed.
+     * <p>This enum defines the "shorthand conventions" — how bare CBOR
+     * primitives and standard CBOR tags map to CG value types. When a value
+     * can be represented as one of these forms, no explicit wrapper is needed.
      *
      * <p>Use {@link #infer(CBORObject)} to determine the CG type from a CBOR node.
      */
     enum CborType {
         /** CBOR text string → cg.value:text */
-        TEXT(ItemID.fromString("cg.value:text"), CBORType.TextString, -1),
+        TEXT(ItemRef.fromString("cg.value:text"), CBORType.TextString, -1),
 
         /** CBOR integer → cg.value:integer */
-        INTEGER(ItemID.fromString("cg.value:integer"), CBORType.Integer, -1),
+        INTEGER(ItemRef.fromString("cg.value:integer"), CBORType.Integer, -1),
 
         /** CBOR boolean → cg.value:boolean */
-        BOOLEAN(ItemID.fromString("cg.value:boolean"), CBORType.Boolean, -1),
+        BOOLEAN(ItemRef.fromString("cg.value:boolean"), CBORType.Boolean, -1),
 
         /** CBOR byte string → cg.value:bytes */
-        BYTES(ItemID.fromString("cg.value:bytes"), CBORType.ByteString, -1),
+        BYTES(ItemRef.fromString("cg.value:bytes"), CBORType.ByteString, -1),
 
         /** CBOR Tag 4 [mantissa, exponent] → cg.value:decimal */
-        DECIMAL(ItemID.fromString("cg.value:decimal"), null, 4),
+        DECIMAL(ItemRef.fromString("cg.value:decimal"), null, 4),
 
         /** CBOR Tag 1 (epoch seconds/millis) → cg.value:instant */
-        INSTANT(ItemID.fromString("cg.value:instant"), null, 1),
+        INSTANT(ItemRef.fromString("cg.value:instant"), null, 1),
 
         /** [numerator, denominator] array → cg.value:rational */
-        RATIONAL(ItemID.fromString("cg.value:rational"), CBORType.Array, -1),
-
-        /** CG Tag 9 [magnitude, unit-iid] → cg.value:quantity */
-        QUANTITY(ItemID.fromString("cg.value:quantity"), null, CgTag.QTY),
+        RATIONAL(ItemRef.fromString("cg.value:rational"), CBORType.Array, -1),
         ;
 
-        private final ItemID valueTypeId;
+        private final ItemRef valueTypeId;
         private final CBORType cborType;  // null if detected by tag
         private final int tag;            // -1 if detected by CBORType
 
-        CborType(ItemID valueTypeId, CBORType cborType, int tag) {
+        CborType(ItemRef valueTypeId, CBORType cborType, int tag) {
             this.valueTypeId = valueTypeId;
             this.cborType = cborType;
             this.tag = tag;
         }
 
-        /** The ItemID of the CG ValueType this CBOR form represents. */
-        public ItemID valueTypeId() {
+        /** The ItemRef of the CG ValueType this CBOR form represents. */
+        public ItemRef valueTypeId() {
             return valueTypeId;
         }
 
@@ -116,9 +103,6 @@ public interface Canonical {
         public static Optional<CborType> infer(CBORObject node) {
             if (node == null || node.isNull()) return Optional.empty();
 
-            // Check CG tags first
-            if (node.HasMostOuterTag(CgTag.QTY)) return Optional.of(QUANTITY);
-
             // Check standard CBOR tags
             if (node.HasMostOuterTag(4)) return Optional.of(DECIMAL);
             if (node.HasMostOuterTag(1)) return Optional.of(INSTANT);
@@ -140,7 +124,7 @@ public interface Canonical {
          * @param type the ValueType to check
          * @return true if the type needs Tag 7 (CG-VALUE) wrapping
          */
-        public static boolean needsExplicitType(ItemID typeId) {
+        public static boolean needsExplicitType(ItemRef typeId) {
             for (CborType ct : values()) {
                 if (ct.valueTypeId.equals(typeId)) return false;
             }
@@ -150,10 +134,10 @@ public interface Canonical {
         /**
          * Find the CborType for a given value type ID.
          *
-         * @param typeId the value type ItemID to look up
+         * @param typeId the value type ItemRef to look up
          * @return the CborType, or empty if no shorthand exists
          */
-        public static Optional<CborType> forValueType(ItemID typeId) {
+        public static Optional<CborType> forValueType(ItemRef typeId) {
             for (CborType ct : values()) {
                 if (ct.valueTypeId.equals(typeId)) return Optional.of(ct);
             }
@@ -212,13 +196,12 @@ public interface Canonical {
 
         for (Class<?> c = clazz; c != null; c = c.getSuperclass()) {
             for (Field f : c.getDeclaredFields()) {
-                var annotation = f.getAnnotation(Canon.class);
+                var annotation = f.getAnnotation(Order.class);
                 if (annotation == null) continue;
 
-                boolean include = (scope == Scope.BODY && annotation.isBody())
-                        || (scope == Scope.RECORD && annotation.isRecord());
-
-                if (!include) continue;
+                // Body/Record scope filtering used to live on @Order via isBody/isRecord;
+                // dropped during cleanup. Body and Record are separate types now, so
+                // every field marked @Order participates in both scopes by default.
 
                 f.setAccessible(true);
                 result.add(f);
@@ -243,11 +226,11 @@ public interface Canonical {
         try {
             List<Field> fs = fields(o.getClass(), scope);
 
-            Canonization classAnnotation = o.getClass().getAnnotation(Canonization.class);
-            ClassCollectionType type = (classAnnotation != null)
-                    ? classAnnotation.classType() : DEFAULT_CLASS_COLLECTION_TYPE;
+            Layout classAnnotation = o.getClass().getAnnotation(Layout.class);
+            Layout.Kind type = (classAnnotation != null)
+                    ? (classAnnotation.value() == Layout.Kind.MAP ? Layout.Kind.MAP : Layout.Kind.ARRAY) : DEFAULT_LAYOUT_KIND;
 
-            if (type == ClassCollectionType.MAP) {
+            if (type == Layout.Kind.MAP) {
                 CBORObject map = CBORObject.NewMap();  // CTAP2 canonical options will sort keys
                 for (Field f : fs) {
                     Object v = f.get(o);
@@ -289,11 +272,11 @@ public interface Canonical {
     }
 
     static void sortFieldsForEncoding(List<Field> fs) {
-        boolean anyDefaultOrder = fs.stream().anyMatch(f -> f.getAnnotation(Canon.class).order() < 0);
+        boolean anyDefaultOrder = fs.stream().anyMatch(f -> f.getAnnotation(Order.class).value() < 0);
         if (anyDefaultOrder) {
             fs.sort(Comparator.comparing(Field::getName));
         } else {
-            fs.sort(Comparator.comparingInt(f -> f.getAnnotation(Canon.class).order()));
+            fs.sort(Comparator.comparingInt(f -> f.getAnnotation(Order.class).value()));
         }
     }
 
@@ -309,7 +292,14 @@ public interface Canonical {
                 return CBORObject.Null;
             }
 
-            // Canonical types control their own encoding via toCborTree()
+            // @Encode-annotated leaves produce their own native wire form.
+            // Check before the Canonical case so HashID-family types (which
+            // are leaves but no longer implement Canonical) are caught here.
+            case Object o when Leaves.isLeaf(o.getClass()) -> {
+                return encodeLeaf(o);
+            }
+
+            // Canonical types control their own encoding via toCborTree().
             case Canonical c -> { return toCborTree(c, scope); }
             case byte[] b -> { return CBORObject.FromByteArray(b); }
             case CharSequence s -> { return CBORObject.FromString(s.toString()); }
@@ -331,6 +321,22 @@ public interface Canonical {
     }
 
     // =================== Encode Helpers ===================
+
+    /**
+     * Encode a leaf value (something carrying {@code @Encode} methods) to a
+     * bare CBOR primitive. Prefers byte[] (canonical wire form) over String.
+     */
+    static CBORObject encodeLeaf(Object value) {
+        Class<?> cls = value.getClass();
+        if (Leaves.findEncode(cls, byte[].class) != null) {
+            return CBORObject.FromByteArray(Leaves.encode(value, byte[].class));
+        }
+        if (Leaves.findEncode(cls, String.class) != null) {
+            return CBORObject.FromString(Leaves.encode(value, String.class));
+        }
+        throw new IllegalArgumentException(
+                "Class " + cls.getName() + " has no @Encode method for byte[] or String");
+    }
 
     static CBORObject encodeArray(Object array, Scope scope) {
         int n = Array.getLength(array);
@@ -410,14 +416,14 @@ public interface Canonical {
             return (T) result;
         }
 
-        Canonization classAnnotation = type.getAnnotation(Canonization.class);
-        ClassCollectionType ctype = (classAnnotation != null)
-                ? classAnnotation.classType() : DEFAULT_CLASS_COLLECTION_TYPE;
+        Layout classAnnotation = type.getAnnotation(Layout.class);
+        Layout.Kind ctype = (classAnnotation != null)
+                ? (classAnnotation.value() == Layout.Kind.MAP ? Layout.Kind.MAP : Layout.Kind.ARRAY) : DEFAULT_LAYOUT_KIND;
 
         T instance = construct(type);
         List<Field> fs = fields(type, scope);
 
-        if (ctype == ClassCollectionType.MAP) {
+        if (ctype == Layout.Kind.MAP) {
             decodeMapIntoInstance(node, instance, fs, scope);
         } else {
             decodeArrayIntoInstance(node, instance, fs, scope);
@@ -467,6 +473,12 @@ public interface Canonical {
      */
     @SuppressWarnings({"unchecked"})
     static Object decodeIntoClass(Class<?> raw, CBORObject node, Scope scope) {
+        // @Decode-annotated leaves: dispatch on CBOR primitive type.
+        if (Leaves.isLeaf(raw) && isPrimitiveCbor(node)) {
+            Object result = tryLeafDecode(raw, node);
+            if (result != null) return result;
+        }
+
         // Custom fromCborTree() for primitive-encoded Canonical types
         if (Canonical.class.isAssignableFrom(raw)) {
             Object result = tryFromCborTree(raw, node);
@@ -563,6 +575,25 @@ public interface Canonical {
             }
         }
         collectInterfaces(clazz.getSuperclass(), result, seen);
+    }
+
+    /**
+     * Try {@code @Decode}-annotated leaf factory methods, dispatching on
+     * CBOR primitive type (byte string → {@code byte[]}, text string →
+     * {@code String}).
+     */
+    private static Object tryLeafDecode(Class<?> raw, CBORObject node) {
+        return switch (node.getType()) {
+            case ByteString -> {
+                Method m = Leaves.findDecode(raw, byte[].class);
+                yield m != null ? Leaves.decode(raw, node.GetByteString()) : null;
+            }
+            case TextString -> {
+                Method m = Leaves.findDecode(raw, String.class);
+                yield m != null ? Leaves.decode(raw, node.AsString()) : null;
+            }
+            default -> null;
+        };
     }
 
     /** Try @Factory-annotated scalar decode methods (String, byte[], int, long). */

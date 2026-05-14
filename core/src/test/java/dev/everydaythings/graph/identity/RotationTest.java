@@ -1,18 +1,16 @@
 package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentID;
+import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Next;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Rotation;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.CoreVocabulary.Sequence;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.CoreVocabulary.Sequence;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +31,7 @@ class RotationTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        ContentID priorEventCid = ContentID.of(new byte[]{1, 2, 3, 4});
+        ContentRef priorEventCid = ContentRef.of(new byte[]{1, 2, 3, 4});
 
         Body body = Body.of(
                 ItemRef.of(Rotation.IID),
@@ -43,7 +41,7 @@ class RotationTest {
                         new Binding(
                                 ThematicRole.Follows.IID,
                                 List.of(),
-                                BindingTarget.ref(priorEventCid)
+                                priorEventCid
                         )
                 )
         );
@@ -64,7 +62,7 @@ class RotationTest {
                         new Binding(
                                 ThematicRole.Attribute.IID,
                                 List.of(new CompoundKey.Sememe(Sequence.IID)),
-                                Literal.ofInteger(3)
+                                (long) (3)
                         )
                 )
         );
@@ -78,7 +76,7 @@ class RotationTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        ContentID nextDigest = ContentID.of(new byte[]{9, 9, 9});
+        ContentRef nextDigest = ContentRef.of(new byte[]{9, 9, 9});
         MultiKey currentKey = lib.signingPublicKey().orElseThrow();
 
         Body body = Body.of(
@@ -88,12 +86,12 @@ class RotationTest {
                         new Binding(
                                 ThematicRole.Instrument.IID,
                                 List.of(new CompoundKey.Sememe(Multikey.IID)),
-                                Literal.ofMultiKey(currentKey)
+                                currentKey.encoded()
                         ),
                         new Binding(
                                 ThematicRole.Instrument.IID,
                                 List.of(new CompoundKey.Sememe(Next.IID)),
-                                BindingTarget.ref(nextDigest)
+                                nextDigest
                         )
                 )
         );

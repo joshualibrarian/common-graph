@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.library.data;
 
-import dev.everydaythings.graph.canonical.Scope;
 
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
@@ -9,8 +8,8 @@ import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 
 import java.util.Arrays;
@@ -29,8 +28,8 @@ import java.util.Optional;
  * </ul>
  *
  * <p>Internally, byte-backed DataStores use the {@link DataStore.Column#OBJECTS}
- * column for the actual bytes (keyed by ContentID) and the
- * {@link DataStore.Column#DATUM_INDEX} column as the DatumID → ContentID bridge
+ * column for the actual bytes (keyed by ContentRef) and the
+ * {@link DataStore.Column#DATUM_INDEX} column as the DatumRef → ContentRef bridge
  * for semantic-identity lookups.
  */
 public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
@@ -54,21 +53,22 @@ public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
     // ==================================================================================
 
     @Override
-    default DatumID put(Datum datum) {
+    default DatumRef put(Datum datum) {
         java.util.Objects.requireNonNull(datum, "datum");
-        byte[] bytes = datum.encodeBinary(Scope.BODY);
-        ContentID cid = ContentID.of(bytes);
+        // Encode via the store's own encoder, not a hardcoded codec.
+        byte[] bytes = rawEncoder().encode(datum);
+        ContentRef cid = ContentRef.of(bytes);
         db(DataStore.Column.OBJECTS).key(cid).put(bytes);
-        // Bridge: DatumID → ContentID. Key = DatumID-bytes | ContentID-bytes.
+        // Bridge: DatumRef → ContentRef. Key = DatumRef-bytes | ContentRef-bytes.
         byte[] bridgeKey = concat(datum.datumId().encodeBinary(), cid.encodeBinary());
         db(DataStore.Column.DATUM_INDEX).key(bridgeKey).put(EMPTY_VALUE);
         return datum.datumId();
     }
 
     @Override
-    default Optional<Datum> get(DatumID datumId) {
+    default Optional<Datum> get(DatumRef datumId) {
         java.util.Objects.requireNonNull(datumId, "datumId");
-        for (ContentID cid : contentIdsForDatum(datumId)) {
+        for (ContentRef cid : contentIdsForDatum(datumId)) {
             Optional<byte[]> bytes = getContent(cid);
             if (bytes.isEmpty()) continue;
             Datum d = decodeDatum(bytes.get());
@@ -80,15 +80,15 @@ public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
     }
 
     @Override
-    default boolean has(DatumID datumId) {
+    default boolean has(DatumRef datumId) {
         return !contentIdsForDatum(datumId).isEmpty();
     }
 
     @Override
-    default boolean delete(DatumID datumId) {
+    default boolean delete(DatumRef datumId) {
         java.util.Objects.requireNonNull(datumId, "datumId");
         boolean any = false;
-        for (ContentID cid : contentIdsForDatum(datumId)) {
+        for (ContentRef cid : contentIdsForDatum(datumId)) {
             byte[] bridgeKey = concat(datumId.encodeBinary(), cid.encodeBinary());
             db(DataStore.Column.DATUM_INDEX).key(bridgeKey).delete();
             db(DataStore.Column.OBJECTS).key(cid).delete();
@@ -99,16 +99,16 @@ public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
 
     /**
      * The ContentIDs of all locally-held wire-form realizations for the given
-     * DatumID. Most Datums have exactly one realization; multi-realization
+     * DatumRef. Most Datums have exactly one realization; multi-realization
      * arises only when the same Datum is held in multiple wire forms.
      */
-    default java.util.List<ContentID> contentIdsForDatum(DatumID datumId) {
+    default java.util.List<ContentRef> contentIdsForDatum(DatumRef datumId) {
         java.util.Objects.requireNonNull(datumId, "datumId");
         byte[] prefix = datumId.encodeBinary();
-        java.util.List<ContentID> realizations = new java.util.ArrayList<>();
+        java.util.List<ContentRef> realizations = new java.util.ArrayList<>();
         forEach(DataStore.Column.DATUM_INDEX, prefix, (key, value) -> {
             byte[] suffix = Arrays.copyOfRange(key, prefix.length, key.length);
-            realizations.add(new ContentID(suffix));
+            realizations.add(new ContentRef(suffix));
         });
         return java.util.List.copyOf(realizations);
     }
@@ -118,27 +118,27 @@ public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
     // ==================================================================================
 
     @Override
-    default ContentID putContent(byte[] bytes) {
+    default ContentRef putContent(byte[] bytes) {
         java.util.Objects.requireNonNull(bytes, "bytes");
-        ContentID cid = ContentID.of(bytes);
+        ContentRef cid = ContentRef.of(bytes);
         db(DataStore.Column.OBJECTS).key(cid).put(bytes);
         return cid;
     }
 
     @Override
-    default Optional<byte[]> getContent(ContentID cid) {
+    default Optional<byte[]> getContent(ContentRef cid) {
         java.util.Objects.requireNonNull(cid, "cid");
         return Optional.ofNullable(db(DataStore.Column.OBJECTS).key(cid).get());
     }
 
     @Override
-    default boolean hasContent(ContentID cid) {
+    default boolean hasContent(ContentRef cid) {
         java.util.Objects.requireNonNull(cid, "cid");
         return db(DataStore.Column.OBJECTS).key(cid).exists();
     }
 
     @Override
-    default boolean deleteContent(ContentID cid) {
+    default boolean deleteContent(ContentRef cid) {
         java.util.Objects.requireNonNull(cid, "cid");
         if (!hasContent(cid)) return false;
         db(DataStore.Column.OBJECTS).key(cid).delete();

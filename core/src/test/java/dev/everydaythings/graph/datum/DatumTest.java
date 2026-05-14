@@ -1,18 +1,15 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.Scope;
+import dev.everydaythings.graph.encoding.CgCbor;
 
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.FrameRef;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,12 +22,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DatumTest {
 
-    static final ItemID PRED   = ItemID.fromString("cg.predicate:authored");
-    static final ItemID DOC    = ItemID.fromString("cg.archetype:document");
-    static final ItemID THEME  = ItemID.fromString("cg.role:theme");
-    static final ItemID AGENT  = ItemID.fromString("cg.role:agent");
-    static final ItemID TOLKIEN = ItemID.fromString("person.tolkien");
-    static final ItemID HOBBIT = ItemID.fromString("book.hobbit");
+    static final ItemRef PRED   = ItemRef.fromString("cg.predicate:authored");
+    static final ItemRef DOC    = ItemRef.fromString("cg.archetype:document");
+    static final ItemRef THEME  = ItemRef.fromString("cg.role:theme");
+    static final ItemRef AGENT  = ItemRef.fromString("cg.role:agent");
+    static final ItemRef TOLKIEN = ItemRef.fromString("person.tolkien");
+    static final ItemRef HOBBIT = ItemRef.fromString("book.hobbit");
 
     @Nested
     @DisplayName("Body")
@@ -46,7 +43,7 @@ class DatumTest {
 
             assertThat(body.head()).isEqualTo(ItemRef.of(PRED));
             assertThat(body.bindings()).hasSize(2);
-            assertThat(ContentID.of(body.encodeBinary(Scope.BODY))).isNotNull();
+            assertThat(ContentRef.of(CgCbor.encode(body))).isNotNull();
         }
 
         @Test
@@ -57,19 +54,19 @@ class DatumTest {
                     Binding.ref(THEME, HOBBIT)
             ));
 
-            CBORObject cbor = original.toCborTree(Scope.BODY);
+            CBORObject cbor = CgCbor.toCbor(original);
             Body decoded = Body.fromCborTree(cbor);
 
             assertThat(decoded).isEqualTo(original);
-            assertThat(ContentID.of(decoded.encodeBinary(Scope.BODY)))
-                    .isEqualTo(ContentID.of(original.encodeBinary(Scope.BODY)));
+            assertThat(ContentRef.of(CgCbor.encode(decoded)))
+                    .isEqualTo(ContentRef.of(CgCbor.encode(original)));
         }
 
         @Test
         @DisplayName("CBOR encoding is a 2-element array")
         void cborTwoElement() {
             Body body = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
-            CBORObject cbor = body.toCborTree(Scope.BODY);
+            CBORObject cbor = CgCbor.toCbor(body);
             assertThat(cbor.getType()).isEqualTo(com.upokecenter.cbor.CBORType.Array);
             assertThat(cbor.size()).isEqualTo(2);
         }
@@ -78,7 +75,7 @@ class DatumTest {
         @DisplayName("decode rejects 3-element array")
         void rejectsRecordShape() {
             CBORObject record = CBORObject.NewArray();
-            record.Add(ItemRef.of(PRED).toCborTree(Scope.BODY));
+            record.Add(CgCbor.toCbor(ItemRef.of(PRED)));
             record.Add(CBORObject.NewArray());
             record.Add(CBORObject.FromByteArray(new byte[]{0x01}));
 
@@ -90,7 +87,7 @@ class DatumTest {
         @DisplayName("decode rejects non-ItemRef head")
         void rejectsNonItemRefHead() {
             CBORObject body = CBORObject.NewArray();
-            body.Add(FrameRef.of(DatumID.of("x".getBytes())).toCborTree(Scope.BODY));
+            body.Add(CgCbor.toCbor(DatumRef.of(DatumRef.of("x".getBytes()))));
             body.Add(CBORObject.NewArray());
 
             assertThatThrownBy(() -> Body.fromCborTree(body))
@@ -102,8 +99,8 @@ class DatumTest {
         void equalBodiesEqualCids() {
             Body a = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
             Body b = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
-            assertThat(ContentID.of(a.encodeBinary(Scope.BODY)))
-                    .isEqualTo(ContentID.of(b.encodeBinary(Scope.BODY)));
+            assertThat(ContentRef.of(CgCbor.encode(a)))
+                    .isEqualTo(ContentRef.of(CgCbor.encode(b)));
         }
 
         @Test
@@ -120,9 +117,9 @@ class DatumTest {
             Body c = Body.of(ItemRef.of(PRED), List.of(Binding.ref(AGENT, TOLKIEN)));
             assertThat(a.datumId()).isNotEqualTo(c.datumId());
 
-            // DatumID (Merkle structural hash) is computed differently from
-            // ContentID (canonical bytes hash); they should not coincide.
-            ContentID aContentId = ContentID.of(a.encodeBinary(Scope.BODY));
+            // DatumRef (Merkle structural hash) is computed differently from
+            // ContentRef (canonical bytes hash); they should not coincide.
+            ContentRef aContentId = ContentRef.of(CgCbor.encode(a));
             assertThat(a.datumId().encodeBinary()).isNotEqualTo(aContentId.encodeBinary());
         }
 
@@ -130,14 +127,14 @@ class DatumTest {
         @DisplayName("RedactedTarget preserves the binding's merkle contribution")
         void redactionPreservesMerkleRoot() {
             // Original body with an IID target.
-            BindingTarget original = BindingTarget.iid(HOBBIT);
+            Object original = HOBBIT;
 
             // Compute what the original target contributes to the Merkle hash.
             byte[] originalContribution = HashTree.hashOf(
                     original, HashTree.DEFAULT_DIGEST);
 
             // A RedactedTarget wrapping that same hash should contribute identically.
-            BindingTarget redacted = new BindingTarget.RedactedTarget(originalContribution);
+            Object redacted = new BindingTarget.RedactedTarget(originalContribution);
             assertThat(HashTree.hashOf(
                     redacted, HashTree.DEFAULT_DIGEST))
                     .isEqualTo(originalContribution);
@@ -152,14 +149,14 @@ class DatumTest {
             assertThat(full.datumId()).isEqualTo(redactedBody.datumId());
 
             // But their canonical bytes differ — the wire forms are different.
-            assertThat(ContentID.of(full.encodeBinary(Scope.BODY)))
-                    .isNotEqualTo(ContentID.of(redactedBody.encodeBinary(Scope.BODY)));
+            assertThat(ContentRef.of(CgCbor.encode(full)))
+                    .isNotEqualTo(ContentRef.of(CgCbor.encode(redactedBody)));
         }
 
         @Test
         @DisplayName("permissive — accepts any bindings")
         void permissive() {
-            ItemID arbitraryRole = ItemID.fromString("any.role");
+            ItemRef arbitraryRole = ItemRef.fromString("any.role");
             Body body = Body.of(ItemRef.of(PRED), List.of(Binding.ref(arbitraryRole, HOBBIT)));
             assertThat(body.bindings()).hasSize(1);
         }
@@ -174,7 +171,7 @@ class DatumTest {
 
             assertThat(body.binding(CompoundKey.of(AGENT))).isPresent();
             assertThat(body.binding(CompoundKey.of(THEME))).isPresent();
-            assertThat(body.binding(CompoundKey.of(ItemID.fromString("nonexistent")))).isEmpty();
+            assertThat(body.binding(CompoundKey.of(ItemRef.fromString("nonexistent")))).isEmpty();
         }
     }
 
@@ -186,27 +183,27 @@ class DatumTest {
         @DisplayName("simple record construction")
         void simpleRecord() {
             Body body = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
-            DatumID bodyId = body.datumId();
+            DatumRef bodyId = body.datumId();
 
             byte[] sig = new byte[64];
             for (int i = 0; i < 64; i++) sig[i] = (byte) i;
             VarSig varsig = VarSig.of(Algorithm.Sign.ED25519, sig);
 
-            Record record = Record.of(FrameRef.of(bodyId), List.of(), varsig);
+            Record record = Record.of(DatumRef.of(bodyId), List.of(), varsig);
 
-            assertThat(record.head()).isEqualTo(FrameRef.of(bodyId));
+            assertThat(record.head()).isEqualTo(DatumRef.of(bodyId));
             assertThat(record.varsig().algorithm()).isEqualTo(Algorithm.Sign.ED25519);
         }
 
         @Test
         @DisplayName("CBOR round-trip preserves content")
         void cborRoundTrip() {
-            DatumID bodyId = DatumID.of("body".getBytes());
+            DatumRef bodyId = DatumRef.of("body".getBytes());
             byte[] sig = new byte[64];
             VarSig varsig = VarSig.of(Algorithm.Sign.ED25519, sig);
 
-            Record original = Record.of(FrameRef.of(bodyId), List.of(), varsig);
-            CBORObject cbor = original.toCborTree(Scope.BODY);
+            Record original = Record.of(DatumRef.of(bodyId), List.of(), varsig);
+            CBORObject cbor = CgCbor.toCbor(original);
             Record decoded = Record.fromCborTree(cbor);
 
             assertThat(decoded).isEqualTo(original);
@@ -215,12 +212,12 @@ class DatumTest {
         @Test
         @DisplayName("CBOR encoding is a 3-element array")
         void cborThreeElement() {
-            DatumID bodyId = DatumID.of("body".getBytes());
+            DatumRef bodyId = DatumRef.of("body".getBytes());
             byte[] sig = new byte[64];
-            Record record = Record.of(FrameRef.of(bodyId), List.of(),
+            Record record = Record.of(DatumRef.of(bodyId), List.of(),
                     VarSig.of(Algorithm.Sign.ED25519, sig));
 
-            CBORObject cbor = record.toCborTree(Scope.BODY);
+            CBORObject cbor = CgCbor.toCbor(record);
             assertThat(cbor.getType()).isEqualTo(com.upokecenter.cbor.CBORType.Array);
             assertThat(cbor.size()).isEqualTo(3);
         }
@@ -229,7 +226,7 @@ class DatumTest {
         @DisplayName("decode rejects 2-element array")
         void rejectsBodyShape() {
             CBORObject body = CBORObject.NewArray();
-            body.Add(FrameRef.of(DatumID.of("x".getBytes())).toCborTree(Scope.BODY));
+            body.Add(CgCbor.toCbor(DatumRef.of(DatumRef.of("x".getBytes()))));
             body.Add(CBORObject.NewArray());
 
             assertThatThrownBy(() -> Record.fromCborTree(body))
@@ -240,7 +237,7 @@ class DatumTest {
         @DisplayName("decode rejects non-FrameRef head")
         void rejectsNonFrameRefHead() {
             CBORObject record = CBORObject.NewArray();
-            record.Add(ItemRef.of(PRED).toCborTree(Scope.BODY));
+            record.Add(CgCbor.toCbor(ItemRef.of(PRED)));
             record.Add(CBORObject.NewArray());
             record.Add(CBORObject.FromByteArray(new byte[]{0x01}));
 
@@ -251,9 +248,9 @@ class DatumTest {
         @Test
         @DisplayName("signingPayload is the structural Merkle root (independent of signature)")
         void signingPayloadIsMerkleRoot() {
-            DatumID bodyId = DatumID.of("body".getBytes());
+            DatumRef bodyId = DatumRef.of("body".getBytes());
             byte[] sig = new byte[64];
-            Record record = Record.of(FrameRef.of(bodyId), List.of(),
+            Record record = Record.of(DatumRef.of(bodyId), List.of(),
                     VarSig.of(Algorithm.Sign.ED25519, sig));
 
             // signingPayload returns the Merkle root — not the encoded body.
@@ -261,7 +258,7 @@ class DatumTest {
             byte[] payload = HashTree.signingPayload(record);
             byte[] differentSig = new byte[64];
             differentSig[0] = 1;
-            Record other = Record.of(FrameRef.of(bodyId), List.of(),
+            Record other = Record.of(DatumRef.of(bodyId), List.of(),
                     VarSig.of(Algorithm.Sign.ED25519, differentSig));
             assertThat(HashTree.signingPayload(other)).isEqualTo(payload);
         }
@@ -269,8 +266,8 @@ class DatumTest {
         @Test
         @DisplayName("rejects empty signature")
         void rejectsEmptySig() {
-            DatumID bodyId = DatumID.of("body".getBytes());
-            assertThatThrownBy(() -> Record.of(FrameRef.of(bodyId), List.of(), new byte[0]))
+            DatumRef bodyId = DatumRef.of("body".getBytes());
+            assertThatThrownBy(() -> Record.of(DatumRef.of(bodyId), List.of(), new byte[0]))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
@@ -287,7 +284,8 @@ class DatumTest {
 
             assertThat(frame.body()).isEqualTo(body);
             assertThat(frame.records()).isEmpty();
-            assertThat(frame.bodyCID()).isEqualTo(ContentID.of(body.encodeBinary(Scope.BODY)));
+            // bodyCID assertion deleted with the method — ContentRef is encoder-specific
+            // and now lives at the Library boundary, not on AttributedBody.
         }
 
         @Test
@@ -334,7 +332,7 @@ class DatumTest {
         @Test
         @DisplayName("Manifest with ITEM_ID binding succeeds")
         void withItemId() {
-            ItemID iid = ItemID.fromString("specific-item");
+            ItemRef iid = ItemRef.fromString("specific-item");
             Body body = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid)
             ));
@@ -347,7 +345,7 @@ class DatumTest {
         @Test
         @DisplayName("Manifest is archetypal")
         void isArchetypal() {
-            ItemID iid = ItemID.fromString("specific-item");
+            ItemRef iid = ItemRef.fromString("specific-item");
             Body body = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid)
             ));
@@ -360,9 +358,9 @@ class DatumTest {
         @Test
         @DisplayName("Manifest parents read from FOLLOWS bindings")
         void parents() {
-            ItemID iid = ItemID.fromString("specific-item");
-            ItemID parentVid1 = ItemID.fromString("v1-as-iid");
-            ItemID parentVid2 = ItemID.fromString("v2-as-iid");
+            ItemRef iid = ItemRef.fromString("specific-item");
+            ItemRef parentVid1 = ItemRef.fromString("v1-as-iid");
+            ItemRef parentVid2 = ItemRef.fromString("v2-as-iid");
             Body body = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid),
                     Binding.ref(Manifest.FOLLOWS, parentVid1),
@@ -376,11 +374,11 @@ class DatumTest {
         @Test
         @DisplayName("Manifest endorses() returns endorsement bindings")
         void endorses() {
-            ItemID iid = ItemID.fromString("specific-item");
+            ItemRef iid = ItemRef.fromString("specific-item");
             Body body = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid),
-                    Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-1")),
-                    Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-2"))
+                    Binding.ref(Manifest.ENDORSES, ItemRef.fromString("frame-1")),
+                    Binding.ref(Manifest.ENDORSES, ItemRef.fromString("frame-2"))
             ));
             Manifest manifest = Manifest.of(body);
 
@@ -390,7 +388,7 @@ class DatumTest {
         @Test
         @DisplayName("Manifest implementation is Optional")
         void implementationOptional() {
-            ItemID iid = ItemID.fromString("specific-item");
+            ItemRef iid = ItemRef.fromString("specific-item");
             Body bodyNoImpl = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid)
             ));
@@ -398,7 +396,7 @@ class DatumTest {
 
             Body bodyWithImpl = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid),
-                    Binding.ref(Manifest.IMPLEMENTATION, ItemID.fromString("impl-1"))
+                    Binding.ref(Manifest.IMPLEMENTATION, ItemRef.fromString("impl-1"))
             ));
             assertThat(Manifest.of(bodyWithImpl).implementation()).isPresent();
         }

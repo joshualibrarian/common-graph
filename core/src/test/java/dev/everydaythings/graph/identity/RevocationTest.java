@@ -1,15 +1,13 @@
 package dev.everydaythings.graph.identity;
 
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Compromise;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Revocation;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +27,7 @@ class RevocationTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        ItemID retiring = ItemID.fromString("retiring-identity");
+        ItemRef retiring = ItemRef.fromString("retiring-identity");
 
         Body body = Body.of(
                 ItemRef.of(Revocation.IID),
@@ -51,14 +49,14 @@ class RevocationTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        ContentID frameCid = ContentID.of(new byte[]{4, 5, 6, 7, 8});
+        ContentRef frameCid = ContentRef.of(new byte[]{4, 5, 6, 7, 8});
 
         Body body = Body.of(
                 ItemRef.of(Revocation.IID),
                 List.of(new Binding(
                         ThematicRole.Theme.IID,
                         List.of(),
-                        BindingTarget.ref(frameCid)
+                        frameCid
                 ))
         );
 
@@ -74,7 +72,7 @@ class RevocationTest {
         Body body = Body.of(
                 ItemRef.of(Revocation.IID),
                 List.of(
-                        Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("compromised")),
+                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("compromised")),
                         Binding.ref(ThematicRole.Purpose.IID, Compromise.IID)
                 )
         );
@@ -90,7 +88,7 @@ class RevocationTest {
 
         Body body = Body.of(
                 ItemRef.of(Revocation.IID),
-                List.of(Binding.ref(ThematicRole.Theme.IID, ItemID.fromString("retired")))
+                List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("retired")))
         );
 
         assertThat(Signer.readPurpose(body)).isEmpty();

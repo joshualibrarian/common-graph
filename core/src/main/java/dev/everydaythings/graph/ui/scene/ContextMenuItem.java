@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.ui.scene;
 
-import dev.everydaythings.graph.canonical.Canon;
+import dev.everydaythings.graph.canonical.Order;
 import dev.everydaythings.graph.canonical.Canonical;
-import dev.everydaythings.graph.canonical.Canonization;
+import dev.everydaythings.graph.canonical.Layout;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,14 +20,14 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Canonization(classType = Canonical.ClassCollectionType.MAP)
+@Layout(Layout.Kind.MAP)
 public class ContextMenuItem implements Canonical {
 
-    @Canon(order = 0) private String label;
-    @Canon(order = 1) private String action;
-    @Canon(order = 2) private String target;
-    @Canon(order = 3) private String when;
-    @Canon(order = 4) private String icon;
-    @Canon(order = 5) private String group;
-    @Canon(order = 6) private int order;
+    @Order(0) private String label;
+    @Order(1) private String action;
+    @Order(2) private String target;
+    @Order(3) private String when;
+    @Order(4) private String icon;
+    @Order(5) private String group;
+    @Order(6) private int order;
 }

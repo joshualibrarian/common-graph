@@ -2,20 +2,17 @@ package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.value.Literal;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
 import dev.everydaythings.graph.text.FrameMap.Part;
-import dev.everydaythings.graph.value.Decimal;
+import java.math.BigDecimal;
 import dev.everydaythings.graph.operator.math.Add;
 import dev.everydaythings.graph.operator.math.Multiply;
 import dev.everydaythings.graph.operator.math.Negate;
@@ -54,60 +51,60 @@ class RoundTripTest {
         lib = Librarian.inMemory();
         lib.bootstrap();
         language = new Language(Language.IID, lib);
-        orchestrator = new Item(ItemID.fromString("test.roundtrip-orchestrator"), lib);
+        orchestrator = new Item(ItemRef.fromString("test.roundtrip-orchestrator"), lib);
     }
 
     @Test
     @DisplayName("round-trip 'Add{5,3}' ↔ '5 + 3'")
     void simpleBinary() {
-        FrameMap original = binary(Add.IID, Literal.ofInteger(5), Literal.ofInteger(3));
+        FrameMap original = binary(Add.IID, (long) (5), (long) (3));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Add{5, Multiply{3,2}}' ↔ '5 + 3 * 2' (precedence-implicit nesting)")
     void mixedPrecedenceImplicit() {
-        DatumID multCid = persistBinary(Multiply.IID, 3, 2);
-        FrameMap original = binary(Add.IID, Literal.ofInteger(5), BindingTarget.ref(multCid));
+        DatumRef multCid = persistBinary(Multiply.IID, 3, 2);
+        FrameMap original = binary(Add.IID, (long) (5), multCid);
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Multiply{Add{5,3}, 2}' ↔ '(5 + 3) * 2' (parens needed)")
     void parensNeeded() {
-        DatumID addCid = persistBinary(Add.IID, 5, 3);
-        FrameMap original = binary(Multiply.IID, BindingTarget.ref(addCid), Literal.ofInteger(2));
+        DatumRef addCid = persistBinary(Add.IID, 5, 3);
+        FrameMap original = binary(Multiply.IID, addCid, (long) (2));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Power{2, Power{3,4}}' ↔ '2 ^ 3 ^ 4' (right-assoc)")
     void rightAssocChain() {
-        DatumID innerPower = persistBinary(Power.IID, 3, 4);
-        FrameMap original = binary(Power.IID, Literal.ofInteger(2), BindingTarget.ref(innerPower));
+        DatumRef innerPower = persistBinary(Power.IID, 3, 4);
+        FrameMap original = binary(Power.IID, (long) (2), innerPower);
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Subtract{Subtract{5,3}, 2}' ↔ '5 - 3 - 2' (left-assoc)")
     void leftAssocChain() {
-        DatumID innerSub = persistBinary(Subtract.IID, 5, 3);
-        FrameMap original = binary(Subtract.IID, BindingTarget.ref(innerSub), Literal.ofInteger(2));
+        DatumRef innerSub = persistBinary(Subtract.IID, 5, 3);
+        FrameMap original = binary(Subtract.IID, innerSub, (long) (2));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Negate{5}' ↔ '-5'")
     void unaryPrefix() {
-        FrameMap original = unary(Negate.IID, Literal.ofInteger(5));
+        FrameMap original = unary(Negate.IID, (long) (5));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Add{Negate{5}, 3}' ↔ '-5 + 3' (unary as binary operand)")
     void unaryAsBinaryOperand() {
-        DatumID negCid = persistUnary(Negate.IID, Literal.ofInteger(5));
-        FrameMap original = binary(Add.IID, BindingTarget.ref(negCid), Literal.ofInteger(3));
+        DatumRef negCid = persistUnary(Negate.IID, (long) (5));
+        FrameMap original = binary(Add.IID, negCid, (long) (3));
         roundTrip(original);
     }
 
@@ -128,47 +125,47 @@ class RoundTripTest {
     // ==================================================================================
 
     /** Build a binary FrameMap (predicate + THEME + GOAL bindings). */
-    private static FrameMap binary(ItemID predicate, BindingTarget left, BindingTarget right) {
+    private static FrameMap binary(ItemRef predicate, Object left, Object right) {
         return new FrameMap(
                 null,
-                new Part<>(ItemRef.of(predicate), Decimal.parse("1.0"), List.of()),
+                new Part<>(ItemRef.of(predicate), new BigDecimal("1.0"), List.of()),
                 List.of(
                         new BindingMap(
-                                new Part<>(ItemRef.of(ThematicRole.Theme.IID), Decimal.parse("1.0"), List.of()),
+                                new Part<>(ItemRef.of(ThematicRole.Theme.IID), new BigDecimal("1.0"), List.of()),
                                 List.of(),
-                                new Part<>(left, Decimal.parse("1.0"), List.of())),
+                                new Part<>(left, new BigDecimal("1.0"), List.of())),
                         new BindingMap(
-                                new Part<>(ItemRef.of(ThematicRole.Goal.IID), Decimal.parse("1.0"), List.of()),
+                                new Part<>(ItemRef.of(ThematicRole.Goal.IID), new BigDecimal("1.0"), List.of()),
                                 List.of(),
-                                new Part<>(right, Decimal.parse("1.0"), List.of()))),
+                                new Part<>(right, new BigDecimal("1.0"), List.of()))),
                 List.of());
     }
 
     /** Build a unary FrameMap (predicate + THEME binding only). */
-    private static FrameMap unary(ItemID predicate, BindingTarget operand) {
+    private static FrameMap unary(ItemRef predicate, Object operand) {
         return new FrameMap(
                 null,
-                new Part<>(ItemRef.of(predicate), Decimal.parse("1.0"), List.of()),
+                new Part<>(ItemRef.of(predicate), new BigDecimal("1.0"), List.of()),
                 List.of(
                         new BindingMap(
-                                new Part<>(ItemRef.of(ThematicRole.Theme.IID), Decimal.parse("1.0"), List.of()),
+                                new Part<>(ItemRef.of(ThematicRole.Theme.IID), new BigDecimal("1.0"), List.of()),
                                 List.of(),
-                                new Part<>(operand, Decimal.parse("1.0"), List.of()))),
+                                new Part<>(operand, new BigDecimal("1.0"), List.of()))),
                 List.of());
     }
 
     /** Persist a binary frame body and return its CID — for using as a sub-frame target. */
-    private DatumID persistBinary(ItemID predicate, long left, long right) {
+    private DatumRef persistBinary(ItemRef predicate, long left, long right) {
         Body body = Body.of(
                 ItemRef.of(predicate),
                 List.of(
-                        new Binding(ThematicRole.Theme.IID, Literal.ofInteger(left)),
-                        new Binding(ThematicRole.Goal.IID, Literal.ofInteger(right))));
+                        new Binding(ThematicRole.Theme.IID, (long) (left)),
+                        new Binding(ThematicRole.Goal.IID, (long) (right))));
         return lib.persist(body);
     }
 
     /** Persist a unary frame body and return its CID. */
-    private DatumID persistUnary(ItemID predicate, BindingTarget operand) {
+    private DatumRef persistUnary(ItemRef predicate, Object operand) {
         Body body = Body.of(
                 ItemRef.of(predicate),
                 List.of(new Binding(ThematicRole.Theme.IID, operand)));
@@ -226,22 +223,19 @@ class RoundTripTest {
         return sb.append("}").toString();
     }
 
-    private String describeTarget(BindingTarget target) {
-        if (target instanceof Literal lit) {
-            if (Literal.TYPE_INTEGER.equals(lit.valueType())) return Long.toString(lit.asInteger());
-            if (Literal.TYPE_TEXT.equals(lit.valueType())) return "\"" + lit.asText() + "\"";
-            return lit.toString();
-        }
+    private String describeTarget(Object target) {
+        if (target instanceof Long n) return Long.toString(n);
+        if (target instanceof String s) return "\"" + s + "\"";
         if (target instanceof FrameMapTarget fmt) {
             return describe(fmt.frameMap());
         }
-        if (target instanceof BindingTarget.RefTarget rt) {
-            Optional<Frame> frame = lib.fetchFrame(rt.asDatumId());
+        if (target instanceof DatumRef dr) {
+            Optional<Frame> frame = lib.fetchFrame(dr);
             return frame.map(f -> describeBody(f.body()))
-                    .orElseGet(() -> "ref(" + rt.asDatumId().compactDisplay() + ")");
+                    .orElseGet(() -> "ref(" + dr.compactDisplay() + ")");
         }
-        if (target instanceof BindingTarget.RefTarget ref && !ref.isCompound()) {
-            return "iid(" + ref.asItemId().compactDisplay() + ")";
+        if (target instanceof ItemRef ir && !ir.isPinned()) {
+            return "iid(" + ir.compactDisplay() + ")";
         }
         return target == null ? "<null>" : target.toString();
     }

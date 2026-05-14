@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.canonical;
 
-import dev.everydaythings.graph.id.Reference;
+import dev.everydaythings.graph.id.HashID;
 
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +16,7 @@ import java.util.Objects;
  * <ul>
  *   <li>{@link Leaf} — a single typed value: a primitive (String, Long, Boolean,
  *       byte[], Instant, Decimal, Rational, ...) or an encoding-specific class
- *       (Reference, Datum, ...). Carries both the typed Object and pure-semantic
+ *       (HashID, Datum, ...). Carries both the typed Object and pure-semantic
  *       bytes for hashing.</li>
  *   <li>{@link Array} — ordered children, indexed by position.</li>
  *   <li>{@link Map} — keyed children, where each child is an {@link Entry} of
@@ -70,7 +70,7 @@ public sealed interface Node {
      *       {@link dev.everydaythings.graph.value.Decimal},
      *       {@link dev.everydaythings.graph.value.Rational}) where applicable,
      *       and may additionally produce encoding-specific value classes
-     *       (e.g., {@link Reference},
+     *       (e.g., {@link HashID},
      *       {@link dev.everydaythings.graph.datum.Datum}).</li>
      *   <li>{@link #rawBytes()} — the pure-semantic byte form, for hashing. May
      *       include the codec's own type discriminator bytes when needed to

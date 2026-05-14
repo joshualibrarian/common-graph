@@ -2,13 +2,10 @@ package dev.everydaythings.graph;
 
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.GrammaticalFeature;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.linguistics.PartOfSpeech;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+
 import static dev.everydaythings.graph.Seed.*;
 
 /**
@@ -16,7 +13,7 @@ import static dev.everydaythings.graph.Seed.*;
  * structural bindings, plus universal qualifiers for declaring expectations.
  *
  * <p>These differ from general-meaning sememes (which live in
- * {@link dev.everydaythings.graph.semantics.CoreVocabulary} and elsewhere): the
+ * {@link dev.everydaythings.graph.CoreVocabulary} and elsewhere): the
  * entries here are intrinsic to the type system's machinery — binding heads on
  * manifest bodies ({@link ItemId}, {@link Endorses}, {@link Follows},
  * {@link Config}, {@link Implementation}) and qualifier markers used in EXPECTS
@@ -45,15 +42,15 @@ public final class CoreVocabulary {
     @Seed.Item(key = ItemId.KEY)
     public static final class ItemId {
         public static final String KEY = "cg.structural:item-id";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private ItemId() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the binding head whose target is an item's stable identity (IID)";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"identity", "item id"};
     }
@@ -69,20 +66,20 @@ public final class CoreVocabulary {
     @Seed.Item(key = Endorses.KEY)
     public static final class Endorses {
         public static final String KEY = "cg.structural:endorses";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Endorses() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the manifest binding head whose target is the body of a frame "
                         + "this item version endorses";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "endorse";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "endorsement";
     }
@@ -96,16 +93,16 @@ public final class CoreVocabulary {
     @Seed.Item(key = Follows.KEY)
     public static final class Follows {
         public static final String KEY = "cg.structural:follows";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Follows() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the manifest binding head whose target is a parent version this "
                         + "manifest follows in the version history";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "follow";
     }
@@ -122,16 +119,16 @@ public final class CoreVocabulary {
     @Seed.Item(key = Config.KEY)
     public static final class Config {
         public static final String KEY = "cg.structural:config";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Config() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the binding head whose target is configuration, policy, or preference "
                         + "data; qualifiers narrow the config dimension";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"config", "configuration"};
     }
@@ -147,16 +144,16 @@ public final class CoreVocabulary {
     @Seed.Item(key = Implementation.KEY)
     public static final class Implementation {
         public static final String KEY = "cg.structural:implementation";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Implementation() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the binding head whose target is a runtime form (Java class, "
                         + "WASM module, code reference) that realizes an item";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "implementation";
     }
@@ -194,20 +191,20 @@ public final class CoreVocabulary {
     @Seed.Item(key = Handles.KEY, head = Predicate.KEY)
     public static final class Handles {
         public static final String KEY = "cg.sememe:handles";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Handles() {}
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the predicate declaring an item's API — frames endorsed by an item "
                         + "to declare which message types it handles and how";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "handle";
 
-        @Seed.Frame(predicate = Lexeme.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "handler";
     }
@@ -227,16 +224,16 @@ public final class CoreVocabulary {
     @Seed.Item(key = Archetype.KEY)
     public static final class Archetype {
         public static final String KEY = "cg.archetype:archetype";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Archetype() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the root archetype — the kind-of-thing every item's manifest is, "
                         + "the meta-root every head chain terminates at";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "archetype";
 
@@ -248,7 +245,7 @@ public final class CoreVocabulary {
          */
         @Frame(predicate = SchemaVocabulary.Expects.KEY,
               field = @Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
-        static final ItemID expectItemId = Manifest.ITEM_ID;
+        static final ItemRef expectItemId = Manifest.ITEM_ID;
     }
 
     /**
@@ -262,85 +259,156 @@ public final class CoreVocabulary {
     @Seed.Item(key = Predicate.KEY)
     public static final class Predicate {
         public static final String KEY = "cg.archetype:predicate";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Predicate() {}
 
-        @Frame(predicate = Gloss.KEY,
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the archetype of all predicates — items used as the head of frame bodies; "
                         + "predicates declare role-keyed EXPECTS for their frame-instances";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "predicate";
     }
 
-    /**
-     * Qualifier marking a binding's text target as a fully-qualified Java class name.
-     *
-     * <p>Used on bindings whose role is {@link Implementation} or similar — the
-     * target is a plain text literal carrying the FQCN, and the qualifier identifies
-     * "this text means a Java class." The binding is the canonical attribution of a
-     * code-item's runtime form for the JVM. Later: a sibling qualifier (or a binary
-     * literal target with this same qualifier) carries actual bytecode.
-     *
-     * <p>Lives in CoreVocabulary as part of the post-Literal-cleanup convention:
-     * encoding-primitive type (text vs binary) is CBOR's job; semantic narrowing
-     * (this text is a JVM class name) is a qualifier sememe.
-     */
-    @Seed.Item(key = JavaClass.KEY)
-    public static final class JavaClass {
-        public static final String KEY = "cg.address:java-class";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private JavaClass() {}
+    // ==================================================================================
+    // General-purpose sememes — units of meaning that don't belong to any single
+    // domain. Used as binding qualifiers and value targets across many frames.
+    //
+    // (Domain-specific narrowings live in their own vocabularies — e.g.,
+    //  IdentityVocabulary for Signing / Encryption purposes.)
+    // ==================================================================================
 
-        @Frame(predicate = Gloss.KEY,
+    /** Sequence — explicit ordinal position in a chain (defense-in-depth alongside hash chain). */
+    @Seed.Item(key = Sequence.KEY)
+    public static final class Sequence {
+        public static final String KEY = "cg.sememe:sequence";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private Sequence() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "an ordered series; an ordinal position within it";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "sequence";
+    }
+
+    /** Numeric threshold — m-of-n quorum, voting cutoff, attestation count, etc. */
+    @Seed.Item(key = Threshold.KEY)
+    public static final class Threshold {
+        public static final String KEY = "cg.sememe:threshold";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private Threshold() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "a numeric cutoff or quorum; the minimum count required";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "threshold";
+    }
+
+    /** Expiry timestamp — when an authorization, claim, or assertion ceases. */
+    @Seed.Item(key = Expires.KEY)
+    public static final class Expires {
+        public static final String KEY = "cg.sememe:expires";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private Expires() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "qualifier marking a binding's text target as a fully-qualified "
-                        + "Java class name";
+                "the moment something ceases to be valid; an expiration time";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "expire";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] englishNounLemmas = {"expiry", "expiration"};
     }
 
     /**
-     * The archetype of all code-items — items that represent implementations of
-     * an archetype's contract (a library, a class, a bundle, a script).
+     * The source-attribution predicate — names the dataset / vocabulary a sememe
+     * was imported from.
      *
-     * <p>Distinct from {@link Item} itself: an item is a domain entity (a chess
-     * game, a book, a person, a librarian); a code-item is the artifact that
-     * implements an archetype's behavior in some host language or runtime. The
-     * two are orthogonal — a chess game (Item) has its rules encoded in some
-     * code-item (a Code instance), and that code-item is itself an Item too.
+     * <p>Convention: hand-written CG-native sememes carry NO source frame; their
+     * absence means "implicitly part of CG core." Imported sememes (from WordNet,
+     * CILI, VerbNet, etc.) get a SOURCE frame via {@code @Bind} attribution.
      *
-     * <p>Code-items typically carry:
-     * <ul>
-     *   <li>An {@code ITEM_ID} binding (as every manifest body does)</li>
-     *   <li>{@code ENDORSES} bindings pointing at frame bodies the code embodies
-     *       — e.g., the {@code HANDLES} frames declaring its dispatch surface</li>
-     *   <li>Some marker of the implementation form — class name (text), bytecode
-     *       (binary), source (text), etc. Phase 1 leaves this binding off; the
-     *       host language is implicit in the IID convention until we need otherwise.</li>
-     * </ul>
+     * <p>Body shape:
+     * <pre>
+     * SOURCE
+     *     VALUE              → @vocabulary-sememe (e.g., Oewn, Cili)
+     *     ATTRIBUTE [VERSION] → "2025"             # optional version literal
+     * </pre>
      *
-     * <p>The Java inheritance hierarchy of the implementing class is completely
-     * separate from this archetypal hierarchy. Code's head is Archetype (the root);
-     * it is not a kind of Item.
+     * <p>Specific identifier predicates ({@link WordnetSynsetId}, {@link CiliId})
+     * carry the source's own ID for the sememe — alongside SOURCE, they pin the
+     * imported sememe to its origin's identifier system for cross-vocabulary merge.
+     *
+     * <p>Source-vocabulary sememes are inner classes here for proximity (small
+     * pure-data targets, no behavior of their own).
      */
-    @Seed.Item(key = Code.KEY)
-    public static final class Code {
-        public static final String KEY = "cg.archetype:code";
-        public static final ItemID IID = ItemID.fromString(KEY);
-        private Code() {}
+    @Seed.Item(key = Source.KEY)
+    @Embodies(key = Source.KEY)
+    public static class Source extends Item {
 
-        @Frame(predicate = Gloss.KEY,
+        /** Canonical key for the source-attribution sememe. */
+        public static final String KEY = "cg.sememe:source";
+
+        /** The deterministic IID for the source-attribution sememe. */
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+
+        public Source(ItemRef iid, Librarian librarian) {
+            super(iid, librarian);
+        }
+
+        // ==================================================================================
+        // Source-vocabulary sememes (targets of SOURCE → VALUE bindings)
+        // ==================================================================================
+
+        /** Open English WordNet — the OEWN project (any release; version on the binding). */
+        @Seed.Item(key = Oewn.KEY)
+        public static final class Oewn {
+            public static final String KEY = "cg.source:oewn";
+            public static final ItemRef IID = ItemRef.fromString(KEY);
+            private Oewn() {}
+        }
+
+        /** Collaborative Interlingual Index — language-neutral concept identifiers. */
+        @Seed.Item(key = Cili.KEY)
+        public static final class Cili {
+            public static final String KEY = "cg.source:cili";
+            public static final ItemRef IID = ItemRef.fromString(KEY);
+            private Cili() {}
+        }
+    }
+
+    /** Witness — a co-participant who attests to the truth of an assertion. */
+    @Seed.Item(key = Witness.KEY)
+    public static final class Witness {
+        public static final String KEY = "cg.sememe:witness";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private Witness() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "the archetype of code-items — items that represent implementations "
-                        + "(libraries, classes, scripts, bundles), distinct from the "
-                        + "data they operate on";
+                "one who attests to the truth of an assertion or the occurrence of an event";
 
-        @Frame(predicate = Lexeme.KEY,
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "code";
+        static final String englishNounLemma = "witness";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "witness";
     }
 }

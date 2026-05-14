@@ -1,13 +1,11 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.value.Literal;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
-import dev.everydaythings.graph.runtime.Librarian;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,15 +14,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DatumBuilderTest {
 
-    static final ItemID LOOKUP = ItemID.fromString("cg.predicate:lookup");
-    static final ItemID AUTHORED = ItemID.fromString("cg.predicate:authored");
-    static final ItemID TOLKIEN = ItemID.fromString("person.tolkien");
-    static final ItemID HOBBIT = ItemID.fromString("book.hobbit");
-    static final ItemID LEXEME = ItemID.fromString("cg.predicate:lexeme");
-    static final ItemID ADD = ItemID.fromString("cg.operator:add");
-    static final ItemID ENGLISH = ItemID.fromString("cg.lang:eng");
-    static final ItemID VERB = ItemID.fromString("cg.pos:verb");
-    static final ItemID LEMMA = ItemID.fromString("cg.feat:lemma");
+    static final ItemRef LOOKUP = ItemRef.fromString("cg.predicate:lookup");
+    static final ItemRef AUTHORED = ItemRef.fromString("cg.predicate:authored");
+    static final ItemRef TOLKIEN = ItemRef.fromString("person.tolkien");
+    static final ItemRef HOBBIT = ItemRef.fromString("book.hobbit");
+    static final ItemRef LEXEME = ItemRef.fromString("cg.predicate:lexeme");
+    static final ItemRef ADD = ItemRef.fromString("cg.operator:add");
+    static final ItemRef ENGLISH = ItemRef.fromString("cg.lang:eng");
+    static final ItemRef VERB = ItemRef.fromString("cg.pos:verb");
+    static final ItemRef LEMMA = ItemRef.fromString("cg.feat:lemma");
 
     @Nested
     @DisplayName("Frame.compose — basic shapes")
@@ -43,8 +41,7 @@ class DatumBuilderTest {
 
             Binding b = f.body().bindings().get(0);
             assertThat(b.role()).isEqualTo(ThematicRole.Theme.IID);
-            assertThat(b.target()).isInstanceOf(Literal.class);
-            assertThat(((Literal) b.target()).asText()).isEqualTo("create");
+            assertThat(b.target()).isEqualTo("create");
         }
 
         @Test
@@ -67,7 +64,7 @@ class DatumBuilderTest {
         @Test
         @DisplayName("generic .with(role, target) for arbitrary roles")
         void genericWith() {
-            ItemID custom = ItemID.fromString("custom.role:x");
+            ItemRef custom = ItemRef.fromString("custom.role:x");
             Frame f = Frame.compose(LOOKUP)
                     .with(custom, "value")
                     .build();
@@ -96,7 +93,7 @@ class DatumBuilderTest {
             assertThat(f.body().bindings()).hasSize(2);
             Binding lex = f.body().binding(CompoundKey.of(
                     ThematicRole.Value.IID, ENGLISH, VERB, LEMMA)).orElseThrow();
-            assertThat(((Literal) lex.target()).asText()).isEqualTo("add");
+            assertThat(lex.target()).isEqualTo("add");
         }
 
         @Test
@@ -108,13 +105,13 @@ class DatumBuilderTest {
                         .qualifier(ENGLISH)
                         .target("add")
                     .binding(ThematicRole.Value.IID)        // auto-closes prev
-                        .qualifier(ItemID.fromString("cg.lang:deu"))
+                        .qualifier(ItemRef.fromString("cg.lang:deu"))
                         .target("addieren")
                     .build();
 
             assertThat(f.body().bindings()).hasSize(3);
             // Both English and German bindings should be present.
-            ItemID german = ItemID.fromString("cg.lang:deu");
+            ItemRef german = ItemRef.fromString("cg.lang:deu");
             assertThat(f.body().binding(CompoundKey.of(ThematicRole.Value.IID, ENGLISH)))
                     .isPresent();
             assertThat(f.body().binding(CompoundKey.of(ThematicRole.Value.IID, german)))
@@ -158,11 +155,11 @@ class DatumBuilderTest {
 
             // AGENT auto-added → alice's IID
             Binding agent = r.binding(CompoundKey.of(ThematicRole.Agent.IID)).orElseThrow();
-            assertThat(((BindingTarget.RefTarget) agent.target()).asItemId()).isEqualTo(alice.iid());
+            assertThat(agent.target()).isEqualTo(alice.iid());
 
-            // TIME auto-added → some Instant literal
+            // TIME auto-added → an Instant
             Binding time = r.binding(CompoundKey.of(ThematicRole.Time.IID)).orElseThrow();
-            assertThat(time.target()).isInstanceOf(Literal.class);
+            assertThat(time.target()).isInstanceOf(java.time.Instant.class);
 
             // Signature is real bytes
             assertThat(r.signature()).isNotEmpty();
@@ -172,7 +169,7 @@ class DatumBuilderTest {
         @DisplayName(".record(signer).with(...).build() — record-level bindings preserved")
         void recordWithBindings() {
             Signer alice = Signer.inMemory();
-            ItemID confidence = ItemID.fromString("attr.confidence");
+            ItemRef confidence = ItemRef.fromString("attr.confidence");
 
             Frame f = Frame.compose(AUTHORED)
                     .theme(HOBBIT)
@@ -186,7 +183,7 @@ class DatumBuilderTest {
             // Confidence binding preserved on the record
             assertThat(r.binding(CompoundKey.of(confidence)))
                     .hasValueSatisfying(b ->
-                            assertThat(((Literal) b.target()).asText()).isEqualTo("high"));
+                            assertThat(b.target()).isEqualTo("high"));
         }
 
         @Test
@@ -222,8 +219,8 @@ class DatumBuilderTest {
         @Test
         @DisplayName("manifest auto-injects ITEM_ID")
         void autoItemId() {
-            ItemID iid = ItemID.fromString("test.item:doc");
-            ItemID archetype = ItemID.fromString("cg.archetype:document");
+            ItemRef iid = ItemRef.fromString("test.item:doc");
+            ItemRef archetype = ItemRef.fromString("cg.archetype:document");
 
             Manifest m = Manifest.compose(archetype, iid).build();
 
@@ -235,11 +232,11 @@ class DatumBuilderTest {
         @DisplayName("manifest can be signed")
         void signedManifest() {
             Signer librarian = Librarian.inMemory();
-            ItemID iid = ItemID.fromString("test.item:doc");
-            ItemID archetype = ItemID.fromString("cg.archetype:document");
+            ItemRef iid = ItemRef.fromString("test.item:doc");
+            ItemRef archetype = ItemRef.fromString("cg.archetype:document");
 
             Manifest m = Manifest.compose(archetype, iid)
-                    .with(Manifest.ENDORSES, ItemID.fromString("test.frame:cid1"))
+                    .with(Manifest.ENDORSES, ItemRef.fromString("test.frame:cid1"))
                     .record(librarian)
                     .build();
 

@@ -1,17 +1,14 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.canonical.Scope;
+import dev.everydaythings.graph.encoding.CgCbor;
 
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ContentID;
-import dev.everydaythings.graph.id.DatumID;
-import dev.everydaythings.graph.id.FrameRef;
-import dev.everydaythings.graph.id.ItemID;
+import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.junit.jupiter.api.DisplayName;
@@ -36,12 +33,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class DatumIntegrationTest {
 
-    static final ItemID AUTHORED = ItemID.fromString("cg.predicate:authored");
-    static final ItemID DOCUMENT = ItemID.fromString("cg.archetype:document");
-    static final ItemID THEME    = ItemID.fromString("cg.role:theme");
-    static final ItemID AGENT    = ItemID.fromString("cg.role:agent");
-    static final ItemID SIGNER   = ItemID.fromString("cg.role:signer");
-    static final ItemID TIME     = ItemID.fromString("cg.role:time");
+    static final ItemRef AUTHORED = ItemRef.fromString("cg.predicate:authored");
+    static final ItemRef DOCUMENT = ItemRef.fromString("cg.archetype:document");
+    static final ItemRef THEME    = ItemRef.fromString("cg.role:theme");
+    static final ItemRef AGENT    = ItemRef.fromString("cg.role:agent");
+    static final ItemRef SIGNER   = ItemRef.fromString("cg.role:signer");
+    static final ItemRef TIME     = ItemRef.fromString("cg.role:time");
 
     @Test
     @DisplayName("end-to-end: build body, sign with Ed25519, wrap as record, verify")
@@ -58,22 +55,22 @@ class DatumIntegrationTest {
         MultiKey signerKey = MultiKey.of(Algorithm.Sign.ED25519, rawPublicKey);
 
         // Build a body — "Tolkien authored the Hobbit"
-        ItemID tolkien = ItemID.fromString("person.tolkien");
-        ItemID hobbit  = ItemID.fromString("book.hobbit");
+        ItemRef tolkien = ItemRef.fromString("person.tolkien");
+        ItemRef hobbit  = ItemRef.fromString("book.hobbit");
         Body body = Body.of(ItemRef.of(AUTHORED), List.of(
                 Binding.ref(AGENT, tolkien),
                 Binding.ref(THEME, hobbit)
         ));
-        DatumID bodyId = body.datumId();
-        ContentID bodyCid = ContentID.of(body.encodeBinary(Scope.BODY));
+        DatumRef bodyId = body.datumId();
+        ContentRef bodyCid = ContentRef.of(CgCbor.encode(body));
 
         // Build a record body (head + bindings, no signature yet) for signing
         Record proto = Record.of(
-                FrameRef.of(bodyId),
+                DatumRef.of(bodyId),
                 List.of(
-                        Binding.ref(SIGNER, ItemID.fromString("dummy")),
+                        Binding.ref(SIGNER, ItemRef.fromString("dummy")),
                         Binding.literal(TIME, dev.everydaythings.graph.datum.BindingTarget.iid(
-                                ItemID.fromString("2026-05-04")))
+                                ItemRef.fromString("2026-05-04")))
                 ),
                 new byte[]{0x01}  // placeholder; we'll replace below
         );
@@ -93,7 +90,7 @@ class DatumIntegrationTest {
 
         // Build the real record with the actual signature
         Record record = Record.of(
-                FrameRef.of(bodyId),
+                DatumRef.of(bodyId),
                 proto.bindings(),
                 varsig
         );
@@ -101,7 +98,7 @@ class DatumIntegrationTest {
         // Aggregate into a Frame
         Frame frame = Frame.of(body, List.of(record));
         assertThat(frame.records()).hasSize(1);
-        assertThat(frame.bodyCID()).isEqualTo(bodyCid);
+        // bodyCID assertion deleted — ContentRef computation lives at the Library boundary.
 
         // Verify the signature: recompute the signing payload (Merkle root) from
         // the record and check against the public key
@@ -124,9 +121,9 @@ class DatumIntegrationTest {
     @Test
     @DisplayName("end-to-end: build archetypal manifest with ITEM_ID, FOLLOWS, ENDORSES")
     void endToEndManifest() throws Exception {
-        ItemID iid = ItemID.fromString("my-document-item");
-        ItemID parentVid = ItemID.fromString("v1");
-        ItemID endorsedFrameCid = ItemID.fromString("frame-1");
+        ItemRef iid = ItemRef.fromString("my-document-item");
+        ItemRef parentVid = ItemRef.fromString("v1");
+        ItemRef endorsedFrameCid = ItemRef.fromString("frame-1");
 
         // Inception manifest (no FOLLOWS): body has ITEM_ID + ENDORSES
         Body inceptionBody = Body.of(ItemRef.of(DOCUMENT), List.of(
@@ -146,7 +143,7 @@ class DatumIntegrationTest {
                 Binding.ref(Manifest.ITEM_ID, iid),
                 Binding.ref(Manifest.FOLLOWS, parentVid),
                 Binding.ref(Manifest.ENDORSES, endorsedFrameCid),
-                Binding.ref(Manifest.ENDORSES, ItemID.fromString("frame-2"))
+                Binding.ref(Manifest.ENDORSES, ItemRef.fromString("frame-2"))
         ));
         Manifest v2 = Manifest.of(v2Body);
 
@@ -155,9 +152,9 @@ class DatumIntegrationTest {
         assertThat(v2.endorses()).hasSize(2);
 
         // CBOR round-trip preserves identity
-        Body decoded = Body.fromCborTree(v2Body.toCborTree(Scope.BODY));
-        assertThat(ContentID.of(decoded.encodeBinary(Scope.BODY)))
-                .isEqualTo(ContentID.of(v2Body.encodeBinary(Scope.BODY)));
+        Body decoded = Body.fromCborTree(CgCbor.toCbor(v2Body));
+        assertThat(ContentRef.of(CgCbor.encode(decoded)))
+                .isEqualTo(ContentRef.of(CgCbor.encode(v2Body)));
         Manifest reconstituted = Manifest.of(decoded);
         assertThat(reconstituted.itemId()).isEqualTo(iid);
         assertThat(reconstituted.parents()).hasSize(1);
@@ -167,11 +164,11 @@ class DatumIntegrationTest {
     @Test
     @DisplayName("Frame and Manifest distinguish via ITEM_ID binding presence")
     void frameVsManifest() {
-        ItemID iid = ItemID.fromString("doc-item");
+        ItemRef iid = ItemRef.fromString("doc-item");
 
         // Without ITEM_ID — propositional Frame
         Body propBody = Body.of(ItemRef.of(AUTHORED), List.of(
-                Binding.ref(THEME, ItemID.fromString("hobbit"))
+                Binding.ref(THEME, ItemRef.fromString("hobbit"))
         ));
         Frame frame = Frame.of(propBody);
         assertThat(frame.isArchetypal()).isFalse();

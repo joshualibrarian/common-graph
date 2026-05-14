@@ -2,15 +2,13 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.id.DatumID;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.FrameRef;
-import dev.everydaythings.graph.id.ItemID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
-import dev.everydaythings.graph.runtime.Librarian;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.FrameDraftMerger;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.ParseContext;
@@ -45,7 +43,7 @@ public class Item {
     public static final String KEY = "cg.sememe:item";
 
     /** The IID for Item-the-concept. Subclasses override {@link #archetype()} to return their own. */
-    public static final ItemID IID = ItemID.fromString(KEY);
+    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     /**
      * The archetype this item is an instance of — the sememe IID that goes in the
@@ -54,7 +52,7 @@ public class Item {
      * <p>Subclasses override to return their own archetype IID (Signer, Librarian,
      * application-specific item types). The default returns {@link #IID}.
      */
-    public ItemID archetype() {
+    public ItemRef archetype() {
         return IID;
     }
 
@@ -68,7 +66,7 @@ public class Item {
      * stable identity (commit, register, signing payload preparation) must guard
      * with {@code Objects.requireNonNull(iid, ...)} at the boundary.
      */
-    protected final ItemID iid;
+    protected final ItemRef iid;
 
     /**
      * Runtime context. Null for seed/siloed items; settable via {@link #bindLibrarian}
@@ -77,7 +75,7 @@ public class Item {
     protected Librarian librarian;
 
     /** Seed/siloed item — no librarian context. */
-    public Item(ItemID iid) {
+    public Item(ItemRef iid) {
         this(iid, null);
     }
 
@@ -89,7 +87,7 @@ public class Item {
      * anonymous-Librarian path; they cannot commit, cannot be registered, and
      * cannot be the target of a binding.
      */
-    public Item(ItemID iid, Librarian librarian) {
+    public Item(ItemRef iid, Librarian librarian) {
         this.iid = iid;
         this.librarian = librarian;
     }
@@ -141,7 +139,7 @@ public class Item {
      *
      * <p>Empty if no manifest is currently loaded.
      */
-    public Optional<DatumID> versionId() {
+    public Optional<DatumRef> versionId() {
         return current != null ? Optional.of(current.versionId()) : Optional.empty();
     }
 
@@ -151,7 +149,7 @@ public class Item {
      * <p>Empty list for inception manifests, multiple entries for merge manifests,
      * or empty if no manifest is currently loaded.
      */
-    public List<DatumID> parents() {
+    public List<DatumRef> parents() {
         return current != null ? current.parents() : List.of();
     }
 
@@ -207,7 +205,9 @@ public class Item {
     public Stream<Frame> endorsedFrames() {
         if (current == null || librarian == null) return Stream.empty();
         return current.endorses().stream()
-                .map(b -> ((BindingTarget.RefTarget) b.target()).asDatumId())
+                .map(Binding::target)
+                .filter(t -> t instanceof DatumRef)
+                .map(DatumRef.class::cast)
                 .flatMap(id -> librarian.fetchFrame(id).stream());
     }
 
@@ -227,7 +227,7 @@ public class Item {
      * @param predicateIid the predicate to match against each frame body's head
      * @return frames endorsed by this item's manifest whose head equals {@code predicateIid}
      */
-    public Stream<Frame> endorsedFramesByPredicate(ItemID predicateIid) {
+    public Stream<Frame> endorsedFramesByPredicate(ItemRef predicateIid) {
         Objects.requireNonNull(predicateIid, "predicateIid");
         return endorsedFrames()
                 .filter(f -> f.body().headRef().iid().equals(predicateIid));
@@ -287,7 +287,7 @@ public class Item {
         if (current != null) {
             manifestBindings.add(new Binding(
                     Manifest.FOLLOWS,
-                    BindingTarget.ref(current.versionId())));
+                    current.versionId()));
         }
         // Auto-inject IMPLEMENTATION for non-bare-Item subclasses so future
         // hydration of this item's manifest can dispatch to the right Java class.
@@ -300,7 +300,7 @@ public class Item {
         librarian.persist(body);
 
         VarSig signature = signer.sign(HashTree.signingPayload(body));
-        Record record = Record.of(FrameRef.of(body.datumId()), List.of(), signature);
+        Record record = Record.of(DatumRef.of(body.datumId()), List.of(), signature);
         librarian.persist(record);
 
         Manifest committed = Manifest.of(body, List.of(record));

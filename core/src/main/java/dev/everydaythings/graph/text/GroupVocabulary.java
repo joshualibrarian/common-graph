@@ -1,11 +1,10 @@
 package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemID;
-import dev.everydaythings.graph.linguistics.Gloss;
-import dev.everydaythings.graph.linguistics.Language;
-import dev.everydaythings.graph.linguistics.Lexeme;
-import dev.everydaythings.graph.semantics.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.language.LexicalVocabulary;
 
 /**
  * Sememes for textual grouping markers — {@code (} and {@code )}.
@@ -44,13 +43,13 @@ public final class GroupVocabulary {
     @Seed.Item(key = OpenGroup.KEY)
     public static final class OpenGroup {
         public static final String KEY = "cg.notation:open-group";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private OpenGroup() {}
 
-        @Seed.Frame(predicate = Lexeme.KEY)
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY)
         static final String symbol = "(";
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
                 field = @Seed.Binding(role = ThematicRole.Value.KEY,
                         qualifiers = {Language.English.KEY}))
         static final String englishGloss =
@@ -64,13 +63,13 @@ public final class GroupVocabulary {
     @Seed.Item(key = CloseGroup.KEY)
     public static final class CloseGroup {
         public static final String KEY = "cg.notation:close-group";
-        public static final ItemID IID = ItemID.fromString(KEY);
+        public static final ItemRef IID = ItemRef.fromString(KEY);
         private CloseGroup() {}
 
-        @Seed.Frame(predicate = Lexeme.KEY)
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY)
         static final String symbol = ")";
 
-        @Seed.Frame(predicate = Gloss.KEY,
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
                 field = @Seed.Binding(role = ThematicRole.Value.KEY,
                         qualifiers = {Language.English.KEY}))
         static final String englishGloss =
