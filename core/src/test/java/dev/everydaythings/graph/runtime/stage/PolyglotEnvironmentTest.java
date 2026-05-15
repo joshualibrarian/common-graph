@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.runtime;
+package dev.everydaythings.graph.runtime.stage;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -133,6 +133,31 @@ A "lock" is just confidence `1.0`. There is no separate lock state. Anything wei
 
 The parser takes input and runs a **consensus circle**: every participant that has a stake in interpreting the input emits a candidate FrameMap delta with confidences. The orchestrator merges these deltas by weight until the picture stops changing. That settled picture is the frame.
 
+## Composable Notations
+
+Languages are not a class hierarchy with `parse()` overridden in each subclass. They are **compositions of notations.**
+
+A **Notation** is a small, focused parse participant — an object that knows one localized fragment of syntax. Each notation declares what tokens it cares about and contributes FrameMap deltas in rounds where those tokens appear. Examples:
+
+- `OperatorNotation` — handles infix/prefix/postfix tokens. Owns precedence/associativity weighting. Contributes binary/unary frames whose weights drive the operator-precedence consensus described below.
+- `FunctionNotation` — handles `name(args)` shaped fragments. Owns argument grouping and separator handling. Contributes function-call frames.
+- `IdentifierNotation` — handles bare token-resolved sememes that should fill a binding slot.
+- `QuantityNotation` — handles `<numeral> <unit-noun>` pairings.
+- … and so on per syntactic phenomenon a Language wants.
+
+A **Language** (English, German, chess-notation, SQL, …) is then "the union of notations I bring in, plus my own lexical rules." Different Languages compose different notation sets:
+
+- English math prompt: `[OperatorNotation, FunctionNotation, IdentifierNotation, QuantityNotation, English-lexical]`
+- Chess notation: `[ChessMoveNotation, SquareNotation, PromotionNotation]` only — no operators
+- A SQL fragment Language: `[SqlNotation, IdentifierNotation, OperatorNotation-subset]`
+
+Two consequences worth being explicit about:
+
+- **No `extends Language` proliferation.** New parsing behavior is a new notation, dropped into whichever Languages want it. A notation is light — it doesn't carry a worldview, just one piece of syntax.
+- **Literals are not a notation.** Numbers, strings, booleans, and other terminal literal forms are handled in the base notation/tokenization path as a universal fallback. Nothing needs to participate to make `42` resolve to a Decimal. This keeps every Language from having to opt in to literal handling.
+
+The consensus circle remains as described below — but the seats around the circle are filled by **notations** (per Language) plus the item-orchestrator plus the user. A Language's "voice" in the circle is the sum of its notations' voices.
+
 ## Participants
 
 The participant set is computed per round from anchors:

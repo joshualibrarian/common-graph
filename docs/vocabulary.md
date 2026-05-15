@@ -19,6 +19,70 @@ Traditional systems separate "commands" from "data" from "names" from "math." Co
 
 All of these resolve through the same pipeline: token to sememe to action or value.
 
+## The EXPECTS / IMPLEMENTATION / HANDLES Trio
+
+Three orthogonal declarations on every item-shape that has a runtime aspect. They're easy to confuse — they sound similar — but they answer three distinct questions:
+
+| Declaration | Lives on | Question it answers |
+|---|---|---|
+| **EXPECTS** | The predicate/archetype | *What does an instance of this concept look like?* |
+| **IMPLEMENTATION** | Each individual item | *What code runs this item?* |
+| **HANDLES** | The archetype (inherited by instances) | *What predicates do items of this archetype process?* |
+
+### EXPECTS — the shape of instances
+
+EXPECTS is a binding on a predicate or archetype declaring what bindings its instances should carry. For a **predicate**, the instance shape is a *frame* (the frame's bindings). For an **archetype**, the instance shape is an *item* (the item's manifest bindings + endorsed frames). One mechanism, two surfaces.
+
+The distinction between predicate and archetype is **usage-based, not structural** — see `docs/item.md` "Predicate, archetype, or both?" The presence of an `ITEM_ID` binding in EXPECTS is what makes a concept usable as an archetype (its instances are items with stable identities). Without ITEM_ID, instances are frames.
+
+EXPECTS drives UI form generation, schema validation, and the duck-typing rule: an instance that structurally carries the expected bindings *is* that type, regardless of what its IMPLEMENTS frame claims.
+
+### IMPLEMENTATION — the code that runs this item
+
+IMPLEMENTATION is a manifest binding on each individual item, pointing at the code that should be loaded and invoked when the item is instantiated. The target is either a literal type name (built-in code on the local runtime, e.g., a Java class) or `@<code-item-ref>` (a code item carrying source/bytecode that can travel with the data).
+
+IMPLEMENTATION is **per-item**, not per-archetype. Two items implementing the same archetype can run different code — one a Java class, one a Python module, one a Rust binary — as long as each honors the predicate contracts declared in the archetype's HANDLES.
+
+The semantic claim "this code implements the chess concept" is an `IMPLEMENTS` frame on the code item, separate from the manifest binding. IMPLEMENTATION says *which code*; IMPLEMENTS says *what that code is an implementation of*.
+
+### HANDLES — the predicates this archetype processes
+
+HANDLES frames are endorsed on archetypes and declare "items of this archetype process these predicates." Each HANDLES frame carries:
+
+- `THEME` → the predicate handled
+- `INSTRUMENT` → the handler reference (method name string for Java reflection, or `@<code-item-ref>` for polyglot bundles)
+- `ATTRIBUTE[ARITY]`, `ATTRIBUTE[PRIORITY]`, … — optional metadata
+
+HANDLES is **archetype-only**, not predicate-only. A predicate's job is to describe the shape of frames using it; it doesn't receive frames. Archetypes (and their instances) receive frames and dispatch on the predicate.
+
+Two carve-outs:
+
+- **Self-handling predicates.** Pure operators like ADD, MULTIPLY, NEGATE — where the behavior is a function of the bindings alone with no contextual state — can self-handle. They are both message-shape *and* actor. Use sparingly; the default rule is behavior in items, not in predicates.
+- **Frames as `@Seed.Handler` annotations at bootstrap; HANDLES frames at runtime.** The two converge on the same data. Annotations are read at startup and produce HANDLES frames; the runtime consults the frames, not the annotations.
+
+### How the three relate
+
+```
+Archetype "Chess":
+    EXPECTS:   { ITEM_ID, PLAYER[WHITE], PLAYER[BLACK], MOVE+ }   -- shape of a chess-game item
+    HANDLES:   { CHESS_MOVE → "applyMove",
+                 RESIGN     → "handleResign",
+                 OFFER_DRAW → "offerDraw" }                       -- predicates a chess game processes
+
+A specific chess-game item:
+    Manifest:
+        IMPLEMENTATION → "dev.everydaythings.graph.game.ChessItem"   -- the Java class to load
+        IMPLEMENTS frame → @<chess archetype>                        -- this item is a chess game
+        PLAYER[WHITE] → @Alice, PLAYER[BLACK] → @Bob                 -- the EXPECTS shape, filled in
+        MOVE → ..., MOVE → ..., ...                                  -- accumulated moves
+```
+
+The runtime path: a `CHESS_MOVE` frame arrives at the chess-game item → the Librarian's trust matrix selects the implementation → the ItemStage loads `ChessItem.class` (per IMPLEMENTATION) → invokes the `applyMove` method (per HANDLES) with the frame's bindings.
+
+A polyglot chess game looks identical at the data layer — different IMPLEMENTATION target, same EXPECTS, same HANDLES. The wire format is the contract.
+
+See `docs/item.md` and `docs/runtime.md` for the runtime mechanics.
+
 ## The Resolution Pipeline
 
 ```

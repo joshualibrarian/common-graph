@@ -160,6 +160,30 @@ The UI generates creation forms from EXPECTS declarations. EXPECTS also enables 
 
 See [Frames: EXPECTS](frames.md#expects-schema-as-frames) for the full explanation.
 
+### Predicate, archetype, or both?
+
+Two roles a concept-item can play:
+
+- **Predicate** — its EXPECTS describes the shape of *frames* that use it. The "thing instantiated" is a frame.
+- **Archetype** — its EXPECTS describes the shape of *items* that implement it. The "thing instantiated" is an item with stable identity.
+
+The distinction is **usage-based, not structural**. There is one item-shape, and the same concept can legitimately play both roles. The only structural marker that flips a concept from predicate-flavor to archetype-flavor is whether its EXPECTS declares an `ITEM_ID` binding:
+
+- **No `ITEM_ID` in EXPECTS** → instances are frames (no per-instance stable identity beyond the body hash).
+- **`ITEM_ID` in EXPECTS** → instances are items (each gets a fresh IID; manifest-shaped).
+
+That's it. There is no "Predicate" class versus an "Archetype" class in the runtime. They're the same item with different EXPECTS contents.
+
+Why is this important? Because the world is fuzzy. Some concepts cleanly fit one role (ADD is a predicate; Chess is an archetype). Others legitimately play both — *Document* is an archetype for instances (your specific document) but also functions as a predicate inside other frames (an `AUTHORED { THEME → @document }` binding references the same concept). Trying to split these into separate items in advance would either force false choices or duplicate vocabulary. Letting one item play multiple roles, with EXPECTS encoding the rules for each role, keeps the vocabulary economical and lets emergence happen.
+
+What you'll see in practice:
+
+- Operators (ADD, EQUALS, NEGATE) — predicates only. EXPECTS lists LHS, RHS. No ITEM_ID.
+- Domain concepts (Chess, Document, Photograph, Roster) — archetypes. EXPECTS includes ITEM_ID and the structural frames their instances need.
+- Mixed-role concepts (LOCATION, TIME, AGENT as predicates for binding contexts; the same concepts as anchors elsewhere) — depends on usage. A given concept's EXPECTS captures whichever role it plays in this vocabulary.
+
+The HANDLES distinction (see `docs/vocabulary.md`) is the practical consequence: archetypes carry HANDLES (their instances process predicates); predicates don't (a predicate doesn't *receive* frames — it shapes them). Self-handling predicates like ADD are the rare exception.
+
 ## Items as Actors: HANDLES Declares the API Surface
 
 Items are **actors**. Frames are **messages**. Predicates classify message types. When a frame is created and reaches an item, the item dispatches on the frame's predicate to choose how to react. The dispatch table is **declared in data**: a list of HANDLES frames endorsed by the item's manifest.

@@ -51,6 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Seed.Item(key = Librarian.KEY)
 @Seed.Embodies(key = Librarian.CODE_KEY, archetype = Librarian.KEY)
+@lombok.extern.log4j.Log4j2
 public class Librarian extends Signer {
 
     /** Canonical key for Librarian-the-archetype. */
@@ -79,6 +80,14 @@ public class Librarian extends Signer {
     public ItemRef archetype() {
         return IID;
     }
+
+    /**
+     * The execution substrate this Librarian runs on. Owns the polyglot
+     * environment and (eventually) the handler-dispatch primitive. Provided at
+     * construction time — Librarians don't create their own Stage.
+     */
+    @Getter
+    private final dev.everydaythings.graph.runtime.stage.ItemStage stage;
 
     /** The local storage manager (always present). Owns the encoder. */
     @Getter
@@ -112,9 +121,20 @@ public class Librarian extends Signer {
     /**
      * Identity-only constructor (no signing capability). Primarily for hydration
      * paths where the local node doesn't hold this Librarian's private key.
+     *
+     * <p>Convenience overload that defaults to a Java-only {@link
+     * dev.everydaythings.graph.runtime.stage.ItemStage}.
      */
     public Librarian(ItemRef iid, Library library, Optional<Path> rootPath) {
+        this(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly(),
+                iid, library, rootPath);
+    }
+
+    /** Identity-only constructor with explicit Stage. */
+    public Librarian(dev.everydaythings.graph.runtime.stage.ItemStage stage,
+                     ItemRef iid, Library library, Optional<Path> rootPath) {
         super(iid);
+        this.stage = Objects.requireNonNull(stage, "stage");
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
         this.parley = new Parley(this);
@@ -130,9 +150,20 @@ public class Librarian extends Signer {
      * publishes its four-datum genesis (INCEPTION body+record on the signing
      * track plus the Librarian's own item-manifest body+record). When the
      * constructor returns, the Librarian is a fully-published graph identity.
+     *
+     * <p>Convenience overload that defaults to a Java-only {@link
+     * dev.everydaythings.graph.runtime.stage.ItemStage}.
      */
     public Librarian(Vault vault, Library library, Optional<Path> rootPath) {
+        this(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly(),
+                vault, library, rootPath);
+    }
+
+    /** Full constructor with explicit Stage. */
+    public Librarian(dev.everydaythings.graph.runtime.stage.ItemStage stage,
+                     Vault vault, Library library, Optional<Path> rootPath) {
         super(vault);
+        this.stage = Objects.requireNonNull(stage, "stage");
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
         this.parley = new Parley(this);
@@ -147,6 +178,7 @@ public class Librarian extends Signer {
      */
     private Librarian(Library library) {
         super((ItemRef) null);
+        this.stage = dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly();
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Optional.empty();
         this.parley = new Parley(this);
@@ -203,11 +235,17 @@ public class Librarian extends Signer {
      * sign transient frames and discard them.
      */
     public static Librarian ephemeral() {
+        return ephemeral(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly());
+    }
+
+    /** Ephemeral Librarian on the given Stage. */
+    public static Librarian ephemeral(dev.everydaythings.graph.runtime.stage.ItemStage stage) {
         // Still byte-backed: bootstrap + token-indexed parse pipelines rely on
         // the byte-store token dictionary. Once token indexing is wired into
         // PureMapLibrary (blocked on task #48 — Posting.source flip from
         // ContentRef to DatumRef), ephemeral will switch to Library.anonymous().
         return new Librarian(
+                stage,
                 InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
                 Library.inMemory(),
                 Optional.empty());
@@ -258,8 +296,15 @@ public class Librarian extends Signer {
      *                               different encoder
      */
     public static Librarian fresh(java.nio.file.Path path) {
+        return fresh(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly(), path);
+    }
+
+    /** Fresh persistent Librarian at the given path, on the given Stage. */
+    public static Librarian fresh(dev.everydaythings.graph.runtime.stage.ItemStage stage,
+                                  java.nio.file.Path path) {
         Objects.requireNonNull(path, "path");
         return new Librarian(
+                stage,
                 InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
                 Library.atPath(path),
                 Optional.of(path));
@@ -289,6 +334,53 @@ public class Librarian extends Signer {
                         + path + " is valid, but the vault holding the original "
                         + "signing identity cannot yet be re-loaded. See the "
                         + "Stage 4 follow-on in the librarian-startup-flow design memo.");
+    }
+
+    // ==================================================================================
+    // CLI entry — `java -cp ... Librarian [opts]`
+    // ==================================================================================
+    //
+    // Bring up an {@link dev.everydaythings.graph.runtime.stage.ItemStage}, instantiate
+    // a Librarian on it via the existing factories, optionally start the Parley
+    // listener (in daemon/foreground mode), and block until interrupted.
+    //
+    // For service-manager-driven deployment (jsvc, Procrun, etc.) use
+    // {@link LibrarianDaemon} as the daemon class — same flow, split across the
+    // Apache Commons Daemon lifecycle methods.
+
+    /**
+     * Direct CLI entry. Parses {@link LibrarianOptions} from {@code args},
+     * brings up an ItemStage (probing GraalVM, degrading gracefully if absent),
+     * constructs a Librarian on it, starts the Parley listener in daemon/foreground
+     * mode, and blocks until interrupted.
+     */
+    public static void main(String[] args) {
+        LibrarianOptions opts = new LibrarianOptions();
+        new picocli.CommandLine(opts).parseArgs(args);
+
+        dev.everydaythings.graph.runtime.stage.ItemStage stage =
+                new dev.everydaythings.graph.runtime.stage.ItemStage();
+        logger.info("ItemStage up. Polyglot: {}",
+                stage.polyglotAvailable()
+                        ? "GraalVM " + stage.polyglotLanguages()
+                        : "Java-only");
+
+        Librarian lib = opts.path != null
+                ? Librarian.fresh(stage, opts.effectivePath())
+                : Librarian.ephemeral(stage);
+
+        if (opts.daemon || opts.foreground) {
+            // TODO: hook this up once Parley.listen(port) is wired.
+            // lib.parley().listen(opts.port);
+        }
+
+        logger.info("Librarian running. IID: {}", lib.iid().encodeText());
+        try {
+            Thread.currentThread().join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.info("Librarian interrupted; shutting down.");
+        }
     }
 
     // ==================================================================================

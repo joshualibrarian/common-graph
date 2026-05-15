@@ -15,9 +15,10 @@ Concretely, a spectrum of specificity:
 - `AUTHORED { (AGENT) = Tolkien, (THEME) = the-hobbit }` — every binding is a specific value.  An assertion.
 - `AUTHORED { (AGENT) = Tolkien, (THEME) = ANY }` — THEME is set-returning (matches any value).  A query.
 - `HARVEST { (PRODUCT) = tomato, (VALUE) > 5kg }` — no `ANY` appears, but `> 5kg` resolves to a sub-frame whose evaluation is set-returning.  Also a query.
+- `?Book { (AUTHOR) = Tolkien }` — head is a TypeRef (`?`-prefixed reference); the body matches anything in the Book archetype hierarchy with the given binding.  A query.
 - `ANY { (ANY) = Tolkien, (ANY) = BOOK }` — predicate and roles are also `ANY`.  A very loose "bag of terms" case.
 
-All four are frames.  The first is persisted as an assertion.  The others are run as queries against the index.
+All five are frames.  The first is persisted as an assertion.  The others are run as queries against the index.
 
 ## `ANY`
 
@@ -28,6 +29,57 @@ All four are frames.  The first is persisted as an assertion.  The others are ru
 ```
 AUTHORED { (AGENT) = UNKNOWN, (THEME) = ANY }
 ```
+
+## The `?` prefix: TypeRef patterns
+
+`ANY` covers wildcards over the *value space* — any value, of any kind, including literals.  But it can't compose with a specific type in a single reference slot.  The head of a body is one reference; you can put a specific predicate there (`AUTHORED`) or `ANY` (any predicate), but you can't say "any frame whose head is in the BOOK archetype family" because that needs two pieces of semantics — the kind AND the pattern intent — in one ref slot.
+
+For this case, the reference system carries a fourth prefix: **`?`** — the *TypeRef*.  A TypeRef encodes "match any body whose head is in this IID's archetype/predicate hierarchy" as a single reference.
+
+The four reference prefixes:
+
+- `@<iid>` — exact item reference
+- `#<did>` — exact body reference (by DatumID)
+- `~<cid>` — exact content reference (by wire-byte hash)
+- `?<iid>` — type pattern reference (TypeRef)
+
+A TypeRef in any structural position (head, role, qualifier, target) declares "this position holds bodies of this kind, match anything in the kind's hierarchy."  Compose with constraints in other positions to narrow.
+
+Examples:
+
+```
+?Book                            — any Book (item-level match)
+?Book { (AUTHOR) = Tolkien }     — any Book written by Tolkien
+?Move { (AGENT) = Fischer }      — any Move frame by Fischer (frame-level match)
+?Fruit                           — any Fruit (anything in the Fruit hierarchy)
+?<Archetype-root>                — any item/frame in the universe (degenerate case)
+```
+
+The TypeRef target IID is whatever sememe sits at the head position of the bodies you want.  For items, that's the archetype.  For frames, it's the predicate.  Hierarchical matching does the rest: `?Fruit` matches Tomato items because Tomato's archetype chain reaches Fruit.
+
+### TypeRef and ANY are complementary
+
+The two abstractions sit at different levels:
+
+- **`?<iid>` (TypeRef)** is over the *type hierarchy*.  It matches bodies whose head is in this IID's lineage.  Doesn't apply to literals — literals have no head, no archetype.
+- **`ANY`** is over the *value space*.  It matches any value at all — bodies, refs, literals (numbers, strings, bytes), anything.
+
+Neither replaces the other.  Position-by-position guidance:
+
+| Want | Use |
+|---|---|
+| Any Book (typed item match) | head = `?Book` |
+| Any item/frame at all | head = `?<Archetype-root>` |
+| Any value here, including literals | target = `ANY` |
+| Any value here that's a Fruit (ref-typed) | target = `?Fruit` |
+| Any role | role = `ANY` |
+| Any qualifier | qualifier = `ANY` |
+
+Use `?<iid>` for "any of this type."  Use `ANY` for "any value at all" — especially when the position might hold literals.
+
+### Notation
+
+The `?` glyph is a common surface-form token for TypeRef, but it isn't *the* syntax.  As with everything else in CG, queries have no native textual syntax — only the structural reference type.  Any input pipeline can produce a TypeRef from any surface form: a question word in natural language ("what books..."), an empty slot in a form UI, a `?` typed into the prompt, a SPARQL-style variable, a Prolog-style uppercase identifier.  The resolved data carries the TypeRef; how it was typed in is the parser's concern.
 
 ## Expression sub-frames
 
@@ -79,17 +131,19 @@ Routing is declarative.  It requires two pieces of information: (1) the `RETURNS
 
 When the frame-processing pipeline receives a frame, it decides whether to persist as assertion or run as query.  The decision is a **recursive walk** over all positions (predicate, roles, qualifiers, and binding targets, including into sub-frames):
 
-1. If any sememe in any position has `RETURNS { (VALUE) = MATCHER }`, the frame is a query.
-2. If any sub-frame's predicate has a return type that becomes a matcher under partial application in its current position, the frame is a query.
-3. Otherwise, the frame is an assertion.
+1. If any reference in any position is a TypeRef (`?`-prefixed), the frame is a query.
+2. If any sememe in any position has `RETURNS { (VALUE) = MATCHER }`, the frame is a query.
+3. If any sub-frame's predicate has a return type that becomes a matcher under partial application in its current position, the frame is a query.
+4. Otherwise, the frame is an assertion.
 
 Cases:
 
 - `AUTHORED { (AGENT) = Tolkien, (THEME) = ANY }` — recursive walk finds `ANY` (which returns `MATCHER`).  Query.
+- `?Book { (AUTHOR) = Tolkien }` — recursive walk finds a TypeRef at the head.  Query.
 - `ADD { (THEME) = 5, (INSTRUMENT) = 2 }` — recursive walk finds `ADD` (returns `NUMBER`), `5`, `2`.  None set-returning.  Assertion.  Evaluates to `7`.
 - `SUM { (VALUE) = ADD { (THEME) = ANY, (INSTRUMENT) = 2 } }` — recursive walk descends into the sub-frame, finds `ANY` inside.  Query.
 
-The routing decision is data-driven.  Adding a new matcher-producing predicate is purely a vocabulary extension: seedItem the sememe, declare `RETURNS { (VALUE) = MATCHER }`.  No framework changes.
+The routing decision is data-driven.  Adding a new matcher-producing predicate is purely a vocabulary extension: seedItem the sememe, declare `RETURNS { (VALUE) = MATCHER }`.  No framework changes.  TypeRef matching is a structural feature of the reference system itself — no per-predicate declaration needed; the prefix carries the semantics.
 
 ## Posing a query
 
@@ -307,8 +361,10 @@ The system is a substrate.  Truth arbitration belongs to the trust layer above.
 ## Summary of key settled points
 
 - Queries are frames; no separate data structure.
-- A binding is a predicate over values; specific values, ranges, matchers, and `ANY` are points on a continuum.
-- A frame is a query iff any binding resolves to something set-returning (accepts more than one value).
+- A binding is a predicate over values; specific values, ranges, matchers, TypeRefs, and `ANY` are points on a continuum.
+- A frame is a query iff any reference is a TypeRef OR any binding resolves to something set-returning (accepts more than one value).
+- The `?` prefix is the fourth reference type (TypeRef), alongside `@` (item), `#` (datum body), `~` (content bytes).  A TypeRef matches bodies whose head is in the referenced IID's hierarchy.
+- TypeRef and `ANY` are complementary: TypeRef is over the type hierarchy (no literals); `ANY` is over the value space (includes literals).
 - `ANY` is a sememe in the core vocabulary, distinct from `UNKNOWN`.
 - Expression sub-frames (`BETWEEN`, `GREATER_THAN`, `WITHIN`, etc.) are frames in binding-target positions that evaluate to matchers via partial application.  Comparison thresholds fill the `(VALUE)` role.
 - `RETURNS` is a meta-predicate declaring what each predicate's evaluation produces; routing uses it plus the general partial-application rule.
@@ -336,13 +392,14 @@ The system is a substrate.  Truth arbitration belongs to the trust layer above.
 
 Queries are **barely implemented** in CG as of this writing.  The current `QueryItem` and its surrounding scaffolding reflect an earlier, less-unified design and will need to be revisited given the model described here.  The index machinery (`FRAME_BY_ITEM`, `RECORD_BY_BODY`, etc.) supports the lookups the matcher would need.  `PredicateBehavior` and `ItemFrame` provide the vocabulary plumbing.  `EQUALS` already exists in `CoreVocabulary` with infix parsing support.  What remains to build:
 
-1. The `ANY` sememe with `RETURNS { (VALUE) = MATCHER }`.
-2. A handful of expression predicates (`GREATER_THAN`, `LESS_THAN`, `BETWEEN`, `WITHIN`, `NOT`) with their evaluation behaviors.
-3. The `RETURNS` meta-predicate, and its type-slot sememes (`NUMBER`, `BOOLEAN`, `MATCHER`) if not already seeded.
-4. Unification semantics for `EQUALS` in the matcher context (fresh-side frames; bound-side compares).
-5. The query-detection routing in the frame-processing pipeline.
-6. The matcher orchestrator (likely a `FrameMatcher` class rather than a method on `Library`).
-7. Per-item update policy configuration (reactive, snapshot, periodic).
-8. Input-pipeline parsing to produce query frames from natural and formal surface forms.
+1. The `TypeRef` reference variant in the `HashID` sealed family — fourth prefix byte (`?`), codec encode/decode handling, `BindingTarget` decode pathway, and widening of `Datum.head` from `ItemRef` to `HashID` (since `?Book` can be a head).
+2. The `ANY` sememe with `RETURNS { (VALUE) = MATCHER }`.
+3. A handful of expression predicates (`GREATER_THAN`, `LESS_THAN`, `BETWEEN`, `WITHIN`, `NOT`) with their evaluation behaviors.
+4. The `RETURNS` meta-predicate, and its type-slot sememes (`NUMBER`, `BOOLEAN`, `MATCHER`) if not already seeded.
+5. Unification semantics for `EQUALS` in the matcher context (fresh-side frames; bound-side compares).
+6. The query-detection routing in the frame-processing pipeline — recursive walk recognizing TypeRefs and matcher-returning sememes.
+7. The matcher orchestrator (likely a `FrameMatcher` class rather than a method on `Library`).  Recognizes TypeRefs structurally and uses the archetype/predicate-hierarchy walk against `TYPE_INDEX`; dispatches expression sub-frames to per-predicate `evaluate` for boolean filtering.
+8. Per-item update policy configuration (reactive, snapshot, periodic).
+9. Input-pipeline parsing to produce query frames from natural and formal surface forms, including resolution of `?`-glyph tokens (and equivalents in other surface forms) to TypeRef references.
 
 The model is the design target.

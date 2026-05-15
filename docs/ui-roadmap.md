@@ -6,6 +6,28 @@ Read this **once**, then use it as the navigation anchor. Treat the older docs a
 
 ---
 
+## What's been locked since this primer was first written
+
+A handful of design points have settled since the rest of this doc was drafted. Treat these as authoritative; the corresponding paragraphs later in the document and in older docs trail behind.
+
+- **One hierarchy, usage-based.** There is no structural distinction between "predicate items" and "archetype items." The same item-shape carries both roles. The only structural marker is whether the item's `EXPECTS` declares an `ITEM_ID` binding — that's what makes it usable as an archetype (a template for *instances*). A predicate's EXPECTS, by contrast, declares the shape of *frames* using it. Fuzziness here is intentional: some items legitimately play both roles, and the system should not pretend otherwise. See `docs/item.md` "Predicate, archetype, or both?" for the worked-out version.
+
+- **The API trio is `EXPECTS` / `IMPLEMENTATION` / `HANDLES`.**
+  - **EXPECTS** lives on a predicate or archetype and describes the shape of its instances (frames for a predicate, items for an archetype).
+  - **IMPLEMENTATION** is on each individual item — the manifest binding pointing at the code (Java class name, or `@<code-item-ref>` for distributed/polyglot implementations) that *runs* this item.
+  - **HANDLES** is endorsed on archetypes — "items of this archetype process these predicates" — and inherited by their instances. Predicates don't carry HANDLES; predicates declare *what frames look like*, not *what receives them*. The exceptional case is self-handling operator predicates (ADD, MULTIPLY) where the predicate's behavior is a pure function of its bindings.
+  - See `docs/vocabulary.md` "The EXPECTS / IMPLEMENTATION / HANDLES trio" for the canonical write-up.
+
+- **Composable notations, not a Language inheritance hierarchy.** Parsing participants are small, focused notation objects (`OperatorNotation`, `FunctionNotation`, etc.), not subclasses of a single `Language` superclass. A Language is composed by picking which notations it brings into the consensus circle, plus its own lexical rules. Literals (numbers, strings) are handled by the base notation as a universal fallback; they don't need their own participant. This replaces the older "Language as base class with overridable parse()" model — Languages still exist as items, but their parsing surface comes from composing notations rather than being baked into the class. See `docs/text.md` "Composable notations" for the model.
+
+- **ItemStage is the runtime substrate.** Librarian and Session are **items hosted on an `ItemStage`**, not standalone things. The Stage owns the polyglot environment (GraalVM contexts, capability enforcement, the run primitive), probes for GraalVM in its constructor, and degrades gracefully to Java-only when polyglot isn't available. Stage doesn't *select* which handler runs (Librarian's trust matrix does that) — Stage *executes* the chosen one. The bootstrap order is: entry-class `main()` → construct `ItemStage` → construct `Librarian` (passing the stage in) → first frame evaluation. See `docs/runtime.md` for the substrate model.
+
+- **Universal handler contract: Frame in, value-or-Frame out.** All handlers — Java, Python, Clojure, anything else — present the same shape to the Stage. The wire/storage contract is the predicate; the language-specific implementation is private. This is what makes polyglot drop-in work: a Rust ChessGame and a Java ChessGame endorse the same HANDLES frames, and Stage runs whichever the manifest's IMPLEMENTATION binding points at.
+
+- **Bootstrap-via-annotation, runtime-via-graph-data.** `@Seed.*` annotations produce graph data (handle frames, expects frames, etc.) at startup. Once the data is in the graph, the runtime consults it directly — annotations are never read again. This means anything declarable via annotation is also declarable via running graph operations; the two paths converge on the same data shape.
+
+---
+
 ## The mental model
 
 Everything in Common Graph is one shape:
