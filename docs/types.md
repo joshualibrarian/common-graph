@@ -1,334 +1,187 @@
 # Types
 
-The type system in Common Graph rests on one structural primitive — the **datum** — and a small set of meta-archetypes that establish the universal rules. This document defines those rules.
+Common Graph has one structural primitive (the datum) and a small set of meta-archetypes that establish the universal rules. Every body in the system is an instance of some archetype; every archetype is itself a body with its own archetype; the chain bottoms out at a self-referential root. The result is a type system that lives entirely as graph data — schemas, hierarchies, validations, all expressed in the same shape as the data they describe.
 
-## Datum: the structural primitive
+This document defines the meta-archetype tree, the roles items play within it, and how the system avoids the schema-versus-data split that plagues most data models.
 
-Everything in the system is **datum-shaped**:
+This document assumes familiarity with [the datum primitive](datum.md), [items](item.md), [frames](frames.md), and [the reference scheme](ref-scheme.md).
 
-```
-datum   = head + bindings
-binding = head + qualifiers + target
-```
+## The meta-archetype tree
 
-The **head** is a reference to whatever defines the datum's shape: an archetype (for manifest bodies) or a predicate (for frame bodies).
+Body-shaped bodies all carry a head. The head names what kind of thing the body is. That head is itself an item, with its own head, and so on. The chain of heads is the type hierarchy, expressed as references rather than as a parallel construct.
 
-A **binding's head** is just a sememe. By convention, frame body bindings use thematic roles (THEME, AGENT, GOAL, TOPIC, ...) — semantic functions the value plays in the assertion. Manifest body bindings use whatever sememe categorizes the binding (IMAGE, RUNTIME, ITEM_ID, ENDORSEMENT, CONTENT, ...). Functionally, manifest binding heads are closer to qualifiers in spirit — they categorize what kind of content the binding holds — than to predicates, which assert relations. Both encodings are identical; the convention differs by context.
-
-**Qualifiers** narrow or constrain the binding. Sememes (ENGLISH, JPEG, FULL, REQUIRED) or literal values (math variable names, developer identifiers).
-
-**Targets** are either:
-- **References** to items, bodies, or other content, encoded with a prefix and optionally pinned: `@iid` for items (with optional `\vid` and `\vid\cid` pins), `#cid` for content/bodies.
-- **Literals** — bytes, strings, numbers, raw ItemIDs, etc., inlined directly.
-
-## Two specializations of datum
-
-- **Manifest body** — the body of an item. Head points at the item's archetype; bindings carry the item's identity, constitutive content, and endorsements (all uniformly bindings).
-- **Frame body** — the body of a frame. Head points at the frame's predicate; bindings carry the role-keyed assertions the predicate declared via EXPECTS.
-
-Both share the same encoding shape. They differ only in semantic role: manifest bindings carry an item's substance; frame bindings carry an assertion's content.
-
-## Three functional categories of sememe
-
-Sememes fall into three disjoint categories, distinguished by the shape of their EXPECTS:
-
-### Archetypes
-
-Have EXPECTS that govern *instances*. Instantiable.
-
-Examples: `Photograph`, `Chess`, `Code`, `Language`, `ThematicRole`, `Runtime`, `Item`.
-
-EXPECTS on an archetype declares what the manifest body of an instance must contain — required/permitted bindings and required/permitted endorsed frames.
-
-### Predicates
-
-Have role-keyed EXPECTS that govern *frame bindings*. Used as the head of frame bodies. Their instances are frames, not items.
-
-Examples: `AUTHORED`, `TITLE`, `MOVE`, `IMPLEMENTATION`, `EXPECTS` itself.
-
-EXPECTS on a predicate declares what role-keyed bindings frames-with-this-predicate-as-head must carry.
-
-### Pure values
-
-No EXPECTS. Referenceable concepts that exist to be named in bindings.
-
-Examples: `English` (instance of `Language`), `AGENT` (instance of `ThematicRole`), `cg.runtime:java` (instance of `Runtime`), `narrow-wins` (instance of `CascadeRule`), `cg.platform:linux-x86_64` (instance of `Platform`).
-
-Every pure value is itself an instance of some archetype. The archetype defines the structural shape; the value is one specific filling.
-
-The three categories are **disjoint**. No sememe is both predicate and archetype. The functional shape — what its EXPECTS looks like — determines its category.
-
-## The meta-hierarchy
-
-Two self-typing closures bootstrap the universe.
+A canonical slice of the tree:
 
 ```
-Archetype  (head → @Archetype, self-typed via IID-only reference)
-│
-├── Item            (the blank archetype, no further EXPECTS)
-├── Predicate       (head → @Archetype; the archetype that types predicates)
-├── Photograph      (head → @Archetype)
-├── Code            (head → @Archetype)
-├── Language        (head → @Archetype)
-├── ThematicRole    (head → @Archetype)
-├── Runtime         (head → @Archetype)
-└── ...
-
-Predicates (head → @Predicate)
-├── AUTHORED
-├── TITLE
-├── IMPLEMENTATION
-├── EXPECTS
-└── ...
-
-Pure values (head → some specific archetype)
-├── English         (head → @Language)
-├── AGENT           (head → @ThematicRole)
-├── my-cat-photo    (head → @Photograph)
-└── ...
+Archetype                              (the root; self-referential)
+  ├── Predicate                        (its instances are frames)
+  │     ├── Add, Multiply, Authored, Move, …
+  │
+  ├── Item                             (its instances are addressable, versioned)
+  │     ├── Document
+  │     ├── Signer
+  │     │     └── Librarian
+  │     ├── ChessGame
+  │     ├── Code                       (its instances carry runtime forms)
+  │     │     └── …per-language code items
+  │     └── …
+  │
+  ├── Value                            (its instances are typed value bodies)
+  │     ├── Quantity
+  │     │     ├── Length, Mass, Time, Temperature,
+  │     │     │   ElectricCurrent, Amount, LuminousIntensity
+  │     │     └── …
+  │     ├── Color
+  │     ├── Point
+  │     └── …
+  │
+  └── Language                         (its instances are human/code languages)
+        ├── English, German, Japanese, …
+        ├── Clojure, Python, Lisp, …
 ```
 
-### Archetype
+Every item in the system fits somewhere in this tree. Every body's head is the archetype it instantiates; that archetype is itself an item, whose head is the meta-archetype it instantiates; and so on up to Archetype, which is its own head (the universal root).
 
-The singular root. Its manifest head references its own IID (`@cg.archetype:archetype`, IID-only — pinning to its own version or content would create a hash paradox).
+## The roles items play
 
-Archetype is the **bootstrap exception**: it does not carry an ITEM_ID binding on its own manifest. Every other item does.
+The taxonomy splits along *what their instances are*:
 
-Archetype declares exactly one universal EXPECTS:
+**Archetypes whose instances are items.** Most archetypes. ChessGame's instances are chess-game items; Document's instances are document items; each instance has its own IID and lineage of manifests. The archetype's schema describes what an instance's manifest looks like (`!`-prefixed bindings declaring expected slots, `@HANDLES` declaring the API surface).
 
-```
-EXPECTS { TOPIC[ROLE] → @ITEM_ID }
-```
+**Archetypes whose instances are frames.** Predicates. Add's instances are Add-headed frames; Authored's instances are Authored-headed frames. Frames are not items — they have no IIDs, no lineages — they're free-standing semantic statements. The predicate's schema describes what a frame using it looks like.
 
-This rule propagates down to every descendant. Every item below Archetype carries an ITEM_ID binding on its manifest. **This defines item-hood**: an item is anything whose head chain terminates at Archetype, and which carries an ITEM_ID binding by Archetype's universal rule.
+**Archetypes whose instances are value bodies.** Color's instances are Color value bodies — `{@color, [@R → 255, @G → 0, @B → 0]}`. Length's instances are Length value bodies — `{@length, [@VALUE → 5, @UNIT → @meter]}`. Values are immutable data, like frames, but distinguished by purpose: they represent *typed quantities*, not relationship-assertions. They have no IIDs, no lineages, and no thematic-role bindings (their bindings are typed components, not participant slots).
 
-### Predicate
+**Archetypes whose instances are something else** — code items (instances of Code), language items (instances of Language). These are special-purpose archetypes where the instance category is itself meaningful.
 
-An instance of Archetype, with head → @Archetype. Predicate is itself an archetype — it types items that are predicates. It declares one additional EXPECTS:
+The distinction is *purely about what an instance is for*, not about structural type. The same datum primitive describes them all; the head determines which role this particular body plays.
 
-```
-EXPECTS { TOPIC[FRAME] → @EXPECTS }
-```
+## What makes an item an item
 
-Predicate items endorse EXPECTS frames declaring what frames using them as head must carry. AUTHORED, TITLE, MOVE — each is an instance of Predicate, each carries its own role-keyed EXPECTS frames declaring its frame-instances' shape.
+An archetype's instances are items if and only if the archetype's schema declares an `!ITEM_ID` slot. This is the structural marker.
 
-### Item
+The Item meta-archetype's own schema includes `!ITEM_ID`. Any archetype that inherits from Item (directly or transitively) gets this slot. Any instance of such an archetype must carry an `@ITEM_ID → <iid>` binding in its manifest.
 
-An instance of Archetype, with head → @Archetype. The blank archetype — no EXPECTS beyond what Archetype gives it. Useful for minting items with no archetype-specific constraints.
+Predicates' schemas don't include `!ITEM_ID`. Value archetypes' schemas don't include `!ITEM_ID`. Code-item archetypes' schemas do (code items are items themselves, with their own identities and lineages). The presence of `!ITEM_ID` in an archetype's schema is the system's binary "is this archetype's instances item-like?" answer.
 
-## EXPECTS
+This is what makes the predicate/archetype split *usage-based, not structural*. There's no Predicate class versus an Archetype class in the runtime; there's only "this body has `!ITEM_ID` in its schema, and that one doesn't." Items inherit from Item (or one of its sub-archetypes); predicates inherit from Predicate; values inherit from Value. The category emerges from the meta-archetype chain, not from a separate categorical declaration.
 
-EXPECTS is the predicate used to declare structural expectations. Its frames are endorsed by archetype and predicate manifests.
+## Schemas live on the archetype itself
 
-Each EXPECTS frame body carries a single binding:
+Where many type systems require a parallel schema language — JSON Schema, IPLD Schema, Protobuf .proto files, XML XSDs — Common Graph puts schemas directly on the archetype's manifest as `!`-prefixed bindings. The archetype's schema IS its bindings; there's no separate schema file pointing at the type, no separate schema item being referenced.
 
 ```
-EXPECTS { TOPIC[ROLE]  → @<expected-head> }     // expects a binding with this head
-EXPECTS { TOPIC[FRAME] → @<expected-predicate> } // expects an endorsed frame using this predicate
+@chess-game's manifest:
+  head: @archetype
+  bindings:
+    @ITEM_ID → <chess-archetype-iid>
+    !PLAYER:[WHITE] → ?user
+    !PLAYER:[BLACK] → ?user
+    !TURN → ?color
+    @HANDLES → @move
+    @HANDLES → @resign
 ```
 
-- **TOPIC** — EXPECTS's own thematic role for "the thing being talked about" (the role/predicate being expected).
-- **[ROLE]** qualifier — the expectation is about a binding. Its location depends on where the EXPECTS lives: on an archetype's manifest, the binding is expected on instances' manifest bodies; on a predicate's manifest, the binding is expected on frames using that predicate as head.
-- **[FRAME]** qualifier — the expectation is about an endorsed frame. Used by archetypes to declare that instances should/must endorse a frame with the named predicate.
-- **Target** — the role or predicate being expected.
+This manifest is both *what the ChessGame archetype IS* and *what it expects of its instances*. The schema bindings (`!PLAYER`, `!TURN`) declare instance shape; the HANDLES bindings declare API surface; the ITEM_ID binding declares the archetype's own identity. One manifest, three concerns, all in the same data shape.
 
-Optional additional qualifiers extend the expectation: `[ROLE, REQUIRED]` for required slots, `[FRAME, REQUIRED]` for required frames, etc. Without REQUIRED the slot is permissible but optional.
+When validating an instance against its archetype, the runtime walks the archetype's `!`-bindings and confirms the instance has matching concrete bindings. Validation reports conformance; it doesn't reject non-conformance. An instance that doesn't match its archetype's schema is still data — just non-conforming data, flagged for whoever's looking at it.
 
-Examples:
+## Inheritance through the head chain
 
-```
-// Move (predicate) — frames using MOVE carry THEME and GOAL bindings
-@cg.verb:move endorses:
-  EXPECTS { TOPIC[ROLE, REQUIRED] → @THEME }
-  EXPECTS { TOPIC[ROLE, REQUIRED] → @GOAL  }
+Inheritance in Common Graph is the head chain. An archetype whose head is `@activity` inherits from Activity; an archetype whose head is `@game` (whose head is `@activity`) inherits transitively. The chain walks upward from any body to the meta-root.
 
-// Photograph (archetype) — instances need IMAGE manifest binding(s);
-// may endorse DEPICTS, AUTHORED, CAPTURED frames
-@cg.archetype:photograph endorses:
-  EXPECTS { TOPIC[ROLE, REQUIRED] → @IMAGE    }
-  EXPECTS { TOPIC[FRAME]          → @DEPICTS  }
-  EXPECTS { TOPIC[FRAME]          → @AUTHORED }
-  EXPECTS { TOPIC[FRAME]          → @CAPTURED }
+Schemas accumulate down the chain. A sub-archetype's effective schema is the union of its own `!`-bindings, its parent archetype's `!`-bindings, and so on. ChessGame inherits Activity's schema slots; Activity inherits Item's `!ITEM_ID` slot; Item bottoms out at Archetype.
 
-// Archetype (the meta-root)
-@cg.archetype:archetype endorses:
-  EXPECTS { TOPIC[ROLE, REQUIRED] → @ITEM_ID }
+Overriding works the same way. A sub-archetype can re-declare a `!`-binding the parent already has, narrowing or constraining it; the sub-archetype's version takes precedence. New `!`-bindings on the sub-archetype are additive.
 
-// Predicate (the meta of predicates)
-@cg.archetype:predicate endorses:
-  EXPECTS { TOPIC[FRAME, REQUIRED] → @EXPECTS }
-```
+The HANDLES set inherits identically. ChessGame inherits Activity's HANDLES (whatever those are), adds its own MOVE / RESIGN / OFFER-DRAW. An instance of ChessGame responds to the union.
 
-EXPECTS is itself a predicate — it has its own EXPECTS frames declaring its frame-bindings' shape. The frames it produces look like the frames it describes. Reflexively defined.
+## Values vs entities
 
-## Self-application closes
+A useful distinction within the tree: **values** and **entities**.
 
-Two reflexive closures bottom out the meta-recursion:
+A **value body** has its data inline. Color holds RGB components in its bindings; Length holds magnitude and unit; Point holds coordinates. The body *is* the data — no IID, no lineage, no separate state. Value bodies have content-addressed identity (same RGB values → same hash) and are immutable.
 
-- **Archetype heads at itself.** The fixpoint at the top. IID-only self-reference; the canonical-key-derived IID is computable without hashing the manifest body, so no paradox.
-- **EXPECTS expects EXPECTS.** EXPECTS-the-predicate has its own EXPECTS frames declaring its frame-bindings' shape. Self-applicative.
+An **entity item** has identity outside its data. The chess-game item has an IID; its content (player bindings, turn state, accumulated moves) lives in its manifests' bindings, but those bindings can change across versions. The item *refers* to a sequence of data states; the item itself is the persistent thing.
 
-After these two closures, everything is regular instance-and-frame machinery. No infinite tower; no special cases beyond the two roots.
+Values and entities are structurally indistinguishable at the body level — both are head + bindings. They're distinguished by whether their archetype includes `!ITEM_ID` in its schema. Color does not (instances of Color are values, content-addressed, no versions). ChessGame does (instances of ChessGame are entities with IIDs).
 
-## Identity
+This is the same continuant/occurrent distinction that splits manifests from frames, expressed in terms of value-versus-entity. Frames are occurrent — single semantic statements. Items are continuant — persisting subjects. Values are *neither* — they're abstract immutable data, like the number five or the color red.
 
-Item identity (IID) is established at item creation, by mechanism appropriate to the kind of item:
+## Quantity, with its dimensional subclasses
 
-- **Seed items** — IID derived deterministically from canonical key (e.g., `cg.archetype:photograph`)
-- **Signers** — IID derived from initial signing public key (closes the preemption gap)
-- **Other items** — IID generated at creation (random or otherwise stable)
-
-Every item below Archetype carries its ITEM_ID as a manifest binding:
+Quantity is the value archetype for scalar measurements. Its schema declares an amount and a unit:
 
 ```
-ITEM_ID: <raw IID bytes>
+@quantity's manifest:
+  head: @archetype
+  bindings:
+    @ITEM_ID → <quantity-archetype-iid>
+    !VALUE → ?number
+    !UNIT → ?unit
 ```
 
-The ITEM_ID binding's target is **raw IID bytes — not a `@iid` reference**. References can be version-or-content-pinned (`@iid\vid`, `@iid\vid\cid`); declaring "this is my identity" is not a reference, it's a literal. The IID is just an identifier; there is no version-of-an-IID to pin.
-
-References to items elsewhere — heads of instances pointing at their archetype, frame body bindings naming target items — use the `@` reference form, optionally pinned.
-
-Frames do not have IIDs. A frame's identity is its body hash: content-addressed, not item-addressed.
-
-Archetype is the only item without an ITEM_ID binding — the bootstrap exception that grounds the rule for everything below.
-
-## Three placements for binding-shaped content
-
-Binding-shaped content can live in three places, distinguished by what role they play and who authors them:
-
-### 1. Manifest binding — the item's substance
-
-Constitutive content + intrinsic structural metadata. The bytes/data/identity that *make the item what it is*. Single-authored per version (the manifest's signer).
-
-Examples:
-- `ITEM_ID: <raw bytes>` — the item's identity
-- `IMAGE [JPEG, FULL]: #cid` on a Photograph — the photo IS this image data
-- `RUNTIME: @cg.runtime:java`, `ENTRY: "..."`, `CONTENT [platform=...]: #cid` on a Code Item — the code IS these bytes interpreted this way
-- `VIDEO [MASTER, UHD-HDR]: #cid` on a Movie — the movie IS this video data
-
-Manifest bindings carry "what this item *is*."
-
-### 2. Endorsed frame — the owner's official narrative
-
-A binding on the manifest with `ENDORSEMENT` as its head and a frame body CID as its target. Each endorsement adds an endorsed frame to the item's official content. The manifest signature covers them transitively (the endorsement targets are part of what the manifest hashes).
+A Quantity value body fills these slots concretely:
 
 ```
-ENDORSEMENT: #depicts-body-cid
-ENDORSEMENT: #authored-body-cid
-ENDORSEMENT: #captured-body-cid
+{@quantity, [
+  @VALUE → 5,
+  @UNIT → @meter
+]}
 ```
 
-Endorsed frames carry assertions the item owner stands behind — relational claims connecting the item to other items, attributes, or values, signed by virtue of being endorsed.
+The dimensional subarchetypes — Length, Mass, Time, Temperature, ElectricCurrent, Amount, LuminousIntensity — extend Quantity. Each is a sub-archetype whose head is Quantity and whose schema may further constrain the UNIT slot (Length expects a length-dimensioned unit; Mass expects a mass-dimensioned unit; etc.).
 
-Qualifiers on ENDORSEMENT bindings can categorize endorsements (`ENDORSEMENT [identity]`, `ENDORSEMENT [decoration]`, etc.) when the librarian needs to process them differently. *(Open: the affordance is there; specific categories not yet locked.)*
-
-### 3. Unendorsed frame — anyone's claim or derivative
-
-Frames signed independently by anyone, NOT endorsed by the item's manifest. Each carries its own signed record. Reference the item via bindings without churning the item's VID. Two common cases:
-
-**Third-party assertions** — likes, comments, reviews, trust attestations, annotations. Anyone signs their own claim about an item.
+A Length value body specifies its archetype:
 
 ```
-@bob's separately-signed frames (reference @my-photo via THEME):
-  LIKE     { THEME → @my-photo, AGENT → @bob }
-  COMMENT  { THEME → @my-photo, AGENT → @bob, VALUE → "lovely shot!" }
+{@length, [
+  @VALUE → 5,
+  @UNIT → @meter
+]}
 ```
 
-**Derivative content** — transcodes, alternative encodings, computed variants, cached transformations. Whoever produces the derivative signs the frame.
+The dimensional information lives in the head; the runtime can validate that the unit-target matches the expected dimension via the archetype's chain.
+
+The seven SI base dimensions — length, mass, time, electric current, temperature, amount of substance, luminous intensity — get their own Quantity sub-archetypes for first-class typing. Derived dimensions (velocity, energy, etc.) emerge by composition.
+
+## Worked example: the type chain for a chess move
+
+A single chess move frame and the type chain that informs its interpretation:
 
 ```
-@some-peer's separately-signed frame:
-  TRANSCODE { THEME → @some-movie, FORMAT → @1080p-h265, VALUE → #cid-1080p }
+The frame:
+  {@move, [@AGENT → @alice, @THEME → @king-pawn, …]}
+
+@move's archetype chain (head pointers walked upward):
+  @move          (head: @predicate)
+    @predicate   (head: @archetype)
+      @archetype (head: @archetype — self-referential)
+
+@move's schema (bindings on its own manifest):
+  @ITEM_ID → <move-iid>
+  !AGENT → ?player
+  !THEME → ?piece
+  !SOURCE → ?square
+  !GOAL → ?square
+
+The frame's targets and their type chains:
+  @alice              (head: @signer → @item → @archetype)
+  @king-pawn          (head: @chess-piece → @piece → @item → @archetype)
+  …
 ```
 
-Both kinds are unendorsed frames structurally. Both subject to local policy: cache, expire, GC. Indexed via FRAME_BY_ITEM against any items they reference.
+Walking the chain answers all the system's type questions. *Is this frame valid?* — walk @move's `!`-bindings, check the frame has matches. *Is @alice the right kind of thing for AGENT?* — walk @alice's archetype chain looking for @player (the constraint in @move's schema). *What HANDLES applies to this MOVE frame?* — walk @move's relevant indexes finding items whose archetype's HANDLES set includes @move.
 
-### The line
+No type tables, no schema registry, no inheritance metadata stored separately. The graph itself encodes its own typing.
 
-- **Is it the item's substance?** → Manifest binding
-- **Is it the owner's official claim about the item?** → Endorsed frame (added via ENDORSEMENT manifest binding)
-- **Is it someone (anyone) saying or making something tied to the item?** → Unendorsed frame
+## Relations
 
-The criterion is *content-vs-assertion*. Content is what the item *is*; assertions *relate* the item to other things. Ownership is a separate axis: official narrative (endorsed by the manifest signer) vs. anyone-can-say (independently signed).
-
-## Worked examples
-
-### Photograph
-
-```
-@my-photo's manifest body:
-  head:                    @cg.archetype:photograph
-  ITEM_ID:                 <raw IID bytes>
-  IMAGE [JPEG, FULL]:      #cid-full
-  IMAGE [JPEG, THUMBNAIL]: #cid-thumb
-  ENDORSEMENT:             #depicts-body-cid
-  ENDORSEMENT:             #authored-body-cid
-  ENDORSEMENT:             #captured-body-cid
-
-Endorsed frames (referenced by ENDORSEMENT bindings, looked up by hash):
-  #depicts-body-cid:  DEPICTS  { THEME → @my-photo, AGENT → @alice }
-  #authored-body-cid: AUTHORED { THEME → @my-photo, AGENT → @me }
-  #captured-body-cid: CAPTURED { THEME → @my-photo, LOCATION → @park,
-                                                    TIME → 2026-05-07T17:30 }
-
-Unendorsed frames in the wild (indexed against @my-photo):
-  LIKE      { THEME → @my-photo, AGENT → @bob }                    [signed by Bob]
-  COMMENT   { THEME → @my-photo, AGENT → @bob,
-              VALUE → "lovely shot!" }                              [signed by Bob]
-  TRANSCODE { THEME → @my-photo, FORMAT → @webp-512,
-              VALUE → #webp-cid }                                   [signed by some peer]
-```
-
-### Code Item
-
-```
-@add-code's manifest body:
-  head:        @cg.archetype:code
-  ITEM_ID:     <raw IID bytes>
-  RUNTIME:     @cg.runtime:java
-  ENTRY:       "dev.everydaythings.graph.ops.Add"
-  CONTENT [platform=cg.platform:any]: #cid-bytecode
-  ENDORSEMENT: #docs-body-cid
-
-Endorsed frames:
-  #docs-body-cid: DOCUMENTATION { THEME → @add-code, VALUE → "..." }
-```
-
-The IMPLEMENTATION relation tying `@cg.op:add` to `@add-code` is itself a frame, signed by whichever party is making the assertion (the implementation author signs `IMPLEMENTATION { THEME → @cg.op:add, VALUE → @add-code }`; the predicate author signs the same body if endorsing it as the default; trust matrix arbitrates).
-
-### Movie with transcodes
-
-```
-@some-movie's manifest body:
-  head:                    @cg.archetype:movie
-  ITEM_ID:                 <raw IID bytes>
-  VIDEO [MASTER, UHD-HDR]: #cid-canonical-50gb
-  ENDORSEMENT:             #title-body-cid
-  ENDORSEMENT:             #directed-body-cid
-  ENDORSEMENT:             #released-body-cid
-
-Endorsed frames:
-  #title-body-cid:    TITLE    { THEME → @some-movie, VALUE → "..." }
-  #directed-body-cid: DIRECTED { THEME → @some-movie, AGENT → @director }
-  #released-body-cid: RELEASED { THEME → @some-movie, TIME → 2024-... }
-
-Unendorsed frames (cached/indexed; produced by various peers):
-  TRANSCODE { THEME → @some-movie, FORMAT → @1080p-h265, VALUE → #cid-1080p }
-  TRANSCODE { THEME → @some-movie, FORMAT → @720p-mp4,   VALUE → #cid-720p }
-```
-
-The 50GB master is constitutive — the movie *is* that data. Transcodes are derivative, unendorsed, and policy-governed (cached locally as needed, expired/GC'd when not).
-
-## Frames vs. items: summary
-
-|                          | Items                     | Frames                |
-|--------------------------|---------------------------|-----------------------|
-| Structure                | Manifest body + endorsed/unendorsed frame bodies | Body + record(s) |
-| Identity                 | IID (stable across versions) | Body hash (content-addressed) |
-| Head points at           | Archetype                 | Predicate             |
-| Has ITEM_ID binding      | Yes (except Archetype itself) | No |
-| Versioned                | Yes (manifest history)    | No (immutable bodies; new content = new body) |
-| ITEM_ID target form      | Raw bytes (literal)       | N/A                   |
-| Head reference form      | `@archetype-iid` (optionally pinned) | `@predicate-iid` (optionally pinned) |
-
-Frames are the only persistent shape that isn't an item. Everything else — meta-archetypes, predicates, pure values, concrete instances — is an item.
+- [`datum.md`](datum.md) — the single structural primitive.
+- [`item.md`](item.md) — items as continuants, the role they play in the type hierarchy.
+- [`frames.md`](frames.md) — predicates and their instances.
+- [`manifest.md`](manifest.md) — where archetypes' schemas and HANDLES live.
+- [`ref-scheme.md`](ref-scheme.md) — the `@` / `?` / `!` distinctions for references in schemas.
+- [`api.md`](api.md) — HANDLES inheritance through the archetype chain.
+- [`values.md`](values.md) — the Value subtree in detail, including Quantity and Color.
+- [`sememes.md`](sememes.md) — the linguistic backbone the type tree is anchored to.
