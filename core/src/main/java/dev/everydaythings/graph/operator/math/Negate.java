@@ -5,6 +5,8 @@ import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.Operator;
 
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.value.Numeric;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
 
@@ -19,6 +21,10 @@ import dev.everydaythings.graph.language.ThematicRole;
 public class Negate extends Operator {
 
     public static final String KEY = "cg.predicate:negate";
+
+    /** Returns a Numeric — the result of the operation. */
+    @Seed.Property(role = SchemaVocabulary.Returns.KEY)
+    static final SchemaRef returnType = SchemaRef.iid(Numeric.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))

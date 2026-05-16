@@ -16,9 +16,20 @@ import java.util.Objects;
  * <p>CompoundKey is the unified key type used both for binding identity within a frame
  * (role + qualifiers) and for frame identity within an item (predicate + qualifiers).
  *
- * <p>The <b>head</b> is always a sememe ({@link ItemRef}). The <b>qualifiers</b> are a
- * (possibly empty) list of {@link Qualifier}s, each of which is either a {@link Sememe}
- * (vocabulary-backed ItemRef) or a {@link Text} (opaque string).
+ * <p>The <b>head</b> is always a sememe in the IID space — one of {@link ItemRef}
+ * (literal: {@code @role}), {@link TypeRef} (query: {@code ?role}), or
+ * {@link SchemaRef} (schema/expects: {@code !role}).  ContentRefs and
+ * DatumRefs are rejected as heads — a binding role always points at a sememe.
+ *
+ * <p>The most common case is a literal {@link ItemRef} head — the role is just
+ * a vocabulary sememe.  A {@link SchemaRef} head marks the binding as an
+ * expectation declaration (the substrate's structural form of EXPECTS); a
+ * {@link TypeRef} head marks the binding as a query-pattern position.  Same
+ * underlying IID, different operational mode signaled by the reference variant.
+ *
+ * <p>The <b>qualifiers</b> are a (possibly empty) list of {@link Qualifier}s, each of
+ * which is either a {@link Sememe} (vocabulary-backed ItemRef) or a {@link Text}
+ * (opaque string).
  *
  * <p>Examples:
  * <ul>
@@ -41,12 +52,28 @@ import java.util.Objects;
 @Layout(Layout.Kind.ARRAY)
 public final class CompoundKey implements Comparable<CompoundKey> {
 
-    @Order(0) private final ItemRef head;
+    @Order(0) private final HashID head;
     @Order(1) private final List<Qualifier> qualifiers;
 
-    private CompoundKey(ItemRef head, List<Qualifier> qualifiers) {
-        this.head = Objects.requireNonNull(head, "CompoundKey head must not be null");
+    private CompoundKey(HashID head, List<Qualifier> qualifiers) {
+        this.head = validateHead(head);
         this.qualifiers = canonicalSortQualifiers(qualifiers);
+    }
+
+    /**
+     * Validate that {@code head} is one of the IID-family reference variants
+     * ({@link ItemRef}, {@link TypeRef}, {@link SchemaRef}).  {@link ContentRef}
+     * and {@link DatumRef} reference different hash spaces and are not legal
+     * as compound-key heads.
+     */
+    private static HashID validateHead(HashID head) {
+        Objects.requireNonNull(head, "CompoundKey head must not be null");
+        if (head instanceof ItemRef || head instanceof TypeRef || head instanceof SchemaRef) {
+            return head;
+        }
+        throw new IllegalArgumentException(
+                "CompoundKey head must be in the IID family (ItemRef/TypeRef/SchemaRef), got: "
+                        + head.variant());
     }
 
     /**
@@ -174,7 +201,7 @@ public final class CompoundKey implements Comparable<CompoundKey> {
      * @param qualifiers optional qualifiers (ItemRef, String, or Qualifier)
      * @return the CompoundKey
      */
-    public static CompoundKey of(ItemRef head, Object... qualifiers) {
+    public static CompoundKey of(HashID head, Object... qualifiers) {
         Objects.requireNonNull(head, "CompoundKey head must not be null");
         if (qualifiers.length == 0) {
             return new CompoundKey(head, List.of());
@@ -189,7 +216,7 @@ public final class CompoundKey implements Comparable<CompoundKey> {
     /**
      * Create a CompoundKey from an explicit head and qualifier list.
      */
-    public static CompoundKey of(ItemRef head, List<Qualifier> qualifiers) {
+    public static CompoundKey of(HashID head, List<Qualifier> qualifiers) {
         return new CompoundKey(head, qualifiers);
     }
 
@@ -229,6 +256,14 @@ public final class CompoundKey implements Comparable<CompoundKey> {
         }
         if (q instanceof ItemRef id) {
             return new Sememe(id);
+        }
+        if (q instanceof HashID id) {
+            // Defensive: TypeRef/SchemaRef in qualifier position would arrive here,
+            // but qualifiers stay ItemRef-only for now. Reject explicitly with a
+            // clearer error than the generic IllegalArgumentException.
+            throw new IllegalArgumentException(
+                    "CompoundKey qualifier must be an ItemRef (qualifier-position queries / "
+                            + "schemas are not yet supported), got: " + id.variant());
         }
         if (q instanceof String s) {
             return new Text(s);
@@ -273,19 +308,44 @@ public final class CompoundKey implements Comparable<CompoundKey> {
     // Accessors
     // ==================================================================================
 
-    /** The head sememe of this key — always non-null, always an ItemRef. */
-    public ItemRef head() {
+    /**
+     * The head sememe of this key — always non-null, always in the IID family
+     * (ItemRef / TypeRef / SchemaRef).  Returns the broad type; callers that
+     * know they have an ItemRef-headed key can use {@link #headIid()}.
+     */
+    public HashID head() {
         return head;
     }
 
     /**
-     * The head sememe of this key.
+     * The head as an {@link ItemRef}, asserting the variant.  Throws when the
+     * head is a {@link TypeRef} or {@link SchemaRef}.  Use this when the
+     * binding is known to be a literal role (not an expectation / query).
+     */
+    public ItemRef headIid() {
+        if (head instanceof ItemRef ir) return ir;
+        throw new ClassCastException(
+                "CompoundKey head is " + head.variant() + ", not ITEM; use head() for the generic HashID");
+    }
+
+    /**
+     * The head sememe of this key as an ItemRef.
      *
-     * <p>Alias for {@link #head()} preserved from the prior FrameKey API for migration ease.
+     * <p>Alias for {@link #headIid()} preserved from the prior FrameKey API
+     * for migration ease.  Throws if head is not an ItemRef.
      */
     public ItemRef headSememe() {
-        return head;
+        return headIid();
     }
+
+    /** True when the head is a literal {@link ItemRef} (the common case). */
+    public boolean isLiteralHead()  { return head instanceof ItemRef; }
+
+    /** True when the head is a {@link TypeRef} — the binding is a query position. */
+    public boolean isQueryHead()    { return head instanceof TypeRef; }
+
+    /** True when the head is a {@link SchemaRef} — the binding is an expectation. */
+    public boolean isSchemaHead()   { return head instanceof SchemaRef; }
 
     /** The qualifier tokens after the head; possibly empty. */
     public List<Qualifier> qualifiers() {
@@ -309,11 +369,14 @@ public final class CompoundKey implements Comparable<CompoundKey> {
      * the unified token sequence.
      */
     public List<Qualifier> tokens() {
+        // tokens() wraps the head as a Sememe — only meaningful for literal
+        // ItemRef heads. TypeRef / SchemaRef heads aren't tokenizable this way.
+        Sememe headToken = new Sememe(headIid());
         if (qualifiers.isEmpty()) {
-            return List.of(new Sememe(head));
+            return List.of(headToken);
         }
         List<Qualifier> all = new ArrayList<>(1 + qualifiers.size());
-        all.add(new Sememe(head));
+        all.add(headToken);
         all.addAll(qualifiers);
         return List.copyOf(all);
     }
@@ -351,7 +414,12 @@ public final class CompoundKey implements Comparable<CompoundKey> {
      */
     public String displayText() {
         StringBuilder sb = new StringBuilder("(");
-        sb.append(new Sememe(head).displayText());
+        if (head instanceof ItemRef ir) {
+            sb.append(new Sememe(ir).displayText());
+        } else {
+            // TypeRef / SchemaRef heads — preserve their prefix character in display.
+            sb.append(head.encodeText());
+        }
         for (Qualifier token : qualifiers) {
             sb.append(", ");
             if (token instanceof Text l) {

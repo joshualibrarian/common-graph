@@ -8,6 +8,7 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.HashID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.RuntimeVocabulary;
 
@@ -168,7 +169,7 @@ public final class Manifest extends AttributedBody {
     }
 
     /** Whether this role is one of the known runtime language sememes. */
-    private static boolean isLanguageRole(ItemRef role) {
+    private static boolean isLanguageRole(HashID role) {
         return ItemRef.iid(RuntimeVocabulary.Java.KEY).equals(role)
                 || ItemRef.iid(RuntimeVocabulary.Python.KEY).equals(role)
                 || ItemRef.iid(RuntimeVocabulary.Lisp.KEY).equals(role)

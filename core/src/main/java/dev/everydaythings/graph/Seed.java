@@ -267,8 +267,26 @@ public class Seed {
     @Retention(RetentionPolicy.RUNTIME)
     public static @interface Binding {
 
-        /** Canonical key of the binding's role sememe. Empty string means "skip this binding" (in classBinding/fieldBinding slots). */
-        String role();
+        /**
+         * Canonical key of the binding's role sememe, used as a literal
+         * {@code @<iid>} role.  Empty string means "skip this binding" (in
+         * classBinding/fieldBinding slots).  Exactly one of {@code role},
+         * {@code schemaRole}, or {@code typeRole} must be set for a real
+         * binding.
+         */
+        String role() default "";
+
+        /**
+         * Canonical key of the binding's role sememe, used as a schema-mode
+         * {@code !<iid>} role — the binding is an EXPECTS declaration.
+         */
+        String schemaRole() default "";
+
+        /**
+         * Canonical key of the binding's role sememe, used as a query-mode
+         * {@code ?<iid>} role — the binding is a query-pattern position.
+         */
+        String typeRole() default "";
 
         /** Canonical keys of qualifier sememes attached to this binding. */
         String[] qualifiers() default {};
@@ -352,8 +370,28 @@ public class Seed {
     @Repeatable(Property.List.class)
     public static @interface Property {
 
-        /** Canonical key of the binding's role sememe. */
-        String role();
+        /**
+         * Canonical key of the binding's role sememe, used as a literal
+         * {@code @<iid>} role.  Exactly one of {@code role}, {@code schemaRole},
+         * or {@code typeRole} must be set.
+         */
+        String role() default "";
+
+        /**
+         * Canonical key of the binding's role sememe, used as a schema-mode
+         * {@code !<iid>} role — the binding is an EXPECTS declaration.
+         * Exactly one of {@code role}, {@code schemaRole}, or {@code typeRole}
+         * must be set.
+         */
+        String schemaRole() default "";
+
+        /**
+         * Canonical key of the binding's role sememe, used as a query-mode
+         * {@code ?<iid>} role — the binding is a query-pattern position.
+         * Exactly one of {@code role}, {@code schemaRole}, or {@code typeRole}
+         * must be set.
+         */
+        String typeRole() default "";
 
         /** Canonical keys of qualifier sememes attached to this binding. */
         String[] qualifiers() default {};

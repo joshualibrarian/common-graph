@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.id.Varint;
+import dev.everydaythings.graph.value.Varint;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;

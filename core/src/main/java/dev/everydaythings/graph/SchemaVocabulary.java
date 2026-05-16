@@ -33,36 +33,6 @@ public final class SchemaVocabulary {
     // ==================================================================================
 
     /**
-     * The EXPECTS predicate sememe — head of frames declaring the schema a sememe expects.
-     *
-     * <p>An EXPECTS frame endorsed by a sememe's manifest declares "this sememe's
-     * use should include this expectation." The qualifier on the binding within the
-     * EXPECTS frame disambiguates what kind of expectation it is:
-     *
-     * <ul>
-     *   <li>{@code TOPIC[ROLE] → role-IID} — expects a binding with this role.
-     *       For predicate sememes (e.g., AUTHORED), the binding is on the FRAME body;
-     *       for archetype sememes (e.g., Chess), it's on the INSTANCE'S MANIFEST body.</li>
-     *   <li>{@code TOPIC[FRAME] → predicate-IID} — expects an endorsed frame with this
-     *       predicate. (Archetype context only; deferred until we have a use case.)</li>
-     * </ul>
-     *
-     * <p>EXPECTS is one mechanism, used contextually. The qualifier carries the meaning;
-     * the consumer (validation, UI generation, CREATE-time instantiability checks)
-     * interprets per use.
-     *
-     * <p>The presence of any EXPECTS endorsement is also the data-side signal that a
-     * concept is INSTANTIABLE — the kind of thing that has instances. {@code @Mints(K)}
-     * cross-validates against this at bootstrap: a class declaring "I implement instances
-     * of K" requires K to declare what its instances should look like.
-     */
-    @Seed.Item(key = Expects.KEY, head = CoreVocabulary.Predicate.KEY)
-    public static final class Expects {
-        public static final String KEY = "cg.sememe:expects";
-        private Expects() {}
-    }
-
-    /**
      * The IMPLEMENTS predicate sememe — head of frames declaring "an implementation of
      * this concept exists, embodied in this artifact."
      *
@@ -176,6 +146,44 @@ public final class SchemaVocabulary {
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "ephemeral";
+    }
+
+    /**
+     * Returns — the output-type half of an operator's contract.  A binding
+     * with role {@code Returns} on an operator's manifest declares the type
+     * of value the operator produces when its frame is evaluated.
+     *
+     * <p>Target convention: a {@link dev.everydaythings.graph.id.SchemaRef
+     * SchemaRef} (the {@code !} reference variant) pointing at a Value-
+     * archetype — {@code Bool}, {@code Numeric}, {@code Color}, {@code Length},
+     * {@code Quantity}, etc.  Reads as "the operator produces something
+     * matching this schema."
+     *
+     * <p>Used at runtime for:
+     * <ul>
+     *   <li>Query routing — Bool-returning sememes appearing in a binding-
+     *       target with a missing operand become matchers (partial application
+     *       rule).  TypeRef positions are queries too.</li>
+     *   <li>Type inference across composed operators.</li>
+     *   <li>Index-driven discovery ("what produces X?" — walk
+     *       {@code FRAME_BY_TARGET} on the Returns binding's target).</li>
+     *   <li>Cross-runtime contract validation for polyglot implementations.</li>
+     * </ul>
+     */
+    @Seed.Item(key = Returns.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Returns {
+        public static final String KEY = "cg.quality:returns";
+        private Returns() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the binding role on an operator's manifest naming the type of value the "
+                        + "operator produces when its frame is evaluated";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "return";
     }
 
     /**

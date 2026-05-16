@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.id;
+package dev.everydaythings.graph.value;
 
 import java.io.ByteArrayOutputStream;
 

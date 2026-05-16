@@ -2,6 +2,8 @@ package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.value.Numeric;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.Operator;
 
@@ -20,6 +22,10 @@ import dev.everydaythings.graph.language.ThematicRole;
 public class Power extends Operator {
 
     public static final String KEY = "cg.predicate:power";
+
+    /** Returns a Numeric — the result of the operation. */
+    @Seed.Property(role = SchemaVocabulary.Returns.KEY)
+    static final SchemaRef returnType = SchemaRef.iid(Numeric.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))

@@ -56,7 +56,8 @@ public final class Digest {
                     + "integrity verification, and forward commitment";
 
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "digest";
 
     // ==================================================================================

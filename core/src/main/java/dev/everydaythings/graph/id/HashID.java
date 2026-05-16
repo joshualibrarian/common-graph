@@ -15,25 +15,38 @@ import java.util.Objects;
  * Universal hash-based reference in Common Graph — the sealed family of
  * prefix-tagged multihash references.
  *
- * <p>Three variants, distinguished by leading prefix byte:
+ * <p>Five variants, distinguished by leading prefix byte.  Three of them
+ * ({@link ItemRef}, {@link TypeRef}, {@link SchemaRef}) all reference IIDs in
+ * the item-id space but carry different operational meanings; the other two
+ * ({@link ContentRef}, {@link DatumRef}) reference distinct hash spaces.
+ *
  * <ul>
- *   <li>{@link ItemRef}    ({@code @<IID>[\<VID>]}) — references an item, optionally pinned to a version</li>
+ *   <li>{@link ItemRef}    ({@code @<IID>[\<VID>]}) — literal reference to an item, optionally pinned to a version</li>
+ *   <li>{@link TypeRef}    ({@code ?<IID>})        — query/match reference: match bodies in this IID's archetype hierarchy</li>
+ *   <li>{@link SchemaRef}  ({@code !<IID>})        — schema/expects reference: instances of this IID look like the carrying body's shape</li>
  *   <li>{@link ContentRef} ({@code ~<CID>})        — references raw content bytes by content hash</li>
- *   <li>{@link DatumRef}   ({@code #<DatumRef>})    — references a specific Datum body by its semantic Merkle identity</li>
+ *   <li>{@link DatumRef}   ({@code #<DatumRef>})   — references a specific Datum body by its semantic Merkle identity</li>
  * </ul>
+ *
+ * <p>The {@code ?} and {@code !} variants are mutually exclusive with each
+ * other and with {@code @} on any given reference — one operational mode per
+ * reference.  They're meta-modifiers on the same IID space, not separate
+ * hashes.
  *
  * <h3>Binary form (the bytes inside CBOR Tag 6)</h3>
  * <pre>
  * &lt;prefix-byte&gt; &lt;multihash&gt; [ 0x5C &lt;multihash&gt; ]*
  *
- * prefix-byte = 0x40 (@) | 0x7E (~) | 0x23 (#)
+ * prefix-byte = 0x40 (@) | 0x3F (?) | 0x21 (!) | 0x7E (~) | 0x23 (#)
  * </pre>
  *
  * <h3>Text form</h3>
  * <pre>
  * @&lt;multibase(IID)&gt;[\&lt;multibase(VID)&gt;]   — item
+ * ?&lt;multibase(IID)&gt;                       — type / query
+ * !&lt;multibase(IID)&gt;                       — schema / expects
  * ~&lt;multibase(CID)&gt;                       — content
- * #&lt;multibase(DatumRef)&gt;                    — datum
+ * #&lt;multibase(DatumRef)&gt;                  — datum
  * </pre>
  *
  * <h3>Self-describing bytes</h3>
@@ -48,12 +61,16 @@ import java.util.Objects;
  * {@link ItemRef}'s pinned-version sub-part) and at index/hash callsites
  * that want the bare digest.
  */
-public abstract sealed class HashID permits ItemRef, ContentRef, DatumRef {
+public abstract sealed class HashID permits ItemRef, TypeRef, SchemaRef, ContentRef, DatumRef {
 
     public static final int KEY_LENGTH = 32;
 
     /** Prefix byte for {@link ItemRef}: {@code '@'} (0x40). */
     public static final byte PREFIX_ITEM    = 0x40;
+    /** Prefix byte for {@link TypeRef}: {@code '?'} (0x3F). */
+    public static final byte PREFIX_TYPE    = 0x3F;
+    /** Prefix byte for {@link SchemaRef}: {@code '!'} (0x21). */
+    public static final byte PREFIX_SCHEMA  = 0x21;
     /** Prefix byte for {@link ContentRef}: {@code '~'} (0x7E). */
     public static final byte PREFIX_CONTENT = 0x7E;
     /** Prefix byte for {@link DatumRef}: {@code '#'} (0x23). */
@@ -166,6 +183,8 @@ public abstract sealed class HashID permits ItemRef, ContentRef, DatumRef {
         byte prefix = bytes[0];
         return switch (prefix) {
             case PREFIX_ITEM    -> ItemRef.fromRefBytesPayload(bytes);
+            case PREFIX_TYPE    -> TypeRef.fromRefBytesPayload(bytes);
+            case PREFIX_SCHEMA  -> SchemaRef.fromRefBytesPayload(bytes);
             case PREFIX_CONTENT -> ContentRef.fromRefBytesPayload(bytes);
             case PREFIX_DATUM   -> DatumRef.fromRefBytesPayload(bytes);
             default -> throw new IllegalArgumentException(
@@ -183,6 +202,8 @@ public abstract sealed class HashID permits ItemRef, ContentRef, DatumRef {
         char prefix = text.charAt(0);
         return switch (prefix) {
             case '@' -> ItemRef.parseText(text);
+            case '?' -> TypeRef.parseText(text);
+            case '!' -> SchemaRef.parseText(text);
             case '~' -> ContentRef.parseText(text);
             case '#' -> DatumRef.parseText(text);
             default -> throw new IllegalArgumentException(
@@ -295,8 +316,8 @@ public abstract sealed class HashID permits ItemRef, ContentRef, DatumRef {
     public String fullDisplay()     { return encodeText(); }
     public String compactDisplay()  { return emoji(); }
 
-    /** The three variants of a HashID. */
+    /** The five variants of a HashID. */
     public enum Variant {
-        ITEM, CONTENT, DATUM
+        ITEM, TYPE, SCHEMA, CONTENT, DATUM
     }
 }

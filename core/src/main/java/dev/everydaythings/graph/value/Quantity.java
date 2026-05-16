@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.value;
 
-import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.id.TypeRef;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.ItemRef;
@@ -62,10 +62,17 @@ public class Quantity extends Value {
         qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "quantity";
 
-    /** Quantity values are expected to carry a magnitude in their Value binding. */
-    @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
-      field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
-    static final ItemRef expectMagnitude = ItemRef.iid(ThematicRole.Value.KEY);
+    // ==================================================================================
+    // EXPECTS — Quantity instances carry a Value binding (the magnitude) whose
+    // target is a Numeric.  Per-unit exponent bindings are open-ended (any
+    // Unit-roled binding with an integer exponent) and not constrained at the
+    // EXPECTS layer; the dimensional formula is structural, not declarative.
+    //
+    //   !Value = ?Numeric
+    // ==================================================================================
+
+    @Seed.Property(schemaRole = ThematicRole.Value.KEY)
+    static final TypeRef expectsMagnitude = TypeRef.iid(Numeric.KEY);
 
     // ==================================================================================
     // Construction — every Quantity IS a Body (head=Quantity, magnitude + unit bindings).
@@ -158,7 +165,7 @@ public class Quantity extends Value {
             if (b.role().equals(valueRole) && b.target() instanceof Long n) {
                 magnitude = n;
             } else if (b.target() instanceof Long n) {
-                exponents.put(b.role(), n);
+                exponents.put(b.roleIid(), n);
             }
         }
         return new Quantity(magnitude, exponents);
@@ -196,7 +203,7 @@ public class Quantity extends Value {
         Map<ItemRef, Long> result = new LinkedHashMap<>();
         for (Binding b : bindings) {
             if (b.role().equals(valueRole)) continue;
-            if (b.target() instanceof Long n) result.put(b.role(), n);
+            if (b.target() instanceof Long n) result.put(b.roleIid(), n);
         }
         return result;
     }

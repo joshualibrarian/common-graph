@@ -11,6 +11,7 @@ import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.operator.compare.Between;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,18 +61,37 @@ public final class Color extends Value {
         qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "color";
 
-    /** Color values are expected to carry R, G, B channel bindings (A optional). */
-    @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
-      field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {CoreVocabulary.Quality.KEY}))
-    static final ItemRef expectR = ItemRef.iid(R.KEY);
+    // ==================================================================================
+    // EXPECTS — instances of Color carry R, G, B, A bindings whose targets lie
+    // in the 0..255 range.  Declared via schema-roled bindings on this
+    // archetype's manifest; targets are inline BETWEEN bodies that, under
+    // partial application, act as matchers over candidate target values.
+    //
+    //   !R = BETWEEN { SOURCE=0, GOAL=255 }
+    //   !G = BETWEEN { SOURCE=0, GOAL=255 }
+    //   !B = BETWEEN { SOURCE=0, GOAL=255 }
+    //   !A = BETWEEN { SOURCE=0, GOAL=255 }
+    // ==================================================================================
 
-    @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
-      field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {CoreVocabulary.Quality.KEY}))
-    static final ItemRef expectG = ItemRef.iid(G.KEY);
+    @Seed.Property(schemaRole = R.KEY)
+    static final Body expectsR = channelRange();
 
-    @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
-      field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {CoreVocabulary.Quality.KEY}))
-    static final ItemRef expectB = ItemRef.iid(B.KEY);
+    @Seed.Property(schemaRole = G.KEY)
+    static final Body expectsG = channelRange();
+
+    @Seed.Property(schemaRole = B.KEY)
+    static final Body expectsB = channelRange();
+
+    @Seed.Property(schemaRole = A.KEY)
+    static final Body expectsA = channelRange();
+
+    /** Inline {@code BETWEEN { SOURCE=0, GOAL=255 }} body — the range a channel target must satisfy. */
+    private static Body channelRange() {
+        return (Body) Body.compose(ItemRef.iid(Between.KEY))
+                .binding(ItemRef.iid(ThematicRole.Source.KEY)).target(0L)
+                .binding(ItemRef.iid(ThematicRole.Goal.KEY)).target(255L)
+                .build();
+    }
 
     // ==================================================================================
     // Construction — every Color IS a Body (head=Color archetype, R/G/B/A bindings).

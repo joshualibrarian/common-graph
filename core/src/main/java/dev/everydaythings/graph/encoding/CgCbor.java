@@ -8,18 +8,17 @@ import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.canonical.Layout;
 import dev.everydaythings.graph.canonical.Leaves;
 import dev.everydaythings.graph.canonical.Node;
-import dev.everydaythings.graph.canonical.Walker;
+import dev.everydaythings.graph.canonical.CanonWalker;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.HashID;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ import java.util.List;
  * Common Graph's deterministic CBOR codec — bytes in, bytes out.
  *
  * <p>CgCbor handles only the wire-level concern: turning typed values into
- * canonical CG-CBOR byte sequences and back. The {@link Walker} owns
+ * canonical CG-CBOR byte sequences and back. The {@link CanonWalker} owns
  * "what does a value's structure look like" (encoder-agnostic), and
  * {@link HashTree} owns "what's the structural identity of a value"
  * (encoder-agnostic). CgCbor is one of potentially many encoders that target
@@ -61,14 +60,45 @@ public final class CgCbor {
     // ==================================================================================
     // CG-CBOR tag layout — definitive reference for wire-level tags.
     //
-    // Two groups:
+    // First, the framing.  CBOR's first byte of every data item is `MMMNNNNN`:
+    //   • MMM (top 3 bits)   = major type (0..7) — the wire-level shape
+    //   • NNNNN (bottom 5)   = additional info  — length / value / sub-type
+    //
+    // The eight major types:
+    //   0  unsigned integer    1  negative integer
+    //   2  byte string         3  text string
+    //   4  array               5  map
+    //   6  TAG (semantic wrapper around another value, with a tag number)
+    //   7  simple values + floats — booleans, null, undefined live here
+    //
+    // The "tags" in the table below are all major-type-6 tags.  Each carries a
+    // tag number identifying its semantics.  The two numbering systems are
+    // orthogonal but easy to conflate visually:
+    //
+    //   • A Rational on the wire is MAJOR TYPE 6 (= "this is a tag") with
+    //     TAG NUMBER 6 (= "this tag means Rational").  Two 6s, different
+    //     positions in the initial byte's bit layout.  Not the same 6.
+    //   • TAG NUMBER 7 (TAG_REF below) is unrelated to MAJOR TYPE 7 (booleans
+    //     / null / floats).  Tag NUMBER vs major TYPE; different concepts.
+    //
+    // Tag numbers are arbitrary identifiers.  Tag numbers 0-23 fit in the
+    // initial byte's additional-info bits (1-byte tags); 24..255 take a
+    // 1-byte follow; higher tag numbers take more bytes.  CG keeps within
+    // the single-byte range for compactness.
+    //
+    // Booleans, null, undefined, and floats are HANDLED but DON'T APPEAR HERE
+    // because they're not tags.  Major-type-7 handling is covered separately;
+    // see the section "Major type 7: simple values" below.
+    //
+    // Two groups in the tag table:
     //   • Standard CBOR tags (RFC 8949), Tags 0-5 — interop primitives we
-    //     recognize on decode and emit when appropriate. Not "ours" — we
-    //     follow the standard.
+    //     recognize on decode and emit when appropriate.  Not "ours" — we
+    //     follow the standard.  Prefix: STD_*.
     //   • CG-CBOR tags (ours), Tags 6-13 — semantic primitives defined by
-    //     the CG-CBOR spec. Tag 6 (RATIONAL) extends the numeric primitives
+    //     the CG-CBOR spec.  Tag 6 (RATIONAL) extends the numeric primitives
     //     immediately after the standard CBOR numeric tags (2/3 bignum,
     //     4 decimal, 5 bigfloat); the remaining tags carry CG-native shapes.
+    //     Prefix: TAG_*.
     // ==================================================================================
 
     // ----- Standard CBOR tags we recognize (RFC 8949) -----
@@ -116,6 +146,29 @@ public final class CgCbor {
 
     /** CG-CBOR Tag 13 — ENCRYPTED: encrypted-envelope marker. */
     public static final int TAG_ENCRYPTED = 13;
+
+    // ==================================================================================
+    // Major type 7: simple values + floats
+    //
+    // Not tags.  CBOR's major-type-7 single-byte encodings cover booleans,
+    // null, undefined, and IEEE 754 floats.  No constants here — the CBOR
+    // library handles these natively; toCbor/fromCbor dispatch directly on
+    // the Java type (Boolean, null) without any tag wrapping.
+    //
+    //   sub-code 20 (0xF4)  false       — handled (toCbor / fromCbor)
+    //   sub-code 21 (0xF5)  true        — handled (toCbor / fromCbor)
+    //   sub-code 22 (0xF6)  null        — handled (toCbor emits Null, fromCbor returns null)
+    //   sub-code 23 (0xF7)  undefined   — NOT handled; emit never, decode would throw
+    //   sub-code 25 (0xF9)  float16     — NOT handled; CG forbids IEEE 754 floats
+    //   sub-code 26 (0xFA)  float32     — NOT handled
+    //   sub-code 27 (0xFB)  float64     — NOT handled; explicitly rejected by
+    //                                     CANONICAL encode options (float64=false)
+    //
+    // CG-CBOR is float-free by policy: numeric magnitudes use Long, BigInteger,
+    // BigDecimal, or Rational.  Incoming wire bytes containing a float would
+    // hit the `default` branch of fromCbor's type switch and throw — that's
+    // intentional.  See QuantityVocabulary for the numeric model.
+    // ==================================================================================
 
     private static final CBOREncodeOptions CANONICAL =
             new CBOREncodeOptions("useIndefLengthStrings=false;allowduplicatekeys=false;float64=false");
@@ -175,7 +228,7 @@ public final class CgCbor {
     /** Pretty-printed representation of a value, primarily for debugging. */
     public static String prettyPrint(Object value) {
         StringBuilder sb = new StringBuilder();
-        prettyPrintNode(Walker.walk(value), sb, 0);
+        prettyPrintNode(CanonWalker.walk(value), sb, 0);
         return sb.toString();
     }
 
@@ -216,8 +269,8 @@ public final class CgCbor {
         @Override public Object decode(byte[] bytes) { return CgCbor.decode(bytes); }
         @Override public String encodeText(Object value) { return CgCbor.encodeText(value); }
         @Override public Object decodeText(String text) { return CgCbor.decodeText(text); }
-        @Override public Node walk(Object value) { return Walker.walk(value); }
-        @Override public Node walk(byte[] bytes) { return Walker.walk(decode(bytes)); }
+        @Override public Node walk(Object value) { return CanonWalker.walk(value); }
+        @Override public Node walk(byte[] bytes) { return CanonWalker.walk(decode(bytes)); }
         @Override public String prettyPrint(Object value) { return CgCbor.prettyPrint(value); }
         @Override public boolean isValid(byte[] bytes) { return CgCbor.isValid(bytes); }
     }
@@ -303,7 +356,7 @@ public final class CgCbor {
      * Binding and CompoundKey.
      */
     private static CBORObject encodeStructure(Object value, Class<?> cls, Layout layout) {
-        java.util.List<java.lang.reflect.Field> ordered = orderedFields(cls);
+        List<Field> ordered = orderedFields(cls);
         if (layout.value() == Layout.Kind.MAP) {
             CBORObject map = CBORObject.NewMap();
             for (java.lang.reflect.Field f : ordered) {
@@ -316,8 +369,8 @@ public final class CgCbor {
         // ARRAY layout: collect, trim trailing nulls, then emit. Trailing optional
         // fields take zero bytes when absent. Matches Walker.walkStructure exactly
         // so canonical hash and CBOR wire form stay aligned.
-        java.util.List<Object> values = new ArrayList<>(ordered.size());
-        for (java.lang.reflect.Field f : ordered) {
+        List<Object> values = new ArrayList<>(ordered.size());
+        for (Field f : ordered) {
             values.add(readField(value, f));
         }
         while (!values.isEmpty() && values.get(values.size() - 1) == null) {
@@ -328,10 +381,10 @@ public final class CgCbor {
         return arr;
     }
 
-    private static java.util.List<java.lang.reflect.Field> orderedFields(Class<?> cls) {
-        java.util.List<java.lang.reflect.Field> result = new ArrayList<>();
+    private static List<Field> orderedFields(Class<?> cls) {
+        List<Field> result = new ArrayList<>();
         for (Class<?> c = cls; c != null && c != Object.class; c = c.getSuperclass()) {
-            for (java.lang.reflect.Field f : c.getDeclaredFields()) {
+            for (Field f : c.getDeclaredFields()) {
                 if (f.isAnnotationPresent(dev.everydaythings.graph.canonical.Order.class)) {
                     f.setAccessible(true);
                     result.add(f);
@@ -422,7 +475,7 @@ public final class CgCbor {
                             + (node == null ? "null" : node.getType() + (node.getType() == CBORType.Array
                                     ? " of size " + node.size() : "")));
         }
-        ItemRef head = expectItemRef(node.get(0), "CompoundKey head");
+        HashID head = expectIidRef(node.get(0), "CompoundKey head");
         CBORObject qualsArr = node.get(1);
         if (qualsArr.getType() != CBORType.Array) {
             throw new IllegalArgumentException(
@@ -458,6 +511,24 @@ public final class CgCbor {
                     context + " must be an ItemRef (prefix '@'), got: " + ref.variant());
         }
         return ((ItemRef) ref).iid();
+    }
+
+    /**
+     * Decode an IID-family reference (ItemRef, TypeRef, or SchemaRef) — i.e.,
+     * anything in the @/?/! family.  Used for compound-key heads and other
+     * positions that accept the operational-mode variants.
+     */
+    private static HashID expectIidRef(CBORObject node, String context) {
+        if (!node.isTagged() || !node.HasMostOuterTag(TAG_REF)) {
+            throw new IllegalArgumentException(
+                    context + " must be Tag 6 (ref), got: " + node);
+        }
+        HashID ref = HashID.fromCborTree(node);
+        return switch (ref.variant()) {
+            case ITEM, TYPE, SCHEMA -> ref;
+            default -> throw new IllegalArgumentException(
+                    context + " must be in the IID family (@ / ? / !), got: " + ref.variant());
+        };
     }
 
     private static CBORObject encodeBindingTarget(Object t) {

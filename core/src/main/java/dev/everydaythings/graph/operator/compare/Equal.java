@@ -5,6 +5,8 @@ import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.Operator;
 
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.value.Bool;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
 
@@ -16,6 +18,10 @@ import dev.everydaythings.graph.language.ThematicRole;
 public class Equal extends Operator {
 
     public static final String KEY = "cg.predicate:equal";
+
+    /** Returns Bool. */
+    @Seed.Property(role = SchemaVocabulary.Returns.KEY)
+    static final SchemaRef returnType = SchemaRef.iid(Bool.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))

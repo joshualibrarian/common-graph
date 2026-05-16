@@ -6,7 +6,10 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.HashID;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.id.TypeRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.SchemaVocabulary;
 
@@ -213,7 +216,8 @@ public final class SeedProcessor {
      */
     private static Binding buildPropertyBinding(Seed.Property property,
                                                 Object fieldValue, String context) {
-        ItemRef role = ItemRef.fromString(property.role());
+        HashID role = resolveRole(property.role(), property.schemaRole(),
+                property.typeRole(), "@Seed.Property", context);
         List<CompoundKey.Qualifier> qualifiers = qualifiersFromKeys(property.qualifiers());
         Long index = property.index().length > 0 ? property.index()[0] : null;
 
@@ -226,13 +230,40 @@ public final class SeedProcessor {
     }
 
     /**
+     * Resolve the binding role from the three mutually-exclusive annotation
+     * parameters ({@code role}, {@code schemaRole}, {@code typeRole}).
+     * Exactly one must be a non-empty canonical-key string; produces an
+     * {@link ItemRef}, {@link SchemaRef}, or {@link TypeRef} respectively.
+     */
+    private static HashID resolveRole(String role, String schemaRole, String typeRole,
+                                      String annotationName, String context) {
+        boolean hasRole = role != null && !role.isEmpty();
+        boolean hasSchema = schemaRole != null && !schemaRole.isEmpty();
+        boolean hasType = typeRole != null && !typeRole.isEmpty();
+        int count = (hasRole ? 1 : 0) + (hasSchema ? 1 : 0) + (hasType ? 1 : 0);
+        if (count == 0) {
+            throw new IllegalStateException(
+                    annotationName + " on " + context
+                            + " requires exactly one of role / schemaRole / typeRole");
+        }
+        if (count > 1) {
+            throw new IllegalStateException(
+                    annotationName + " on " + context
+                            + " has multiple roles set; role / schemaRole / typeRole are mutually exclusive");
+        }
+        if (hasRole)   return ItemRef.fromString(role);
+        if (hasSchema) return SchemaRef.fromString(schemaRole);
+        return TypeRef.fromString(typeRole);
+    }
+
+    /**
      * Coerce a field value to a binding-target, the same mapping
      * {@link #targetsFromValue} uses for {@code @Seed.Frame} fields except that
      * it returns a single target (no array → multiple-bodies fan-out).
      */
     private static Object fieldValueAsTarget(Object value, String context) {
         if (value instanceof String s) return s;
-        if (value instanceof ItemRef ref) return ref;
+        if (value instanceof HashID ref) return ref;       // ItemRef, TypeRef, SchemaRef, ContentRef, DatumRef
         if (value instanceof Body body) return body;       // inline nested-body target
         if (value instanceof Class<?> c) return c.getName();
         if (value instanceof byte[] bytes) return bytes;
@@ -373,22 +404,20 @@ public final class SeedProcessor {
         for (DatumRef manifestCid : manifestCids) {
             Manifest manifest = librarian.fetchManifest(manifestCid).orElse(null);
             if (manifest == null) continue;
-            for (Binding endorses : manifest.endorses()) {
-                if (!(endorses.target() instanceof DatumRef frameCid)) continue;
-                Body endorsedBody = librarian.fetchFrame(frameCid)
-                        .map(f -> f.body())
-                        .orElse(null);
-                if (endorsedBody == null) continue;
-                if (endorsedBody.head() instanceof ItemRef ref
-                        && ItemRef.iid(SchemaVocabulary.Expects.KEY).equals(ref.iid())) {
-                    return;  // Found at least one EXPECTS endorsement; we're good.
+
+            // Any binding on the manifest body whose role is a SchemaRef is
+            // an EXPECTS declaration.  One such binding is enough to satisfy
+            // "instantiable concept."
+            for (Binding b : manifest.body().bindings()) {
+                if (b.role() instanceof SchemaRef) {
+                    return;
                 }
             }
         }
         throw new IllegalStateException(
                 "@Seed.Mints(\"" + conceptIid + "\") on " + mintsClassName
-                        + " — concept has no EXPECTS endorsements declaring its instance schema; "
-                        + "add @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY, ...) to the seed class");
+                        + " — concept has no EXPECTS declarations on its manifest; "
+                        + "add @Seed.Property(schemaRole = ...) fields to the seed class");
     }
 
     /**
@@ -545,7 +574,8 @@ public final class SeedProcessor {
      * came from — used only in error messages.
      */
     private static Binding buildExplicitBinding(Seed.Binding ann, String context) {
-        ItemRef role = ItemRef.fromString(ann.role());
+        HashID role = resolveRole(ann.role(), ann.schemaRole(), ann.typeRole(),
+                "@Seed.Binding", context);
         Object target = explicitTarget(ann, context);
         Long index = ann.index().length > 0 ? ann.index()[0] : null;
         return new Binding(role, qualifiersFromAnnotation(ann), target, index);

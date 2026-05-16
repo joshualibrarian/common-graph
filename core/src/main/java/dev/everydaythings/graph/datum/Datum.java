@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.canonical.Walker;
+import dev.everydaythings.graph.canonical.CanonWalker;
 import dev.everydaythings.graph.id.*;
 import lombok.Getter;
 import java.util.ArrayList;
@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
  * <p>Datum is a POJO with respect to encoders — no knowledge of CG-CBOR or any
  * other wire format. Identity (the {@link #id} field) is computed via the
  * encoder-agnostic {@link HashTree} protocol at construction time.
+ *
+ * TODO: we need a thorough going through of this whole package.  There's still lots of CBOR references in it and it should be encoding agnostic.
+ * TODO: also the builders could use unification and improvement
  */
 public sealed abstract class Datum permits Body, Record {
 
@@ -134,7 +137,7 @@ public sealed abstract class Datum permits Body, Record {
             synchronized (this) {
                 result = id;
                 if (result == null) {
-                    byte[] digest = HashTree.hash(Walker.walk(this), HashTree.DEFAULT_DIGEST);
+                    byte[] digest = HashTree.hash(CanonWalker.walk(this), HashTree.DEFAULT_DIGEST);
                     result = new DatumRef(digest, HashTree.DEFAULT_DIGEST);
                     id = result;
                 }

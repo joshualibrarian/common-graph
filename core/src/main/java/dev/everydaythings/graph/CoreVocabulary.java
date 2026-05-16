@@ -75,11 +75,13 @@ public final class CoreVocabulary {
                         + "this item version endorses";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "endorse";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "endorsement";
     }
 
@@ -101,7 +103,8 @@ public final class CoreVocabulary {
                         + "manifest follows in the version history";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "follow";
     }
 
@@ -126,7 +129,8 @@ public final class CoreVocabulary {
                         + "data; qualifiers narrow the config dimension";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"config", "configuration"};
     }
 
@@ -172,11 +176,13 @@ public final class CoreVocabulary {
                         + "to declare which message types it handles and how";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "handle";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "handler";
     }
 
@@ -204,18 +210,16 @@ public final class CoreVocabulary {
                         + "the meta-root every head chain terminates at";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "archetype";
 
-        /**
-         * The universal item-hood rule: every instance — every item in the system —
-         * must carry an {@code ITEM_ID} binding on its manifest body. Propagates to
-         * every descendant via the head chain. Archetype itself is the bootstrap
-         * exception (no ITEM_ID binding on its own manifest).
-         */
-        @Frame(predicate = SchemaVocabulary.Expects.KEY,
-              field = @Binding(role = ThematicRole.Topic.KEY, qualifiers = {ThematicRole.KEY}))
-        static final ItemRef expectItemId = Manifest.ITEM_ID;
+        // The previous "universal item-hood rule" lived here as an endorsed
+        // EXPECTS frame, claiming every instance must carry ITEM_ID.  That's
+        // not actually universal — Value instances (Color bodies, Quantity
+        // bodies) and frame bodies don't carry ITEM_ID.  The rule belongs on
+        // a more specific meta-archetype (ItemKind, when seeded) that mints
+        // item-shaped instances.  Pending; tracked separately.
     }
 
     /**
@@ -238,7 +242,8 @@ public final class CoreVocabulary {
                         + "predicates declare role-keyed EXPECTS for their frame-instances";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "predicate";
     }
 

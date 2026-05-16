@@ -101,24 +101,25 @@ public final class Binding {
     }
 
     /**
-     * Convenience: build a binding from role + qualifiers + target. The
-     * qualifier list is canonicalized inside CompoundKey.
+     * Convenience: build a binding from role + qualifiers + target.  The
+     * qualifier list is canonicalized inside CompoundKey.  Role must be in
+     * the IID family (ItemRef / TypeRef / SchemaRef).
      */
-    public Binding(ItemRef role, List<Qualifier> qualifiers, Object target) {
+    public Binding(HashID role, List<Qualifier> qualifiers, Object target) {
         this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target, null);
     }
 
     /**
      * Convenience: role + qualifiers + target + index.
      */
-    public Binding(ItemRef role, List<Qualifier> qualifiers, Object target, Long index) {
+    public Binding(HashID role, List<Qualifier> qualifiers, Object target, Long index) {
         this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target, index);
     }
 
     /**
      * Convenience: simple single-role binding (no qualifiers, no index).
      */
-    public Binding(ItemRef role, Object target) {
+    public Binding(HashID role, Object target) {
         this(CompoundKey.of(role), target, null);
     }
 
@@ -141,9 +142,25 @@ public final class Binding {
         return key;
     }
 
-    /** The semantic function — sugar for {@code key().head()}. */
-    public ItemRef role() {
+    /**
+     * The semantic function — sugar for {@code key().head()}.  Always in the
+     * IID family ({@link ItemRef} / {@link TypeRef} / {@link SchemaRef}).
+     * Most call sites compare against {@code ItemRef.iid(KEY)}; that
+     * comparison works because {@link HashID#equals} compares by full
+     * ref-bytes (variant + multihash), so a literal {@code @KEY} doesn't
+     * match a query {@code ?KEY} — which is correct.
+     */
+    public HashID role() {
         return key == null ? null : key.head();
+    }
+
+    /**
+     * The role as an {@link ItemRef}, asserting the variant.  Throws when the
+     * role is a {@link TypeRef} or {@link SchemaRef}.  Use this when the
+     * binding is known to be a literal role (not an expectation / query).
+     */
+    public ItemRef roleIid() {
+        return key == null ? null : key.headIid();
     }
 
     /** Qualifiers — sugar for {@code key().qualifiers()}. */

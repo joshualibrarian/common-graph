@@ -1,17 +1,17 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.id.HashID;
 
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Fluent builder for a bare {@link Body} — no signed records attached. Returned
- * by {@link Body#compose(ItemRef)}.
+ * Fluent builder for a bare {@link Body} — no signed records attached.  Returned
+ * by {@link Body#compose(HashID)}.
  *
  * <p>Used for inline propositional bodies (expressions, nested-target bodies,
  * scene-graph nodes) where the body is data within a larger Datum, not itself
- * an attested artifact. For signed bodies, use {@link Frame#compose(ItemRef)};
+ * an attested artifact.  For signed bodies, use {@code Frame.compose(...)};
  * for identity-bearing item bodies, use {@code Manifest.compose(...)}.
  *
  * <p>This builder inherits {@link BodyBuilder}'s record machinery but rejects
@@ -20,15 +20,15 @@ import java.util.Objects;
  */
 public final class BodyComposer extends BodyBuilder<BodyComposer, Body> {
 
-    private final ItemRef head;
+    private final HashID head;
 
-    BodyComposer(ItemRef head) {
+    BodyComposer(HashID head) {
         this.head = Objects.requireNonNull(head, "head");
     }
 
     @Override
     protected Body buildBody() {
-        return Body.of(ItemRef.of(head), bindings);
+        return Body.of(head, bindings);
     }
 
     @Override

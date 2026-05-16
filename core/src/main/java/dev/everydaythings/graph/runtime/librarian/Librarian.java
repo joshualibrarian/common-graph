@@ -23,6 +23,9 @@ import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.library.Library;
+import dev.everydaythings.graph.library.QueryWalker;
+import dev.everydaythings.graph.library.SchemaWalker;
+import dev.everydaythings.graph.library.ValidationResult;
 import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.network.parley.Parley;
 import dev.everydaythings.graph.Seed;
@@ -997,7 +1000,24 @@ public class Librarian extends Signer {
      */
     public SubmitResult submit(Frame frame) {
         Objects.requireNonNull(frame, "frame");
+
+        // Routing decision: is this frame a query or an assertion?
+        // A query carries TypeRef references (or, eventually, partially-applied
+        // Bool-returning operators); QueryWalker scans the body structurally.
+        if (QueryWalker.isQuery(frame.body())) {
+            return submitQuery(frame);
+        }
+
+        // Assertion path — the historical flow.
         ItemRef predicateIid = ((ItemRef) frame.body().head()).iid();
+
+        // Schema re-validation: even if the orchestrator already checked, the
+        // librarian independently verifies the candidate against its head's
+        // archetype manifest.  Soft mode for now: issues are logged but the
+        // frame still flows through.  Tightening (reject-on-invalid) lands
+        // once archetype manifests reliably carry their EXPECTS declarations.
+        revalidateAgainstSchema(frame, predicateIid);
+
         boolean ephemeral = isEphemeral(predicateIid);
 
         if (!ephemeral) {
@@ -1011,6 +1031,42 @@ public class Librarian extends Signer {
         List<Frame> responses = dispatchToHandlers(frame, predicateIid);
 
         return SubmitResult.of(frame, responses);
+    }
+
+    /**
+     * Re-validate an incoming assertion against its head archetype's schema
+     * declarations.  Issues are logged at WARN; persistence continues.  If the
+     * archetype isn't locally known (no manifest fetched yet), validation is
+     * skipped silently — we can't validate against a schema we haven't seen.
+     */
+    private void revalidateAgainstSchema(Frame frame, ItemRef predicateIid) {
+        Optional<Item> archetype = fetchItem(predicateIid);
+        if (archetype.isEmpty()) return;
+        Manifest manifest = archetype.get().current();
+        if (manifest == null) return;
+        ValidationResult result = SchemaWalker.validate(frame.body(), manifest.body());
+        if (!result.isValid()) {
+            for (ValidationResult.Issue issue : result.issues()) {
+                logger.warn("Schema validation issue on frame head={}: {}",
+                        predicateIid, issue.message());
+            }
+        }
+    }
+
+    /**
+     * Handle a query-shaped frame.  Per docs/query.md, queries persist on the
+     * active item (alongside other frames) AND get evaluated against the corpus
+     * via the matcher orchestrator, which emits RESULT frames back.
+     *
+     * <p>For now this is a stub — the matcher orchestrator hasn't landed.  The
+     * frame is recognized as a query and a log entry is emitted; no persistence
+     * or dispatch occurs.  Wire-up of persistence + matcher dispatch is the
+     * next chunk.
+     */
+    private SubmitResult submitQuery(Frame frame) {
+        logger.info("Query frame received (head={}); matcher orchestrator not yet implemented",
+                frame.body().head());
+        return SubmitResult.of(frame, List.of());
     }
 
     /**

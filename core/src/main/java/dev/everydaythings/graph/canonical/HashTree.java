@@ -11,7 +11,7 @@ import java.util.Comparator;
  * {@link Node} tree, with a canonical comparator for ordering multisets.
  *
  * <p>HashTree is the single authority for "what's the structural identity of
- * a value." Given any {@link Node} tree — produced by the {@link Walker} —
+ * a value." Given any {@link Node} tree — produced by the {@link CanonWalker} —
  * and a hash algorithm, it computes a deterministic digest. The result is
  * <b>encoding-invariant</b>: the same semantic value produces the same digest
  * under any encoder (CG-CBOR, a hypothetical CG-JSON, etc.) because all
@@ -89,12 +89,12 @@ public final class HashTree {
     }
 
     /**
-     * Compute the structural hash of any value: walks it via {@link Walker}
+     * Compute the structural hash of any value: walks it via {@link CanonWalker}
      * and hashes the resulting Node tree. The convenience entry point most
      * callers want.
      */
     public static byte[] hashOf(Object value, Multihash.Type algo) {
-        return hash(Walker.walk(value), algo);
+        return hash(CanonWalker.walk(value), algo);
     }
 
     /**
@@ -105,7 +105,7 @@ public final class HashTree {
      * signature in what's signed would be circular.
      */
     public static byte[] signingPayload(dev.everydaythings.graph.datum.Datum datum) {
-        return hash(Walker.walkBodyPart(datum), DEFAULT_DIGEST);
+        return hash(CanonWalker.walkBodyPart(datum), DEFAULT_DIGEST);
     }
 
     // ==================================================================================

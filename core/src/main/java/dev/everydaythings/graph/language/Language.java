@@ -153,7 +153,7 @@ public class Language extends Item {
         Object goal = null;
         List<Object> others = new java.util.ArrayList<>();
         for (Binding b : body.bindings()) {
-            ItemRef role = b.role();
+            ItemRef role = b.roleIid();
             Object target = b.target();
             if (theme == null && ItemRef.iid(ThematicRole.Theme.KEY).equals(role)) {
                 theme = target;

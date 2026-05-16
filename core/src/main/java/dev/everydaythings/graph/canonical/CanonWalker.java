@@ -4,9 +4,6 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.HashID;
 
@@ -35,9 +32,9 @@ import java.util.List;
  * <p>Walker does NOT touch encoder-specific wire bytes. It produces Node trees;
  * encoders take it from there.
  */
-public final class Walker {
+public final class CanonWalker {
 
-    private Walker() {}
+    private CanonWalker() {}
 
     // ==================================================================================
     // Leaf-type discriminators (embedded as the first byte of every Leaf's rawBytes)
