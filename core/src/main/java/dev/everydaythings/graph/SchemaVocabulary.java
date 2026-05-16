@@ -84,6 +84,22 @@ public final class SchemaVocabulary {
         public static final String KEY = "cg.sememe:implements";
         public static final ItemRef IID = ItemRef.fromString(KEY);
         private Implements() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "predicate declaring that an artifact realizes a concept — its frames "
+                        + "carry THEME → concept and AGENT → implementation reference "
+                        + "(typically a class name or source code), letting CREATE find "
+                        + "runnable forms and items declare what they implement";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "implement";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "implementation";
     }
 
     // ==================================================================================

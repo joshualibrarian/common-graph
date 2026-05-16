@@ -133,31 +133,6 @@ public final class CoreVocabulary {
         static final String[] englishNounLemmas = {"config", "configuration"};
     }
 
-    /**
-     * Implementation — the manifest binding declaring the runtime form (Java
-     * class, WASM module, code reference) that realizes this item.
-     *
-     * <p>Used on Code Item manifests and on seed manifests for items whose Java
-     * class is paired with the seed via {@code @Embodies}. The runtime adapter
-     * loads the implementation when the item is hydrated.
-     */
-    @Seed.Item(key = Implementation.KEY)
-    public static final class Implementation {
-        public static final String KEY = "cg.structural:implementation";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
-        private Implementation() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the binding head whose target is a runtime form (Java class, "
-                        + "WASM module, code reference) that realizes an item";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "implementation";
-    }
-
     // ==================================================================================
     // Foundational predicates — declarative item-level metadata via endorsed frames
     // ==================================================================================

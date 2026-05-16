@@ -153,7 +153,7 @@ public final class SeedProcessor {
                 && seedItem.key().equals(embodies.key());
         if (singleLevel) {
             validateRuntimeClass(cls, "@Embodies");
-            bindings.add(Manifest.javaImplementation(cls));
+            bindings.add(Manifest.implementation(cls));
         }
 
         for (DatumRef frameCid : buildEndorsedFrames(librarian, cls)) {
@@ -214,7 +214,7 @@ public final class SeedProcessor {
         // ENDORSES (the IMPLEMENTS frame + each HANDLES frame).
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(Manifest.ITEM_ID, codeIid));
-        bindings.add(Manifest.javaImplementation(cls));
+        bindings.add(Manifest.implementation(cls));
         bindings.add(new Binding(Manifest.ENDORSES, implementsCid));
         for (DatumRef handlesCid : buildHandlesFrames(librarian, cls)) {
             bindings.add(new Binding(Manifest.ENDORSES, handlesCid));
@@ -258,7 +258,7 @@ public final class SeedProcessor {
 
         ItemRef conceptIid = ItemRef.fromString(mints.key());
 
-        // IMPLEMENTS { THEME → conceptIid, AGENT:[RuntimeVocabulary.Java, JavaClass] → text(fqcn) }
+        // IMPLEMENTS { THEME → conceptIid, AGENT:[Java, ClassName] → text(fqcn) }
         Body implementsBody = Body.of(
                 ItemRef.of(SchemaVocabulary.Implements.IID),
                 List.of(
@@ -267,7 +267,7 @@ public final class SeedProcessor {
                                 ThematicRole.Agent.IID,
                                 List.of(
                                         new CompoundKey.Sememe(RuntimeVocabulary.Java.IID),
-                                        new CompoundKey.Sememe(RuntimeVocabulary.JavaClass.IID)),
+                                        new CompoundKey.Sememe(RuntimeVocabulary.ClassName.IID)),
                                 cls.getName())));
         librarian.persist(implementsBody);
     }
@@ -518,7 +518,7 @@ public final class SeedProcessor {
         }
         if (value instanceof Class<?> c) {
             // Plain text target; the binding's qualifiers (declared on @Seed.Frame
-            // or @Seed.Binding) carry the JavaClass narrowing semantically.
+            // or @Seed.Binding) carry the ClassName narrowing semantically.
             return List.of(c.getName());
         }
         if (value instanceof byte[] bytes) {

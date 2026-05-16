@@ -469,7 +469,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.javaImplementation(TestThing.class)
+                            Manifest.implementation(TestThing.class)
                     )
             );
             lib.persist(manifestBody);
@@ -503,10 +503,9 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:bogus")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            new Binding(
-                                    Manifest.IMPLEMENTATION,
-                                    java.util.List.of(new CompoundKey.Sememe(
-                                            RuntimeVocabulary.JavaClass.IID)),
+                            Manifest.implementation(
+                                    RuntimeVocabulary.Java.IID,
+                                    RuntimeVocabulary.ClassName.IID,
                                     "does.not.Exist")
                     )
             );
@@ -527,7 +526,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:bogus")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.javaImplementation(String.class)
+                            Manifest.implementation(String.class)
                     )
             );
             lib.persist(manifestBody);
@@ -547,7 +546,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.javaImplementation(TestThing.class)
+                            Manifest.implementation(TestThing.class)
                     )
             );
             lib.persist(manifestBody);

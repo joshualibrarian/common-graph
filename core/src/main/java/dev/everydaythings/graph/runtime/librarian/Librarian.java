@@ -26,6 +26,7 @@ import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.network.parley.Parley;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.runtime.stage.ItemStage;
 import lombok.Getter;
 
 import java.nio.file.Path;
@@ -358,8 +359,7 @@ public class Librarian extends Signer {
         LibrarianOptions opts = new LibrarianOptions();
         new picocli.CommandLine(opts).parseArgs(args);
 
-        dev.everydaythings.graph.runtime.stage.ItemStage stage =
-                new dev.everydaythings.graph.runtime.stage.ItemStage();
+        ItemStage stage = new ItemStage();
         logger.info("ItemStage up. Polyglot: {}",
                 stage.polyglotAvailable()
                         ? "GraalVM " + stage.polyglotLanguages()
@@ -614,30 +614,31 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Read a Java class from an IMPLEMENTATION-shaped binding. Two cases:
+     * Read a Java class from an implementation-shaped binding. Two cases:
      * <ul>
-     *   <li>The binding is qualified by {@link RuntimeVocabulary.JavaClass} and its
-     *       target is a text class name — used directly.</li>
+     *   <li>The binding's role is {@link RuntimeVocabulary.Java} with
+     *       {@link RuntimeVocabulary.ClassName} as a qualifier and a text
+     *       target — used directly as a class name.</li>
      *   <li>The binding's target is an item reference — fetch that item and
-     *       follow its own IMPLEMENTATION binding one level.</li>
+     *       follow its own implementation binding one level.</li>
      * </ul>
      */
     private Class<? extends Item> resolveImplementationFromBinding(
             Binding binding, String contextDescription) {
-        // Direct Java-class binding: qualifier JavaClass + text target.
-        if (Manifest.isJavaClassBinding(binding)) {
+        // Direct Java implementation binding: role Java, qualifier ClassName, text target.
+        if (Manifest.isJavaImplementation(binding)) {
             if (!(binding.target() instanceof String className)) {
                 throw new IllegalStateException(contextDescription
-                        + " is JavaClass-qualified but target is not a String: "
+                        + " is a Java implementation binding but target is not a String: "
                         + binding.target().getClass().getSimpleName());
             }
             return loadItemClass(className, contextDescription);
         }
-        // Item reference — fetch the impl item and follow its IMPLEMENTATION binding.
+        // Item reference — fetch the impl item and follow its implementation binding.
         ItemRef implItemIid = extractReferencedIidFromTarget(binding.target());
         if (implItemIid == null) {
             throw new IllegalStateException(contextDescription
-                    + " is neither a JavaClass binding nor an item reference: "
+                    + " is neither a Java implementation binding nor an item reference: "
                     + binding.target().getClass().getSimpleName());
         }
         Item implItem = fetchItem(implItemIid)
@@ -652,11 +653,11 @@ public class Librarian extends Signer {
                 .orElseThrow(() -> new IllegalStateException(contextDescription
                         + " references item " + implItemIid
                         + " which lacks an IMPLEMENTATION binding"));
-        if (!Manifest.isJavaClassBinding(nested)
+        if (!Manifest.isJavaImplementation(nested)
                 || !(nested.target() instanceof String className)) {
             throw new IllegalStateException(contextDescription
                     + " via item " + implItemIid
-                    + " ultimately did not resolve to a JavaClass binding");
+                    + " ultimately did not resolve to a Java implementation binding");
         }
         return loadItemClass(className, contextDescription);
     }
@@ -869,14 +870,14 @@ public class Librarian extends Signer {
     }
 
     private static Class<? extends Item> resolveImplementationClass(Binding binding, ItemRef iid) {
-        if (!Manifest.isJavaClassBinding(binding)) {
+        if (!Manifest.isJavaImplementation(binding)) {
             throw new IllegalStateException(
-                    "Manifest for " + iid + " has IMPLEMENTATION binding without "
-                            + "JavaClass qualifier; cannot hydrate");
+                    "Manifest for " + iid + " has implementation binding that is not "
+                            + "Java+ClassName; cannot hydrate as Java");
         }
         if (!(binding.target() instanceof String className)) {
             throw new IllegalStateException(
-                    "Manifest for " + iid + " has IMPLEMENTATION binding whose target is "
+                    "Manifest for " + iid + " has Java implementation binding whose target is "
                             + binding.target().getClass().getSimpleName()
                             + "; expected a class-name String");
         }

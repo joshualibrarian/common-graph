@@ -292,7 +292,7 @@ public class Item {
         // Auto-inject IMPLEMENTATION for non-bare-Item subclasses so future
         // hydration of this item's manifest can dispatch to the right Java class.
         if (this.getClass() != Item.class) {
-            manifestBindings.add(Manifest.javaImplementation(this.getClass()));
+            manifestBindings.add(Manifest.implementation(this.getClass()));
         }
         manifestBindings.addAll(bindings);
 
@@ -329,6 +329,45 @@ public class Item {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + (iid == null ? "anonymous" : iid) + "]";
+    }
+
+    // ==================================================================================
+    // Evaluate — universal message processing
+    // ==================================================================================
+
+    /**
+     * Subclass implementation hook for message processing.
+     *
+     * <p>Items receive bodies as messages and react. The body's head identifies
+     * the message type: a predicate-headed body is a frame ("do this action");
+     * a {@code ParseContext}-headed body is a parse round; a
+     * {@code RenderContext}-headed body is a render request. Subclasses
+     * dispatch on the head however they choose — typed switch, annotation
+     * table, language-native pattern matching.
+     *
+     * <p>Return value convention: bare values ({@link Long}, {@code Decimal},
+     * {@link String}) for simple scalars where the caller can interpret
+     * unambiguously; a {@link Body} when the result is semantically rich
+     * (quantities with units, structured replies); {@code null} when the item
+     * has no reply.
+     *
+     * <p><b>Not a public API.</b> This hook is invoked by
+     * {@link dev.everydaythings.graph.runtime.stage.ItemStage ItemStage} on
+     * behalf of the librarian; external code never calls this method directly.
+     * To have an item process a message, callers go through
+     * {@code librarian.evaluate(target, body)} (or its eventual equivalent),
+     * which applies trust/capability policy and then routes through the Stage.
+     * The Stage uses reflection to invoke this hook, so {@code protected}
+     * visibility is enforced for Java callers but not for the Stage itself.
+     *
+     * <p>Polyglot items (Python, Lisp, JS, …) don't override this method —
+     * their behavior lives in source bindings on the manifest, and the Stage's
+     * polyglot strategy invokes that source directly. Only Java items override.
+     *
+     * <p>Default implementation returns {@code null}.
+     */
+    protected Object evaluate(Body body) {
+        return null;
     }
 
     // ==================================================================================

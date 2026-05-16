@@ -110,6 +110,28 @@ public final class RuntimeVocabulary {
     }
 
     /**
+     * The Lisp runtime — the Lisp programming language family generally
+     * (Common Lisp, Scheme, etc.). Specific dialects like {@link Clojure}
+     * have their own sememes; use this for cases where the dialect is
+     * unspecified or the implementation is dialect-agnostic.
+     */
+    @Seed.Item(key = Lisp.KEY)
+    public static final class Lisp {
+        public static final String KEY = "cg.runtime:lisp";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private Lisp() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "Lisp programming language family runtime";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "lisp";
+    }
+
+    /**
      * The {@code CONSTRUCT} predicate — post-instantiation hook for new items.
      *
      * <p>After a {@link LibrarianVocabulary.Create} frame produces a new item and commits its initial
@@ -194,28 +216,44 @@ public final class RuntimeVocabulary {
     }
 
     /**
-     * Qualifier marking a binding's text target as a fully-qualified Java class name.
-     *
-     * <p>Used on bindings whose role is {@link CoreVocabulary.Implementation} or similar — the
-     * target is a plain text literal carrying the FQCN, and the qualifier identifies
-     * "this text means a Java class." The binding is the canonical attribution of a
-     * code-item's runtime form for the JVM. Later: a sibling qualifier (or a binary
-     * literal target with this same qualifier) carries actual bytecode.
-     *
-     * <p>Lives in CoreVocabulary as part of the post-Literal-cleanup convention:
-     * encoding-primitive type (text vs binary) is CBOR's job; semantic narrowing
-     * (this text is a JVM class name) is a qualifier sememe.
+     * Qualifier marking a binding's text target as a class identifier — typically
+     * a fully-qualified class name in the binding's language. Used composed with
+     * a language sememe as the binding's role (e.g., {@code JAVA:[ClassName]} or
+     * {@code PYTHON:[ClassName]}).
      */
-    @Seed.Item(key = JavaClass.KEY)
-    public static final class JavaClass {
-        public static final String KEY = "cg.address:java-class";
+    @Seed.Item(key = ClassName.KEY)
+    public static final class ClassName {
+        public static final String KEY = "cg.qualifier:class-name";
         public static final ItemRef IID = ItemRef.fromString(KEY);
-        private JavaClass() {}
+        private ClassName() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "qualifier marking a binding's text target as a fully-qualified "
-                        + "Java class name";
+                "qualifier marking a binding's text target as a class identifier "
+                        + "(typically a fully-qualified class name) in the binding's "
+                        + "language";
+    }
+
+    /**
+     * Qualifier marking a binding's text target as source code in the binding's
+     * language. Used composed with a language sememe as the binding's role
+     * (e.g., {@code PYTHON:[SourceCode]} or {@code LISP:[SourceCode]}).
+     *
+     * <p>For interpreted languages, source code can live directly on the
+     * manifest. For compiled languages, prefer a Bytecode qualifier (not yet
+     * defined) addressing the compiled bytes by CID.
+     */
+    @Seed.Item(key = SourceCode.KEY)
+    public static final class SourceCode {
+        public static final String KEY = "cg.qualifier:source-code";
+        public static final ItemRef IID = ItemRef.fromString(KEY);
+        private SourceCode() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "qualifier marking a binding's text target as source code in the "
+                        + "binding's language";
     }
 }
