@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.value.Varint;
 
 import java.io.ByteArrayOutputStream;
@@ -27,11 +28,13 @@ public final class MultiKey {
     private final int code;
     private final byte[] rawKey;
     private final byte[] encoded;  // cached full multikey bytes
+    private final AlgorithmHandle handle;  // optional — set when decoded with a librarian
 
-    private MultiKey(int code, byte[] rawKey, byte[] encoded) {
+    private MultiKey(int code, byte[] rawKey, byte[] encoded, AlgorithmHandle handle) {
         this.code = code;
         this.rawKey = rawKey;
         this.encoded = encoded;
+        this.handle = handle;
     }
 
     /**
@@ -64,7 +67,10 @@ public final class MultiKey {
     }
 
     /**
-     * Decode a multikey from its full encoded form.
+     * Decode a multikey from its full encoded form.  Does not resolve the
+     * algorithm handle; the resulting {@link MultiKey} carries the codec but
+     * {@link #handle()} returns {@code null}.  Use
+     * {@link #decode(byte[], Librarian)} when handle resolution is wanted.
      */
     public static MultiKey decode(byte[] bytes) {
         Objects.requireNonNull(bytes, "bytes");
@@ -76,11 +82,43 @@ public final class MultiKey {
         return of((int) codecRead.value(), rawKey);
     }
 
+    /**
+     * Decode a multikey and resolve its algorithm handle via the librarian.
+     * The resulting {@link MultiKey} can produce a JCA {@link java.security.PublicKey}
+     * directly via {@link #publicKey()} with zero further lookups.
+     */
+    public static MultiKey decode(byte[] bytes, Librarian librarian) {
+        Objects.requireNonNull(bytes, "bytes");
+        Objects.requireNonNull(librarian, "librarian");
+        if (bytes.length == 0) {
+            throw new IllegalArgumentException("MultiKey bytes cannot be empty");
+        }
+        Varint.Read codecRead = Varint.readUnsignedVarint(bytes, 0);
+        int code = (int) codecRead.value();
+        byte[] rawKey = Arrays.copyOfRange(bytes, codecRead.next(), bytes.length);
+        AlgorithmHandle handle = librarian.algorithmByMultikeyCode(code);
+        return build(code, rawKey, handle);
+    }
+
+    /**
+     * Construct from an already-resolved {@link AlgorithmHandle} and raw
+     * key bytes.  The codec is taken from the handle.
+     */
+    public static MultiKey of(AlgorithmHandle handle, byte[] rawKey) {
+        Objects.requireNonNull(handle, "handle");
+        Objects.requireNonNull(rawKey, "rawKey");
+        return build((int) handle.multikeyCode(), rawKey, handle);
+    }
+
     private static MultiKey build(int code, byte[] rawKey) {
+        return build(code, rawKey, null);
+    }
+
+    private static MultiKey build(int code, byte[] rawKey, AlgorithmHandle handle) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Varint.writeUnsignedVarint(out, code);
         out.writeBytes(rawKey);
-        return new MultiKey(code, rawKey.clone(), out.toByteArray());
+        return new MultiKey(code, rawKey.clone(), out.toByteArray(), handle);
     }
 
     private static void validateLength(int expected, int actual, Algorithm.Asymmetric algorithm) {
@@ -118,6 +156,28 @@ public final class MultiKey {
     /** The full multikey-encoded bytes (defensive copy). */
     public byte[] encoded() {
         return encoded.clone();
+    }
+
+    /**
+     * The resolved algorithm handle, or {@code null} when this MultiKey was
+     * decoded without librarian context.
+     */
+    public AlgorithmHandle handle() {
+        return handle;
+    }
+
+    /**
+     * Decode the raw key bytes into a JCA {@link java.security.PublicKey}
+     * using the resolved handle.
+     *
+     * @throws IllegalStateException if this MultiKey has no resolved handle
+     */
+    public java.security.PublicKey publicKey() {
+        if (handle == null) {
+            throw new IllegalStateException(
+                    "MultiKey has no resolved algorithm handle — decode with a librarian to materialize");
+        }
+        return handle.decodePublicKey(rawKey);
     }
 
     @Override

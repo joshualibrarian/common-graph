@@ -173,9 +173,31 @@ public final class SeedProcessor {
         // rather than crammed into @Seed.Item.bindings.
         processSeedProperties(cls, bindings);
 
+        // HANDLES bindings — one per @Seed.Handler method on the class.  The
+        // archetype declares its API surface here; instances inherit.  This is
+        // the contract: predicate frames flow to items whose archetype HANDLES
+        // them.  CodeItem manifests (built in processEmbodies) carry only
+        // IMPLEMENTS plus the language binding — they don't redeclare HANDLES.
+        addHandlesBindings(cls, bindings);
+
         librarian.persist(Body.of(
                 ItemRef.of(ItemRef.fromString(seedItem.head())),
                 bindings));
+    }
+
+    /**
+     * Walk {@link Seed.Handler @Seed.Handler}-annotated methods on the class
+     * and append a {@code @HANDLES → @<predicate>} binding for each.  HANDLES
+     * lives on the archetype manifest; the method name is not recorded here
+     * (the new dispatch model uses {@code Item.receive(Frame)} with internal
+     * routing, not externally-named methods).
+     */
+    private static void addHandlesBindings(Class<?> cls, List<Binding> bindings) {
+        for (Method m : cls.getDeclaredMethods()) {
+            Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
+            if (ann == null) continue;
+            bindings.add(Manifest.handles(ItemRef.fromString(ann.predicate())));
+        }
     }
 
     /**
@@ -277,19 +299,20 @@ public final class SeedProcessor {
     }
 
     /**
-     * Process one two-level {@code @Seed.Embodies} class into its CodeItem manifest
-     * plus the standalone IMPLEMENTS frame that links it to the archetype.
+     * Process one two-level {@code @Seed.Embodies} class into its CodeItem manifest.
      *
-     * <p>Two manifests are minted, both heads carry their own structural meaning:
+     * <p>The CodeItem manifest carries:
      * <ul>
-     *   <li><b>CodeItem manifest</b> — head = {@link RuntimeVocabulary.Code}, ITEM_ID =
-     *       the CodeItem's key. Carries the class literal as IMPLEMENTATION (placeholder
-     *       — the binding's role will move to a qualifier-bearing form in the Literal
-     *       cleanup), endorses one HANDLES frame per {@code @Handler} method, and
-     *       endorses the IMPLEMENTS frame that points at the archetype.</li>
-     *   <li><b>IMPLEMENTS frame</b> — head = {@link Implements}, {@code THEME →
-     *       @archetype, AGENT → @codeItem}. Independent frame body, indexable by
-     *       archetype — that's the lookup path "who implements archetype A?"</li>
+     *   <li>{@code @ITEM_ID → <codeIid>} — the CodeItem's identity.</li>
+     *   <li>{@code @IMPLEMENTS → @<archetype>} — direct binding declaring which
+     *       archetype this code realizes.  Reverse-lookup ("who implements
+     *       archetype A?") walks the FRAME_BY_TARGET-style index over IMPLEMENTS
+     *       bindings.</li>
+     *   <li>{@code @JAVA:[ClassName] → "<fqcn>"} (or analogous for other
+     *       languages) — the actual runtime form.</li>
+     *   <li>{@code @ENDORSES → #<handles-frame-cid>} — one per {@code @Handler}
+     *       method on the class.  HANDLES frames retain their current
+     *       INSTRUMENT-carrying shape until task #114 lands.</li>
      * </ul>
      *
      * <p>Single-level {@code @Seed.Embodies} (no {@code archetype()}) is handled
@@ -306,22 +329,12 @@ public final class SeedProcessor {
         ItemRef codeIid = ItemRef.fromString(embodies.key());
         ItemRef archetypeIid = ItemRef.fromString(embodies.archetype());
 
-        // Mint the standalone IMPLEMENTS frame first — its DatumRef is what the
-        // CodeItem manifest endorses (and what other archetype-implementation
-        // lookups will index).
-        Body implementsBody = Body.of(
-                ItemRef.of(ItemRef.iid(SchemaVocabulary.Implements.KEY)),
-                List.of(
-                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), archetypeIid),
-                        Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), codeIid)));
-        DatumRef implementsCid = librarian.persist(implementsBody);
-
-        // CodeItem manifest: head = Code, ITEM_ID + class literal +
-        // ENDORSES (the IMPLEMENTS frame + each HANDLES frame).
+        // CodeItem manifest: head = Code, ITEM_ID + IMPLEMENTS → @archetype +
+        // language/class binding + ENDORSES (each HANDLES frame).
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(Manifest.ITEM_ID, codeIid));
+        bindings.add(Manifest.implementsArchetype(archetypeIid));
         bindings.add(Manifest.implementation(cls));
-        bindings.add(new Binding(Manifest.ENDORSES, implementsCid));
         for (DatumRef handlesCid : buildHandlesFrames(librarian, cls)) {
             bindings.add(new Binding(Manifest.ENDORSES, handlesCid));
         }

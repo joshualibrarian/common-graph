@@ -82,6 +82,30 @@ public final class IdentityVocabulary {
         static final String englishVerbLemma = "encrypt";
     }
 
+    /**
+     * The key-agreement / key-management track — primitives like X25519 ECDH or
+     * RSA-OAEP whose purpose is to derive or wrap a content-encryption key, not
+     * to encrypt content directly.  Distinct from {@link Encryption} (AEAD
+     * ciphers that encrypt content) because the cryptographic shape and the
+     * way they fit in a protocol differ.
+     */
+    @Seed.Item(key = KeyAgreement.KEY)
+    public static final class KeyAgreement {
+        public static final String KEY = "cg.purpose:key-agreement";
+        private KeyAgreement() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the cryptographic key-agreement or key-wrap track — primitives that "
+                        + "derive or wrap a content key (e.g., X25519 ECDH, RSA-OAEP), "
+                        + "distinct from algorithms that encrypt content directly";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "key-agreement";
+    }
+
     // ==================================================================================
     // Key-event predicates (KEL members)
     // ==================================================================================

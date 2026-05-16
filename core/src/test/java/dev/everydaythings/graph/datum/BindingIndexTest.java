@@ -182,4 +182,64 @@ class BindingIndexTest {
             assertThat(b.index()).isEqualTo(42L);
         }
     }
+
+    @Nested
+    @DisplayName("Null targets — role-only assertions")
+    class NullTargets {
+
+        @Test
+        @DisplayName("a binding may carry a null target")
+        void nullTargetConstructible() {
+            Binding b = new Binding(CHILD, null);
+            assertThat(b.target()).isNull();
+            assertThat(b.role()).isEqualTo(CHILD);
+        }
+
+        @Test
+        @DisplayName("null-target binding round-trips through CBOR as a 1-element array")
+        void nullTargetRoundTrip() {
+            Binding original = new Binding(CHILD, null);
+            CBORObject cbor = CgCbor.toCbor(original);
+            // Trailing-null trim collapses [key, null, null] to [key].
+            assertThat(cbor.size()).isEqualTo(1);
+            Binding decoded = Binding.fromCborTree(cbor);
+            assertThat(decoded).isEqualTo(original);
+            assertThat(decoded.target()).isNull();
+            assertThat(decoded.index()).isNull();
+        }
+
+        @Test
+        @DisplayName("null-target binding hashes deterministically")
+        void nullTargetDeterministicHash() {
+            Binding b1 = new Binding(CHILD, null);
+            Binding b2 = new Binding(CHILD, null);
+            byte[] h1 = HashTree.hashOf(b1, HashTree.DEFAULT_DIGEST);
+            byte[] h2 = HashTree.hashOf(b2, HashTree.DEFAULT_DIGEST);
+            assertThat(h1).isEqualTo(h2);
+        }
+
+        @Test
+        @DisplayName("null-target binding hashes differently from a binding with a target")
+        void nullTargetDistinctHash() {
+            Binding nullTarget = new Binding(CHILD, null);
+            Binding withTarget = new Binding(CHILD, NODE_A);
+            byte[] hNull = HashTree.hashOf(nullTarget, HashTree.DEFAULT_DIGEST);
+            byte[] hWith = HashTree.hashOf(withTarget, HashTree.DEFAULT_DIGEST);
+            assertThat(hNull).isNotEqualTo(hWith);
+        }
+
+        @Test
+        @DisplayName("a body carrying a null-target binding round-trips and re-hashes identically")
+        void bodyWithNullTargetBinding() {
+            Body body = Body.of(CONTAINER, List.of(new Binding(CHILD, null)));
+            byte[] originalHash = HashTree.hashOf(body, HashTree.DEFAULT_DIGEST);
+
+            CBORObject cbor = CgCbor.toCbor(body);
+            Body decoded = Body.fromCborTree(cbor);
+            assertThat(decoded.bindings()).hasSize(1);
+            assertThat(decoded.bindings().get(0).target()).isNull();
+            byte[] decodedHash = HashTree.hashOf(decoded, HashTree.DEFAULT_DIGEST);
+            assertThat(decodedHash).isEqualTo(originalHash);
+        }
+    }
 }

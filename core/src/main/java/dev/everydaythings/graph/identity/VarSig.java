@@ -1,8 +1,10 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.value.Varint;
 
 import java.io.ByteArrayOutputStream;
+import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -24,11 +26,13 @@ public final class VarSig {
     private final int code;
     private final byte[] rawSig;
     private final byte[] encoded;  // cached full varsig bytes
+    private final AlgorithmHandle handle;  // optional — set when decoded with a librarian
 
-    private VarSig(int code, byte[] rawSig, byte[] encoded) {
+    private VarSig(int code, byte[] rawSig, byte[] encoded, AlgorithmHandle handle) {
         this.code = code;
         this.rawSig = rawSig;
         this.encoded = encoded;
+        this.handle = handle;
     }
 
     /**
@@ -59,7 +63,10 @@ public final class VarSig {
     }
 
     /**
-     * Decode a varsig from its full encoded form.
+     * Decode a varsig from its full encoded form.  Does not resolve the
+     * algorithm handle; the resulting {@link VarSig} carries the codec but
+     * {@link #handle()} returns {@code null}.  Use
+     * {@link #decode(byte[], Librarian)} when handle resolution is wanted.
      */
     public static VarSig decode(byte[] bytes) {
         Objects.requireNonNull(bytes, "bytes");
@@ -71,11 +78,43 @@ public final class VarSig {
         return of((int) codecRead.value(), rawSig);
     }
 
+    /**
+     * Decode a varsig and resolve its algorithm handle via the librarian.
+     * The resulting {@link VarSig} can {@link #verify(byte[], MultiKey)}
+     * with zero further lookups.
+     */
+    public static VarSig decode(byte[] bytes, Librarian librarian) {
+        Objects.requireNonNull(bytes, "bytes");
+        Objects.requireNonNull(librarian, "librarian");
+        if (bytes.length == 0) {
+            throw new IllegalArgumentException("VarSig bytes cannot be empty");
+        }
+        Varint.Read codecRead = Varint.readUnsignedVarint(bytes, 0);
+        int code = (int) codecRead.value();
+        byte[] rawSig = Arrays.copyOfRange(bytes, codecRead.next(), bytes.length);
+        AlgorithmHandle handle = librarian.algorithmByVarsigCode(code);
+        return build(code, rawSig, handle);
+    }
+
+    /**
+     * Construct from an already-resolved {@link AlgorithmHandle} and raw
+     * signature bytes.  The codec is taken from the handle.
+     */
+    public static VarSig of(AlgorithmHandle handle, byte[] rawSig) {
+        Objects.requireNonNull(handle, "handle");
+        Objects.requireNonNull(rawSig, "rawSig");
+        return build((int) handle.varsigCode(), rawSig, handle);
+    }
+
     private static VarSig build(int code, byte[] rawSig) {
+        return build(code, rawSig, null);
+    }
+
+    private static VarSig build(int code, byte[] rawSig, AlgorithmHandle handle) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Varint.writeUnsignedVarint(out, code);
         out.writeBytes(rawSig);
-        return new VarSig(code, rawSig.clone(), out.toByteArray());
+        return new VarSig(code, rawSig.clone(), out.toByteArray(), handle);
     }
 
     private static void validateLength(int expected, int actual, Algorithm.Sign algorithm) {
@@ -112,6 +151,37 @@ public final class VarSig {
     /** The full varsig-encoded bytes (defensive copy). */
     public byte[] encoded() {
         return encoded.clone();
+    }
+
+    /**
+     * The resolved algorithm handle, or {@code null} when this VarSig was
+     * decoded without librarian context (via {@link #decode(byte[])} or
+     * constructed via an enum-based factory).
+     */
+    public AlgorithmHandle handle() {
+        return handle;
+    }
+
+    /**
+     * Verify this signature against a message and a public key, using the
+     * handle that was resolved at decode time.  Zero further lookups.
+     *
+     * @throws IllegalStateException if this VarSig has no resolved handle
+     *                               (decoded without a librarian)
+     */
+    public boolean verify(byte[] message, MultiKey publicKey) {
+        if (handle == null) {
+            throw new IllegalStateException(
+                    "VarSig has no resolved algorithm handle — decode with a librarian to verify");
+        }
+        Objects.requireNonNull(publicKey, "publicKey");
+        AlgorithmHandle keyHandle = publicKey.handle();
+        if (keyHandle == null) {
+            throw new IllegalStateException(
+                    "MultiKey has no resolved algorithm handle — decode with a librarian to verify");
+        }
+        PublicKey jcaKey = keyHandle.decodePublicKey(publicKey.rawKey());
+        return handle.verify(message, rawSig, jcaKey);
     }
 
     @Override

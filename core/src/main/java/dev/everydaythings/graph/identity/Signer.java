@@ -80,10 +80,12 @@ public class Signer extends Item {
     }
 
     /**
-     * Identity-only constructor. The resulting Signer has no vault, no signing
-     * capability — {@link #sign(byte[])} will throw, {@link #signingPublicKey()}
-     * returns empty. Used when hydrating a Signer from a manifest where the
-     * local node doesn't hold this principal's private key.
+     * Identity-only constructor with no librarian binding.  No vault, no signing
+     * capability — {@link #sign(byte[])} throws, {@link #signingPublicKey()}
+     * returns empty.  Used for test fixtures and bare-identity objects.
+     *
+     * <p>Most production paths want one of the librarian-bound constructors
+     * below: this is the "no context, no signing" form.
      */
     public Signer(ItemRef iid) {
         super(iid);
@@ -91,13 +93,50 @@ public class Signer extends Item {
     }
 
     /**
+     * Identity-only with a librarian binding.  No vault.  Used when hydrating a
+     * Signer the local node has observed but doesn't hold private keys for —
+     * the standard {@code (ItemRef, Librarian)} hydration contract that
+     * matches every other Item subclass.
+     */
+    public Signer(ItemRef iid, Librarian librarian) {
+        super(iid, librarian);
+        this.vault = null;
+    }
+
+    /**
+     * Auto-generated vault — mints a fresh signing identity using the default
+     * algorithm, derives the IID from the vault, binds the librarian, and
+     * auto-incepts.  The convenience form for "give me a brand-new signer."
+     */
+    public Signer(Librarian librarian) {
+        this(librarian, InMemoryVault.generate(DEFAULT_ALGORITHM));
+    }
+
+    /**
+     * Vault-supplied constructor — full Signer with vault + librarian, IID
+     * derived from the vault, signing chain auto-incepted.
+     *
+     * <p>Four datums get persisted during construction: the INCEPTION body and
+     * its self-attesting record (produced by {@code vault.incept(Signing)}),
+     * and the manifest body and record (produced by {@link #commit}).  When
+     * this constructor returns, the Signer is a fully-published graph identity.
+     *
+     * <p>Idempotent on re-construction: if the vault's signing chain has
+     * already been incepted (chainHead present), the INCEPTION step is skipped.
+     */
+    public Signer(Librarian librarian, Vault vault) {
+        super(vault.identity(), librarian);
+        this.vault = vault;
+        selfIncept();
+    }
+
+    /**
      * Vault-only constructor — bind a vault, derive the IID from it, but do
-     * <i>not</i> auto-incept (no librarian yet). Used by subclasses that need to
-     * wire their librarian binding after super-construction (notably
-     * {@link Librarian} itself, which is its own librarian). External callers
-     * generally want {@link #Signer(Vault, Librarian)}; the vault-only variant
-     * is also exposed via {@link #inMemory()} for tests that need a signing
-     * object without persistence.
+     * <i>not</i> auto-incept (no librarian yet).  Protected because it's only
+     * useful to subclasses that need to wire their librarian binding after
+     * super-construction (notably {@link Librarian} itself, which is its own
+     * librarian).  External callers want {@link #Signer(Librarian, Vault)} or
+     * {@link #inMemory()}.
      */
     protected Signer(Vault vault) {
         super(vault.identity());
@@ -105,24 +144,7 @@ public class Signer extends Item {
     }
 
     /**
-     * Full Signer constructor — vault + librarian + auto-incepted signing track.
-     *
-     * <p>Four datums get persisted during construction: the INCEPTION body and
-     * its self-attesting record (produced by {@code vault.incept(Signing)}), and
-     * the manifest body and record (produced by {@link #commit}). When this
-     * constructor returns, the Signer is a fully-published graph identity.
-     *
-     * <p>Idempotent on re-construction: if the vault's signing chain has already
-     * been incepted (chainHead present), the INCEPTION step is skipped.
-     */
-    public Signer(Vault vault, Librarian librarian) {
-        super(vault.identity(), librarian);
-        this.vault = vault;
-        selfIncept();
-    }
-
-    /**
-     * Generate a fresh vault-bearing Signer with no librarian binding. The
+     * Generate a fresh vault-bearing Signer with no librarian binding.  The
      * returned Signer can sign in-place but does not auto-publish an INCEPTION.
      * For a fully-published Signer use {@link #inMemory(Librarian)}.
      */
@@ -135,7 +157,7 @@ public class Signer extends Item {
      * frame and manifest already persisted as part of construction.
      */
     public static Signer inMemory(Librarian librarian) {
-        return new Signer(InMemoryVault.generate(DEFAULT_ALGORITHM), librarian);
+        return new Signer(librarian);
     }
 
     /** The vault holding this Signer's private cryptographic material, if any. */
