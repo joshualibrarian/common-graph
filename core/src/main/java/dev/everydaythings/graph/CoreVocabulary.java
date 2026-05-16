@@ -16,7 +16,7 @@ import static dev.everydaythings.graph.Seed.*;
  * {@link dev.everydaythings.graph.CoreVocabulary} and elsewhere): the
  * entries here are intrinsic to the type system's machinery — binding heads on
  * manifest bodies ({@link ItemId}, {@link Endorses}, {@link Follows},
- * {@link Config}, {@link Implementation}) and qualifier markers used in EXPECTS
+ * {@link Config}) and qualifier markers used in EXPECTS
  * declarations ({@link Required}).
  *
  * <p>Each is a pure-data {@code @Seed}. They don't carry behavior; they're
@@ -128,30 +128,6 @@ public final class CoreVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"config", "configuration"};
-    }
-
-    /**
-     * Implementation — the manifest binding declaring the runtime form (Java
-     * class, WASM module, code reference) that realizes this item.
-     *
-     * <p>Used on Code Item manifests and on seed manifests for items whose Java
-     * class is paired with the seed via {@code @Embodies}. The runtime adapter
-     * loads the implementation when the item is hydrated.
-     */
-    @Seed.Item(key = Implementation.KEY)
-    public static final class Implementation {
-        public static final String KEY = "cg.structural:implementation";
-        private Implementation() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the binding head whose target is a runtime form (Java class, "
-                        + "WASM module, code reference) that realizes an item";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "implementation";
     }
 
     // ==================================================================================

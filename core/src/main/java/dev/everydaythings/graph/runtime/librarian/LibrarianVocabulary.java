@@ -230,7 +230,7 @@ public class LibrarianVocabulary {
                 for (var q : b.qualifiers()) {
                     if (q instanceof CompoundKey.Sememe(ItemRef id)) {
                         if (ItemRef.iid(RuntimeVocabulary.Java.KEY).equals(id)) javaQualified = true;
-                        if (ItemRef.iid(RuntimeVocabulary.JavaClass.KEY).equals(id)) {
+                        if (ItemRef.iid(RuntimeVocabulary.ClassName.KEY).equals(id)) {
                             classNameQualified = true;
                         }
                     }

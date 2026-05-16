@@ -7,6 +7,7 @@ import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.runtime.RuntimeVocabulary;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.DatumRef;
@@ -396,7 +397,10 @@ class DatumTest {
 
             Body bodyWithImpl = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid),
-                    Binding.ref(Manifest.IMPLEMENTATION, ItemRef.fromString("impl-1"))
+                    Manifest.implementation(
+                            ItemRef.iid(RuntimeVocabulary.Java.KEY),
+                            ItemRef.iid(RuntimeVocabulary.ClassName.KEY),
+                            "impl.Class")
             ));
             assertThat(Manifest.of(bodyWithImpl).implementation()).isPresent();
         }

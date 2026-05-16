@@ -35,8 +35,13 @@ dependencies {
     // GraalVM Polyglot — runtime engine for sandboxed item-implementations.
     // Available as compile dependency; runtime initialization detects whether
     // a GraalVM-capable JVM is hosting and degrades gracefully on plain HotSpot.
+    //
+    // The `python-community` meta-package pulls in the community-edition
+    // GraalPython language implementation. Optional: drop it (or any other
+    // language pack) to slim the runtime if Python handlers aren't needed.
     // -------------------------------------------------------------------------
     implementation "org.graalvm.polyglot:polyglot:${graalvmVersion}"
+    implementation "org.graalvm.polyglot:python-community:${graalvmVersion}"
 
     // -------------------------------------------------------------------------
     // Apache Commons

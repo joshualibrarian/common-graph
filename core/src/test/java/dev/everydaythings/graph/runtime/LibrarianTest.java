@@ -470,7 +470,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.javaImplementation(TestThing.class)
+                            Manifest.implementation(TestThing.class)
                     )
             );
             lib.persist(manifestBody);
@@ -504,10 +504,9 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:bogus")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            new Binding(
-                                    Manifest.IMPLEMENTATION,
-                                    java.util.List.of(new CompoundKey.Sememe(
-                                            ItemRef.iid(RuntimeVocabulary.JavaClass.KEY))),
+                            Manifest.implementation(
+                                    ItemRef.iid(RuntimeVocabulary.Java.KEY),
+                                    ItemRef.iid(RuntimeVocabulary.ClassName.KEY),
                                     "does.not.Exist")
                     )
             );
@@ -528,7 +527,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:bogus")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.javaImplementation(String.class)
+                            Manifest.implementation(String.class)
                     )
             );
             lib.persist(manifestBody);
@@ -548,7 +547,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.javaImplementation(TestThing.class)
+                            Manifest.implementation(TestThing.class)
                     )
             );
             lib.persist(manifestBody);

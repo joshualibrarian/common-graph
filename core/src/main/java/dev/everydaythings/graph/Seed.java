@@ -381,8 +381,8 @@ public class Seed {
      *
      * <p>{@code @Seed.Embodies(K)} asserts "this Java class is the runtime form of
      * THE K item itself." Must be paired with {@code @Seed.Item(K)} on the same
-     * class. Bootstrap adds an {@code IMPLEMENTATION → ofJavaClass(this)} binding
-     * to K's seed manifest; future {@code fetchItem(ItemRef.iid(K.KEY))} hydrates as an
+     * class. Bootstrap adds a {@code JAVA:[ClassName] → "<fqcn>"} binding to K's
+     * seed manifest; future {@code fetchItem(ItemRef.iid(K.KEY))} hydrates as an
      * instance of this class.
      *
      * <p>Used for the typical pattern where a Java class IS a sememe/predicate
@@ -400,14 +400,14 @@ public class Seed {
      * carrying:
      * <ul>
      *   <li>{@code ITEM_ID → CK}</li>
-     *   <li>{@code IMPLEMENTATION → ofJavaClass(this)} — the runtime form</li>
+     *   <li>{@code JAVA:[ClassName] → "<fqcn>"} — the runtime form</li>
      *   <li>{@code ENDORSES → <each HANDLES frame>} — one per {@code @Handler}
      *       method on the class, exposing the dispatch surface as data</li>
      * </ul>
      *
-     * <p>Bootstrap ALSO adds {@code IMPLEMENTATION → @CK} to the archetype's
-     * manifest, so {@code resolveImplementationClass} on the archetype walks
-     * archetype → CodeItem → class-literal.
+     * <p>Bootstrap ALSO adds an implementation binding pointing at {@code @CK}
+     * to the archetype's manifest, so {@code resolveImplementationClass} on the
+     * archetype walks archetype → CodeItem → class-literal.
      *
      * <p>The two-level mode is what makes the polyglot story work: a Clojure
      * Librarian (different class, same archetype) gets its OWN CodeItem at its
@@ -459,7 +459,7 @@ public class Seed {
      * <p><b>Effect on data:</b> bootstrap publishes an unsigned IMPLEMENTS frame:
      *
      * <pre>
-     * IMPLEMENTS { THEME → ItemRef.iid(K.KEY), AGENT[runtime=java] → Literal.ofJavaClass(this) }
+     * IMPLEMENTS { THEME → ItemRef.iid(K.KEY), AGENT:[Java, ClassName] → "<fqcn>" }
      * </pre>
      *
      * <p>The frame becomes data, indexed in FORWARD_BINDINGS by its {@code THEME→K}
