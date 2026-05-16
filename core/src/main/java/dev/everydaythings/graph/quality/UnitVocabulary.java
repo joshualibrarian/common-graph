@@ -301,6 +301,138 @@ public final class UnitVocabulary {
     }
 
     // ==================================================================================
+    // Electric current
+    // ==================================================================================
+
+    /** SI base unit of electric current. */
+    @Seed.Item(key = Ampere.KEY, head = Unit.KEY)
+    public static final class Ampere {
+        public static final String KEY = "cg.unit:ampere";
+        private Ampere() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "A";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.ElectricCurrent.KEY})
+        static final long currentExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 1;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 1;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the SI base unit of electric current";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "ampere";
+    }
+
+    // ==================================================================================
+    // Temperature
+    // ==================================================================================
+
+    /** SI base unit of thermodynamic temperature. */
+    @Seed.Item(key = Kelvin.KEY, head = Unit.KEY)
+    public static final class Kelvin {
+        public static final String KEY = "cg.unit:kelvin";
+        private Kelvin() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "K";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Temperature.KEY})
+        static final long temperatureExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 1;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 1;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the SI base unit of thermodynamic temperature";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "kelvin";
+    }
+
+    // ==================================================================================
+    // Amount of substance
+    // ==================================================================================
+
+    /** SI base unit of amount of substance. */
+    @Seed.Item(key = Mole.KEY, head = Unit.KEY)
+    public static final class Mole {
+        public static final String KEY = "cg.unit:mole";
+        private Mole() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "mol";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Amount.KEY})
+        static final long amountExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 1;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 1;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the SI base unit of amount of substance";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "mole";
+    }
+
+    // ==================================================================================
+    // Luminous intensity
+    // ==================================================================================
+
+    /** SI base unit of luminous intensity. */
+    @Seed.Item(key = Candela.KEY, head = Unit.KEY)
+    public static final class Candela {
+        public static final String KEY = "cg.unit:candela";
+        private Candela() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "cd";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.LuminousIntensity.KEY})
+        static final long luminousExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 1;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 1;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the SI base unit of luminous intensity";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "candela";
+    }
+
+    // ==================================================================================
     // Variable-bearing units
     //
     // Scale expressions are inlined as Body field values on the unit class. The

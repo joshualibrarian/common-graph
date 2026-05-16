@@ -43,7 +43,7 @@ import java.util.Objects;
  */
 @Seed.Item(key = Quantity.KEY, head = Value.KEY)
 @Seed.Mints(key = Quantity.KEY)
-public final class Quantity extends Value {
+public class Quantity extends Value {
 
     public static final String KEY = "cg.value:quantity";
 
@@ -87,6 +87,17 @@ public final class Quantity extends Value {
     /** Dimensionless Quantity. */
     public Quantity(long magnitude) {
         this(magnitude, Map.of());
+    }
+
+    /**
+     * Subclass entry point — typed dimensional value-classes (Length, Mass, Time,
+     * ...) call this from their own constructors with their own archetype IID as
+     * the head.  The resulting body has the subclass's head but the same magnitude
+     * + unit-exponent binding shape, so dimensional analysis still works
+     * uniformly across all Quantity subclasses.
+     */
+    protected Quantity(ItemRef head, long magnitude, Map<ItemRef, Long> unitExponents) {
+        super(head, buildBindings(magnitude, unitExponents));
     }
 
     private static List<Binding> buildBindings(long magnitude, Map<ItemRef, Long> unitExponents) {
