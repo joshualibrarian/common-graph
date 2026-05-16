@@ -1,312 +1,159 @@
 # Items
 
-In the Common Graph, **frames** hold all the data, indexed with semantic keys. However, an **Item** is the fundamental unit of coherent meaning. Everything — documents, users, hosts, conversations, games, applications, and even compiled code — is an Item. Anything that only makes sense **as a whole**, which frames coalesce into.
+An item is a stable cryptographic identity around which a lineage of manifest bodies accumulates. Documents, users, hosts, conversations, games, codebases, photographs, sensors, contracts, applications — anything that needs to persist across versions, to be referenced from outside, to accumulate history, is an item. The work an item does that a single body cannot is *endure*: be the thing that survives every edit to itself.
 
-An Item is a **versioned, signed container of frames with stable identity**. Every Item carries its own identity, its own history, and its own trust chain. Items don't live at paths or URLs — they exist by identity, and you find them by meaning.
+Items are *continuants* — what persists through change. A particular manifest body is a snapshot at one moment; the item is what the sequence of those snapshots is *of*. The same way a person is what persists through their sequence of physical states, an item is what persists through its sequence of versions.
 
-The Item model draws from several traditions: Smalltalk's "everything is an object" with message-passing dispatch ([Kay 1993](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf)), the Actor model's independent entities communicating through messages ([Hewitt et al 1973](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf)), and Engelbart's vision of augmenting human intellect through integrated artifact-language-methodology systems ([Engelbart 1962](references/Engelbart%201962%20-%20Augmenting%20Human%20Intellect.pdf)). Like Bush's memex ([Bush 1945](references/Bush%201945%20-%20As%20We%20May%20Think.pdf)), items are found by meaning and association rather than hierarchical location.
+This document defines items, their identity, the lineage they carry, and how they relate to the bodies, frames, and references in the rest of the system.
 
-## Anatomy of an Item
+This document assumes familiarity with [the datum primitive](datum.md), [the reference scheme](ref-scheme.md), [frames](frames.md), and [manifests](manifest.md).
 
-An **Item** is a persistent identity — an **IID** (Item ID) — with a history of **Manifests**, each a signed, immutable snapshot of a specific version. The IID persists across all versions. You find an item by its IID; you read a specific version by its manifest. An item may have multiple heads — you choose which version to work from, fork from, or build upon.
+## Identity
 
-A manifest contains:
+An item has exactly one identifier: its **IID** (item identity). The IID is 32 bytes — a multihash. It is stable across every version of the item, never changes, and uniquely identifies *this item* across all of Common Graph.
 
-| Manifest field | What it holds |
-|----------------|---------------|
-| **IID** | Which item this version belongs to |
-| **Endorsements** | The item's frames — every endorsed assertion, keyed by FrameKey |
-| **Bindings** | Item-level role-keyed values, each carrying an identity flag |
-| **Implementation** | Platform + type name (e.g., Java + `ChessItem`) — a distinguished binding |
-| **Parents** | Version history chain (list of prior VIDs) |
-| **Author + Signature** | Who signed this version and the cryptographic proof |
+Most IIDs are random — generated when the item is first created, with no coordination required. Two items minted independently get different IIDs by birthright; no central registry adjudicates.
 
-Everything — text, metadata, streams, policy — is either an endorsed frame or an item-level binding. Vocabulary is derived at runtime by scanning the item's frames for indexed string bindings.
+Some IIDs are deterministic — computed by hashing a canonical key string. The Add predicate's IID is `hash("cg.predicate:add")`. The English Language item's IID is `hash("cg.language:eng")`. Two nodes starting independently arrive at the same IID for "the concept of addition" without ever talking to each other. This is how the bootstrap vocabulary works: agreement by construction, not by handshake.
 
-See [Frames](frames.md) for the frame primitive itself — the single data model unit that unifies all content, assertions, properties, streams, and more.
+Items are referenced by IID through the `@` prefix: `@<iid>`. The dereferencing path — "given this IID, materialize the item" — runs through the librarian, which fetches the current manifest, reads its bindings, and produces the runtime form of the item.
 
-## Item Identity (IID)
+## The lineage
 
-The **IID** (Item ID) is a 32-byte multihash identifier that:
+An item is the lineage of its manifest bodies — a sequence (or DAG) of versioned snapshots linked by parent references. The lineage *is* the item, in the same sense that a person's life is the unfolding of their states. An item with no manifests is identity without content; an item with one manifest is a freshly-minted snapshot; an item with many manifests is a history.
 
-- **Persists across all versions** — edit the content, the IID stays the same
-- **Is usually random** — UUID-like uniqueness, no coordination needed
-- **Can be deterministic** — computed by hashing a canonical string like `"cg.sememe:item"`
+Every manifest body in the lineage carries the same `@ITEM_ID → <iid>` binding. The IID is the thread; the manifests are the beads. The `@FOLLOWS` bindings on each manifest declare which prior manifest(s) it follows from. The structure is the version history.
 
-Deterministic IIDs are how bootstrap vocabulary works. Two independently started nodes compute the same IID for "the concept of an Item" by hashing the same canonical string. No genesis block, no central authority.
+- **Inception** — a manifest with no `@FOLLOWS` binding. The first version. Items have exactly one inception manifest, ever.
+- **Sequential** — a manifest with one `@FOLLOWS` target. The common case.
+- **Merge** — a manifest with multiple `@FOLLOWS` targets, unifying branches. Permitted but rare for ordinary items.
+- **Branch** — multiple manifests sharing the same `@FOLLOWS` target. Different futures from the same past, both valid simultaneously.
+
+The lineage as a whole is a DAG, not a chain. Every node has zero or more parents, no node is its own ancestor, and many nodes can share parents (branches) or merge them (merges). What constitutes "the current version" of an item is a separate question — answered by *channels*, per-principal pointers that name which node in the DAG that principal considers the head.
+
+## Items aren't bodies
+
+Items are an organizing concept, not a stored structure. The item itself is *the IID*, and the IID is referenced from the manifest bodies that constitute it. There is no separate "item object" anywhere — no file, no database row, no header containing the item's metadata. The item is wholly described by the manifests bearing its IID.
+
+This is the same reason a person doesn't have a separate "person object" distinct from their physical states — the person *is* the persisting subject of those states, and looking for a separate person-thing alongside the states is a category error. The IID is the persisting subject; the manifests are the states.
+
+In storage, items are organized by index: given an IID, the librarian can find all manifests carrying `@ITEM_ID → <iid>`. The lineage is computed from those manifests' `@FOLLOWS` bindings. The current head, per principal, is recorded in a separate channel index. No item-shaped structure is ever stored; the item is the accumulation of its parts.
+
+## Items as actors
+
+When a frame addresses an item — through any binding with an `@`-prefixed reference to the item's IID — the item is potentially reactive. A frame referencing an item by `@AGENT` says "this item did this"; a frame referencing it by `@THEME` says "this item is the subject of this"; a frame with the item's IID in *any* role-binding is, in some sense, addressed to the item.
+
+The runtime materializes the item when needed: fetches its current manifest, loads its implementation (if it has one), and lets the item observe the frame. Items declare which frames they actively process through HANDLES bindings on their manifests — the predicates whose head matches a HANDLES declaration get dispatched into the item's behavior. The rest are observed as data: the item knows it was mentioned, but takes no action.
+
+The frames-as-messages model — items receive frames, react to those they handle, optionally reply with new frames — is how every interaction in Common Graph is structured. There is no separate event system, no RPC, no command bus. Frames in, frames out, items as the addressable receivers.
+
+The full mechanics of HANDLES, IMPLEMENTS, and dispatch live in [`api.md`](api.md).
+
+## The predicate-or-archetype question
+
+An item's *role* in the system depends on the shape of its manifest, not on its structural type. Two important roles, both common:
+
+**Items whose instances are themselves items** are **archetypes**. A ChessGame archetype's manifest carries schema-prefixed bindings declaring what a chess-game instance should look like — players, turn marker, the HANDLES set. Instances of the archetype are real items with their own IIDs, their own manifests, their own lineages. The archetype is a template; instances inherit its expectations.
+
+**Items whose instances are frames** are **predicates**. The Add predicate's manifest carries schema-prefixed bindings declaring what an Add frame should look like — the two THEME operands. Instances of the predicate are *not* items; they're frames headed by the predicate, with no IIDs of their own.
+
+The distinguishing detail is one binding on the schema. If the archetype's schema declares an `!@ITEM_ID` slot, its instances are items; if it doesn't, its instances are frames. One hierarchy, two usage patterns, distinguished by what their instances need.
+
+This is a *usage* distinction, not a *structural* one. The same item-shape can play both roles: some items are archetypes for some things and predicates for others. Some are clearly one or the other (ChessGame as archetype, Add as predicate). The world is fuzzy, and so is the ontology.
+
+For other roles items can play — schema, query, code, value-type — see [`types.md`](types.md).
+
+## Lifecycle
+
+An item exists through a small set of transitions, all expressed as data operations.
+
+**Creation.** A new IID is minted (random or deterministic). An initial manifest body is built — head set to the appropriate archetype, `@ITEM_ID` set to the new IID, whatever other bindings the archetype's schema calls for. The body is hashed, signed by some signer, persisted. The item exists.
+
+**Loading.** Given an IID, the librarian finds the manifest(s) carrying that IID, picks the current head per the channel, returns the runtime form. The item is now materialized — ready to be referenced, dispatched to, queried.
+
+**Editing.** A new manifest body is built — same `@ITEM_ID`, a `@FOLLOWS` binding pointing at the prior version's VID, and whatever bindings the new version carries. The body is hashed, signed, persisted. The channel advances. The old manifest remains exactly as it was.
+
+**Branching.** Multiple new manifest bodies can be built from the same prior version. Each is a distinct version; each can be the head of its own channel. The lineage forks. No coordination needed.
+
+**Merging.** A new manifest body's `@FOLLOWS` binding references multiple prior versions. The merge reconciles content; the lineage rejoins. Merges are rare for most items and common for shared documents.
+
+None of these transitions mutate existing data. Every state change is *new data added* — a new manifest, a new record, a new channel head pointer. The history is fully preserved.
+
+## Composition
+
+Items compose behavior from frames, not from special types. There is no "chat room" type, no "shared folder" type, no "kanban board" type — these are all just items whose archetypes declare the relevant schemas and HANDLES.
+
+A chat room is an item whose archetype's schema declares it carries member bindings, whose HANDLES includes MESSAGE and JOIN and LEAVE. A shared folder is an item whose schema declares CHILD bindings, whose HANDLES includes ADD-CHILD and REMOVE-CHILD. A kanban board is an item whose schema declares COLUMN and CARD bindings, whose HANDLES includes the verbs for moving cards.
+
+Items aren't *built* from these archetypes the way OOP objects are built from classes — they're *instances* in the sense that they conform to the schema and respond to the handlers. Two items with the same archetype share their type's contract; their actual content is whatever frames have accumulated in their lineage.
+
+## Items in references
+
+When a binding's target is `@<iid>`, the binding *refers to the item itself* — its identity, its lineage, its current version. The dereference path is: look up the IID, find its current manifest, materialize. References don't pin to a particular version; they pin to the *item*, and the item presents its current self.
+
+For cases where pinning to a specific version matters — citing a quote from a specific revision of a document, referring to a chess game at a specific move — a version-pinned reference adds the VID: `@<iid>\<vid>`. The IID identifies the item; the VID identifies which version.
+
+Manifests are referenced by their VIDs through the `#` prefix: `#<vid>`. The VID is a datum hash, not an item identity. References to specific manifest bodies (in `@FOLLOWS` bindings, in `@ENDORSES` bindings, etc.) use `#`. References to *items as continuants* use `@`. Two different question shapes, two different prefixes.
+
+## Worked example
+
+**The Alice/Bob chess game.** Items in play: Alice, Bob, the ChessGame archetype, the game itself, a sequence of move frames.
 
 ```
-ItemID.fromString("cg.sememe:item")     ->  always the same 32 bytes
-ItemID.fromString("cg.sememe:chess")    ->  always the same 32 bytes
-ItemID.random()                         ->  unique every time
+@alice's manifest:           @bob's manifest:
+  head: @signer                head: @signer
+  bindings:                    bindings:
+    @ITEM_ID → <alice-iid>      @ITEM_ID → <bob-iid>
+    @SIGNING_PUBLIC_KEY → ...   @SIGNING_PUBLIC_KEY → ...
+    @NAME → "Alice"             @NAME → "Bob"
+
+@chess-game archetype's manifest:
+  head: @archetype
+  bindings:
+    @ITEM_ID → <chess-archetype-iid>
+    !PLAYER:[WHITE] → ?user
+    !PLAYER:[BLACK] → ?user
+    !TURN → ?color
+    @HANDLES → @move
+    @HANDLES → @resign
+
+The game's inception manifest:
+  head: @chess-game
+  bindings:
+    @ITEM_ID → <game-iid>
+    @PLAYER:[WHITE] → @alice
+    @PLAYER:[BLACK] → @bob
+    @TURN → @white
+
+Alice's first move (a frame, not part of any item's manifest):
+  {@move, [
+    @AGENT → @alice,
+    @THEME → @king-pawn,
+    @SOURCE → @e2,
+    @GOAL → @e4,
+    @LOCATION → @<game-iid>
+  ]}
+
+The game's second manifest, after Alice's move:
+  head: @chess-game
+  bindings:
+    @ITEM_ID → <game-iid>
+    @FOLLOWS → #<inception-vid>
+    @PLAYER:[WHITE] → @alice
+    @PLAYER:[BLACK] → @bob
+    @TURN → @black
+    @ENDORSES → #<move-1-frame-id>
 ```
 
-## Versions
-
-Each committed version of an Item is identified by the **content hash of the manifest body** — a ContentID computed from the BODY fields.
-
-- **Deterministic** — same content + same metadata = same version hash
-- **Immutable** — a version hash always refers to exactly one version
-- **Verifiable** — re-hash the body and compare
-
-Versions form a history chain (or DAG, if branches exist):
-
-```
-V1 (parent: null)
- +-- V2 (parent: V1)
-      +-- V3 (parent: V2)
-```
-
-The version hash covers only BODY fields (content), not the full manifest. Signatures are non-BODY fields — the hash is computed first, then signed. BODY scope = content identity. RECORD scope = everything including signatures.
-
-## The Manifest
-
-A Manifest is the **signed, immutable declaration** of an Item version. Like frames, manifests split into **body** (content identity) and **record** (attestation envelope):
-
-```
-Manifest {
-    --- BODY (hashed to produce the VID) ---
-    version:          int                     -- manifest format version (currently 1)
-    iid:              ItemID                  -- which item this is
-    parents:          List<ContentID>         -- parent version hashes (history chain)
-    implementation:   Binding                 -- platform + type name (e.g., Java + "ChessItem")
-    endorsements:     List<FrameEndorsement>  -- the item's endorsed frames
-    bindings:         List<Binding>           -- identity bindings (affect version identity)
-
-    --- RECORD (attestation envelope, excluded from VID) ---
-    bindings:         List<Binding>           -- non-identity bindings (config, presentation)
-    authorKey:        SigningPublicKey         -- who signed this
-    signature:        Signing                 -- the signature itself
-}
-```
-
-Bindings are conceptually one set — each binding carries an identity flag. At serialization time, they split across the body/record boundary: identity bindings are BODY (they affect the VID), non-identity bindings are RECORD (config, presentation overrides — they don't change the version).
-
-### Endorsed Frames
-
-The manifest's endorsements reference the item's **endorsed frames** — each a `FrameEndorsement` carrying a FrameKey, bodyHash, and mounts. An endorsement always covers the frame body; it may optionally also endorse a specific frame record — pinning a particular presentation or config alongside the content ("I endorse THIS rendering of this frame"). At runtime, endorsements are expanded into a frame table (`Map<FrameKey, Frame>`) with a parallel mount map. Mounts live on the table, not on individual frames.
-
-Only endorsed frames appear in the manifest and affect the version. But every item may also accumulate **unendorsed frames** — annotations, comments, reactions, moderation actions, third-party metadata — created by anyone, about the item, without the item author's involvement. Unendorsed frames are free-floating, independent assertions: they reference the item but live outside its version history. They don't alter any version unless the item's author chooses to endorse them into a future manifest.
-
-See [Frames](frames.md) for the Frame/FrameBody/FrameRecord/Endorsement layering, the identity and index flags, content modes, and the endorsed/unendorsed distinction.
-
-### Implementation
-
-The **implementation** binding tells the runtime how to instantiate this item. The binding's role is the platform (e.g., Java, Rust, Python), and the target identifies the code:
-
-| Target | Meaning                                                                                       |
-|--------|-----------------------------------------------------------------------------------------------|
-| **Literal** (type name) | A built-in implementation on the local runtime — a platform-native identifier (e.g., a Java class, a Rust struct, a Python class, etc) |
-| **ItemID** | A distributed implementation — an item carrying CODE frames with the actual source or bytecode|
-
-The literal form is the common case today: the platform ships with the implementation, and the manifest just names it. The ItemID form enables distributing new implementations as items — someone writes a new chess variant, packages it as an item with code frames, and any node that trusts the author can instantiate it. The code item can carry source, bytecode, or compiled native binaries for multiple architectures (x86, ARM, etc.) — whatever the target platform needs. Same binding structure, same manifest field, but the implementation travels with the data instead of being pre-installed.
-
-The semantic relationship between an implementation and the concept it implements (e.g., "this code implements chess") lives in an IMPLEMENTS frame on the item, not on the manifest. The manifest only records which code to run.
-
-The body/record split:
-
-1. Compute the version hash by hashing the BODY fields (iid, parents, implementation, endorsements, identity bindings)
-2. Sign the hash with the author's key
-3. Attach the signature as a RECORD field
-
-The version hash is deterministic from content. The signature proves who authored that content. No circular dependency.
-
-### Item-Level Bindings
-
-Manifests carry **item-level bindings** — role-keyed values that describe the item as a whole (not a specific frame). These are split by identity flag:
-
-- **Identity bindings** — contribute to the VID. Changing them creates a new version.
-- **Non-identity bindings** — record-scope only. Don't affect the VID.
-
-The identity flag is a per-binding choice by the author, not a structural constraint. Config and presentation bindings are conventionally non-identity, but an author can mark any binding as identity if they want changes to it to produce a new version.
-
-Config bindings participate in the [config cascade](#config-cascade): when resolving config for a frame, the item's manifest bindings are checked before falling back to the predicate's defaults.
-
-See [Manifests](manifest.md) for the full manifest structure, signing, and canonical encoding.
-
-## Mounts
-
-Frames can have **mounts** — presentation descriptors that control where a frame appears in different views:
-
-| Mount type | Purpose |
-|-----------|---------|
-| `PathMount` | Filesystem-like path (`/documents/readme.md`) — tree structure |
-| `SurfaceMount` | 2D UI placement (named region + ordering) |
-| `SpatialMount` | 3D placement (position + rotation quaternion) |
-
-A frame can have multiple mounts (like hard links). Frames with no mounts are internal entries — they exist in the table but don't appear in navigation.
-
-Mounts are part of the endorsement — each `FrameEndorsement` carries a FrameKey, bodyHash, and a list of mounts. In the manifest, they're serialized together. At runtime, the endorsements table holds mounts in a parallel map alongside the frames, rather than on the Frame objects themselves — a frame is pure content, and its placement is a separate concern.
-
-## Item Types
-
-An item's type is declared through frames, not through any platform-specific mechanism. Two kinds of frames establish type:
-
-### IMPLEMENTS
-
-An item declares what concept it implements via an **IMPLEMENTS** frame — linking the item to a sememe (a universal meaning unit). A chess game item carries an IMPLEMENTS frame pointing to the Chess sememe. The manifest's implementation binding records which platform code to run; the IMPLEMENTS frame records *what concept that code is an implementation of*.
-
-### Seed Concepts
-
-Bootstrap concepts — the foundational sememes that the system needs before any data exists — have **deterministic IIDs** computed from a canonical key string (e.g., `ItemID.fromString("cg.sememe:chess")`). Two independently started nodes arrive at the same IID for "chess" without coordination.
-
-A seedItem concept is itself an item, carrying frames that define it: glosses (human-readable descriptions), lexemes (words in various languages), and EXPECTS declarations (see below). Seed items have no signature and no timestamp — they are axioms, not assertions.
-
-### EXPECTS: Schema as Frames
-
-A concept declares its expected shape via **EXPECTS** frames. These say "instances of this concept should carry these frames." For example, the Chess concept carries EXPECTS frames declaring that a chess game should have a PLAYER frame qualified with WHITE and a PLAYER frame qualified with BLACK.
-
-The UI generates creation forms from EXPECTS declarations. EXPECTS also enables duck typing — if an item structurally carries the expected frames, it IS that type, regardless of what its IMPLEMENTS frame says.
-
-See [Frames: EXPECTS](frames.md#expects-schema-as-frames) for the full explanation.
-
-### Predicate, archetype, or both?
-
-Two roles a concept-item can play:
-
-- **Predicate** — its EXPECTS describes the shape of *frames* that use it. The "thing instantiated" is a frame.
-- **Archetype** — its EXPECTS describes the shape of *items* that implement it. The "thing instantiated" is an item with stable identity.
-
-The distinction is **usage-based, not structural**. There is one item-shape, and the same concept can legitimately play both roles. The only structural marker that flips a concept from predicate-flavor to archetype-flavor is whether its EXPECTS declares an `ITEM_ID` binding:
-
-- **No `ITEM_ID` in EXPECTS** → instances are frames (no per-instance stable identity beyond the body hash).
-- **`ITEM_ID` in EXPECTS** → instances are items (each gets a fresh IID; manifest-shaped).
-
-That's it. There is no "Predicate" class versus an "Archetype" class in the runtime. They're the same item with different EXPECTS contents.
-
-Why is this important? Because the world is fuzzy. Some concepts cleanly fit one role (ADD is a predicate; Chess is an archetype). Others legitimately play both — *Document* is an archetype for instances (your specific document) but also functions as a predicate inside other frames (an `AUTHORED { THEME → @document }` binding references the same concept). Trying to split these into separate items in advance would either force false choices or duplicate vocabulary. Letting one item play multiple roles, with EXPECTS encoding the rules for each role, keeps the vocabulary economical and lets emergence happen.
-
-What you'll see in practice:
-
-- Operators (ADD, EQUALS, NEGATE) — predicates only. EXPECTS lists LHS, RHS. No ITEM_ID.
-- Domain concepts (Chess, Document, Photograph, Roster) — archetypes. EXPECTS includes ITEM_ID and the structural frames their instances need.
-- Mixed-role concepts (LOCATION, TIME, AGENT as predicates for binding contexts; the same concepts as anchors elsewhere) — depends on usage. A given concept's EXPECTS captures whichever role it plays in this vocabulary.
-
-The HANDLES distinction (see `docs/vocabulary.md`) is the practical consequence: archetypes carry HANDLES (their instances process predicates); predicates don't (a predicate doesn't *receive* frames — it shapes them). Self-handling predicates like ADD are the rare exception.
-
-## Items as Actors: HANDLES Declares the API Surface
-
-Items are **actors**. Frames are **messages**. Predicates classify message types. When a frame is created and reaches an item, the item dispatches on the frame's predicate to choose how to react. The dispatch table is **declared in data**: a list of HANDLES frames endorsed by the item's manifest.
-
-```
-Item's manifest:
-    ENDORSES → <handles-frame-1-CID>      // [HANDLES {THEME→CHESS_MOVE, INSTRUMENT→"applyMove"}]
-    ENDORSES → <handles-frame-2-CID>      // [HANDLES {THEME→RESIGN,     INSTRUMENT→"handleResign"}]
-    ENDORSES → <handles-frame-3-CID>      // [HANDLES {THEME→OFFER_DRAW, INSTRUMENT→"offerDraw"}]
-```
-
-Each HANDLES frame carries:
-
-- **THEME** → the predicate handled (which message type)
-- **INSTRUMENT** → the handler reference (a method name string, OR `@<code-item-ref>` for swappable polyglot handlers)
-- **ATTRIBUTE[ARITY]**, **ATTRIBUTE[PRIORITY]**, ... — optional metadata via the generic `ATTRIBUTE[<kind>] → value` pattern
-
-This is Smalltalk-style message dispatch with the method dictionary in data:
-
-- **APIs are queryable** — walk endorsed HANDLES frames on any item to introspect what it processes.
-- **APIs inherit via archetype** — sub-archetypes inherit parent HANDLES; instances inherit the type's.
-- **APIs can extend at runtime** — endorsing a new HANDLES frame adds a handler. No recompile (subject to trust/policy).
-
-### Polyglot Handler Mapping
-
-The same HANDLES list can be implemented in any supported runtime. The wire/storage layer is uniform; the implementation is private:
-
-- **Java**: methods on the item class found by reflection (matched against the INSTRUMENT string)
-- **Polyglot bundles** (WASM, Python, Clojure, JS): a function table keyed by predicate IID; the bundle's manifest declares what predicates it implements
-
-A Rust `ChessGame` and a Java `ChessGame` both endorse the same HANDLES frames; each implements `applyMove`/`handleResign`/`offerDraw` in its own language. The wire format is the contract.
-
-### Why Endorsed Frames Rather Than Direct Manifest Bindings
-
-HANDLES frames are *endorsed* (referenced via ENDORSES bindings on the manifest), not direct manifest bindings. Direct manifest bindings stay reserved for **identity/structural** declarations — ITEM_ID, FOLLOWS, IMPLEMENTATION, ENDORSES, CONFIG, ARCHETYPE. API surface lives with claims and capabilities (endorsed frames) because it carries rich, extensible metadata and benefits from queryable composition.
-
-### When the Predicate Carries the Behavior Instead
-
-A small class of predicates self-handle: pure operators like `ADD`, `MULTIPLY`, `NEGATE` whose behavior is a function of bindings alone, with no contextual state. These are *both* a message-shape and a self-handling actor; they don't need a HANDLES entry on a separate item to do their work. Use the self-handling pattern sparingly — the default rule is **behavior in items, not in predicates**.
-
-## Item State
-
-An Item's versioned state is its list of endorsed frames. The manifest serializes these as `FrameEndorsement` objects. At runtime, endorsements are expanded into a frame table for efficient lookup. At commit time, the table is snapshotted back into endorsements for serialization.
-
-## ID Types
-
-All IDs are multihash values — self-describing hashes that include the algorithm used. 256-bit (32 bytes) everywhere.
-
-| ID | Derived from | Purpose |
-|----|-------------|---------|
-| **ItemID** | Random or `hash(canonical_string)` | Stable identity across versions |
-| **ContentID** | `hash(content_bytes)` | Content-addresses a block of bytes. Also used as the version identifier (hash of manifest body). |
-| **CompoundKey** | Sequence of Sememe/Literal tokens | Compound semantic address (used as a binding-key component within indexes and references) |
-| **Ref** | `target [\compound-key]* [[selector]]` | Unified reference — can drill into a specific frame and range |
-
-ItemID and ContentID inherit from `HashID`. CompoundKey is not a hash — it's a structured key composed of semantic tokens (`Sememe(ItemID)` or `Literal(String)`). It implements `Canonical` and `Comparable` for deterministic encoding and ordering.
-
-## Item Lifecycle
-
-### Creation
-
-A new item starts with a fresh random IID and an empty frame table. The runtime populates default frames based on the item's type (driven by its EXPECTS declarations), then derives the item's vocabulary by scanning those frames for indexed string bindings.
-
-### Loading
-
-An existing item is reconstituted from a manifest. The endorsements are expanded into a frame table, and each frame's content is fetched from the store by CID and decoded. The vocabulary is then rebuilt from the loaded frames.
-
-### Editing
-
-An item enters edit mode, after which its frames can be added, removed, or modified. Edits mutate the frame table directly — there is no copy-on-write. The item tracks whether uncommitted changes exist.
-
-### Commit
-
-Committing snapshots the current frame table into a list of endorsements, assembles a new manifest (IID, parents, implementation, endorsements, bindings), hashes the BODY fields to produce the VID, and signs the hash. The signed manifest is then stored. The new VID becomes a head for this item.
-
-## Config Cascade
-
-Config is resolved by walking three levels:
-
-```
-Frame config binding       "This specific frame has custom styling"
-  | overridden by
-Item manifest binding      "This item's frames use a custom chart"
-  | overridden by
-Predicate frame            "Harvest records render as tables by default"
-```
-
-Most frames carry no config — they inherit from item and predicate. Config bindings are non-identity, so changing config never creates a new version of the frame body. See [Frames: Config](frames.md#config-just-bindings) for how config is expressed as bindings.
-
-## Composable Items
-
-Items compose behavior from typed frames. There are no special "chat room" or "shared folder" types baked into the system — everything is assembled from frames:
-
-| Want | Compose |
-|------|---------|
-| Chat room | Item + Roster + Log (stream) |
-| Game | Item + Player frames + Move frames |
-| User profile | Item + KeyLog (stream) + Vault (local) |
-| Document | Item + TITLE frame + AUTHORED frame |
-
-The same manifest holds all of these. A "chess game" is an item whose EXPECTS declarations say it needs PLAYER and MOVE frames. A "document" is an item that expects TITLE, AUTHOR, and DESCRIPTION frames. The type IS the expected frames.
-
-## Vocabulary
-
-Every Item has a vocabulary — the tokens (words) it recognizes, derived at runtime by scanning its frames for indexed string bindings. When a frame has a binding like `NAME:[ENGLISH, VERB, LEMMA]->"create"`, that posts `"create"` to the item's token index.
-
-This is fully automatic — the vocabulary is rebuilt from frame content, not stored separately. See [Vocabulary](vocabulary.md) for the full resolution pipeline.
-
-## Working Tree Representation
-
-An Item can be materialized as a filesystem working tree — see [Working Trees](working-tree.md):
-
-```
-my-item/
-+-- README.md              # Mounted content (editable)
-+-- data/
-|   +-- config.json
-+-- .item/
-    +-- iid                # Item identity
-    +-- head/              # Working state
-    +-- manifests/         # Immutable version snapshots
-    +-- channels/          # Named branches
-    +-- content/           # Content blocks (by CID)
-```
-
-The working tree is a view of the manifest's endorsed frames — path mounts determine what appears where. Edit the mounted content, then `commit()` to mint a new version.
+Five items in this trace — Alice, Bob, the archetype, the game, the move's pawn — and one frame floating between them. The game is the continuant; its manifests are the snapshots; the move frame is the meaning-glue that triggered a new snapshot. The lineage links inception to current head via `@FOLLOWS`.
+
+## Relations
+
+- [`datum.md`](datum.md) — the structural primitive items' manifests are made from.
+- [`ref-scheme.md`](ref-scheme.md) — how items are referenced (`@`, `?`, `!`) and versions (`#`).
+- [`frames.md`](frames.md) — the messages items receive and produce.
+- [`manifest.md`](manifest.md) — the body shape of a single version in an item's lineage.
+- [`api.md`](api.md) — HANDLES, IMPLEMENTS, and dispatch.
+- [`types.md`](types.md) — the meta-archetype tree and the roles items can play.
+- [`storage.md`](storage.md) — how the librarian indexes manifests for fast IID lookup.
+- [`authentication.md`](authentication.md) — how items that are signers manage their keys.
