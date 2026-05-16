@@ -23,11 +23,10 @@ import java.util.Objects;
  * beyond what the head sememe's EXPECTS strictly declares. Validation against
  * EXPECTS is a separate concern done at signing/commit time, not at construction.
  */
-public final class Body extends Datum {
+public non-sealed class Body extends Datum {
 
     public Body(ItemRef head, List<Binding> bindings) {
         super(head, bindings);
-        bindId();
     }
 
     /**
@@ -44,6 +43,18 @@ public final class Body extends Datum {
         return new Body(head, List.of());
     }
 
+    /**
+     * Fluent entry point for building a bare Body (no signed records). For inline
+     * expression bodies, nested-target bodies, and scene-graph nodes — anywhere a
+     * body is data within a larger Datum, not an attested artifact.
+     *
+     * <p>For signed propositional bodies use {@link Frame#compose}; for
+     * identity-bearing item bodies use {@code Manifest.compose}.
+     */
+    public static BodyComposer compose(ItemRef head) {
+        return new BodyComposer(head);
+    }
+
     /** The head as an {@link ItemRef} (typed accessor; head() returns HashID). */
     public ItemRef headRef() {
         return (ItemRef) head;
@@ -54,6 +65,11 @@ public final class Body extends Datum {
      *
      * <p>Tolerates an untagged 2-element array as a transitional fallback so
      * legacy bytes still decode while the encoding shift propagates.
+     *
+     * <p>TODO (soon): head-IID dispatch registry — when a head matches a
+     * registered value-class (Color, Quantity, Point, ...), return a typed
+     * subclass instance instead of a generic Body. Today callers must
+     * explicitly view-cast via, e.g., {@code Color.from(body)}.
      *
      * @throws IllegalArgumentException if the inner array length is not 2 or
      *         the head is not an ItemRef.

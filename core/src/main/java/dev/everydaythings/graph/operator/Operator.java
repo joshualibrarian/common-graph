@@ -1,11 +1,15 @@
 package dev.everydaythings.graph.operator;
 
+
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
+import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
@@ -61,7 +65,6 @@ public abstract class Operator extends Item {
     public static final String KEY = "cg.sememe:operator";
 
     /** Deterministic IID for the operator concept. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     protected Operator(ItemRef iid) {
         super(iid);
@@ -73,8 +76,8 @@ public abstract class Operator extends Item {
 
     /**
      * Evaluate this operator with the given operands. Implementations must validate
-     * operand count against their declared {@link NotationVocabulary.Arity} and
-     * coerce or reject operand types as appropriate.
+     * operand count against their declared {@link Arity} and coerce or reject
+     * operand types as appropriate.
      */
     public abstract Object execute(Object... operands);
 
@@ -123,10 +126,10 @@ public abstract class Operator extends Item {
         // mirror it (outer = leftmost, inner = rightmost). For non-associative or
         // unary fixities (prefix/postfix), only the first anchor is handled — chains
         // there are either ill-formed (non-assoc) or unusual (unary).
-        if (NotationVocabulary.Infix.IID.equals(form.fixity())
+        if (ItemRef.iid(Infix.KEY).equals(form.fixity())
                 && anchorIndices.size() > 1
-                && (NotationVocabulary.Left.IID.equals(form.associativity())
-                        || NotationVocabulary.Right.IID.equals(form.associativity()))) {
+                && (ItemRef.iid(Left.KEY).equals(form.associativity())
+                        || ItemRef.iid(Right.KEY).equals(form.associativity()))) {
             return buildChainFrame(anchorIndices, ctx, form);
         }
 
@@ -161,16 +164,16 @@ public abstract class Operator extends Item {
         BigDecimal bindingConfidence = new BigDecimal(formatConfidence(bindConf));
 
         List<BindingMap> bindings = new ArrayList<>();
-        if (NotationVocabulary.Infix.IID.equals(form.fixity())) {
-            BindingMap themeBinding = makeBinding(left, ThematicRole.Theme.IID, bindingConfidence);
+        if (ItemRef.iid(Infix.KEY).equals(form.fixity())) {
+            BindingMap themeBinding = makeBinding(left, ItemRef.iid(ThematicRole.Theme.KEY), bindingConfidence);
             if (themeBinding != null) bindings.add(themeBinding);
-            BindingMap goalBinding = makeBinding(right, ThematicRole.Goal.IID, bindingConfidence);
+            BindingMap goalBinding = makeBinding(right, ItemRef.iid(ThematicRole.Goal.KEY), bindingConfidence);
             if (goalBinding != null) bindings.add(goalBinding);
-        } else if (NotationVocabulary.Prefix.IID.equals(form.fixity())) {
-            BindingMap operandBinding = makeBinding(right, ThematicRole.Theme.IID, bindingConfidence);
+        } else if (ItemRef.iid(Prefix.KEY).equals(form.fixity())) {
+            BindingMap operandBinding = makeBinding(right, ItemRef.iid(ThematicRole.Theme.KEY), bindingConfidence);
             if (operandBinding != null) bindings.add(operandBinding);
-        } else if (NotationVocabulary.Postfix.IID.equals(form.fixity())) {
-            BindingMap operandBinding = makeBinding(left, ThematicRole.Theme.IID, bindingConfidence);
+        } else if (ItemRef.iid(Postfix.KEY).equals(form.fixity())) {
+            BindingMap operandBinding = makeBinding(left, ItemRef.iid(ThematicRole.Theme.KEY), bindingConfidence);
             if (operandBinding != null) bindings.add(operandBinding);
         } else {
             return FrameMap.empty();
@@ -191,7 +194,7 @@ public abstract class Operator extends Item {
      * the THEME of the next anchor. Right-associative mirrors right-to-left.
      */
     private FrameMap buildChainFrame(List<Integer> anchorIndices, ParseContext ctx, OperatorForm form) {
-        boolean leftAssoc = NotationVocabulary.Left.IID.equals(form.associativity());
+        boolean leftAssoc = ItemRef.iid(Left.KEY).equals(form.associativity());
 
         if (leftAssoc) {
             // Start with the leftmost anchor's natural frame (its own operands).
@@ -250,19 +253,19 @@ public abstract class Operator extends Item {
      * better-fitting prefix operator win the symbol-collision tie. Result in [0, 1].
      */
     private static double contextFitness(ItemRef fixity, Operand left, Operand right) {
-        if (NotationVocabulary.Infix.IID.equals(fixity)) {
+        if (ItemRef.iid(Infix.KEY).equals(fixity)) {
             // Infix wants both operands. Both present = full fit; one missing = half.
             int neighbors = (left != null ? 1 : 0) + (right != null ? 1 : 0);
             return neighbors / 2.0;
         }
-        if (NotationVocabulary.Prefix.IID.equals(fixity)) {
+        if (ItemRef.iid(Prefix.KEY).equals(fixity)) {
             // Prefix needs a right operand. If a left operand is also present, the
             // input could equally be infix — back off slightly so a real infix
             // operator (better-fit) outranks us at the same precedence.
             if (right == null) return 0.0;
             return left == null ? 1.0 : 0.7;
         }
-        if (NotationVocabulary.Postfix.IID.equals(fixity)) {
+        if (ItemRef.iid(Postfix.KEY).equals(fixity)) {
             // Mirror of prefix.
             if (left == null) return 0.0;
             return right == null ? 1.0 : 0.7;
@@ -299,7 +302,7 @@ public abstract class Operator extends Item {
      * Returns empty if no operator-form lexeme is endorsed.
      */
     private Optional<OperatorForm> ownOperatorForm() {
-        return endorsedFramesByPredicate(LexicalVocabulary.Lexeme.IID)
+        return endorsedFramesByPredicate(ItemRef.iid(LexicalVocabulary.Lexeme.KEY))
                 .map(Operator::readOperatorForm)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -307,14 +310,14 @@ public abstract class Operator extends Item {
     }
 
     private static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
-        for (ItemRef fixity : List.of(NotationVocabulary.Infix.IID,
-                NotationVocabulary.Prefix.IID,
-                NotationVocabulary.Postfix.IID)) {
-            CompoundKey valueWithFixity = CompoundKey.of(ThematicRole.Value.IID, fixity);
+        for (ItemRef fixity : List.of(ItemRef.iid(Infix.KEY),
+                ItemRef.iid(Prefix.KEY),
+                ItemRef.iid(Postfix.KEY))) {
+            CompoundKey valueWithFixity = CompoundKey.of(ItemRef.iid(ThematicRole.Value.KEY), fixity);
             if (lexemeFrame.binding(valueWithFixity).isPresent()) {
                 long precedence = readPrecedence(lexemeFrame).orElse(0L);
                 ItemRef associativity = readAssociativity(lexemeFrame)
-                        .orElse(NotationVocabulary.Left.IID);
+                        .orElse(ItemRef.iid(Left.KEY));
                 return Optional.of(new OperatorForm(fixity, precedence, associativity));
             }
         }
@@ -324,7 +327,7 @@ public abstract class Operator extends Item {
     /** Read the integer precedence from an operator-form Lexeme's ATTRIBUTE[Precedence] binding. */
     private static Optional<Long> readPrecedence(Frame lexemeFrame) {
         CompoundKey attributePrecedence = CompoundKey.of(
-                ThematicRole.Attribute.IID, NotationVocabulary.Precedence.IID);
+                ItemRef.iid(ThematicRole.Attribute.KEY), ItemRef.iid(Precedence.KEY));
         return lexemeFrame.binding(attributePrecedence)
                 .map(Binding::target)
                 .filter(t -> t instanceof Long)
@@ -334,7 +337,7 @@ public abstract class Operator extends Item {
     /** Read the associativity sememe IID from an operator-form Lexeme's ATTRIBUTE[Associativity] binding. */
     private static Optional<ItemRef> readAssociativity(Frame lexemeFrame) {
         CompoundKey attributeAssociativity = CompoundKey.of(
-                ThematicRole.Attribute.IID, NotationVocabulary.Associativity.IID);
+                ItemRef.iid(ThematicRole.Attribute.KEY), ItemRef.iid(Associativity.KEY));
         return lexemeFrame.binding(attributeAssociativity)
                 .map(Binding::target)
                 .filter(t -> t instanceof ItemRef ir && !ir.isPinned())
@@ -418,13 +421,13 @@ public abstract class Operator extends Item {
     private static boolean isOpenGroup(TokenSpan token) {
         if (token == null) return false;
         return token.postings().stream()
-                .anyMatch(p -> GroupVocabulary.OpenGroup.IID.equals(p.target()));
+                .anyMatch(p -> ItemRef.iid(GroupVocabulary.OpenGroup.KEY).equals(p.target()));
     }
 
     private static boolean isCloseGroup(TokenSpan token) {
         if (token == null) return false;
         return token.postings().stream()
-                .anyMatch(p -> GroupVocabulary.CloseGroup.IID.equals(p.target()));
+                .anyMatch(p -> ItemRef.iid(GroupVocabulary.CloseGroup.KEY).equals(p.target()));
     }
 
     /**
@@ -487,4 +490,207 @@ public abstract class Operator extends Item {
 
     /** Internal carrier for parsed operator-form metadata: fixity, precedence, associativity. */
     private record OperatorForm(ItemRef fixity, long precedence, ItemRef associativity) {}
+
+    // ==================================================================================
+    // Operator-adjacent meta sememes — universal notation features riding on operator
+    // declarations.  Each is a pure-data sememe used as a qualifier (Fixity / Precedence
+    // / Associativity) or as a manifest-body binding role (Arity), plus the value
+    // sememes those qualifiers point at (Infix / Prefix / Postfix / Mixfix / Circumfix;
+    // Left / Right / NonAssociative).
+    //
+    // These are not operators themselves — they're the metadata vocabulary every
+    // operator declaration uses to describe its surface form.  They live here as
+    // inner classes so the operator and the words for talking about operators
+    // travel together.
+    //
+    // Future notation languages (OperatorNotation, AssignmentNotation, FunctionNotation,
+    // ...) are coherent syntaxes that compose these meta sememes with grouping and
+    // other primitives.  They'll live in their own files when they arrive.
+    // ==================================================================================
+
+    /**
+     * The fixity feature — qualifier identifying where an operator's symbol sits
+     * relative to its operands.  As a qualifier on the symbol Lexeme's value-binding
+     * it picks one of {@link Infix}, {@link Prefix}, {@link Postfix}, {@link Mixfix},
+     * {@link Circumfix}.
+     */
+    @Seed.Item(key = Fixity.KEY)
+    public static final class Fixity {
+        public static final String KEY = "cg.notation:fixity";
+        private Fixity() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the syntactic position of an operator: infix, prefix, postfix, mixfix, circumfix";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "fixity";
+    }
+
+    /**
+     * The precedence feature — qualifier identifying an integer ATTRIBUTE binding
+     * carrying an operator's binding tightness. Higher precedence binds tighter
+     * (multiplication > addition; exponentiation > multiplication).
+     */
+    @Seed.Item(key = Precedence.KEY)
+    public static final class Precedence {
+        public static final String KEY = "cg.notation:precedence";
+        private Precedence() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the binding tightness of an operator; higher binds tighter";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "precedence";
+    }
+
+    /**
+     * The associativity feature — qualifier identifying an ATTRIBUTE binding whose
+     * target is one of {@link Left}, {@link Right}, {@link NonAssociative}.
+     * Determines how operators of equal precedence group: {@code 5-3-1} parses as
+     * {@code (5-3)-1} under left-associativity, {@code 5-(3-1)} under right.
+     */
+    @Seed.Item(key = Associativity.KEY)
+    public static final class Associativity {
+        public static final String KEY = "cg.notation:associativity";
+        private Associativity() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "how operators of equal precedence group: left, right, or none";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "associativity";
+    }
+
+    /**
+     * The arity feature — number of operands a predicate accepts.  Applied as a
+     * binding directly on the predicate's manifest body via
+     * {@code @Seed.Item.bindings}:
+     *
+     * <pre>{@code
+     * @Seed.Item(key = Add.KEY,
+     *            head = Item.Predicate.KEY,
+     *            bindings = {@Seed.Binding(role = Arity.KEY, integer = 2)})
+     * }</pre>
+     *
+     * <p>Unlike fixity/precedence/associativity (which describe a particular surface
+     * lexeme), arity is a semantic fact about the predicate itself.
+     */
+    @Seed.Item(key = Arity.KEY)
+    public static final class Arity {
+        public static final String KEY = "cg.notation:arity";
+        private Arity() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the number of operands a predicate accepts";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "arity";
+    }
+
+    // ----- Fixity values --------------------------------------------------------------
+
+    /** Infix — operator appears between operands ({@code 5 + 3}). */
+    @Seed.Item(key = Infix.KEY)
+    public static final class Infix {
+        public static final String KEY = "cg.fixity:infix";
+        private Infix() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "operator appears between operands";
+    }
+
+    /** Prefix — operator appears before operand ({@code -5}, {@code !x}). */
+    @Seed.Item(key = Prefix.KEY)
+    public static final class Prefix {
+        public static final String KEY = "cg.fixity:prefix";
+        private Prefix() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "operator appears before its operand";
+    }
+
+    /** Postfix — operator appears after operand ({@code n!}, {@code x++}). */
+    @Seed.Item(key = Postfix.KEY)
+    public static final class Postfix {
+        public static final String KEY = "cg.fixity:postfix";
+        private Postfix() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "operator appears after its operand";
+    }
+
+    /**
+     * Mixfix — operator interleaves with operands at multiple positions
+     * ({@code if … then … else …}; {@code a ? b : c}).  Placeholder; full mixfix
+     * support requires a position template that's not yet specified.
+     */
+    @Seed.Item(key = Mixfix.KEY)
+    public static final class Mixfix {
+        public static final String KEY = "cg.fixity:mixfix";
+        private Mixfix() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "operator interleaves with operands at multiple positions (e.g. if/then/else, ternary)";
+    }
+
+    /**
+     * Circumfix — operator brackets its operand with matching tokens on both sides
+     * ({@code |x|}, {@code ⌊x⌋}, {@code (…)}).  Placeholder.
+     */
+    @Seed.Item(key = Circumfix.KEY)
+    public static final class Circumfix {
+        public static final String KEY = "cg.fixity:circumfix";
+        private Circumfix() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "operator brackets its operand with matching tokens on both sides (e.g. |x|, ⌊x⌋)";
+    }
+
+    // ----- Associativity values -------------------------------------------------------
+
+    /** Left-associative: {@code 5-3-1} parses as {@code (5-3)-1}. Most arithmetic operators. */
+    @Seed.Item(key = Left.KEY)
+    public static final class Left {
+        public static final String KEY = "cg.associativity:left";
+        private Left() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "left-to-right grouping for equal-precedence operators";
+    }
+
+    /** Right-associative: {@code 2^3^2} parses as {@code 2^(3^2)}. Exponentiation, assignment. */
+    @Seed.Item(key = Right.KEY)
+    public static final class Right {
+        public static final String KEY = "cg.associativity:right";
+        private Right() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "right-to-left grouping for equal-precedence operators";
+    }
+
+    /** Non-associative: chaining requires explicit parentheses. */
+    @Seed.Item(key = NonAssociative.KEY)
+    public static final class NonAssociative {
+        public static final String KEY = "cg.associativity:none";
+        private NonAssociative() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "no grouping for equal-precedence operators; require parentheses";
+    }
 }

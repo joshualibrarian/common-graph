@@ -12,8 +12,8 @@ import static dev.everydaythings.graph.Seed.*;
  *
  * <p>"Primary," "Secondary," "Accent," "Surface," etc. are language-neutral
  * roles a UI assigns concrete colors to. The theming layer maps each slot to
- * a {@link ColorVocabulary} value (or to a user-defined override) at render
- * time.
+ * a {@link dev.everydaythings.graph.value.Color Color} value (or to a
+ * user-defined override) at render time.
  */
 public final class PresentationVocabulary {
 
@@ -22,7 +22,6 @@ public final class PresentationVocabulary {
     @Item(key = Primary.KEY)
     public static final class Primary {
         public static final String KEY = "cg.presentation:primary";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Primary() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -38,7 +37,6 @@ public final class PresentationVocabulary {
     @Item(key = Secondary.KEY)
     public static final class Secondary {
         public static final String KEY = "cg.presentation:secondary";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Secondary() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -54,7 +52,6 @@ public final class PresentationVocabulary {
     @Item(key = Accent.KEY)
     public static final class Accent {
         public static final String KEY = "cg.presentation:accent";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Accent() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -70,7 +67,6 @@ public final class PresentationVocabulary {
     @Item(key = Surface.KEY)
     public static final class Surface {
         public static final String KEY = "cg.presentation:surface";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Surface() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -86,7 +82,6 @@ public final class PresentationVocabulary {
     @Item(key = OnPrimary.KEY)
     public static final class OnPrimary {
         public static final String KEY = "cg.presentation:on-primary";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private OnPrimary() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -98,7 +93,6 @@ public final class PresentationVocabulary {
     @Item(key = OnSurface.KEY)
     public static final class OnSurface {
         public static final String KEY = "cg.presentation:on-surface";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private OnSurface() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -110,7 +104,6 @@ public final class PresentationVocabulary {
     @Item(key = Error.KEY)
     public static final class Error {
         public static final String KEY = "cg.presentation:error";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Error() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -126,7 +119,6 @@ public final class PresentationVocabulary {
     @Item(key = Outline.KEY)
     public static final class Outline {
         public static final String KEY = "cg.presentation:outline";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Outline() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -142,7 +134,6 @@ public final class PresentationVocabulary {
     @Item(key = Muted.KEY)
     public static final class Muted {
         public static final String KEY = "cg.presentation:muted";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Muted() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime.librarian;
 
+
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.CoreVocabulary;
@@ -58,7 +59,6 @@ public class Librarian extends Signer {
     public static final String KEY = "cg.archetype:librarian";
 
     /** The archetype IID for Librarian instances. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     /**
      * Canonical key for the CodeItem representing THIS Java implementation of Librarian.
@@ -78,7 +78,7 @@ public class Librarian extends Signer {
 
     @Override
     public ItemRef archetype() {
-        return IID;
+        return ItemRef.iid(KEY);
     }
 
     /**
@@ -500,13 +500,13 @@ public class Librarian extends Signer {
      * relevant only to the asking client at this moment.
      */
     private static Frame postingToFrame(TokenPosting p) {
-        FrameBuilder fb = Frame.compose(LibrarianVocabulary.Lookup.IID)
-                .with(ThematicRole.Value.IID, p.token());
+        FrameBuilder fb = Frame.compose(ItemRef.iid(LibrarianVocabulary.Lookup.KEY))
+                .with(ItemRef.iid(ThematicRole.Value.KEY), p.token());
         if (p.target() != null) {
             fb.theme(p.target());
         }
         if (p.predicate() != null) {
-            fb.with(ThematicRole.Topic.IID, p.predicate());
+            fb.with(ItemRef.iid(ThematicRole.Topic.KEY), p.predicate());
         }
         return fb.build();
     }
@@ -543,7 +543,7 @@ public class Librarian extends Signer {
     public List<Frame> createItem(Frame createFrame) {
         Objects.requireNonNull(createFrame, "createFrame");
 
-        ItemRef archetype = readReferencedIid(createFrame, ThematicRole.Theme.IID);
+        ItemRef archetype = readReferencedIid(createFrame, ItemRef.iid(ThematicRole.Theme.KEY));
         if (archetype == null) {
             throw new IllegalArgumentException(
                     "CREATE frame missing required THEME (archetype) binding");
@@ -566,7 +566,7 @@ public class Librarian extends Signer {
 
         // Fire the post-construct hook. Any archetype with @Handler(predicate=Construct.KEY)
         // gets to set up domain-specific initial state. Default: no-op.
-        Frame constructFrame = Frame.compose(RuntimeVocabulary.Construct.IID)
+        Frame constructFrame = Frame.compose(ItemRef.iid(RuntimeVocabulary.Construct.KEY))
                 .theme(newIid)
                 .build();
         submit(constructFrame);
@@ -588,7 +588,7 @@ public class Librarian extends Signer {
     private Class<? extends Item> resolveImplementationClass(Frame createFrame, ItemRef archetype) {
         // Step 1: caller-provided INSTRUMENT?
         Optional<Binding> instrumentBinding = createFrame.body()
-                .binding(CompoundKey.of(ThematicRole.Instrument.IID));
+                .binding(CompoundKey.of(ItemRef.iid(ThematicRole.Instrument.KEY)));
         if (instrumentBinding.isPresent()) {
             return resolveImplementationFromBinding(
                     instrumentBinding.get(),
@@ -708,7 +708,7 @@ public class Librarian extends Signer {
     @Seed.Handler(predicate = LibrarianVocabulary.Delete.KEY)
     public List<Frame> deleteItem(Frame deleteFrame) {
         Objects.requireNonNull(deleteFrame, "deleteFrame");
-        ItemRef targetIid = readReferencedIid(deleteFrame, ThematicRole.Theme.IID);
+        ItemRef targetIid = readReferencedIid(deleteFrame, ItemRef.iid(ThematicRole.Theme.KEY));
         if (targetIid == null) return List.of();
 
         if (!isAuthorizedByThisLibrarian(deleteFrame)) return List.of();
@@ -788,7 +788,7 @@ public class Librarian extends Signer {
      *         signing key for {@code identityIid}; false otherwise
      */
     public boolean verifySignedAsIdentity(ItemRef identityIid, byte[] message, VarSig varsig) {
-        for (MultiKey key : currentKeys(identityIid, IdentityVocabulary.Signing.IID)) {
+        for (MultiKey key : currentKeys(identityIid, ItemRef.iid(IdentityVocabulary.Signing.KEY))) {
             if (Signer.verify(key, message, varsig)) return true;
         }
         return false;
@@ -849,7 +849,7 @@ public class Librarian extends Signer {
         // me." Return a bare Item carrying the manifest; callers walk endorsements
         // for the actual API surface.
         if (manifest.body().head() instanceof ItemRef ref
-                && RuntimeVocabulary.Code.IID.equals(ref.iid())) {
+                && ItemRef.iid(RuntimeVocabulary.Code.KEY).equals(ref.iid())) {
             return new Item(iid, this);
         }
 
@@ -1026,18 +1026,18 @@ public class Librarian extends Signer {
 
     private boolean hasEphemeralRetention(Item predicate) {
         return predicate.endorsedFramesByPredicate(
-                        CoreVocabulary.Config.IID)
+                        ItemRef.iid(CoreVocabulary.Config.KEY))
                 .anyMatch(this::isRetentionEphemeral);
     }
 
     private boolean isRetentionEphemeral(Frame configFrame) {
         return configFrame.body()
                 .binding(CompoundKey.of(
-                        ThematicRole.Value.IID,
-                        SchemaVocabulary.Retention.IID))
+                        ItemRef.iid(ThematicRole.Value.KEY),
+                        ItemRef.iid(SchemaVocabulary.Retention.KEY)))
                 .map(b -> b.target() instanceof ItemRef ir
                         && !ir.isPinned()
-                        && SchemaVocabulary.Ephemeral.IID.equals(ir))
+                        && ItemRef.iid(SchemaVocabulary.Ephemeral.KEY).equals(ir))
                 .orElse(false);
     }
 
@@ -1060,7 +1060,7 @@ public class Librarian extends Signer {
         if (codeItem == null) return List.of();
 
         Iterator<Frame> it = codeItem
-                .endorsedFramesByPredicate(CoreVocabulary.Handles.IID)
+                .endorsedFramesByPredicate(ItemRef.iid(CoreVocabulary.Handles.KEY))
                 .iterator();
         while (it.hasNext()) {
             Frame handlesFrame = it.next();
@@ -1096,7 +1096,7 @@ public class Librarian extends Signer {
     /** Whether a HANDLES frame's THEME binding targets the given predicate. */
     private static boolean themeMatches(Frame handlesFrame, ItemRef predicateIid) {
         return handlesFrame.body()
-                .binding(CompoundKey.of(ThematicRole.Theme.IID))
+                .binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
                 .map(b -> extractReferencedIidFromTarget(b.target()))
                 .filter(predicateIid::equals)
                 .isPresent();
@@ -1105,7 +1105,7 @@ public class Librarian extends Signer {
     /** Read the INSTRUMENT binding's text literal from a HANDLES frame. */
     private static String readInstrumentText(Frame handlesFrame) {
         return handlesFrame.body()
-                .binding(CompoundKey.of(ThematicRole.Instrument.IID))
+                .binding(CompoundKey.of(ItemRef.iid(ThematicRole.Instrument.KEY)))
                 .map(Binding::target)
                 .filter(t -> t instanceof String)
                 .map(String.class::cast)
@@ -1158,7 +1158,7 @@ public class Librarian extends Signer {
     private static String readThemeText(Frame frame) {
         return frame.body()
                 .binding(CompoundKey.of(
-                        ThematicRole.Theme.IID))
+                        ItemRef.iid(ThematicRole.Theme.KEY)))
                 .map(Binding::target)
                 .filter(t -> t instanceof String)
                 .map(String.class::cast)
@@ -1168,8 +1168,8 @@ public class Librarian extends Signer {
     private static Integer readLimitInteger(Frame frame) {
         return frame.body()
                 .binding(CompoundKey.of(
-                        ThematicRole.Attribute.IID,
-                        SchemaVocabulary.Limit.IID))
+                        ItemRef.iid(ThematicRole.Attribute.KEY),
+                        ItemRef.iid(SchemaVocabulary.Limit.KEY)))
                 .map(Binding::target)
                 .filter(t -> t instanceof Long)
                 .map(t -> ((Long) t).intValue())

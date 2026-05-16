@@ -28,7 +28,6 @@ public final class RuntimeVocabulary {
     @Seed.Item(key = Java.KEY)
     public static final class Java {
         public static final String KEY = "cg.runtime:java";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Java() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -45,7 +44,6 @@ public final class RuntimeVocabulary {
     @Seed.Item(key = Python.KEY)
     public static final class Python {
         public static final String KEY = "cg.runtime:python";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Python() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -62,7 +60,6 @@ public final class RuntimeVocabulary {
     @Seed.Item(key = JavaScript.KEY)
     public static final class JavaScript {
         public static final String KEY = "cg.runtime:javascript";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private JavaScript() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -79,7 +76,6 @@ public final class RuntimeVocabulary {
     @Seed.Item(key = Rust.KEY)
     public static final class Rust {
         public static final String KEY = "cg.runtime:rust";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Rust() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -96,7 +92,6 @@ public final class RuntimeVocabulary {
     @Seed.Item(key = Clojure.KEY)
     public static final class Clojure {
         public static final String KEY = "cg.runtime:clojure";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Clojure() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -132,7 +127,6 @@ public final class RuntimeVocabulary {
     public static final class Construct {
 
         public static final String KEY = "cg.predicate:construct";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         private Construct() {}
 
@@ -178,7 +172,6 @@ public final class RuntimeVocabulary {
     @Seed.Item(key = Code.KEY)
     public static final class Code {
         public static final String KEY = "cg.archetype:code";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Code() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -209,7 +202,6 @@ public final class RuntimeVocabulary {
     @Seed.Item(key = JavaClass.KEY)
     public static final class JavaClass {
         public static final String KEY = "cg.address:java-class";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private JavaClass() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

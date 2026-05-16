@@ -17,12 +17,16 @@ import java.util.Objects;
 /**
  * A single role binding within a frame — the key→value unit of the frame primitive.
  *
- * <p>Each binding has three semantic parts:
+ * <p>Each binding has these semantic parts:
  * <ul>
  *   <li><b>role</b> — the semantic function (NAME, THEME, AGENT, RESULT, etc.). Always a sememe.</li>
  *   <li><b>qualifiers</b> — narrowing + type constraints (ENGLISH, VERB, LEMMA, QUANTITY, etc.).
  *       Can be sememes or literals. May be empty for simple bindings.</li>
  *   <li><b>target</b> — the bound value (item ref, literal, content CID).</li>
+ *   <li><b>index</b> — optional ordinal position; structural marker for ordered
+ *       collections. When two bindings share the same compound key, a non-null
+ *       index disambiguates their order. Null when the binding isn't part of an
+ *       ordered group. See {@link #index()}.</li>
  * </ul>
  *
  * <p>The compound key {@code [role, qualifier₁, qualifier₂, ...]} is the binding's KEY.
@@ -63,6 +67,16 @@ public final class Binding {
      */
     @Order(1) private final Object target;
 
+    /**
+     * Optional ordinal position. When non-null, this binding occupies position
+     * {@code index} within the ordered group of bindings sharing its compound
+     * key. When null, the binding is unordered (set-like membership with its
+     * siblings). The canonical encoding omits trailing-null fields, so an
+     * absent index costs zero bytes. Two bindings with the same compound key
+     * AND the same non-null index are malformed.
+     */
+    @Order(2) private final Long index;
+
     /** Live decoded value (transient, runtime only). */
     private transient Object instance;
 
@@ -71,11 +85,19 @@ public final class Binding {
     // ==================================================================================
 
     /**
-     * Primary constructor — a compound key and its target.
+     * Primary constructor — a compound key, target, and optional index.
      */
-    public Binding(CompoundKey key, Object target) {
+    public Binding(CompoundKey key, Object target, Long index) {
         this.key = Objects.requireNonNull(key, "key");
         this.target = Objects.requireNonNull(target, "target");
+        this.index = index;  // nullable
+    }
+
+    /**
+     * Convenience: compound key + target, no index (unordered binding).
+     */
+    public Binding(CompoundKey key, Object target) {
+        this(key, target, null);
     }
 
     /**
@@ -83,14 +105,21 @@ public final class Binding {
      * qualifier list is canonicalized inside CompoundKey.
      */
     public Binding(ItemRef role, List<Qualifier> qualifiers, Object target) {
-        this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target);
+        this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target, null);
     }
 
     /**
-     * Convenience: simple single-role binding (no qualifiers).
+     * Convenience: role + qualifiers + target + index.
+     */
+    public Binding(ItemRef role, List<Qualifier> qualifiers, Object target, Long index) {
+        this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target, index);
+    }
+
+    /**
+     * Convenience: simple single-role binding (no qualifiers, no index).
      */
     public Binding(ItemRef role, Object target) {
-        this(CompoundKey.of(role), target);
+        this(CompoundKey.of(role), target, null);
     }
 
     /**
@@ -100,6 +129,7 @@ public final class Binding {
     private Binding() {
         this.key = null;
         this.target = null;
+        this.index = null;
     }
 
     // ==================================================================================
@@ -124,6 +154,20 @@ public final class Binding {
     /** The bound value. */
     public Object target() {
         return target;
+    }
+
+    /**
+     * Ordinal position within an ordered group of same-compound-key siblings,
+     * or {@code null} when unordered. Structural — not a qualifier on the
+     * compound key.
+     */
+    public Long index() {
+        return index;
+    }
+
+    /** Whether this binding carries an explicit ordinal position. */
+    public boolean hasIndex() {
+        return index != null;
     }
 
     // ==================================================================================
@@ -215,22 +259,33 @@ public final class Binding {
 
     /**
      * Custom CBOR decoding. Wire format:
-     * {@code [CompoundKey, BindingTarget]} — a 2-element array where the
-     * first element is a CompoundKey's CBOR ({@code [Tag6(head), [quals]]})
-     * and the second is the binding target.
+     * {@code [CompoundKey, BindingTarget]} (2-element, no index) or
+     * {@code [CompoundKey, BindingTarget, Index]} (3-element, with index).
+     * The third element is an integer when present.
      */
     @Factory
     public static Binding fromCborTree(CBORObject obj) {
         if (obj == null || obj.isNull()) return null;
-        if (obj.getType() != CBORType.Array || obj.size() != 2) {
+        if (obj.getType() != CBORType.Array || (obj.size() != 2 && obj.size() != 3)) {
             throw new IllegalArgumentException(
-                    "Binding requires a 2-element CBOR array [key, target], got "
+                    "Binding requires a 2- or 3-element CBOR array [key, target, (index)], got "
                             + obj.getType() + (obj.getType() == CBORType.Array
                                     ? " of size " + obj.size() : ""));
         }
         CompoundKey key = dev.everydaythings.graph.encoding.CgCbor.decodeCompoundKey(obj.get(0));
         Object target = BindingTarget.fromCborTree(obj.get(1));
-        return new Binding(key, target);
+        Long index = null;
+        if (obj.size() == 3) {
+            CBORObject idx = obj.get(2);
+            if (!idx.isNull()) {
+                if (!idx.isNumber() || !idx.AsNumber().IsInteger()) {
+                    throw new IllegalArgumentException(
+                            "Binding index must be an integer, got " + idx.getType());
+                }
+                index = idx.AsInt64Value();
+            }
+        }
+        return new Binding(key, target, index);
     }
 
     // ==================================================================================
@@ -244,6 +299,7 @@ public final class Binding {
             sb.append(key.head().displayAtWidth(12));
             if (!key.qualifiers().isEmpty()) sb.append(":").append(key.qualifiers().size());
         }
+        if (index != null) sb.append("[#").append(index).append("]");
         sb.append(" -> ").append(target);
         if (instance != null) sb.append(" [live]");
         sb.append('}');
@@ -255,11 +311,12 @@ public final class Binding {
         if (this == o) return true;
         if (!(o instanceof Binding other)) return false;
         return Objects.equals(key, other.key)
-                && Objects.equals(target, other.target);
+                && Objects.equals(target, other.target)
+                && Objects.equals(index, other.index);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, target);
+        return Objects.hash(key, target, index);
     }
 }

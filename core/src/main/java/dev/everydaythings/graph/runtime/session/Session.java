@@ -62,7 +62,6 @@ public class Session extends Item {
     public static final String KEY = "cg.archetype:session";
 
     /** The archetype IID for Session instances. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     /** Canonical key for the CodeItem representing the server-side Java embodiment. */
     public static final String CODE_KEY = "cg.code:session-java-default";
@@ -72,7 +71,7 @@ public class Session extends Item {
 
     @Override
     public ItemRef archetype() {
-        return IID;
+        return ItemRef.iid(KEY);
     }
 
     /** Runtime constructor — bound to a librarian. */

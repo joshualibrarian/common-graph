@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.text;
 
+
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
@@ -50,61 +51,61 @@ class RoundTripTest {
     void setUp() {
         lib = Librarian.inMemory();
         lib.bootstrap();
-        language = new Language(Language.IID, lib);
+        language = new Language(ItemRef.iid(Language.KEY), lib);
         orchestrator = new Item(ItemRef.fromString("test.roundtrip-orchestrator"), lib);
     }
 
     @Test
     @DisplayName("round-trip 'Add{5,3}' ↔ '5 + 3'")
     void simpleBinary() {
-        FrameMap original = binary(Add.IID, (long) (5), (long) (3));
+        FrameMap original = binary(ItemRef.iid(Add.KEY), (long) (5), (long) (3));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Add{5, Multiply{3,2}}' ↔ '5 + 3 * 2' (precedence-implicit nesting)")
     void mixedPrecedenceImplicit() {
-        DatumRef multCid = persistBinary(Multiply.IID, 3, 2);
-        FrameMap original = binary(Add.IID, (long) (5), multCid);
+        DatumRef multCid = persistBinary(ItemRef.iid(Multiply.KEY), 3, 2);
+        FrameMap original = binary(ItemRef.iid(Add.KEY), (long) (5), multCid);
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Multiply{Add{5,3}, 2}' ↔ '(5 + 3) * 2' (parens needed)")
     void parensNeeded() {
-        DatumRef addCid = persistBinary(Add.IID, 5, 3);
-        FrameMap original = binary(Multiply.IID, addCid, (long) (2));
+        DatumRef addCid = persistBinary(ItemRef.iid(Add.KEY), 5, 3);
+        FrameMap original = binary(ItemRef.iid(Multiply.KEY), addCid, (long) (2));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Power{2, Power{3,4}}' ↔ '2 ^ 3 ^ 4' (right-assoc)")
     void rightAssocChain() {
-        DatumRef innerPower = persistBinary(Power.IID, 3, 4);
-        FrameMap original = binary(Power.IID, (long) (2), innerPower);
+        DatumRef innerPower = persistBinary(ItemRef.iid(Power.KEY), 3, 4);
+        FrameMap original = binary(ItemRef.iid(Power.KEY), (long) (2), innerPower);
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Subtract{Subtract{5,3}, 2}' ↔ '5 - 3 - 2' (left-assoc)")
     void leftAssocChain() {
-        DatumRef innerSub = persistBinary(Subtract.IID, 5, 3);
-        FrameMap original = binary(Subtract.IID, innerSub, (long) (2));
+        DatumRef innerSub = persistBinary(ItemRef.iid(Subtract.KEY), 5, 3);
+        FrameMap original = binary(ItemRef.iid(Subtract.KEY), innerSub, (long) (2));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Negate{5}' ↔ '-5'")
     void unaryPrefix() {
-        FrameMap original = unary(Negate.IID, (long) (5));
+        FrameMap original = unary(ItemRef.iid(Negate.KEY), (long) (5));
         roundTrip(original);
     }
 
     @Test
     @DisplayName("round-trip 'Add{Negate{5}, 3}' ↔ '-5 + 3' (unary as binary operand)")
     void unaryAsBinaryOperand() {
-        DatumRef negCid = persistUnary(Negate.IID, (long) (5));
-        FrameMap original = binary(Add.IID, negCid, (long) (3));
+        DatumRef negCid = persistUnary(ItemRef.iid(Negate.KEY), (long) (5));
+        FrameMap original = binary(ItemRef.iid(Add.KEY), negCid, (long) (3));
         roundTrip(original);
     }
 
@@ -131,11 +132,11 @@ class RoundTripTest {
                 new Part<>(ItemRef.of(predicate), new BigDecimal("1.0"), List.of()),
                 List.of(
                         new BindingMap(
-                                new Part<>(ItemRef.of(ThematicRole.Theme.IID), new BigDecimal("1.0"), List.of()),
+                                new Part<>(ItemRef.of(ItemRef.iid(ThematicRole.Theme.KEY)), new BigDecimal("1.0"), List.of()),
                                 List.of(),
                                 new Part<>(left, new BigDecimal("1.0"), List.of())),
                         new BindingMap(
-                                new Part<>(ItemRef.of(ThematicRole.Goal.IID), new BigDecimal("1.0"), List.of()),
+                                new Part<>(ItemRef.of(ItemRef.iid(ThematicRole.Goal.KEY)), new BigDecimal("1.0"), List.of()),
                                 List.of(),
                                 new Part<>(right, new BigDecimal("1.0"), List.of()))),
                 List.of());
@@ -148,7 +149,7 @@ class RoundTripTest {
                 new Part<>(ItemRef.of(predicate), new BigDecimal("1.0"), List.of()),
                 List.of(
                         new BindingMap(
-                                new Part<>(ItemRef.of(ThematicRole.Theme.IID), new BigDecimal("1.0"), List.of()),
+                                new Part<>(ItemRef.of(ItemRef.iid(ThematicRole.Theme.KEY)), new BigDecimal("1.0"), List.of()),
                                 List.of(),
                                 new Part<>(operand, new BigDecimal("1.0"), List.of()))),
                 List.of());
@@ -159,8 +160,8 @@ class RoundTripTest {
         Body body = Body.of(
                 ItemRef.of(predicate),
                 List.of(
-                        new Binding(ThematicRole.Theme.IID, (long) (left)),
-                        new Binding(ThematicRole.Goal.IID, (long) (right))));
+                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), (long) (left)),
+                        new Binding(ItemRef.iid(ThematicRole.Goal.KEY), (long) (right))));
         return lib.persist(body);
     }
 
@@ -168,7 +169,7 @@ class RoundTripTest {
     private DatumRef persistUnary(ItemRef predicate, Object operand) {
         Body body = Body.of(
                 ItemRef.of(predicate),
-                List.of(new Binding(ThematicRole.Theme.IID, operand)));
+                List.of(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), operand)));
         return lib.persist(body);
     }
 
@@ -235,7 +236,7 @@ class RoundTripTest {
                     .orElseGet(() -> "ref(" + dr.compactDisplay() + ")");
         }
         if (target instanceof ItemRef ir && !ir.isPinned()) {
-            return "iid(" + ir.compactDisplay() + ")";
+            return "ItemRef.iid(" + ir.compactDisplay() + ")";
         }
         return target == null ? "<null>" : target.toString();
     }

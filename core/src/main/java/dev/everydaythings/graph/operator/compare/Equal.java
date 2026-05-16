@@ -2,8 +2,8 @@ package dev.everydaythings.graph.operator.compare;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.language.*;
-import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
+
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -11,12 +11,11 @@ import dev.everydaythings.graph.language.ThematicRole;
 /** The equality comparison operator. Infix, non-associative, precedence 5. */
 @Seed.Item(key = Equal.KEY,
         head = Operator.KEY,
-        bindings = {@Seed.Binding(role = NotationVocabulary.Arity.KEY, integer = 2)})
+        bindings = {@Seed.Binding(role = Operator.Arity.KEY, integer = 2)})
 @Seed.Embodies(key = Equal.KEY)
 public class Equal extends Operator {
 
     public static final String KEY = "cg.predicate:equal";
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
@@ -25,14 +24,14 @@ public class Equal extends Operator {
     /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
-                  qualifiers = {NotationVocabulary.Infix.KEY}),
+                  qualifiers = {Operator.Infix.KEY}),
           bindings = {
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
-                          qualifiers = {NotationVocabulary.Precedence.KEY},
+                          qualifiers = {Operator.Precedence.KEY},
                           integer = 5),
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
-                          qualifiers = {NotationVocabulary.Associativity.KEY},
-                          ref = NotationVocabulary.NonAssociative.KEY)
+                          qualifiers = {Operator.Associativity.KEY},
+                          ref = Operator.NonAssociative.KEY)
           })
     static final String symbol = "==";
 

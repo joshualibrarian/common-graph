@@ -37,7 +37,6 @@ public final class TextBase {
     public static final String KEY = "cg.archetype:text-base";
 
     /** The archetype IID for TextBase. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     private TextBase() {}
 
@@ -59,7 +58,6 @@ public final class TextBase {
     @Seed.Item(key = MultibaseCode.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class MultibaseCode {
         public static final String KEY = "cg.predicate:multibase-code";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private MultibaseCode() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -76,7 +74,6 @@ public final class TextBase {
     @Seed.Item(key = Base32Lower.KEY, head = TextBase.KEY)
     public static final class Base32Lower {
         public static final String KEY = "cg.textbase:base32";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultibaseCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -102,7 +99,6 @@ public final class TextBase {
     @Seed.Item(key = Base32Upper.KEY, head = TextBase.KEY)
     public static final class Base32Upper {
         public static final String KEY = "cg.textbase:base32-upper";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultibaseCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -124,7 +120,6 @@ public final class TextBase {
     @Seed.Item(key = Base58Btc.KEY, head = TextBase.KEY)
     public static final class Base58Btc {
         public static final String KEY = "cg.textbase:base58-btc";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultibaseCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -150,7 +145,6 @@ public final class TextBase {
     @Seed.Item(key = Base64Url.KEY, head = TextBase.KEY)
     public static final class Base64Url {
         public static final String KEY = "cg.textbase:base64-url";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultibaseCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -172,7 +166,6 @@ public final class TextBase {
     @Seed.Item(key = Base16Lower.KEY, head = TextBase.KEY)
     public static final class Base16Lower {
         public static final String KEY = "cg.textbase:base16";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultibaseCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))

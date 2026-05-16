@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+
 import com.ibm.icu.util.ULocale;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
@@ -13,7 +14,7 @@ import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.ParseParams;
-import dev.everydaythings.graph.operator.NotationVocabulary;
+import dev.everydaythings.graph.operator.Operator;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +45,6 @@ public class Language extends Item {
     public static final String KEY = "cg.sememe:language";
 
     /** The deterministic IID for the language meta-sememe. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     /** Seed/siloed constructor (no librarian). */
     public Language(ItemRef iid) {
@@ -128,9 +128,9 @@ public class Language extends Item {
             ItemRef role = bm.role().value() != null ? bm.role().value().iid() : null;
             Object target = bm.target().value();
             if (role == null) { others.add(target); continue; }
-            if (theme == null && ThematicRole.Theme.IID.equals(role)) {
+            if (theme == null && ItemRef.iid(ThematicRole.Theme.KEY).equals(role)) {
                 theme = target;
-            } else if (goal == null && ThematicRole.Goal.IID.equals(role)) {
+            } else if (goal == null && ItemRef.iid(ThematicRole.Goal.KEY).equals(role)) {
                 goal = target;
             } else {
                 others.add(target);
@@ -155,9 +155,9 @@ public class Language extends Item {
         for (Binding b : body.bindings()) {
             ItemRef role = b.role();
             Object target = b.target();
-            if (theme == null && ThematicRole.Theme.IID.equals(role)) {
+            if (theme == null && ItemRef.iid(ThematicRole.Theme.KEY).equals(role)) {
                 theme = target;
-            } else if (goal == null && ThematicRole.Goal.IID.equals(role)) {
+            } else if (goal == null && ItemRef.iid(ThematicRole.Goal.KEY).equals(role)) {
                 goal = target;
             } else {
                 others.add(target);
@@ -187,7 +187,7 @@ public class Language extends Item {
         if (formOpt.isEmpty()) return Optional.empty();
         OperatorForm form = formOpt.get();
 
-        if (NotationVocabulary.Infix.IID.equals(form.fixity)) {
+        if (ItemRef.iid(Operator.Infix.KEY).equals(form.fixity)) {
             if (targets.size() != 2) return Optional.empty();
             String left = renderOperand(targets.get(0), form.precedence, form.associativity, true, params);
             String right = renderOperand(targets.get(1), form.precedence, form.associativity, false, params);
@@ -195,7 +195,7 @@ public class Language extends Item {
             return Optional.of(new Rendered(
                     left + " " + form.symbol + " " + right, form.precedence));
         }
-        if (NotationVocabulary.Prefix.IID.equals(form.fixity)) {
+        if (ItemRef.iid(Operator.Prefix.KEY).equals(form.fixity)) {
             if (targets.size() != 1) return Optional.empty();
             // Treat the single operand as the "right side" so right-associative
             // chains (e.g. --5) and same-precedence siblings render without parens.
@@ -204,7 +204,7 @@ public class Language extends Item {
             String separator = isWordSymbol(form.symbol) ? " " : "";
             return Optional.of(new Rendered(form.symbol + separator + operand, form.precedence));
         }
-        if (NotationVocabulary.Postfix.IID.equals(form.fixity)) {
+        if (ItemRef.iid(Operator.Postfix.KEY).equals(form.fixity)) {
             if (targets.size() != 1) return Optional.empty();
             // Treat the single operand as the "left side" so left-associative
             // postfix chains (e.g. n!!) and same-precedence siblings render without parens.
@@ -262,10 +262,10 @@ public class Language extends Item {
                                        ItemRef outerAssociativity, boolean innerIsLeftOperand) {
         if (innerPrecedence > outerPrecedence) return false;
         if (innerPrecedence < outerPrecedence) return true;
-        if (outerAssociativity.equals(NotationVocabulary.Left.IID)) {
+        if (outerAssociativity.equals(ItemRef.iid(Operator.Left.KEY))) {
             return !innerIsLeftOperand;
         }
-        if (outerAssociativity.equals(NotationVocabulary.Right.IID)) {
+        if (outerAssociativity.equals(ItemRef.iid(Operator.Right.KEY))) {
             return innerIsLeftOperand;
         }
         return true;
@@ -273,18 +273,18 @@ public class Language extends Item {
 
     /** Fixity sememes recognized by the operator-form lookup, in match-priority order. */
     private static final List<ItemRef> RECOGNIZED_FIXITIES = List.of(
-            NotationVocabulary.Infix.IID,
-            NotationVocabulary.Prefix.IID,
-            NotationVocabulary.Postfix.IID);
+            ItemRef.iid(Operator.Infix.KEY),
+            ItemRef.iid(Operator.Prefix.KEY),
+            ItemRef.iid(Operator.Postfix.KEY));
 
     /**
      * Find the first endorsed operator-form Lexeme frame on the item and extract its
      * surface form: symbol text, precedence, associativity, fixity. An "operator-form
-     * Lexeme" has a VALUE binding qualified by one of {@link NotationVocabulary.Infix},
-     * {@link NotationVocabulary.Prefix}, or {@link NotationVocabulary.Postfix}.
+     * Lexeme" has a VALUE binding qualified by one of {@link Operator.Infix},
+     * {@link Operator.Prefix}, or {@link Operator.Postfix}.
      */
     private static Optional<OperatorForm> lookupOperatorForm(Item item) {
-        return item.endorsedFramesByPredicate(LexicalVocabulary.Lexeme.IID)
+        return item.endorsedFramesByPredicate(ItemRef.iid(LexicalVocabulary.Lexeme.KEY))
                 .map(Language::readOperatorForm)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -294,13 +294,13 @@ public class Language extends Item {
     /** Try each recognized fixity in turn; return the first VALUE-binding match with metadata. */
     private static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
         for (ItemRef fixity : RECOGNIZED_FIXITIES) {
-            CompoundKey valueWithFixity = CompoundKey.of(ThematicRole.Value.IID, fixity);
+            CompoundKey valueWithFixity = CompoundKey.of(ItemRef.iid(ThematicRole.Value.KEY), fixity);
             Optional<Binding> valueBinding = lexemeFrame.binding(valueWithFixity);
             if (valueBinding.isEmpty()) continue;
             Optional<String> symbol = readTextLiteral(valueBinding.get().target());
             if (symbol.isEmpty()) continue;
             long precedence = readPrecedence(lexemeFrame).orElse(0L);
-            ItemRef associativity = readAssociativity(lexemeFrame).orElse(NotationVocabulary.Left.IID);
+            ItemRef associativity = readAssociativity(lexemeFrame).orElse(ItemRef.iid(Operator.Left.KEY));
             return Optional.of(new OperatorForm(symbol.get(), precedence, associativity, fixity));
         }
         return Optional.empty();
@@ -314,7 +314,7 @@ public class Language extends Item {
     /** Read the precedence integer from an operator-form Lexeme's ATTRIBUTE[Precedence] binding. */
     private static Optional<Long> readPrecedence(Frame lexemeFrame) {
         CompoundKey attributePrecedence = CompoundKey.of(
-                ThematicRole.Attribute.IID, NotationVocabulary.Precedence.IID);
+                ItemRef.iid(ThematicRole.Attribute.KEY), ItemRef.iid(Operator.Precedence.KEY));
         return lexemeFrame.binding(attributePrecedence)
                 .map(Binding::target)
                 .filter(t -> t instanceof Long)
@@ -324,7 +324,7 @@ public class Language extends Item {
     /** Read the associativity sememe IID from an operator-form Lexeme's ATTRIBUTE[Associativity] binding. */
     private static Optional<ItemRef> readAssociativity(Frame lexemeFrame) {
         CompoundKey attributeAssociativity = CompoundKey.of(
-                ThematicRole.Attribute.IID, NotationVocabulary.Associativity.IID);
+                ItemRef.iid(ThematicRole.Attribute.KEY), ItemRef.iid(Operator.Associativity.KEY));
         return lexemeFrame.binding(attributeAssociativity)
                 .map(Binding::target)
                 .filter(t -> t instanceof ItemRef ir && !ir.isPinned())
@@ -366,7 +366,6 @@ public class Language extends Item {
      */
     public static final class English {
         public static final String KEY = "cg.lang:eng";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private English() {}
     }
 }

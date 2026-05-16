@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.encoding;
 
+
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.canonical.Node;
@@ -70,7 +71,7 @@ public interface Encoding {
     // implement anything. Codec implementations override these.
     // ==================================================================================
 
-    /** The encoding instance this codec implements (e.g., {@code CgCborV1.IID}). */
+    /** The encoding instance this codec implements (e.g., {@code ItemRef.iid(CgCborV1.KEY)}). */
     default ItemRef encoding() {
         throw new UnsupportedOperationException("encoding() not implemented");
     }
@@ -156,7 +157,6 @@ public interface Encoding {
     @Seed.Item(key = FormatCode.KEY, head = CoreVocabulary.Predicate.KEY)
     final class FormatCode {
         public static final String KEY = "cg.predicate:format-code";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private FormatCode() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -176,7 +176,6 @@ public interface Encoding {
     @Seed.Item(key = MulticodecCode.KEY, head = CoreVocabulary.Predicate.KEY)
     final class MulticodecCode {
         public static final String KEY = "cg.predicate:multicodec-code";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private MulticodecCode() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -189,7 +188,6 @@ public interface Encoding {
     @Seed.Item(key = MimeType.KEY, head = CoreVocabulary.Predicate.KEY)
     final class MimeType {
         public static final String KEY = "cg.predicate:mime-type";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private MimeType() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -218,7 +216,6 @@ public interface Encoding {
     @Seed.Item(key = Unknown.KEY, head = Encoding.KEY)
     final class Unknown {
         public static final String KEY = "cg.encoding:unknown";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -240,7 +237,6 @@ public interface Encoding {
     @Seed.Item(key = CgCborV1.KEY, head = Encoding.KEY)
     final class CgCborV1 {
         public static final String KEY = "cg.encoding:cg-cbor-v1";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -272,7 +268,6 @@ public interface Encoding {
     @Seed.Item(key = ImageJpeg.KEY, head = Encoding.KEY)
     final class ImageJpeg {
         public static final String KEY = "cg.encoding:image/jpeg";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -297,7 +292,6 @@ public interface Encoding {
     @Seed.Item(key = ImagePng.KEY, head = Encoding.KEY)
     final class ImagePng {
         public static final String KEY = "cg.encoding:image/png";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -322,7 +316,6 @@ public interface Encoding {
     @Seed.Item(key = ApplicationPdf.KEY, head = Encoding.KEY)
     final class ApplicationPdf {
         public static final String KEY = "cg.encoding:application/pdf";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -347,7 +340,6 @@ public interface Encoding {
     @Seed.Item(key = ApplicationJson.KEY, head = Encoding.KEY)
     final class ApplicationJson {
         public static final String KEY = "cg.encoding:application/json";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -376,7 +368,6 @@ public interface Encoding {
     @Seed.Item(key = TextPlainUtf8.KEY, head = Encoding.KEY)
     final class TextPlainUtf8 {
         public static final String KEY = "cg.encoding:text/plain";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = FormatCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))

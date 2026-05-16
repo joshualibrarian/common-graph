@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.CompoundKey;
@@ -34,12 +35,12 @@ class RotationTest {
         ContentRef priorEventCid = ContentRef.of(new byte[]{1, 2, 3, 4});
 
         Body body = Body.of(
-                ItemRef.of(Rotation.IID),
+                ItemRef.of(ItemRef.iid(Rotation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Theme.IID, lib.iid()),
-                        Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Signing.IID),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid()),
+                        Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Signing.KEY)),
                         new Binding(
-                                ThematicRole.Follows.IID,
+                                ItemRef.iid(ThematicRole.Follows.KEY),
                                 List.of(),
                                 priorEventCid
                         )
@@ -56,12 +57,12 @@ class RotationTest {
         lib.bootstrap();
 
         Body body = Body.of(
-                ItemRef.of(Rotation.IID),
+                ItemRef.of(ItemRef.iid(Rotation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Theme.IID, lib.iid()),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid()),
                         new Binding(
-                                ThematicRole.Attribute.IID,
-                                List.of(new CompoundKey.Sememe(Sequence.IID)),
+                                ItemRef.iid(ThematicRole.Attribute.KEY),
+                                List.of(new CompoundKey.Sememe(ItemRef.iid(Sequence.KEY))),
                                 (long) (3)
                         )
                 )
@@ -80,17 +81,17 @@ class RotationTest {
         MultiKey currentKey = lib.signingPublicKey().orElseThrow();
 
         Body body = Body.of(
-                ItemRef.of(Rotation.IID),
+                ItemRef.of(ItemRef.iid(Rotation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Theme.IID, lib.iid()),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid()),
                         new Binding(
-                                ThematicRole.Instrument.IID,
-                                List.of(new CompoundKey.Sememe(Multikey.IID)),
+                                ItemRef.iid(ThematicRole.Instrument.KEY),
+                                List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
                                 currentKey.encoded()
                         ),
                         new Binding(
-                                ThematicRole.Instrument.IID,
-                                List.of(new CompoundKey.Sememe(Next.IID)),
+                                ItemRef.iid(ThematicRole.Instrument.KEY),
+                                List.of(new CompoundKey.Sememe(ItemRef.iid(Next.KEY))),
                                 nextDigest
                         )
                 )

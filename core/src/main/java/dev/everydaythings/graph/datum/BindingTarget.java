@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.datum;
 
+
 import dev.everydaythings.graph.canonical.Factory;
 import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.id.*;

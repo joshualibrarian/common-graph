@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.language;
 
+
 import dev.everydaythings.graph.id.ItemRef;
 
 import static dev.everydaythings.graph.Seed.*;
@@ -26,7 +27,6 @@ public final class PrepositionVocabulary {
     @Item(key = On.KEY)
     public static final class On {
         public static final String KEY = "cg.prep:on";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private On() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -40,14 +40,13 @@ public final class PrepositionVocabulary {
 
         @Frame(predicate = LexicalVocabulary.AssignedRole.KEY,
           field = @Binding(role = ThematicRole.Value.KEY))
-        static final ItemRef assigns = ThematicRole.Goal.IID;
+        static final ItemRef assigns = ItemRef.iid(ThematicRole.Goal.KEY);
     }
 
     /** "with", "using" — assigns INSTRUMENT. */
     @Item(key = With.KEY)
     public static final class With {
         public static final String KEY = "cg.prep:with";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private With() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -61,14 +60,13 @@ public final class PrepositionVocabulary {
 
         @Frame(predicate = LexicalVocabulary.AssignedRole.KEY,
           field = @Binding(role = ThematicRole.Value.KEY))
-        static final ItemRef assigns = ThematicRole.Instrument.IID;
+        static final ItemRef assigns = ItemRef.iid(ThematicRole.Instrument.KEY);
     }
 
     /** "from" — assigns SOURCE. */
     @Item(key = From.KEY)
     public static final class From {
         public static final String KEY = "cg.prep:from";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private From() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -82,14 +80,13 @@ public final class PrepositionVocabulary {
 
         @Frame(predicate = LexicalVocabulary.AssignedRole.KEY,
           field = @Binding(role = ThematicRole.Value.KEY))
-        static final ItemRef assigns = ThematicRole.Source.IID;
+        static final ItemRef assigns = ItemRef.iid(ThematicRole.Source.KEY);
     }
 
     /** "for" — assigns RECIPIENT. */
     @Item(key = For.KEY)
     public static final class For {
         public static final String KEY = "cg.prep:for";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private For() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -103,14 +100,13 @@ public final class PrepositionVocabulary {
 
         @Frame(predicate = LexicalVocabulary.AssignedRole.KEY,
           field = @Binding(role = ThematicRole.Value.KEY))
-        static final ItemRef assigns = ThematicRole.Recipient.IID;
+        static final ItemRef assigns = ItemRef.iid(ThematicRole.Recipient.KEY);
     }
 
     /** "between" — assigns PARTNER. */
     @Item(key = Between.KEY)
     public static final class Between {
         public static final String KEY = "cg.prep:between";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Between() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -124,14 +120,13 @@ public final class PrepositionVocabulary {
 
         @Frame(predicate = LexicalVocabulary.AssignedRole.KEY,
           field = @Binding(role = ThematicRole.Value.KEY))
-        static final ItemRef assigns = ThematicRole.Partner.IID;
+        static final ItemRef assigns = ItemRef.iid(ThematicRole.Partner.KEY);
     }
 
     /** "named", "called" — assigns VALUE (a designation/label). */
     @Item(key = Named.KEY)
     public static final class Named {
         public static final String KEY = "cg.prep:named";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Named() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -145,6 +140,6 @@ public final class PrepositionVocabulary {
 
         @Frame(predicate = LexicalVocabulary.AssignedRole.KEY,
           field = @Binding(role = ThematicRole.Value.KEY))
-        static final ItemRef assigns = ThematicRole.Value.IID;
+        static final ItemRef assigns = ItemRef.iid(ThematicRole.Value.KEY);
     }
 }

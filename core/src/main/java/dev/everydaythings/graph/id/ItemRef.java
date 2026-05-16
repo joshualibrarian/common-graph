@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.id;
 
+
 import dev.everydaythings.graph.canonical.Decode;
 import dev.everydaythings.graph.encoding.TextBase;
 import io.ipfs.multibase.Multibase;
@@ -158,6 +159,21 @@ public final class ItemRef extends HashID {
     public static ItemRef fromString(String s) {
         Objects.requireNonNull(s, "s");
         return FromStringCache.CACHE.computeIfAbsent(s, ItemRef::computeFromString);
+    }
+
+    /**
+     * Short alias for {@link #fromString(String)} — designed for use under
+     * static import so call sites read as {@code ItemRef.iid(SomeClass.KEY)}. Returns
+     * the same memoized instance as {@code fromString}.
+     *
+     * <p>Replaces the previous per-seed-class pattern of
+     * {@code public static final ItemRef IID = ItemRef.fromString(KEY)} —
+     * since {@code fromString} is already cached, those fields cached a
+     * value that was already cached. Use {@code ItemRef.iid(SomeClass.KEY)} at the
+     * point of use; remove the redundant static field.
+     */
+    public static ItemRef iid(String key) {
+        return fromString(key);
     }
 
     private static ItemRef computeFromString(String s) {

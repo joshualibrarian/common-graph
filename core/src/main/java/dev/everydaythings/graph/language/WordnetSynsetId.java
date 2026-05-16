@@ -33,7 +33,6 @@ public class WordnetSynsetId extends Item {
     public static final String KEY = "cg.sememe:wordnet-synset-id";
 
     /** The deterministic IID for the WordNet-synset-id sememe. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     public WordnetSynsetId(ItemRef iid, Librarian librarian) {
         super(iid, librarian);

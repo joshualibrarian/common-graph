@@ -56,7 +56,6 @@ public final class PresenceVocabulary {
     @Item(key = Present.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Present {
         public static final String KEY = "cg.predicate:present";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Present() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -81,7 +80,6 @@ public final class PresenceVocabulary {
     @Item(key = Leave.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Leave {
         public static final String KEY = "cg.predicate:leave";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Leave() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -106,7 +104,6 @@ public final class PresenceVocabulary {
     @Item(key = AvatarState.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class AvatarState {
         public static final String KEY = "cg.predicate:avatar-state";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private AvatarState() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -120,7 +117,6 @@ public final class PresenceVocabulary {
     @Item(key = Typing.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Typing {
         public static final String KEY = "cg.predicate:typing";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Typing() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -138,7 +134,6 @@ public final class PresenceVocabulary {
     @Item(key = Cursor.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Cursor {
         public static final String KEY = "cg.predicate:cursor";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Cursor() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -156,7 +151,6 @@ public final class PresenceVocabulary {
     @Item(key = Focus.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Focus {
         public static final String KEY = "cg.predicate:focus";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Focus() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

@@ -39,7 +39,6 @@ public final class Record extends Datum {
             throw new IllegalArgumentException("Record signature must not be empty");
         }
         this.signature = signature.clone();
-        bindId();
     }
 
     /**

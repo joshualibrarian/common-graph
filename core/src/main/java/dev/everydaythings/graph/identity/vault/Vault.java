@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity.vault;
 
+
 import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
@@ -84,8 +85,8 @@ public interface Vault {
 
     /** The current public key for this purpose, if any. */
     default Optional<MultiKey> publicKey(ItemRef purpose) {
-        if (IdentityVocabulary.Signing.IID.equals(purpose)) return signingPublicKey();
-        if (IdentityVocabulary.Encryption.IID.equals(purpose)) return encryptionPublicKey();
+        if (ItemRef.iid(IdentityVocabulary.Signing.KEY).equals(purpose)) return signingPublicKey();
+        if (ItemRef.iid(IdentityVocabulary.Encryption.KEY).equals(purpose)) return encryptionPublicKey();
         return Optional.empty();
     }
 
@@ -95,8 +96,8 @@ public interface Vault {
      * forward commitment or the vault is locked.
      */
     default Optional<ContentRef> nextKeyDigest(ItemRef purpose) {
-        if (IdentityVocabulary.Signing.IID.equals(purpose)) return signingNextKeyDigest();
-        if (IdentityVocabulary.Encryption.IID.equals(purpose)) return encryptionNextKeyDigest();
+        if (ItemRef.iid(IdentityVocabulary.Signing.KEY).equals(purpose)) return signingNextKeyDigest();
+        if (ItemRef.iid(IdentityVocabulary.Encryption.KEY).equals(purpose)) return encryptionNextKeyDigest();
         return Optional.empty();
     }
 
@@ -200,7 +201,7 @@ public interface Vault {
      * @throws VaultLockedException  if the vault is locked
      */
     default VarSig sign(byte[] message, ItemRef purpose) {
-        if (IdentityVocabulary.Signing.IID.equals(purpose)) return sign(message);
+        if (ItemRef.iid(IdentityVocabulary.Signing.KEY).equals(purpose)) return sign(message);
         throw new UnsupportedOperationException(
                 "Sign with purpose " + purpose + " not yet implemented");
     }

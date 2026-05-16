@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.ContentRef;
@@ -30,8 +31,8 @@ class RevocationTest {
         ItemRef retiring = ItemRef.fromString("retiring-identity");
 
         Body body = Body.of(
-                ItemRef.of(Revocation.IID),
-                List.of(Binding.ref(ThematicRole.Theme.IID, retiring))
+                ItemRef.of(ItemRef.iid(Revocation.KEY)),
+                List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), retiring))
         );
 
         // After IidTarget retirement, item refs and content refs share the same
@@ -52,9 +53,9 @@ class RevocationTest {
         ContentRef frameCid = ContentRef.of(new byte[]{4, 5, 6, 7, 8});
 
         Body body = Body.of(
-                ItemRef.of(Revocation.IID),
+                ItemRef.of(ItemRef.iid(Revocation.KEY)),
                 List.of(new Binding(
-                        ThematicRole.Theme.IID,
+                        ItemRef.iid(ThematicRole.Theme.KEY),
                         List.of(),
                         frameCid
                 ))
@@ -70,14 +71,14 @@ class RevocationTest {
         lib.bootstrap();
 
         Body body = Body.of(
-                ItemRef.of(Revocation.IID),
+                ItemRef.of(ItemRef.iid(Revocation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("compromised")),
-                        Binding.ref(ThematicRole.Purpose.IID, Compromise.IID)
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("compromised")),
+                        Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(Compromise.KEY))
                 )
         );
 
-        assertThat(Signer.readPurpose(body)).contains(Compromise.IID);
+        assertThat(Signer.readPurpose(body)).contains(ItemRef.iid(Compromise.KEY));
     }
 
     @Test
@@ -87,8 +88,8 @@ class RevocationTest {
         lib.bootstrap();
 
         Body body = Body.of(
-                ItemRef.of(Revocation.IID),
-                List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("retired")))
+                ItemRef.of(ItemRef.iid(Revocation.KEY)),
+                List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("retired")))
         );
 
         assertThat(Signer.readPurpose(body)).isEmpty();

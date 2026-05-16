@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
@@ -506,7 +507,7 @@ class LibrarianTest {
                             new Binding(
                                     Manifest.IMPLEMENTATION,
                                     java.util.List.of(new CompoundKey.Sememe(
-                                            RuntimeVocabulary.JavaClass.IID)),
+                                            ItemRef.iid(RuntimeVocabulary.JavaClass.KEY))),
                                     "does.not.Exist")
                     )
             );
@@ -694,17 +695,17 @@ class LibrarianTest {
                     ItemRef.of(lexemePredicate),
                     List.of(
                             Binding.ref(
-                                    ThematicRole.Theme.IID,
+                                    ItemRef.iid(ThematicRole.Theme.KEY),
                                     targetSememe),
                             new Binding(
-                                    ThematicRole.Value.IID,
+                                    ItemRef.iid(ThematicRole.Value.KEY),
                                     List.of(
                                             new CompoundKey.Sememe(
-                                                    dev.everydaythings.graph.language.Language.English.IID),
+                                                    ItemRef.iid(dev.everydaythings.graph.language.Language.English.KEY)),
                                             new CompoundKey.Sememe(
-                                                    dev.everydaythings.graph.language.PartOfSpeech.Verb.IID),
+                                                    ItemRef.iid(dev.everydaythings.graph.language.PartOfSpeech.Verb.KEY)),
                                             new CompoundKey.Sememe(
-                                                    dev.everydaythings.graph.language.GrammaticalFeature.Lemma.IID)),
+                                                    ItemRef.iid(dev.everydaythings.graph.language.GrammaticalFeature.Lemma.KEY))),
                                     token)));
 
             // persist() walks the Body's text-typed bindings and writes token
@@ -729,9 +730,9 @@ class LibrarianTest {
             java.util.Set<ItemRef> allQualifiers = new java.util.HashSet<>(p.features());
             if (p.scope() != null) allQualifiers.add(p.scope());
             assertThat(allQualifiers).containsExactlyInAnyOrder(
-                    dev.everydaythings.graph.language.Language.English.IID,
-                    dev.everydaythings.graph.language.PartOfSpeech.Verb.IID,
-                    dev.everydaythings.graph.language.GrammaticalFeature.Lemma.IID);
+                    ItemRef.iid(dev.everydaythings.graph.language.Language.English.KEY),
+                    ItemRef.iid(dev.everydaythings.graph.language.PartOfSpeech.Verb.KEY),
+                    ItemRef.iid(dev.everydaythings.graph.language.GrammaticalFeature.Lemma.KEY));
             // Source is the Body's semantic identity (DatumRef) — flipped from
             // ContentRef as part of the store-domain refactor (task #48).
             assertThat(p.source()).isEqualTo(body.datumId());
@@ -757,10 +758,10 @@ class LibrarianTest {
                     ItemRef.of(titlePredicate),
                     List.of(
                             Binding.ref(
-                                    ThematicRole.Theme.IID,
+                                    ItemRef.iid(ThematicRole.Theme.KEY),
                                     movie),
                             new Binding(
-                                    ThematicRole.Value.IID,
+                                    ItemRef.iid(ThematicRole.Value.KEY),
                                     List.of(),
                                     "The Shawshank Redemption")));
 
@@ -788,7 +789,7 @@ class LibrarianTest {
             Body body = Body.of(
                     ItemRef.of(predicate),
                     List.of(new Binding(
-                            ThematicRole.Value.IID,
+                            ItemRef.iid(ThematicRole.Value.KEY),
                             List.of(),
                             "Hello")));
             // persist() walks the text binding and indexes it (with case-folded

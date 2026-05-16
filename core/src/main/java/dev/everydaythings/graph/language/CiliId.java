@@ -32,7 +32,6 @@ public class CiliId extends Item {
     public static final String KEY = "cg.sememe:cili-id";
 
     /** The deterministic IID for the CILI-id sememe. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     public CiliId(ItemRef iid, Librarian librarian) {
         super(iid, librarian);

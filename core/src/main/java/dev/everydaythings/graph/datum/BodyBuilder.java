@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.datum;
 
+
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.VarSig;
@@ -99,13 +100,13 @@ public abstract class BodyBuilder<SELF extends BodyBuilder<SELF, R>, R> extends 
             List<Binding> finalBindings = new ArrayList<>(bindings);
 
             // Auto-add AGENT if not explicitly set.
-            if (!hasRole(finalBindings, ThematicRole.Agent.IID)) {
-                finalBindings.add(Binding.ref(ThematicRole.Agent.IID, signer.iid()));
+            if (!hasRole(finalBindings, ItemRef.iid(ThematicRole.Agent.KEY))) {
+                finalBindings.add(Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), signer.iid()));
             }
             // Auto-add TIME if not explicitly set.
-            if (!hasRole(finalBindings, ThematicRole.Time.IID)) {
+            if (!hasRole(finalBindings, ItemRef.iid(ThematicRole.Time.KEY))) {
                 finalBindings.add(new Binding(
-                        ThematicRole.Time.IID,
+                        ItemRef.iid(ThematicRole.Time.KEY),
                         Instant.now()));
             }
 

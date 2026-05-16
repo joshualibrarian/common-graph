@@ -43,7 +43,6 @@ public class Item {
     public static final String KEY = "cg.sememe:item";
 
     /** The IID for Item-the-concept. Subclasses override {@link #archetype()} to return their own. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     /**
      * The archetype this item is an instance of — the sememe IID that goes in the
@@ -53,7 +52,7 @@ public class Item {
      * application-specific item types). The default returns {@link #IID}.
      */
     public ItemRef archetype() {
-        return IID;
+        return ItemRef.iid(KEY);
     }
 
     /**

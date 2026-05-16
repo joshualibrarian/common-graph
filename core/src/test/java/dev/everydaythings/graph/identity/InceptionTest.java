@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
 import dev.everydaythings.graph.datum.Binding;
@@ -46,7 +47,7 @@ class InceptionTest {
 
             Body body = inceptionBody(lib, lib.signingPublicKey().orElseThrow());
 
-            assertThat(Signer.readPurpose(body)).contains(IdentityVocabulary.Signing.IID);
+            assertThat(Signer.readPurpose(body)).contains(ItemRef.iid(IdentityVocabulary.Signing.KEY));
         }
 
         @Test
@@ -102,10 +103,10 @@ class InceptionTest {
 
             // Body has THEME and PURPOSE but no INSTRUMENT keys committed.
             Body body = Body.of(
-                    ItemRef.of(Inception.IID),
+                    ItemRef.of(ItemRef.iid(Inception.KEY)),
                     List.of(
-                            Binding.ref(ThematicRole.Theme.IID, lib.iid()),
-                            Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Signing.IID)
+                            Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid()),
+                            Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Signing.KEY))
                     )
             );
             Frame frame = lib.assembleFrame(body, lib);
@@ -120,13 +121,13 @@ class InceptionTest {
      */
     private static Body inceptionBody(Librarian identity, MultiKey key) {
         return Body.of(
-                ItemRef.of(Inception.IID),
+                ItemRef.of(ItemRef.iid(Inception.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Theme.IID, identity.iid()),
-                        Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Signing.IID),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity.iid()),
+                        Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Signing.KEY)),
                         new Binding(
-                                ThematicRole.Instrument.IID,
-                                List.of(new CompoundKey.Sememe(Multikey.IID)),
+                                ItemRef.iid(ThematicRole.Instrument.KEY),
+                                List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
                                 key.encoded()
                         )
                 )

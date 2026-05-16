@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.encoding;
 
+
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.id.ItemRef;
@@ -44,7 +45,6 @@ public final class Digest {
     public static final String KEY = "cg.archetype:digest";
 
     /** The archetype IID for Digest. */
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     private Digest() {}
 
@@ -67,7 +67,6 @@ public final class Digest {
     @Seed.Item(key = MultihashCode.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class MultihashCode {
         public static final String KEY = "cg.predicate:multihash-code";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private MultihashCode() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -80,7 +79,6 @@ public final class Digest {
     @Seed.Item(key = DigestLength.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class DigestLength {
         public static final String KEY = "cg.predicate:digest-length";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private DigestLength() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -97,7 +95,6 @@ public final class Digest {
     @Seed.Item(key = Sha256.KEY, head = Digest.KEY)
     public static final class Sha256 {
         public static final String KEY = "cg.digest:sha2-256";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -135,7 +132,6 @@ public final class Digest {
     @Seed.Item(key = Sha512.KEY, head = Digest.KEY)
     public static final class Sha512 {
         public static final String KEY = "cg.digest:sha2-512";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -167,7 +163,6 @@ public final class Digest {
     @Seed.Item(key = Sha3_256.KEY, head = Digest.KEY)
     public static final class Sha3_256 {
         public static final String KEY = "cg.digest:sha3-256";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -199,7 +194,6 @@ public final class Digest {
     @Seed.Item(key = Blake3.KEY, head = Digest.KEY)
     public static final class Blake3 {
         public static final String KEY = "cg.digest:blake3";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -231,7 +225,6 @@ public final class Digest {
     @Seed.Item(key = Blake2b_256.KEY, head = Digest.KEY)
     public static final class Blake2b_256 {
         public static final String KEY = "cg.digest:blake2b-256";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         @Seed.Frame(predicate = MultihashCode.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY))
@@ -297,11 +290,11 @@ public final class Digest {
      * decoding raw multihash bytes into Digest-instance identity.
      */
     public static ItemRef iidForMultihashType(Multihash.Type type) {
-        if (type == Multihash.Type.sha2_256)   return Sha256.IID;
-        if (type == Multihash.Type.sha2_512)   return Sha512.IID;
-        if (type == Multihash.Type.sha3_256)   return Sha3_256.IID;
-        if (type == Multihash.Type.blake3)     return Blake3.IID;
-        if (type == Multihash.Type.blake2b_256) return Blake2b_256.IID;
+        if (type == Multihash.Type.sha2_256)   return ItemRef.iid(Sha256.KEY);
+        if (type == Multihash.Type.sha2_512)   return ItemRef.iid(Sha512.KEY);
+        if (type == Multihash.Type.sha3_256)   return ItemRef.iid(Sha3_256.KEY);
+        if (type == Multihash.Type.blake3)     return ItemRef.iid(Blake3.KEY);
+        if (type == Multihash.Type.blake2b_256) return ItemRef.iid(Blake2b_256.KEY);
         return null;
     }
 }

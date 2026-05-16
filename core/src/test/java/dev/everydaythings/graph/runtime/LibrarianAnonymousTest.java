@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.id.ItemRef;
@@ -125,7 +126,7 @@ class LibrarianAnonymousTest {
         // Build a propositional body with a head — anonymous Librarian can
         // persist + route this. Notification fires for items that exist in the
         // cache; we don't register anything so the routing loop is a no-op.
-        Body body = Body.of(ItemRef.of(LibrarianVocabulary.Create.IID), List.of());
+        Body body = Body.of(ItemRef.of(ItemRef.iid(LibrarianVocabulary.Create.KEY)), List.of());
         // submit() should not throw — anonymous can route, just can't sign.
         SubmitResult result = lib.submit(dev.everydaythings.graph.datum.Frame.of(body, List.of()));
         assertThat(result).isNotNull();

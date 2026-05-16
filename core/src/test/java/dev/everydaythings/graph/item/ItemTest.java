@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
@@ -306,10 +307,10 @@ class ItemTest {
     class Archetype {
 
         @Test
-        @DisplayName("bare Item returns Item.IID")
+        @DisplayName("bare Item returns ItemRef.iid(Item.KEY)")
         void bareItemArchetype() {
             Item item = new Item(ItemRef.random());
-            assertThat(item.archetype()).isEqualTo(Item.IID);
+            assertThat(item.archetype()).isEqualTo(ItemRef.iid(Item.KEY));
         }
 
         @Test
@@ -317,14 +318,14 @@ class ItemTest {
         void signerArchetype() {
             Signer s = new Signer(ItemRef.random());
             assertThat(s.archetype()).isEqualTo(Signer.ARCHETYPE);
-            assertThat(s.archetype()).isNotEqualTo(Item.IID);
+            assertThat(s.archetype()).isNotEqualTo(ItemRef.iid(Item.KEY));
         }
 
         @Test
-        @DisplayName("Librarian subclass returns Librarian.IID")
+        @DisplayName("Librarian subclass returns ItemRef.iid(Librarian.KEY)")
         void librarianArchetype() {
             Librarian lib = Librarian.inMemory();
-            assertThat(lib.archetype()).isEqualTo(Librarian.IID);
+            assertThat(lib.archetype()).isEqualTo(ItemRef.iid(Librarian.KEY));
             assertThat(lib.archetype()).isNotEqualTo(Signer.ARCHETYPE);
         }
     }
@@ -380,9 +381,9 @@ class ItemTest {
 
             Manifest manifest = item.commit(List.of());
 
-            // Body's head is the item's archetype (Item.IID for bare Item).
+            // Body's head is the item's archetype (ItemRef.iid(Item.KEY) for bare Item).
             assertThat(((ItemRef) manifest.body().head()).iid())
-                    .isEqualTo(Item.IID);
+                    .isEqualTo(ItemRef.iid(Item.KEY));
         }
 
         @Test

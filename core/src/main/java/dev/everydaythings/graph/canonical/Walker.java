@@ -136,10 +136,18 @@ public final class Walker {
             }
             return new Node.Map(entries);
         }
-        java.util.List<Node> children = new ArrayList<>(ordered.size());
+        // ARRAY layout: collect raw field values, trim trailing nulls so optional
+        // trailing fields take zero canonical-encoding space when absent. A class
+        // whose @Order fields are never null behaves identically to before.
+        java.util.List<Object> values = new ArrayList<>(ordered.size());
         for (java.lang.reflect.Field f : ordered) {
-            children.add(walk(readField(value, f)));
+            values.add(readField(value, f));
         }
+        while (!values.isEmpty() && values.get(values.size() - 1) == null) {
+            values.remove(values.size() - 1);
+        }
+        java.util.List<Node> children = new ArrayList<>(values.size());
+        for (Object v : values) children.add(walk(v));
         return Node.array(children);
     }
 

@@ -42,7 +42,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = ItemId.KEY)
     public static final class ItemId {
         public static final String KEY = "cg.structural:item-id";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private ItemId() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -51,7 +50,8 @@ public final class CoreVocabulary {
                 "the binding head whose target is an item's stable identity (IID)";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"identity", "item id"};
     }
 
@@ -66,7 +66,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Endorses.KEY)
     public static final class Endorses {
         public static final String KEY = "cg.structural:endorses";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Endorses() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -93,7 +92,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Follows.KEY)
     public static final class Follows {
         public static final String KEY = "cg.structural:follows";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Follows() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -119,7 +117,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Config.KEY)
     public static final class Config {
         public static final String KEY = "cg.structural:config";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Config() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -144,7 +141,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Implementation.KEY)
     public static final class Implementation {
         public static final String KEY = "cg.structural:implementation";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Implementation() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -191,7 +187,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Handles.KEY, head = Predicate.KEY)
     public static final class Handles {
         public static final String KEY = "cg.sememe:handles";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Handles() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -224,7 +219,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Archetype.KEY)
     public static final class Archetype {
         public static final String KEY = "cg.archetype:archetype";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Archetype() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -259,7 +253,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Predicate.KEY)
     public static final class Predicate {
         public static final String KEY = "cg.archetype:predicate";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Predicate() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -273,6 +266,83 @@ public final class CoreVocabulary {
         static final String englishNounLemma = "predicate";
     }
 
+    /**
+     * The archetype of free variables — sememes that stand in for values supplied
+     * by the resolution context at evaluation time, rather than carrying a fixed
+     * value of their own.
+     *
+     * <p>Examples: {@code DevicePixelSize} (bound by the session at layout time),
+     * {@code Viewport}, {@code BaseFontSize}, {@code ExchangeRate}, {@code CurrentTime}.
+     * Each is an instance of Variable; each appears as a target reference in
+     * expressions that the resolver will substitute when it can fetch the binding
+     * from the current context.
+     *
+     * <p>Distinct from Predicate: a predicate is the head of a frame body asserting
+     * a relation; a variable is a leaf reference standing for a future value.
+     * Variables typically appear in {@code ref}-target binding positions inside
+     * scale expressions, layout templates, and other contexts that depend on
+     * runtime parameters.
+     */
+    @Seed.Item(key = Variable.KEY)
+    public static final class Variable {
+        public static final String KEY = "cg.archetype:variable";
+        private Variable() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the archetype of free variables — sememes whose values come from the "
+                        + "resolution context (session, layout, conversation) rather than "
+                        + "being declared statically";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "variable";
+    }
+
+    /**
+     * The archetype of qualities — sememes used in binding-role positions to
+     * predicate properties of things.
+     *
+     * <p>A Quality names a property: Width, Height, Color, FontSize, Padding,
+     * Background, Foreground, Opacity. When a body has a binding whose role is
+     * a Quality, the binding asserts "this thing has property X with value Y."
+     *
+     * <p>Many Qualities pair naturally with Values — their targets are typically
+     * structured Value bodies. Width's targets are Length-quantities (a kind of
+     * Value). Color's targets are Color-values. The pairing is declared via
+     * EXPECTS on each Quality archetype.
+     *
+     * <p>The Quality/Value distinction is positional, not exclusive: some
+     * sememes (Color) are themselves Qualities AND their instances are Values.
+     * Color, used as a binding-role, predicates a property; specific colors
+     * (Body[head=Color, R=…, G=…, B=…]) are Value-shaped data. The dual is
+     * intentional — language uses Color both ways.
+     *
+     * <p>Pairs with {@link dev.everydaythings.graph.value.Value Value};
+     * siblings under {@link Archetype}.
+     */
+    @Seed.Item(key = Quality.KEY)
+    public static final class Quality {
+        public static final String KEY = "cg.archetype:quality";
+        private Quality() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the archetype of qualities — sememes used in binding-role positions to "
+                        + "predicate properties of things (Width, Color, FontSize, …)";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "quality";
+    }
+
+    // The Value meta-archetype's seed declaration lives on its Java mirror at
+    // dev.everydaythings.graph.value.Value — an abstract Body subclass whose
+    // concrete subclasses (Color, Quantity, ...) are the typed value-classes.
+    // Reference its IID via {@code value.Value.KEY}.
+
     // ==================================================================================
     // General-purpose sememes — units of meaning that don't belong to any single
     // domain. Used as binding qualifiers and value targets across many frames.
@@ -285,7 +355,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Sequence.KEY)
     public static final class Sequence {
         public static final String KEY = "cg.sememe:sequence";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Sequence() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -301,7 +370,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Threshold.KEY)
     public static final class Threshold {
         public static final String KEY = "cg.sememe:threshold";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Threshold() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -317,7 +385,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Expires.KEY)
     public static final class Expires {
         public static final String KEY = "cg.sememe:expires";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Expires() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -364,7 +431,6 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:source";
 
         /** The deterministic IID for the source-attribution sememe. */
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         public Source(ItemRef iid, Librarian librarian) {
             super(iid, librarian);
@@ -378,7 +444,6 @@ public final class CoreVocabulary {
         @Seed.Item(key = Oewn.KEY)
         public static final class Oewn {
             public static final String KEY = "cg.source:oewn";
-            public static final ItemRef IID = ItemRef.fromString(KEY);
             private Oewn() {}
         }
 
@@ -386,7 +451,6 @@ public final class CoreVocabulary {
         @Seed.Item(key = Cili.KEY)
         public static final class Cili {
             public static final String KEY = "cg.source:cili";
-            public static final ItemRef IID = ItemRef.fromString(KEY);
             private Cili() {}
         }
     }
@@ -395,7 +459,6 @@ public final class CoreVocabulary {
     @Seed.Item(key = Witness.KEY)
     public static final class Witness {
         public static final String KEY = "cg.sememe:witness";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Witness() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

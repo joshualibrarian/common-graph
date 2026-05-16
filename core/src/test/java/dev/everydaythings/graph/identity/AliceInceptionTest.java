@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
@@ -32,7 +33,7 @@ class AliceInceptionTest {
         Signer alice = Signer.inMemory(lib);
 
         // lib's KEL-derived view of alice now includes her current signing key
-        List<MultiKey> aliceKeys = lib.currentKeys(alice.iid(), IdentityVocabulary.Signing.IID);
+        List<MultiKey> aliceKeys = lib.currentKeys(alice.iid(), ItemRef.iid(IdentityVocabulary.Signing.KEY));
         assertThat(aliceKeys).containsExactly(alice.signingPublicKey().orElseThrow());
     }
 
@@ -77,7 +78,7 @@ class AliceInceptionTest {
         Signer alice = Signer.inMemory(lib);
 
         DatumRef inceptionId = alice.vault().orElseThrow()
-                .chainHead(IdentityVocabulary.Signing.IID).orElseThrow();
+                .chainHead(ItemRef.iid(IdentityVocabulary.Signing.KEY)).orElseThrow();
         Frame inception = lib.fetchFrame(inceptionId).orElseThrow();
         assertThat(Signer.isSelfAttested(inception)).isTrue();
     }
@@ -92,7 +93,7 @@ class AliceInceptionTest {
         ghost.bindLibrarian(lib);
 
         assertThat(ghost.canSign()).isFalse();
-        assertThat(lib.currentKeys(ghost.iid(), IdentityVocabulary.Signing.IID)).isEmpty();
+        assertThat(lib.currentKeys(ghost.iid(), ItemRef.iid(IdentityVocabulary.Signing.KEY))).isEmpty();
     }
 
     @Test
@@ -103,6 +104,6 @@ class AliceInceptionTest {
         // No librarian binding — can still sign in-place but nothing published
         assertThat(floater.canSign()).isTrue();
         assertThat(floater.vault().orElseThrow()
-                .chainHead(IdentityVocabulary.Signing.IID)).isEmpty();
+                .chainHead(ItemRef.iid(IdentityVocabulary.Signing.KEY))).isEmpty();
     }
 }

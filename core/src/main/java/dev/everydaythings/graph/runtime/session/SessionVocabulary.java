@@ -36,7 +36,6 @@ public final class SessionVocabulary {
     @Item(key = ItemView.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class ItemView {
         public static final String KEY = "cg.predicate:item-view";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private ItemView() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -58,7 +57,6 @@ public final class SessionVocabulary {
     @Item(key = Close.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Close {
         public static final String KEY = "cg.predicate:close";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Close() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -83,7 +81,6 @@ public final class SessionVocabulary {
     @Item(key = DisplayLayout.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class DisplayLayout {
         public static final String KEY = "cg.predicate:display-layout";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private DisplayLayout() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

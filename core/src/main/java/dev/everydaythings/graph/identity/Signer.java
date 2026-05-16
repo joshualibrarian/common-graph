@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.identity.vault.DelegationConditions;
@@ -36,7 +37,7 @@ import java.util.Optional;
  * REVOCATION) as {@link Frame}s; this Signer orchestrates their persistence via
  * its librarian.
  *
- * <p>The Signer's {@link #iid()} is derived from the vault's initial signing
+ * <p>The Signer's {@link #ItemRef.iid()} is derived from the vault's initial signing
  * public key — cryptographically binding identity to key (an attacker can't
  * preemptively claim a Signer's IID). The IID is stable across key rotations.
  *
@@ -253,8 +254,8 @@ public class Signer extends Item {
         if (librarian == null) {
             throw new IllegalStateException("Signer has no librarian; cannot self-incept");
         }
-        if (vault.chainHead(IdentityVocabulary.Signing.IID).isEmpty()) {
-            Frame inception = vault.incept(IdentityVocabulary.Signing.IID);
+        if (vault.chainHead(ItemRef.iid(IdentityVocabulary.Signing.KEY)).isEmpty()) {
+            Frame inception = vault.incept(ItemRef.iid(IdentityVocabulary.Signing.KEY));
             persistFrame(inception);
         }
         if (this.current == null) {
@@ -283,7 +284,7 @@ public class Signer extends Item {
     public List<MultiKey> currentKeys(ItemRef identity, ItemRef purpose) {
         if (librarian == null) return List.of();
         List<DatumRef> candidates = librarian.library()
-                .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, identity);
+                .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), identity);
 
         Frame chosen = null;
         java.time.Instant chosenTime = java.time.Instant.MIN;
@@ -303,7 +304,7 @@ public class Signer extends Item {
 
     private static boolean isInceptionFor(Frame frame, ItemRef identity, ItemRef purpose) {
         if (!(frame.body().head() instanceof ItemRef ref)) return false;
-        if (!Inception.IID.equals(ref.iid())) return false;
+        if (!ItemRef.iid(Inception.KEY).equals(ref.iid())) return false;
         return readTheme(frame.body()).filter(identity::equals).isPresent()
                 && readPurpose(frame.body()).filter(purpose::equals).isPresent();
     }
@@ -319,28 +320,28 @@ public class Signer extends Item {
 
     /** Read THEME → ItemRef (non-compound ref target). */
     public static Optional<ItemRef> readTheme(Body body) {
-        return body.binding(CompoundKey.of(ThematicRole.Theme.IID))
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
                 .map(b -> extractIid(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
 
     /** Read PURPOSE → ItemRef. Used by INCEPTION/ROTATION/DELEGATION (single purpose). */
     public static Optional<ItemRef> readPurpose(Body body) {
-        return body.binding(CompoundKey.of(ThematicRole.Purpose.IID))
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Purpose.KEY)))
                 .map(b -> extractIid(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
 
     /** Read AGENT → ItemRef (delegator on a DELEGATION body). */
     public static Optional<ItemRef> readAgent(Body body) {
-        return body.binding(CompoundKey.of(ThematicRole.Agent.IID))
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Agent.KEY)))
                 .map(b -> extractIid(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
 
     /** Read FOLLOWS → ContentRef (prior-event reference on a ROTATION body). */
     public static Optional<ContentRef> readFollows(Body body) {
-        return body.binding(CompoundKey.of(ThematicRole.Follows.IID))
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Follows.KEY)))
                 .map(b -> extractContentId(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
@@ -350,7 +351,7 @@ public class Signer extends Item {
      * CID rather than an item's IID.
      */
     public static Optional<ContentRef> readThemeCid(Body body) {
-        return body.binding(CompoundKey.of(ThematicRole.Theme.IID))
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
                 .map(b -> extractContentId(b.target()))
                 .filter(java.util.Objects::nonNull);
     }
@@ -362,9 +363,9 @@ public class Signer extends Item {
     public static List<MultiKey> committedKeys(Body body) {
         List<MultiKey> keys = new ArrayList<>();
         for (Binding b : body.bindings()) {
-            if (!ThematicRole.Instrument.IID.equals(b.role())) continue;
-            if (hasQualifier(b, Next.IID)) continue;
-            if (!hasQualifier(b, Multikey.IID)) continue;
+            if (!ItemRef.iid(ThematicRole.Instrument.KEY).equals(b.role())) continue;
+            if (hasQualifier(b, ItemRef.iid(Next.KEY))) continue;
+            if (!hasQualifier(b, ItemRef.iid(Multikey.KEY))) continue;
             if (!(b.target() instanceof byte[] keyBytes)) continue;
             try {
                 keys.add(MultiKey.decode(keyBytes));
@@ -395,8 +396,8 @@ public class Signer extends Item {
     /** Read ATTRIBUTE[Sequence] → ordinal position (ROTATION body). */
     public static Optional<Long> readSequence(Body body) {
         for (Binding b : body.bindings()) {
-            if (!ThematicRole.Attribute.IID.equals(b.role())) continue;
-            if (!hasQualifier(b, Sequence.IID)) continue;
+            if (!ItemRef.iid(ThematicRole.Attribute.KEY).equals(b.role())) continue;
+            if (!hasQualifier(b, ItemRef.iid(Sequence.KEY))) continue;
             if (b.target() instanceof Long n) return Optional.of(n);
         }
         return Optional.empty();
@@ -406,8 +407,8 @@ public class Signer extends Item {
     public static List<ContentRef> nextKeyDigests(Body body) {
         List<ContentRef> digests = new ArrayList<>();
         for (Binding b : body.bindings()) {
-            if (!ThematicRole.Instrument.IID.equals(b.role())) continue;
-            if (!hasQualifier(b, Next.IID)) continue;
+            if (!ItemRef.iid(ThematicRole.Instrument.KEY).equals(b.role())) continue;
+            if (!hasQualifier(b, ItemRef.iid(Next.KEY))) continue;
             ContentRef cid = extractContentId(b.target());
             if (cid != null) digests.add(cid);
         }
@@ -421,7 +422,7 @@ public class Signer extends Item {
     public static List<ItemRef> readPurposes(Body body) {
         List<ItemRef> purposes = new ArrayList<>();
         for (Binding b : body.bindings()) {
-            if (!ThematicRole.Purpose.IID.equals(b.role())) continue;
+            if (!ItemRef.iid(ThematicRole.Purpose.KEY).equals(b.role())) continue;
             ItemRef iid = extractIid(b.target());
             if (iid != null) purposes.add(iid);
         }
@@ -431,15 +432,15 @@ public class Signer extends Item {
     /** Read ATTRIBUTE[Expires] → Instant from a DELEGATION body. */
     public static Optional<Instant> readExpires(Body body) {
         for (Binding b : body.bindings()) {
-            if (!ThematicRole.Attribute.IID.equals(b.role())) continue;
-            if (!hasQualifier(b, Expires.IID)) continue;
+            if (!ItemRef.iid(ThematicRole.Attribute.KEY).equals(b.role())) continue;
+            if (!hasQualifier(b, ItemRef.iid(Expires.KEY))) continue;
             if (b.target() instanceof Instant t) return Optional.of(t);
         }
         return Optional.empty();
     }
 
     private static Optional<Instant> readTime(Body body) {
-        return body.binding(CompoundKey.of(ThematicRole.Time.IID))
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Time.KEY)))
                 .flatMap(b -> b.target() instanceof Instant t
                         ? Optional.of(t) : Optional.empty());
     }

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.datum;
 
+
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
@@ -40,7 +41,7 @@ class DatumBuilderTest {
             assertThat(f.records()).isEmpty();
 
             Binding b = f.body().bindings().get(0);
-            assertThat(b.role()).isEqualTo(ThematicRole.Theme.IID);
+            assertThat(b.role()).isEqualTo(ItemRef.iid(ThematicRole.Theme.KEY));
             assertThat(b.target()).isEqualTo("create");
         }
 
@@ -55,9 +56,9 @@ class DatumBuilderTest {
             assertThat(f.body().bindings()).hasSize(2);
             assertThat(f.records()).isEmpty();
             // Sort-order is by role-IID bytes (canonical), so we look up by role.
-            assertThat(f.body().binding(CompoundKey.of(ThematicRole.Agent.IID)))
+            assertThat(f.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Agent.KEY))))
                     .isPresent();
-            assertThat(f.body().binding(CompoundKey.of(ThematicRole.Theme.IID)))
+            assertThat(f.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY))))
                     .isPresent();
         }
 
@@ -83,7 +84,7 @@ class DatumBuilderTest {
         void qualifiersThenTargetThenBuild() {
             Frame f = (Frame) Frame.compose(LEXEME)
                     .theme(ADD)
-                    .binding(ThematicRole.Value.IID)
+                    .binding(ItemRef.iid(ThematicRole.Value.KEY))
                         .qualifier(ENGLISH)
                         .qualifier(VERB)
                         .qualifier(LEMMA)
@@ -92,7 +93,7 @@ class DatumBuilderTest {
 
             assertThat(f.body().bindings()).hasSize(2);
             Binding lex = f.body().binding(CompoundKey.of(
-                    ThematicRole.Value.IID, ENGLISH, VERB, LEMMA)).orElseThrow();
+                    ItemRef.iid(ThematicRole.Value.KEY), ENGLISH, VERB, LEMMA)).orElseThrow();
             assertThat(lex.target()).isEqualTo("add");
         }
 
@@ -101,10 +102,10 @@ class DatumBuilderTest {
         void autoCloseOnNextBinding() {
             Frame f = (Frame) Frame.compose(LEXEME)
                     .theme(ADD)
-                    .binding(ThematicRole.Value.IID)
+                    .binding(ItemRef.iid(ThematicRole.Value.KEY))
                         .qualifier(ENGLISH)
                         .target("add")
-                    .binding(ThematicRole.Value.IID)        // auto-closes prev
+                    .binding(ItemRef.iid(ThematicRole.Value.KEY))        // auto-closes prev
                         .qualifier(ItemRef.fromString("cg.lang:deu"))
                         .target("addieren")
                     .build();
@@ -112,9 +113,9 @@ class DatumBuilderTest {
             assertThat(f.body().bindings()).hasSize(3);
             // Both English and German bindings should be present.
             ItemRef german = ItemRef.fromString("cg.lang:deu");
-            assertThat(f.body().binding(CompoundKey.of(ThematicRole.Value.IID, ENGLISH)))
+            assertThat(f.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Value.KEY), ENGLISH)))
                     .isPresent();
-            assertThat(f.body().binding(CompoundKey.of(ThematicRole.Value.IID, german)))
+            assertThat(f.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Value.KEY), german)))
                     .isPresent();
         }
 
@@ -122,15 +123,15 @@ class DatumBuilderTest {
         @DisplayName("binding auto-closes when a role helper is called next")
         void autoCloseOnRoleHelper() {
             Frame f = Frame.compose(LEXEME)
-                    .binding(ThematicRole.Value.IID)
+                    .binding(ItemRef.iid(ThematicRole.Value.KEY))
                         .qualifier(ENGLISH)
                         .target("add")
                     .theme(ADD)                              // forwards through binding
                     .build();
 
             assertThat(f.body().bindings()).hasSize(2);
-            assertThat(f.body().binding(CompoundKey.of(ThematicRole.Theme.IID))).isPresent();
-            assertThat(f.body().binding(CompoundKey.of(ThematicRole.Value.IID, ENGLISH)))
+            assertThat(f.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))).isPresent();
+            assertThat(f.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Value.KEY), ENGLISH)))
                     .isPresent();
         }
     }
@@ -154,11 +155,11 @@ class DatumBuilderTest {
             Record r = f.records().get(0);
 
             // AGENT auto-added → alice's IID
-            Binding agent = r.binding(CompoundKey.of(ThematicRole.Agent.IID)).orElseThrow();
+            Binding agent = r.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Agent.KEY))).orElseThrow();
             assertThat(agent.target()).isEqualTo(alice.iid());
 
             // TIME auto-added → an Instant
-            Binding time = r.binding(CompoundKey.of(ThematicRole.Time.IID)).orElseThrow();
+            Binding time = r.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Time.KEY))).orElseThrow();
             assertThat(time.target()).isInstanceOf(java.time.Instant.class);
 
             // Signature is real bytes

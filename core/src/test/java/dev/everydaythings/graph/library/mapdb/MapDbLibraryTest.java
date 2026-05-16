@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library.mapdb;
 
+
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
@@ -28,7 +29,7 @@ class MapDbLibraryTest {
         try (Library lib = Library.mapDb(root)) {
             Body body = Body.of(
                     ItemRef.of(ItemRef.fromString("test.predicate:authored")),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("test.item:book"))));
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("test.item:book"))));
 
             DatumRef id = lib.put(body);
             assertThat(id).isEqualTo(body.datumId());
@@ -53,7 +54,7 @@ class MapDbLibraryTest {
         DatumRef id;
         Body body = Body.of(
                 ItemRef.of(ItemRef.fromString("test.predicate:authored")),
-                List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("test.item:book"))));
+                List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("test.item:book"))));
         try (Library first = Library.mapDb(root)) {
             id = first.put(body);
         }
@@ -66,7 +67,7 @@ class MapDbLibraryTest {
     @DisplayName("Ref-index queries work over MapDB-backed RefIndexStore")
     void refIndexQueries(@TempDir Path root) {
         try (Library lib = Library.mapDb(root)) {
-            ItemRef role = ThematicRole.Theme.IID;
+            ItemRef role = ItemRef.iid(ThematicRole.Theme.KEY);
             ItemRef target = ItemRef.fromString("test.item:target-x");
             Body body = Body.of(
                     ItemRef.of(ItemRef.fromString("test.predicate:test")),

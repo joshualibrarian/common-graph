@@ -31,7 +31,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Noun.KEY)
     public static final class Noun {
         public static final String KEY = "cg.pos:noun";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Noun() {}
     }
 
@@ -39,7 +38,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Verb.KEY)
     public static final class Verb {
         public static final String KEY = "cg.pos:verb";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Verb() {}
     }
 
@@ -47,7 +45,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Adjective.KEY)
     public static final class Adjective {
         public static final String KEY = "cg.pos:adjective";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Adjective() {}
     }
 
@@ -55,7 +52,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Adverb.KEY)
     public static final class Adverb {
         public static final String KEY = "cg.pos:adverb";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Adverb() {}
     }
 
@@ -63,7 +59,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Pronoun.KEY)
     public static final class Pronoun {
         public static final String KEY = "cg.pos:pronoun";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Pronoun() {}
     }
 
@@ -71,7 +66,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Conjunction.KEY)
     public static final class Conjunction {
         public static final String KEY = "cg.pos:conjunction";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Conjunction() {}
     }
 
@@ -79,7 +73,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Interjection.KEY)
     public static final class Interjection {
         public static final String KEY = "cg.pos:interjection";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Interjection() {}
     }
 
@@ -87,7 +80,6 @@ public final class PartOfSpeech {
     @Seed.Item(key = Preposition.KEY)
     public static final class Preposition {
         public static final String KEY = "cg.pos:preposition";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Preposition() {}
     }
 }

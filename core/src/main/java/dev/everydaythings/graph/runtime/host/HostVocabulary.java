@@ -40,7 +40,6 @@ public final class HostVocabulary {
     @Item(key = Device.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Device {
         public static final String KEY = "cg.predicate:device";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Device() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -57,7 +56,6 @@ public final class HostVocabulary {
     @Item(key = Display.KEY)
     public static final class Display {
         public static final String KEY = "cg.device:display";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Display() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -74,7 +72,6 @@ public final class HostVocabulary {
     @Item(key = Audio.KEY)
     public static final class Audio {
         public static final String KEY = "cg.device:audio";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Audio() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -91,7 +88,6 @@ public final class HostVocabulary {
     @Item(key = AudioInput.KEY)
     public static final class AudioInput {
         public static final String KEY = "cg.device:audio-input";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private AudioInput() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -108,7 +104,6 @@ public final class HostVocabulary {
     @Item(key = Usb.KEY)
     public static final class Usb {
         public static final String KEY = "cg.device:usb";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Usb() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -125,7 +120,6 @@ public final class HostVocabulary {
     @Item(key = Input.KEY)
     public static final class Input {
         public static final String KEY = "cg.device:input";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Input() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

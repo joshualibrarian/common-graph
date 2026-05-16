@@ -36,7 +36,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Lemma.KEY)
     public static final class Lemma {
         public static final String KEY = "cg.feat:lemma";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Lemma() {}
     }
 
@@ -48,7 +47,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Past.KEY)
     public static final class Past {
         public static final String KEY = "cg.feat:past";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Past() {}
     }
 
@@ -56,7 +54,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Present.KEY)
     public static final class Present {
         public static final String KEY = "cg.feat:present";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Present() {}
     }
 
@@ -64,7 +61,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Future.KEY)
     public static final class Future {
         public static final String KEY = "cg.feat:future";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Future() {}
     }
 
@@ -76,7 +72,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Singular.KEY)
     public static final class Singular {
         public static final String KEY = "cg.feat:singular";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Singular() {}
     }
 
@@ -84,7 +79,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Plural.KEY)
     public static final class Plural {
         public static final String KEY = "cg.feat:plural";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Plural() {}
     }
 
@@ -96,7 +90,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = FirstPerson.KEY)
     public static final class FirstPerson {
         public static final String KEY = "cg.feat:first-person";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private FirstPerson() {}
     }
 
@@ -104,7 +97,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = SecondPerson.KEY)
     public static final class SecondPerson {
         public static final String KEY = "cg.feat:second-person";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private SecondPerson() {}
     }
 
@@ -112,7 +104,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = ThirdPerson.KEY)
     public static final class ThirdPerson {
         public static final String KEY = "cg.feat:third-person";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private ThirdPerson() {}
     }
 
@@ -124,7 +115,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Participle.KEY)
     public static final class Participle {
         public static final String KEY = "cg.feat:participle";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Participle() {}
     }
 
@@ -132,7 +122,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Progressive.KEY)
     public static final class Progressive {
         public static final String KEY = "cg.feat:progressive";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Progressive() {}
     }
 
@@ -140,7 +129,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Perfect.KEY)
     public static final class Perfect {
         public static final String KEY = "cg.feat:perfect";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Perfect() {}
     }
 
@@ -148,7 +136,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Infinitive.KEY)
     public static final class Infinitive {
         public static final String KEY = "cg.feat:infinitive";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Infinitive() {}
     }
 
@@ -160,7 +147,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Imperative.KEY)
     public static final class Imperative {
         public static final String KEY = "cg.feat:imperative";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Imperative() {}
     }
 
@@ -168,7 +154,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Indicative.KEY)
     public static final class Indicative {
         public static final String KEY = "cg.feat:indicative";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Indicative() {}
     }
 
@@ -176,7 +161,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Subjunctive.KEY)
     public static final class Subjunctive {
         public static final String KEY = "cg.feat:subjunctive";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Subjunctive() {}
     }
 
@@ -188,7 +172,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Comparative.KEY)
     public static final class Comparative {
         public static final String KEY = "cg.feat:comparative";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Comparative() {}
     }
 
@@ -196,7 +179,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Superlative.KEY)
     public static final class Superlative {
         public static final String KEY = "cg.feat:superlative";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Superlative() {}
     }
 
@@ -208,7 +190,6 @@ public final class GrammaticalFeature {
     @Seed.Item(key = Passive.KEY)
     public static final class Passive {
         public static final String KEY = "cg.feat:passive";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Passive() {}
     }
 }

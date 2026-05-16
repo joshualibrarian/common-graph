@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime;
 
+
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.datum.Binding;
@@ -50,8 +51,8 @@ class DeleteTest {
 
             // Lib publishes its own DELETE frame (signed by lib).
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, iid))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             lib.assembleFrame(deleteBody, lib);
 
@@ -73,8 +74,8 @@ class DeleteTest {
                     assertThat(i).isSameAs(original));
 
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, iid))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             lib.assembleFrame(deleteBody, lib);
 
@@ -98,8 +99,8 @@ class DeleteTest {
             assertThat(recordCids).hasSize(1);
 
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, iid))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             lib.assembleFrame(deleteBody, lib);
 
@@ -124,8 +125,8 @@ class DeleteTest {
             assertThat(lib.library().manifestCidsForItem(iid)).isNotEmpty();
 
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, iid))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             lib.assembleFrame(deleteBody, lib);
 
@@ -143,8 +144,8 @@ class DeleteTest {
             new Item(iid, lib).commit(List.of());
 
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, iid))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             ContentRef deleteFrameCid = ContentRef.of(
                     CgCbor.encode(lib.assembleFrame(deleteBody, lib).body()));
@@ -163,7 +164,7 @@ class DeleteTest {
             ItemRef iid = ItemRef.fromString("doc-1");
             new Item(iid, lib).commit(List.of());
 
-            Body deleteBody = Body.of(ItemRef.of(LibrarianVocabulary.Delete.IID), List.of());
+            Body deleteBody = Body.of(ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)), List.of());
             lib.assembleFrame(deleteBody, lib);
 
             // Item still there.
@@ -178,8 +179,8 @@ class DeleteTest {
 
             ItemRef nonexistent = ItemRef.fromString("nobody");
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, nonexistent))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), nonexistent))
             );
             // Should not throw.
             lib.assembleFrame(deleteBody, lib);
@@ -203,8 +204,8 @@ class DeleteTest {
             // alice (a separate Signer) publishes a DELETE on lib's item.
             Signer alice = Signer.inMemory();
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, iid))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             lib.assembleFrame(deleteBody, alice);
 
@@ -223,8 +224,8 @@ class DeleteTest {
 
             Signer alice = Signer.inMemory();
             Body deleteBody = Body.of(
-                    ItemRef.of(LibrarianVocabulary.Delete.IID),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, iid))
+                    ItemRef.of(ItemRef.iid(LibrarianVocabulary.Delete.KEY)),
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             ContentRef frameCid = ContentRef.of(
                     CgCbor.encode(lib.assembleFrame(deleteBody, alice).body()));

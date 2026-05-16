@@ -50,33 +50,23 @@ public sealed abstract class Datum permits Body, Record {
 
     /**
      * The Datum's structural semantic identity — the encoding-independent
-     * Merkle root, multihash-framed. Set eagerly at construction by the
-     * concrete subclass via {@link #bindId()} after all its fields are
-     * populated.
+     * Merkle root, multihash-framed.  Computed lazily on first access via
+     * {@link #datumId()} (or {@link #getId()}); never set eagerly at
+     * construction.  In-VM construction and mutation are cost-free until
+     * something actually asks for the hash (serialization, indexing,
+     * cross-datum reference).
      *
-     * <p>The algorithm choice is in the multihash framing of the ID itself —
-     * given a DatumRef, you know which algorithm was used.
+     * <p>{@code volatile} for safe lazy publication under double-checked
+     * locking.  The algorithm choice is in the multihash framing of the ID
+     * itself — given a DatumRef, you know which algorithm was used.
      */
-    @Getter
-    protected DatumRef id;
+    private volatile DatumRef id;
 
     protected Datum(HashID head, List<Binding> bindings) {
         this.head = Objects.requireNonNull(head, "head");
         Objects.requireNonNull(bindings, "bindings");
         this.bindings = canonicalSort(bindings);
         this.source = null;
-        // id is set by the concrete subclass via bindId() after its own fields
-        // (e.g. Record's signature) are populated.
-    }
-
-    /**
-     * Concrete subclass invokes this at the end of its constructor, after its
-     * own fields are populated. Computes the Merkle hash of the now-complete
-     * Datum and binds it as the {@link #id}.
-     */
-    protected final void bindId() {
-        byte[] digest = HashTree.hash(Walker.walk(this), HashTree.DEFAULT_DIGEST);
-        this.id = new DatumRef(digest, HashTree.DEFAULT_DIGEST);
     }
 
     /**
@@ -135,11 +125,27 @@ public sealed abstract class Datum permits Body, Record {
     }
 
     /**
-     * The DatumRef — structural semantic identity. Alias for {@link #getId()},
-     * preserved for legacy API ergonomics.
+     * The DatumRef — structural semantic identity.  Computes the Merkle hash on
+     * first access and caches it; subsequent calls are a single volatile read.
      */
     public DatumRef datumId() {
-        return id;
+        DatumRef result = id;
+        if (result == null) {
+            synchronized (this) {
+                result = id;
+                if (result == null) {
+                    byte[] digest = HashTree.hash(Walker.walk(this), HashTree.DEFAULT_DIGEST);
+                    result = new DatumRef(digest, HashTree.DEFAULT_DIGEST);
+                    id = result;
+                }
+            }
+        }
+        return result;
+    }
+
+    /** Backwards-compat accessor; prefer {@link #datumId()}. */
+    public DatumRef getId() {
+        return datumId();
     }
 
 }

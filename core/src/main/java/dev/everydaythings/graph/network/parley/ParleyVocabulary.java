@@ -37,7 +37,6 @@ public final class ParleyVocabulary {
     @Seed.Item(key = Hello.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Hello {
         public static final String KEY = "cg.predicate:hello";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Hello() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

@@ -2,8 +2,8 @@ package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.language.*;
-import dev.everydaythings.graph.operator.NotationVocabulary;
 import dev.everydaythings.graph.operator.Operator;
+
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -14,12 +14,11 @@ import dev.everydaythings.graph.language.ThematicRole;
  */
 @Seed.Item(key = Negate.KEY,
         head = Operator.KEY,
-        bindings = {@Seed.Binding(role = NotationVocabulary.Arity.KEY, integer = 1)})
+        bindings = {@Seed.Binding(role = Operator.Arity.KEY, integer = 1)})
 @Seed.Embodies(key = Negate.KEY)
 public class Negate extends Operator {
 
     public static final String KEY = "cg.predicate:negate";
-    public static final ItemRef IID = ItemRef.fromString(KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
@@ -28,14 +27,14 @@ public class Negate extends Operator {
     /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
-                  qualifiers = {NotationVocabulary.Prefix.KEY}),
+                  qualifiers = {Operator.Prefix.KEY}),
           bindings = {
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
-                          qualifiers = {NotationVocabulary.Precedence.KEY},
+                          qualifiers = {Operator.Precedence.KEY},
                           integer = 25),
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
-                          qualifiers = {NotationVocabulary.Associativity.KEY},
-                          ref = NotationVocabulary.Right.KEY)
+                          qualifiers = {Operator.Associativity.KEY},
+                          ref = Operator.Right.KEY)
           })
     static final String symbol = "-";
 

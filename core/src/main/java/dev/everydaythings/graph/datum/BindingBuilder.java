@@ -33,6 +33,7 @@ public final class BindingBuilder<P extends DatumBuilder<P>> {
     private final ItemRef role;
     private final List<Qualifier> qualifiers = new ArrayList<>();
     private Object target;
+    private Long index;
 
     BindingBuilder(P parent, ItemRef role) {
         this.parent = parent;
@@ -91,6 +92,15 @@ public final class BindingBuilder<P extends DatumBuilder<P>> {
         return this;
     }
 
+    /**
+     * Set this binding's ordinal position within an ordered same-compound-key
+     * group. Optional — leave unset for unordered bindings.
+     */
+    public BindingBuilder<P> index(long position) {
+        this.index = position;
+        return this;
+    }
+
     // ==================================================================================
     // Internal: materialize this binding (called by parent.closeOpenBinding)
     // ==================================================================================
@@ -99,7 +109,7 @@ public final class BindingBuilder<P extends DatumBuilder<P>> {
         // Target may be null (query-style). Use a sentinel-free Binding that allows null
         // target if needed; for now, require non-null for assertion-mode builders.
         // Phase 1: tolerate null target; downstream may reject.
-        return new Binding(role, qualifiers, target);
+        return new Binding(role, qualifiers, target, index);
     }
 
     // ==================================================================================

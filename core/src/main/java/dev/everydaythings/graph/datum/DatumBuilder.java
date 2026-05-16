@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.datum;
 
+
 import dev.everydaythings.graph.item.ManifestBuilder;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -42,12 +43,33 @@ public abstract class DatumBuilder<SELF extends DatumBuilder<SELF>> {
         if (openBinding != null) {
             BindingBuilder<SELF> b = openBinding;
             openBinding = null;
-            bindings.add(b.materialize());
+            addBindingChecked(b.materialize());
         }
     }
 
     /** Internal: record a fully-built binding directly. */
-    void addBindingDirect(Binding b) { bindings.add(b); }
+    void addBindingDirect(Binding b) { addBindingChecked(b); }
+
+    /**
+     * Add a binding to the list after validating it doesn't collide with an
+     * existing binding on (compound key, non-null index). Two bindings sharing
+     * the same compound key AND the same non-null index are structurally
+     * malformed and rejected at build time.
+     */
+    private void addBindingChecked(Binding b) {
+        if (b.hasIndex()) {
+            for (Binding existing : bindings) {
+                if (existing.hasIndex()
+                        && existing.index().equals(b.index())
+                        && existing.key().equals(b.key())) {
+                    throw new IllegalArgumentException(
+                            "Duplicate binding (same compound key and index): "
+                                    + "key=" + b.key() + ", index=" + b.index());
+                }
+            }
+        }
+        bindings.add(b);
+    }
 
     // ==================================================================================
     // Role helpers — common thematic roles
@@ -56,40 +78,40 @@ public abstract class DatumBuilder<SELF extends DatumBuilder<SELF>> {
     // simple binding (no qualifiers) with the role and the given target.
     // ==================================================================================
 
-    public SELF theme(ItemRef target)      { return withSimple(ThematicRole.Theme.IID, target); }
-    public SELF theme(String text)        { return withSimple(ThematicRole.Theme.IID, text); }
-    public SELF theme(long value)         { return withSimple(ThematicRole.Theme.IID, (long) (value)); }
-    public SELF theme(Object t)    { return withSimple(ThematicRole.Theme.IID, t); }
+    public SELF theme(ItemRef target)      { return withSimple(ItemRef.iid(ThematicRole.Theme.KEY), target); }
+    public SELF theme(String text)        { return withSimple(ItemRef.iid(ThematicRole.Theme.KEY), text); }
+    public SELF theme(long value)         { return withSimple(ItemRef.iid(ThematicRole.Theme.KEY), (long) (value)); }
+    public SELF theme(Object t)    { return withSimple(ItemRef.iid(ThematicRole.Theme.KEY), t); }
 
-    public SELF agent(ItemRef target)      { return withSimple(ThematicRole.Agent.IID, target); }
-    public SELF agent(Object t)    { return withSimple(ThematicRole.Agent.IID, t); }
+    public SELF agent(ItemRef target)      { return withSimple(ItemRef.iid(ThematicRole.Agent.KEY), target); }
+    public SELF agent(Object t)    { return withSimple(ItemRef.iid(ThematicRole.Agent.KEY), t); }
 
-    public SELF location(ItemRef target)   { return withSimple(ThematicRole.Location.IID, target); }
-    public SELF location(Object t) { return withSimple(ThematicRole.Location.IID, t); }
+    public SELF location(ItemRef target)   { return withSimple(ItemRef.iid(ThematicRole.Location.KEY), target); }
+    public SELF location(Object t) { return withSimple(ItemRef.iid(ThematicRole.Location.KEY), t); }
 
-    public SELF goal(ItemRef target)       { return withSimple(ThematicRole.Goal.IID, target); }
-    public SELF goal(Object t)     { return withSimple(ThematicRole.Goal.IID, t); }
+    public SELF goal(ItemRef target)       { return withSimple(ItemRef.iid(ThematicRole.Goal.KEY), target); }
+    public SELF goal(Object t)     { return withSimple(ItemRef.iid(ThematicRole.Goal.KEY), t); }
 
-    public SELF source(ItemRef target)     { return withSimple(ThematicRole.Source.IID, target); }
-    public SELF source(Object t)   { return withSimple(ThematicRole.Source.IID, t); }
+    public SELF source(ItemRef target)     { return withSimple(ItemRef.iid(ThematicRole.Source.KEY), target); }
+    public SELF source(Object t)   { return withSimple(ItemRef.iid(ThematicRole.Source.KEY), t); }
 
-    public SELF value(ItemRef target)      { return withSimple(ThematicRole.Value.IID, target); }
-    public SELF value(String text)        { return withSimple(ThematicRole.Value.IID, text); }
-    public SELF value(long n)             { return withSimple(ThematicRole.Value.IID, (long) (n)); }
-    public SELF value(boolean b)          { return withSimple(ThematicRole.Value.IID, b); }
-    public SELF value(Object t)    { return withSimple(ThematicRole.Value.IID, t); }
+    public SELF value(ItemRef target)      { return withSimple(ItemRef.iid(ThematicRole.Value.KEY), target); }
+    public SELF value(String text)        { return withSimple(ItemRef.iid(ThematicRole.Value.KEY), text); }
+    public SELF value(long n)             { return withSimple(ItemRef.iid(ThematicRole.Value.KEY), (long) (n)); }
+    public SELF value(boolean b)          { return withSimple(ItemRef.iid(ThematicRole.Value.KEY), b); }
+    public SELF value(Object t)    { return withSimple(ItemRef.iid(ThematicRole.Value.KEY), t); }
 
-    public SELF time(Instant instant)     { return withSimple(ThematicRole.Time.IID, instant); }
-    public SELF time(Object t)     { return withSimple(ThematicRole.Time.IID, t); }
+    public SELF time(Instant instant)     { return withSimple(ItemRef.iid(ThematicRole.Time.KEY), instant); }
+    public SELF time(Object t)     { return withSimple(ItemRef.iid(ThematicRole.Time.KEY), t); }
 
-    public SELF instrument(ItemRef target) { return withSimple(ThematicRole.Instrument.IID, target); }
-    public SELF instrument(Object t) { return withSimple(ThematicRole.Instrument.IID, t); }
+    public SELF instrument(ItemRef target) { return withSimple(ItemRef.iid(ThematicRole.Instrument.KEY), target); }
+    public SELF instrument(Object t) { return withSimple(ItemRef.iid(ThematicRole.Instrument.KEY), t); }
 
-    public SELF recipient(ItemRef target)  { return withSimple(ThematicRole.Recipient.IID, target); }
-    public SELF recipient(Object t){ return withSimple(ThematicRole.Recipient.IID, t); }
+    public SELF recipient(ItemRef target)  { return withSimple(ItemRef.iid(ThematicRole.Recipient.KEY), target); }
+    public SELF recipient(Object t){ return withSimple(ItemRef.iid(ThematicRole.Recipient.KEY), t); }
 
-    public SELF topic(ItemRef target)      { return withSimple(ThematicRole.Topic.IID, target); }
-    public SELF topic(Object t)    { return withSimple(ThematicRole.Topic.IID, t); }
+    public SELF topic(ItemRef target)      { return withSimple(ItemRef.iid(ThematicRole.Topic.KEY), target); }
+    public SELF topic(Object t)    { return withSimple(ItemRef.iid(ThematicRole.Topic.KEY), t); }
 
     // ==================================================================================
     // Generic with()
@@ -129,7 +151,7 @@ public abstract class DatumBuilder<SELF extends DatumBuilder<SELF>> {
     public SELF with(Binding b) {
         Objects.requireNonNull(b, "binding");
         closeOpenBinding();
-        bindings.add(b);
+        addBindingChecked(b);
         return self();
     }
 
@@ -137,7 +159,7 @@ public abstract class DatumBuilder<SELF extends DatumBuilder<SELF>> {
         Objects.requireNonNull(role, "role");
         Objects.requireNonNull(target, "target");
         closeOpenBinding();
-        bindings.add(new Binding(role, target));
+        addBindingChecked(new Binding(role, target));
         return self();
     }
 

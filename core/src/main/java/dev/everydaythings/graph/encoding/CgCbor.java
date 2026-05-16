@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.encoding;
 
+
 import com.upokecenter.cbor.CBOREncodeOptions;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
@@ -209,7 +210,7 @@ public final class CgCbor {
     private static final class CodecAdapter implements Encoding {
         static final CodecAdapter INSTANCE = new CodecAdapter();
 
-        @Override public ItemRef encoding() { return Encoding.CgCborV1.IID; }
+        @Override public ItemRef encoding() { return ItemRef.iid(Encoding.CgCborV1.KEY); }
         @Override public byte formatCode() { return (byte) Encoding.CgCborV1.FORMAT_CODE; }
         @Override public byte[] encode(Object value) { return CgCbor.encode(value); }
         @Override public Object decode(byte[] bytes) { return CgCbor.decode(bytes); }
@@ -312,11 +313,18 @@ public final class CgCbor {
             }
             return map;
         }
-        CBORObject arr = CBORObject.NewArray();
+        // ARRAY layout: collect, trim trailing nulls, then emit. Trailing optional
+        // fields take zero bytes when absent. Matches Walker.walkStructure exactly
+        // so canonical hash and CBOR wire form stay aligned.
+        java.util.List<Object> values = new ArrayList<>(ordered.size());
         for (java.lang.reflect.Field f : ordered) {
-            Object v = readField(value, f);
-            arr.Add(toCbor(v));
+            values.add(readField(value, f));
         }
+        while (!values.isEmpty() && values.get(values.size() - 1) == null) {
+            values.remove(values.size() - 1);
+        }
+        CBORObject arr = CBORObject.NewArray();
+        for (Object v : values) arr.Add(toCbor(v));
         return arr;
     }
 

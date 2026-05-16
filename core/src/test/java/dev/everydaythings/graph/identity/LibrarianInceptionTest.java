@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.ItemRef;
@@ -29,7 +30,7 @@ class LibrarianInceptionTest {
 
         // Query for frames where THEME → lib.iid()
         List<DatumRef> frameCids = lib.library()
-                .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, lib.iid());
+                .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid());
 
         // Find the INCEPTION among them
         Optional<Frame> inceptionFrame = frameCids.stream()
@@ -59,7 +60,7 @@ class LibrarianInceptionTest {
 
         Frame inception = findInception(lib);
         assertThat(Signer.readTheme(inception.body())).contains(lib.iid());
-        assertThat(Signer.readPurpose(inception.body())).contains(IdentityVocabulary.Signing.IID);
+        assertThat(Signer.readPurpose(inception.body())).contains(ItemRef.iid(IdentityVocabulary.Signing.KEY));
         assertThat(Signer.committedKeys(inception.body()))
                 .containsExactly(lib.signingPublicKey().orElseThrow());
     }
@@ -82,7 +83,7 @@ class LibrarianInceptionTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        assertThat(lib.currentKeys(lib.iid(), IdentityVocabulary.Signing.IID))
+        assertThat(lib.currentKeys(lib.iid(), ItemRef.iid(IdentityVocabulary.Signing.KEY)))
                 .containsExactly(lib.signingPublicKey().orElseThrow());
     }
 
@@ -94,13 +95,13 @@ class LibrarianInceptionTest {
 
         assertThat(lib.currentKeys(
                 ItemRef.fromString("some-stranger"),
-                IdentityVocabulary.Signing.IID))
+                ItemRef.iid(IdentityVocabulary.Signing.KEY)))
                 .isEmpty();
     }
 
     private static Frame findInception(Librarian lib) {
         return lib.library()
-                .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, lib.iid())
+                .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid())
                 .stream()
                 .map(cid -> lib.fetchFrame(cid).orElse(null))
                 .filter(java.util.Objects::nonNull)
@@ -111,6 +112,6 @@ class LibrarianInceptionTest {
 
     private static boolean isInceptionFrame(Frame frame) {
         return frame.body().head() instanceof ItemRef ref
-                && Inception.IID.equals(ref.iid());
+                && ItemRef.iid(Inception.KEY).equals(ref.iid());
     }
 }

@@ -1,94 +1,133 @@
 package dev.everydaythings.graph.value;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-
+import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.SchemaVocabulary;
+import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.LexicalVocabulary;
+import dev.everydaythings.graph.language.PartOfSpeech;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.id.ItemRef;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * Immutable RGBA color.
+ * Color — the one-stop home for color in the graph.
  *
- * <p>CG-native color representation.
- * Channels are stored as ints 0–255.
+ * <p>This single file plays three roles:
+ * <ol>
+ *   <li><b>The Color archetype</b> — a {@link Value} shape whose
+ *       instance bodies carry R/G/B/A (or H/S/L) channel bindings.  The
+ *       canonical tiny-value-body shape:
+ *       <pre>Body[head=Color, R=255, G=128, B=0]</pre></li>
+ *   <li><b>The runtime mint class</b> — annotated {@link Seed.Mints @Seed.Mints} so
+ *       CREATE-of-Color can dispatch here at runtime.  Construction is via the
+ *       static factories on this class ({@link #rgb}, {@link #rgba},
+ *       {@link #web}, {@link #fromPacked}); Color is a plain value-class, not
+ *       an Item.</li>
+ *   <li><b>The home of the named-color sememes</b> — White, Black, Red, etc.
+ *       Each is a nested {@code @Seed.Item} whose manifest body IS a Color
+ *       value (head=Color, R/G/B bindings) and whose lexeme/gloss frames make
+ *       it findable by name in any language.</li>
+ * </ol>
  *
- * <p>Factory methods mirror common patterns:
- * <pre>{@code
- * Color.rgb(75, 110, 175)          // opaque RGB
- * Color.rgba(130, 151, 105, 204)   // with alpha
- * Color.fromPacked(0x4B6EAF)       // from annotation int
- * Color.web("#4B6EAF")             // from hex string
- * }</pre>
+ * <p>The R/G/B/A and H/S/L channel sememes (used as binding-roles inside any
+ * Color-shaped body) also live here.  Visual binding-role qualities that
+ * <i>target</i> colors (Foreground, Background, BorderColor, ...) live in
+ * {@code quality/VisualVocabulary} — they're not colors themselves.
  */
-@Getter
-@EqualsAndHashCode
-public final class Color {
+@Seed.Item(key = Color.KEY, head = Value.KEY)
+@Seed.Mints(key = Color.KEY)
+public final class Color extends Value {
 
-    private final int red;
-    private final int green;
-    private final int blue;
-    private final int alpha;
+    public static final String KEY = "cg.archetype:color";
 
     // ==================================================================================
-    // Named constants
+    // Archetype-level lexical and schema frames
     // ==================================================================================
 
-    public static final Color BLACK = new Color(0, 0, 0, 255);
-    public static final Color WHITE = new Color(255, 255, 255, 255);
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+      field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+    static final String englishGloss =
+            "the archetype of color values — bodies with R/G/B/A or H/S/L channel "
+                    + "bindings; instances are color values, not items";
+
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+      field = @Seed.Binding(role = ThematicRole.Value.KEY,
+        qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+    static final String englishNounLemma = "color";
+
+    /** Color values are expected to carry R, G, B channel bindings (A optional). */
+    @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
+      field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {CoreVocabulary.Quality.KEY}))
+    static final ItemRef expectR = ItemRef.iid(R.KEY);
+
+    @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
+      field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {CoreVocabulary.Quality.KEY}))
+    static final ItemRef expectG = ItemRef.iid(G.KEY);
+
+    @Seed.Frame(predicate = SchemaVocabulary.Expects.KEY,
+      field = @Seed.Binding(role = ThematicRole.Topic.KEY, qualifiers = {CoreVocabulary.Quality.KEY}))
+    static final ItemRef expectB = ItemRef.iid(B.KEY);
 
     // ==================================================================================
-    // Construction
+    // Construction — every Color IS a Body (head=Color archetype, R/G/B/A bindings).
+    // Identity is the structural Merkle hash inherited from Datum.
     // ==================================================================================
-
-    private Color(int red, int green, int blue, int alpha) {
-        this.red = red;
-        this.green = green;
-        this.blue = blue;
-        this.alpha = alpha;
-    }
 
     /**
-     * Create an opaque color from RGB components (0–255).
+     * Build a Color from its four channel values.  The instance IS a Body with
+     * head pointing at the Color archetype and four channel bindings.  Identity
+     * (the {@code DatumRef}) is computed lazily on first call to
+     * {@link #datumId()}; in-VM construction is cost-free until something asks
+     * for the hash.
      */
+    public Color(int red, int green, int blue, int alpha) {
+        super(ItemRef.iid(KEY), channelBindings(red, green, blue, alpha));
+    }
+
+    private static List<Binding> channelBindings(
+            int red, int green, int blue, int alpha) {
+        checkRange(red,   "red");
+        checkRange(green, "green");
+        checkRange(blue,  "blue");
+        checkRange(alpha, "alpha");
+        return List.of(Binding.literal(ItemRef.iid(R.KEY), (long) red),
+                Binding.literal(ItemRef.iid(G.KEY), (long) green),
+                Binding.literal(ItemRef.iid(B.KEY), (long) blue),
+                Binding.literal(ItemRef.iid(A.KEY), (long) alpha)
+        );
+    }
+
+    // ==================================================================================
+    // Static factories
+    // ==================================================================================
+
+    /** Opaque color from RGB components (0–255). */
     public static Color rgb(int r, int g, int b) {
-        checkRange(r, "red");
-        checkRange(g, "green");
-        checkRange(b, "blue");
         return new Color(r, g, b, 255);
     }
 
-    /**
-     * Create a color from RGBA components (0–255).
-     */
+    /** Color from RGBA components (0–255). */
     public static Color rgba(int r, int g, int b, int a) {
-        checkRange(r, "red");
-        checkRange(g, "green");
-        checkRange(b, "blue");
-        checkRange(a, "alpha");
         return new Color(r, g, b, a);
     }
 
-    /**
-     * Create an opaque color from a packed 0xRRGGBB int
-     * (the format used by {@code @Item.Type(color=...)}).
-     */
+    /** Opaque color from a packed 0xRRGGBB int. */
     public static Color fromPacked(int rgb) {
         return new Color(
                 (rgb >> 16) & 0xFF,
                 (rgb >> 8) & 0xFF,
                 rgb & 0xFF,
-                255
-        );
+                255);
     }
 
     /**
-     * Parse a CSS-style hex color string.
-     *
-     * <p>Accepted formats (leading '#' is optional):
-     * <ul>
-     *   <li>{@code #RGB} — expanded to RRGGBB</li>
-     *   <li>{@code #RRGGBB} — opaque</li>
-     *   <li>{@code #RRGGBBAA} — with alpha</li>
-     * </ul>
+     * Parse a CSS-style hex color string.  Accepted forms (leading {@code #}
+     * optional): {@code RGB}, {@code RRGGBB}, {@code RRGGBBAA}.
      */
     public static Color web(String hex) {
         Objects.requireNonNull(hex, "hex");
@@ -110,94 +149,460 @@ public final class Color {
                         (int) ((v >> 24) & 0xFF),
                         (int) ((v >> 16) & 0xFF),
                         (int) ((v >> 8) & 0xFF),
-                        (int) (v & 0xFF)
-                );
+                        (int) (v & 0xFF));
             }
             default -> throw new IllegalArgumentException("Invalid hex color: " + hex);
         };
     }
 
     /**
-     * Pack as 0xRRGGBB (alpha is dropped).
+     * Typed view over an existing Body whose head is the Color archetype.  Reads
+     * R/G/B/A from the body's bindings (A defaults to 255 when missing) and
+     * returns a Color with those channel values.  Bindings on the source body
+     * other than R/G/B/A are dropped from the view; full-fidelity round-trip
+     * arrives with the head-IID dispatch registry tracked in
+     * {@link Body#fromCborTree}.
      */
+    public static Color from(Body body) {
+        Objects.requireNonNull(body, "body");
+        if (body instanceof Color color) return color;
+        if (!ItemRef.iid(KEY).equals(body.headRef())) {
+            throw new IllegalArgumentException(
+                    "Body head is not the Color archetype: " + body.headRef());
+        }
+        return new Color(
+                channelOf(body, R.KEY, 0),
+                channelOf(body, G.KEY, 0),
+                channelOf(body, B.KEY, 0),
+                channelOf(body, A.KEY, 255));
+    }
+
+    private static int channelOf(Body body, String roleKey, int defaultValue) {
+        ItemRef role = ItemRef.iid(roleKey);
+        for (dev.everydaythings.graph.datum.Binding b : body.bindings()) {
+            if (b.role().equals(role) && b.target() instanceof Long n) return n.intValue();
+        }
+        return defaultValue;
+    }
+
+    // ==================================================================================
+    // Channel accessors — read from the underlying bindings list.
+    // ==================================================================================
+
+    public int red()   { return channel(R.KEY); }
+    public int green() { return channel(G.KEY); }
+    public int blue()  { return channel(B.KEY); }
+    public int alpha() { return channel(A.KEY); }
+
+    public double redDouble()   { return red()   / 255.0; }
+    public double greenDouble() { return green() / 255.0; }
+    public double blueDouble()  { return blue()  / 255.0; }
+    public double alphaDouble() { return alpha() / 255.0; }
+
+    private int channel(String roleKey) {
+        ItemRef role = ItemRef.iid(roleKey);
+        for (dev.everydaythings.graph.datum.Binding b : bindings) {
+            if (b.role().equals(role) && b.target() instanceof Long n) return n.intValue();
+        }
+        return 0;
+    }
+
+    // ==================================================================================
+    // Derived operations
+    // ==================================================================================
+
+    /** Pack as 0xRRGGBB (alpha dropped). */
     public int toPacked() {
-        return (red << 16) | (green << 8) | blue;
+        return (red() << 16) | (green() << 8) | blue();
     }
 
-    // ==================================================================================
-    // Accessors (double 0.0–1.0)
-    // ==================================================================================
-
-    public double redDouble() { return red / 255.0; }
-    public double greenDouble() { return green / 255.0; }
-    public double blueDouble() { return blue / 255.0; }
-    public double alphaDouble() { return alpha / 255.0; }
-
-    // ==================================================================================
-    // Manipulation
-    // ==================================================================================
-
-    /**
-     * Return a copy with the given alpha (0–255).
-     */
+    /** Copy with the given alpha (0–255). */
     public Color withAlpha(int a) {
-        checkRange(a, "alpha");
-        return new Color(red, green, blue, a);
+        return new Color(red(), green(), blue(), a);
     }
 
-    /**
-     * Return a darker copy. Factor 0.0 = black, 1.0 = unchanged.
-     */
+    /** Darker copy.  Factor 0.0 = black, 1.0 = unchanged. */
     public Color darken(double factor) {
         if (factor < 0 || factor > 1)
             throw new IllegalArgumentException("factor must be 0.0–1.0, got " + factor);
         return new Color(
-                (int) (red * factor),
-                (int) (green * factor),
-                (int) (blue * factor),
-                alpha
-        );
+                (int) (red()   * factor),
+                (int) (green() * factor),
+                (int) (blue()  * factor),
+                alpha());
     }
 
-    // ==================================================================================
-    // ANSI Terminal
-    // ==================================================================================
-
-    /**
-     * 24-bit ANSI foreground escape: {@code ESC[38;2;R;G;Bm}.
-     */
+    /** 24-bit ANSI foreground escape. */
     public String toAnsiForeground() {
-        return String.format("\u001B[38;2;%d;%d;%dm", red, green, blue);
+        return String.format("\\u001B[38;2;%d;%d;%dm", red(), green(), blue());
     }
 
-    /**
-     * 24-bit ANSI background escape: {@code ESC[48;2;R;G;Bm}.
-     * Darkened to 40% for readability.
-     */
+    /** 24-bit ANSI background escape (darkened to 40% for readability). */
     public String toAnsiBackground() {
-        return String.format("\u001B[48;2;%d;%d;%dm",
-                (int) (red * 0.4),
-                (int) (green * 0.4),
-                (int) (blue * 0.4));
+        return String.format("\\u001B[48;2;%d;%d;%dm",
+                (int) (red()   * 0.4),
+                (int) (green() * 0.4),
+                (int) (blue()  * 0.4));
     }
 
-    /**
-     * Returns {@code "#RRGGBB"} for opaque colors, {@code "#RRGGBBAA"} otherwise.
-     */
     @Override
     public String toString() {
-        if (alpha == 255) {
-            return String.format("#%02X%02X%02X", red, green, blue);
-        }
-        return String.format("#%02X%02X%02X%02X", red, green, blue, alpha);
+        int a = alpha();
+        return a == 255
+                ? String.format("#%02X%02X%02X", red(), green(), blue())
+                : String.format("#%02X%02X%02X%02X", red(), green(), blue(), a);
     }
-
-    // ==================================================================================
-    // Internal
-    // ==================================================================================
 
     private static void checkRange(int value, String name) {
         if (value < 0 || value > 255)
             throw new IllegalArgumentException(name + " must be 0–255, got " + value);
+    }
+
+    // ==================================================================================
+    // RGBA channel sememes — binding-roles inside Color-shaped value bodies
+    // ==================================================================================
+
+    /** Red channel of an RGB color value (0–255). */
+    @Seed.Item(key = R.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class R {
+        public static final String KEY = "cg.color:r";
+        private R() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the red channel of an RGB color";
+    }
+
+    /** Green channel of an RGB color value (0–255). */
+    @Seed.Item(key = G.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class G {
+        public static final String KEY = "cg.color:g";
+        private G() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the green channel of an RGB color";
+    }
+
+    /** Blue channel of an RGB color value (0–255). */
+    @Seed.Item(key = B.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class B {
+        public static final String KEY = "cg.color:b";
+        private B() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the blue channel of an RGB color";
+    }
+
+    /** Alpha (opacity) channel of an RGBA color value (0–255). */
+    @Seed.Item(key = A.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class A {
+        public static final String KEY = "cg.color:a";
+        private A() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the alpha (opacity) channel of an RGBA color";
+    }
+
+    // ==================================================================================
+    // HSL channel sememes — alternative to RGB for color-space-aware bodies
+    // ==================================================================================
+
+    /** Hue channel of an HSL color value. */
+    @Seed.Item(key = H.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class H {
+        public static final String KEY = "cg.color:h";
+        private H() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the hue channel of an HSL color";
+    }
+
+    /** Saturation channel of an HSL color value. */
+    @Seed.Item(key = S.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class S {
+        public static final String KEY = "cg.color:s";
+        private S() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the saturation channel of an HSL color";
+    }
+
+    /** Lightness channel of an HSL color value. */
+    @Seed.Item(key = L.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class L {
+        public static final String KEY = "cg.color:l";
+        private L() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the lightness channel of an HSL color";
+    }
+
+    // ==================================================================================
+    // Named color sememes — singletons whose manifest body IS a Color value.
+    //
+    // Channel data is declared field-level via @Seed.Property; the static fields
+    // are also Java-callable (e.g., Color.White.r).  Lexeme/gloss frames make
+    // each color findable by name in any language.
+    // ==================================================================================
+
+    // ----- Achromatic ------------------------------------------------------------------
+
+    @Seed.Item(key = White.KEY, head = Color.KEY)
+    public static final class White {
+        public static final String KEY = "cg.color:white";
+        private White() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 255;
+        @Seed.Property(role = G.KEY) public static final int g = 255;
+        @Seed.Property(role = B.KEY) public static final int b = 255;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "achromatic color of maximum lightness";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "white";
+    }
+
+    @Seed.Item(key = Black.KEY, head = Color.KEY)
+    public static final class Black {
+        public static final String KEY = "cg.color:black";
+        private Black() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 0;
+        @Seed.Property(role = G.KEY) public static final int g = 0;
+        @Seed.Property(role = B.KEY) public static final int b = 0;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "achromatic color of minimum lightness";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "black";
+    }
+
+    @Seed.Item(key = Gray.KEY, head = Color.KEY)
+    public static final class Gray {
+        public static final String KEY = "cg.color:gray";
+        private Gray() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 128;
+        @Seed.Property(role = G.KEY) public static final int g = 128;
+        @Seed.Property(role = B.KEY) public static final int b = 128;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "neutral midtone between black and white";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "gray";
+    }
+
+    // ----- Primary ---------------------------------------------------------------------
+
+    @Seed.Item(key = Red.KEY, head = Color.KEY)
+    public static final class Red {
+        public static final String KEY = "cg.color:red";
+        private Red() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 255;
+        @Seed.Property(role = G.KEY) public static final int g = 0;
+        @Seed.Property(role = B.KEY) public static final int b = 0;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color red";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "red";
+    }
+
+    @Seed.Item(key = Green.KEY, head = Color.KEY)
+    public static final class Green {
+        public static final String KEY = "cg.color:green";
+        private Green() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 0;
+        @Seed.Property(role = G.KEY) public static final int g = 255;
+        @Seed.Property(role = B.KEY) public static final int b = 0;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color green";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "green";
+    }
+
+    @Seed.Item(key = Blue.KEY, head = Color.KEY)
+    public static final class Blue {
+        public static final String KEY = "cg.color:blue";
+        private Blue() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 0;
+        @Seed.Property(role = G.KEY) public static final int g = 0;
+        @Seed.Property(role = B.KEY) public static final int b = 255;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color blue";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "blue";
+    }
+
+    // ----- Secondary -------------------------------------------------------------------
+
+    @Seed.Item(key = Yellow.KEY, head = Color.KEY)
+    public static final class Yellow {
+        public static final String KEY = "cg.color:yellow";
+        private Yellow() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 255;
+        @Seed.Property(role = G.KEY) public static final int g = 255;
+        @Seed.Property(role = B.KEY) public static final int b = 0;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color yellow";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "yellow";
+    }
+
+    @Seed.Item(key = Cyan.KEY, head = Color.KEY)
+    public static final class Cyan {
+        public static final String KEY = "cg.color:cyan";
+        private Cyan() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 0;
+        @Seed.Property(role = G.KEY) public static final int g = 255;
+        @Seed.Property(role = B.KEY) public static final int b = 255;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color cyan";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "cyan";
+    }
+
+    @Seed.Item(key = Magenta.KEY, head = Color.KEY)
+    public static final class Magenta {
+        public static final String KEY = "cg.color:magenta";
+        private Magenta() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 255;
+        @Seed.Property(role = G.KEY) public static final int g = 0;
+        @Seed.Property(role = B.KEY) public static final int b = 255;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color magenta";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "magenta";
+    }
+
+    // ----- Tertiary / common -----------------------------------------------------------
+
+    @Seed.Item(key = Orange.KEY, head = Color.KEY)
+    public static final class Orange {
+        public static final String KEY = "cg.color:orange";
+        private Orange() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 255;
+        @Seed.Property(role = G.KEY) public static final int g = 128;
+        @Seed.Property(role = B.KEY) public static final int b = 0;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color orange";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "orange";
+    }
+
+    @Seed.Item(key = Purple.KEY, head = Color.KEY)
+    public static final class Purple {
+        public static final String KEY = "cg.color:purple";
+        private Purple() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 128;
+        @Seed.Property(role = G.KEY) public static final int g = 0;
+        @Seed.Property(role = B.KEY) public static final int b = 128;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color purple";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "purple";
+    }
+
+    @Seed.Item(key = Pink.KEY, head = Color.KEY)
+    public static final class Pink {
+        public static final String KEY = "cg.color:pink";
+        private Pink() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 255;
+        @Seed.Property(role = G.KEY) public static final int g = 192;
+        @Seed.Property(role = B.KEY) public static final int b = 203;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color pink";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "pink";
+    }
+
+    @Seed.Item(key = Brown.KEY, head = Color.KEY)
+    public static final class Brown {
+        public static final String KEY = "cg.color:brown";
+        private Brown() {}
+
+        @Seed.Property(role = R.KEY) public static final int r = 139;
+        @Seed.Property(role = G.KEY) public static final int g = 69;
+        @Seed.Property(role = B.KEY) public static final int b = 19;
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the color brown";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "brown";
     }
 }

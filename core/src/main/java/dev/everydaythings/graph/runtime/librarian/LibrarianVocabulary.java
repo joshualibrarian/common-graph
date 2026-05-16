@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime.librarian;
 
+
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.Seed;
@@ -41,7 +42,6 @@ public class LibrarianVocabulary {
     public static final class Lookup {
 
         public static final String KEY = "cg.predicate:lookup";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         private Lookup() {}
 
@@ -64,7 +64,7 @@ public class LibrarianVocabulary {
          */
         @Seed.Frame(predicate = CoreVocabulary.Config.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {SchemaVocabulary.Retention.KEY}))
-        static final ItemRef retention = SchemaVocabulary.Ephemeral.IID;
+        static final ItemRef retention = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
     }
 
     /**
@@ -99,7 +99,6 @@ public class LibrarianVocabulary {
     public static final class Delete {
 
         public static final String KEY = "cg.predicate:delete";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         private Delete() {}
 
@@ -129,7 +128,7 @@ public class LibrarianVocabulary {
      * <p>This class is both the predicate's seed declaration AND the runtime
      * embodiment that handles incoming CREATE frames. {@code @Seed.Embodies}
      * adds an IMPLEMENTATION binding to the predicate's seed manifest so that
-     * {@code fetchItem(Create.IID)} hydrates as this class and
+     * {@code fetchItem(ItemRef.iid(Create.KEY))} hydrates as this class and
      * {@link #onFrameAssembled} fires when CREATE frames are routed.
      *
      * <p>Bindings on a CREATE frame:
@@ -149,7 +148,6 @@ public class LibrarianVocabulary {
     public static class Create extends Item {
 
         public static final String KEY = "cg.predicate:create";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         public Create(ItemRef iid, Librarian librarian) {
             super(iid, librarian);
@@ -183,14 +181,14 @@ public class LibrarianVocabulary {
         @Override
         public void onFrameAssembled(Frame frame) {
             Optional<Binding> themeBinding =
-                    frame.body().binding(CompoundKey.of(ThematicRole.Theme.IID));
+                    frame.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)));
             if (themeBinding.isEmpty()) return;
 
             ItemRef conceptIid = extractIid(themeBinding.get().target());
             if (conceptIid == null) return;
 
             List<DatumRef> candidateBodyCids = librarian.library()
-                    .bodyCidsForReferenceBinding(ThematicRole.Theme.IID, conceptIid);
+                    .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), conceptIid);
 
             for (DatumRef bodyCid : candidateBodyCids) {
                 Frame candidate = librarian.fetchFrame(bodyCid).orElse(null);
@@ -214,7 +212,7 @@ public class LibrarianVocabulary {
 
         private static boolean isImplementsFrame(Frame frame) {
             if (!(frame.body().head() instanceof ItemRef itemRef)) return false;
-            return SchemaVocabulary.Implements.IID.equals(itemRef.iid());
+            return ItemRef.iid(SchemaVocabulary.Implements.KEY).equals(itemRef.iid());
         }
 
         /**
@@ -226,13 +224,13 @@ public class LibrarianVocabulary {
         @SuppressWarnings("unchecked")
         private static Class<? extends Item> readJavaImplementation(Frame frame) {
             for (Binding b : frame.body().bindings()) {
-                if (!ThematicRole.Agent.IID.equals(b.role())) continue;
+                if (!ItemRef.iid(ThematicRole.Agent.KEY).equals(b.role())) continue;
                 boolean javaQualified = false;
                 boolean classNameQualified = false;
                 for (var q : b.qualifiers()) {
                     if (q instanceof CompoundKey.Sememe(ItemRef id)) {
-                        if (RuntimeVocabulary.Java.IID.equals(id)) javaQualified = true;
-                        if (RuntimeVocabulary.JavaClass.IID.equals(id)) {
+                        if (ItemRef.iid(RuntimeVocabulary.Java.KEY).equals(id)) javaQualified = true;
+                        if (ItemRef.iid(RuntimeVocabulary.JavaClass.KEY).equals(id)) {
                             classNameQualified = true;
                         }
                     }

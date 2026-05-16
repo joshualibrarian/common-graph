@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library.index;
 
+
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Datum;
@@ -200,7 +201,7 @@ public interface TokenIndexByteStore extends TokenIndexStore, ByteStore<TokenInd
         }
 
         ItemRef target = null;
-        List<Binding> themeBindings = datum.bindingsByRole(ThematicRole.Theme.IID);
+        List<Binding> themeBindings = datum.bindingsByRole(ItemRef.iid(ThematicRole.Theme.KEY));
         if (!themeBindings.isEmpty()) {
             Object t = themeBindings.get(0).target();
             if (t instanceof ItemRef ir && !ir.isPinned()) target = ir;

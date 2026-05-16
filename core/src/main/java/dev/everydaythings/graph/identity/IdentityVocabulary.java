@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.id.ItemRef;
@@ -45,7 +46,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Signing.KEY)
     public static final class Signing {
         public static final String KEY = "cg.purpose:signing";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Signing() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -66,7 +66,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Encryption.KEY)
     public static final class Encryption {
         public static final String KEY = "cg.purpose:encryption";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Encryption() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -102,7 +101,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Inception.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Inception {
         public static final String KEY = "cg.sememe:inception";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Inception() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -131,7 +129,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Rotation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Rotation {
         public static final String KEY = "cg.sememe:rotation";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Rotation() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -160,7 +157,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Delegation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Delegation {
         public static final String KEY = "cg.sememe:delegation";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Delegation() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -196,7 +192,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Revocation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Revocation {
         public static final String KEY = "cg.sememe:revocation";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Revocation() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -243,7 +238,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Encrypt.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Encrypt {
         public static final String KEY = "cg.sememe:encrypt";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Encrypt() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -276,7 +270,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Multikey.KEY)
     public static final class Multikey {
         public static final String KEY = "cg.value:multikey";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Multikey() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -298,7 +291,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Next.KEY)
     public static final class Next {
         public static final String KEY = "cg.sememe:next";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Next() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -323,7 +315,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Keywrap.KEY)
     public static final class Keywrap {
         public static final String KEY = "cg.value:keywrap";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Keywrap() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -346,7 +337,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = EphemeralPubkey.KEY)
     public static final class EphemeralPubkey {
         public static final String KEY = "cg.value:ephemeral-pubkey";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private EphemeralPubkey() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -367,7 +357,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Compromise.KEY)
     public static final class Compromise {
         public static final String KEY = "cg.sememe:compromise";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Compromise() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -388,7 +377,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Retirement.KEY)
     public static final class Retirement {
         public static final String KEY = "cg.sememe:retirement";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Retirement() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -409,7 +397,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Fraud.KEY)
     public static final class Fraud {
         public static final String KEY = "cg.sememe:fraud";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Fraud() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -425,7 +412,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Mistake.KEY)
     public static final class Mistake {
         public static final String KEY = "cg.sememe:mistake";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Mistake() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -452,7 +438,7 @@ public final class IdentityVocabulary {
      * X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD.
      *
      * <p>The default ciphersuite for ENCRYPT bodies. Used as
-     * {@code INSTRUMENT → @X25519_AES256GCM_HKDF.IID} to name this suite.
+     * {@code INSTRUMENT → @ItemRef.iid(X25519_AES256GCM_HKDF.KEY)} to name this suite.
      *
      * <p>Concretely: sender generates ephemeral X25519 keypair; for each
      * recipient performs ECDH against the recipient's long-term encryption-track
@@ -464,7 +450,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = X25519_AES256GCM_HKDF.KEY)
     public static final class X25519_AES256GCM_HKDF {
         public static final String KEY = "cg.algo:x25519-aes256gcm-hkdf-sha256";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private X25519_AES256GCM_HKDF() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -478,7 +463,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Delegator.KEY)
     public static final class Delegator {
         public static final String KEY = "cg.sememe:delegator";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Delegator() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,

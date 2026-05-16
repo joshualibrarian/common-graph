@@ -35,7 +35,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Hypernym.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Hypernym {
         public static final String KEY = "cg.rel:hypernym";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Hypernym() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -50,7 +49,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Hyponym.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Hyponym {
         public static final String KEY = "cg.rel:hyponym";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Hyponym() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -65,7 +63,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = InstanceOf.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class InstanceOf {
         public static final String KEY = "cg.rel:instance-of";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private InstanceOf() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -84,7 +81,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Holonym.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Holonym {
         public static final String KEY = "cg.rel:holonym";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Holonym() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -99,7 +95,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Meronym.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Meronym {
         public static final String KEY = "cg.rel:meronym";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Meronym() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -118,7 +113,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Antonym.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Antonym {
         public static final String KEY = "cg.rel:antonym";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Antonym() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -133,7 +127,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = SimilarTo.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class SimilarTo {
         public static final String KEY = "cg.rel:similar-to";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private SimilarTo() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -148,7 +141,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Derivation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Derivation {
         public static final String KEY = "cg.rel:derivation";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Derivation() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -163,7 +155,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Domain.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Domain {
         public static final String KEY = "cg.rel:domain";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Domain() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -178,7 +169,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Entails.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Entails {
         public static final String KEY = "cg.rel:entails";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Entails() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -198,7 +188,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = Causes.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Causes {
         public static final String KEY = "cg.rel:causes";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Causes() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -218,7 +207,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = SeeAlso.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class SeeAlso {
         public static final String KEY = "cg.rel:see-also";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private SeeAlso() {}
 
         @Frame(predicate = Gloss.KEY,
@@ -271,7 +259,6 @@ public final class LexicalVocabulary {
         public static final String KEY = "cg.sememe:lexeme";
 
         /** The deterministic IID for the lexeme sememe. */
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         public Lexeme(ItemRef iid, Librarian librarian) {
             super(iid, librarian);
@@ -311,7 +298,6 @@ public final class LexicalVocabulary {
         public static final String KEY = "cg.sememe:gloss";
 
         /** The deterministic IID for the gloss sememe. */
-        public static final ItemRef IID = ItemRef.fromString(KEY);
 
         public Gloss(ItemRef iid, Librarian librarian) {
             super(iid, librarian);
@@ -334,7 +320,6 @@ public final class LexicalVocabulary {
     @Seed.Item(key = AssignedRole.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class AssignedRole {
         public static final String KEY = "cg.predicate:assigned-role";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private AssignedRole() {}
 
         @Frame(predicate = Gloss.KEY,

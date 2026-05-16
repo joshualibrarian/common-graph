@@ -1,4 +1,5 @@
 package dev.everydaythings.graph.runtime;
+
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.datum.Frame;
@@ -34,7 +35,7 @@ class LookupSubmitTest {
 
         // Build a LOOKUP frame for a token we know is bootstrapped ("handler"
         // is the English noun lemma for the Handles sememe).
-        Frame lookup = Frame.compose(LibrarianVocabulary.Lookup.IID)
+        Frame lookup = Frame.compose(ItemRef.iid(LibrarianVocabulary.Lookup.KEY))
                 .theme("handler")
                 .build();
 
@@ -60,7 +61,7 @@ class LookupSubmitTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Frame lookup = Frame.compose(LibrarianVocabulary.Lookup.IID)
+        Frame lookup = Frame.compose(ItemRef.iid(LibrarianVocabulary.Lookup.KEY))
                 .theme("handler")
                 .build();
         lib.submit(lookup);
@@ -79,10 +80,10 @@ class LookupSubmitTest {
 
         // Build a LOOKUP with both THEME and ATTRIBUTE[LIMIT]. Exit the binding
         // sub-builder via a parent method (.theme via forwarding), then build.
-        Frame lookup = (Frame) Frame.compose(LibrarianVocabulary.Lookup.IID)
+        Frame lookup = (Frame) Frame.compose(ItemRef.iid(LibrarianVocabulary.Lookup.KEY))
                 .theme("c")
-                .binding(ThematicRole.Attribute.IID)
-                    .qualifier(SchemaVocabulary.Limit.IID)
+                .binding(ItemRef.iid(ThematicRole.Attribute.KEY))
+                    .qualifier(ItemRef.iid(SchemaVocabulary.Limit.KEY))
                     .target(50L)
                 .build();
 
@@ -98,7 +99,7 @@ class LookupSubmitTest {
         Librarian lib = Librarian.inMemory();
         lib.bootstrap();
 
-        Frame lookup = Frame.compose(LibrarianVocabulary.Lookup.IID)
+        Frame lookup = Frame.compose(ItemRef.iid(LibrarianVocabulary.Lookup.KEY))
                 .theme("absolutely-not-a-real-token-xyzzy")
                 .build();
 

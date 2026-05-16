@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.library.rocksdb;
 
+
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
@@ -33,7 +34,7 @@ class RocksDbLibraryTest {
         try (Library lib = Library.rocksDb(root)) {
             Body body = Body.of(
                     ItemRef.of(ItemRef.fromString("test.predicate:authored")),
-                    List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("test.item:book"))));
+                    List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("test.item:book"))));
 
             DatumRef id = lib.put(body);
             assertThat(id).isEqualTo(body.datumId());
@@ -58,7 +59,7 @@ class RocksDbLibraryTest {
         DatumRef id;
         Body body = Body.of(
                 ItemRef.of(ItemRef.fromString("test.predicate:authored")),
-                List.of(Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("test.item:book"))));
+                List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("test.item:book"))));
         try (Library first = Library.rocksDb(root)) {
             id = first.put(body);
         }
@@ -72,7 +73,7 @@ class RocksDbLibraryTest {
     @DisplayName("Index queries work over RocksDB-backed RefIndexStore")
     void refIndexQueries(@TempDir Path root) {
         try (Library lib = Library.rocksDb(root)) {
-            ItemRef role = ThematicRole.Theme.IID;
+            ItemRef role = ItemRef.iid(ThematicRole.Theme.KEY);
             ItemRef target = ItemRef.fromString("test.item:target-x");
             Body body = Body.of(
                     ItemRef.of(ItemRef.fromString("test.predicate:test")),

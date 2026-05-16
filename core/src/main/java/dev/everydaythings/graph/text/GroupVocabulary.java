@@ -43,7 +43,6 @@ public final class GroupVocabulary {
     @Seed.Item(key = OpenGroup.KEY)
     public static final class OpenGroup {
         public static final String KEY = "cg.notation:open-group";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private OpenGroup() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY)
@@ -63,7 +62,6 @@ public final class GroupVocabulary {
     @Seed.Item(key = CloseGroup.KEY)
     public static final class CloseGroup {
         public static final String KEY = "cg.notation:close-group";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private CloseGroup() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY)

@@ -59,7 +59,6 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Expects.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Expects {
         public static final String KEY = "cg.sememe:expects";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Expects() {}
     }
 
@@ -82,7 +81,6 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Implements.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Implements {
         public static final String KEY = "cg.sememe:implements";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Implements() {}
     }
 
@@ -102,7 +100,6 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Required.KEY)
     public static final class Required {
         public static final String KEY = "cg.qualifier:required";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Required() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -128,7 +125,6 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Retention.KEY)
     public static final class Retention {
         public static final String KEY = "cg.qualifier:retention";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Retention() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -153,7 +149,6 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Ephemeral.KEY)
     public static final class Ephemeral {
         public static final String KEY = "cg.value:ephemeral";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Ephemeral() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
@@ -180,7 +175,6 @@ public final class SchemaVocabulary {
     @Seed.Item(key = Limit.KEY)
     public static final class Limit {
         public static final String KEY = "cg.qualifier:limit";
-        public static final ItemRef IID = ItemRef.fromString(KEY);
         private Limit() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,

@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.item;
 
+
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.datum.AttributedBody;
 import dev.everydaythings.graph.datum.Binding;
@@ -41,31 +42,31 @@ public final class Manifest extends AttributedBody {
     public static final String ITEM_ID_KEY = CoreVocabulary.ItemId.KEY;
 
     /** ItemRef of the structural ITEM_ID sememe. */
-    public static final ItemRef ITEM_ID = CoreVocabulary.ItemId.IID;
+    public static final ItemRef ITEM_ID = ItemRef.iid(CoreVocabulary.ItemId.KEY);
 
     /** Canonical key for the FOLLOWS structural sememe. */
     public static final String FOLLOWS_KEY = CoreVocabulary.Follows.KEY;
 
     /** ItemRef of the structural FOLLOWS sememe. */
-    public static final ItemRef FOLLOWS = CoreVocabulary.Follows.IID;
+    public static final ItemRef FOLLOWS = ItemRef.iid(CoreVocabulary.Follows.KEY);
 
     /** Canonical key for the ENDORSES structural sememe. */
     public static final String ENDORSES_KEY = CoreVocabulary.Endorses.KEY;
 
     /** ItemRef of the structural ENDORSES sememe. */
-    public static final ItemRef ENDORSES = CoreVocabulary.Endorses.IID;
+    public static final ItemRef ENDORSES = ItemRef.iid(CoreVocabulary.Endorses.KEY);
 
     /** Canonical key for the IMPLEMENTATION structural sememe. */
     public static final String IMPLEMENTATION_KEY = CoreVocabulary.Implementation.KEY;
 
     /** ItemRef of the structural IMPLEMENTATION sememe. */
-    public static final ItemRef IMPLEMENTATION = CoreVocabulary.Implementation.IID;
+    public static final ItemRef IMPLEMENTATION = ItemRef.iid(CoreVocabulary.Implementation.KEY);
 
     /** Canonical key for the CONFIG structural sememe. */
     public static final String CONFIG_KEY = CoreVocabulary.Config.KEY;
 
     /** ItemRef of the structural CONFIG sememe. */
-    public static final ItemRef CONFIG = CoreVocabulary.Config.IID;
+    public static final ItemRef CONFIG = ItemRef.iid(CoreVocabulary.Config.KEY);
 
     public Manifest(Body body, List<Record> records) {
         super(body, records);
@@ -183,7 +184,7 @@ public final class Manifest extends AttributedBody {
         return new Binding(
                 IMPLEMENTATION,
                 java.util.List.of(new CompoundKey.Sememe(
-                        RuntimeVocabulary.JavaClass.IID)),
+                        ItemRef.iid(RuntimeVocabulary.JavaClass.KEY))),
                 clazz.getName());
     }
 
@@ -196,7 +197,7 @@ public final class Manifest extends AttributedBody {
     public static boolean isJavaClassBinding(Binding b) {
         for (var q : b.qualifiers()) {
             if (q instanceof CompoundKey.Sememe s
-                    && RuntimeVocabulary.JavaClass.IID.equals(s.id())) {
+                    && ItemRef.iid(RuntimeVocabulary.JavaClass.KEY).equals(s.id())) {
                 return true;
             }
         }

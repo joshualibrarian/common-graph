@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.identity;
 
+
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.CompoundKey;
@@ -32,10 +33,10 @@ class DelegationTest {
         ItemRef child = ItemRef.fromString("child");
 
         Body body = Body.of(
-                ItemRef.of(Delegation.IID),
+                ItemRef.of(ItemRef.iid(Delegation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, parent),
-                        Binding.ref(ThematicRole.Theme.IID, child)
+                        Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), parent),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), child)
                 )
         );
 
@@ -52,10 +53,10 @@ class DelegationTest {
         ItemRef child = ItemRef.fromString("child");
 
         Body body = Body.of(
-                ItemRef.of(Delegation.IID),
+                ItemRef.of(ItemRef.iid(Delegation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, parent),
-                        Binding.ref(ThematicRole.Theme.IID, child)
+                        Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), parent),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), child)
                 )
         );
 
@@ -69,17 +70,17 @@ class DelegationTest {
         lib.bootstrap();
 
         Body body = Body.of(
-                ItemRef.of(Delegation.IID),
+                ItemRef.of(ItemRef.iid(Delegation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, ItemRef.fromString("parent")),
-                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("child")),
-                        Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Signing.IID),
-                        Binding.ref(ThematicRole.Purpose.IID, IdentityVocabulary.Encryption.IID)
+                        Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), ItemRef.fromString("parent")),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("child")),
+                        Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Signing.KEY)),
+                        Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Encryption.KEY))
                 )
         );
 
         assertThat(Signer.readPurposes(body))
-                .containsExactlyInAnyOrder(IdentityVocabulary.Signing.IID, IdentityVocabulary.Encryption.IID);
+                .containsExactlyInAnyOrder(ItemRef.iid(IdentityVocabulary.Signing.KEY), ItemRef.iid(IdentityVocabulary.Encryption.KEY));
     }
 
     @Test
@@ -91,13 +92,13 @@ class DelegationTest {
         Instant expires = Instant.parse("2030-01-01T00:00:00Z");
 
         Body body = Body.of(
-                ItemRef.of(Delegation.IID),
+                ItemRef.of(ItemRef.iid(Delegation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, ItemRef.fromString("parent")),
-                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("child")),
+                        Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), ItemRef.fromString("parent")),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("child")),
                         new Binding(
-                                ThematicRole.Attribute.IID,
-                                List.of(new CompoundKey.Sememe(CoreVocabulary.Expires.IID)),
+                                ItemRef.iid(ThematicRole.Attribute.KEY),
+                                List.of(new CompoundKey.Sememe(ItemRef.iid(CoreVocabulary.Expires.KEY))),
                                 expires
                         )
                 )
@@ -113,10 +114,10 @@ class DelegationTest {
         lib.bootstrap();
 
         Body body = Body.of(
-                ItemRef.of(Delegation.IID),
+                ItemRef.of(ItemRef.iid(Delegation.KEY)),
                 List.of(
-                        Binding.ref(ThematicRole.Agent.IID, ItemRef.fromString("parent")),
-                        Binding.ref(ThematicRole.Theme.IID, ItemRef.fromString("child"))
+                        Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), ItemRef.fromString("parent")),
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("child"))
                 )
         );
 
