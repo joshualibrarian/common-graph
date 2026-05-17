@@ -5,6 +5,7 @@ import dev.everydaythings.graph.canonical.Encode;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.canonical.Layout;
 import dev.everydaythings.graph.canonical.Order;
+import dev.everydaythings.graph.datum.DatumNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,14 +51,21 @@ import java.util.Objects;
  * needed within the key itself.
  */
 @Layout(Layout.Kind.ARRAY)
-public final class CompoundKey implements Comparable<CompoundKey> {
+public final class CompoundKey implements Comparable<CompoundKey>, DatumNode {
 
     @Order(0) private final HashID head;
-    @Order(1) private final List<Qualifier> qualifiers;
+    /**
+     * The parts (qualifiers + any Opaque stand-ins) after the head, in
+     * canonical order.  Each entry is a {@link DatumNode} — most commonly a
+     * {@link Qualifier} ({@link Sememe} or {@link Text}), but possibly an
+     * {@link dev.everydaythings.graph.datum.Opaque} standing in for an
+     * elided/compressed/encrypted qualifier.
+     */
+    @Order(1) private final List<DatumNode> parts;
 
-    private CompoundKey(HashID head, List<Qualifier> qualifiers) {
+    private CompoundKey(HashID head, List<? extends DatumNode> parts) {
         this.head = validateHead(head);
-        this.qualifiers = canonicalSortQualifiers(qualifiers);
+        this.parts = canonicalSortParts(parts);
     }
 
     /**
@@ -81,10 +89,10 @@ public final class CompoundKey implements Comparable<CompoundKey> {
      * bitwise) so two keys with the same qualifiers in different orders are
      * equal. Mirrors how {@code Binding} canonicalizes its qualifier list.
      */
-    private static List<Qualifier> canonicalSortQualifiers(List<Qualifier> qualifiers) {
-        if (qualifiers == null || qualifiers.isEmpty()) return List.of();
-        if (qualifiers.size() == 1) return List.copyOf(qualifiers);
-        List<Qualifier> sorted = new ArrayList<>(qualifiers);
+    private static List<DatumNode> canonicalSortParts(List<? extends DatumNode> parts) {
+        if (parts == null || parts.isEmpty()) return List.of();
+        if (parts.size() == 1) return List.copyOf(parts);
+        List<DatumNode> sorted = new ArrayList<>(parts);
         sorted.sort(HashTree.CANONICAL);
         return List.copyOf(sorted);
     }
@@ -102,7 +110,7 @@ public final class CompoundKey implements Comparable<CompoundKey> {
      * codec ({@code CgCbor.encodeQualifier}); display is via pattern-match
      * at use sites or via {@link #displayText()}.
      */
-    public sealed interface Qualifier permits Sememe, Text {
+    public sealed interface Qualifier extends DatumNode permits Sememe, Text {
         /** Display text for this token. */
         String displayText();
     }
@@ -206,7 +214,7 @@ public final class CompoundKey implements Comparable<CompoundKey> {
         if (qualifiers.length == 0) {
             return new CompoundKey(head, List.of());
         }
-        List<Qualifier> tokens = new ArrayList<>(qualifiers.length);
+        List<DatumNode> tokens = new ArrayList<>(qualifiers.length);
         for (Object q : qualifiers) {
             tokens.add(toToken(q));
         }
@@ -216,8 +224,8 @@ public final class CompoundKey implements Comparable<CompoundKey> {
     /**
      * Create a CompoundKey from an explicit head and qualifier list.
      */
-    public static CompoundKey of(HashID head, List<Qualifier> qualifiers) {
-        return new CompoundKey(head, qualifiers);
+    public static CompoundKey of(HashID head, List<? extends DatumNode> parts) {
+        return new CompoundKey(head, parts);
     }
 
     /**
@@ -241,16 +249,19 @@ public final class CompoundKey implements Comparable<CompoundKey> {
                     "CompoundKey head must be a Sememe (ItemRef), got: "
                             + first.getClass().getSimpleName());
         }
-        List<Qualifier> qualifiers = tokens.size() > 1
-                ? tokens.subList(1, tokens.size())
+        List<DatumNode> parts = tokens.size() > 1
+                ? new ArrayList<>(tokens.subList(1, tokens.size()))
                 : List.of();
-        return new CompoundKey(headToken.id(), qualifiers);
+        return new CompoundKey(headToken.id(), parts);
     }
 
     /**
      * Convert an arbitrary value to a {@link Qualifier}.
      */
-    private static Qualifier toToken(Object q) {
+    private static DatumNode toToken(Object q) {
+        if (q instanceof dev.everydaythings.graph.datum.Opaque op) {
+            return op;
+        }
         if (q instanceof Qualifier t) {
             return t;
         }
@@ -347,19 +358,40 @@ public final class CompoundKey implements Comparable<CompoundKey> {
     /** True when the head is a {@link SchemaRef} — the binding is an expectation. */
     public boolean isSchemaHead()   { return head instanceof SchemaRef; }
 
-    /** The qualifier tokens after the head; possibly empty. */
+    /**
+     * The parts (qualifiers + any Opaque stand-ins) after the head, in
+     * canonical order.  Each entry is a {@link DatumNode} — most commonly a
+     * {@link Qualifier} ({@link Sememe} or {@link Text}), but possibly an
+     * {@link dev.everydaythings.graph.datum.Opaque} standing in for an
+     * elided/compressed/encrypted qualifier.
+     */
+    public List<DatumNode> parts() {
+        return parts;
+    }
+
+    /**
+     * The {@link Qualifier} parts after the head — Opaque stand-ins
+     * filtered out.  Use this when you only care about the visible
+     * qualifiers (construction, lookups, display).  Use {@link #parts()}
+     * when you need to see the full part list — walkers, validators, the
+     * codec.
+     */
     public List<Qualifier> qualifiers() {
-        return qualifiers;
+        List<Qualifier> result = new ArrayList<>(parts.size());
+        for (DatumNode p : parts) {
+            if (p instanceof Qualifier q) result.add(q);
+        }
+        return result;
     }
 
-    /** Number of tokens including the head: 1 + qualifiers.size(). */
+    /** Number of tokens including the head: 1 + parts.size(). */
     public int size() {
-        return 1 + qualifiers.size();
+        return 1 + parts.size();
     }
 
-    /** True if every qualifier is a sememe (the head is always a sememe). */
+    /** True if every part is a sememe qualifier (the head is always a sememe). */
     public boolean isSemantic() {
-        return qualifiers.stream().allMatch(t -> t instanceof Sememe);
+        return parts.stream().allMatch(t -> t instanceof Sememe);
     }
 
     /**
@@ -371,13 +403,16 @@ public final class CompoundKey implements Comparable<CompoundKey> {
     public List<Qualifier> tokens() {
         // tokens() wraps the head as a Sememe — only meaningful for literal
         // ItemRef heads. TypeRef / SchemaRef heads aren't tokenizable this way.
+        // Opaque parts are filtered out — only Qualifier parts emerge.
         Sememe headToken = new Sememe(headIid());
-        if (qualifiers.isEmpty()) {
+        if (parts.isEmpty()) {
             return List.of(headToken);
         }
-        List<Qualifier> all = new ArrayList<>(1 + qualifiers.size());
+        List<Qualifier> all = new ArrayList<>(1 + parts.size());
         all.add(headToken);
-        all.addAll(qualifiers);
+        for (DatumNode p : parts) {
+            if (p instanceof Qualifier q) all.add(q);
+        }
         return List.copyOf(all);
     }
 
@@ -394,12 +429,14 @@ public final class CompoundKey implements Comparable<CompoundKey> {
     public String toCanonicalString() {
         StringBuilder sb = new StringBuilder();
         sb.append(head.encodeText());
-        for (Qualifier token : qualifiers) {
+        for (DatumNode part : parts) {
             sb.append('/');
-            if (token instanceof Sememe s) {
+            if (part instanceof Sememe s) {
                 sb.append(s.id().encodeText());
-            } else if (token instanceof Text l) {
+            } else if (part instanceof Text l) {
                 sb.append(l.value());
+            } else if (part instanceof dev.everydaythings.graph.datum.Opaque op) {
+                sb.append("[opaque:").append(op.getClass().getSimpleName().toLowerCase()).append("]");
             }
         }
         return sb.toString();
@@ -420,12 +457,14 @@ public final class CompoundKey implements Comparable<CompoundKey> {
             // TypeRef / SchemaRef heads — preserve their prefix character in display.
             sb.append(head.encodeText());
         }
-        for (Qualifier token : qualifiers) {
+        for (DatumNode part : parts) {
             sb.append(", ");
-            if (token instanceof Text l) {
+            if (part instanceof Text l) {
                 sb.append('"').append(l.value()).append('"');
-            } else {
-                sb.append(token.displayText());
+            } else if (part instanceof Qualifier q) {
+                sb.append(q.displayText());
+            } else if (part instanceof dev.everydaythings.graph.datum.Opaque op) {
+                sb.append(op);
             }
         }
         sb.append(')');
@@ -445,40 +484,50 @@ public final class CompoundKey implements Comparable<CompoundKey> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof CompoundKey other)) return false;
-        return head.equals(other.head) && qualifiers.equals(other.qualifiers);
+        return head.equals(other.head) && parts.equals(other.parts);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(head, qualifiers);
+        return Objects.hash(head, parts);
     }
 
     /**
-     * Lexicographic comparison: by head first, then by qualifier sequence.
+     * Lexicographic comparison: by head first, then by part sequence.
      *
-     * <p>Sememe qualifiers sort before literal qualifiers. Within sememes, by encoded
-     * ItemRef text. Within literals, by string value.
+     * <p>Sememe qualifiers sort before literal qualifiers sort before Opaque
+     * stand-ins.  Within each kind, by encoded payload bytes.
      */
     @Override
     public int compareTo(CompoundKey other) {
         int headCmp = head.encodeText().compareTo(other.head.encodeText());
         if (headCmp != 0) return headCmp;
-        int len = Math.min(qualifiers.size(), other.qualifiers.size());
+        int len = Math.min(parts.size(), other.parts.size());
         for (int i = 0; i < len; i++) {
-            int cmp = compareTokens(qualifiers.get(i), other.qualifiers.get(i));
+            int cmp = compareParts(parts.get(i), other.parts.get(i));
             if (cmp != 0) return cmp;
         }
-        return Integer.compare(qualifiers.size(), other.qualifiers.size());
+        return Integer.compare(parts.size(), other.parts.size());
     }
 
-    private static int compareTokens(Qualifier a, Qualifier b) {
+    private static int compareParts(DatumNode a, DatumNode b) {
         if (a instanceof Sememe sa && b instanceof Sememe sb) {
             return sa.id().encodeText().compareTo(sb.id().encodeText());
         }
         if (a instanceof Text la && b instanceof Text lb) {
             return la.value().compareTo(lb.value());
         }
-        // Sememes sort before literals
-        return (a instanceof Sememe) ? -1 : 1;
+        if (a instanceof dev.everydaythings.graph.datum.Opaque oa
+                && b instanceof dev.everydaythings.graph.datum.Opaque ob) {
+            return java.util.Arrays.compareUnsigned(oa.wrappedHash(), ob.wrappedHash());
+        }
+        // Sememes sort before Texts; Texts sort before Opaques.
+        return kindOrder(a) - kindOrder(b);
+    }
+
+    private static int kindOrder(DatumNode n) {
+        if (n instanceof Sememe) return 0;
+        if (n instanceof Text)   return 1;
+        return 2;  // Opaque or anything else
     }
 }

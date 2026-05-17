@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.ui;
+package dev.everydaythings.graph.quality;
 
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.id.ItemRef;

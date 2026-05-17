@@ -42,7 +42,7 @@ import java.util.Objects;
  * @see BindingTarget
  */
 @Layout(Layout.Kind.ARRAY)
-public final class Binding {
+public final class Binding implements DatumNode {
 
     /**
      * The binding's key — head sememe plus qualifiers. The CompoundKey owns

@@ -2,3 +2,5 @@ rootProject.name = 'common-graph'
 
 include ':core'
 include ':bridges'
+include ':imports'
+include ':imports:keyboard'

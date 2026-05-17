@@ -480,11 +480,12 @@ public final class UnitVocabulary {
     }
 
     /**
-     * Pixel — a length unit whose conversion to the SI base meter depends on the
-     * active display. The {@link EquivalentInBase} binding carries the scale
-     * expression {@code DevicePixelSize × Quantity(1, Meter)} inline as a Body
-     * literal — the resolver evaluates it against the session's bound
-     * {@link SpatialVocabulary.DevicePixelSize} at layout time.
+     * Pixel — the logical pixel unit used by UI and scene layout.
+     * Fixed scale: 1 px = 1/96 inch = 254/960000 m (DPI-independent).
+     * This is what scene.md calls "px" and what most UI frameworks expose.
+     *
+     * <p>For an actual hardware pixel — one cell on the physical display —
+     * see {@link DevicePixel}, which carries a display-bound conversion.
      */
     @Seed.Item(key = Pixel.KEY, head = Unit.KEY)
     public static final class Pixel {
@@ -498,6 +499,49 @@ public final class UnitVocabulary {
                        qualifiers = {DimensionVocabulary.Length.KEY})
         static final long lengthExponent = 1;
 
+        /** 1 px = 1/96 inch = (1/96) × 0.0254 m = 254/960000 m. */
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 254;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 960000;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the logical pixel unit used by UI and scene layout — 1 px = 1/96 inch, "
+                        + "DPI-independent";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "pixel";
+    }
+
+    /**
+     * DevicePixel — one cell on the physical display.  Conversion to the
+     * SI base meter depends on the active display: the
+     * {@link EquivalentInBase} binding carries the scale expression
+     * {@code DevicePixelSize × Quantity(1, Meter)} inline as a Body literal.
+     * The resolver evaluates it against the session's bound
+     * {@link SpatialVocabulary.DevicePixelSize} at layout time.
+     *
+     * <p>Rarely needed in user code — prefer {@link Pixel} for layout.
+     * DevicePixel exists for code that genuinely needs hardware-pixel
+     * resolution (precise raster art, calibrated rendering).
+     */
+    @Seed.Item(key = DevicePixel.KEY, head = Unit.KEY)
+    public static final class DevicePixel {
+        public static final String KEY = "cg.unit:device-pixel";
+        private DevicePixel() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "dpx";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Length.KEY})
+        static final long lengthExponent = 1;
+
         /** {@code DevicePixelSize × Quantity{Value=1, @Meter=1}} — inline. */
         @Seed.Property(role = EquivalentInBase.KEY)
         static final Body equivalentInBase = (Body) Body.compose(ItemRef.iid(Multiply.KEY))
@@ -505,22 +549,189 @@ public final class UnitVocabulary {
                     .target(ItemRef.iid(SpatialVocabulary.DevicePixelSize.KEY))
                 .binding(ItemRef.iid(ThematicRole.Theme.KEY)).index(1)
                     .target((Body) Body.compose(ItemRef.iid(Quantity.KEY))
-                            .value(1L)                              // magnitude
-                            .with(ItemRef.iid(Meter.KEY), 1L)               // @Meter exponent = 1 (tiny shape)
+                            .value(1L)
+                            .with(ItemRef.iid(Meter.KEY), 1L)
                             .build())
                 .build();
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "pixel — device-relative length unit; conversion depends on DevicePixelSize "
-                        + "bound at layout time";
+                "device pixel — one cell on the physical display; conversion depends on "
+                        + "DevicePixelSize bound at layout time";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
             qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "pixel";
+        static final String englishNounLemma = "device pixel";
     }
+
+    // ==================================================================================
+    // Imperial / additional length units
+    // ==================================================================================
+
+    /** 1 inch = 2.54 cm = 254/10000 m. */
+    @Seed.Item(key = Inch.KEY, head = Unit.KEY)
+    public static final class Inch {
+        public static final String KEY = "cg.unit:inch";
+        private Inch() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "in";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Length.KEY})
+        static final long lengthExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 254;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 10000;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "imperial inch — 2.54 cm";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "inch";
+    }
+
+    /** 1 pt = 1/72 in = 254/720000 m.  Typographic point. */
+    @Seed.Item(key = Point.KEY, head = Unit.KEY)
+    public static final class Point {
+        public static final String KEY = "cg.unit:point";
+        private Point() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "pt";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Length.KEY})
+        static final long lengthExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 254;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 720000;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "typographic point — 1/72 inch";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "point";
+    }
+
+    /** 1 ft = 12 in = 3048/10000 m. */
+    @Seed.Item(key = Foot.KEY, head = Unit.KEY)
+    public static final class Foot {
+        public static final String KEY = "cg.unit:foot";
+        private Foot() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "ft";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Length.KEY})
+        static final long lengthExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 3048;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 10000;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "imperial foot — 12 inches, 0.3048 m";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "foot";
+    }
+
+    /** 1 km = 1000 m. */
+    @Seed.Item(key = Kilometer.KEY, head = Unit.KEY)
+    public static final class Kilometer {
+        public static final String KEY = "cg.unit:kilometer";
+        private Kilometer() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "km";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Length.KEY})
+        static final long lengthExponent = 1;
+
+        @Seed.Property(role = ScaleNumerator.KEY)
+        static final long scaleNumerator = 1000;
+
+        @Seed.Property(role = ScaleDenominator.KEY)
+        static final long scaleDenominator = 1;
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "one thousand meters";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "kilometer";
+    }
+
+    /**
+     * Rem — a length unit equal to the {@link TypographyVocabulary.RootFontSize
+     * RootFontSize} variable.  Where {@link Em} sizes relative to the
+     * <i>current</i> typography scope's BaseFontSize, Rem sizes relative
+     * to the <i>root</i> scope's font size — convenient for sizes that
+     * should be unaffected by nested scope changes.
+     */
+    @Seed.Item(key = Rem.KEY, head = Unit.KEY)
+    public static final class Rem {
+        public static final String KEY = "cg.unit:rem";
+        private Rem() {}
+
+        @Seed.Property(role = Symbol.KEY)
+        static final String symbol = "rem";
+
+        @Seed.Property(role = DimensionVocabulary.Dimension.KEY,
+                       qualifiers = {DimensionVocabulary.Length.KEY})
+        static final long lengthExponent = 1;
+
+        @Seed.Property(role = EquivalentInBase.KEY)
+        static final ItemRef equivalentInBase = ItemRef.iid(TypographyVocabulary.RootFontSize.KEY);
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "rem — root-typography-relative length unit equal to the root scope's "
+                        + "RootFontSize";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "rem";
+    }
+
+    // ==================================================================================
+    // Deferred relative units.
+    //
+    // TODO: vw, vh, ch, ln (LineUnit), percent (%), fr (fraction).  These are
+    // genuinely relative-to-context units that need layout-engine support.
+    // vw/vh are 1% of viewport extent; ch is the width of "0" in current
+    // font; ln is current line height; percent and fr depend on per-binding
+    // context (which dimension's parent?  remaining-space-along-which-axis?).
+    // Will be added when the layout engine's variable-resolution system
+    // matures enough to express them as relations the solver can resolve
+    // simultaneously with the rest of layout.
+    // ==================================================================================
 
     // ==================================================================================
     // Mass units (continued)

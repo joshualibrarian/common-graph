@@ -3,6 +3,7 @@ package dev.everydaythings.graph.canonical;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.ItemRef;
@@ -184,9 +185,9 @@ public final class CanonWalker {
      * body-part, not to itself.
      */
     public static Node walkBodyPart(Datum d) {
-        List<Node> bindingNodes = new ArrayList<>(d.bindings().size());
-        for (Binding b : d.bindings()) bindingNodes.add(walk(b));
-        return Node.array(walk(d.head()), Node.array(bindingNodes));
+        List<Node> entryNodes = new ArrayList<>(d.entries().size());
+        for (DatumNode e : d.entries()) entryNodes.add(walk(e));
+        return Node.array(walk(d.head()), Node.array(entryNodes));
     }
 
     // ==================================================================================
@@ -196,9 +197,9 @@ public final class CanonWalker {
     private static Node walkDatum(Datum d) {
         List<Node> children = new ArrayList<>(3);
         children.add(walk(d.head()));
-        List<Node> bindingNodes = new ArrayList<>(d.bindings().size());
-        for (Binding b : d.bindings()) bindingNodes.add(walk(b));
-        children.add(Node.array(bindingNodes));
+        List<Node> entryNodes = new ArrayList<>(d.entries().size());
+        for (DatumNode e : d.entries()) entryNodes.add(walk(e));
+        children.add(Node.array(entryNodes));
         if (d instanceof Record r) {
             children.add(leafBytes(r.signature()));
         }

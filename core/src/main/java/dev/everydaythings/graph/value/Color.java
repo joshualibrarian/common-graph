@@ -221,7 +221,8 @@ public final class Color extends Value {
 
     private int channel(String roleKey) {
         ItemRef role = ItemRef.iid(roleKey);
-        for (dev.everydaythings.graph.datum.Binding b : bindings) {
+        for (dev.everydaythings.graph.datum.DatumNode entry : entries) {
+            if (!(entry instanceof dev.everydaythings.graph.datum.Binding b)) continue;
             if (b.role().equals(role) && b.target() instanceof Long n) return n.intValue();
         }
         return 0;

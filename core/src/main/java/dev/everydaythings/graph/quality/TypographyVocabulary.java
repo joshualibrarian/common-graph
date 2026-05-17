@@ -139,6 +139,195 @@ public final class TypographyVocabulary {
     }
 
     // ==================================================================================
+    // Text decoration — underline, strike-through, overline.
+    // ==================================================================================
+
+    /**
+     * TextDecoration — line decorations on text.  Target is one of
+     * {@link Underline} / {@link LineThrough} / {@link Overline}, or a
+     * list of them for combinations.
+     */
+    @Seed.Item(key = TextDecoration.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class TextDecoration {
+        public static final String KEY = "cg.quality:text-decoration";
+        private TextDecoration() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "line decorations applied to text";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "text decoration";
+    }
+
+    /** Underline decoration — a line beneath the text. */
+    @Seed.Item(key = Underline.KEY)
+    public static final class Underline {
+        public static final String KEY = "cg.text-decoration:underline";
+        private Underline() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "a line beneath the text";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "underline";
+    }
+
+    /** LineThrough decoration — a line drawn through the middle of the text. */
+    @Seed.Item(key = LineThrough.KEY)
+    public static final class LineThrough {
+        public static final String KEY = "cg.text-decoration:line-through";
+        private LineThrough() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "a line drawn through the middle of the text";
+    }
+
+    /** Overline decoration — a line above the text. */
+    @Seed.Item(key = Overline.KEY)
+    public static final class Overline {
+        public static final String KEY = "cg.text-decoration:overline";
+        private Overline() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "a line above the text";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "overline";
+    }
+
+    // ==================================================================================
+    // Text overflow and whitespace handling.
+    // ==================================================================================
+
+    /**
+     * TextOverflow — how text exceeding its container's bounds is handled.
+     * Target is one of {@link Ellipsis} / {@link Clip}.
+     */
+    @Seed.Item(key = TextOverflow.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class TextOverflow {
+        public static final String KEY = "cg.quality:text-overflow";
+        private TextOverflow() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "how text exceeding its container's bounds is handled";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "text overflow";
+    }
+
+    /** Truncate overflowing text with an ellipsis (…). */
+    @Seed.Item(key = Ellipsis.KEY)
+    public static final class Ellipsis {
+        public static final String KEY = "cg.text-overflow:ellipsis";
+        private Ellipsis() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "truncate overflowing text with an ellipsis";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "ellipsis";
+    }
+
+    /** Clip overflowing text at the container's edge with no marker. */
+    @Seed.Item(key = Clip.KEY)
+    public static final class Clip {
+        public static final String KEY = "cg.text-overflow:clip";
+        private Clip() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "clip overflowing text at the container's edge with no marker";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "clip";
+    }
+
+    /**
+     * WhiteSpace — how whitespace and newlines in source text are
+     * preserved on render.  Target is one of
+     * {@link NormalWhitespace} / {@link NoWrap} / {@link Pre}
+     * / {@link PreWrap}.
+     */
+    @Seed.Item(key = WhiteSpace.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class WhiteSpace {
+        public static final String KEY = "cg.quality:white-space";
+        private WhiteSpace() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "how whitespace and newlines in source text are preserved on render";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "white space";
+    }
+
+    /** Collapse runs of whitespace; wrap at word boundaries. */
+    @Seed.Item(key = NormalWhitespace.KEY)
+    public static final class NormalWhitespace {
+        public static final String KEY = "cg.white-space:normal";
+        private NormalWhitespace() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "collapse runs of whitespace; wrap at word boundaries";
+    }
+
+    /** Collapse whitespace, but do not wrap — text stays on one line. */
+    @Seed.Item(key = NoWrap.KEY)
+    public static final class NoWrap {
+        public static final String KEY = "cg.white-space:nowrap";
+        private NoWrap() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "collapse whitespace, but do not wrap";
+    }
+
+    /** Preserve whitespace and newlines exactly; no wrapping. */
+    @Seed.Item(key = Pre.KEY)
+    public static final class Pre {
+        public static final String KEY = "cg.white-space:pre";
+        private Pre() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "preserve whitespace and newlines exactly; no wrapping";
+    }
+
+    /** Preserve whitespace and newlines exactly, but wrap at word boundaries. */
+    @Seed.Item(key = PreWrap.KEY)
+    public static final class PreWrap {
+        public static final String KEY = "cg.white-space:pre-wrap";
+        private PreWrap() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "preserve whitespace and newlines exactly, but wrap at word boundaries";
+    }
+
+    // ==================================================================================
     // Variables — resolution-context-bound typography values
     // ==================================================================================
 
@@ -166,5 +355,29 @@ public final class TypographyVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY,
             qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "base font size";
+    }
+
+    /**
+     * The font size of the <i>root</i> typography scope — the outermost
+     * scene's font size.  Used as the equivalent-in-base for the
+     * {@code rem} unit: one rem equals one RootFontSize, unaffected by
+     * nested scope changes that might rebind BaseFontSize.
+     */
+    @Seed.Item(key = RootFontSize.KEY, head = CoreVocabulary.Variable.KEY)
+    public static final class RootFontSize {
+        public static final String KEY = "cg.variable:root-font-size";
+        private RootFontSize() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the font size of the root typography scope (the outermost scene); bound "
+                        + "by the resolution context at render time and unaffected by "
+                        + "nested-scope BaseFontSize changes";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "root font size";
     }
 }

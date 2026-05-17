@@ -61,7 +61,7 @@ import java.util.Objects;
  * from each record's own signature and its declared subject, not from the
  * refs list.
  */
-public sealed interface Opaque permits Opaque.Redacted, Opaque.Compressed, Opaque.Encrypted {
+public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque.Compressed, Opaque.Encrypted {
 
     /**
      * The structural Merkle hash (raw multihash bytes) of the original

@@ -4,6 +4,7 @@ import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.id.TypeRef;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
@@ -178,7 +179,8 @@ public class Quantity extends Value {
     /** The numeric magnitude from the Value binding, or zero if absent. */
     public long magnitude() {
         ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
-        for (Binding b : bindings) {
+        for (DatumNode entry : entries) {
+            if (!(entry instanceof Binding b)) continue;
             if (b.role().equals(valueRole) && b.target() instanceof Long n) return n;
         }
         return 0L;
@@ -191,7 +193,8 @@ public class Quantity extends Value {
      */
     public long exponentOf(ItemRef unit) {
         Objects.requireNonNull(unit, "unit");
-        for (Binding b : bindings) {
+        for (DatumNode entry : entries) {
+            if (!(entry instanceof Binding b)) continue;
             if (b.role().equals(unit) && b.target() instanceof Long n) return n;
         }
         return 0L;
@@ -201,7 +204,8 @@ public class Quantity extends Value {
     public Map<ItemRef, Long> unitExponents() {
         ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
         Map<ItemRef, Long> result = new LinkedHashMap<>();
-        for (Binding b : bindings) {
+        for (DatumNode entry : entries) {
+            if (!(entry instanceof Binding b)) continue;
             if (b.role().equals(valueRole)) continue;
             if (b.target() instanceof Long n) result.put(b.roleIid(), n);
         }
@@ -211,7 +215,8 @@ public class Quantity extends Value {
     /** True when the dimensional formula is empty (no unit bindings). */
     public boolean isDimensionless() {
         ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
-        for (Binding b : bindings) {
+        for (DatumNode entry : entries) {
+            if (!(entry instanceof Binding b)) continue;
             if (!b.role().equals(valueRole)) return false;
         }
         return true;

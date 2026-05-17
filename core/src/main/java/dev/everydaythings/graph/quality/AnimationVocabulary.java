@@ -470,4 +470,77 @@ public final class AnimationVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "alternate-reverse: odd iterations backward, even iterations forward";
     }
+
+    // ==================================================================================
+    // Additional easings — spring variants and discrete-step.
+    // ==================================================================================
+
+    /** Overshoot — slight overshoot at the end before settling. */
+    @Seed.Item(key = Overshoot.KEY)
+    public static final class Overshoot {
+        public static final String KEY = "cg.easing:overshoot";
+        private Overshoot() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "slight overshoot at the end before settling";
+    }
+
+    /**
+     * SpringGentle — slow, smooth spring with minimal overshoot.  Spring
+     * easings compute their own duration from physical parameters; any
+     * declared duration is ignored.
+     */
+    @Seed.Item(key = SpringGentle.KEY)
+    public static final class SpringGentle {
+        public static final String KEY = "cg.easing:spring-gentle";
+        private SpringGentle() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "slow, smooth spring with minimal overshoot";
+    }
+
+    /** SpringSnappy — fast spring with a quick settle. */
+    @Seed.Item(key = SpringSnappy.KEY)
+    public static final class SpringSnappy {
+        public static final String KEY = "cg.easing:spring-snappy";
+        private SpringSnappy() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "fast spring with a quick settle";
+    }
+
+    /** SpringBouncy — pronounced overshoot and oscillation before settling. */
+    @Seed.Item(key = SpringBouncy.KEY)
+    public static final class SpringBouncy {
+        public static final String KEY = "cg.easing:spring-bouncy";
+        private SpringBouncy() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "pronounced overshoot and oscillation before settling";
+    }
+
+    /**
+     * Steps — discrete-step easing.  The animation progresses in N equal
+     * steps rather than continuously.  Specific step counts carry an
+     * additional parameter binding.
+     */
+    @Seed.Item(key = Steps.KEY)
+    public static final class Steps {
+        public static final String KEY = "cg.easing:steps";
+        private Steps() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "discrete-step easing — the animation progresses in N equal steps";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "steps";
+    }
 }

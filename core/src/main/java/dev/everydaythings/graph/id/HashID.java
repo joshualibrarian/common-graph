@@ -3,6 +3,7 @@ package dev.everydaythings.graph.id;
 import com.upokecenter.cbor.CBORObject;
 import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.canonical.Encode;
+import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.encoding.TextBase;
 import io.ipfs.multihash.Multihash;
 
@@ -61,7 +62,7 @@ import java.util.Objects;
  * {@link ItemRef}'s pinned-version sub-part) and at index/hash callsites
  * that want the bare digest.
  */
-public abstract sealed class HashID permits ItemRef, TypeRef, SchemaRef, ContentRef, DatumRef {
+public abstract sealed class HashID implements DatumNode permits ItemRef, TypeRef, SchemaRef, ContentRef, DatumRef {
 
     public static final int KEY_LENGTH = 32;
 

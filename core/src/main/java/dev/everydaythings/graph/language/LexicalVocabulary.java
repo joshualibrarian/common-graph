@@ -328,4 +328,54 @@ public final class LexicalVocabulary {
                 "declares which thematic role a lexeme (typically a preposition or "
                         + "other function word) assigns to its object";
     }
+
+    /**
+     * Alias — a qualifier marking a {@link Lexeme} (or similar) value as an
+     * alternate name rather than the canonical lemma.
+     *
+     * <p>Parallel to {@link dev.everydaythings.graph.language.GrammaticalFeature.Lemma
+     * Lemma}: a Lexeme frame qualified by {@code Lemma} carries the
+     * canonical dictionary form; the same predicate qualified by
+     * {@code Alias} carries an alternate name (historical, legacy,
+     * vernacular, abbreviation, or other-system identifier) for the same
+     * underlying sememe.
+     *
+     * <p>Examples:
+     * <ul>
+     *   <li>A keyboard-key sememe canonically named {@code "KanaMode"} (W3C
+     *       UI Events) has an Alias lexeme {@code "Hiragana"} for the
+     *       historical name.</li>
+     *   <li>A unit canonically named {@code "metre"} has an Alias lexeme
+     *       {@code "meter"} for the US spelling.</li>
+     *   <li>A sememe canonically named {@code "rectangle"} has Alias
+     *       lexemes {@code "rect"} (abbreviation) and {@code "box"}
+     *       (vernacular).</li>
+     * </ul>
+     *
+     * <p>Aliases participate in lexical lookup the same way lemmas do — a
+     * tokenizer that sees "Hiragana" resolves to the same sememe as
+     * "KanaMode" — but display logic typically prefers the lemma over
+     * aliases.
+     *
+     * <p>Unlike grammatical features (Lemma, Past, Plural — properties of
+     * word form), Alias is metadata about <i>which name is canonical</i>.
+     * It composes with Language and Part-of-Speech qualifiers the same way
+     * other features do.
+     */
+    @Seed.Item(key = Alias.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Alias {
+        public static final String KEY = "cg.quality:alias";
+        private Alias() {}
+
+        @Frame(predicate = Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "marks a name as an alias — an alternate name for the same underlying "
+                        + "concept, rather than the canonical lemma";
+
+        @Frame(predicate = Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "alias";
+    }
 }

@@ -4,10 +4,10 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.datum.DatumNode;
+import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.HashID;
-
-import java.util.List;
 
 /**
  * Side-effect visitor base for walking a {@link Datum}'s structure.
@@ -30,9 +30,12 @@ import java.util.List;
  *
  * <p>The traversal visits:
  * <ol>
- *   <li>The datum's head reference</li>
- *   <li>Each binding's compound key (role + qualifiers)</li>
- *   <li>Each binding's target — recursing into nested Body/FrameTarget shapes</li>
+ *   <li>The datum's head reference.</li>
+ *   <li>Each entry in the bindings list — most are Bindings, some may be
+ *       {@link Opaque} stand-ins.  A {@link #visitOpaqueEntry} hook fires for
+ *       opaques; the default no-op skips them.</li>
+ *   <li>For each Binding: its compound-key parts (role + qualifiers, possibly
+ *       with Opaque qualifier stand-ins), then its target.</li>
  * </ol>
  *
  * <p>Subclasses are free to short-circuit by checking accumulated state — the
@@ -48,8 +51,12 @@ public abstract class DatumWalker {
     public void walk(Datum d) {
         visitHead(d.head());
         if (shouldStop()) return;
-        for (Binding b : d.bindings()) {
-            walkBinding(b);
+        for (DatumNode entry : d.entries()) {
+            if (entry instanceof Binding b) {
+                walkBinding(b);
+            } else if (entry instanceof Opaque op) {
+                visitOpaqueEntry(op);
+            }
             if (shouldStop()) return;
         }
     }
@@ -60,8 +67,12 @@ public abstract class DatumWalker {
      */
     protected void walkBinding(Binding b) {
         visitBindingRole(b.role());
-        for (CompoundKey.Qualifier q : b.qualifiers()) {
-            visitBindingQualifier(q);
+        for (DatumNode part : b.key().parts()) {
+            if (part instanceof CompoundKey.Qualifier q) {
+                visitBindingQualifier(q);
+            } else if (part instanceof Opaque op) {
+                visitOpaqueQualifier(op);
+            }
             if (shouldStop()) return;
         }
         if (shouldStop()) return;
@@ -85,7 +96,7 @@ public abstract class DatumWalker {
     // Per-position hooks — subclasses override what they care about.
     // ==================================================================================
 
-    /** Called once per datum, before its bindings. */
+    /** Called once per datum, before its entries. */
     protected void visitHead(HashID head) {}
 
     /** Called for each binding's role reference. */
@@ -95,12 +106,26 @@ public abstract class DatumWalker {
     protected void visitBindingQualifier(CompoundKey.Qualifier qualifier) {}
 
     /**
+     * Called for each Opaque stand-in encountered at a qualifier position
+     * inside a binding's compound key.  Default no-op — most walkers ignore
+     * opacity; subclasses that care (validators, signature-aware code)
+     * override.
+     */
+    protected void visitOpaqueQualifier(Opaque opaque) {}
+
+    /**
      * Called for each binding's target value before recursion.  The target may
-     * be a literal, a {@link HashID} reference, a {@link Body}, or a
-     * {@link BindingTarget} variant.  If the target is a nested body, the
-     * walker will recurse into it after this call.
+     * be a literal, a {@link HashID} reference, a {@link Body}, an
+     * {@link Opaque}, or a {@link BindingTarget} variant.  If the target is a
+     * nested body, the walker will recurse into it after this call.
      */
     protected void visitTarget(Object target) {}
+
+    /**
+     * Called for each Opaque stand-in encountered at a binding-list position
+     * — replacing a whole {@link Binding}.  Default no-op.
+     */
+    protected void visitOpaqueEntry(Opaque opaque) {}
 
     /**
      * Returns true to short-circuit further traversal.  Subclasses that scan

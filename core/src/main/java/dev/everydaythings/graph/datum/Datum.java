@@ -34,15 +34,19 @@ import java.util.stream.Collectors;
  * TODO: we need a thorough going through of this whole package.  There's still lots of CBOR references in it and it should be encoding agnostic.
  * TODO: also the builders could use unification and improvement
  */
-public sealed abstract class Datum permits Body, Record {
+public sealed abstract class Datum implements DatumNode permits Body, Record {
 
     /** The head reference: the sememe (for bodies) or body CID (for records). */
     @Getter
     protected final HashID head;
 
-    /** The bindings carried by this Datum, in canonical order. */
-    @Getter
-    protected final List<Binding> bindings;
+    /**
+     * The Datum's body-tree entries, in canonical order.  Each entry is a
+     * {@link DatumNode} — most commonly a {@link Binding}, but possibly an
+     * {@link Opaque} standing in for an elided/compressed/encrypted
+     * binding.
+     */
+    protected final List<DatumNode> entries;
 
     /**
      * The {@link ContentRef} of the specific byte realization this Datum was decoded
@@ -65,11 +69,35 @@ public sealed abstract class Datum permits Body, Record {
      */
     private volatile DatumRef id;
 
-    protected Datum(HashID head, List<Binding> bindings) {
+    protected Datum(HashID head, List<? extends DatumNode> entries) {
         this.head = Objects.requireNonNull(head, "head");
-        Objects.requireNonNull(bindings, "bindings");
-        this.bindings = canonicalSort(bindings);
+        Objects.requireNonNull(entries, "entries");
+        this.entries = canonicalSort(entries);
         this.source = null;
+    }
+
+    /**
+     * All body-tree entries in canonical order — both {@link Binding}s and
+     * {@link Opaque} stand-ins.  Iterating this is the way to see the body
+     * faithfully (the soft-deprecated {@link #bindings()} accessor silently
+     * filters Opaques out).
+     */
+    public List<DatumNode> entries() {
+        return entries;
+    }
+
+    /**
+     * The {@link Binding} entries only — {@link Opaque} stand-ins are
+     * filtered out.  Use this when you only care about the visible bindings
+     * (construction code, simple lookups).  Use {@link #entries()} when you
+     * need to see the full body tree — walkers, validators, the codec.
+     */
+    public List<Binding> bindings() {
+        List<Binding> result = new ArrayList<>(entries.size());
+        for (DatumNode e : entries) {
+            if (e instanceof Binding b) result.add(b);
+        }
+        return result;
     }
 
     /**
@@ -88,9 +116,9 @@ public sealed abstract class Datum permits Body, Record {
      * independent: the sort is determined by HashTree, not by CG-CBOR or any
      * other wire format.
      */
-    private static List<Binding> canonicalSort(List<Binding> bindings) {
-        if (bindings.size() < 2) return List.copyOf(bindings);
-        List<Binding> sorted = new ArrayList<>(bindings);
+    private static List<DatumNode> canonicalSort(List<? extends DatumNode> entries) {
+        if (entries.size() < 2) return List.copyOf(entries);
+        List<DatumNode> sorted = new ArrayList<>(entries);
         sorted.sort(HashTree.CANONICAL);
         return List.copyOf(sorted);
     }
@@ -100,8 +128,8 @@ public sealed abstract class Datum permits Body, Record {
      */
     public Optional<Binding> binding(CompoundKey key) {
         Objects.requireNonNull(key, "key");
-        for (Binding b : bindings) {
-            if (matches(b, key)) return Optional.of(b);
+        for (DatumNode e : entries) {
+            if (e instanceof Binding b && matches(b, key)) return Optional.of(b);
         }
         return Optional.empty();
     }
@@ -111,7 +139,11 @@ public sealed abstract class Datum permits Body, Record {
      */
     public List<Binding> bindings(CompoundKey key) {
         Objects.requireNonNull(key, "key");
-        return bindings.stream().filter(b -> matches(b, key)).collect(Collectors.toList());
+        List<Binding> result = new ArrayList<>();
+        for (DatumNode e : entries) {
+            if (e instanceof Binding b && matches(b, key)) result.add(b);
+        }
+        return result;
     }
 
     /**
@@ -119,7 +151,11 @@ public sealed abstract class Datum permits Body, Record {
      */
     public List<Binding> bindingsByRole(ItemRef role) {
         Objects.requireNonNull(role, "role");
-        return bindings.stream().filter(b -> b.role().equals(role)).collect(Collectors.toList());
+        List<Binding> result = new ArrayList<>();
+        for (DatumNode e : entries) {
+            if (e instanceof Binding b && role.equals(b.role())) result.add(b);
+        }
+        return result;
     }
 
     private static boolean matches(Binding binding, CompoundKey key) {

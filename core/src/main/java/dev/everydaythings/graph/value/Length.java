@@ -42,9 +42,15 @@ public final class Length extends Quantity {
         super(ItemRef.iid(KEY), magnitude, Map.of(unit, 1L));
     }
 
-    public static Length meters(long n)      { return new Length(n, ItemRef.iid(UnitVocabulary.Meter.KEY)); }
-    public static Length centimeters(long n) { return new Length(n, ItemRef.iid(UnitVocabulary.Centimeter.KEY)); }
-    public static Length millimeters(long n) { return new Length(n, ItemRef.iid(UnitVocabulary.Millimeter.KEY)); }
-    public static Length pixels(long n)      { return new Length(n, ItemRef.iid(UnitVocabulary.Pixel.KEY)); }
-    public static Length em(long n)          { return new Length(n, ItemRef.iid(UnitVocabulary.Em.KEY)); }
+    public static Length meters(long n)       { return new Length(n, ItemRef.iid(UnitVocabulary.Meter.KEY)); }
+    public static Length centimeters(long n)  { return new Length(n, ItemRef.iid(UnitVocabulary.Centimeter.KEY)); }
+    public static Length millimeters(long n)  { return new Length(n, ItemRef.iid(UnitVocabulary.Millimeter.KEY)); }
+    public static Length kilometers(long n)   { return new Length(n, ItemRef.iid(UnitVocabulary.Kilometer.KEY)); }
+    public static Length inches(long n)       { return new Length(n, ItemRef.iid(UnitVocabulary.Inch.KEY)); }
+    public static Length points(long n)       { return new Length(n, ItemRef.iid(UnitVocabulary.Point.KEY)); }
+    public static Length feet(long n)         { return new Length(n, ItemRef.iid(UnitVocabulary.Foot.KEY)); }
+    public static Length pixels(long n)       { return new Length(n, ItemRef.iid(UnitVocabulary.Pixel.KEY)); }
+    public static Length devicePixels(long n) { return new Length(n, ItemRef.iid(UnitVocabulary.DevicePixel.KEY)); }
+    public static Length em(long n)           { return new Length(n, ItemRef.iid(UnitVocabulary.Em.KEY)); }
+    public static Length rem(long n)          { return new Length(n, ItemRef.iid(UnitVocabulary.Rem.KEY)); }
 }

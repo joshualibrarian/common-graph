@@ -32,8 +32,8 @@ public final class Record extends Datum {
 
     private final byte[] signature;
 
-    public Record(DatumRef head, List<Binding> bindings, byte[] signature) {
-        super(head, bindings);
+    public Record(DatumRef head, List<? extends DatumNode> entries, byte[] signature) {
+        super(head, entries);
         Objects.requireNonNull(signature, "signature");
         if (signature.length == 0) {
             throw new IllegalArgumentException("Record signature must not be empty");
@@ -42,21 +42,21 @@ public final class Record extends Datum {
     }
 
     /**
-     * Create a Record with the given head, bindings, and signature.
+     * Create a Record with the given head, entries, and signature.
      */
-    public static Record of(DatumRef head, List<Binding> bindings, byte[] signature) {
-        return new Record(head, bindings, signature);
+    public static Record of(DatumRef head, List<? extends DatumNode> entries, byte[] signature) {
+        return new Record(head, entries, signature);
     }
 
     /**
-     * Create a Record with the given head, bindings, and a {@link VarSig}.
+     * Create a Record with the given head, entries, and a {@link VarSig}.
      *
      * <p>Convenience for the common case where the signature is being constructed
      * from a typed VarSig rather than raw bytes.
      */
-    public static Record of(DatumRef head, List<Binding> bindings, VarSig signature) {
+    public static Record of(DatumRef head, List<? extends DatumNode> entries, VarSig signature) {
         Objects.requireNonNull(signature, "signature");
-        return new Record(head, bindings, signature.encoded());
+        return new Record(head, entries, signature.encoded());
     }
 
     /** The head as a {@link DatumRef} (typed accessor; head() returns HashID). */
@@ -107,19 +107,24 @@ public final class Record extends Datum {
             throw new IllegalArgumentException(
                     "Record bindings must be a CBOR array, got " + bindingsArr.getType());
         }
-        List<Binding> bindings = decodeBindings(bindingsArr);
+        List<DatumNode> entries = decodeEntries(bindingsArr);
         CBORObject sigNode = node.get(2);
         if (sigNode.getType() != CBORType.ByteString) {
             throw new IllegalArgumentException(
                     "Record signature must be a CBOR byte string, got " + sigNode.getType());
         }
-        return new Record(datumRef, bindings, sigNode.GetByteString());
+        return new Record(datumRef, entries, sigNode.GetByteString());
     }
 
-    private static List<Binding> decodeBindings(CBORObject arr) {
-        List<Binding> result = new java.util.ArrayList<>(arr.size());
+    private static List<DatumNode> decodeEntries(CBORObject arr) {
+        List<DatumNode> result = new java.util.ArrayList<>(arr.size());
         for (CBORObject element : arr.getValues()) {
-            result.add(Binding.fromCborTree(element));
+            if (element.isTagged()
+                    && Opaque.isOpaqueTag(element.getMostOuterTag().ToInt32Checked())) {
+                result.add(Opaque.fromCborTree(element));
+            } else {
+                result.add(Binding.fromCborTree(element));
+            }
         }
         return List.copyOf(result);
     }
@@ -129,18 +134,18 @@ public final class Record extends Datum {
         if (this == o) return true;
         if (!(o instanceof Record other)) return false;
         return head.equals(other.head)
-                && bindings.equals(other.bindings)
+                && entries.equals(other.entries)
                 && java.util.Arrays.equals(signature, other.signature);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(head, bindings, java.util.Arrays.hashCode(signature));
+        return Objects.hash(head, entries, java.util.Arrays.hashCode(signature));
     }
 
     @Override
     public String toString() {
-        return "Record[" + head + ", " + bindings.size() + " bindings, "
+        return "Record[" + head + ", " + entries.size() + " entries, "
                 + signature.length + "-byte sig]";
     }
 }

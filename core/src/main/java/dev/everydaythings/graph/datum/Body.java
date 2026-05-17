@@ -35,13 +35,13 @@ import java.util.Objects;
  */
 public non-sealed class Body extends Datum {
 
-    public Body(HashID head, List<Binding> bindings) {
-        super(validateHead(head), bindings);
+    public Body(HashID head, List<? extends DatumNode> entries) {
+        super(validateHead(head), entries);
     }
 
     /** Backwards-compat constructor; prefer {@link #Body(HashID, List)}. */
-    public Body(ItemRef head, List<Binding> bindings) {
-        super(head, bindings);
+    public Body(ItemRef head, List<? extends DatumNode> entries) {
+        super(head, entries);
     }
 
     /**
@@ -63,8 +63,8 @@ public non-sealed class Body extends Datum {
     /**
      * Create a Body with the given head and bindings.
      */
-    public static Body of(HashID head, List<Binding> bindings) {
-        return new Body(head, bindings);
+    public static Body of(HashID head, List<? extends DatumNode> entries) {
+        return new Body(head, entries);
     }
 
     /**
@@ -140,14 +140,23 @@ public non-sealed class Body extends Datum {
             throw new IllegalArgumentException(
                     "Body bindings must be a CBOR array, got " + bindingsArr.getType());
         }
-        List<Binding> bindings = decodeBindings(bindingsArr);
-        return new Body(headRef, bindings);
+        List<DatumNode> entries = decodeEntries(bindingsArr);
+        return new Body(headRef, entries);
     }
 
-    private static List<Binding> decodeBindings(CBORObject arr) {
-        List<Binding> result = new java.util.ArrayList<>(arr.size());
+    /**
+     * Decode the bindings-list CBOR array.  Each element is either a Binding
+     * (CBOR Array) or an Opaque variant (CBOR tag).  Dispatch by shape.
+     */
+    private static List<DatumNode> decodeEntries(CBORObject arr) {
+        List<DatumNode> result = new java.util.ArrayList<>(arr.size());
         for (CBORObject element : arr.getValues()) {
-            result.add(Binding.fromCborTree(element));
+            if (element.isTagged()
+                    && Opaque.isOpaqueTag(element.getMostOuterTag().ToInt32Checked())) {
+                result.add(Opaque.fromCborTree(element));
+            } else {
+                result.add(Binding.fromCborTree(element));
+            }
         }
         return List.copyOf(result);
     }
@@ -156,16 +165,16 @@ public non-sealed class Body extends Datum {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Body other)) return false;
-        return head.equals(other.head) && bindings.equals(other.bindings);
+        return head.equals(other.head) && entries.equals(other.entries);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(head, bindings);
+        return Objects.hash(head, entries);
     }
 
     @Override
     public String toString() {
-        return "Body[" + head + ", " + bindings.size() + " bindings]";
+        return "Body[" + head + ", " + entries.size() + " entries]";
     }
 }

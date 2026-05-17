@@ -88,6 +88,182 @@ public final class SpatialVocabulary {
         static final String englishNounLemma = "depth";
     }
 
+    /** The minimum horizontal extent — lower bound on width. */
+    @Seed.Item(key = MinWidth.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class MinWidth {
+        public static final String KEY = "cg.quality:min-width";
+        private MinWidth() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the minimum horizontal extent — lower bound on width";
+    }
+
+    /** The maximum horizontal extent — upper bound on width. */
+    @Seed.Item(key = MaxWidth.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class MaxWidth {
+        public static final String KEY = "cg.quality:max-width";
+        private MaxWidth() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the maximum horizontal extent — upper bound on width";
+    }
+
+    /** The minimum vertical extent — lower bound on height. */
+    @Seed.Item(key = MinHeight.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class MinHeight {
+        public static final String KEY = "cg.quality:min-height";
+        private MinHeight() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the minimum vertical extent — lower bound on height";
+    }
+
+    /** The maximum vertical extent — upper bound on height. */
+    @Seed.Item(key = MaxHeight.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class MaxHeight {
+        public static final String KEY = "cg.quality:max-height";
+        private MaxHeight() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the maximum vertical extent — upper bound on height";
+    }
+
+    /** The minimum front-to-back extent — lower bound on depth. */
+    @Seed.Item(key = MinDepth.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class MinDepth {
+        public static final String KEY = "cg.quality:min-depth";
+        private MinDepth() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the minimum front-to-back extent — lower bound on depth";
+    }
+
+    /** The maximum front-to-back extent — upper bound on depth. */
+    @Seed.Item(key = MaxDepth.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class MaxDepth {
+        public static final String KEY = "cg.quality:max-depth";
+        private MaxDepth() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the maximum front-to-back extent — upper bound on depth";
+    }
+
+    /**
+     * Elevation — how far a node rises above (positive) or sinks below
+     * (negative) its parent surface.  In 3D, literal Z displacement.  In
+     * 2D, drives drop shadows for positive values and inner shadows for
+     * negative values.  In text, contributes to depth hints.
+     */
+    @Seed.Item(key = Elevation.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Elevation {
+        public static final String KEY = "cg.quality:elevation";
+        private Elevation() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "how far a node rises above or sinks below its parent surface; positive raises, "
+                        + "negative recesses, zero is flush";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "elevation";
+    }
+
+    /**
+     * Transform origin — the point around which rotation and scale apply.
+     * Defaults to center.  Target is typically a Position value (or accepts
+     * keyword positions like "top left", "50% 0%").
+     */
+    @Seed.Item(key = TransformOrigin.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class TransformOrigin {
+        public static final String KEY = "cg.quality:transform-origin";
+        private TransformOrigin() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the point around which rotation and scale apply; defaults to center";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "transform origin";
+    }
+
+    /**
+     * Corner — qualifier identifying one of the four corners of a box.
+     * Used as a compound qualifier on per-corner properties (typically
+     * border radius / corner-rounding) to address one corner at a time.
+     */
+    @Seed.Item(key = Corner.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Corner {
+        public static final String KEY = "cg.quality:corner";
+        private Corner() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "one of the four corners of a box — used as a compound qualifier on per-corner "
+                        + "properties (typically border radius)";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "corner";
+    }
+
+    /** The top-left corner. */
+    @Seed.Item(key = TopLeft.KEY)
+    public static final class TopLeft {
+        public static final String KEY = "cg.corner:top-left";
+        private TopLeft() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the top-left corner of a box";
+    }
+
+    /** The top-right corner. */
+    @Seed.Item(key = TopRight.KEY)
+    public static final class TopRight {
+        public static final String KEY = "cg.corner:top-right";
+        private TopRight() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the top-right corner of a box";
+    }
+
+    /** The bottom-left corner. */
+    @Seed.Item(key = BottomLeft.KEY)
+    public static final class BottomLeft {
+        public static final String KEY = "cg.corner:bottom-left";
+        private BottomLeft() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the bottom-left corner of a box";
+    }
+
+    /** The bottom-right corner. */
+    @Seed.Item(key = BottomRight.KEY)
+    public static final class BottomRight {
+        public static final String KEY = "cg.corner:bottom-right";
+        private BottomRight() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "the bottom-right corner of a box";
+    }
+
     // ==================================================================================
     // Spacing — padding / margin / border-thickness
     // ==================================================================================

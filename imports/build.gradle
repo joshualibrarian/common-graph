@@ -1,0 +1,34 @@
+// =============================================================================
+// :imports — Bootstrap importers for external data into CG seed items.
+//
+// Container module for per-data-source sub-modules:
+//
+//   :imports:keyboard  — W3C UI Events keyboard codes
+//   :imports:mime      — IANA MIME type registry  (planned)
+//   :imports:wordnet   — OEWN / CILI synset graph (planned)
+//   :imports:unimorph  — UniMorph irregular morphology (planned)
+//   ...
+//
+// Each sub-module produces unsigned seed bodies with deterministic IIDs.
+// Once the codebase is released, those seed items get signed by the
+// developers' release keys and distributed on the live graph; future
+// installs download them rather than re-importing.  Local bootstrap from
+// data files is the development path.
+//
+// :core defines the vocabulary contract (archetypes, qualities,
+// predicates, SeedProcessor); :imports sub-modules plug concrete data
+// behind the contract.  One-way dependency: :imports:* → :core.  :core
+// never depends on anything in :imports.
+//
+// Shared scaffolding (TSV utilities, generic Importer interface, ...) can
+// land here at this level when a second sub-module's needs make the
+// abstraction concrete.  Until then, this module is just the container.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}

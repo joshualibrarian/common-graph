@@ -213,16 +213,16 @@ class QualitiesVocabularyTest {
     }
 
     @Nested
-    @DisplayName("Variable-bearing units: Pixel (inline expression) and Em (direct ref)")
+    @DisplayName("Variable-bearing units: DevicePixel (inline expression) and Em (direct ref)")
     class VariableUnits {
 
         @Test
-        @DisplayName("Pixel has Symbol=\"px\" and dimension Length")
-        void pixelBasics() {
-            Manifest m = manifestFor(ItemRef.iid(UnitVocabulary.Pixel.KEY));
+        @DisplayName("DevicePixel has Symbol=\"dpx\" and dimension Length")
+        void devicePixelBasics() {
+            Manifest m = manifestFor(ItemRef.iid(UnitVocabulary.DevicePixel.KEY));
             assertThat(m.body().head()).isEqualTo(ItemRef.of(ItemRef.iid(UnitVocabulary.Unit.KEY)));
             assertThat(m.binding(CompoundKey.of(ItemRef.iid(UnitVocabulary.Symbol.KEY)))
-                    .orElseThrow().target()).isEqualTo("px");
+                    .orElseThrow().target()).isEqualTo("dpx");
             CompoundKey lengthKey = CompoundKey.of(
                     ItemRef.iid(DimensionVocabulary.Dimension.KEY),
                     ItemRef.iid(DimensionVocabulary.Length.KEY));
@@ -230,9 +230,9 @@ class QualitiesVocabularyTest {
         }
 
         @Test
-        @DisplayName("Pixel.EquivalentInBase is an inline Multiply body")
-        void pixelEquivalentIsInlineMultiply() {
-            Manifest m = manifestFor(ItemRef.iid(UnitVocabulary.Pixel.KEY));
+        @DisplayName("DevicePixel.EquivalentInBase is an inline Multiply body")
+        void devicePixelEquivalentIsInlineMultiply() {
+            Manifest m = manifestFor(ItemRef.iid(UnitVocabulary.DevicePixel.KEY));
             Object target = m.binding(CompoundKey.of(ItemRef.iid(UnitVocabulary.EquivalentInBase.KEY)))
                     .orElseThrow().target();
             assertThat(target).isInstanceOf(Body.class);
@@ -241,9 +241,9 @@ class QualitiesVocabularyTest {
         }
 
         @Test
-        @DisplayName("Pixel's Multiply expression has DevicePixelSize and a Quantity(1, Meter) as operands")
-        void pixelMultiplyOperands() {
-            Manifest m = manifestFor(ItemRef.iid(UnitVocabulary.Pixel.KEY));
+        @DisplayName("DevicePixel's Multiply expression has DevicePixelSize and a Quantity(1, Meter) as operands")
+        void devicePixelMultiplyOperands() {
+            Manifest m = manifestFor(ItemRef.iid(UnitVocabulary.DevicePixel.KEY));
             Body multiply = (Body) m.binding(CompoundKey.of(ItemRef.iid(UnitVocabulary.EquivalentInBase.KEY)))
                     .orElseThrow().target();
 

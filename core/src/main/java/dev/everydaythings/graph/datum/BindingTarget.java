@@ -24,7 +24,7 @@ import java.util.Objects;
  *       {@code byte[]}, {@link java.time.Instant}, etc.) — inline typed value</li>
  * </ul>
  */
-public interface BindingTarget {
+public interface BindingTarget extends DatumNode {
 
     /**
      * Decode a binding target from CBOR.  Returns raw types (no wrapper):

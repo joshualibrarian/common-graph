@@ -42,7 +42,7 @@ Everything is a **datum**: a head plus bindings, optionally signed.
 
 A datum with no signature is a **body** — pure data, content-addressed, immutable. A datum with a signature is a **record** — an attestation over a body. Bodies and records are the only stored structures; frames, manifests, schemas, queries, and code items are all just bodies and records with different head choices.
 
-A **frame** is a body whose head is a predicate. "Tolkien authored The Hobbit" is a frame:
+A **frame** is a body whose head is a predicate. It makes a *semantic* assertion about meaning in the world.  "Tolkien authored The Hobbit" is a frame:
 
 ```
 {@authored, [
@@ -51,7 +51,7 @@ A **frame** is a body whose head is a predicate. "Tolkien authored The Hobbit" i
 ]}
 ```
 
-A **manifest** is a body whose head is an archetype and which carries an `@ITEM_ID` binding. It's one version in some item's lineage.
+A **manifest** is a body whose head is an archetype and which carries an `@ITEM_ID` binding.  It's one version in some item's lineage.
 
 A **value body** is a body whose head names a typed-value archetype. A specific color is a body whose head is the Color archetype:
 

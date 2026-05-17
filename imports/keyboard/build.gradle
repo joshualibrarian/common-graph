@@ -1,0 +1,18 @@
+// =============================================================================
+// :imports:keyboard — Keyboard-key bootstrap importer.
+//
+// Reads a TSV table of W3C UI Events `code` values plus per-key metadata
+// (category, USB HID code, English name, layout hint, aliases) and emits
+// unsigned seed Key items into a librarian.
+//
+// IIDs derive from `cg.key:<W3C_code>` so they're stable across
+// installations regardless of which signer originally seeded them.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}

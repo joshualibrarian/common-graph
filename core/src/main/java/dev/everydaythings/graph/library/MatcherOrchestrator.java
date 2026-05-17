@@ -90,6 +90,13 @@ public final class MatcherOrchestrator {
      * constrains what it mentions).
      */
     private boolean matchesAllBindings(Body query, Body candidate) {
+        // Bindings only on both sides.  A query with Opaque entries can't
+        // meaningfully constrain (we don't see the role/target inside the
+        // opacity), so they're ignored.  A candidate with Opaque entries
+        // can't satisfy a binding-shaped query constraint either — the
+        // matcher conservatively reports no-match for that constraint.
+        // Future: surface "match indeterminate due to opacity" when callers
+        // can act on it.
         for (Binding queryBinding : query.bindings()) {
             if (!matchesBinding(queryBinding, candidate)) return false;
         }

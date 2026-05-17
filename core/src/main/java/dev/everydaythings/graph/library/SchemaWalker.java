@@ -65,6 +65,12 @@ public final class SchemaWalker extends DatumWalker {
 
         // The schema role's underlying IID is the role we expect on the candidate.
         ItemRef expectedRole = sr.iid();
+        // Bindings only — Opaque entries in the candidate are invisible to
+        // role-presence checks (we can't see the hidden role).  Conservative
+        // outcome: if the candidate has only an Opaque where the expected
+        // binding should be, validation reports the binding missing.  Future:
+        // surface "validation incomplete due to opacity" as a distinct
+        // outcome when callers can act on it.
         boolean present = candidate.bindings().stream()
                 .anyMatch(b -> isSameRole(b.role(), expectedRole));
         if (!present) {

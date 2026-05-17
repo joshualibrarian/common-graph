@@ -426,9 +426,9 @@ public final class CgCbor {
     private static CBORObject encodeDatum(Datum d) {
         CBORObject arr = CBORObject.NewArray();
         arr.Add(toCbor(d.head()));
-        CBORObject bindings = CBORObject.NewArray();
-        for (Binding b : d.bindings()) bindings.Add(toCbor(b));
-        arr.Add(bindings);
+        CBORObject entries = CBORObject.NewArray();
+        for (dev.everydaythings.graph.datum.DatumNode e : d.entries()) entries.Add(toCbor(e));
+        arr.Add(entries);
         int tag;
         if (d instanceof Record r) {
             arr.Add(CBORObject.FromByteArray(r.signature()));
@@ -499,23 +499,33 @@ public final class CgCbor {
             throw new IllegalArgumentException(
                     "CompoundKey qualifiers must be a CBOR array, got " + qualsArr.getType());
         }
-        List<CompoundKey.Qualifier> quals = new ArrayList<>(qualsArr.size());
+        List<dev.everydaythings.graph.datum.DatumNode> parts = new ArrayList<>(qualsArr.size());
         for (int i = 0; i < qualsArr.size(); i++) {
-            quals.add(decodeQualifier(qualsArr.get(i)));
+            parts.add(decodePart(qualsArr.get(i)));
         }
-        return CompoundKey.of(head, quals);
+        return CompoundKey.of(head, parts);
     }
 
-    private static CompoundKey.Qualifier decodeQualifier(CBORObject node) {
-        if (node.isTagged() && node.HasMostOuterTag(TAG_REF)) {
-            return new CompoundKey.Sememe(expectItemRef(node, "CompoundKey sememe qualifier"));
+    /**
+     * Decode a single CompoundKey part — sememe qualifier (Tag 6), text
+     * qualifier (CBOR text string), or Opaque stand-in (Tag 11 / 13 / 14).
+     */
+    private static dev.everydaythings.graph.datum.DatumNode decodePart(CBORObject node) {
+        if (node.isTagged()) {
+            int tag = node.getMostOuterTag().ToInt32Checked();
+            if (tag == TAG_REF) {
+                return new CompoundKey.Sememe(expectItemRef(node, "CompoundKey sememe qualifier"));
+            }
+            if (Opaque.isOpaqueTag(tag)) {
+                return Opaque.fromCborTree(node);
+            }
         }
         if (node.getType() == CBORType.TextString) {
             return new CompoundKey.Text(node.AsString());
         }
         throw new IllegalArgumentException(
-                "CompoundKey qualifier must be Tag 6 (sememe) or text string, got: "
-                        + node.getType());
+                "CompoundKey qualifier must be Tag 6 (sememe), text string, or "
+                        + "Opaque tag (11/13/14); got: " + node.getType());
     }
 
     private static ItemRef expectItemRef(CBORObject node, String context) {

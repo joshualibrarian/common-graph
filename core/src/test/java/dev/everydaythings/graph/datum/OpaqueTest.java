@@ -2,9 +2,12 @@ package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.encoding.CgCbor;
+import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.HashID;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.ThematicRole;
 import com.upokecenter.cbor.CBORObject;
 import org.junit.jupiter.api.DisplayName;
@@ -132,6 +135,134 @@ class OpaqueTest {
 
             assertThat(HashTree.hashOf(parentEncrypted, HashTree.DEFAULT_DIGEST))
                     .isEqualTo(HashTree.hashOf(parentInline, HashTree.DEFAULT_DIGEST));
+        }
+    }
+
+    @Nested
+    @DisplayName("Opaque as a single binding-list entry (position 2)")
+    class OpaqueAsBindingEntry {
+
+        @Test
+        @DisplayName("a body with mixed Binding + Opaque entries round-trips through CBOR")
+        void mixedEntriesRoundtrip() {
+            byte[] hiddenBindingHash = HashTree.hashOf(
+                    new Binding(BODY_ROLE, "hidden"), HashTree.DEFAULT_DIGEST);
+
+            Body body = Body.of(HEAD, List.of(
+                    new Binding(BODY_ROLE, "visible"),
+                    new Opaque.Redacted(hiddenBindingHash)));
+
+            byte[] encoded = CgCbor.encode(body);
+            Body decoded = (Body) CgCbor.decode(encoded);
+
+            assertThat(decoded.entries()).hasSize(2);
+            assertThat(decoded.entries()).anyMatch(e -> e instanceof Opaque.Redacted);
+            assertThat(decoded.entries()).anyMatch(e -> e instanceof Binding);
+            assertThat(decoded).isEqualTo(body);
+        }
+
+        @Test
+        @DisplayName("parent hash is invariant when a whole Binding is replaced with Opaque.Redacted")
+        void wholeBindingRedactionPreservesHash() {
+            Binding sensitive = new Binding(BODY_ROLE, "secret");
+            byte[] bindingHash = HashTree.hashOf(sensitive, HashTree.DEFAULT_DIGEST);
+
+            Body full     = Body.of(HEAD, List.of(sensitive));
+            Body redacted = Body.of(HEAD, List.of(new Opaque.Redacted(bindingHash)));
+
+            assertThat(HashTree.hashOf(redacted, HashTree.DEFAULT_DIGEST))
+                    .isEqualTo(HashTree.hashOf(full, HashTree.DEFAULT_DIGEST));
+        }
+
+        @Test
+        @DisplayName("the soft-deprecated bindings() accessor filters Opaque entries out")
+        void deprecatedBindingsFiltersOpaques() {
+            byte[] hash = HashTree.hashOf(sampleBody(), HashTree.DEFAULT_DIGEST);
+            Body body = Body.of(HEAD, List.of(
+                    new Binding(BODY_ROLE, "visible"),
+                    new Opaque.Redacted(hash)));
+
+            assertThat(body.entries()).hasSize(2);
+            List<Binding> bindings = body.bindings();
+            assertThat(bindings).hasSize(1);
+            assertThat(bindings.get(0).target()).isEqualTo("visible");
+        }
+    }
+
+    @Nested
+    @DisplayName("Opaque as a CompoundKey qualifier (position 3)")
+    class OpaqueAsQualifier {
+
+        @Test
+        @DisplayName("a CompoundKey with a mixed qualifier list round-trips through CBOR")
+        void mixedQualifiersRoundtrip() {
+            ItemRef englishQualifierIid = ItemRef.iid(Language.English.KEY);
+            ItemRef lemmaQualifierIid = ItemRef.iid(GrammaticalFeature.Lemma.KEY);
+            byte[] hiddenQualifierHash = HashTree.hashOf(
+                    new CompoundKey.Sememe(lemmaQualifierIid),
+                    HashTree.DEFAULT_DIGEST);
+
+            CompoundKey key = CompoundKey.of(
+                    BODY_ROLE,
+                    new CompoundKey.Sememe(englishQualifierIid),
+                    new Opaque.Redacted(hiddenQualifierHash));
+
+            Binding binding = new Binding(key, "value");
+            Body body = Body.of(HEAD, java.util.List.of(binding));
+
+            byte[] encoded = CgCbor.encode(body);
+            Body decoded = (Body) CgCbor.decode(encoded);
+
+            assertThat(decoded).isEqualTo(body);
+
+            Binding recoveredBinding = (Binding) decoded.entries().get(0);
+            assertThat(recoveredBinding.key().parts()).hasSize(2);
+            assertThat(recoveredBinding.key().parts())
+                    .anyMatch(p -> p instanceof Opaque.Redacted)
+                    .anyMatch(p -> p instanceof CompoundKey.Sememe);
+        }
+
+        @Test
+        @DisplayName("parent body hash is invariant when a qualifier is replaced with Opaque.Redacted")
+        void qualifierRedactionPreservesParentHash() {
+            ItemRef englishQualifierIid = ItemRef.iid(Language.English.KEY);
+            ItemRef lemmaQualifierIid = ItemRef.iid(GrammaticalFeature.Lemma.KEY);
+
+            CompoundKey.Sememe sensitiveQualifier = new CompoundKey.Sememe(lemmaQualifierIid);
+            byte[] sensitiveHash = HashTree.hashOf(sensitiveQualifier, HashTree.DEFAULT_DIGEST);
+
+            CompoundKey fullKey = CompoundKey.of(
+                    BODY_ROLE,
+                    new CompoundKey.Sememe(englishQualifierIid),
+                    sensitiveQualifier);
+
+            CompoundKey redactedKey = CompoundKey.of(
+                    BODY_ROLE,
+                    new CompoundKey.Sememe(englishQualifierIid),
+                    new Opaque.Redacted(sensitiveHash));
+
+            Body fullBody     = Body.of(HEAD, java.util.List.of(new Binding(fullKey, "x")));
+            Body redactedBody = Body.of(HEAD, java.util.List.of(new Binding(redactedKey, "x")));
+
+            assertThat(HashTree.hashOf(redactedBody, HashTree.DEFAULT_DIGEST))
+                    .isEqualTo(HashTree.hashOf(fullBody, HashTree.DEFAULT_DIGEST));
+        }
+
+        @Test
+        @DisplayName("the soft-deprecated qualifiers() accessor filters Opaque parts out")
+        void deprecatedQualifiersFiltersOpaques() {
+            ItemRef englishQualifierIid = ItemRef.iid(Language.English.KEY);
+            byte[] hash = HashTree.hashOf(sampleBody(), HashTree.DEFAULT_DIGEST);
+
+            CompoundKey key = CompoundKey.of(
+                    BODY_ROLE,
+                    new CompoundKey.Sememe(englishQualifierIid),
+                    new Opaque.Redacted(hash));
+
+            assertThat(key.parts()).hasSize(2);
+            java.util.List<CompoundKey.Qualifier> filtered = key.qualifiers();
+            assertThat(filtered).hasSize(1);
+            assertThat(filtered.get(0)).isInstanceOf(CompoundKey.Sememe.class);
         }
     }
 

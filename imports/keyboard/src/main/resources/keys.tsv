@@ -1,0 +1,252 @@
+# Keyboard `code` values — bootstrap data for the Key vocabulary.
+#
+# Source: W3C UI Events — `KeyboardEvent.code` Values
+#         https://www.w3.org/TR/uievents-code/
+#         Editor: Travis Leithead (Microsoft)
+#         Status: W3C Working Draft
+#         License: W3C Document License
+#                  https://www.w3.org/Consortium/Legal/copyright-documents
+#
+# Categories below are a CG-side grouping (letter, digit, modifier, function,
+# navigation, whitespace, symbol, lock, media) — they don't appear in the
+# W3C spec; they're our queryable category sub-archetypes of Key.
+#
+# Each row defines one Key sememe.  IID derives from `cg.key:<code>`.
+# The TSV is the bootstrap seed source; once released, the canonical signed
+# bodies are distributed on the live graph and merge idempotently with
+# locally-bootstrapped copies.
+#
+# Columns are TAB-separated.  Blank lines and lines starting with # are
+# skipped.  The first non-comment, non-blank line is the column header.
+#
+#   code                 W3C `code` string (also the IID suffix after cg.key:)
+#   category             CG category (see Key sub-archetypes in InputVocabulary)
+#   usb_hid_code         hex USB HID Usage ID (optional; empty if unknown)
+#   english_name         human-readable English name (becomes the Lemma lexeme)
+#   language_layout_hint empty for universal; ja_JP / ko_KR / pt_BR / etc.
+#   aliases              comma-separated alternate names (each gets an Alias lexeme)
+#
+code	category	usb_hid_code	english_name	language_layout_hint	aliases
+
+# ==================================================================================
+# Writing System Keys — Alphanumeric Section
+# Letters A–Z (W3C `KeyA`..`KeyZ`).
+# ==================================================================================
+KeyA	letter		A
+KeyB	letter		B
+KeyC	letter		C
+KeyD	letter		D
+KeyE	letter		E
+KeyF	letter		F
+KeyG	letter		G
+KeyH	letter		H
+KeyI	letter		I
+KeyJ	letter		J
+KeyK	letter		K
+KeyL	letter		L
+KeyM	letter		M
+KeyN	letter		N
+KeyO	letter		O
+KeyP	letter		P
+KeyQ	letter		Q
+KeyR	letter		R
+KeyS	letter		S
+KeyT	letter		T
+KeyU	letter		U
+KeyV	letter		V
+KeyW	letter		W
+KeyX	letter		X
+KeyY	letter		Y
+KeyZ	letter		Z
+
+# Top-row digits 0–9.
+Digit0	digit		0
+Digit1	digit		1
+Digit2	digit		2
+Digit3	digit		3
+Digit4	digit		4
+Digit5	digit		5
+Digit6	digit		6
+Digit7	digit		7
+Digit8	digit		8
+Digit9	digit		9
+
+# Punctuation and other symbols on the writing-system keys.
+Backquote	symbol		Backtick
+Backslash	symbol		Backslash
+BracketLeft	symbol		Left Bracket
+BracketRight	symbol		Right Bracket
+Comma	symbol		Comma
+Equal	symbol		Equals
+Minus	symbol		Minus
+Period	symbol		Period
+Quote	symbol		Quote
+Semicolon	symbol		Semicolon
+Slash	symbol		Slash
+
+# International keys present on ISO/Japanese physical keyboards.
+IntlBackslash	symbol		Intl Backslash
+IntlRo	symbol		Ro	ja_JP
+IntlYen	symbol		Yen	ja_JP
+
+# ==================================================================================
+# Writing System Keys — Functional Section
+# Modifier keys, whitespace keys, and IME/language toggles.
+# ==================================================================================
+ShiftLeft	modifier	0xE1	Left Shift
+ShiftRight	modifier	0xE5	Right Shift
+ControlLeft	modifier	0xE0	Left Control
+ControlRight	modifier	0xE4	Right Control
+AltLeft	modifier	0xE2	Left Alt
+AltRight	modifier	0xE6	Right Alt
+MetaLeft	modifier	0xE3	Left Meta		OSLeft,SuperLeft
+MetaRight	modifier	0xE7	Right Meta		OSRight,SuperRight
+CapsLock	lock	0x39	Caps Lock
+ContextMenu	symbol		Context Menu
+Enter	whitespace	0x28	Enter		Return
+Space	whitespace	0x2C	Space
+Tab	whitespace	0x2B	Tab
+Backspace	whitespace	0x2A	Backspace
+
+# Japanese/Korean IME and language toggles.
+Convert	symbol		Convert	ja_JP	Henkan
+NonConvert	symbol		Non-Convert	ja_JP	Muhenkan
+KanaMode	symbol		Kana Mode	ja_JP	Hiragana
+Lang1	symbol		Lang 1	ja_JP,ko_KR
+Lang2	symbol		Lang 2	ja_JP,ko_KR
+Lang3	symbol		Lang 3	ja_JP
+Lang4	symbol		Lang 4	ja_JP
+Lang5	symbol		Lang 5	ja_JP
+
+# ==================================================================================
+# Control Pad Section
+# The six-key block above the arrow pad, plus Help.
+# ==================================================================================
+Delete	navigation	0x4C	Delete
+End	navigation	0x4D	End
+Help	symbol		Help
+Home	navigation	0x4A	Home
+Insert	navigation	0x49	Insert
+PageDown	navigation	0x4E	Page Down	PgDn
+PageUp	navigation	0x4B	Page Up	PgUp
+
+# ==================================================================================
+# Arrow Pad Section
+# ==================================================================================
+ArrowDown	navigation	0x51	Down Arrow
+ArrowLeft	navigation	0x50	Left Arrow
+ArrowRight	navigation	0x4F	Right Arrow
+ArrowUp	navigation	0x52	Up Arrow
+
+# ==================================================================================
+# Numpad Section
+# Numeric keypad keys.  Digits classified as `digit`; operators and
+# special keys classified by their functional role.
+# ==================================================================================
+NumLock	lock	0x53	Num Lock
+Numpad0	digit	0x62	Numpad 0
+Numpad1	digit	0x59	Numpad 1
+Numpad2	digit	0x5A	Numpad 2
+Numpad3	digit	0x5B	Numpad 3
+Numpad4	digit	0x5C	Numpad 4
+Numpad5	digit	0x5D	Numpad 5
+Numpad6	digit	0x5E	Numpad 6
+Numpad7	digit	0x5F	Numpad 7
+Numpad8	digit	0x60	Numpad 8
+Numpad9	digit	0x61	Numpad 9
+NumpadAdd	symbol	0x57	Numpad Add
+NumpadBackspace	whitespace		Numpad Backspace
+NumpadClear	symbol		Numpad Clear
+NumpadClearEntry	symbol		Numpad Clear Entry
+NumpadComma	symbol	0x85	Numpad Comma
+NumpadDecimal	symbol	0x63	Numpad Decimal
+NumpadDivide	symbol	0x54	Numpad Divide
+NumpadEnter	whitespace	0x58	Numpad Enter
+NumpadEqual	symbol	0x67	Numpad Equal
+NumpadHash	symbol		Numpad Hash
+NumpadMemoryAdd	symbol		Numpad Memory Add
+NumpadMemoryClear	symbol		Numpad Memory Clear
+NumpadMemoryRecall	symbol		Numpad Memory Recall
+NumpadMemoryStore	symbol		Numpad Memory Store
+NumpadMemorySubtract	symbol		Numpad Memory Subtract
+NumpadMultiply	symbol	0x55	Numpad Multiply
+NumpadParenLeft	symbol		Numpad Left Paren
+NumpadParenRight	symbol		Numpad Right Paren
+NumpadStar	symbol		Numpad Star
+NumpadSubtract	symbol	0x56	Numpad Subtract
+
+# ==================================================================================
+# Function Section
+# F-keys, Escape, system keys.
+# ==================================================================================
+Escape	symbol	0x29	Escape		Esc
+F1	function	0x3A	F1
+F2	function	0x3B	F2
+F3	function	0x3C	F3
+F4	function	0x3D	F4
+F5	function	0x3E	F5
+F6	function	0x3F	F6
+F7	function	0x40	F7
+F8	function	0x41	F8
+F9	function	0x42	F9
+F10	function	0x43	F10
+F11	function	0x44	F11
+F12	function	0x45	F12
+Fn	modifier		Fn
+FnLock	lock		Fn Lock
+PrintScreen	symbol	0x46	Print Screen	    	PrtSc
+ScrollLock	lock	0x47	Scroll Lock
+Pause	symbol	0x48	Pause		Break
+
+# ==================================================================================
+# Media Keys
+# Audio/video controls, browser keys, application launchers, power.
+# ==================================================================================
+AudioVolumeDown	media		Volume Down
+AudioVolumeMute	media		Volume Mute
+AudioVolumeUp	media		Volume Up
+BrowserBack	media		Browser Back
+BrowserFavorites	media		Browser Favorites
+BrowserForward	media		Browser Forward
+BrowserHome	media		Browser Home
+BrowserRefresh	media		Browser Refresh
+BrowserSearch	media		Browser Search
+BrowserStop	media		Browser Stop
+Eject	media		Eject
+LaunchApp1	media		Launch App 1
+LaunchApp2	media		Launch App 2
+LaunchMail	media		Launch Mail
+MediaPlayPause	media		Media Play/Pause
+MediaSelect	media		Media Select
+MediaStop	media		Media Stop
+MediaTrackNext	media		Media Next Track
+MediaTrackPrevious	media		Media Previous Track
+Power	media		Power
+Sleep	media		Sleep
+WakeUp	media		Wake Up
+
+# ==================================================================================
+# Legacy, Non-Standard and Special Keys
+# Most of these come from older keyboards or specialized hardware.  Some
+# (Hiragana, Katakana, Hyper, Super) are aliases for keys defined above
+# under their modern names; they're seeded as separate items so legacy
+# data referring to them resolves cleanly.
+# ==================================================================================
+Abort	symbol		Abort
+Again	symbol		Again
+Copy	symbol		Copy
+Cut	symbol		Cut
+Find	symbol		Find
+Hiragana	symbol		Hiragana	ja_JP
+Hyper	modifier		Hyper
+Katakana	symbol		Katakana	ja_JP
+Open	symbol		Open
+Paste	symbol		Paste
+Props	symbol		Props
+Resume	symbol		Resume
+Select	symbol		Select
+Super	modifier		Super
+Suspend	symbol		Suspend
+Turbo	symbol		Turbo
+Undo	symbol		Undo
+Unidentified	symbol		Unidentified
