@@ -1,0 +1,20 @@
+// =============================================================================
+// :bridges — Foreign-protocol bridges and concrete transports.
+//
+// Anything that produces a Tunnel from a real network medium (TCP, Unix
+// sockets, Reticulum, WebSockets, ...) or translates Common Graph's native
+// Parley protocol to and from an external protocol (HTTP, ActivityPub, IPFS,
+// SMTP/IMAP, ...) lives here.
+//
+// :core defines the Tunnel abstraction, the Parley protocol, the Endpoint
+// value type, and the canonical transport-protocol sememes. :bridges plugs
+// concrete implementations in behind those abstractions.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}

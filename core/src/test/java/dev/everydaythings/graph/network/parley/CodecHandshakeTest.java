@@ -2,6 +2,7 @@ package dev.everydaythings.graph.network.parley;
 
 import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.network.tunnel.LoopbackTunnel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

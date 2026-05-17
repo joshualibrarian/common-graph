@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.network.parley;
+package dev.everydaythings.graph.network.tunnel;
 
 import dev.everydaythings.graph.identity.MultiKey;
 
@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  *   <tr><th>Tunnel</th><th>Confidential</th><th>Authenticated</th><th>Counterparty</th></tr>
  *   <tr><td>{@link LoopbackTunnel}</td><td>no</td><td>no</td><td>empty</td></tr>
  *   <tr><td>{@code PlaintextTunnel}</td><td>no</td><td>no</td><td>empty</td></tr>
- *   <tr><td>{@link NoiseTunnel}</td><td>yes</td><td>yes</td><td>static key</td></tr>
+ *   <tr><td>{@link dev.everydaythings.graph.network.parley.NoiseTunnel}</td><td>yes</td><td>yes</td><td>static key</td></tr>
  *   <tr><td>{@code TLSTunnel}</td><td>yes</td><td>yes</td><td>cert public key</td></tr>
  *   <tr><td>{@code ReticulumTunnel}</td><td>yes</td><td>yes</td><td>Reticulum identity</td></tr>
  * </table>

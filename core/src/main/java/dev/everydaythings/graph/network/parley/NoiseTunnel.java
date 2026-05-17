@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.network.parley;
 
 import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.network.tunnel.Tunnel;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.Optional;

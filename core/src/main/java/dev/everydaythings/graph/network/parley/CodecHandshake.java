@@ -2,6 +2,7 @@ package dev.everydaythings.graph.network.parley;
 
 import dev.everydaythings.graph.id.HashID;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.network.tunnel.Tunnel;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.Objects;

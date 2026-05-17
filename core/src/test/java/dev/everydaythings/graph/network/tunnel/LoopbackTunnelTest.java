@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.network.parley;
+package dev.everydaythings.graph.network.tunnel;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
