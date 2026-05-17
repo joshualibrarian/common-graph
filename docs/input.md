@@ -1,212 +1,215 @@
 # Input
 
-Every way data enters Common Graph — a user typing into a prompt, a programmatic command from a script, a query expression, a Slack message arriving via bridge, an email translated by an SMTP gateway, an AI agent producing output, an HTTP form submission — runs through **the same pipeline**.  There is no separate import path, no separate command parser, no separate query parser, no separate bridge handler.  There is one parser, one token resolution stage, one frame assembler.  Different input contexts differ only in **policy configuration** — how interactive to be, how to handle ambiguity, what confidence threshold to require, whether to queue uncertain cases for review.
+Every way data enters Common Graph runs through the same pipeline. A user typing into a prompt, a programmatic command from a script, a bridge translating an email or a Slack message, an AI agent producing output — all produce frames through one tokenizer, one token dictionary, one consensus circle, one frame assembler. Different input contexts differ only in *policy* (how interactive, what confidence threshold to require, whether ambiguity gets queued for review), not in mechanism.
 
-This document describes the unified input architecture, why it's structured this way, and what falls out of it.
+The unified pipeline is what makes Common Graph extensible at the surface. New input contexts — voice, gesture, AI, new bridges — plug in by configuring policy, not by adding parsers.
 
-> For the resolution pipeline implementation details, see [Vocabulary](vocabulary.md).  For sememes, lexemes, and language items, see [Language](language.md).  For external-system integration, see [Bridges](bridges.md).  For queries (which are also input), see [Query](query.md).
+This document defines the input pipeline's stages, how composable notations contribute parse interpretations, and how the same machinery serves interactive, scripted, and bridge-driven input.
 
-## The unifying claim
+This document assumes familiarity with [vocabulary](vocabulary.md), [sememes](sememes.md), [language](language.md), [frames](frames.md), and [text](text.md).
 
-**Every input event is `eval(input, language, policy) → frame(s)`.**
-
-- `input` is whatever surface form arrived: a string the user typed, a Slack message body, a CLI command, a SPARQL query, an HTTP form payload, a Lisp s-expression, a Python function call.
-- `language` is the Language item whose parser interprets that surface form.  English, Spanish, Mandarin, Chess Notation, Lisp, miniKanren, SPARQL, SQL — all are Language items.  Each has its own `parse()` implementation that tokenizes and structures input according to its own grammar.
-- `policy` is a configuration that governs decisions the parser has to make: how to handle ambiguity, whether to prompt, what confidence threshold to require, what to do on failure.
-- The output is one or more frames — semantically resolved, ready to be persisted, signed, or evaluated further.
-
-This is a single function with a single implementation.  The differences between an interactive editor, a Slack bridge, and a one-shot CLI command are differences in `policy`, not differences in code path.
-
-## Why this works
-
-It works because **frames are the universal data primitive**, and any process that produces frames can plug into the rest of the architecture identically.  A Slack message that arrives via bridge becomes one or more frames; once they exist, they're indistinguishable from frames a user typed.  Trust evaluation, indexing, signing, querying, presentation — all operate on frames, regardless of how those frames came into being.
-
-The pipeline that produces frames from surface text is itself well-defined:
+## The pipeline
 
 ```
-surface input
-   ↓
-Language.parse() — tokenize, resolve sememes, structure
-   ↓
-PredicateBehavior.contribute() — each resolved sememe contributes parsing behavior
-   ↓
-FrameAssembler — accumulate evidence, build frame structure
-   ↓
-disambiguation (per policy: interactive prompt, fail, fallback, queue)
-   ↓
-resolved frame(s)
+text in
+  ↓
+[1] tokenize
+  ↓
+[2] resolve
+  ↓
+[3] parse
+  ↓
+[4] assemble
+  ↓
+[5] dispatch
+  ↓
+frame submitted, dispatched, observable result
 ```
 
-This pipeline is the same whether the surface input came from a person, a Slack import, a CLI invocation, or another machine.  See [Vocabulary](vocabulary.md) for the implementation details.
+Five stages, each well-defined, each consuming the previous stage's output.
 
-## Policy configurations
+**[1] Tokenize.** Break input into candidate tokens via the **TokenLattice**. The lattice considers multiple tokenization strategies — whitespace boundaries, character-class transitions, multi-word lookup windows, structural-symbol isolation, literal detection (numbers, quoted strings, booleans). Each token is a candidate span in the input; ambiguous spans (the same letters could be one long token or two short tokens) leave both alternatives in the lattice for later disambiguation.
 
-What differs across input contexts is **policy** — a configuration object passed to `eval()`.  Plausible policy fields:
+**[2] Resolve.** Each candidate token looks up against the **TokenDictionary** with the current scope chain. The dictionary returns matching postings — `(token, sememe, scope, weight)` tuples. A token that resolves to multiple sememes (different scopes, different parts of speech) carries all candidates forward; deferred resolution waits for context. A token that resolves to a single sememe locks immediately.
+
+**[3] Parse.** Composable **notations** contribute parse interpretations to a **consensus circle**. Each notation handles one syntactic phenomenon (infix operators, function calls, property access, …) and emits a FrameMap delta — a partial picture of the assembling frame with confidence weights on each part. The orchestrating item (typically the focused item) merges deltas across rounds until the picture stabilizes.
+
+**[4] Assemble.** When the consensus settles, the FrameMap's frame structure is extracted as a body and signed (in interactive contexts, on user confirmation; in scripted contexts, immediately; in bridge contexts, by the bridge's identity). The result is a complete, signed frame ready to submit.
+
+**[5] Dispatch.** The frame is submitted to the librarian. The librarian routes it: items referenced in the frame's bindings get `onFrameAssembled` callbacks; items whose archetypes have matching HANDLES bindings get dispatched. The frame's handler runs; reply frames produced re-enter the pipeline.
+
+Stages 1–4 are the parsing pipeline (detailed in [`text.md`](text.md)). Stage 5 is the dispatch path (detailed in [`api.md`](api.md)). This document covers how the pipeline serves *different input contexts*.
+
+## Composable notations
+
+Parsing isn't driven by a single grammar; it's driven by a *set of notations* — small focused parse participants, each handling one syntactic phenomenon. The default notation set includes:
+
+- **OperatorNotation** — handles infix/prefix/postfix operators with declared precedence and associativity. Covers arithmetic (+, -, *, /), comparison (==, !=, <, >), logical (&&, ||, !), set (∪, ∩), pipe (|>), and anything else operator-shaped.
+- **FunctionNotation** — handles `f(args)`-shaped fragments. Owns argument grouping and separator handling.
+- **PropertyAccessNotation** — handles `a.b.c` dot-chains. Useful inside English, math, code-like prompts, chess.
+- **AssignmentNotation** — handles `=` with target/source asymmetry.
+- **IndexNotation** — handles `a[i]` bracket indexing.
+- **IdentifierNotation** — handles bare token-resolved sememes that fill binding slots.
+
+Languages compose notations. English brings `[Operator, Function, PropertyAccess, Assignment, Index, Identifier]`. Chess notation brings `[ChessMove, Square, Promotion]`. SQL brings `[SqlNotation, Identifier, OperatorNotation-subset]`. A new language is a new composition; a new syntactic phenomenon is a new notation.
+
+The parser's job is to compose the active notations and let them contribute. No single grammar binds them; the consensus circle merges contributions by weight. Details in [`text.md`](text.md).
+
+## Scope chain
+
+The active **scope chain** determines which vocabulary, which notations, and which languages contribute at parse time. The chain is built from:
+
+- **The focused item's archetype's vocabulary** — what does this item's type know about?
+- **The focused item's own vocabulary** — what named entities live in this item?
+- **The session's vocabulary** — general system commands.
+- **The user's vocabulary** — personal aliases, scripts.
+- **The active languages** — natural and notational, in priority order.
+- **Universal scope** — operators, units, structural symbols.
+
+Different chains produce different parse interpretations of the same input. "move" in a chess game's chain resolves to the chess MOVE predicate; "move" in a file-system context resolves to a file-rename operation. Same surface form, different sememes by scope.
+
+## Tentative frames
+
+Mid-parse, the assembling frame is **tentative** — interpretable but incomplete. The system surfaces tentative frames to the UI for inspection in interactive mode; users can confirm, correct, or wait for more input.
+
+A tentative frame might have:
+- A predicate locked but several binding slots empty.
+- A predicate and bindings present but some target values ambiguous.
+- Two competing predicates with similar weights.
+
+The UI renders tentative frames as **chips** — visual fragments showing what's resolved so far. The user sees the parser's state directly, expressed as the data being assembled. There's no parser internal that's hidden from inspection.
+
+If the user keeps typing, the chips update. If the user submits, ambiguity blocks submission until resolved (or, in lenient policies, the most-likely interpretation wins). If the user explicitly disambiguates by clicking or selecting, the chosen interpretation feeds back into the next round with maximum weight.
+
+## Input contexts
+
+The pipeline serves several distinct contexts. Each differs in *policy*, not mechanism.
+
+### Interactive prompt
+
+A user types; the pipeline runs incrementally on every keystroke. The current draft FrameMap is surfaced as chips; ambiguity is rendered as visible candidate sets; the user can resolve by clicking, by typing more, or by pressing Enter to submit (which forces a final resolution pass).
+
+Policy:
+- High interactivity — the parser runs per-keystroke.
+- Tolerant of ambiguity — multiple interpretations stay alive until disambiguated.
+- Explicit user disambiguation when stuck.
+
+### Scripted invocation
+
+A program submits a complete text expression; the pipeline runs once. No incremental rendering, no per-keystroke updates; the parser consumes the whole input, produces a frame, submits.
+
+Policy:
+- One-shot — no rendering.
+- Strict on ambiguity — multiple interpretations is an error.
+- No user fallback — the script either parses unambiguously or fails.
+
+### Bridge translation
+
+A bridge (email, Slack, SMS, HTTP form) translates an external message into a frame. The bridge owns the input adapter — it knows how to extract relevant fields from the external format and feed them to the pipeline.
+
+Policy:
+- One-shot per message — no interactivity.
+- Bridge-specific scope chain — the bridge's adapter declares which vocabulary applies.
+- Bridge identity as the signer — the bridge signs the frame on the user's behalf (with explicit user authorization for that bridge to do so).
+
+### AI agent output
+
+An AI agent produces structured or semi-structured output. The output runs through the pipeline like any other input. Agents don't get a privileged path; their output is parsed the same way a human's typing is.
+
+Policy:
+- One-shot.
+- Tolerant or strict based on context.
+- Agent identity as the signer.
+
+### Other contexts
+
+Voice input transcribes to text and feeds the pipeline. Gesture-driven UIs build text representations of gestures. Bar-code and QR-code scanners produce input strings. Anything that can produce text-shaped input can be plugged in by writing an adapter that produces tokens and a scope chain.
+
+## Ambiguity handling
+
+Deferred resolution is the system's main tool for handling ambiguity. Rather than resolve every token at first encounter, the pipeline carries multiple candidates forward:
+
+- A token resolves to multiple sememes → keep all candidates; let context narrow.
+- A binding has multiple valid sources → keep alternatives weighted; let the merge settle.
+- A frame's predicate is uncertain → multiple competing FrameMap drafts; surface alternatives.
+
+Resolution happens as late as possible. In interactive mode, the user can intervene at any point. In scripted mode, the parser commits when forced (at submission); if still ambiguous, it errors out.
+
+The mechanism is the same in both cases. Policy decides whether to wait for the user or to error.
+
+## Worked examples
+
+**A user typing "move pawn to e4" into a chess-game prompt.**
 
 ```
-policy:
-    interactivity         : PROMPT_USER | BATCH_SILENT | FAIL_FAST
-    ambiguity_resolution  : USER_DISAMBIGUATE | FALLBACK_TO_MESSAGE | RETURN_CANDIDATES
-    confidence_threshold  : 0.0 .. 1.0
-    review_queue          : NONE | QUEUE_FOR_HUMAN | QUEUE_FOR_AI
-    visual_feedback       : LIVE | NONE
-    on_partial_resolution : COMMIT_PARTIAL | REJECT | RETURN_INCOMPLETE
-    signing_principal     : (which signer commits the resulting frames)
+[1] tokenize:  ["move", "pawn", "to", "e4"]
+[2] resolve in [@chess-game, @chess-notation, @english, null]:
+       move → @cg-verb-move (English)
+       pawn → @chess-pawn-piece (chess vocab)
+       to   → @to-preposition (English)
+       e4   → @e4-square (chess vocab)
+[3] parse: composable notations contribute:
+       OperatorNotation: no contribution (no operators).
+       FunctionNotation: no contribution (no parens).
+       IdentifierNotation: maps each token to a binding slot.
+       English's prepositional notation: "to <X>" → GOAL → X.
+   Consensus FrameMap (after merge):
+       predicate: @chess-move
+       bindings: AGENT (inferred from session signer),
+                  THEME → @chess-pawn-piece,
+                  GOAL → @e4-square,
+                  LOCATION → @<game-iid>
+[4] assemble: build frame body, sign with user's key.
+[5] dispatch: @<chess-game> has @HANDLES → @chess-move; route to its move handler.
 ```
 
-The exact field set is design-flexible; the principle is that all the contextual behavior of an input mode is captured here, separated from the parsing core.  Some example configurations:
-
-**Interactive composition (a user typing in CG):**
-```
-interactivity:        PROMPT_USER
-ambiguity_resolution: USER_DISAMBIGUATE
-confidence_threshold: low (resolve liberally, prompt if needed)
-visual_feedback:      LIVE
-on_partial_resolution: COMMIT_PARTIAL  (frame assembles incrementally as user types)
-```
-
-**Slack bridge inbound:**
-```
-interactivity:        BATCH_SILENT
-ambiguity_resolution: FALLBACK_TO_MESSAGE  (cannot prompt; fallback to coarse predicate)
-confidence_threshold: high (only commit semantic frames when very confident)
-review_queue:         QUEUE_FOR_AI  (review uncertain ones with AI assistance later)
-```
-
-**CLI one-shot command:**
-```
-interactivity:        FAIL_FAST
-ambiguity_resolution: USER_DISAMBIGUATE  (interactive shell can prompt)
-on_partial_resolution: REJECT  (don't commit half-parsed)
-```
-
-**Programmatic API (machine caller):**
-```
-interactivity:        BATCH_SILENT
-ambiguity_resolution: RETURN_CANDIDATES  (let the caller decide)
-on_partial_resolution: RETURN_INCOMPLETE
-```
-
-**Bulk import / re-curation:**
-```
-interactivity:        BATCH_SILENT
-review_queue:         QUEUE_FOR_HUMAN  (sample for spot-checking)
-confidence_threshold: tunable (start conservative, relax as confidence builds)
-```
-
-The same parser, same tokenizer, same sememe resolution, same frame assembly — different policy.
-
-## Languages are input modes
-
-Because parsing is `Language.parse()` and Language is itself an item, **any parser that produces frames is a valid input language**.  This is not a special-case provision; it's the natural consequence of the Language abstraction.
-
-The table of available input languages grows organically.  At minimum:
-
-- **Natural languages** (English, Spanish, Mandarin, Swahili, ...).  Each is a Language item with its own grammar parser, lexemes pointing at shared sememes, morphology rules.  Same sememes, different surface decorations.
-- **Domain-specific notations** (Chess notation, music notation, chemical formulas, mathematical expressions).  Each is a Language item whose `parse()` understands its grammar and produces frames.
-- **Programming-flavored** (Lisp/s-expression, Python-style function calls, JSON-shaped frame literals).  Trivial parsers for users who think in code.  Map directly to frame structure.
-- **Logic and query languages** (miniKanren, SPARQL, SQL with conventions).  Especially natural for queries; miniKanren in particular maps almost identically to CG's relational frame structure.
-
-A user writes in their preferred language; the frame produced is the same.  A reader views it in their preferred language; the lexeme rendering is selected from what's available on the relevant sememes.  The data is language-neutral; the surface forms are skin.
-
-This means a Spanish-speaking biologist can author frames in Spanish, their Mandarin-speaking colleague can query them in miniKanren, and both see results rendered in their preferred language — all reading from and writing to the same corpus, with no translation layer between them other than what the lexeme renderer does at presentation time.
-
-**Three layers, cleanly separated:**
-- **Language** — the input UX layer.  How surface forms look.
-- **Frame** — the data layer.  The structured assertion.
-- **Sememe** — the meaning layer.  Language-neutral identity.
-
-The cross product is enormous: every language times every input context times every policy.  Adding a new language adds it to all contexts at once.  Adding a new context (a new bridge, a new CLI mode, a new editor surface) adds it for all languages at once.
-
-## The three-tier resolution model
-
-Within any input context, parsing produces one of three outcomes:
-
-**1. Clean semantic resolution.**  The parser accumulates enough evidence to commit a fully-structured semantic frame.  Multiple markers reinforce: "would you please review this PR?" — `please`, `would you`, `?` all contribute REQUEST-flavored evidence; the parser builds a REQUEST frame with appropriate role bindings.  Most intentional, well-formed input lands here.
-
-**2. Disambiguation needed.**  The parser sees ambiguity that can't be resolved structurally (e.g., a token that resolves to multiple sememes with different EXPECTS).  In interactive contexts, the UI surfaces the choice and the user picks.  In batch contexts, fallback or queue policies engage.
-
-**3. Soft fallback.**  Resolution doesn't reach the confidence threshold for a structured predicate.  The input lands as a MESSAGE (or DECLARATION — same sememe, alternative lexemes for "saying something") with the surface text preserved.  This is **not a failure mode** — it's the appropriate predicate for casual content that resists or doesn't need further semantic carving.  IRC-era banter, social bonding, off-topic chatter, "lol" — these are legitimate communicative acts that belong here.  MESSAGE is a first-class predicate, not a degraded one.
-
-A frame committed at tier 3 can be promoted later: a user, an AI agent, or a curator can author a SUPERSEDES or AMENDS frame that carries richer semantic structure.  Re-curation is just authoring; nothing seals coarse data permanently into coarseness.
-
-## No input friction as design principle
-
-A guiding constraint on the input architecture: **the user just types**.  Frames assemble in real time; visual feedback shows what's being captured; sememes light up as they resolve; the predicate emerges from accumulated evidence.  If interpretation is clear, accept-on-Enter (or platform-equivalent gesture) commits a semantic frame.  If interpretation is ambiguous, the disambiguation UI appears inline.  If interpretation falls below threshold, MESSAGE captures the casual content.
-
-The user is never asked to *choose* a predicate up-front, never asked to fill in role labels by hand, never asked to learn a structured authoring discipline.  They express themselves naturally; the system captures structure when structure is present.  Casualness is not punished; clarity is rewarded with richer queryability.
-
-This is the inverse of structured-data systems that demand schema-first authoring.  The schema is implicit in the predicate vocabulary; the user opts into it gradient-by-gradient as their expression admits more structure.
-
-## Bridges as policy configurations
-
-Bridges from external systems (Slack, JIRA, email, HTTP, RSS, ActivityPub, Matrix, IRC, etc.) are not parallel parsers.  They are **service items that invoke the unified `eval()` pipeline** with bridge-appropriate policies.  Specifically:
-
-- An inbound message from the external system → `eval(message_text, language=English (typically), policy=bridge_inbound)` → frames committed under the bridge's signing principal (or a delegated signer per the bridge's policy).
-- An outbound frame destined for an external system → the bridge serializes the frame to the external surface form and delivers it via the external protocol.
-
-The inbound-translation work the bridge does is *exactly* the work the parser already does for interactive input.  No duplicate parsing logic; no "Slack-aware text understanding" separate from the main parser.  Whatever intelligence the parser has — natural-language disambiguation, sememe resolution, token-window matching — applies to bridged content automatically.  Improvements to the parser benefit every bridge instantly.
-
-This means **bridges are remarkably thin code**.  They handle protocol specifics (SMTP delivery, Slack API calls, HTTP request parsing) but not semantic interpretation.  Semantic interpretation is delegated to the core pipeline.
-
-A typical bridge implementation:
+**A script submitting `create document {title: "Notes"}`.**
 
 ```
-when external_message arrives:
-    text = extract_text(external_message)
-    language = detect_language(text)  // or per-bridge config
-    policy = bridge.config.input_policy
-    frames = eval(text, language, policy)
-    persist_with_signing(frames, bridge.delegated_signer)
-    optional: queue for review if review_queue policy is set
+[1] tokenize:  ["create", "document", "{", "title", ":", "\"Notes\"", "}"]
+[2] resolve: create → @create, document → @document-archetype,
+              title → @title-binding-role, "Notes" → literal string.
+[3] parse: tokens form a CREATE frame with THEME (document archetype)
+           and a nested binding map.
+[4] assemble: frame body, signed with the script's key.
+[5] dispatch: @<librarian> handles CREATE; mints a new document item.
 ```
 
-That's the full inbound shape, modulo protocol-specific extraction.  Outbound is the symmetric: serialize frame to surface text, deliver via protocol.  Everything else — interpretation, disambiguation, fallback to MESSAGE — is the unified pipeline.
+**A bridge translating an email.**
 
-For more on bridge architecture, sandboxing, and the ecosystems worth bridging to, see [Bridges](bridges.md).
+```
+Incoming email:
+  From: alice@example.com
+  Subject: Re: project status
+  Body: ...
 
-## Queries are input too
+Bridge adapter produces tokens:
+  ["sent", "by", "@alice", "to", "@me", "subject", "...", "body", "..."]
 
-A query is a frame with set-returning bindings (see [Query](query.md)).  The same input pipeline produces query frames as well as assertion frames.  A user typing a question into the prompt, a SPARQL expression in a query box, a miniKanren run-form in a Lisp REPL — all produce query frames via the same `eval()` invocation.  Languages with query-flavored grammars (SPARQL, miniKanren, SQL with conventions) are just additional Language items whose `parse()` produces frames with set-returning bindings.
+Pipeline runs:
+  predicate: @sent
+  AGENT → @alice
+  RECIPIENT → @user
+  SUBJECT → "Re: project status"
+  CONTENT → "..."
 
-Query language for the user is therefore an open set, expanding with the Language registry.  Add miniKanren as a Language; users who want logic-programming queries get them.  Add SPARQL as a Language; semantic-web users feel at home.  None of this requires changes to the query subsystem itself — query behavior is already in the frame model; what's changing is the parser that turns surface syntax into query frames.
+Bridge signs with its delegated key, submits.
+```
 
-## The architectural payoff
+## Why one pipeline
 
-A short list of consequences that fall out of the unified-input model:
+Earlier systems separate input paths by source — a command parser for the CLI, a query parser for the database layer, a parser for each bridge, special-cased AI input handling. Each parser carries its own grammar; each bridge carries its own translation logic; the total complexity is the union of all paths.
 
-**One parser to maintain.**  Bug fixes, performance improvements, new sememes, new languages — all benefit every input context immediately.  No drift between "the editor's parser" and "the bridge's parser" because they are the same parser.
+Common Graph picks one pipeline at the architectural layer. New input sources plug in by writing an adapter that emits tokens and a scope chain — that's the only integration surface. Vocabulary, parsing, dispatch all stay the same. Adding voice input doesn't require a new parser; adding a new bridge doesn't require new frame-assembly logic; adding AI agents doesn't carve out a privileged path.
 
-**New input modes are cheap.**  Adding a new bridge is policy + protocol shim.  Adding a new input language is a Language item with its own `parse()`.  Adding a new editor surface (TUI, GUI, mobile, voice) is a UI shell that calls `eval()` with appropriate policy.  None of these touch the parsing core.
+This is what lets the surface evolve without rewriting the substrate. The pipeline is small enough to keep stable; the adapters above it are where novelty lives.
 
-**Cross-language interop is automatic.**  Frames produced from English input are identical in shape to frames produced from miniKanren input or Lisp input or Slack-bridge input.  All can be queried together, mixed in the same datasets, rendered for different audiences.
+## Relations
 
-**AI participation slots in cleanly.**  An AI proposing frames is just a signer running `eval()` against text it generated, with appropriate policy and signing principal.  An AI reviewing a queued tier-3 fallback is an `eval()` invocation with a review-flavored policy.  AI is not a special subsystem; it's another participant in the existing pipeline.
-
-**Semantic richness compounds across all contexts.**  As parser intelligence grows, every context — interactive, bridge, programmatic, query — gets richer simultaneously.  Embeddings, learned heuristics, expanded vocabularies all benefit every input mode.
-
-**Vendor-shape predicates (MESSAGE, COMMENT, etc.) are bridge accommodations, not native concepts.**  When external input arrives without semantic markers, the parser falls back to MESSAGE.  When a user types in CG with intent, structured frames emerge naturally.  Over time, native authoring drives the corpus toward semantic richness while bridges handle the legacy plumbing.  The bridge is a compatibility scaffold, not part of the destination architecture.
-
-## Implementation status
-
-Parts of this architecture are already implemented:
-
-- TokenLattice, the unified tokenizer.
-- `Language.parse()` as the per-language entry point.
-- `PredicateBehavior.contribute()` for sememe-driven parsing contributions.
-- `FrameAssembler` for accumulating evidence into frame structures.
-- English language with rich parser; Chess Notation as a working DSL Language proof of concept.
-- `Eval.evaluateRaw(String)` as the single entry point.
-
-Parts are designed but not yet implemented:
-
-- Explicit policy-configuration object passed through `eval()`.  Currently policies are scattered across calling sites; consolidating into a `Policy` object is part of the foundation refactor.
-- Bridge framework using `eval()` with bridge-shaped policies.  Currently no bridges are implemented; this design will guide the first ones (likely Slack and JIRA per the early-targets thinking).
-- Logic-programming and query languages (miniKanren, SPARQL) as Language items.  Designed; not yet implemented.
-- Lisp/Python/JSON-shaped frame literal Language items for programmatic authoring.  Trivial to implement; awaiting demand.
-
-## Why this matters strategically
-
-Beyond the engineering elegance, the unified input model is what makes Common Graph's adoption story coherent.  Users don't have to learn a new authoring discipline; they type as they always have.  Bridges make existing data flows ride alongside.  Cross-system queries become possible because all input lands in the same shape regardless of origin.  Semantic richness accumulates wherever users care to express it, without being forced where they don't.
-
-The pipeline is the front door.  Everything that arrives — typed, bridged, scripted, queried, generated — comes through the same door, and what's inside operates on a single uniform substrate.  That uniformity is what lets the rest of the architecture compose: trust matrix, federation, indexing, embeddings, queries, presentation.  Every layer above can assume "frames are frames, regardless of how they got here," because every input genuinely produced them the same way.
+- [`text.md`](text.md) — the consensus circle, FrameMap, merge mechanics in detail.
+- [`vocabulary.md`](vocabulary.md) — the token dictionary the pipeline consumes.
+- [`sememes.md`](sememes.md) — what tokens resolve to.
+- [`language.md`](language.md) — language items and their notation compositions.
+- [`api.md`](api.md) — the dispatch path the pipeline feeds.
+- [`frames.md`](frames.md) — the frames the pipeline produces.
+- [`bridges.md`](bridges.md) — bridge adapters as input contexts.

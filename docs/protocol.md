@@ -1,393 +1,250 @@
-# Protocol
+# Parley
 
-Common Graph defines two protocols: the **Peer Protocol** for peer-to-peer communication between Librarians, and the **Session Protocol** for client-to-Librarian interaction. Both share a unified wire format: CBOR tag-based message discrimination over length-prefixed frames.
+**Parley** is Common Graph's wire protocol. It runs over any byte-stream transport (Unix sockets, TCP, TLS, Bluetooth, anything that delivers ordered bytes), establishes which encoding the two parties will speak, and then carries an open-ended stream of datums in that encoding. That's the whole protocol.
 
-This document covers wire-level protocol details — message types, framing, connection lifecycle. For the high-level network architecture (discovery, routing, replication, scaling), see [Network Architecture](network.md).
+The radical move Parley makes is to collapse the control plane into the data plane. After the codec handshake, every message — auth attempts, subscriptions, sync requests, capability negotiations, application traffic — is just another frame. There's no separate "control message" type, no request/response framework, no protocol state machine. Auth happens because someone sends an `@AUTHENTICATE` frame that the counterparty handles, the same way the counterparty handles any other frame. Sync happens because someone sends a query and the counterparty answers with results. Everything is data; the protocol gets out of the way.
 
-## Design Philosophy
+This document defines the two phases of Parley, the codec handshake, the HELLO frame each side sends, and what travels over an open connection.
 
-The Peer Protocol is intentionally minimal. There are exactly two message types — **Request** and **Delivery** — plus shared keep-alive, acknowledgment, and error types. Everything else is convention built on top.
+This document assumes familiarity with [the datum primitive](datum.md), [the reference scheme](ref-scheme.md), [the network architecture](network.md), and [encoding](cg-cbor.md).
 
-This simplicity is deliberate. Traditional protocols tend to accumulate message types as features are added. Common Graph avoids this by keeping the protocol as a thin transport for graph operations. If you can request things and deliver things, you can build any interaction pattern — including query propagation across the social graph, subscription-driven replication, and relay forwarding through trusted intermediaries.
-
-Both protocols share a single wire format — CBOR tags in the 1-byte range (11-22) discriminate message types natively within the CBOR encoding, eliminating the need for external type codes or JSON-style envelope wrapping. Three message types (Heartbeat, Ack, Error) are shared across both protocols. A single Netty-based codec (`ProtocolCodec`) handles encoding and decoding for all message types.
-
-Related work: the Peer Protocol shares philosophical DNA with systems like [Freenet](https://freenetproject.org/) (content-addressed P2P storage), [IPFS](https://ipfs.tech/) (content-addressed block exchange), and [Secure Scuttlebutt](https://scuttlebutt.nz/) (append-only log replication). Unlike those systems, Common Graph unifies content addressing with semantic frames and cryptographic identity in a single protocol. The protocol is local-first by design (see [references/Kleppmann 2019](references/Kleppmann%202019%20-%20Local-First%20Software.pdf)) — all data lives locally, networking is explicit, and sync is merge-based. Fielding's REST dissertation (see [references/Fielding 2000](references/Fielding%202000%20-%20Architectural%20Styles%20and%20Network-Based%20Software%20REST.pdf)) defines the dominant network architecture of the web; the Peer Protocol departs from REST's stateless client-server model toward signed, content-addressed peer-to-peer exchange.
-
----
-
-## Peer Protocol
-
-The Peer Protocol connects Librarians — the runtime nodes of the Common Graph network. Each Librarian is itself an Item (a Signer with its own Ed25519 key), so protocol participation is identity-native.
-
-### Transport
-
-- **Framing**: `[4-byte length][CBOR Tag(N, map)]` — tag-based message discrimination (see [Wire Format](#wire-format))
-- **Transport**: Netty pipeline over TCP or Unix domain sockets
-- **TLS**: Optional; when enabled, both sides present certificates
-- **Transport encryption**: Optional Noise XX handshake + AEAD session cipher (via Vault)
-- **Keep-alive**: Shared Heartbeat messages (Tag 20) on idle connections
-
-### Message Types
-
-#### Request (Tag 11)
-
-"I want something." A Request contains one or more targets:
+## Two phases
 
 ```
-Request {
-    requestId: integer          # Correlation ID (monotonic, unique per connection)
-    targets: [Target]           # What is being requested
-}
+[1] codec point-and-grunt    — negotiate which encoding both sides speak
+[2] stream of anything       — exchange datums in that encoding
 ```
 
-**Target types:**
+That's the entire protocol structure. Phase 1 is a brief, terse handshake using *zero presumed shared vocabulary beyond the reference-prefix primitives*. Phase 2 is an open-ended exchange of self-describing bytes.
 
-| Target | Fields | Description |
-|--------|--------|-------------|
-| **Item** | `iid`, `vid?` | Request an item's manifest, optionally at a specific version |
-| **Content** | `cid` | Request content bytes by hash |
-| **Frames** | `item?`, `predicate?`, `subscribe?` | Query frames involving an item and/or predicate; optionally subscribe to updates |
+There's no phase 3. Connections stay in phase 2 until one side disconnects.
 
-Target subtypes are discriminated by field presence in the CBOR map — no "kind" strings:
-- **Item**: has `iid` field (optionally `vid`)
-- **Content**: has `cid` field (no `iid`)
-- **Frames**: has `subscribe` field
+## Phase 1: point-and-grunt
 
-A single Request can ask for multiple things at once.
+When two parties open a Parley connection, neither side yet knows what encoding the other speaks. CG-CBOR is the most likely; CG-JSON, a future flat-binary format, a domain-specific codec — any might be present on either side, possibly different sets on each. The handshake establishes which they'll use.
 
-#### Delivery (Tag 12)
+The handshake protocol is built on the only thing both sides are guaranteed to understand: the **reference byte layout** (see [`ref-scheme.md`](ref-scheme.md)). A reference's bytes — prefix character + multihash — are protocol-defined and identical across every CG implementation. Codecs identify themselves by IID; an IID is a reference; references are bytes both sides can parse without needing a codec.
 
-"Here's something." A Delivery contains one or more payloads, correlated to a Request by ID:
+The handshake:
 
-```
-Delivery {
-    requestId: integer          # Echoes the Request ID (0 = unsolicited push)
-    payloads: [Payload]         # What is being delivered
-}
-```
+1. **Initiator sends raw bytes:** `@<codec-iid>` — the bytes of an `@`-prefixed reference to the codec the initiator wants to use. No envelope, no tag, no length prefix. Just the raw 33-byte reference. The receiver knows how to read this because the reference-byte layout is part of the protocol's foundation.
 
-**Payload types:**
+2. **Receiver responds in that codec:** if the receiver supports the proposed codec, it responds with a HELLO datum *encoded in that codec*. The act of speaking the codec is the confirmation — no separate "accepted" message. The bytes of the HELLO confirm both *that the codec was understood* and *what the receiver wants to say first*.
 
-| Payload | Fields | Description |
-|---------|--------|-------------|
-| **Item** | `manifest` | A signed manifest |
-| **Content** | `cid`, `data` | Content bytes with their hash |
-| **Frames** | `frames` | A list of signed frames |
-| **NotFound** | `notfound` | "I don't have this item" (value is the IID) |
-| **Envelope** | `next`, `origin`, `inner` | Wrapped message for relay forwarding |
+3. **Mismatch path:** if the receiver doesn't support the proposed codec, it responds with another raw `@<codec-iid>` — a counter-grunt — proposing a codec it does support. The initiator can accept (sending a HELLO in that codec) or counter-propose again, and so on.
 
-Payload subtypes are discriminated by field presence — no "kind" strings:
-- **Item**: has `manifest`
-- **Content**: has `cid` + `data`
-- **Frames**: has `frames` (array)
-- **NotFound**: has `notfound`
-- **Envelope**: has `next` + `origin` + `inner`
+4. **Failure path:** if no overlap exists, the connection closes. No party is wrong; they just don't share a wire format. (In practice every librarian supports CG-CBOR as the canonical default, so this is rare.)
 
-### Connection Lifecycle
+The handshake's elegance comes from using `@`-references as the bootstrap vocabulary. The system already has a one-byte-prefix typed-reference primitive; the handshake exploits it before anything higher-level exists. No second layer is needed to bootstrap a codec; the codec's identity is itself a reference, and references are universal.
 
-#### Handshake
+The handshake's robustness comes from "speaking a codec to confirm it." A peer that claims support for a codec but can't actually emit it fails at the HELLO step; the initiator sees garbage and the connection fails. No version-mismatch surprises lurking in the data plane.
 
-When two Librarians connect, both sides immediately send an unsolicited Delivery (requestId = 0) containing their own manifest. This is the handshake:
+## Phase 2: stream of anything
+
+After the codec handshake, the connection carries an open-ended sequence of **self-describing datums** in the agreed codec. Each datum is framed by the codec's own framing rules (in CG-CBOR, that's CBOR's natural framing — each tagged value is self-delimiting). The receiver decodes one datum at a time, dispatches it, decodes the next.
+
+What travels over Phase 2:
+
+- **Frame bodies** — propositional assertions, queries, commands.
+- **Records** — signed attestations.
+- **Content blobs** — bytes addressed by ContentID, requested by reference.
+- **Encrypted envelopes** — opaque payloads with metadata for recipient resolution.
+- **Raw values** — literals, numbers, strings, anything the codec can carry standalone.
+- **HELLO**, **AUTHENTICATE**, **SUBSCRIBE**, **REQUEST**, anything else — all frames whose head is some predicate. No special-cased.
+
+Parley itself doesn't distinguish among these. To the protocol, the connection is just a sequence of decoded datums; what each datum *means* is the receiver's problem, handled by the receiver's normal dispatch machinery (HANDLES bindings, the trust matrix, the Stage).
+
+This is what "the only protocols are social" means. After phase 1, the wire is just a vehicle for frames; the rules for what to do with each frame are the rules the graph itself defines.
+
+## The HELLO frame
+
+The first frame each side sends after the codec handshake is a HELLO. The HELLO introduces the sender — who they are, what keys they sign with, possibly some gossip about other peers worth knowing about.
 
 ```
-Librarian A                         Librarian B
-     |                                    |
-     |--- connect ----------------------->|
-     |                                    |
-     |--- Delivery(id=0, my manifest) --->|
-     |<-- Delivery(id=0, their manifest) -|
-     |                                    |
-     [A now knows B's identity]    [B now knows A's identity]
+{@hello, [
+  @AGENT → @<my-iid>,
+  @SIGNING_PUBLIC_KEY → <multikey bytes>,
+  @KEY_UPDATES → #<recent-rotation-frame-cid>,
+  @PEER_GOSSIP → ... 
+]}
 ```
 
-After the handshake, both sides know each other's ItemID, public key, and display name. The peer is now **identified**.
+The HELLO is a normal frame headed by the HELLO predicate. The receiver's HELLO handler (declared by the librarian's archetype's HANDLES) processes it: verifies the signature, records the connection as belonging to the named identity, updates its knowledge of the peer's key history, possibly notes any peer-gossip references for future routing decisions.
 
-#### Graph-Native Network Frames
+A connection without a HELLO is anonymous — the receiver doesn't know who's on the other end. Anonymous connections are permitted; some interactions need no identity (a pure-content-fetch probe, for example). The trust matrix decides what anonymous peers may do.
 
-When a peer identifies, the protocol handler automatically creates signed frames recording the event:
+A session connection (a user's UI talking to a librarian) sends a HELLO that includes the session's identity and the user it represents. A peer-librarian connection sends a HELLO identifying the librarian. The receiver distinguishes the two by what the HELLO says (see [Sessions vs. peer librarians](#sessions-vs-peer-librarians) below).
 
-```
-local  → PEERS_WITH → remote
-remote → REACHABLE_AT → Endpoint(protocol, host, port)
-```
+After HELLO is exchanged, both sides know who they're talking to. Further frames flow against that identity context.
 
-These aren't side-channel metadata — they're first-class frames in the graph, queryable and auditable like any other frame. Your network topology is part of your graph.
+## Frames are messages
 
-### Request/Response Flow
+Once Phase 2 is active, every datum exchanged is a frame (or a related body type) the receiver dispatches. The dispatch follows the normal item-as-actor flow:
 
-Either side can send a Request at any time. The responder looks up the requested data in its Library and sends back a Delivery with the matching requestId:
+1. Decode the frame body.
+2. Verify any records (signatures, signer authority, freshness).
+3. Look up which local items the frame concerns (via reference targets) or which items handle frames headed by this predicate (via HANDLES).
+4. Route to the appropriate items.
+5. Items react; possibly produce reply frames.
+6. Reply frames flow back through the same connection (or a different one, if the route is asymmetric).
 
-```
-Requester                           Responder
-     |                                    |
-     |--- Request(id=42, Item X) -------->|
-     |                                    |
-     |                           [Look up X in Library]
-     |                                    |
-     |<-- Delivery(id=42, Manifest(X)) ---|
-     |                                    |
-```
+No request/response coupling at the protocol layer. A "request" frame doesn't carry a correlation ID; it doesn't expect a response on the same connection at any particular time. The receiver may respond immediately, may respond later, may not respond at all (legitimate if the predicate doesn't require a reply). Replies that need to be matched to specific requests carry a reference to the original frame's DatumID in their bindings.
 
-If the item isn't found:
+This is unusual relative to most wire protocols, which have explicit request/response framing. Parley dispenses with it because the *graph* models response relationships explicitly: a reply frame references the request frame by DatumID; that reference is observable; the relationship is data, not protocol.
 
-```
-     |<-- Delivery(id=42, NotFound(X)) ---|
-```
+## Sessions vs. peer librarians
 
-### Subscriptions
+A Parley connection is either a **session** (a client UI talking to a librarian) or a **peer librarian** (one node talking to another). The discriminator is what's in the HELLO frame:
 
-A Request with `subscribe: true` on a Frames target establishes a persistent subscription. The responder sends an initial Delivery with current matching frames, then pushes unsolicited Deliveries (requestId = 0) whenever new matching frames appear:
+- **Session HELLO** — identifies a Session item with a particular user identity attached. Triggers the librarian to allocate session-specific state (view state, focused item, presence, prompt state). The librarian treats the connection as serving a user.
+- **Peer-librarian HELLO** — identifies a librarian item. No user-session state allocated. The librarian treats the connection as inter-librarian sync traffic.
 
-```
-Subscriber                          Publisher
-     |                                    |
-     |--- Request(id=43,                  |
-     |    Frames(p=AUTHOR,               |
-     |    subscribe=true)) -------------->|
-     |                                    |
-     |<-- Delivery(id=43, [frames]) -----|
-     |                                    |
-     ...time passes, new frame added...
-     |                                    |
-     |<-- Delivery(id=0, [new frame]) ---|
-     |                                    |
-```
+Both kinds of connection run the same Parley protocol underneath. The HELLO content tells the receiver how to interpret what comes next. A peer-librarian connection might evolve into a session connection later (an additional HELLO frame attaching a session); a session connection cannot generally become peer-librarian (sessions don't have librarian identities).
 
-Subscription filters support wildcards — a null item or predicate means "any." Per-connection subscription limits prevent abuse (default: 100 per peer).
+This "peer-as-spectrum" model is what unifies the old peer/session split. Architecturally, the system has one kind of network connection; the connection's role emerges from what each side declares about itself.
 
-### Presence and Ephemeral Frames
+## Transports
 
-Subscriptions are the delivery mechanism for real-time presence. When a user creates a PRESENT frame on an item, all subscribers to that item see it arrive as a normal Delivery. Ephemeral frames — predicates with LATEST retention policy, like AVATAR_STATE, TYPING, or CURSOR — flow through the same subscription channel. The receiver replaces the previous frame from the same signer (LATEST semantics) and does not persist it to the object store.
+Parley runs over any byte-stream transport. The transport's job is delivering bytes in order; Parley's job is everything above that. Specific transports:
 
-Ephemeral frames within an authenticated peer connection may omit individual Ed25519 signatures, relying instead on the connection-level authentication established during the handshake. The predicate's lifecycle policy declares whether per-frame signing is required. This enables high-frequency updates (e.g., 60Hz avatar position) without per-message signing overhead, while durable frames (PRESENT, MOVE, MESSAGE) always carry full signatures.
+- **Unix sockets** — same-host, separate-process. Filesystem permission gating. Fast.
+- **TCP** — across-host. Most common remote case.
+- **TLS over TCP** — TCP with transport-layer encryption. The receiver's certificate is verified before bytes flow.
+- **WebSocket** — for browser-attached sessions or environments where firewalls block raw TCP.
+- **Tor / I2P / Yggdrasil** — overlay transports for privacy.
+- **Bluetooth, LoRa, custom** — short-range or low-bandwidth.
 
-PRESENT frames can also carry TOPIC stream bindings pointing to content Chains — video feeds, audio feeds, screen shares — that accumulate as content-addressed chunks delivered via the existing Content payload type.
+The transport is established before Parley runs. Whatever produces a bidirectional byte stream (with any transport-layer encryption it needs) is the transport; Parley starts at the codec handshake.
 
-### Relay Forwarding
+Some transports already provide encryption (TLS, Tor, encrypted Bluetooth). Others don't. A bare TCP connection might layer a **Noise tunnel** below Parley — a Noise-protocol handshake establishes mutual authentication and encryption before Parley starts. The tunnel is transport-flavor, invisible to Parley itself; from Parley's perspective there's just a byte stream.
 
-The Envelope payload enables indirect communication through trusted intermediaries. A message can be wrapped and forwarded through peers that are reachable even when the final destination is not directly accessible:
+See [`encryption.md`](encryption.md) for the encryption layer; [`network.md`](network.md) for the transport landscape.
 
-```
-Origin                   Relay                    Destination
-  |                        |                           |
-  |-- Delivery with        |                           |
-  |   Envelope(next=Dest,  |                           |
-  |   origin=Origin,       |                           |
-  |   inner=[Request]) --->|                           |
-  |                        |                           |
-  |                        |-- Delivery with           |
-  |                        |   Envelope(inner) ------->|
-  |                        |                           |
-  |                        |<-- Delivery with          |
-  |                        |   Envelope(response) -----|
-  |                        |                           |
-  |<-- Delivery with       |                           |
-  |   Envelope(response) --|                           |
-  |                        |                           |
-```
+## Open-ended ordering
 
-The relay checks if `next` matches its own identity. If yes, it unwraps and processes the inner message. If no, it forwards to the next hop. Each relay records an `ACKNOWLEDGES_RELAY` frame — again, graph-native auditing.
+Datums on a Parley connection are *ordered* in delivery (the transport guarantees this) but their semantic ordering — which frame "happened first" in a global sense — is the application's concern. Two connections to the same librarian can interleave their frames arbitrarily; the librarian sees them in whatever order the transports deliver.
 
-### Pending Request Management
+Frames that need explicit ordering (a chat conversation's message sequence, a stream of edits to a document, a sequence of moves in a game) carry their ordering in their *content* — via `@FOLLOWS` bindings naming predecessor DatumIDs. The chain of FOLLOWS bindings is the order; the network's delivery order doesn't have to match.
 
-Requests are tracked by a monotonic counter per connection. Each pending request has a timeout (default: 30 seconds). If no Delivery arrives within the timeout, the request is considered failed. The counter avoids collisions that timestamp-based IDs would create under rapid request bursts.
+This means concurrent updates work naturally: two peers each commit a new manifest to the same item; their commits arrive at a third librarian in whatever order; the librarian sees both, observes that both follow the same predecessor, and presents the fork. Resolution (merge, fork, accept one) is policy, applied above Parley.
 
----
+## What Parley doesn't do
 
-## Session Protocol (Client-to-Librarian)
+- **No global ordering.** Connection-level ordering only.
+- **No QoS, no priority.** All bytes are equal; flow control is the transport's job.
+- **No retry semantics.** A datum that fails to send (because the connection died, the receiver rejected it, the codec mismatch surfaced too late) is the sender's problem. The application can re-send via the same or a different connection.
+- **No connection-level encryption.** Encryption is a transport-layer concern (TLS, Tor) or a content-layer concern (encrypted envelopes carried as frames). Parley between Phase 1 and Phase 2 is plaintext relative to itself.
+- **No version negotiation.** The codec IDs are versioned implicitly (a v2 codec has a different IID); there's no separate "protocol version" field. New protocol behaviors come through new codec IDs or through new predicates the codec carries.
+- **No service discovery.** Parley doesn't enumerate what services the peer offers; that's the receiver's manifest's HANDLES set, queryable through Parley once a connection is up but not announced separately.
 
-The Session Protocol connects a UI client (text terminal, 2D graphical, 3D spatial) to a Librarian. Where the Peer Protocol is about peer-to-peer data exchange, the Session Protocol is about human interaction — dispatching verbs, navigating items, receiving live updates.
+The protocol is small. Everything that *could* be in the protocol but isn't, is somewhere in the graph instead — discoverable through normal frame dispatch.
 
-### Transport
+## Worked examples
 
-- **Framing**: `[4-byte length][CBOR Tag(N, map)]` — same unified wire format as Peer Protocol
-- **Transport**: Netty pipeline (shared `ProtocolCodec`)
-- **Connection types**: Local (Unix socket or loopback TCP), remote (TCP with TLS)
-
-### Message Types
-
-| Type | Tag | Direction | Description |
-|------|-----|-----------|-------------|
-| **AUTH** | 13 | Both | Authentication handshake |
-| **CONTEXT** | 14 | Both | Get/set the currently focused item |
-| **DISPATCH** | 15 | Client → Librarian | Execute a verb on an item |
-| **LOOKUP** | 16 | Client → Librarian | Token completion and search |
-| **SUBSCRIBE** | 17 | Client → Librarian | Watch for changes to items or frames |
-| **EVENT** | 18 | Librarian → Client | Push notification of changes |
-| **STREAM** | 19 | Librarian → Client | Chunked long-running output |
-
-Shared types used by both protocols:
-
-| Type | Tag | Direction | Description |
-|------|-----|-----------|-------------|
-| **HEARTBEAT** | 20 | Both | Keep-alive signal |
-| **ACK** | 21 | Librarian → Client | Acknowledgment (replaces old OK) |
-| **ERROR** | 22 | Librarian → Client | Error response |
-
-Session message subtypes within each tag are discriminated by field presence in the CBOR map. For example, AUTH (Tag 13) covers AuthChallenge (has `methods`), AuthToken (has `token`), AuthPrincipal (has `signature`), AuthEngage (has `inviteCode`), and AuthResponse (has `success`).
-
-### Authentication
-
-The Session Protocol supports multiple authentication methods:
-
-| Method | Use Case |
-|--------|----------|
-| **Token** | Simple local sessions (same machine) |
-| **Principal signature** | Remote sessions (prove identity cryptographically) |
-| **Pairing code** | New device setup (one-time code exchange) |
-
-The AUTH message carries the method-specific payload: challenge/response for signature auth, bearer token for token auth, or pairing code for device setup.
-
-### Interaction Flow
-
-A typical session interaction:
+**A session opening to a local librarian.**
 
 ```
-Client                              Librarian
-  |                                      |
-  |--- AUTH(token) --------------------->|
-  |<-- ACK -----------------------------|
-  |                                      |
-  |--- CONTEXT(get) -------------------->|
-  |<-- CONTEXT(item: current focus) -----|
-  |                                      |
-  |--- DISPATCH("create", params) ------>|
-  |<-- ACK(result: new item) ------------|
-  |                                      |
-  |--- SUBSCRIBE(item: X) -------------->|
-  |<-- ACK -----------------------------|
-  |                                      |
-  ...item X changes...
-  |                                      |
-  |<-- EVENT(item: X, changed) ----------|
-  |                                      |
+Session opens Unix-socket connection to librarian's socket.
+
+1. Session sends raw bytes: @<cg-cbor-iid>          (33 bytes, no envelope)
+2. Librarian responds in CG-CBOR:
+     {@hello, [
+       @AGENT → @<session-iid>,
+       @THEME → @<user-iid>,           ; the user this session represents
+       @SIGNING_PUBLIC_KEY → <user's multikey>
+     ]}
+3. Both sides know each other; Phase 2 is live.
+
+User types "create document"; session assembles a CREATE frame; sends it.
+
+   {@create, [
+     @AGENT → @<user-iid>,
+     @THEME → @document-archetype
+   ]}
+
+Librarian receives, dispatches, mints a new document item, sends back
+a reply frame referencing the new item's IID. User's UI shows it.
 ```
 
-### DISPATCH
-
-The DISPATCH message is the primary action mechanism. The client sends a verb token (in any language) with parameters, and the Librarian resolves it through the vocabulary system (see [Vocabulary](vocabulary.md)):
+**Two librarians peering, codec mismatch resolved.**
 
 ```
-DISPATCH {
-    verb: string            # Token in any language ("create", "crear")
-    target: ItemID?         # Target item (null = current context)
-    params: map             # Named parameters
-}
+1. Librarian A sends @<cg-json-iid>     ; A speaks CG-JSON
+2. Librarian B doesn't know CG-JSON; sends @<cg-cbor-iid> ; B counter-proposes
+3. A speaks CG-CBOR too; sends HELLO in CG-CBOR.
+4. B responds with its own HELLO in CG-CBOR.
+5. Phase 2 active; both encode in CG-CBOR.
+
+Later: A fetches a frame B has. A sends:
+   {@request, [@THEME → #<frame-cid>]}
+B receives, looks up the frame, responds with the frame body and records.
 ```
 
-The Librarian resolves the token to a sememe via the TokenDictionary, checks the target item's vocabulary for a matching VerbEntry (inner-to-outer: frame, then item, then session), invokes the method, and returns the result as ACK or ERROR.
-
-### LOOKUP
-
-Token completion for the expression input system. As the user types, the client sends partial text and receives semantically-narrowed completion candidates from the TokenDictionary:
+**An anonymous probe.**
 
 ```
-LOOKUP {
-    text: string            # Partial input
-    context: ItemID?        # Current item context (scope for resolution)
-}
+1. Probe connects; sends @<cg-cbor-iid>.
+2. Receiver responds with HELLO identifying itself.
+3. Probe doesn't send a HELLO of its own; it just sends a content-fetch
+   request:
+     {@request, [@THEME → #<some-content-cid>]}
+4. Receiver checks trust policy: do anonymous peers get to fetch this
+   content? If yes, responds with the content. If no, sends a refusal frame.
+5. Probe disconnects.
 
---> Response: list of Posting records (matched sememes/items with relevance)
+No identity was exchanged. The receiver did some work for the anonymous
+caller, gated by its trust policy. Many networks allow some anonymous
+operations (read-only fetches of public content); most allow few.
 ```
 
-The Librarian performs a scoped prefix search: `tokenDictionary.prefix(text, limit, context)`. Results include both global postings (language-level: verbs, nouns, types) and scoped postings (context-specific: frame names, custom aliases). See [Vocabulary](vocabulary.md) for how the expression input uses these completions.
-
-### SUBSCRIBE / EVENT
-
-The client subscribes to changes on specific items. When those items are modified, the Librarian pushes EVENT messages. This drives live UI updates — tree views refresh, surfaces re-render, badges update.
-
----
-
-## Protocol Comparison
-
-| Aspect | Peer Protocol | Session Protocol |
-|--------|-------------------|---------------------------|
-| **Purpose** | Data exchange between Librarians | Human interaction with a Librarian |
-| **Participants** | Librarian ↔ Librarian | Session UI ↔ Librarian |
-| **Identity** | Both sides are Items (Signers) | Client authenticates to Librarian |
-| **Message types** | 2 (Request + Delivery) + 3 shared | 7 (AUTH–STREAM) + 3 shared |
-| **Statefulness** | Minimal (subscriptions only) | Stateful (focused item, auth state) |
-| **Data flow** | Symmetric (either side requests) | Asymmetric (client dispatches, Librarian responds) |
-| **Shared types** | Heartbeat, Ack, Error | Heartbeat, Ack, Error |
-
----
-
-## Wire Format
-
-Both protocols share the same wire format — CBOR tag-based message discrimination over length-prefixed frames:
+**A bridge translating an email.**
 
 ```
-[4-byte big-endian length][CBOR Tag(N, map)]
+The bridge is a code item implementing the SMTP-bridge archetype. It opens
+a Parley connection to its host librarian (typically Unix socket).
+
+1. HELLO exchanged; bridge identifies itself.
+2. Email arrives at the bridge's SMTP listener. Bridge translates to a frame:
+     {@message, [
+       @AGENT → @<sender>,
+       @LOCATION → @<recipient's-room>,
+       @CONTENT → "...",
+       @RECEIVED_VIA → @<smtp-bridge>
+     ]}
+3. Bridge sends the frame to the librarian via Parley.
+4. Librarian dispatches; the recipient's room receives the message.
+
+For outbound traffic, the room emits a frame; the bridge's handler picks
+it up; bridge translates back to SMTP; email goes out.
 ```
 
-The CBOR tag (Tags 11-22, all in the 1-byte encoding range) identifies the message type. The tag wraps a CBOR map containing the message fields. No external type codes, no JSON-style envelope — the message type is part of the CBOR structure itself.
+## Why this shape
 
-**Example**: A Request message on the wire:
-```
-[00 00 00 1A]  [Tag(11, {"rid": 42, "targets": [...]})]
-  4-byte len      CBOR-encoded tagged map
-```
+Most wire protocols have many concerns: framing, ordering, retries, multiplexing, flow control, versioning, capability negotiation, auth, encryption. Parley pushes all of these elsewhere:
 
-A single `ProtocolMessage.decode(bytes)` method dispatches on the outermost tag to the correct message class. All message classes implement a shared `ProtocolMessage` interface with `tag()`, `toCbor()`, and a default `encode()` method.
+- **Framing:** the codec handles it. Self-describing datums are self-delimiting.
+- **Ordering:** transport-level delivery order; semantic order is in the data via FOLLOWS bindings.
+- **Retries:** the application's concern. Parley doesn't pretend to be reliable beyond what the transport provides.
+- **Multiplexing:** one connection carries one stream; multiple connections can run between the same pair of peers if multiplexing is needed.
+- **Flow control:** the transport's concern.
+- **Versioning:** the codec carries an IID; new versions are new IIDs; old ones still work for old peers.
+- **Capability negotiation:** the graph's HANDLES bindings are observable through normal frame queries; no separate enumerate step.
+- **Auth:** AUTHENTICATE is just a predicate; the AUTHENTICATE frame is just a frame.
+- **Encryption:** transport-layer (TLS, Tor) or content-layer (encrypted envelopes). Parley itself stays simple.
 
-### Netty Pipeline
+The protocol's job is to **establish a codec and carry frames**. Every other concern lives in a layer that already exists — the transport below it, the graph above it.
 
-Both protocols use the same Netty pipeline:
+This is what makes Parley both small to specify and capable of doing whatever the graph needs. New use cases don't need new protocol features; they need new predicates the graph already supports.
 
-```
-LengthFieldBasedFrameDecoder  →  length-prefix framing (4 bytes, big-endian)
-LengthFieldPrepender           →  prepend length on write
-ProtocolCodec                  →  CBOR Tag ↔ ProtocolMessage
-IdleStateHandler               →  detect idle connections
-HeartbeatHandler               →  auto-send Heartbeat on idle
-Application Handler            →  protocol-specific dispatch
-```
+## Relations
 
-All CBOR within protocol messages follows the canonical encoding rules defined in [CG-CBOR](cg-cbor.md): deterministic field order, no floats, no indefinite-length encoding.
-
-### Shared Message Types
-
-Three message types are shared by both protocols:
-
-| Type | Tag | Description |
-|------|-----|-------------|
-| **Heartbeat** | 20 | Empty CBOR map; keep-alive signal. Singleton instance. |
-| **Ack** | 21 | `{rid: <requestId>}` — acknowledgment of a request. |
-| **Error** | 22 | `{rid: <requestId>, code: <string>, message: <string>}` — error response. |
-
-## Endpoint Addressing
-
-Librarian endpoints are described as:
-
-```
-Endpoint {
-    protocol: string        # "cg" for Common Graph protocol
-    host: IpAddress          # Binary IP (4 bytes IPv4, 16 bytes IPv6)
-    port: integer            # 0-65535
-}
-```
-
-Text representation: `cg://192.168.1.1:7432` or `cg://[::1]:7432` for IPv6.
-
-Endpoints are stored as frames (e.g., `librarian → REACHABLE_AT → Endpoint`), making network topology discoverable through normal graph queries. See [Network Architecture](network.md) for how these relations form the routing layer.
-
-## References
-
-**External resources:**
-- [CBOR (RFC 8949)](https://www.rfc-editor.org/rfc/rfc8949.html) — Base encoding format
-- [Freenet](https://freenetproject.org/) — Content-addressed P2P storage
-- [IPFS Bitswap](https://docs.ipfs.tech/concepts/bitswap/) — Content-addressed block exchange
-- [Secure Scuttlebutt](https://scuttlebutt.nz/) — Append-only log replication
-
-**Academic foundations:**
-- [Stoica et al 2001 — Chord](references/Stoica%20et%20al%202001%20-%20Chord%20Scalable%20Peer-to-Peer%20Lookup.pdf) — Consistent hashing ring for scalable peer lookup
-- [Maymounkov, Mazieres 2002 — Kademlia](references/Maymounkov%2C%20Mazieres%202002%20-%20Kademlia%20DHT.pdf) — XOR-distance DHT routing (used by BitTorrent, IPFS, Ethereum)
-- [Ratnasamy et al 2001 — Content-Addressable Network](references/Ratnasamy%20et%20al%202001%20-%20A%20Scalable%20Content-Addressable%20Network.pdf) — DHT using d-dimensional coordinate spaces
-- [Benet 2014 — IPFS](references/Benet%202014%20-%20IPFS%20Content%20Addressed%20Versioned%20P2P%20File%20System.pdf) — Content-addressed P2P file system
-- [Lamport 1978 — Time, Clocks, and Ordering](references/Lamport%201978%20-%20Time%20Clocks%20and%20Ordering%20of%20Events.pdf) — Logical clocks and causal ordering in distributed systems
-- [Mattern 1989 — Vector Clocks](references/Mattern%201989%20-%20Virtual%20Time%20and%20Global%20States%20of%20Distributed%20Systems.pdf) — Complete causal relationship tracking
-- [Baird 2016 — Hashgraph Consensus](references/Baird%202016%20-%20Swirlds%20Hashgraph%20Consensus%20Algorithm.pdf) — Virtual voting on gossip-about-gossip DAG
-- [Shapiro 2011 — CRDTs](references/Shapiro%202011%20-%20Conflict-free%20Replicated%20Data%20Types.pdf) — Data structures that converge without coordination
-- [Tschudin, Baumann 2019 — Merkle-CRDTs](references/Tschudin%2C%20Baumann%202019%20-%20Merkle-CRDTs.pdf) — Content-addressed CRDTs
-- [Kleppmann 2019 — Local-First Software](references/Kleppmann%202019%20-%20Local-First%20Software.pdf) — The manifesto for offline-first, user-owned data
+- [`network.md`](network.md) — the network architecture; transports, peers, discovery.
+- [`ref-scheme.md`](ref-scheme.md) — the reference byte layout the codec handshake leans on.
+- [`canonical.md`](canonical.md) — DatumIDs as the encoding-agnostic identity that survives codec choice.
+- [`cg-cbor.md`](cg-cbor.md) — the dominant codec and its tag assignments.
+- [`item.md`](item.md) — items as the dispatch targets for incoming frames.
+- [`api.md`](api.md) — HANDLES and the dispatch flow.
+- [`frames.md`](frames.md) — frames as the message primitive Parley carries.
+- [`encryption.md`](encryption.md) — encryption layered below or above Parley.
+- [`authentication.md`](authentication.md) — identity, keys, and signatures.
+- [`trust.md`](trust.md) — the trust matrix that gates connection acceptance and content propagation.

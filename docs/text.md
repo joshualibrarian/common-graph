@@ -245,7 +245,7 @@ When an orchestrator's parse is underdetermined and the missing information migh
 
 For example: typing `e4` into a Session prompt with no specific item context. The Square sememe resolves cleanly, but no item is contributing "I expect a MOVE." The Session asks Librarian: "any items running that take Square bindings?" Librarian's reverse-binding index returns the user's three open chess games. Each is consulted — gets a chance to contribute a candidate frame with a validity score. The dropdown ranks them.
 
-Consultation is type-filtered (driven by the resolved sememe's EXPECTS), so it doesn't broadcast to every item in the session. The librarian's existing index covers the lookup.
+Consultation is type-filtered (driven by the resolved sememe's schema — the `!`-prefixed bindings on its manifest), so it doesn't broadcast to every item in the session. The librarian's existing index covers the lookup.
 
 ## Type Expectations Are Just Contributions
 
@@ -303,11 +303,11 @@ Round 1 deltas:
 
 ```
 EQUALS sememe:
-  { predicate: { cg.predicate:equals, 0.95 },
-    bindings:  [ { role: LHS, target: <previous-token>, 0.9 } ] }
+  { predicate: { @equals, 0.95 },
+    bindings:  [ { role: @THEME, target: <previous-token>, 0.9 } ] }
 
 chess game:
-  { predicate: { chess.predicate:move, 0.7 } }   -- still expects MOVE, lower confidence
+  { predicate: { @chess-move, 0.7 } }   -- still expects MOVE, lower confidence
 
 chess notation Language:
   empty   -- e4= isn't a SAN pattern that fits
@@ -315,11 +315,11 @@ chess notation Language:
 
 Merge:
 - Predicate: EQUALS (0.95) > MOVE (0.7) → EQUALS wins
-- LHS binding: e4-square (consistent with EQUALS' "previous token")
+- First THEME binding: e4-square (consistent with EQUALS' "previous token" position)
 
-Draft: `EQUALS { LHS → e4-square, RHS → ? }`. Underdetermined.
+Draft: `{ @equals, [ @THEME → e4-square, @THEME → ? ] }`. Underdetermined.
 
-User types `4`, then `2` — tokens become `["e4", "=", "4"]`, then `["e4", "=", "42"]`. Each keystroke is a fresh process. The "42" sememe resolves to literal Decimal 42. EQUALS' delta updates to fill RHS. Final draft: `EQUALS { LHS → e4-square, RHS → 42 }`. User presses Enter; frame commits.
+User types `4`, then `2` — tokens become `["e4", "=", "4"]`, then `["e4", "=", "42"]`. Each keystroke is a fresh process. The "42" sememe resolves to literal Decimal 42. EQUALS' delta updates to fill the second THEME binding. Final draft: `{ @equals, [ @THEME → e4-square, @THEME → 42 ] }`. User presses Enter; frame commits.
 
 What the chess MOVE machinery did: kept bidding at moderate confidence, kept losing. No special "withdraw MOVE" logic. Withdrawals are absences.
 
@@ -331,19 +331,19 @@ Operator sememes contribute frames whose weights encode precedence:
 
 ```
 ADD sememe:
-  { predicate: { cg.predicate:add, 0.7 },        -- weight encodes precedence
-    bindings: [ { role: LHS, target: 5, 0.8 },
-                { role: RHS, target: 3, 0.8 } ] }
+  { predicate: { @add, 0.7 },        -- weight encodes precedence
+    bindings: [ { role: @THEME, target: 5, 0.8 },
+                { role: @THEME, target: 3, 0.8 } ] }
 
 MULTIPLY sememe:
-  { predicate: { cg.predicate:multiply, 0.85 },  -- higher precedence = higher weight
-    bindings: [ { role: LHS, target: 3, 0.8 },
-                { role: RHS, target: 2, 0.8 } ] }
+  { predicate: { @multiply, 0.85 },  -- higher precedence = higher weight
+    bindings: [ { role: @THEME, target: 3, 0.8 },
+                { role: @THEME, target: 2, 0.8 } ] }
 ```
 
-Both ADD and MULTIPLY claim `3`. The merge resolves: MULTIPLY (higher weight) keeps `3`. ADD's `RHS → 3` re-resolves to `RHS → MULTIPLY{...}` — the loser nests inside the winner's parent.
+Both ADD and MULTIPLY claim `3`. The merge resolves: MULTIPLY (higher weight) keeps `3`. ADD's second THEME re-resolves from `3` to the MULTIPLY body — the loser nests inside the winner's parent.
 
-Result: `ADD { LHS → 5, RHS → MULTIPLY { LHS → 3, RHS → 2 } }`. Operator precedence falls out of weighted merge — no special precedence machinery.
+Result: `{ @add, [ @THEME → 5, @THEME → { @multiply, [ @THEME → 3, @THEME → 2 ] } ] }`. Operator precedence falls out of weighted merge — no special precedence machinery.
 
 ### Example 4 — polysemy and consultation
 

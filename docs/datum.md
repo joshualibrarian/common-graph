@@ -76,15 +76,25 @@ This unification — manifest is just a body — is what lets the same encoding,
 
 ## Identity and addressing
 
-Every datum has two hashes:
+A datum has two hashes, and the difference between them is load-bearing.
 
-**DatumID** — the structural merkle hash. Computed by walking the datum's tree shape: hash each binding's role, qualifiers, and target, combine those with the head, produce a single value. The DatumID is invariant under transformations that preserve structure but change encoding bytes — most importantly under redaction, where a binding's target is replaced with the hash that target would have contributed.
+**DatumID** — the structural hash. Computed by walking the datum's *shape* (head, each binding's role and qualifiers, each binding's target value at the leaves) and combining those into a single hash. The walk has nothing to do with how the data is encoded; it sees the data model, not bytes.
 
-**ContentID** — the canonical bytes hash. Computed over the datum's CBOR-encoded form. Identifies the exact wire bytes.
+The DatumID is what you reach for when you want to identify *what this datum says* — independent of how it's serialized, transmitted, or stored. Two implementations encoding the same datum in different formats produce the same DatumID, because they walk the same structure.
 
-For most datums, the two coincide in usefulness — fetch by either yields the same object. They diverge when the wire form has been transformed (redacted, encoding migrated, etc.) but the structural identity is preserved. The DatumID is what you reference when you want to point at the *meaning* of a datum; the ContentID is what you reference when you want the *bytes*.
+**ContentID** — the encoded-bytes hash, specific to whichever encoding produced the bytes. CG-CBOR's ContentID and a hypothetical CG-JSON's ContentID for the same datum would differ because the bytes differ. ContentID is what you reach for when you want to identify *these exact bytes*.
 
-References use the DatumID when the prefix is `#` (structural datum reference). They use the ContentID when the prefix is `~` (raw content reference).
+Most fetches go through DatumID — the system cares about the datum, not the bytes. ContentID matters for transport (the bytes you actually moved), local storage indexing, and operations that need byte-level identity. References use the DatumID when the prefix is `#` (structural datum reference) and the ContentID when the prefix is `~` (raw content reference).
+
+## Encoding-agnostic by construction
+
+Common Graph distinguishes the *structural walk* (what every implementation does to compute a DatumID) from the *encoding* (how the datum's bytes get laid out for storage and transport). The walk is the protocol; the encoding is a choice.
+
+The walk is fixed. Given a datum, every Common Graph implementation walks it the same way and produces the same DatumID. The byte layout — tag conventions, sort order of map entries, integer minimization rules, choice of base wire format — is what one encoding format pins down; another encoding pins it down differently.
+
+CG-CBOR is the first encoding format. It's CBOR-based, deterministic, and exhaustively specified — but it's *one* encoding, not a definition of the data model. A future CG-JSON, CG-flat-binary, or domain-specific encoding could exist alongside it, each producing its own bytes for the same datum and its own ContentIDs, but all computing the same DatumID. Two librarians using different encodings can verify and deduplicate by structural identity without sharing a wire format.
+
+The walker is what makes that work — it's the layer that turns "a datum in memory" into "a hash everyone agrees on," with no encoding format in the path. See [`canonical.md`](canonical.md) for the walker protocol; [`cg-cbor.md`](cg-cbor.md) for the first encoding.
 
 ## Bindings, in detail
 
@@ -191,4 +201,5 @@ The same body shape as the frame examples, with bindings declaring identity (a l
 - [`frames.md`](frames.md) — frame mechanics, lifecycle, dispatch.
 - [`manifest.md`](manifest.md) — manifest bindings, version history, signing.
 - [`item.md`](item.md) — items as identities accumulating manifests over time.
-- [`cg-cbor.md`](cg-cbor.md) — the canonical encoding of datums on the wire.
+- [`canonical.md`](canonical.md) — the structural walker that produces DatumIDs, independent of encoding.
+- [`cg-cbor.md`](cg-cbor.md) — the first CG-capable encoding format.

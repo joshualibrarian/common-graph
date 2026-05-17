@@ -1,747 +1,206 @@
 # Language
 
-This document describes the language system — how human languages, words, and meanings are represented, imported, and connected in Common Graph.
+Common Graph holds meaning at the sememe layer; it expresses meaning at the **language layer**. The same Create sememe is "create" in English, "crear" in Spanish, "作る" in Japanese. The mapping from sememe to surface form goes through Language items — each natural or notational language is itself an item in the graph, endorsing the lexeme frames that name sememes in that language.
 
-> For how sememes anchor meaning, see [Sememes](sememes.md). For the expression input and dispatch system, see [Vocabulary](vocabulary.md). For the frame primitive, see [Frames](frames.md). For the unified input pipeline that uses Languages as parsers across every input context (interactive, bridges, scripts, queries), see [Input](input.md).
+This document defines language items, lexemes, the cross-language anchor pattern, and how all of it feeds the runtime vocabulary that drives parsing and rendering.
 
-## Overview
+This document assumes familiarity with [sememes](sememes.md), [frames](frames.md), and [items](item.md).
 
-The language system solves a fundamental problem: human knowledge is expressed in words, but words are ambiguous, language-specific, and ephemeral. Common Graph separates **meaning** (sememes) from **expression** (lexemes) and connects them through **languages** — items that serve as living dictionaries.
+## Languages are items
 
-**Crucially, semantic resolution happens at write time.** When data enters the system — whether typed, clicked, or created by code — every concept is resolved to a globally-anchored sememe *before storage*. The person or code creating the data does the disambiguation, because they know what they mean. This is where Common Graph diverges from NLP and information retrieval: those fields try to extract meaning from existing text after the fact. Common Graph never needs to, because meaning was captured at the point of creation.
-
-The language system draws its vocabulary from established computational semantics research — [WordNet](https://wordnet.princeton.edu/) for concepts, [VerbNet](https://verbs.colorado.edu/verbnet/) for thematic role declarations, [CILI](https://github.com/globalwordnet/cili) for cross-lingual anchoring, [ISO 24617-4](https://www.iso.org/standard/56866.html) for role standards — but uses this vocabulary for **structured semantic keys**, not for annotating natural language text. Each frame is a small structured key: a predicate and a handful of role bindings. The semantic challenge is vocabulary (having the right predicates and roles), not parsing (guessing what a sentence means).
+Each language Common Graph supports is an item — `@english`, `@spanish`, `@japanese`, `@german`, `@mandarin`. ISO 639-3 codes provide canonical-key strings:
 
 ```
-Sememe (AUTHOR)            Language Item (English)
-(language-agnostic         (language-specific
- meaning anchor)            word repository)
-     |                          |
-     |   +-- Lexeme frame --+  |
-     |   |                  |  |
-     +---| REFERENT: AUTHOR |  |
-         | THEME: ENGLISH   |--+
-         | FORM: LEMMA      |
-         | word: "author"   |
-         +------------------+
+@english     ← multihash(SHA-256, "cg.lang:eng")
+@spanish     ← multihash(SHA-256, "cg.lang:spa")
+@japanese    ← multihash(SHA-256, "cg.lang:jpn")
+@german      ← multihash(SHA-256, "cg.lang:deu")
+@mandarin    ← multihash(SHA-256, "cg.lang:cmn")
 ```
 
-The core chain:
+Two librarians compute the same IID for English by hashing the same ISO 639-3 canonical key. No coordination, no registry; the language identities align by birthright across implementations.
 
-1. **Sememes** are meaning units — Items with stable IIDs, no words attached
-2. **Languages** are Items that hold lexeme frames — one per word↔meaning mapping
-3. **Lexemes** are frames on Language items — each one connects a word to a sememe with a grammatical form
-4. **The TokenDictionary** indexes all of this for O(1) lookup at runtime
+A Language item's manifest carries its identifying bindings (ITEM_ID, gloss frames in various meta-languages, reading direction, default grammatical features) and endorses its lexemes — possibly thousands or millions of them, each frame asserting "this surface form names this sememe in this language."
 
-## Languages as Items
+## Lexemes
 
-Every human language is an Item with a deterministic IID derived from its ISO 639-3 code:
+A **lexeme** is a frame asserting "this surface form is a name for this sememe in this language":
 
 ```
-Language Item: English
-    iid:  ItemID.fromString("cg:language/eng")
-    type: cg:type/language
-    code: "eng"
+{@lexeme, [
+  @THEME → @create,
+  @NAME:[@english, @verb, @lemma] → "create"
+]}
 ```
 
-ISO 639-3 covers ~7,000 languages — living, extinct, constructed, and signed. The resource file `iso-639-3.tsv` (bundled in `:core`) provides all codes. `SeedVocabulary.loadLanguageCodes()` reads it during bootstrap.
+The THEME binding points at the sememe being named; the NAME binding carries the surface form, qualified by language (`@english`), part of speech (`@verb`), and grammatical feature (`@lemma`). Each lexeme is a complete frame — signed by its endorser, hashable, queryable.
 
-At bootstrap, only English is seeded as a full Language Item. Other languages are created during import when their WordNet data is processed. A language doesn't need a WordNet to exist — any Language Item can acquire lexemes through any means (manual entry, corpus import, translation tools).
+The English Language item's manifest endorses thousands of lexeme frames. The Spanish, Japanese, German, and every other language's manifest endorses their own. Each frame is independent; the same sememe gets independent lexeme frames in each language pointing at the same target.
 
-### The Language Class
-
-`Language` (in `core`) is the base class. It extends `Item` and provides:
-
-- **Language code** — ISO 639-3 (3-letter)
-- **Lexicon** — the collection of word↔meaning mappings
-- **Morphology hooks** — abstract methods for inflection:
-  - `regularInflection(lemma, pos, features)` — compute regular inflected form
-  - `inflectionFeatures(pos)` — what feature sets this language distinguishes for a POS
-  - `simplifyFeatures(rawFeatures)` — reduce Universal Morphology tags to CG features
-
-`English` (in `:english`) is the concrete subclass. It implements English morphology rules: verb inflection (-ed, -ing, -s), noun pluralization (-s/-es/-ies), adjective comparison (-er/-est). Other languages will follow the same pattern — `Spanish extends Language`, `Japanese extends Language`, etc.
-
-### Language.parse() — The Parsing Hook
-
-Every Language has a `parse()` method — the hook where language-specific grammar rules are applied:
-
-```java
-public List<SemanticFrame> parse(
-    List<ResolvedToken> tokens,
-    String rawText,
-    Function<ItemID, Optional<Item>> resolver,
-    ToIntFunction<Sememe> headVerbScorer)
-```
-
-The base implementation delegates to `FrameAssembler` (order-agnostic, language-neutral). Subclasses override to add language-specific parsing:
-
-- **English**: Wraps FrameAssembler with auxiliary predicate chaining. When the primary verb doesn't consume all prepositions (e.g., "named rematch"), English detects this via `contribute()` on the unmatched preposition sememe and chains additional frames.
-- **ChessNotation** (planned): Parses algebraic notation ("e4", "Nf3", "O-O") into MOVE frames.
-- **ExpressionLanguage** (planned): Handles mathematical and logical expressions with precedence climbing.
-
-The evaluator does **not** assume English. It **infers** the active language from the posting scopes of resolved tokens. If most tokens resolved via English-scoped postings, English's parser is used. If they resolved via math-language-scoped postings, the expression parser handles them. Mixed input triggers language switching within a single expression.
-
-Languages are Items — they can be created, imported, extended, and referenced by IID. A chess game can register ChessNotation as a language, and when the user types in a chess game prompt, chess notation tokens resolve with chess-language scope, triggering the chess notation parser.
-
-## Sememes: The Meaning Layer
-
-A **sememe** is an Item that represents a specific, language-agnostic meaning. Sememes carry no words and no part of speech — they carry identity (IID), symbols, thematic role expectations, and behavior.
-
-> Full detail on sememes in [Sememes](sememes.md). This section covers the parts relevant to the language system.
-
-### The Sememe Hierarchy
-
-`Sememe` extends `Item` directly — it is not sealed. **Part of speech is NOT on the sememe** — it belongs on lexemes (language-specific words). A sememe is language-agnostic; its grammatical category is expressed through the lexemes that reference it.
-
-Seed constants are organized by domain into vocabulary classes:
-
-| Vocabulary Class | Contains |
-|-----------------|----------|
-| `CoreVocabulary` | Action verbs (create, view, help), metadata predicates (title, author) |
-| `PrepositionVocabulary` | Prepositions with assigned roles (on→GOAL, from→SOURCE) |
-| `LexicalVocabulary` | Semantic relations (hypernym, antonym, instance-of) |
-| `StructuralVocabulary` | Syntax symbols — (, ), comma, semicolon, pipe, dot |
-
-Domain-specific subclasses extend `Sememe` and carry **behavior** via the `PredicateBehavior` pattern (the class IS the behavior):
-
-| Subclass | What It Adds | `contribute()` Returns |
-|-----------|-------------|----------------------|
-| `Operator` | Precedence, associativity, evaluation logic | `infix(precedence, associativity)` |
-| `Function` | Arity, category, evaluation logic | `prefix, grouped=true` |
-| `StructuralVocabulary` | Structural role (grouping, separation) | `structural(OPEN_GROUP)` etc. |
-| `ThematicRole` | Semantic role identity (AGENT, THEME, GOAL) | — |
-| `GrammaticalFeature` | Inflectional property (PAST, PLURAL, LEMMA) | — |
-| `Unit` | Dimensional metadata, conversion factors | — |
-| Pronouns (`It`, `This`, etc.) | Reference resolution | `structural(PRONOUN)` |
-| Conjunctions (`And`, `Or`) | Expression grouping | `structural(CONJUNCTION)` |
-
-All of these inherit glosses, tokens, symbols, and dictionary registration from `Sememe`.
-
-### Seed Declaration Pattern
-
-Sememe seeds use an **inner class pattern** with fluent configuration:
-
-```java
-public static class Author {
-    public static final String KEY = "cg.core:author";
-    @Seed public static final Sememe SEED = new Sememe(KEY)
-            .gloss(ENG, "the creator or originator of a work")
-            .word(LEMMA, ENG, "author")
-            .cili("i90183")
-            .slot(ThematicRole.Agent.KEY)
-            .indexWeight(1000);
-}
-```
-
-The inner class provides:
-- `KEY` — a compile-time constant string, usable in annotations and switch statements
-- `SEED` — the seedItem instance, annotated `@Seed` for `SeedVocabulary` discovery
-
-The fluent methods on `Sememe`:
-
-| Method | What It Does |
-|--------|-------------|
-| `.gloss(lang, text)` | Add a definition for a language (transient — migrates to `SememeGloss` components) |
-| `.word(form, lang, surface)` | Declare a word form (transient — flows into Language Lexicon during bootstrap) |
-| `.cili(id)` | Set the CILI identifier (stored in `sources` map) |
-| `.symbol(s)` | Add a language-neutral symbol ("m", "+", "kg") |
-| `.slot(role)` | Declare a thematic role this predicate expects |
-| `.indexWeight(w)` | Set predicate text-indexing weight (1000 = 1.0) |
-
-The `.word()` method creates a `LexemeDeclaration` — a transient record that captures enough to create a proper Lexeme during bootstrap:
-
-```java
-public record LexemeDeclaration(Sememe form, String lang, String surface) {}
-```
-
-During bootstrap, `SeedVocabulary` processes these declarations and feeds them into the appropriate Language's Lexicon. Words don't live on sememes — they live in languages.
-
-### Fluent API
-
-Sememe's fluent methods return `Sememe` (the base type). Domain-specific subclasses like `ThematicRole`, `GrammaticalFeature`, `Operator`, and `Function` provide covariant overrides where needed so fluent chaining preserves the subclass type.
-
-## Lexemes as Frames
-
-Each word↔meaning mapping is a **frame** on the Language item. The Language item IS the dictionary. This is the natural consequence of the frame unification — if everything is a frame, then lexemes are frames too.
-
-### Frame Key Structure
-
-A lexeme frame on a Language item has the key:
+Surface forms beyond the lemma — plural forms, inflected forms, conjugated forms — are additional lexeme frames with different qualifier combinations:
 
 ```
-(LEXEME, <sememe>, <form>, "<word>")
+{@lexeme, [
+  @THEME → @create,
+  @NAME:[@english, @verb, @past-tense] → "created"
+]}
+
+{@lexeme, [
+  @THEME → @create,
+  @NAME:[@english, @verb, @third-person, @singular, @present] → "creates"
+]}
 ```
 
-Where:
-- `LEXEME` — the predicate (a seedItem Sememe: `LexicalVocabulary.Lexeme.SEED`)
-- `<sememe>` — the meaning being expressed (fills the REFERENT role)
-- `<form>` — the grammatical form (LEMMA, PAST, PLURAL, etc.)
-- `"<word>"` — the surface string (a literal key component)
+Each inflection is its own frame. The system can look up "creates" and find the Create sememe directly; it doesn't need to do morphological analysis at runtime if the inflection is already endorsed.
 
-**Example**: The English word "author" as a lemma of the AUTHOR sememe:
+For languages with rich inflectional morphology, large corpora of lexeme frames exist as data. UniMorph, the OEWN, OpenWordnet, and similar resources provide the imports.
 
-```
-Language: English (cg:language/eng)
-Frame key: (LEXEME, AUTHOR, LEMMA, "author")
-    BODY:
-        predicate: LEXEME
-        theme: English (the home item)
-        REFERENT: Author.SEED (the sememe)
-        FORM: LEMMA
-        word: "author"
-    RECORD:
-        FREQUENCY: 847        // from corpus data
-        PROVENANCE: OEWN      // Open English WordNet
-```
+## Grammatical features as sememes
 
-### Why Frames?
+The qualifiers on a NAME binding — `@english`, `@verb`, `@lemma`, `@plural`, `@past-tense`, `@accusative-case`, `@masculine-gender` — are themselves sememes. They live in `LexicalVocabulary` and `GrammaticalFeature` and similar seeded vocabularies; their canonical keys derive deterministic IIDs.
 
-This design has several advantages:
+The inventory grows as new languages are added. A language with case marking introduces case-feature sememes; a language with classifiers introduces classifier-feature sememes. The framework doesn't enumerate features ahead of time; the relevant features for a language emerge from that language's import.
 
-1. **No special Lexeme type needed** — lexemes are just frames, using the same machinery as everything else
-2. **O(1) lookup** — the frame key gives direct access by any combination of components (prefix scan by sememe, by form, by word)
-3. **Qualifiers in the RECORD** — frequency, provenance, confidence are semantically keyed (by FREQUENCY, PROVENANCE sememes) but don't change frame identity
-4. **Attestation** — multiple signers can independently attest to the same lexeme. Alice says "author" means AUTHOR; Bob agrees. Same body hash, two records.
-5. **Forward lookup** — given a sememe, prefix-scan the Language item's frames with `(LEXEME, sememe, ...)` to find all words
-6. **Reverse lookup** — the TokenDictionary indexes surface strings for O(1) word→sememe resolution
+Parts of speech (`@noun`, `@verb`, `@adjective`, `@adverb`, `@preposition`, `@determiner`, `@pronoun`, `@conjunction`, `@interjection`) are also sememes, used as qualifiers throughout.
 
-### Scale
+## Cross-language linking via CILI
 
-For a full English import (~157K synsets, ~2.5 words per synset average):
+When the same concept needs to be named in many languages, each language's lexeme frames point at the *same sememe IID*. The shared identity is what makes the lexemes interoperate:
 
 ```
-~400K lexeme frames (base forms + irregular inflections)
-~150 bytes per frame body (key + minimal bindings)
-~62 MB total for the English Language item's lexeme frames
+{@lexeme, [
+  @THEME → @create,
+  @NAME:[@english, @verb, @lemma] → "create"
+]}
+
+{@lexeme, [
+  @THEME → @create,
+  @NAME:[@spanish, @verb, @lemma] → "crear"
+]}
+
+{@lexeme, [
+  @THEME → @create,
+  @NAME:[@japanese, @verb, @lemma] → "作る"
+]}
 ```
 
-This is large but manageable. Frames aren't large objects — they're compact semantic statements. The Language item's frame table handles this scale the same way any other item handles many frames.
+All three name the same Create sememe. The THEME target is identical across the three frames; the surface forms differ. A user typing "crear" in Spanish or "作る" in Japanese resolves to the same sememe a user typing "create" in English resolves to.
 
-### Body vs Record
+**CILI** (the Cross-Lingual Index) is the empirical work that makes this convergence possible at scale. CILI assigns language-neutral identifiers to concepts shared across many wordnets. When Common Graph imports a wordnet for some language, the CILI mapping tells the import which existing sememe each concept aligns with. The wordnet's lexemes get endorsed pointing at the already-existing sememe IID; no duplication, no manual reconciliation.
 
-The **body** is the identity of the lexeme — the statement "in English, 'author' is the lemma for the AUTHOR sememe." This is what gets hashed. Two independent importers processing the same WordNet data will produce the same body hash.
+For concepts that don't have CILI alignment (newly minted concepts, domain-specific terminology, language-particular phenomena), the import mints a new sememe and the lexemes point at the new IID. Cross-language linking is a default, not a requirement.
 
-The **record** carries metadata that doesn't change what the lexeme IS:
+## Thematic roles in the linguistic backbone
 
-| Qualifier | Keyed By | Example |
-|-----------|----------|---------|
-| Frequency | `Sememe.Frequency.SEED` | 847 (corpus count) |
-| Provenance | `Sememe.Provenance.SEED` | OEWN (data source identifier) |
-| Confidence | (future) | 0.95 |
+The role inventory used as binding roles throughout the system (AGENT, THEME, GOAL, SOURCE, INSTRUMENT, RECIPIENT, TIME, LOCATION, MANNER, CAUSE, PARTNER, VALUE, NAME, ATTRIBUTE, …) is itself part of the linguistic backbone. Each role is a sememe; the universal ~25-role set comes from Fillmore frame semantics and ISO 24617-4 (SemAF-SR).
 
-These are stored in the frame RECORD, keyed by sememes — not by arbitrary strings. The qualifiers are themselves meaningful, discoverable concepts.
+Roles aren't English-specific. They're language-neutral semantic relationships that any natural language's grammar maps onto. English marks the AGENT with subject position; Latin marks it with nominative case; Tagalog marks it with a focus particle; all three converge on the same AGENT sememe. The role identity is shared; the linguistic surface that signals it is language-specific.
 
-## Thematic Roles
+The thematic-role vocabulary is small (~25 sememes) and stable. New domain vocabularies add new predicates and new archetypes, but rarely new thematic roles. The role inventory is empirical — the result of decades of cross-linguistic work — and Common Graph defers to that work rather than reinventing.
 
-**Thematic roles** (theta roles) describe what part a participant plays in an event or relation. The intellectual lineage runs from Fillmore's Case Grammar (1968) through Dowty's Proto-Roles (1991) to VerbNet (Palmer, 2005+) and the ISO 24617-4 standard (2014). Common Graph's 25 seedItem roles are aligned with both [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html), following the hierarchical unification proposed by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf).
+## Notations as language fragments
 
-In Common Graph, roles are **sememes** — `ThematicRole` subclass instances with deterministic IIDs. The class is `ThematicRole` (in `core/src/main/java/dev/everydaythings/graph/language/ThematicRole.java`).
+A language as Common Graph models it isn't strictly a natural language. The chess notation system is a "language" — its lexemes name chess concepts ("Nf3" → @knight-to-f3, "0-0" → @kingside-castle), its parsing rules know SAN syntax. SQL is a language — its lexemes name SQL keywords and the operators its parser understands. A programming language could be a CG Language.
 
-**Important:** Thematic roles have no CILIs. They are frame-theoretic concepts, not WordNet synsets. The role AGENT is not the WordNet synset for "agent" (a person acting on behalf of another) — it's the participant who intentionally initiates an event. These are fundamentally different concepts that happen to share a word.
+The model is general; natural languages are the most common case. What makes something a Language in Common Graph is:
 
-### Seed Roles
+- An item with `@language` (or a sub-archetype) in its head chain.
+- Endorsed lexeme frames that map surface forms to sememes.
+- A composition of parse notations (declared as data; see [`input.md`](input.md) and [`text.md`](text.md)) that the language brings into scope.
 
-**Core participant roles** (who is involved):
+Chess notation is `@chess-notation`; its lexemes include "Nf3", "exd5", "0-0-0". SQL is `@sql`; its lexemes include "SELECT", "WHERE", "JOIN". The framework treats all of them uniformly; they're each a different composition of notations and lexemes around a common runtime.
 
-| Role | Key | Gloss | VN/LIRICS | Example |
-|------|-----|-------|-----------|---------|
-| **AGENT** | `cg.role:agent` | Intentional initiator | Agent | Shakespeare (wrote Hamlet) |
-| **PATIENT** | `cg.role:patient` | Affected, changed, or consumed | Patient | Hamlet (was edited) |
-| **THEME** | `cg.role:theme` | Located, moved, or existing without change | Theme | "The Hobbit" (in TITLE frame) |
-| **EXPERIENCER** | `cg.role:experiencer` | Perceives or undergoes mental state | Experiencer | Alice (sees the error) |
-| **STIMULUS** | `cg.role:stimulus` | Triggers perception or emotion | Stimulus | the error (that Alice sees) |
-| **PIVOT** | `cg.role:pivot` | Central participant in a fixed state | Pivot | the value (in "x equals 5") |
-| **CAUSE** | `cg.role:cause` | Non-intentional initiator | Cause | the storm (caused outage) |
+A single input scope can include multiple languages simultaneously. A user typing in a chess game with English active would have `[@chess-notation, @english]` in their language scope; "move pawn to e4" resolves through English lexemes, "Nf3" resolves through chess-notation lexemes, both interpretable in the same prompt.
 
-**Endpoint and directional roles** (where things go):
+## Composition with the runtime
 
-| Role | Key | Gloss | VN/LIRICS | Example |
-|------|-----|-------|-----------|---------|
-| **GOAL** | `cg.role:goal` | Abstract end-point or target | Goal | e4 (in "move to e4") |
-| **DESTINATION** | `cg.role:destination` | Physical place where motion ends | Destination | London (flew to London) |
-| **SOURCE** | `cg.role:source` | Origin or starting point | Source | archive (copy from archive) |
-| **PATH** | `cg.role:path` | Route between origin and endpoint | Trajectory / Path | the highway |
-| **RESULT** | `cg.role:result` | Comes into existence through event | Result / Product | the report (that was generated) |
+Language items inform the runtime through the **token dictionary** — the scoped lookup from surface forms to sememes. Each language's lexemes contribute postings to the dictionary; the scope chain at input time determines which languages' postings are in play.
 
-**Transfer and benefaction roles** (who gains):
+The token dictionary is global by index but scoped by query: a single dictionary indexes lexemes from every language, but a lookup with `[@english, @spanish]` in scope only returns postings under those scopes. Lookups walking through `[@chess-notation, @english]` find the chess vocabulary first, fall back to English.
 
-| Role | Key | Gloss | VN/LIRICS | Example |
-|------|-----|-------|-----------|---------|
-| **RECIPIENT** | `cg.role:recipient` | Receives something transferred | Recipient | Alice (shared with Alice) |
-| **BENEFICIARY** | `cg.role:beneficiary` | Benefits from the event | Beneficiary | the team (built for the team) |
-| **PARTNER** | `cg.role:partner` | Secondary agent, co-participating | Co-Agent | Bob (play with Bob) |
+Full mechanics live in [`vocabulary.md`](vocabulary.md). What language items contribute at this level is the *content* of the dictionary; the runtime determines how that content is queried.
 
-**Instrumental and manner roles** (how things happen):
+## Reading direction and per-language metadata
 
-| Role | Key | Gloss | VN/LIRICS | Example |
-|------|-----|-------|-----------|---------|
-| **INSTRUMENT** | `cg.role:instrument` | Tool or means used | Instrument | key (encrypt with key) |
-| **MANNER** | `cg.role:manner` | How an action is performed | Manner | carefully |
-| **EXTENT** | `cg.role:extent` | Degree or amount of change | Extent / Amount | by 50% |
-| **ATTRIBUTE** | `cg.role:attribute` | Property associated with participant | Attribute | color (painted it red) |
-| **PURPOSE** | `cg.role:purpose` | Intended outcome | Purpose | to organize (sorted for) |
+Beyond lexemes, a Language item's manifest carries metadata about the language's behavior:
 
-**Setting roles** (where and when):
+- **Reading direction** — left-to-right (English, Spanish), right-to-left (Arabic, Hebrew), top-to-bottom (traditional Japanese), bidirectional (Arabic with embedded English).
+- **Default word order** — SVO (English), SOV (Japanese, Korean), VSO (Welsh).
+- **Plural-formation rules** — irregular plurals where the lexeme doesn't capture the rule.
+- **Pronoun system** — gender, number, formality, evidentiality marking.
+- **Default numerals** — base 10 Arabic for English; Chinese characters for Mandarin formal contexts; Devanagari for Hindi.
 
-| Role | Key | Gloss | VN/LIRICS | Example |
-|------|-----|-------|-----------|---------|
-| **LOCATION** | `cg.role:location` | Where something happens | Location | London |
-| **TIME** | `cg.role:time` | When something happens | Time | Tuesday |
+These show up as bindings on the language's own manifest, queryable from any context that needs them. A renderer assembling output for a user picks up the reading direction and word order from the active language's manifest; a UI presenting numerals does the same.
 
-**Information and naming roles** (CG extensions):
+## Languages and Parley
 
-| Role | Key | Gloss | VN/LIRICS | Example |
-|------|-----|-------|-----------|---------|
-| **TOPIC** | `cg.role:topic` | Subject of communication | Topic | the bug (discuss the bug) |
-| **NAME** | `cg.role:name` | Designation being assigned | CG extension | "Project Alpha" |
-| **REFERENT** | `cg.role:referent` | Concept being referred to | CG extension | AUTHOR sememe (in lexeme) |
+When two librarians communicate through Parley, they share language items by IID. The two systems agree on which sememe a given English lexeme points at because both reference `@english` by the same canonical-key-derived IID. Lexeme frames travel between librarians the same way any other frames do.
 
-### Roles in Verb Arguments
+The protocol doesn't need a "current language" negotiation. References to sememes carry their identity; the receiver renders the references in their preferred language at display time. A frame mentioning `@create` arrives at a Spanish-speaking user's session; their renderer queries the token dictionary in `@spanish` scope and presents "crear" on screen. Same data, different language at the surface.
 
-Verbs declare their **slot roles** — the thematic roles their arguments can fill:
+## Worked examples
 
-```java
-@Seed public static final Sememe SEED = new Sememe(KEY, PartOfSpeech.VERB)
-    .gloss("en", "bring into existence")
-    .slot(ThematicRole.Theme.KEY)
-    .slot(ThematicRole.Goal.KEY)
-    .slot(ThematicRole.Name.KEY);
-```
-
-This mirrors VerbNet's `<THEMROLES>` declarations. When Common Graph imports VerbNet data, each verb class's thematic role expectations will populate these slot declarations automatically.
-
-### Roles in Frames
-
-Thematic roles are the keys in frame bindings. A frame is essentially a sentence:
+**"Create" / "Crear" / "作る" as lexemes.**
 
 ```
-AUTHOR { THEME: TheHobbit, GOAL: Tolkien }
-  → "The Hobbit was authored by Tolkien"
-  → THEME fills "what was authored", GOAL fills "who authored it"
+English lexeme:
+  {@lexeme, [
+    @THEME → @create,
+    @NAME:[@english, @verb, @lemma] → "create"
+  ]}
+
+Spanish lexeme:
+  {@lexeme, [
+    @THEME → @create,
+    @NAME:[@spanish, @verb, @lemma] → "crear"
+  ]}
+
+Japanese lexeme:
+  {@lexeme, [
+    @THEME → @create,
+    @NAME:[@japanese, @verb, @lemma] → "作る"
+  ]}
 ```
 
-This is Frame Semantics — the structure of meaning. Roles give each participant a defined semantic function, independent of word order or language.
+Same THEME target (`@create`); language-specific NAME bindings; surface forms diverge while the underlying sememe stays put.
 
-### The REFERENT Role
-
-REFERENT is a metalinguistic role — "the concept being referred to." It's needed for frames that talk *about* sememes rather than using them:
+**"Move" as English verb vs. chess-notation token.**
 
 ```
-LEXEME { THEME: English, REFERENT: AUTHOR, FORM: LEMMA, word: "author" }
-  → "In English, the lemma for the AUTHOR concept is 'author'"
+English-verb lexeme:
+  {@lexeme, [
+    @THEME → @cg-verb-move,
+    @NAME:[@english, @verb, @lemma] → "move"
+  ]}
+
+Chess-notation lexeme (a chess move written as bare notation):
+  {@lexeme, [
+    @THEME → @nf3-move-instance,
+    @NAME:[@chess-notation, @lemma] → "Nf3"
+  ]}
 ```
 
-Here THEME is English (the home item), so REFERENT carries the sememe. Without REFERENT, we'd need THEME for the sememe, but THEME is already the Language item.
+Two languages, two lexemes, two different sememes. The same surface form ("move") could exist in both languages if needed; the scope chain at parse time determines which lexeme wins.
 
-### Alignment with Established Standards
+**German separable verb.**
 
-Common Graph's role inventory draws from a rich tradition:
-
-- **VerbNet** (Martha Palmer, CU Boulder) provides ~30 thematic roles organized by verb class, with selectional restrictions and syntactic frame mappings. VerbNet's XML data includes WordNet sense keys, giving Common Graph a direct bridge from synset to role expectations.
-- **ISO 24617-4 / LIRICS** (Harry Bunt, Tilburg) standardized ~23 semantic roles defined by entailment properties. The [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf) unification showed that VerbNet and LIRICS roles form a compatible hierarchy.
-- **FrameNet** (Fillmore, ICSI Berkeley) uses frame-specific elements rather than universal roles. Common Graph's universal roles handle the common case; FrameNet-style specialization can be layered on top as additional seedItem data.
-- **PropBank** uses numbered arguments (ARG0-ARG5) with SemLink providing the cross-walk to VerbNet roles.
-
-The intent is to import VerbNet class data to auto-populate slot declarations: for each verb sememe anchored to a WordNet synset, the VerbNet class tells us exactly which roles it expects. This removes the need to hand-code role expectations for thousands of predicates.
-
-## Grammatical Features
-
-**Grammatical features** describe inflectional properties of words — tense, number, person, case, mood, degree. Like thematic roles, they are **sememes** (`GrammaticalFeature extends Sememe`).
-
-### Seed Features
-
-| Feature | Canonical Key | What It Marks |
-|---------|--------------|---------------|
-| **LEMMA** | `cg.feat:lemma` | The base/dictionary form |
-| **PAST** | `cg.feat:past` | Past tense (ran, went) |
-| **PRESENT** | `cg.feat:present` | Present tense |
-| **FUTURE** | `cg.feat:future` | Future tense |
-| **SINGULAR** | `cg.feat:singular` | Singular number |
-| **PLURAL** | `cg.feat:plural` | Plural number |
-| **FIRST_PERSON** | `cg.feat:first-person` | First person |
-| **SECOND_PERSON** | `cg.feat:second-person` | Second person |
-| **THIRD_PERSON** | `cg.feat:third-person` | Third person |
-| **PARTICIPLE** | `cg.feat:participle` | Participial form |
-| **GERUND** | `cg.feat:gerund` | Gerund form |
-| **COMPARATIVE** | `cg.feat:comparative` | Comparative degree (bigger) |
-| **SUPERLATIVE** | `cg.feat:superlative` | Superlative degree (biggest) |
-| **INDICATIVE** | `cg.feat:indicative` | Indicative mood |
-| **SUBJUNCTIVE** | `cg.feat:subjunctive` | Subjunctive mood |
-| **IMPERATIVE** | `cg.feat:imperative` | Imperative mood |
-
-Features combine as sets. The past participle of "run" has features `{PAST, PARTICIPLE}` → "run". The third person singular present has `{THIRD_PERSON, SINGULAR, PRESENT}` → "runs".
-
-### Irregular Form Overrides
-
-Lexemes can carry **form entries** — explicit overrides for irregular inflections:
+A German lexeme can mark a verb's prefix-separating behavior as part of its qualifier set:
 
 ```
-Lexeme: "run" → RUN sememe
-  Forms:
-    {PAST}                → "ran"
-    {PAST, PARTICIPLE}    → "run"
-    {PRESENT, PARTICIPLE} → "running"
+{@lexeme, [
+  @THEME → @pick-up,
+  @NAME:[@german, @verb, @lemma] → "abholen",
+  @ATTRIBUTE:[@separable-prefix] → "ab"
+]}
 ```
 
-When looking up a form, the system checks overrides first, then falls back to regular morphology rules. `FormEntry` stores each override as a sorted list of feature IIDs + the surface string, enabling deterministic encoding.
-
-## Morphology
-
-The morphology system generates all inflected forms of a word. It combines **regular rules** (language-specific algorithms) with **irregular overrides** (from UniMorph data).
-
-### Regular Rules
-
-Each Language subclass implements `regularInflection(lemma, pos, features)`. For English:
-
-```
-Verb inflection:
-  {PAST}              → -ed (walk → walked)
-  {PRESENT, PARTICIPLE} → -ing (walk → walking)
-  {THIRD_PERSON}      → -s (walk → walks)
-
-Noun inflection:
-  {PLURAL}            → -s (cat → cats)
-                         -es (box → boxes)
-                         -ies (city → cities)
-
-Adjective inflection:
-  {COMPARATIVE}       → -er (big → bigger)
-  {SUPERLATIVE}       → -est (big → biggest)
-```
-
-### Irregular Overrides from UniMorph
-
-The [Universal Morphology](https://unimorph.github.io/) project provides irregularity data for 100+ languages. Each language's UniMorph file is a TSV with:
-
-```
-lemma    form    features
-run      ran     V;PST
-run      running V;V.PTCP;PRS
-go       went    V;PST
-be       am      V;IND;PRS;1;SG
-```
-
-During import, `UniMorphReader` parses these files and maps universal tags (V, PST, PL, CMPR) to `GrammaticalFeature` IIDs. The Language's `simplifyFeatures()` reduces the tag set to what that language actually distinguishes. If the irregular form differs from what regular rules would produce, it's stored as a `FormEntry` on the Lexeme.
-
-### Inflected Form Registration
-
-After import, `Lexicon.registerInflectedForms(language)` generates all surface forms:
-
-```
-For each lexeme:
-  For each feature set the language distinguishes:
-    1. Check lexeme overrides → use if present
-    2. Otherwise compute regular inflection → use if differs from lemma
-    3. Index the surface form as a TokenDictionary posting
-       (scoped to the Language item, at the lexeme's frequency weight)
-```
-
-This means all of these resolve to the same RUN sememe:
-```
-"run"     → LEMMA, scope: English
-"ran"     → {PAST}, scope: English
-"running" → {PRESENT, PARTICIPLE}, scope: English
-"runs"    → {THIRD_PERSON}, scope: English
-```
-
-## Data Sources
-
-The import pipeline draws from four external data sources:
-
-### 1. ISO 639-3 Language Codes
-
-**File**: `core/src/main/resources/iso-639-3.tsv` (114 KB, ~8,000 entries)
-**Format**: Tab-separated — `code \t englishName`
-**Loaded by**: `SeedVocabulary.loadLanguageCodes()`
-**Purpose**: Create Language items with deterministic IIDs for every known human language
-
-This is the **enumeration of all possible languages**. Even languages without WordNet data get an Item, so lexemes can be added later from any source.
-
-### 2. Global WordNet LMF (Lemon-Based Multilingual Format)
-
-**File**: e.g., `english/src/main/resources/english-wordnet-2025.xml`
-**Format**: XML (GWN-LMF standard)
-**Parsed by**: `LmfImporter` (StAX streaming, handles gzip)
-
-The primary vocabulary source. Each language with a WordNet provides:
-
-- **Synsets** — synonym sets with glosses and inter-synset relations
-- **Lexical entries** — word forms with lemmas, senses, and counts
-- **Sense relations** — word-level semantic links
-
-The Open English WordNet (OEWN) 2025 contains ~120K synsets and ~160K lexical entries.
-
-### 3. CILI (Collaborative Interlingual Index)
-
-**File**: `core/src/main/resources/ili.ttl` (16.3 MB)
-**Format**: RDF Turtle
-**Purpose**: Global concept identifiers that link synsets across languages
-
-CILI provides the bridge. English synset "dog" has CILI identifier `i23456`. Spanish synset "perro" has the same CILI identifier. When both wordnets are imported, both languages' words map to the same sememe — the one with IID derived from `i23456`.
-
-This is how the **translation matrix** emerges without any translation machinery. Import English → English words map to sememes. Import Spanish → Spanish words map to the *same* sememes (via shared CILI IDs). Query any sememe → get words in all imported languages.
-
-### 4. UniMorph (Universal Morphology)
-
-**File**: e.g., `english/src/main/resources/unimorph/eng`
-**Format**: TSV — `lemma \t form \t features`
-**Parsed by**: `UniMorphReader`
-**Purpose**: Irregular inflection data
-
-UniMorph provides morphological paradigms for 100+ languages. The importer uses it to:
-1. Identify irregular forms (run→ran, go→went, be→am/is/are/was/were)
-2. Store overrides as `FormEntry` objects on lexemes
-3. Avoid generating incorrect regular inflections
-
-### 5. VerbNet (Planned Import)
-
-**Source**: [VerbNet 3.4 XML](https://github.com/cu-clear/verbnet)
-**Format**: XML — one file per verb class (~300 classes)
-**Java API**: `io.github.semlink:verbnet` on Maven Central
-**Purpose**: Thematic role declarations per verb class
-
-VerbNet organizes verbs into ~300 classes based on shared syntactic and semantic behavior (Levin 1993 verb classes). Each class specifies:
-- **Thematic roles** with selectional restrictions (what roles the verb expects)
-- **Syntactic frames** (argument realization patterns)
-- **Semantic predicates** (event structure decomposition)
-- **WordNet sense keys** (mapping each verb member to WordNet synsets)
-
-This is the single highest-value import target for Common Graph's slot declarations. Instead of hand-coding which roles each predicate expects, the VerbNet import will populate `.slot()` declarations automatically: **WordNet synset → VerbNet class → thematic role expectations**.
-
-### 6. SemLink (Planned Import)
-
-**Source**: [SemLink 2.0](https://github.com/cu-clear/semlink)
-**Format**: JSON mapping files
-**Purpose**: Cross-resource mappings between VerbNet, FrameNet, PropBank, and WordNet
-
-SemLink provides the cross-walk: given a WordNet synset, find its VerbNet class(es), PropBank roleset(s), and FrameNet frame(s). Common Graph can store these as cross-reference frames on predicate sememes, enabling queries like "show me the FrameNet frame for this verb."
-
-### 7. VerbAtlas (Future Import)
-
-**Source**: [VerbAtlas 1.0](https://verbatlas.org/)
-**Format**: REST API + downloadable data
-**Purpose**: Cleaner alternative to VerbNet with 466 frames and 26 universal roles
-
-VerbAtlas provides a principled reduction of VerbNet's ~35 roles to 26 cross-frame roles, covering all ~13,000 WordNet verb synsets. Linked to BabelNet for 280+ language coverage. A potential complement or alternative to direct VerbNet import.
-
-## The Import Pipeline
-
-The import pipeline is a **3-pass process** implemented in `LanguageImporter`, with language-specific subclasses providing paths and configuration.
-
-### Architecture
-
-```
-LanguageImporter (abstract, in :core)
-    ├── wordnetResourcePath()    → classpath path to GWN-LMF XML
-    ├── unimorphResourcePath()   → classpath path to UniMorph TSV (or null)
-    ├── languageId()             → ItemID for the Language item
-    └── sourcePrefix()           → identifier for this wordnet (e.g., "oewn")
-
-EnglishImporter (in :english)
-    ├── wordnetResourcePath()    → "/english-wordnet-2025.xml"
-    ├── unimorphResourcePath()   → "/unimorph/eng"
-    ├── languageId()             → ItemID.fromString("cg.lang:english")
-    └── sourcePrefix()           → "oewn"
-```
-
-Each language module (`:english`, `:spanish`, etc.) provides an importer subclass and bundles its data files as classpath resources.
-
-### Pass 1: Synsets → Sememes
-
-```
-LmfImporter.synsets()  →  stream of Synset records
-    |
-    For each synset:
-    |
-    ├── Resolve ILI identifier → look up existing sememe
-    │   (if CILI maps to a seedItem sememe, reuse it; otherwise create new)
-    |
-    ├── Create or find Sememe item
-    │   - Deterministic IID from CILI/ILI
-    │   - POS from synset (n → NOUN, v → VERB, a/s → ADJECTIVE, r → ADVERB)
-    │   - Gloss from synset definition
-    |
-    └── Create semantic relations
-        - hypernym, hyponym, holonym, meronym, antonym, similar_to, etc.
-        - Each maps to a CG predicate sememe (Sememe.Hypernym, Sememe.Hyponym, ...)
-        - Stored as signed relations: THEME → subject sememe, GOAL → object sememe
-```
-
-**Relation type mapping** (universal across all wordnets):
-
-| LMF Relation | CG Predicate |
-|-------------|-------------|
-| `hypernym` | `Sememe.Hypernym` |
-| `hyponym` | `Sememe.Hyponym` |
-| `instance_hypernym` | `Sememe.InstanceOf` |
-| `holo_*` | `Sememe.Holonym` |
-| `mero_*` | `Sememe.Meronym` |
-| `antonym` | `Sememe.Antonym` |
-| `similar` | `Sememe.SimilarTo` |
-| `derivation` | `Sememe.Derivation` |
-| `domain_*` | `Sememe.Domain` |
-| `entails` | `Sememe.Entails` |
-| `causes` | `Sememe.Causes` |
-| `also` | `Sememe.SeeAlso` |
-
-### Pass 2: Lexical Entries → Lexemes
-
-```
-LmfImporter.lexicalEntries()  →  stream of LexicalEntry records
-    |
-    For each entry:
-    |
-    ├── Look up lemma's synset → find the Sememe from Pass 1
-    |
-    ├── Find irregular overrides (if UniMorph data available)
-    │   ├── UniMorphReader.load(path) → Map<lemma, List<Entry>>
-    │   ├── For each UniMorph entry matching this lemma:
-    │   │   ├── Parse universal features (V;PST → {VERB, PAST})
-    │   │   ├── language.simplifyFeatures(raw) → minimal feature set
-    │   │   ├── language.regularInflection(lemma, pos, features) → regular form
-    │   │   └── If UniMorph form ≠ regular form → create FormEntry override
-    │   └── Collect all overrides into forms list
-    |
-    └── Create Lexeme(word, language, sememe, pos, frequency, forms)
-        └── lexicon.add(lexeme)  → auto-indexes in TokenDictionary
-```
-
-### Pass 3: Inflected Form Registration
-
-```
-lexicon.registerInflectedForms(language)
-    |
-    For each lexeme in lexicon:
-    |
-    For each feature set the language distinguishes for this POS:
-    |
-    ├── Check lexeme.lookupForm(features)  → override if present
-    ├── Otherwise language.regularInflection(lemma, pos, features)
-    ├── If the inflected form differs from the base word:
-    │   └── Create Posting(form, languageScope, sememeTarget, frequency)
-    │       └── tokenDictionary.index(posting)
-    |
-    Result: all surface forms indexed
-        "run", "ran", "running", "runs" → RUN sememe (English-scoped)
-```
-
-### Import Statistics
-
-`importInto()` returns `ImportStats`:
-
-```
-ImportStats {
-    synsetCount:      int     // sememes processed
-    lexemeCount:      int     // lexemes created
-    relationCount:    int     // semantic relations created
-    formPostingCount: int     // inflected form postings indexed
-    durationMs:       long    // wall clock time
-    source:           String  // data source identifier
-}
-```
-
-## Bootstrap Flow
-
-At system startup, `SeedVocabulary.bootstrap()` orchestrates the initialization:
-
-```
-1. Seed English Language item
-   └── Create Language("cg:language/eng", "eng")
-   └── Store in ItemStore
-   └── Required before any English-scoped tokens can be registered
-
-2. Register all @Type classes
-   └── Scan classpath for @Type annotation
-   └── Create type seedItem items with deterministic IIDs
-   └── Create IMPLEMENTED_BY relations (type → Java class)
-
-3. Scan for @Item.Seed fields
-   └── Find all static fields annotated @Seed
-   └── For each seedItem:
-       ├── Store manifest in ItemStore
-       ├── Extract tokens → TokenDictionary (English-scoped)
-       ├── Extract symbols → TokenDictionary (universal scope)
-       ├── Glosses → transient (migrate to SememeGloss components later)
-       └── LexemeDeclarations → feed into English Lexicon
-
-4. Load ISO 639-3 language codes
-   └── Create Language items for all ~7,000 languages
-
-5. Language imports (triggered by user or on first boot)
-   └── EnglishImporter.importInto(lexicon, english, signer)
-   └── (Future: SpanishImporter, JapaneseImporter, etc.)
-```
-
-### Token Indexing During Bootstrap
-
-`TokenExtractor.fromSememe(sememe, language)` extracts postings from seedItem sememes:
-
-| Source | Scope | Weight | Example |
-|--------|-------|--------|---------|
-| Canonical key | English | 1.0 | "cg.core:author" → AUTHOR |
-| Short name | English | 1.0 | "author" → AUTHOR |
-| Symbols | null (universal) | 1.0 | "m" → METER, "+" → ADD |
-| Token aliases | English | 1.0 | "create", "new", "make" → CREATE |
-| Glosses | English | 0.5 | "the creator or originator..." → AUTHOR |
-
-## The Translation Matrix
-
-One of Common Graph's most powerful emergent properties is the **translation matrix** — a natural consequence of the sememe/lexeme architecture.
-
-```
-English Lexicon                  Sememe                  Spanish Lexicon
-"author" ──LEMMA──→ ┌─────────────────────┐ ←──LEMMA── "autor"
-"authors" ─PLURAL─→ │  AUTHOR (cg.core:   │ ←──PLURAL─ "autores"
-                     │    author)           │
-                     │  IID: 7f3a...        │
-                     │  CILI: i90183        │
-                     └─────────────────────┘
-```
-
-There is no separate translation machinery. The sememe IS the translation. To translate "author" from English to Spanish:
-
-1. Look up "author" in English scope → resolves to AUTHOR sememe
-2. Look up AUTHOR sememe in Spanish scope → finds "autor"
-
-This works for every word in every imported language. Import English and Spanish WordNets (both linked via CILI) and you have a bidirectional English↔Spanish dictionary covering ~120K concepts. Import Japanese too and you now have English↔Japanese and Spanish↔Japanese as well — for free.
-
-The translation matrix is not a feature that was built. It's a structural consequence of separating meaning from expression and anchoring both to shared identifiers.
-
-## References
-
-**Internal:**
-- [Sememes](sememes.md) — Meaning units, hierarchies, CILI anchoring, symbols
-- [Vocabulary](vocabulary.md) — Dispatch, expression input, token resolution, customization
-- [Frames](frames.md) — The frame primitive, body/record split, frame keys
-
-**External resources — lexical:**
-- [WordNet](https://wordnet.princeton.edu/) — Lexical database of English
-- [Open English WordNet](https://en-word.net/) — Community-maintained English WordNet
-- [CILI](https://github.com/globalwordnet/cili) — Collaborative Interlingual Index
-- [Open Multilingual Wordnet](http://compling.hss.ntu.edu.sg/omw/) — WordNet extensions for 26+ languages
-- [Global WordNet LMF](https://globalwordnet.github.io/schemas/) — The XML interchange format
-- [UniMorph](https://unimorph.github.io/) — Universal Morphology for 100+ languages
-- [ISO 639-3](https://iso639-3.sil.org/) — Language code standard (~7,000 languages)
-
-**External resources — semantic roles and frames:**
-- [VerbNet](https://verbs.colorado.edu/verbnet/) — Verb classes with thematic role declarations ([GitHub](https://github.com/cu-clear/verbnet), [Java API](https://github.com/semlink/verbnet-java-api))
-- [FrameNet](https://framenet.icsi.berkeley.edu/) — 1,200+ semantic frames with frame-specific elements
-- [SemLink](https://verbs.colorado.edu/semlink/) — Cross-resource mappings: VerbNet ↔ FrameNet ↔ PropBank ↔ WordNet ([GitHub](https://github.com/cu-clear/semlink))
-- [VerbAtlas](https://verbatlas.org/) — 466 frames, 26 universal roles, linked to BabelNet (280+ languages)
-- [PropBank](https://propbank.github.io/) — Predicate-argument structures with numbered roles ([frames](https://github.com/propbank/propbank-frames))
-- [ISO 24617-4 (SemAF-SR)](https://www.iso.org/standard/56866.html) — International standard for semantic role annotation
-- [LIRICS semantic roles](https://let.uvt.nl/general/people/bunt/docs/LIRICS_semrole.htm) — The role data categories that became ISO 24617-4
-- [Unified Verb Index](https://uvi.colorado.edu/) — Online browser across VerbNet, PropBank, FrameNet
-- [Framester](https://github.com/framester/Framester) — Linked Data hub (~30M RDF triples) integrating FrameNet, VerbNet, PropBank, WordNet, BabelNet
-- [PreMOn](https://premon.fbk.eu/) — OWL ontologies and RDF datasets for PropBank, VerbNet, FrameNet, SemLink
-
-**Academic foundations:**
-- [Fillmore 1968 — "The Case for Case"](references/) — The intellectual origin of thematic roles and case grammar
-- [Fillmore 1982 — Frame Semantics](references/Fillmore%201982%20-%20Frame%20Semantics.pdf) — Frame semantics theory
-- [Dowty 1991 — Thematic Proto-Roles and Argument Selection](references/) — Proto-Agent/Proto-Patient as cluster-concepts
-- [Bonial et al 2011 — Hierarchical Unification of LIRICS and VerbNet](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf) — The unification that became ISO 24617-4
-- [Ruppenhofer et al 2006 — FrameNet II](references/Ruppenhofer%20et%20al%202006%20-%20FrameNet%20II%20Extended%20Theory%20and%20Practice.pdf) — Comprehensive FrameNet theory
-- [Miller et al 1993 — Introduction to WordNet](references/Miller%20et%20al%201993%20-%20Introduction%20to%20WordNet.pdf) — The lexical database
-- [Bond et al 2016 — CILI](references/Bond%2C%20Vossen%20et%20al%202016%20-%20CILI%20the%20Collaborative%20Interlingual%20Index.pdf) — Cross-lingual concept identifiers
-- [Pustejovsky 1991 — The Generative Lexicon](references/Pustejovsky%201991%20-%20The%20Generative%20Lexicon.pdf) — Compositional word meaning
-- [Youn et al 2016 — Universal Structure of Human Lexical Semantics](references/Youn%20et%20al%202016%20-%20Universal%20Structure%20of%20Human%20Lexical%20Semantics.pdf) — Empirical evidence for universal semantic structure
+The renderer, knowing the separable-prefix metadata, knows to split "abholen" into "hole" (the conjugated stem) and "ab" (sentence-final particle) in present-tense V2 contexts. The lexeme carries the linguistic structure; the renderer composes it correctly. (Detailed in [`text.md`](text.md).)
+
+## Relations
+
+- [`sememes.md`](sememes.md) — what lexemes name; the shared-identity layer.
+- [`vocabulary.md`](vocabulary.md) — how lexemes feed the token dictionary; runtime lookup.
+- [`text.md`](text.md) — parsing and rendering; how languages contribute notations.
+- [`input.md`](input.md) — the input pipeline that consumes language-scoped lookups.
+- [`seed-vocabulary.md`](seed-vocabulary.md) — how Language items get into the bootstrap.
+- [`frames.md`](frames.md) — lexeme frames as ordinary frames in the system.

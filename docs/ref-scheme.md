@@ -130,9 +130,52 @@ Every prefix is `?`. The query matches frames whose head is `@move` with an AGEN
 
 ## Encoding
 
-Each prefix corresponds to a fixed byte in the wire encoding. References are CBOR Tag 6 values; the first byte of the tag's payload is the prefix; the rest of the payload identifies the target. The mapping is exhaustive — every reference, anywhere in the system, encodes through this scheme.
+A reference's byte layout is the reference protocol's contract, independent of any wrapping encoding format. The layout:
 
-The full byte-level encoding is specified in [`cg-cbor.md`](cg-cbor.md). For purposes of reading and writing reference-typed values, the prefix is conceptually a leading character (`@`, `?`, `!`, `~`, `#`) on the textual rendering.
+```
+<prefix-byte> <target-bytes> [ \\ <sub-part> [ \\ <sub-part> ] ]
+```
+
+- **`<prefix-byte>`** — one of five fixed bytes, matching the textual prefix character:
+
+  | Prefix | Byte | Variant |
+  |---|---|---|
+  | `@` | 0x40 | item (concrete) |
+  | `?` | 0x3F | item (query) |
+  | `!` | 0x21 | item (schema) |
+  | `~` | 0x7E | content hash |
+  | `#` | 0x23 | datum hash |
+
+- **`<target-bytes>`** — identifies the target:
+  - For `@`/`?`/`!`: a multihash (the IID).
+  - For `~`: a multihash (the content hash).
+  - For `#`: a multihash (the datum hash).
+
+- **`<sub-part>`** — optional drill-in components, separated by the byte `0x5C` (`\`). Only meaningful for some forms:
+  - `@<iid>\<vid>` — an item pinned to a specific version (the VID is a datum hash).
+  - `#<frame-cid>\<binding-key>` — a specific binding within a frame.
+  - `#<frame-cid>\<binding-key>\<portion-spec>` — a portion within a binding's content.
+
+The single-prefix discipline holds in the byte layout the same way it holds in the textual form: every reference has exactly one prefix byte. The `0x5C` separator is for sub-parts within a single reference, not for combining prefixes.
+
+The textual rendering and the wire encoding are isomorphic — a reference is the same thing in either form, just byte-rendered or character-rendered. Implementations may use either when displaying references to users.
+
+## What an encoding distinguishes
+
+Common Graph is encoding-agnostic at the data-model level. The datum primitive — head plus bindings — is the same whether wrapped in CBOR, JSON, msgpack, or a future binary format. What any encoding *must* be able to distinguish is the set of semantic primitives Common Graph defines:
+
+- **REF** — a typed reference, byte-laid-out as above.
+- **BODY** — a 2-position datum: head and bindings.
+- **RECORD** — a 3-position datum: head, bindings, and signature.
+- **SIG** — a varsig-encoded signature attached to a record.
+- **KEY** — a multikey-encoded cryptographic key.
+- **RATIONAL** — a 2-element rational number (numerator, denominator).
+- **REDACTED** — a Merkle-elision marker carrying the preserved hash.
+- **ENCRYPTED** — an encrypted-envelope marker around an inner datum.
+
+An encoding satisfies the contract by giving each of these a recognizable shape — in CBOR, that's a distinguishing tag number; in JSON, it might be a discriminator field; in a flat binary format, a header byte. The specifics belong to the encoding; the *categories* belong to Common Graph.
+
+For the concrete tag-number assignments in CG's primary encoding, see [`cg-cbor.md`](cg-cbor.md). For non-CBOR encodings to interoperate, they need their own discriminator scheme but the same set of distinctions.
 
 ## What the prefix lattice completes
 

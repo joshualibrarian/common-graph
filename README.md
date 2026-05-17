@@ -1,8 +1,8 @@
 # Common Graph
 
-**A unified meaning-space for content, identity, and trust.**
+**A semantic base layer for computing.**
 
-> **Fair warning:** This is an active construction site. The architecture is real, the code runs, but everything is changing constantly. If that bothers you, check back later.
+> Active construction site. The architecture is real, the code runs, but everything is changing constantly. If that bothers you, check back later.
 
 ---
 
@@ -12,7 +12,7 @@ Every layer of the computing stack is semantically inert.
 
 A filesystem sees bytes at paths. An operating system sees processes and file descriptors. HTTP sees bytes at URLs. A database sees rows or documents. None of them know what anything *means*. The entire world's information infrastructure has zero native ability to answer the most basic question about any piece of data: *what is this about?*
 
-The consequence is everywhere, and so pervasive it's invisible. Search engines exist because the web can't describe itself — so third parties crawl billions of pages, guess at meaning from word frequency and link structure, and sell access to their guesses. Every API integration is a bespoke translation between systems that can't describe their own contents to each other. Every application reinvents its own vocabulary — one system's `author` is another's `creator`, another's `created_by`, another's `writtenBy` — and no layer of infrastructure connects them.
+The consequence is everywhere, and so pervasive it's invisible. Search engines exist because the web can't describe itself — third parties crawl billions of pages, guess at meaning from word frequency and link structure, and sell access to their guesses. Every API integration is a bespoke translation between systems that can't describe their own contents to each other. Every application reinvents its own vocabulary — one system's `author` is another's `creator`, another's `created_by`, another's `writtenBy` — and no layer of infrastructure connects them.
 
 The key-value pair is computing's most ubiquitous pattern. But because keys are application-defined strings, they fracture the moment they leave the application that defined them. What's missing isn't a better search engine or a smarter metadata standard. What's missing is a *layer* — a base layer where meaning is structural, not decorative. Where creating data *is* creating semantic structure. Where the vocabulary is shared, grounded, and universal.
 
@@ -22,127 +22,168 @@ For the full argument — why retrofitting semantics onto existing layers can't 
 
 ## The Approach
 
-Common Graph makes meaning structural. **Semantics are resolved at write time, not read time.** When you create or relate anything, the system resolves your intent to globally-anchored meaning *before the data is stored*. Every assertion, every relationship is grounded in **sememes**: universal units of meaning with stable identities derived from decades of computational linguistics ([WordNet](https://wordnet.princeton.edu/), [FrameNet](https://framenet.icsi.berkeley.edu/), [VerbNet](https://verbs.colorado.edu/verbnet/), [CILI](https://github.com/globalwordnet/cili)). The meaning isn't guessed later by a search engine — it's declared at the moment of creation, by the person who knows what they mean.
+Common Graph makes meaning structural. **Semantics are resolved at write time, not read time.** When you create or relate anything, the system resolves your intent to globally-anchored meaning *before the data is stored*. Every assertion, every relationship is grounded in **sememes** — universal units of meaning with stable identities derived from decades of computational linguistics ([WordNet](https://wordnet.princeton.edu/), [FrameNet](https://framenet.icsi.berkeley.edu/), [VerbNet](https://verbs.colorado.edu/verbnet/), [CILI](https://github.com/globalwordnet/cili)). The meaning isn't guessed later by a search engine — it's declared at the moment of creation, by the person who knows what they mean.
 
-When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment worn on the torso with color attribute red." Star Trek memes are a different sememe entirely. They simply don't match.
+When you query "red shirt," you're not searching for the *words* "red" and "shirt" — you're searching for the *meaning* "a garment worn on the torso, color attribute red." Star Trek memes are a different sememe entirely. They simply don't match.
 
 ---
 
-## How It Works
+## The Architecture in One Page
 
-### Frames: The Single Primitive
+Common Graph is built from one structural primitive and a small set of conventions for using it.
 
-The entire data model is built from one structure: the **semantic frame** — a structured assertion grounded in shared meaning.
+### The datum
 
-A frame has a **predicate** — what kind of assertion this is — and **bindings** that fill the predicate's semantic slots. Each binding maps a **thematic role** (the semantic function: NAME, THEME, AGENT, GOAL...) through optional **qualifiers** (narrowing constraints: a language, a format, a unit) to a **target** value, with an **index** flag controlling reverse-lookup.
-
-A predicate declares the roles it expects — the semantic slots that must be filled to make the assertion complete. Qualifiers both **distinguish** multiple bindings of the same role and **constrain** valid inputs:
+Everything is a **datum**: a head plus bindings, optionally signed.
 
 ```
-TITLE frame:
-  NAME:[] → "The Hobbit"
-
-PLAYER frame (on a chess game):
-  AGENT:[] → fischer
-  ROLE:[]  → WHITE
-
-MOVE frame (on the same game):
-  AGENT:[]  → fischer
-  THEME:[]  → king-pawn
-  SOURCE:[] → e2
-  GOAL:[]   → e4
-
-VIDEO frame:
-  NAME:[MKV, UHD] → cid:master-4k
-  NAME:[MKV, HD]  → cid:hd-transcode
+{<head>, [<binding>, <binding>, ...] (, <signature>)}
 ```
 
-Every meaning in a binding is an opportunity for indexing. Query "all videos" — index lookup on the VIDEO predicate. Query "all UHD videos" — narrow with qualifiers. The structure *is* the index.
+A datum with no signature is a **body** — pure data, content-addressed, immutable. A datum with a signature is a **record** — an attestation over a body. Bodies and records are the only stored structures; frames, manifests, schemas, queries, and code items are all just bodies and records with different head choices.
 
-**Bodies and Records: configurations of the same primitive.** Both are **Datums** (`reference + bindings [+ signature]`):
+A **frame** is a body whose head is a predicate. "Tolkien authored The Hobbit" is a frame:
 
-- **Body** — the semantic assertion itself. Head reference points at a meaning (predicate or archetype IID). Bindings carry the assertion content. Content-addressed by hash. Immutable.
-- **Record** — a signed attestation. Head reference points at a body's CID. Bindings carry signer, timestamp, and any per-record configuration. Signature is structurally distinct.
-- **Frame** — runtime container holding a body Datum and zero or more record Datums.
+```
+{@authored, [
+  @AGENT → @tolkien,
+  @THEME → @hobbit
+]}
+```
 
-The same assertion can be independently attested by multiple signers, each producing their own record Datum pointing at the shared body's CID. The body's identity is stable regardless of who signs it.
+A **manifest** is a body whose head is an archetype and which carries an `@ITEM_ID` binding. It's one version in some item's lineage.
 
-See [`datum.md`](docs/datum.md) for the unified primitive, [`frames.md`](docs/frames.md) for the frame model, and [**The Case**](docs/the-case.md) for the theoretical foundations.
+A **value body** is a body whose head names a typed-value archetype. A specific color is a body whose head is the Color archetype:
 
-### Items: What Frames Cohere Around
+```
+{@color, [@R → 255, @G → 0, @B → 0]}
+```
 
-A single frame is rarely the whole story. A book is a TITLE frame, an AUTHORED frame, TEXT frames, a COVER_ART frame — all about the same thing. The thing they cohere around is an **item**: a signed, versioned collection of frame endorsements with stable cryptographic identity.
+A **schema** is a body whose bindings carry `!`-prefixed references — declaring what instances of this archetype should look like. The Add predicate's manifest IS its own schema:
 
-Items can represent anything: documents, people, groups, conversations, games, devices, languages, meanings themselves. Every item carries its own identity (IID), version history, and a manifest — a signed list of endorsements pointing to frames by body hash.
+```
+{@predicate, [
+  @ITEM_ID → <add-iid>,
+  !THEME → ?number,
+  !THEME → ?number
+]}
+```
 
-**Types are sememes.** The concept "Book" is a meaning in the graph — a sememe with its own IID, the same "book" that exists in WordNet. The type system and the semantic system are unified.
+Same body shape; different head choices and different binding-prefix conventions; different roles in the system. One primitive does the work of many.
 
-> *"Item" is a working name. The right word will come.*
+### Five reference prefixes
 
-See [`item.md`](docs/item.md) for item structure, identity, lifecycle, and composition.
+References — pointers from one place in the graph to another — carry typing as their leading byte:
 
-### Why This Replaces Files and Folders
-
-| Files & Folders | Frames & Items |
+| Prefix | Meaning |
 |---|---|
-| Opaque byte stream — the OS can't interpret content | Typed frames — the system knows what everything means |
-| Named by path in a tree — one location per file | Discoverable by meaning — items exist in a semantic graph, not a hierarchy |
-| No built-in authorship, versioning, or integrity | Every item is signed, versioned, and content-addressed |
-| Metadata is a sidecar (xattr, .DS_Store, EXIF) | Metadata IS bindings — first-class, queryable, signed, same as content |
-| "Relatedness" means same folder or a hyperlink | Semantic frames: typed, signed, indexed, traversable |
+| `@` | concrete reference: use this exact item |
+| `?` | query pattern: match anything fitting this type |
+| `!` | schema slot: this is the expected shape |
+| `~` | content hash: these exact bytes |
+| `#` | datum hash: this exact structural datum |
+
+`@hobbit` says "this book"; `?book` says "any book"; `!book` says "expects a book here." Same target, three relationships, three distinct prefixes — never combined. The prefix lattice completes what IPLD started: typed links, not just hashed pointers.
+
+### Items as continuants
+
+An **item** is a stable cryptographic identity around which a lineage of manifests accumulates. Documents, users, hosts, chess games, codebases — anything that needs to persist across versions is an item. Items are the *things that endure* through change; manifests are the *snapshots* of their states at moments.
+
+Versioning, history, branching, merging — all expressed through `@FOLLOWS` bindings on each manifest naming its parent(s). No working tree is special; every edit is itself a commit. Two signers' disagreement about the "current version" is just two channels pointing at different VIDs — both valid, neither authoritative.
+
+### Items as actors
+
+When a frame addresses an item, the item is *potentially reactive*. The item declares which messages it accepts through `@HANDLES` bindings on its archetype's manifest:
+
+```
+@chess-game's manifest declares:
+  @HANDLES → @move
+  @HANDLES → @resign
+  @HANDLES → @offer-draw
+```
+
+When a MOVE frame is submitted, the runtime finds chess game items via HANDLES and dispatches the move to them. Frames are messages; items are actors; predicates are message types. The whole runtime is one giant dispatch loop over frames; there's no separate RPC, event bus, or command system.
+
+### Polyglot implementations
+
+Code is just another body type. A **code item** has the Code archetype and language bindings:
+
+```
+{@code, [
+  @ITEM_ID → <add-java-iid>,
+  @IMPLEMENTS → @add,
+  @JAVA:[ClassName] → "AddJava"
+]}
+```
+
+A different code item implements the same archetype in Python:
+
+```
+{@code, [
+  @ITEM_ID → <add-python-iid>,
+  @IMPLEMENTS → @add,
+  @PYTHON:[SourceCode] → "def evaluate(body): ..."
+]}
+```
+
+Both realize `@add`. The runtime picks one based on what languages the host supports and what the user's trust matrix permits. The wire format is the contract; the implementing language is private to each code item.
+
+### Encoding-agnostic by construction
+
+Identity in Common Graph is *structural*, not encoded.
+
+Two implementations using different encoding formats — CG-CBOR, a hypothetical CG-JSON, anything — produce different bytes for the same datum, but the same **DatumID**, because both compute the structural hash by walking the same data model. This is what makes the system pluggable at the encoding layer: new encodings can be added without breaking identity continuity, and two implementations using different wire formats can verify and deduplicate by structural identity alone.
+
+The **canonical walker** is the protocol that produces DatumIDs. CG-CBOR is the first encoding format above it. Others can follow.
+
+---
+
+## What This Replaces
+
+### Files and folders
+
+| Files & Folders | Common Graph |
+|---|---|
+| Opaque byte stream — the OS can't interpret content | Typed bodies — the system knows what everything means |
+| Named by path in a tree — one location per file | Discoverable by meaning — items exist in a semantic graph |
+| No built-in authorship, versioning, or integrity | Every body is signed, versioned, content-addressed |
+| Metadata is a sidecar (xattr, .DS_Store, EXIF) | Metadata IS bindings — first-class, queryable, signed |
+| "Relatedness" means same folder or a hyperlink | Semantic frames — typed, signed, indexed, traversable |
 | Application decides how to open it | Item carries its own vocabulary and presentation |
 | Search by filename or full-text keyword | Query by meaning across the graph |
 
 A folder is one way to group things — by containment in a hierarchy. Common Graph gives you every way: by authorship, by topic, by type, by time, by trust, by any semantic assertion anyone has made. And those groupings are themselves frames — signed, queryable, and extensible by anyone.
 
----
+### The web, email, chat, messaging
 
-## Semantic Discoverability
+A unified messaging substrate covers most of what these systems do separately:
 
-The web is a document dump with external indexing bolted on. Common Graph is a **semantic index by construction**.
+- **Email** is signed frames with thread predicates and routing through trust.
+- **Chat rooms** are streams of frames with different predicates (MESSAGE, REACTION, JOIN, LEAVE).
+- **The web** is items presenting scenes — semantically self-describing replacements for HTML+CSS+JS.
+- **Federated social networks** are the same frames different communities interpret differently.
 
-Every item is typed with a sememe. Every frame has a predicate that is a sememe. Every binding has a role that is a sememe. The graph IS the index.
+Existing networks aren't displaced by force; they're **bridged**. CG speaks email at the boundary by translating SMTP/IMAP to frames; speaks ActivityPub to federated peers; speaks HTTP to the existing web. Adoption is gradual, not zero-sum.
 
-### Write-Time Resolution
-
-**Meaning is resolved at the moment of creation.** When you create a frame — whether by typing "move pawn to e4," clicking a button, or calling an API — the system resolves every concept to a globally-anchored sememe *before storage*. "Move" resolves to the MOVE sememe. "Pawn" resolves to the chess piece item. "To" maps to the GOAL thematic role. "E4" resolves to a board position. What gets stored is a structure of semantic references: `MOVE { THEME:[] → pawn, GOAL:[] → e4 }`.
-
-The person creating the data does the disambiguation, because they know what they mean. This is trivial at write time — you know you meant chess, not a political metaphor. It's nearly impossible at read time. This is why Common Graph doesn't need a search engine, a crawler, or a ranking algorithm.
-
-### Sememes
-
-**Sememes are universal meaning units** — language-agnostic items that anchor meaning globally. Grounded in [WordNet](https://wordnet.princeton.edu/) (~120,000 synsets) and cross-linked via [CILI](https://github.com/globalwordnet/cili) (Collaborative Interlingual Index), each sememe has:
-
-- A **stable cryptographic IID** — deterministic from a canonical key, identical on every node
-- **Symbols** for language-neutral notation ("+", "m", "kg", "USD")
-- For predicates: **declared roles** (EXPECTS) defining what bindings their frames require
-- **Glosses** per language (each a frame)
-
-Words belong to **languages**. Each language is itself an item, and its **lexemes** — the words that express sememes — are frames on that item, carrying their own grammatical features: part of speech, inflection, and morphology. "Create" (English verb), "crear" (Spanish verb), and "erstellen" (German verb) are all lexemes pointing at the same sememe. A sememe's IID stays stable forever — words in any language can be added, changed, or removed without touching it.
-
-There are no reserved words. No escape characters. Disambiguation happens through more language — the same way humans do it.
-
-**Predicates ARE indexes.** When you assert `AUTHORED { THEME:[] → TheHobbit, AGENT:[] → Tolkien }`, the frame is indexed on TheHobbit (by AUTHORED predicate) and on Tolkien (by AGENT role). Querying "what did Tolkien author?" is a prefix scan — no full-text search, no crawling, no ranking algorithm.
-
-**Discovery fans out through the social graph.** Your librarian answers queries from its local store first. If it doesn't have the answer, it asks peers. Peers ask their peers. Trust metrics control propagation depth. Global discoverability without a global index.
+See [`bridges.md`](docs/bridges.md) for the interop strategy.
 
 ---
 
 ## What You Can Do
 
-**Find things by meaning, not keywords.**
+**Find things by meaning, not keywords.** "All red shirts for sale within 50km" resolves SHIRT (garment sememe) + RED (color sememe) + FOR_SALE (commercial predicate) + spatial constraint. Star Trek references have a different sememe and don't appear.
 
-- *"All red shirts for sale within 50km"* — resolves SHIRT (garment sememe) + RED (color sememe) + FOR_SALE (commercial predicate) + spatial constraint. Star Trek references have a different sememe. They don't appear.
-- *"Papers that cite this paper"* — CITES is a predicate. Every citation is a signed frame. The graph IS the citation index.
-- *"Everything Tolkien authored"* — AUTHORED is a predicate, Tolkien is an item. Prefix scan on the frame index.
+**Publish without a platform.** Your content is a signed item on your device. Your identity is a cryptographic key, not an account. Your audience finds your work through trust relationships, not through a platform's algorithm.
 
-**Publish without a platform.** Your content is a signed item on your device. Your identity is a cryptographic key, not an account.
+**Moderate without an authority.** A "like" is a signed frame. A spam label is a signed frame. Everyone's trust policies produce different views of the same data — no appeals board, no opaque algorithm. If you trust someone, their assertions reach your view; if you don't, they don't.
 
-**Trust without a moderator.** A "like" is a signed frame. A spam label is a signed frame. Everyone's trust policies produce different views of the same data — no appeals board, no opaque algorithm.
+**Converse across languages.** "Create" in English, "crear" in Spanish, "作る" in Japanese — same sememe, same action. The interface is semantic, not syntactic.
 
-**Converse across languages.** "Create" in English, "crear" in Spanish, "erstellen" in German — same sememe, same action. The interface is semantic, not syntactic.
+**Compute with real quantities.** `5m + 3ft` → `5.9144 m`. Units are sememes with dimensional metadata. Quantities are first-class typed values, not strings.
 
-**Compute with real quantities.** `5m + 3ft` → `5.9144 m`. Units are sememes with dimensional metadata. Quantities are first-class values, not strings.
+**Carry your data forward forever.** A document filed in 2026 stays identifiable in 2076 even if the encoding format has migrated. DatumIDs survive encoding changes; the meaning is what's identified, not the bytes.
+
+**Sign forms once, redact for each viewer.** Critical for government, legal, and medical contexts: a document's structural hash stays the same whether or not specific bindings are visible. A FOIA-disclosed document with redactions is still verifiable as authentic; a tax return shared with a bank can have unrelated lines hidden without breaking signatures.
 
 ---
 
@@ -162,17 +203,17 @@ The pipeline:
 
 ```
 Token (any language)
-  → TokenDictionary (scoped lookup: language, item, user)
+  → TokenDictionary (scoped lookup: focused item, session, active languages, universal)
     → Sememe (language-neutral meaning)
-      → Language parsing (grammar-aware assembly into semantic frames)
-        → Frame creation (the action IS the frame — items react to new frames)
+      → Composable notations (operators, functions, property access, ...)
+        → Frame body (assembled, signed, submitted)
 ```
 
-Words resolve to sememes. Sememes assemble into frames. Creating a frame IS the action — items observe new frames and react accordingly. "Move pawn to e4" assembles a MOVE frame; the chess game receives it and updates its board state.
+Words resolve to sememes. Sememes assemble into frames. Creating a frame IS the action — items observe new frames and react accordingly. "Move pawn to e4" assembles a MOVE frame; the chess game receives it and updates.
 
-Word order is flexible because resolution is semantic, not positional. "Move pawn to e4" and "move to e4 pawn" produce the same result — prepositions frame arguments by thematic role, not by position.
+Word order is flexible because resolution is semantic, not positional. "Move pawn to e4" and "move to e4 pawn" produce the same frame — prepositions frame arguments by thematic role, not by position.
 
-**But you don't have to type.** Items declare their own visual presentation. A chess game renders a board you can click on. A document renders editable text. A chat room shows messages with a compose area. Clicking "reply" creates the same frame as typing "reply."
+**But you don't have to type.** Items declare their own visual presentation. A chess game renders a board you click on. A document renders editable text. A chat room shows messages with a compose area. Clicking "reply" creates the same frame as typing "reply."
 
 ---
 
@@ -180,9 +221,11 @@ Word order is flexible because resolution is semantic, not positional. "Move paw
 
 Your identity is a cryptographic key pair that lives on your device. No server needed. No account to create. No password to forget.
 
-When a Librarian (the local runtime node) boots for the first time, it generates an Ed25519 signing key. This key is the device's identity — it can sign manifests, assert frames, and prove authorship without asking anyone's permission. The private key never leaves the device.
+When a Librarian (the local runtime) boots for the first time, it generates an Ed25519 signing key. This key is the device's identity — it can sign manifests, assert frames, and prove authorship without asking anyone's permission. The private key never leaves the device.
 
-**Devices and people are separate identities.** Your laptop has a key. Your phone has a key. *You* are a Principal — a higher-level identity that authorizes devices by adding their public keys to your KeyLog, an append-only stream in the graph. Lose a device? Revoke its key. Your identity survives because it's not tied to any one machine.
+Devices and people are separate identities. Your laptop has a key. Your phone has a key. *You* are a higher-level identity that authorizes devices through KERI-style key inception, rotation, delegation, and revocation — an append-only chain of cryptographic events that any verifier can replay independently. Lose a device? Revoke its key. Your identity survives because it's not tied to any one machine.
+
+See [`authentication.md`](docs/authentication.md) for the full identity model.
 
 ---
 
@@ -190,67 +233,59 @@ When a Librarian (the local runtime node) boots for the first time, it generates
 
 Trust isn't a security feature bolted on top — it's the organizing principle of the entire system.
 
-Every manifest and frame is signed. Trust isn't binary — it's policy-driven with thresholds, scopes, decay, and revocation. Trust policies live on items as configuration, inspectable and adjustable.
+Every assertion is signed. Trust isn't binary — it's policy-driven with thresholds, scopes, decay, and revocation. Trust policies live on items as configuration, inspectable and adjustable.
 
 Trust determines who you sync with, whose assertions you accept, how far your queries propagate, and whose content appears in your graph at all. There is no separate "moderation" system because trust *is* moderation.
 
-**Reactions replace algorithms.** A "like" is a signed frame. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a frame targeting Alice's frame — because a frame can be about another frame. Everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob ignores it. No appeals process, no review board — just overlapping trust graphs producing different views of the same data.
+A "like" is a signed frame. A spam label is a signed frame. If Alice likes a post and Bob thinks Alice's like is astroturfing, Bob signs a frame targeting Alice's frame — because a frame can be about another frame. Everyone who trusts Bob more than Alice sees that signal. Everyone who trusts Alice more than Bob doesn't. No appeals process, no review board — just overlapping trust graphs producing different views of the same data.
+
+See [`trust.md`](docs/trust.md).
 
 ---
 
-## Networking: Relationships, Not Routes
+## Storage: One Source of Truth
 
-Your Librarian connects to other Librarians the way you connect to other people — explicitly, with signed attestations recorded in the graph. Network topology IS the social graph.
+All bytes that need to survive a process restart live in one place: a content-addressed object store. Every datum, every content blob, every signature, every key — addressed by hash, stored as bytes, fetched by hash.
 
-- **Trust drives routing.** You ask nodes you have relationships with, and they ask nodes they have relationships with.
-- **Local-first by default.** All data lives on your devices. Sync is explicit, merge-based, to peers you choose.
-- **The protocol is minimal.** Two message types: Request and Delivery. Everything else — discovery, replication, conflict resolution — is convention built on signed frames and content-addressed data.
-- **Network topology emerges from community.** A research group's nodes cluster naturally. A family's devices find each other through shared frames.
+Everything else is *derived*:
+
+- **Indexes** — `IID → manifest`, `predicate → frames`, `binding-target → frames`, `archetype-hierarchy → items`. Rebuildable from the object store.
+- **Item directory** — IID-to-store lookup for multi-backend setups.
+- **Token dictionary** — surface form to sememe, built from lexeme frames.
+
+Indexes can be rebuilt at any time by walking the object store. The bytes are the truth; the indexes are accelerators. Want a new query pattern? Add a new index by walking the store. Corrupted index? Drop it, rebuild.
+
+This is what keeps storage simple. The librarian doesn't manage schemas, doesn't migrate data, doesn't worry about cross-layer consistency. One layer that matters; everything else falls out.
+
+See [`storage.md`](docs/storage.md).
 
 ---
 
-## Storage: One Object Store, Four Indexes
+## Runtime: Stage, Librarian, Session
 
-All data lives in a single content-addressed object store: `persist(bytes) → CID`, `fetch(CID) → bytes`. Manifests, frame bodies, content blobs — all stored as objects keyed by their cryptographic hash.
+The runtime has three layered concepts:
 
-Four derived indexes make the objects queryable:
+- **ItemStage** — the substrate. Hosts the polyglot environment (Java, Python, Lisp, JavaScript, …); owns the `run(handler, frame)` primitive; enforces capability constraints.
+- **Librarian** — the backbone item. Owns storage, signing, the trust matrix, handler dispatch, the network listener. Hosts every active item.
+- **Session** — the UI intermediary. Arranges views of running items; mediates user input. Three embodiments share one identity: in-process, local-bridge, remote.
 
-| Index | Key → Value | Purpose |
-|---|---|---|
-| **ITEMS** | IID \| VID → timestamp | Version history per item |
-| **FRAME_BY_ITEM** | ItemID \| Predicate \| BodyHash → CID | Frame lookup by participant and predicate |
-| **RECORD_BY_BODY** | BodyHash \| SignerKeyID → CID | Who attested this assertion? |
-| **HEADS** | Principal \| IID → VID | Current version per principal per item |
+Stage, Librarian, Session — substrate, runtime, UI. Items run on the Stage; the Librarian hosts items; the Session views items. Switching local↔remote never changes behavior, only latency.
 
-Every index is rebuildable from the object store. Indexes are projections, not sources of truth.
-
-Three storage backends: **RocksDB** (production), **MapDB** (lightweight), **SkipList** (in-memory/testing).
+See [`runtime.md`](docs/runtime.md) and [`scripting.md`](docs/scripting.md).
 
 ---
 
 ## Presentation: One Scene, Every Surface
 
-Items declare their presentation through **scenes** — declarative, CBOR-serializable structures built from three primitives:
+Items declare their presentation through **scenes** — declarative, content-addressed structures built from three primitives:
 
-- **Container** — structural: children and layout
-- **Text** — content: carries sememe references, resolved to the user's language at render time
-- **Body** — visual: model, image, shape, or glyph, with a fidelity chain from full 3D down to a Unicode symbol
+- **Container** — structural: children and layout.
+- **Text** — content: carries sememe references, resolved to the user's language at render time.
+- **Body** — visual: model, image, shape, or glyph, with a fidelity chain from full 3D down to a Unicode character.
 
-The same scene renders as perspective 3D with physically-based lighting on a GPU, as flat 2D through Skia, or as text art in a terminal. Same items, same scene, different projections.
+The same scene renders as perspective 3D with GPU-accelerated lighting, as flat 2D through Skia, or as text art in a terminal. Same items, same scene, different projections.
 
 Text nodes carry meaning references, not hardcoded strings. A label referencing the Checkmate sememe renders as "Checkmate" in English, "将杀" in Mandarin, "Schachmatt" in German — same scene, same hash.
-
----
-
-## Encoding: CG-CBOR
-
-All data uses **CG-CBOR** — a profile of [CBOR (RFC 8949)](https://www.rfc-editor.org/rfc/rfc8949.html) with custom tags and strict deterministic encoding:
-
-- **Universal references via Tag 6** with three structural prefixes: `@` for items, `~` for raw content, `#` for frames (with optional binding-key and portion-spec drilling)
-- **Multiformats throughout**: multihash (self-describing hash algorithm), multibase (text encoding), multikey (public keys), varsig (signatures). The encoding stays algorithm-agile.
-- **Other tags**: typed values (Tag 7), quantities with units (Tag 9), inline frames (Tag 23)
-- **No IEEE 754 floats** — non-deterministic across platforms. CG-CBOR uses exact types: rationals, decimals, quantities with unit references
-- **Deterministic encoding** — sorted keys, minimal integer encoding, no indefinite lengths. Identical content always produces identical bytes.
 
 ---
 
@@ -258,13 +293,16 @@ All data uses **CG-CBOR** — a profile of [CBOR (RFC 8949)](https://www.rfc-edi
 
 Common Graph doesn't invent its linguistic backbone from scratch — it builds on decades of computational semantics research:
 
-1. **[WordNet](https://wordnet.princeton.edu/)** — ~120,000 synsets (synonym sets) with definitions, hierarchical relationships. Each synset becomes a sememe.
-2. **[CILI (Collaborative Interlingual Index)](https://github.com/globalwordnet/cili)** — Cross-lingual concept mapping. English "dog," Spanish "perro," Japanese "犬" map to the same concept.
-3. **[FrameNet](https://framenet.icsi.berkeley.edu/)** — ~1,200 semantic frames with frame elements and roles. The direct computational realization of Fillmore's frame semantics (1968/1982) — the theoretical foundation for Common Graph's frame model.
-4. **[VerbNet](https://verbs.colorado.edu/verbnet/)** — ~300 verb classes with thematic role declarations. VerbNet's role inventory, unified with LIRICS by [Bonial et al (2011)](https://verbs.colorado.edu/~mpalmer/Ling7800/SACL-ICSC2011.pdf), provides the empirical basis for Common Graph's ~25 thematic roles.
-5. **[ISO 24617-4 (SemAF-SR)](https://www.iso.org/standard/56866.html)** — The international standard for semantic role annotation.
-6. **[SemLink](https://verbs.colorado.edu/semlink/)** — Cross-resource mappings between VerbNet, FrameNet, PropBank, and WordNet.
-7. **[UniMorph](https://unimorph.github.io/)** — Morphological database for 100+ languages. "run/ran/running" all resolve to the same sememe.
+1. **[WordNet](https://wordnet.princeton.edu/)** — ~120,000 synsets with hierarchical concept relationships. Each synset becomes a sememe.
+2. **[CILI](https://github.com/globalwordnet/cili)** — language-neutral concept mapping. English "dog," Spanish "perro," Japanese "犬" map to the same concept.
+3. **[FrameNet](https://framenet.icsi.berkeley.edu/)** — ~1,200 semantic frames with frame elements and roles. The direct computational realization of Fillmore's frame semantics.
+4. **[VerbNet](https://verbs.colorado.edu/verbnet/)** — ~300 verb classes with thematic role declarations. The empirical basis for CG's ~25 thematic roles.
+5. **[ISO 24617-4 (SemAF-SR)](https://www.iso.org/standard/56866.html)** — the international standard for semantic role annotation.
+6. **[UniMorph](https://unimorph.github.io/)** — morphological database for 100+ languages. "run/ran/running" all resolve to the same sememe.
+
+These are *trust-weighted starting points*, not architectural foundations. Communities building on different ontologies are free to seed their own vocabularies; the protocol doesn't privilege any source.
+
+See [`seed-vocabulary.md`](docs/seed-vocabulary.md).
 
 ---
 
@@ -272,50 +310,55 @@ Common Graph doesn't invent its linguistic backbone from scratch — it builds o
 
 Common Graph integrates decades of prior work:
 
-- **Content addressing** (Merkle 1979, Git, IPFS) — all content identified by cryptographic hash
+- **Content addressing** (Merkle 1979, Git, IPFS) — content identified by cryptographic hash
 - **Frame semantics** (Fillmore 1968/1982, FrameNet) — assertions as filled predicate structures with thematic roles
-- **Thematic role theory** (VerbNet, LIRICS/ISO 24617-4, Dowty 1991) — semantic participant roles grounded in established standards
-- **Computational linguistics** (WordNet, CILI, UniMorph, BabelNet, SemLink) — meaning as computable, multilingual structure
+- **Thematic role theory** (VerbNet, LIRICS/ISO 24617-4, Dowty 1991) — semantic participant roles grounded in standards
+- **Computational linguistics** (WordNet, CILI, UniMorph, SemLink) — meaning as computable, multilingual structure
 - **Speech act theory** (Austin 1962, Searle 1969) — utterances are actions, not just descriptions
 - **Actor model** (Hewitt 1973) and **message passing** (Kay/Smalltalk) — independent entities communicating through messages
-- **Capability-based security** (Dennis & Van Horn 1966, Miller 2006) — access as unforgeable tokens
+- **Capability security** (Dennis & Van Horn 1966, Miller 2006) — access as unforgeable tokens
 - **Public-key cryptography** (Diffie & Hellman 1976, Bernstein/Ed25519) — identity without authority
 - **DHT and P2P systems** (Freenet, Chord, Kademlia, Secure Scuttlebutt) — decentralized routing and storage
 - **CRDTs** (Shapiro 2011) and **Merkle-CRDTs** (Tschudin 2019) — convergence without coordination
 - **Local-first software** (Kleppmann 2019) — user-owned data, offline capability, collaboration without servers
+- **KERI** — key event receipt infrastructure for self-sovereign identity
+- **Polyglot runtimes** (GraalVM) — multiple languages in one process with shared memory and uniform interop
 
-Each solved a piece of the puzzle. Common Graph's contribution — if it works — is the integration: a single model where content addressing, frame semantics, cryptographic identity, multilingual vocabulary, and local-first storage reinforce each other rather than existing as separate systems.
+Each solved a piece of the puzzle. Common Graph's contribution — if it works — is the integration: a single data model where content addressing, frame semantics, cryptographic identity, multilingual vocabulary, encoding-agnostic structural identity, and local-first storage reinforce each other rather than existing as separate systems.
 
-See [`docs/references/`](docs/references/) for the full academic bibliography with 65+ papers across 20 topic areas. See [**The Case for a Semantic Base Layer**](docs/the-case.md) for the theoretical argument.
+See [`docs/references/`](docs/references/) for the full academic bibliography.
 
 ---
 
 ## Project Status
 
-This is an early-stage research project. It functions, but it is not ready for production use.
+This is an early-stage project. The architecture is settling fast; the code runs but isn't ready for production use.
 
 **What works today:**
-- Full item lifecycle: create, sign, commit, store, retrieve, verify
-- Semantic frame model with role-qualified bindings, identity-controlled hashing, and signed attestation via FrameRecords
-- Content-addressed storage with unified object store and four derived indexes
-- TokenDictionary with scoped resolution, grammar-aware frame assembly, and unit conversion
-- Quantity expressions with dimensional analysis (e.g., `5m - 2ft`)
-- CG-CBOR canonical encoding with deterministic serialization
-- Ed25519 signing and verification with KeyLog-based key history
-- 3D rendering via Filament (Metal/Vulkan), 2D via Skia, text via JLine/ANSI
-- Unified scene system with three composable primitives and constraint/flex layout
-- Working games: Chess (3D Staunton pieces), Set, Minesweeper
-- P2P and Session protocols with subscriptions and relay forwarding
-- English and German WordNet import via LMF pipeline
-- English morphology engine with regular inflection + UniMorph irregular forms
-- Encryption at rest and in transit
+
+- Full item lifecycle: identity, manifests, signed records, version chains
+- Datum primitive: bodies, records, frames, manifests as configurations of one shape
+- Five-prefix reference scheme: concrete, query, schema, content, datum
+- Encoding-agnostic structural identity via canonical walker (DatumID) + first encoding (CG-CBOR)
+- Content-addressed object store with derived indexes
+- TokenDictionary with scoped resolution
+- Composable notations for parsing (operators, functions, property access, ...)
+- HANDLES/IMPLEMENTS-based dispatch with trust-matrix selection
+- ItemStage as polyglot substrate (GraalVM-based, currently Java + Python with more languages coming)
+- KERI-parity identity model (inception, rotation, delegation, revocation)
+- Ed25519 signing with key history
+- Working game implementations (Chess, Set, Minesweeper)
+- 3D rendering (Filament), 2D rendering (Skia), terminal rendering (JLine)
+- English and German WordNet import
 
 **What's next:**
-- Expanding the multilingual import pipeline beyond English and German
-- Performance optimization for large libraries
-- Bridging to the existing web
 
-**The cautionary context:** Projects with this level of ambition have a history of not shipping. Xanadu, Cyc, Croquet, Plan 9 — the lessons are taken seriously (see [`docs/references/README.md`](docs/references/README.md#visionary-projects-and-cautionary-tales)). The difference, hopefully, is shipping incrementally and in public rather than waiting for completeness.
+- Wider polyglot rollout — bringing Python, Lisp, and JavaScript handlers up to first-class status
+- The Parley protocol for librarian-to-librarian communication
+- Text-pipeline parser fully wired through composable notations
+- More substantial bridges to existing systems
+
+**The cautionary context:** Projects with this level of ambition have a history of not shipping. Xanadu, Cyc, Croquet, Plan 9 — the lessons are taken seriously. The difference, hopefully, is shipping incrementally and in public rather than waiting for completeness.
 
 ---
 
@@ -325,45 +368,11 @@ This is an early-stage research project. It functions, but it is not ready for p
 ./gradlew build          # Build the project
 ./gradlew test           # Run all tests (JUnit 5)
 ./gradlew run            # Run interactive shell
-./gradlew fresh          # Run with fresh scratch dir (cleaned each run)
+./gradlew fresh          # Run with fresh scratch dir
 ./gradlew scratch        # Run with persistent scratch dir
 ```
 
-Requires **Java 21** (via Gradle toolchain).
-
----
-
-## Repository Structure
-
-```
-core/               # Domain model
-  item/             #   Item, IDs, Manifest
-  frame/            #   Frame, FrameBody, FrameRecord, Binding
-  library/          #   Object store, indexes, TokenDictionary, seedItem vocabulary
-  runtime/          #   Graph entry point, Librarian, Session
-  network/          #   Peer Protocol, Session Protocol, transports
-  language/         #   Sememe, Lexeme, Language, ThematicRole
-  value/            #   Typed values, units, quantities, operators, functions
-  policy/           #   PolicySet, PolicyEngine, AuthorityPolicy
-
-english/            # English language support
-  importer/         #   WordNet/LMF import, UniMorph import
-  morphology/       #   English inflection engine
-
-games/              # Game implementations
-  chess/            #   Chess with 3D Staunton pieces
-  set/              #   Set card game
-  minesweeper/      #   Minesweeper
-  poker, spades, yahtzee, dominoes...
-
-ui/                 # Platform rendering
-  filament/         #   Filament 3D (Metal/Vulkan/OpenGL), MSDF text
-  skia/             #   Skia 2D, layout engine
-  text/             #   CLI/TUI (JLine, ANSI)
-  scene/            #   Scene model, three primitives, spatial system
-
-docs/               # Design documentation and academic references
-```
+Requires **Java 25** with GraalVM polyglot support (via Gradle toolchain). Targets Java 21 bytecode for portability.
 
 ---
 
@@ -371,33 +380,103 @@ docs/               # Design documentation and academic references
 
 Detailed specifications live in `docs/`:
 
-| Document | Covers |
-|----------|--------|
-| [**`the-case.md`**](docs/the-case.md) | **The theoretical argument for a semantic base layer** |
-| [**`datum.md`**](docs/datum.md) | **The unified Datum primitive — Body, Record, references, encoding** |
-| [`frames.md`](docs/frames.md) | The frame primitive, bindings, compound keys, identity, endorsement |
-| [`item.md`](docs/item.md) | Item structure, identity, lifecycle, composition |
-| [`vocabulary.md`](docs/vocabulary.md) | Vocabulary system, dispatch, expression input |
-| [`sememes.md`](docs/sememes.md) | Meaning units, WordNet/CILI anchoring |
-| [`language.md`](docs/language.md) | Languages, lexemes, thematic roles, morphology, import pipeline |
-| [`storage.md`](docs/storage.md) | Unified object store, indexes, content lifecycle |
-| [`library.md`](docs/library.md) | Library architecture, backends, bootstrap |
-| [`scene.md`](docs/scene.md) | Scene model, properties, pipeline, style cascade, rendering |
-| [`trust.md`](docs/trust.md) | Trust matrix, moderation, reactions, policy-driven views |
-| [`authentication.md`](docs/authentication.md) | Keys, signatures, signers, device-centric identity |
-| [`protocol.md`](docs/protocol.md) | Peer Protocol and Session Protocol |
-| [`network.md`](docs/network.md) | Network architecture, discovery, routing, replication |
-| [`bridges.md`](docs/bridges.md) | Bridges to email, web, federated systems, identity standards |
-| [`cg-cbor.md`](docs/cg-cbor.md) | CG-CBOR encoding specification |
-| [`content.md`](docs/content.md) | Content addressing, storage, deduplication |
-| [`manifest.md`](docs/manifest.md) | Versioning, manifest format, signing |
-| [`references/`](docs/references/) | Academic bibliography (65+ papers, 20+ topics) |
+### Start here
+
+- [**`the-case.md`**](docs/the-case.md) — the theoretical argument for a semantic base layer.
+
+### Foundations
+
+- [`datum.md`](docs/datum.md) — the unified primitive: body, record, frame, manifest.
+- [`ref-scheme.md`](docs/ref-scheme.md) — the five reference prefixes (`@`/`?`/`!`/`~`/`#`).
+- [`frames.md`](docs/frames.md) — frames as predicate-headed bodies.
+- [`item.md`](docs/item.md) — items as continuants; identity and lineage.
+- [`manifest.md`](docs/manifest.md) — versioning, FOLLOWS chains, signing.
+- [`api.md`](docs/api.md) — HANDLES + IMPLEMENTS as the API surface.
+- [`types.md`](docs/types.md) — the meta-archetype tree.
+
+### Encoding
+
+- [`canonical.md`](docs/canonical.md) — the structural walker that produces DatumIDs.
+- [`cg-cbor.md`](docs/cg-cbor.md) — the first CG-capable encoding format.
+- [`content.md`](docs/content.md) — content addressing and ContentID.
+
+### Linguistic
+
+- [`sememes.md`](docs/sememes.md) — meaning units; the linguistic backbone.
+- [`values.md`](docs/values.md) — typed value bodies (Color, Quantity, dimensional types).
+- [`language.md`](docs/language.md) — languages as items; lexemes and CILI.
+- [`vocabulary.md`](docs/vocabulary.md) — the runtime token dictionary.
+- [`seed-vocabulary.md`](docs/seed-vocabulary.md) — bootstrap pattern; application bundles.
+- [`input.md`](docs/input.md) — the unified input pipeline.
+- [`text.md`](docs/text.md) — parsing and rendering; composable notations.
+
+### Runtime
+
+- [`runtime.md`](docs/runtime.md) — Stage / Librarian / Session.
+- [`scripting.md`](docs/scripting.md) — code items, polyglot, sandboxing.
+- [`query.md`](docs/query.md) — queries as frames.
+
+### Storage
+
+- [`storage.md`](docs/storage.md) — object store, indexes, persistence.
+- [`streams.md`](docs/streams.md) — append-only patterns for chat, logs, sensors.
+- [`working-tree.md`](docs/working-tree.md) — filesystem materialization.
+
+### Identity & network
+
+- [`authentication.md`](docs/authentication.md) — keys and signing (KERI-parity).
+- [`trust.md`](docs/trust.md) — trust matrix; subjective views.
+- [`encryption.md`](docs/encryption.md) — encryption at rest and in transit.
+- [`privacy.md`](docs/privacy.md) — privacy model.
+- [`network.md`](docs/network.md) — peer-to-peer topology.
+- [`protocol.md`](docs/protocol.md) — Parley protocol.
+
+### Presentation & interop
+
+- [`scene.md`](docs/scene.md) — scene model; three primitives.
+- [`bridges.md`](docs/bridges.md) — interop with email, web, federated systems.
+- [`examples.md`](docs/examples.md) — worked use cases.
+
+### Style
+
+- [`STYLE.md`](docs/STYLE.md) — documentation conventions; canonical examples.
+
+---
+
+## Repository Structure
+
+```
+core/               Domain model
+  datum/              Body, Record, Frame, Manifest
+  item/               Item base, lifecycle, manifests
+  identity/           Signers, vaults, KERI-style key events
+  canonical/          Structural walker, hash tree
+  encoding/           CG-CBOR codec
+  id/                 ItemRef, TypeRef, SchemaRef, ContentRef, DatumRef
+  library/            Storage, indexes, walkers
+  runtime/            ItemStage, Librarian, Session
+  network/            Parley protocol
+  language/           Sememes, lexemes, thematic roles
+  text/               Parsing pipeline; composable notations
+  value/              Typed values (Color, Quantity, dimensional types)
+  operator/           Operators (Add, Multiply, comparison, logic, ...)
+  quality/            Presentation vocabularies (layout, typography, spatial, ...)
+
+english/            English language support (WordNet import, morphology)
+german/             German language support
+games/              Chess, Set, Minesweeper, ...
+ui/                 Filament (3D), Skia (2D), JLine (TUI), input handling
+web/                Web client (WebSocket session handler)
+lang-import/        Multilingual import tooling
+
+docs/               Architecture documentation
+```
 
 ---
 
 ## Contributing
 
-The architecture is stabilizing but the surface area is large. Design critiques are as valuable as code — possibly more so at this stage. If any of this resonates, open an issue or start a discussion.
+The architecture is stabilizing but the surface area is large. Design critiques are as valuable as code at this stage. If any of this resonates, open an issue or start a discussion.
 
 ---
 

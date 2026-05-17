@@ -1,350 +1,187 @@
-# Network Architecture
+# Network
 
-Common Graph is a peer-to-peer network where every Librarian is a sovereign node. There are no dedicated servers, no central authorities, and no global indexes. Content lives where users put it. Discovery happens through social topology. The network scales because most interactions are local, and the ones that aren't propagate through trust paths that converge fast.
+Common Graph is a peer-to-peer network where every librarian is a sovereign node. There are no dedicated servers, no central authorities, no global indexes. Content lives where users put it. Discovery happens through trust relationships. The network scales because most interactions are local, and the ones that aren't propagate through paths that converge fast.
 
-This document covers the high-level network architecture: how Librarians find each other, discover content, replicate data, and route queries. For wire-level protocol details, see [Protocol](protocol.md). For trust and signing, see [Trust](trust.md).
+The architecture treats networking as a transport detail above an otherwise self-contained data model. Two librarians don't need a shared encoding format, a shared schema registry, or a shared coordinator — they just need to exchange datums by structural hash, verify each others' signatures, and route messages through their respective trust matrices. Everything else falls out.
 
----
+This document defines the network topology, how librarians discover and connect, how trust drives routing and replication, and how transports underneath the protocol stay swappable.
 
-## Principles
+This document assumes familiarity with [items](item.md), [the canonical walker](canonical.md), [content addressing](content.md), [trust](trust.md), and [the Parley protocol](protocol.md).
 
-**Local-first.** All data lives on the user's devices. Networking is explicit — nothing leaves your Librarian without a reason. Most interactions (reading, editing, navigating, dispatching verbs) are entirely local and never touch the network.
+## Librarians as nodes
 
-**Social topology.** The network's shape is the social graph. Your Librarian's peers are the Librarians of people and organizations you interact with. Discovery fans out through these trust paths. There is no separate "network layer" — the graph IS the network.
+Each librarian is a node — a sovereign process holding storage, an identity, a vocabulary, and a set of items. Nodes communicate as peers; there's no client/server distinction at the architectural level (though specific transports may have asymmetric handshake roles).
 
-**Content-addressed.** Every piece of content has a CID (hash of bytes). Every item has an IID (stable identity). Every version has a VID (hash of manifest). These are universal, location-independent identifiers. Any Librarian that has the content can serve it. There is no origin server.
+A node carries:
 
-**Signed everything.** Manifests, relations, and protocol messages are cryptographically signed. You can verify the provenance of anything without trusting the node that delivered it. This makes untrusted intermediaries safe — a relay can't tamper with what it forwards.
+- **Its own identity** — an Ed25519 (or compatible) signing key, established at first launch, used to sign everything the librarian itself attests.
+- **Its local storage** — the object store, indexes, item directory, token dictionary. Everything the librarian knows.
+- **Its trust matrix** — the policy that decides whose assertions count, whose code can run, what propagates where.
+- **Its connections** — open Parley channels to peer librarians and to client sessions.
 
-**No special nodes.** A phone running a Librarian and a datacenter running a Librarian speak the same protocol, hold the same kinds of items, and participate as equals. Some Librarians are better-connected, more available, or have more storage — but that's a quantitative difference, not a qualitative one.
+A user might run one librarian (a single device) or several (one per device, all linked to the user as a higher-level identity). Each librarian operates independently; cross-device coordination happens through ordinary network exchange of signed frames.
 
----
+There's no logical limit on the number of librarians in the network. They federate by speaking the same protocol, recognizing the same reference scheme, and trusting (or not) each others' signatures.
 
-## The Social Graph as Routing Layer
+## The social graph IS the routing layer
 
-### Librarian Items ARE the Routing Table
+The network's topology emerges from trust. A librarian's peers are the librarians it has explicit relationships with — established through signed introduction frames, recorded in the graph itself. The structure is honest about what it represents: nodes connected to nodes they trust.
 
-Every Librarian is an Item (a Signer with its own Ed25519 key). When two Librarians connect, they exchange manifests and create signed relations:
+A librarian fetching a datum it doesn't have locally asks its peers. The peers ask their peers. Trust attenuates with distance: the librarian's direct peers have full weight; their peers have less; the third hop less still. Queries with low confidence at distant hops stop propagating.
 
-```
-myLibrarian  --> PEERS_WITH   --> theirLibrarian
-theirLibrarian --> REACHABLE_AT --> Endpoint("cg", 192.168.1.1, 7432)
-```
+This isn't routing in the IP sense — there's no global topology, no routing tables, no DHT. The librarian's *direct neighborhood* is its routing surface; the rest of the network is whatever's reachable through asking, and the answer to "is this thing reachable?" is "ask and find out."
 
-These relations are first-class graph data — queryable, auditable, signed. Your Librarian can also add private relations to peer Items:
+The properties this gives the system:
 
-```
-theirLibrarian --> [private: trustScore]    --> 0.92
-theirLibrarian --> [private: lastSeen]      --> 2026-03-07T14:22:00Z
-theirLibrarian --> [private: avgLatencyMs]  --> 12
-theirLibrarian --> [private: reliability]   --> 0.99
-```
-
-There is no separate routing table format. The graph of Librarian Items, their relations, and your private annotations IS the routing table.
-
-### Predicates ARE Indexes
-
-Every relation predicate (a Sememe) is a natural index. When `PEERS_WITH` has its index flag set, querying that predicate returns all peers. When `HAS_CONTENT` is indexed, querying it returns all content a Librarian has announced. When `SUBSCRIBES_TO` is indexed, it maps topics to interested parties.
-
-This means:
-
-- **Peer list** = query `PEERS_WITH` on your Librarian
-- **Content directory** = query `HAS_CONTENT` across known peers
-- **Topic subscribers** = query `SUBSCRIBES_TO` on a topic Sememe
-- **Domain claims** = query `CLAIMS_DOMAIN` for DNS-like resolution
-- **Type instances** = query `INSTANCE_OF` for finding items by type
-
-No new mechanisms needed. The relation index that already exists for semantic queries is the same index used for network topology, content location, and peer discovery.
-
----
+- **No central index.** No coordinator decides what exists.
+- **Trust-bounded discovery.** Information propagates along trust paths; spam and untrusted assertions don't broadcast.
+- **Locality wins.** Most things are close in trust-graph distance; queries usually resolve in a few hops.
+- **Resilience to censorship.** No single node's absence disconnects the network from itself.
+- **Different views, same data.** Each librarian's neighborhood is its own; views of the graph differ by trust topology, not by the data itself.
 
 ## Discovery
 
-### Where Content Lives
+Discovery is how a librarian comes to know other librarians exist. Several mechanisms compose:
 
-Content lives where users put it. If you browse something interesting, it gets cached on your device. If you explicitly save something, you choose which of your devices store it. Your Librarian handles replication between your own devices automatically.
+**Explicit introduction.** A user shares a peer's identity (an IID, a public key, a transport address) with their librarian. The librarian opens a connection; the two exchange `@HELLO` frames; trust relationships start accumulating from there.
 
-This means storage placement is a *human/social choice*, not a hash-metric assignment. A company puts its content on its Librarian cluster. A user's photos live on their phone and laptop. A chess club's game history lives on members' devices. Content gravitates toward the people who care about it.
+**Social reference.** A frame fetched from a peer mentions other peers' IIDs. The receiving librarian, if it cares, can ask its current peers about those mentioned identities and possibly establish connections to them.
 
-### Concentric Ripple Discovery
+**Same-host detection.** Multiple librarians on the same host can discover each other through local mechanisms (Unix sockets, mDNS, well-known socket paths). Useful for development and for multi-process setups on a single machine.
 
-When your Librarian needs to find something it doesn't have, discovery fans out in concentric ripples:
+**Out-of-band exchange.** QR codes, NFC, business cards, social-media handles — anything that conveys an identity and a way to reach it. Discovery doesn't have to happen over the network.
 
-```
-                    +---------------------------+
-                    |  4. Background propagation |
-                    |  +---------------------+  |
-                    |  | 3. Predicate gossip  |  |
-                    |  |  +---------------+   |  |
-                    |  |  | 2. Peer query  |  |  |
-                    |  |  |  +---------+   |  |  |
-                    |  |  |  | 1. Local |   |  |  |
-                    |  |  |  +---------+   |  |  |
-                    |  |  +---------------+   |  |
-                    |  +---------------------+  |
-                    +---------------------------+
-```
+There's no global lookup. There's no "search for users named Alice." Discovery is intentional, based on trust relationships the user is already building outside the network.
 
-**1. Local.** Check your own Library. This resolves the vast majority of queries instantly — you usually interact with content you already have.
+## Trust drives every routing decision
 
-**2. Peer query.** Ask your direct peers. Your Librarian sends a Request to peers most likely to have the content, based on:
-- Content affinity (peers who share similar interests)
-- Social relevance (the content creator's Librarian, or their contacts)
-- Past success (peers who've answered similar queries before)
+Once peers are known, *which* peers a librarian talks to, *which* peers it forwards queries to, *which* peers' content it accepts — all are policy decisions the trust matrix makes. The same matrix that decides "should I run this code?" decides "should I propagate this query to that peer?"
 
-This resolves almost all remaining queries. In practice, most content you need comes from people you know or people they know.
+A few specific decisions trust drives:
 
-**3. Predicate gossip.** If direct peers can't help, the query reaches peers who subscribe to relevant predicates. A query about chess content reaches the chess predicate ring. A query about a specific author reaches peers who follow that author. Topic-scoped gossip means you reach interested parties without flooding the whole network.
+- **Connection acceptance.** Should this incoming connection be honored? Whose connections do I accept by default?
+- **Query forwarding.** When my peers ask me for content, do I forward unfound queries to my own peers? To whom, with what attribution, at what depth?
+- **Content acceptance.** When I fetch content from a peer, do I accept it into my storage? Verify its signature, but also trust its provenance?
+- **Reaction propagation.** A "like" or "spam" frame from a peer — does my view reflect it?
 
-**4. Background propagation.** For truly unknown content — something outside your entire social circle — the query can propagate further. Each Librarian that receives the query checks its own index, returns results if found, and optionally forwards to its own peers. The query travels through the graph, running independently on each Librarian it reaches.
+These aren't blanket allow/deny lists. Trust scores fall on a continuum; policies combine multiple dimensions (the signer's reputation, the content's provenance, the user's preferences, the application context). Two librarians with different trust policies see the same network differently. That's a feature.
 
-Most queries never leave level 1. A small fraction reach level 2. Levels 3 and 4 are rare — they handle the "find something nobody I know has ever seen" case.
+See [`trust.md`](trust.md) for the trust matrix in detail.
 
-### Query Propagation
+## Content replicates organically
 
-A query that needs to propagate beyond direct peers becomes a traveling message:
+Content addressing makes replication a natural side effect of usage, not a deliberate strategy. Any datum a librarian fetches by ContentID can be re-served to other librarians asking for the same ContentID; verification is by re-hashing.
 
-```
-You --> PeerA --> PeerA's peers --> ...
-  \--> PeerB --> PeerB's peers --> ...
-  \--> PeerC --> (found it!) --> result flows back
-```
+A popular item — a widely-read document, a chat-room with active members, a video stream with many subscribers — replicates along interest paths through the social graph. Each subscriber's librarian fetches what its user wants; once fetched, the librarian can be a source for others; the content spreads to wherever it's wanted.
 
-Each Librarian that receives a propagating query:
+A rare item — a personal document of mine that only my close friends care about — stays close. My friends' librarians fetch it; they don't propagate it further unless their users care; the content stays local to the social neighborhood that wants it.
 
-1. Checks its own index for matches
-2. If found: sends results back along the return path
-3. If not found and depth budget remains: forwards to its own relevant peers
-4. Deduplicates (doesn't re-forward queries it's already seen)
+The user's retention policy decides what their librarian keeps. Some librarians keep everything they've ever fetched (storage-rich, replication-friendly); others retain only their own content and recent fetches (privacy-leaning, less network-citizen). Both are valid; the protocol works either way.
 
-The query runs independently on each Librarian — there's no central coordinator. Results trickle back asynchronously. The depth budget (TTL) prevents unbounded flooding.
+## Replication is per-datum
 
-The small-world property of social networks makes this converge fast. With average connectivity of ~150 peers (Dunbar's number is a reasonable approximation for active peer connections), depth 2 reaches ~22,000 Librarians, depth 3 reaches ~3 million. Most content is reachable within 3-4 hops.
+The unit of replication is the datum, not the item or the stream or the application. A frame requested by ContentID is fetched, verified, stored; nothing larger or smaller travels.
 
-### Routing Strategies
+This means:
 
-The decision "which peers should I forward this query to?" can use different strategies. These aren't mutually exclusive — they're a toolkit:
+- **Partial replication is the norm.** A chat-room's older messages might not be on a new subscriber's librarian. They're fetched on demand. The chat room doesn't have to be "fully synced" before it's usable.
+- **Sparse traversal is cheap.** A query that walks a chain of references fetches each link as it's encountered. No bulk-sync step.
+- **Garbage collection is local.** A librarian can prune datums its user no longer cares about, without affecting others who still have them.
 
-| Strategy | How it works | Best for |
-|----------|-------------|----------|
-| **Social distance** | Ask close, trusted peers first | General queries, personal content |
-| **Content affinity** | Ask peers who tend to have similar content | Topic-specific searches |
-| **Predicate subscription** | Ask peers subscribed to relevant topics | Narrow domain queries |
-| **Creator proximity** | Route toward the creator's social circle | Finding specific items |
-| **Geographic proximity** | Ask nearby peers | Latency-sensitive queries |
-| **Hash distance** | Kademlia-style XOR metric | Exhaustive fallback searches |
+The architecture treats *data* as the unit of consistency, not collections of data. Items, streams, channels — these are organizing concepts that emerge from collections of datums; their replication is whatever replication the constituent datums achieve.
 
-Hash-distance routing (DHTs like Kademlia, Chord) is one tool among many. It provides a guaranteed-convergent fallback when social routing can't find something, but it's not the primary mechanism. Social routing is faster, more relevant, and produces better-ranked results for the common case.
+## Encoding-agnostic across the network
 
----
+Two librarians using different encoding formats — CG-CBOR, a hypothetical CG-JSON, anything — can still exchange datums. The structural hash (DatumID) is encoding-independent; both librarians compute the same DatumIDs for the same data by walking the same structure.
 
-## Replication
+The Parley codec handshake (see [`protocol.md`](protocol.md)) lets two peers negotiate which encoding they'll use for *this connection*. The choice is per-connection; a librarian can speak CG-CBOR to one peer and CG-JSON to another simultaneously. Each peer encodes its outgoing datums in the chosen codec; each peer decodes incoming bytes with the matching codec.
 
-### How Content Spreads
+The DatumIDs match across encodings. Two librarians using different codecs can deduplicate by DatumID, can verify each others' content by structural hash, can route by reference. The encoding is purely a transport detail; it doesn't affect the *meaning* of what crosses the wire.
 
-Content replicates along interest paths. When you interact with an item — view it, endorse it, relate to it — your Librarian caches it locally. When your peers interact with something you have, they cache it on theirs. Popular content naturally accumulates copies across many Librarians without any centralized coordination.
+This is what protects the network from being locked to one wire format. New codecs can be added without breaking the protocol; older librarians can still talk to newer ones if both support a common codec; experiments in encoding (smaller, faster, domain-specific) can run in parallel with the canonical CG-CBOR without fragmenting the data model.
 
-### Subscription-Driven Sync
+## Transports
 
-The Peer Protocol's subscription mechanism (see [Protocol](protocol.md)) provides real-time replication for content you care about:
+The protocol is transport-agnostic. Anything that delivers bytes in order, with framing, will do. Common transports:
 
-```
-Subscribe to: Relations(item=chessClub, predicate=*, subscribe=true)
---> Receive all new relations involving the chess club item as they're created
-```
+- **Unix sockets** — same-host, inter-process. Fast, secure (filesystem-permission-gated), the default for local-bridge sessions.
+- **TCP** — across-host, IPv4/IPv6. The dominant remote transport.
+- **TLS over TCP** — TCP with transport-layer encryption.
+- **Bluetooth, LoRa, custom radios** — short-range or low-bandwidth use cases.
+- **Tor / I2P** — privacy-preserving overlays.
+- **HTTP/2 streams** — for environments where firewalls only allow HTTP.
 
-Your Librarian subscribes to items and predicates relevant to your interests. When peers create new relations or versions, you receive them via push. This is how chat messages arrive, game moves propagate, shared documents sync, and real-time presence works.
+Each transport is wrapped in a `Transport` adapter exposing the byte-stream interface Parley expects. Parley itself doesn't know which transport is underneath; it sees a bidirectional bytestream and runs its codec handshake on it.
 
-**Presence as subscription.** When you create a PRESENT frame on an item, peers subscribed to that item see you arrive. Ephemeral frames (AVATAR_STATE, TYPING, CURSOR — predicates with LATEST retention) flow through the same subscription channel at high frequency, replacing the previous value on each update. When you disconnect, your PRESENT frame is revoked and peers see you leave. There is no separate presence service — presence is subscription-driven frame delivery with lifecycle policies on the predicates.
+A librarian typically supports multiple transports. Inbound connections come in on whichever transport's listener accepted them; outbound connections pick the transport based on the peer's address. The transport detector resolves a peer's address (a URL, a Unix socket path, a Bluetooth identifier) to the right transport adapter.
 
-### Device-to-Device Sync
+See [`protocol.md`](protocol.md) for Parley itself; transports are below it in the stack.
 
-A user's own devices (phone, laptop, desktop) are just very closely coordinated peers. They share the same principal (user identity) and can replicate aggressively (per policy) — everything you do on one device is available on all your devices. This is the same peer-to-peer protocol used for inter-user communication, just with higher trust and more frequent sync.
+## Local-first
 
-### Replication Policies
+Most operations are local. A query against the librarian's own storage doesn't touch the network; a frame submitted locally is dispatched without network round-trips; an item's manifest version advances entirely on the local device. Network is the fallback path, not the default.
 
-Librarians can implement replication policies as Items (with vocabulary and relations like everything else):
+This is what makes the system usable offline. A laptop on an airplane keeps editing documents, sending messages to other items, reacting to frames — all locally. When the network is available again, the local changes flow out and remote changes flow in. The system doesn't degrade gracefully when offline; it just *works* offline, because nothing was happening online to begin with.
 
-- **Pin**: "Keep this content available, don't garbage-collect it"
-- **Mirror**: "Replicate everything from this peer/topic"
-- **Quota**: "Store up to N bytes of cached content, evict LRU"
-- **Priority**: "Always keep content from these peers; cache others opportunistically"
+The same architectural property holds at small scale. A friend group of five users on five devices doesn't need a server; their librarians peer with each other directly. A team running its own infrastructure doesn't need a cloud; their librarians coordinate over the LAN. Scaling up to a global network doesn't change the model — it just adds more peers.
 
-These policies are local decisions — each Librarian decides what it stores and for how long. There is no global coordination required.
+See [`item.md`](item.md) for items' role as the persistent unit, and [`storage.md`](storage.md) for the local persistence layer.
 
----
+## Sessions: peer-or-client
 
-## Peer Economics
+A session is, in network terms, a connection to a librarian. The session may be in-process (no network), on the same host (Unix socket), or remote (TCP). What makes it a *session* rather than a peer is one detail: the connection has a Session item attached on the client side, with a user's identity, presence state, and view state.
 
-### Favors and Reputation
+A peer-to-peer connection between two librarians is identical at the protocol layer — same Parley handshake, same frame stream, same encoding. The distinguishing factor is whether the connecting side identifies itself as a session (running on behalf of a specific user, holding view state) or as a librarian (representing a node's whole presence).
 
-Even without explicit agreements, Librarians naturally do things for each other: relay a message, answer a query, cache content that a peer requested. These are *favors* — small acts of cooperation that the network depends on.
+The session-or-librarian distinction emerges from the HELLO frame each side sends after the codec handshake. A connection identifying as a session triggers the librarian to allocate session-specific state (focused item, prompt state, presence); a connection identifying as a peer librarian doesn't.
 
-Every favor is observable. When a peer relays your message, you know. When a peer answers your query, you know. When a peer caches your content and serves it to others, those others can report it. Over time, these observations build into a *reputation* — tracked as private relations on peer Items (see [The Social Graph as Routing Layer](#the-social-graph-as-routing-layer)).
+See [`runtime.md`](runtime.md) for the runtime's perspective on sessions, and [`protocol.md`](protocol.md) for the HELLO frame's contents.
 
-A Librarian that consistently relays quickly, answers queries honestly, and stays available builds trust. A Librarian that drops messages, returns garbage, or disappears frequently loses trust. This happens organically through the service trust layer (see [Trust](trust.md)) — no central reputation authority needed.
+## Bridges
 
-Reputation influences routing. When your Librarian chooses which peers to forward a query to, it considers past reliability. Trustworthy peers get asked first. Unreliable ones get deprioritized or dropped. The network self-organizes around cooperation.
+Some "peers" aren't other Common Graph librarians — they're external systems Common Graph wants to interoperate with. Email servers, ActivityPub instances, IPFS gateways, WebDAV stores, traditional REST APIs, Matrix homeservers. A **bridge** is a code item that translates between an external protocol and the CG frame stream.
 
-### Agreements
+A bridge appears as a normal Common Graph item; its code item implements an archetype representing the external system. When the librarian needs to send something through the bridge, it dispatches the appropriate frame; the bridge's handler translates to the external protocol and forwards. Incoming external messages flow back through the bridge as frames.
 
-Peers can formalize their cooperation through **hosting agreements** — Items that describe terms for storage, bandwidth, computation, or availability:
+Bridges are how Common Graph integrates with existing systems. Adoption is not zero-sum: a user can be part of the Common Graph network while still emailing colleagues who aren't, posting to social media that isn't, accessing services that aren't. The bridge does the translation; the user works in their native interface.
 
-```
-agreement:hosting-deal → parties    → [librarian:Alice, librarian:AcmeCloud]
-agreement:hosting-deal → terms      → "Store up to 50GB, 99.9% availability"
-agreement:hosting-deal → duration   → 2026-01-01..2027-01-01
-agreement:hosting-deal → payment    → quantity(10, USD/month)
-```
+See [`bridges.md`](bridges.md) for the bridge model in detail.
 
-These are signed Items with signed relations — both parties endorse the agreement. The terms are semantic, not just legal text — predicates like `storageQuota`, `availabilityTarget`, and `bandwidthAllowance` are machine-readable.
+## What this isn't
 
-This is effectively a **smart hosting contract**: an enforceable agreement between peers, recorded in the graph, verifiable by anyone. Unlike blockchain smart contracts, these don't require global consensus — they're bilateral agreements between the parties involved, with the trust system providing accountability.
+Common Graph's network is **not**:
 
-### What Agreements Can Cover
+- **A DHT.** No global routing table is maintained; there's no Kademlia-style overlay. Discovery is trust-driven, not structured-overlay-driven.
+- **A blockchain.** No consensus on a shared global state; no canonical ordering of events; no proof-of-work or proof-of-stake. Different librarians can hold conflicting beliefs about the same item simultaneously; trust resolves them per-viewer.
+- **A federation.** No "homeservers" with privileged routing roles. Every librarian is structurally equivalent; a librarian running on a phone is equal in protocol terms to one running on a datacenter cluster.
+- **A CDN.** Content replicates by interest, not by deliberate caching. Popular content travels; rare content stays local.
+- **A directory service.** No "find people named Alice" API. Discovery is intentional; reputations and relationships are observable from the data, but the network doesn't enumerate them.
 
-- **Storage**: "Keep these Items available for N months"
-- **Bandwidth**: "Serve my content at up to X requests/second"
-- **Computation**: "Run these queries against your index on my behalf"
-- **Relay**: "Forward messages to my devices when they're behind NAT"
-- **Replication**: "Mirror my content across your geographic regions"
-- **Indexing**: "Maintain a specialized index for this predicate domain"
+What it *is*: a substrate for sovereign nodes to exchange signed datums, verify each others' work, propagate interest along trust paths, and let each user see the network through their own subjective view.
 
-### Payment
+## Worked example: two librarians, one frame
 
-Agreements can involve payment — represented as `Quantity` values with currency units (which are themselves Sememes). Payment settlement is outside the protocol, but the agreement, its terms, and fulfillment tracking are all graph-native.
+A and B are two librarians belonging to two users who trust each other. A's user composes a chat message in a room they both belong to.
 
-Even without money, peers can trade services: "I'll store your content if you relay my messages." Barter agreements are the same Item structure, just with services on both sides instead of currency.
+1. **A's librarian** assembles the frame body, signs it, stores it locally, indexes it.
+2. **Routing.** The frame's binding `@LOCATION → @<room>` mentions the chat room. A's librarian finds B in its peer list and knows B is also subscribed to the room.
+3. **A opens a connection to B** (or uses an existing one) over whichever transport is configured between them.
+4. **The Parley handshake** runs: A sends `@<codec-iid>` raw bytes; B responds with a HELLO frame in that codec.
+5. **A sends the chat-message frame.** B receives it, decodes it (codec is now established), verifies the signature.
+6. **B's librarian** stores the body and the record, updates its indexes, dispatches the frame to local items (the chat room subscribed to that LOCATION receives the message).
+7. **B's user** sees the message appear in their view of the room.
 
-## Big Librarians
+No central server, no broker, no relay. Just A and B exchanging bytes representing a signed frame, both verifying its integrity, both updating their local views. The same exchange scales — to a room with 1000 subscribers, A's librarian opens connections to whichever peers are subscribers and reachable; the message propagates along trust paths.
 
-Companies, organizations, and infrastructure providers run Librarians too — just better-connected ones with more storage and higher availability. These are not "servers" in the traditional sense — they're peers in the graph that happen to be always-on, well-connected, and storage-rich.
+## Relations
 
-### What Big Librarians Provide
-
-- **Availability**: Always-on presence for content that needs to be reachable 24/7
-- **Storage**: Large-scale content hosting (media, databases, archives)
-- **Bandwidth**: High-throughput connections for popular content distribution
-- **Indexing**: Specialized indexes for domain-specific discovery (e.g., a music Librarian that indexes audio content by metadata predicates)
-- **Relay**: NAT traversal for devices behind firewalls (see [Protocol: Relay Forwarding](protocol.md#relay-forwarding))
-
-### What They Don't Provide
-
-- **Identity authority**: Users own their keys. A company's Librarian doesn't control user identity — it stores and serves content on behalf of users who choose to use it.
-- **Data lock-in**: Content is content-addressed and signed by its creator. Users can take their Items anywhere. A Librarian is a custodian, not an owner.
-- **Exclusive access**: Content served by one Librarian can be replicated to any other. There's no artificial scarcity of access.
-
-### Economic Model
-
-The business model for big Librarians is infrastructure services, not data harvesting:
-
-- **Storage hosting**: "We'll keep your Items available and well-connected"
-- **Bandwidth**: "We'll serve your popular content at scale"
-- **Specialized indexing**: "We'll maintain high-quality indexes for your domain"
-- **Availability guarantees**: "We'll keep your Librarian running with N nines uptime"
-
-This is closer to a utility model (electricity, water) than an advertising model (attention harvesting). Companies compete on quality of service, not on lock-in. And because the terms are expressed as [peer agreements](#agreements), users can compare, switch, and hold providers accountable through the same trust system that governs all peer interactions.
-
----
-
-## Bootstrap and Initial Discovery
-
-A new Librarian needs to find at least one peer to join the network. Several bootstrap mechanisms are available:
-
-### DNS Discovery
-
-Organizations can advertise their Librarian endpoints via DNS:
-
-```
-_commongraph._tcp.example.com.  IN SRV  0 0 7432 librarian.example.com.
-_commongraph._tcp.example.com.  IN TXT  "iid=<base58-encoded IID>"
-```
-
-Or via a well-known HTTPS endpoint:
-
-```
-https://example.com/.commongraph/librarian.json
-{
-    "iid": "<base58-encoded IID>",
-    "endpoints": ["cg://librarian.example.com:7432"],
-    "publicKey": "<base58-encoded SPKI>"
-}
-```
-
-This is a bootstrap mechanism only — once connected, discovery uses the graph.
-
-### Invitation Links
-
-A user can generate an invitation that contains enough information to connect:
-
-```
-cg://invite/<base58-encoded: IID + endpoint + one-time pairing code>
-```
-
-The invited Librarian connects, authenticates via the pairing code, and the two become peers. From that point, the new Librarian discovers additional peers through the inviter's social graph.
-
-### Local Network Discovery
-
-Librarians on the same local network can find each other via mDNS/DNS-SD:
-
-```
-_commongraph._tcp.local.
-```
-
-This is particularly useful for a user's own devices finding each other on a home or office network.
-
----
-
-## Scaling Properties
-
-### Why It Works
-
-The architecture scales because of several reinforcing properties:
-
-1. **Most queries are local.** Your Librarian has your content, your contacts' shared content, and cached content from your interests. The network is rarely needed.
-
-2. **Discovery follows social topology.** Small-world networks have short average path lengths. Any content is reachable within a bounded number of hops.
-
-3. **Content replicates along interest paths.** Popular content naturally accumulates copies. Obscure content stays at its origin but is findable through the creator's social circle. This applies to code as well — a popular component type (Kanban board, game, calculator) replicates through the graph like any other content. See [Scripting](scripting.md) for bytecode delivery via `GraphClassLoader`.
-
-4. **Predicate gossip scales with interest, not with network size.** A chess topic ring has thousands of members, not billions. Each Librarian only subscribes to topics it cares about.
-
-5. **Content addressing provides free caching.** A CID is a universal, eternal cache key. Any Librarian that has content can serve it. No origin server needed.
-
-6. **Signing enables untrusted intermediaries.** A relay can't tamper with signed content. This means any peer can help deliver content without being fully trusted.
-
-7. **No central bottleneck.** There is no DNS root, no certificate authority, no search engine that everything depends on. The network is resilient to the failure or compromise of any single node.
-
-### Comparison with the Web
-
-| Property | Web (REST) | Common Graph |
-|----------|-----------|--------------|
-| **Content location** | Origin server (URL) | Anywhere (CID) |
-| **Identity** | Domain-based (TLS certs) | Key-based (Ed25519) |
-| **Discovery** | DNS + search engines | Social graph + predicate indexes |
-| **Caching** | Heuristic (ETags, max-age) | Structural (content-addressed) |
-| **Scaling model** | Horizontal (more servers) | Topological (content flows to interest) |
-| **Trust model** | Certificate authorities | Signed relations, trust policies |
-| **Data ownership** | Server operator | Content creator |
-| **Intermediaries** | Transparent proxies | Signed relay forwarding |
-
-### What "Global" Means
-
-In Common Graph, "global" is not a separate tier with separate infrastructure. It's the same social graph at greater depth. The game "six degrees of Kevin Bacon" illustrates the principle — everyone is only a few relations from everyone else. A query for something truly unknown propagates through the graph, running independently on each Librarian it reaches, until it finds what it's looking for or exhausts its depth budget.
-
-The network doesn't need a global directory to be globally reachable. It needs a connected social graph — which humans naturally create.
-
----
-
-## References
-
-- [Maymounkov, Mazieres 2002 — Kademlia](references/Maymounkov%2C%20Mazieres%202002%20-%20Kademlia%20DHT.pdf) — XOR-distance DHT routing
-- [Stoica et al 2001 — Chord](references/Stoica%20et%20al%202001%20-%20Chord%20Scalable%20Peer-to-Peer%20Lookup.pdf) — Consistent hashing for peer lookup
-- [Ratnasamy et al 2001 — CAN](references/Ratnasamy%20et%20al%202001%20-%20A%20Scalable%20Content-Addressable%20Network.pdf) — Content-addressable network
-- [Benet 2014 — IPFS](references/Benet%202014%20-%20IPFS%20Content%20Addressed%20Versioned%20P2P%20File%20System.pdf) — Content-addressed P2P file system
-- [Kleppmann 2019 — Local-First Software](references/Kleppmann%202019%20-%20Local-First%20Software.pdf) — Offline-first, user-owned data
-- [Shapiro 2011 — CRDTs](references/Shapiro%202011%20-%20Conflict-free%20Replicated%20Data%20Types.pdf) — Conflict-free replicated data types
-- [Tschudin, Baumann 2019 — Merkle-CRDTs](references/Tschudin%2C%20Baumann%202019%20-%20Merkle-CRDTs.pdf) — Content-addressed CRDTs
-- [Fielding 2000 — REST](references/Fielding%202000%20-%20Architectural%20Styles%20and%20Network-Based%20Software%20REST.pdf) — The web's architectural style (for comparison)
-- [Clarke et al 2001 — Freenet](references/Clarke%20et%20al%202001%20-%20Freenet%20Distributed%20Anonymous%20Information%20Storage.pdf) — Distributed anonymous information storage
-- [Tarr et al 2019 — Secure Scuttlebutt](references/Tarr%20et%20al%202019%20-%20Secure%20Scuttlebutt%20Identity-Centric%20Protocol.pdf) — Identity-centric append-only log replication
+- [`protocol.md`](protocol.md) — Parley, the protocol that runs over any transport.
+- [`item.md`](item.md) — items as the unit of identity and storage.
+- [`trust.md`](trust.md) — the trust matrix that drives routing and replication decisions.
+- [`storage.md`](storage.md) — local storage; what gets replicated.
+- [`content.md`](content.md) — ContentID and the addressing scheme.
+- [`canonical.md`](canonical.md) — DatumID as the encoding-independent identity.
+- [`runtime.md`](runtime.md) — sessions vs. peer librarians.
+- [`bridges.md`](bridges.md) — interop with external systems.
+- [`encryption.md`](encryption.md) — encryption at-rest and in-transit.
+- [`privacy.md`](privacy.md) — privacy properties of the network.

@@ -41,9 +41,9 @@ An item has three distinct identifiers, each playing a different role.
 
 **VID** — a specific version's identity. Each manifest body has its own structural hash (a DatumID), and that hash is the VID for that particular version. Two manifests for the same item have the same IID but different VIDs.
 
-**ContentID** — a manifest body's canonical-bytes hash. Used when the wire-form bytes specifically matter (storage, transport). Coincides with the VID in most cases; diverges only under transformations like redaction.
+**ContentID** — a manifest body's encoded-bytes hash, specific to whichever encoding produced the bytes. Used when the wire-form bytes specifically matter (storage indexing, transport verification, byte-level deduplication). Distinct from the VID — they're different hashes computed from different inputs (structure vs. bytes). Both reliably identify the version; they just answer slightly different questions.
 
-The IID is identity. The VID is "which version." The ContentID is "which bytes." Three layers of address for three kinds of question.
+The IID is identity. The VID is "which version" (structural). The ContentID is "which bytes" (per-encoding). Three layers of address for three kinds of question. See [`datum.md`](datum.md) for the structural-walker / encoding split that makes this work.
 
 ## The lineage
 

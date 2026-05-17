@@ -1,142 +1,129 @@
-# Content Addressing
+# Content
 
-Common Graph uses **content addressing** — content is identified by its cryptographic hash, ensuring integrity and enabling deduplication. This approach descends from Merkle's hash trees (see [references/Merkle 1979](references/Merkle%201979%20-%20Secrecy%20Authentication%20and%20Public%20Key%20Systems.pdf), [references/Merkle 1988](references/Merkle%201988%20-%20A%20Digital%20Signature%20Based%20on%20Conventional%20Encryption.pdf)) and is shared by modern systems like IPFS (see [references/Benet 2014](references/Benet%202014%20-%20IPFS%20Content%20Addressed%20Versioned%20P2P%20File%20System.pdf)).
+Some of what Common Graph holds is structured datums; the rest is raw bytes — image pixels, audio samples, video chunks, source code, compiled bytecode, blob payloads of every other kind. **Content** is the term for that raw-bytes side. Content lives in the same content-addressed object store as datums but is opaque to the system above: the bytes are just bytes, identified by their hash, fetched when needed.
 
-## Content ID (CID)
+This document defines content addressing, the `~` reference that points at content, and how content relates to the encoding-agnostic identity that datums get from their structural hash.
 
-A **CID** (Content ID) is the hash of content bytes:
+This document assumes familiarity with [the datum primitive](datum.md), [the canonical walker](canonical.md), and [the reference scheme](ref-scheme.md).
 
-```
-CID = multihash(SHA2-256, content_bytes)
-```
+## ContentID
 
-Properties:
-- **Deterministic** — Same content = same CID, always
-- **Tamper-evident** — Any change produces a different CID
-- **Self-verifying** — Fetch content, hash it, compare to CID
-
-CIDs use the [multihash](https://multiformats.io/multihash/) format: a self-describing hash that encodes both the algorithm and the digest. This future-proofs the system — if SHA-256 is ever deprecated, new content can use a different algorithm without breaking existing references.
-
-## Block Storage
-
-Content blocks are stored and retrieved by CID. The store is content-agnostic — it doesn't interpret what's in the bytes:
+A **ContentID** is a multihash of a sequence of bytes:
 
 ```
-put(bytes) → CID          # Store content, return its hash
-get(CID) → bytes          # Retrieve by hash
-exists(CID) → boolean     # Check existence
+ContentID = multihash(<algorithm>, <byte-sequence>)
 ```
 
-See [Library](library.md) for the storage backends (RocksDB, MapDB, in-memory).
+Properties that follow from the construction:
 
-## Encoding
+- **Deterministic.** Same bytes → same ContentID, always.
+- **Tamper-evident.** Any change to the bytes changes the ContentID. A reader fetching by ContentID can rehash the result and confirm it matches.
+- **Self-describing.** The multihash carries the algorithm identifier in its leading bytes; readers know how the hash was computed without external context.
 
-Content is encoded through **frame types**. Different types encode differently:
-- Plain text → UTF-8 bytes
-- Structured data → Canonical CG-CBOR
-- Binary → Raw bytes
-- Quantities → CG-CBOR with `[mantissa, exponent, unit]`
+ContentIDs are referenced through the `~` prefix: `~<contentid>`. The reference scheme treats this as one of the five primitive reference variants (see [`ref-scheme.md`](ref-scheme.md)). When you see `~<cid>` anywhere in a frame's bindings, it means "the bytes whose hash is this."
 
-The encoding is deterministic: same logical value → same bytes → same CID. This is enforced by the canonical encoding rules in [CG-CBOR](cg-cbor.md).
+## ContentID vs DatumID
 
-## Selectors
+The two hashes answer different questions:
 
-**Selectors** address fragments within content:
+- **DatumID** — "what does this datum *say*?" Computed from structure, independent of encoding. Same DatumID across every encoding format.
+- **ContentID** — "what are *these exact bytes*?" Computed from the actual byte sequence. Encoding-specific by definition.
 
-```
-iid:<hex>\<cid>[selector]
-```
+A datum encoded as CG-CBOR bytes has a ContentID for those bytes. The same datum encoded as CG-JSON would have a *different* ContentID (different bytes), but the same DatumID. Both ContentIDs identify byte sequences that decode to the same datum; the DatumID identifies the datum itself.
 
-| Selector | Format | Example |
-|----------|--------|---------|
-| Byte span | `[start-end]` | `[120-180]` — bytes 120-179 |
-| JSON path (future) | `[$.path]` | `[$.users[0].name]` |
-| Line/column (future) | `[line:col-line:col]` | `[10:5-15:20]` |
-| Time range (future) | `[t0-t1]` | `[00:30-01:45]` |
+Most internal references go through DatumID — the system cares about the datum, not the bytes. ContentID matters for:
 
-Selectors are type-specific — the frame type determines which selectors are valid and how they're interpreted. See [Syntax](syntax.md) for the full reference syntax.
+- **Raw content** — image bytes, audio samples, blob payloads, anything whose meaning isn't a datum structure.
+- **Transport verification** — proving that the bytes you received are the bytes someone sent.
+- **Local storage indexing** — the byte-level address for fetch operations.
+- **Byte-level deduplication** — identifying identical encoded forms regardless of higher-level meaning.
 
-## Large Content
+Inside Common Graph, ContentIDs primarily appear for raw content (image data, source code, compiled artifacts) and as the per-encoding hash of stored datum bytes. For semantic references between graph items, DatumID (`#`) and item references (`@`) carry the load.
 
-Small content (< 256 KB) is stored directly in the database. Large content is stored on the filesystem:
+## The object store
 
-```
-store.rocks/           # Small blocks (database)
-content.files/         # Large blocks (filesystem)
-    <cid-hex>          # Raw bytes
-```
+All content-addressed bytes live in a single object store, addressed by their ContentID. The store has a small surface:
 
-### Chunking (Future)
+- **Put** — write a byte sequence; receive its ContentID.
+- **Get** — given a ContentID, fetch the bytes.
+- **Has** — given a ContentID, check existence without fetching.
 
-Very large content (multi-gigabyte files) will be chunked:
+The store is content-agnostic — it doesn't interpret what's in the bytes. CG-CBOR datums, JPEG photos, audio buffers, compiled WebAssembly modules — all sit side by side, each identified by its hash, none privileged over another.
 
-```
-BlobRoot {
-    totalSize: integer
-    chunkSize: integer
-    chunkCids: [ContentID]
-}
-```
-
-The CID of the file is the CID of the BlobRoot. Chunks can be fetched and verified independently. This is similar to how [IPFS](https://ipfs.tech/) handles large files via UnixFS.
-
-## Deduplication
-
-Content addressing enables automatic deduplication:
-- Same photo uploaded twice → one copy stored
-- Same configuration across items → shared block
-- Same dependency across projects → single storage
-
-Deduplication is effortless and trustless — it's a mathematical consequence of content addressing, not a policy decision.
+See [`storage.md`](storage.md) for the layered storage architecture that wraps this primitive (large-object thresholds, multi-backend routing, the index layers that sit above the object store).
 
 ## Verification
 
-Any content can be verified at any time:
+A byte sequence fetched by ContentID can always be verified:
+
+1. Receive bytes.
+2. Compute their hash with the algorithm named in the ContentID.
+3. Compare with the ContentID's digest. Mismatch means corruption, tampering, or a wrong fetch.
+
+This verification is automatic on every fetch. Bytes that fail verification are rejected. The verification chain extends upward through the layers:
+
+- A frame body's ContentID verifies the bytes that decode to the body.
+- The decoded body's DatumID verifies the datum's structure.
+- The body's records verify who attests the datum.
+- The records' signatures verify against signers' published keys.
+
+Every layer rests on cryptographic verification; nothing relies on trust in a registry.
+
+## Deduplication
+
+Content addressing makes deduplication a mathematical consequence of the design, not a feature added on top. Two parties uploading the same image produce the same ContentID; the second upload silently confirms the existing one. Two items sharing a configuration block, two projects sharing a dependency artifact, two attestations referencing the same body — all share storage by virtue of sharing bytes.
+
+The deduplication is *trustless* — no party has to be told that the content is the same; the hashes make the equivalence obvious. This compounds across the network. A blob downloaded once can be shared by any librarian that has it; downstream receivers verify by rehashing.
+
+## Large content
+
+Small content sits inline in the object store. Large content (multi-megabyte files, hour-long videos, archival datasets) is handled as a tree of chunks:
 
 ```
-1. Fetch bytes by CID
-2. Recompute hash(bytes)
-3. Compare with CID — must match exactly
+{@blob-root, [
+  @TOTAL_SIZE → 1_337_421_056,
+  @CHUNK_SIZE → 1_048_576,
+  @CHUNK → ~<chunk-1-cid>,
+  @CHUNK → ~<chunk-2-cid>,
+  ...
+]}
 ```
 
-This happens automatically on fetch. Corrupted or tampered content fails verification. The chain extends upward:
+The root is a small datum that names the chunks; each chunk has its own ContentID. The blob's *identity* is the DatumID of the root. Readers fetch the root, then fetch chunks on demand. Verification is per-chunk: a corrupted chunk fails its own hash check and can be re-fetched without re-downloading the whole blob.
 
-```
-Content bytes → CID (verified by hash)
-    → Frame bodyHash → Manifest → VID (verified by hash)
-        → Signature (verified by public key)
-```
+This mirrors IPFS's UnixFS approach and Git's blob/tree split. The differences: the chunk tree itself is a normal CG datum (not a special-cased structure), and large blobs interoperate with the rest of the system through the same reference primitives as any other content.
 
-See [Trust](trust.md) for the full verification chain.
+Streams (append-only logs, chat messages, sensor feeds) are a related but distinct shape — see [`streams.md`](streams.md).
 
-## Object Store
+## Privacy considerations
 
-All content-addressed data — frame bodies, frame records, manifests, content blobs — lives in a single object store. See [Storage Architecture](storage.md) for the unified storage design.
+Content hashes are one-way functions. A ContentID reveals nothing about the bytes it identifies — you cannot recover content from its hash. But:
 
-## Privacy Considerations
-
-Content hashes reveal nothing about content (one-way function), but:
-- Possessing a CID proves you know the content exists
-- CIDs can be used to check if someone has specific content (confirmation attack)
+- **Possessing a ContentID is evidence the content was once known.** Two parties holding the same ContentID can prove they're talking about the same bytes without revealing what those bytes are.
+- **ContentIDs are stable.** If you publish content and later regret it, the ContentID remains a working address for anyone who fetched it before deletion.
+- **Confirmation attacks are possible.** An adversary who suspects you have specific content can ask if you have its ContentID; a "yes" confirms the suspicion.
 
 For sensitive content:
-- Encrypt before hashing (produces a different CID each encryption)
-- Use access control at the item/frame level
-- Don't share CIDs of private content
 
-## Content on the Network
+- **Encrypt before hashing.** The ContentID of the ciphertext reveals only that some encrypted byte sequence exists; the plaintext stays unaddressable until decryption. Different encryptions of the same plaintext produce different ContentIDs.
+- **Use access control.** Item-level and frame-level access policies determine who can fetch by a given ContentID, even if they hold it.
+- **Don't share ContentIDs of private content.** A ContentID functions as a capability for anyone who has the bytes; treat it as such.
 
-Content addressing makes CG naturally suited to peer-to-peer distribution. A CID is a universal cache key — any Librarian that has the content can serve it, and the requester can verify integrity by re-hashing. Content replicates along interest paths through the social graph. See [Network Architecture](network.md) for how content flows between Librarians.
+The encryption layer ([`encryption.md`](encryption.md)) wraps these patterns into structured envelopes.
 
-## References
+## Content on the network
 
-**External resources:**
-- [IPFS](https://ipfs.tech/) — Content-addressed block storage with P2P distribution
-- [Git](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) — Content-addressed objects for version control
-- [Multihash](https://multiformats.io/multihash/) — Self-describing hash format
-- [DAG-CBOR](https://ipld.io/specs/codecs/dag-cbor/spec/) — Content-addressed CBOR (IPLD)
+Content addressing makes Common Graph naturally peer-to-peer-friendly. A ContentID is a universal cache key — any librarian that has the content can serve it; the receiver verifies integrity by rehashing. Content flows along trust and interest paths through the social graph; popular content replicates organically; rare content is fetched on demand.
 
-**Academic foundations:**
-- [Merkle 1979 — Secrecy, Authentication, and Public Key Systems](references/Merkle%201979%20-%20Secrecy%20Authentication%20and%20Public%20Key%20Systems.pdf) — Introduces Merkle trees
-- [Merkle 1988 — Digital Signature Based on Conventional Encryption](references/Merkle%201988%20-%20A%20Digital%20Signature%20Based%20on%20Conventional%20Encryption.pdf) — Compact Merkle tree presentation
-- [Benet 2014 — IPFS](references/Benet%202014%20-%20IPFS%20Content%20Addressed%20Versioned%20P2P%20File%20System.pdf) — Content-addressed storage with Merkle DAGs
+The detailed routing model, replication strategy, and gossip patterns live in [`network.md`](network.md).
+
+## Relations
+
+- [`datum.md`](datum.md) — datums and their structural identity.
+- [`canonical.md`](canonical.md) — the structural walker that produces DatumIDs (the encoding-agnostic counterpart to ContentID).
+- [`ref-scheme.md`](ref-scheme.md) — the `~` reference prefix and its byte layout.
+- [`cg-cbor.md`](cg-cbor.md) — how CG-CBOR bytes get a ContentID under one specific encoding.
+- [`storage.md`](storage.md) — the object store, backends, and the index layers above it.
+- [`streams.md`](streams.md) — append-only stream content as a related but distinct shape.
+- [`network.md`](network.md) — content replication and discovery across librarians.
+- [`encryption.md`](encryption.md) — encrypting bytes before hashing for sensitive content.

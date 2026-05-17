@@ -1,838 +1,234 @@
-# Scripting
+# Code Items
 
-Items carry code. A chess game ships with the rules that enforce legal moves. A financial ledger ships with the formulas that compute balances. A chat room ships with the bot that greets new members. The code is a component — signed, versioned, content-addressed — just like any other part of the item. It runs in a sandboxed runtime engine on the host Librarian, governed by the same trust and policy mechanisms that govern everything else in the graph.
+Items carry code. A chess game ships with the rules that enforce legal moves. A financial ledger ships with the formulas that compute balances. A chat room ships with the bot that greets new members. A Markdown editor ships with the parsing and rendering routines that turn its frames into displayable structure. The code is just another part of the graph — signed, versioned, content-addressed — referenced by manifests the same way any other content is.
 
-This is not a plugin system bolted onto a platform. There is no app store, no marketplace, no review board. Code distributes through the graph like any other content. Trust replaces curation. The signer's reputation, the item's policy, and the host's resource limits determine whether code runs — not a gatekeeper's approval.
+This document defines code items (items whose role is to carry executable code), how implementations from multiple languages coexist for the same archetype, how the runtime selects among them, and how sandboxing keeps untrusted code from doing harm.
 
-## Progression
+This document assumes familiarity with [items](item.md), [the API model](api.md), [the runtime](runtime.md), [manifests](manifest.md), and [the reference scheme](ref-scheme.md).
 
-The scripting system exists on a continuum with what already works:
+## A code item is an item
 
-| Level | What | Mechanism |
-|-------|------|-----------|
-| **0. Java verbs** | `@Verb` annotations on compiled classes | Static dispatch, compile-time |
-| **1. Expressions** | `ExpressionComponent`, vocabulary aliases | Eval pipeline, vocabulary contributions |
-| **2. Scripts** | `ScriptComponent` evaluated by host runtime engines | Interpreted, hot-reloadable |
-| **3. Live editing** | Edit script text, verb changes immediately | Inline editing from prompt or surface |
-| **4. Distributed code** | Code Items fetched from graph, verified, sandboxed | Content-addressed, trust-gated |
-| **5. Self-hosting** | Runtime engines as Items, capability discovery | Graph-native runtime management |
-| **6. Bytecode delivery** | JVM bytecode as content, loaded via `GraphClassLoader` | Replaces package managers, app stores, plugins |
+A code item is an item whose manifest's head is the **Code** archetype. Its bindings carry:
 
-Level 0 exists today. Level 1 exists (ExpressionComponent, scripted expression aliases). Levels 2-5 are what this document specifies. Level 6 is the endgame — code itself is content in the graph.
-
-The boundary between levels is porous. A Level 1 expression alias and a Level 2 Groovy script both contribute verbs through the same vocabulary mechanism. A Level 4 distributed WASM module and a Level 0 Java verb both dispatch through the same sememe-based vocabulary pipeline. The user sees verbs. The system doesn't care where the implementation came from.
-
----
-
-## Script Component
-
-A `ScriptComponent` is a component type like any other — `@Type` annotated, CBOR-serializable, holding source code and metadata:
+- **`@ITEM_ID → <iid>`** — the code item's own identity.
+- **`@IMPLEMENTS → @<archetype-or-predicate>`** — the concept this code realizes.
+- **One or more language bindings** — what language the code is in and where to find the actual code.
 
 ```
-ScriptComponent {
-    language:   ItemID          # Runtime language (cg:language/groovy, cg:language/javascript, etc.)
-    source:     string          # Source code text
-    entryPoint: string?         # Entry function name (null = entire source is the body)
-    bindings:   [BindingDecl]   # Declared input bindings
-}
+{@code, [
+  @ITEM_ID → <chess-game-java-iid>,
+  @IMPLEMENTS → @chess-game,
+  @JAVA:[ClassName] → "dev.everydaythings.graph.game.ChessGame"
+]}
 ```
 
-A `BindingDecl` declares what the script expects from its host item:
+Code items live in the graph the same way every other item does. Their manifests are signed; their identities are stable; their versions are linked through FOLLOWS bindings. The runtime fetches them, materializes them, and dispatches frames to them like any other item.
+
+## Language bindings
+
+The language binding shape pairs *what language the code is in* with *what form the code reference takes*:
 
 ```
-BindingDecl {
-    name:   string      # Variable name exposed to the script
-    source: BindSource  # Where the value comes from
-}
-
-BindSource = ITEM           # The owning Item
-           | LIBRARIAN      # The host Librarian
-           | COMPONENT(hid) # A sibling component by handle
-           | CONTEXT        # The ActionContext (caller, params, etc.)
-           | SETTING(key)   # A scoped setting on this component's entry
+@<language>:[<form>] → <reference>
 ```
 
-### Attachment
+The **role** is the language sememe — `@JAVA`, `@PYTHON`, `@LISP`, `@JAVASCRIPT`, and so on. The **qualifier** is the form of code reference — `ClassName` for a class identifier, `SourceCode` for inline source text, `Bytecode` for compiled bytes addressable by content hash. The **target** is the actual reference, whatever the form expects.
 
-Scripts attach to items the same way any frame does — via `@Item.Frame` or dynamic addition:
-
-```java
-@Item.Frame(handle = "greeting-script", path = "/scripts")
-private ScriptComponent greetingScript;
-```
-
-Or dynamically at runtime: add a ScriptComponent to any item's EndorsementsTable, commit, and the new verbs are live.
-
-### Relationship to ExpressionComponent
-
-ExpressionComponent handles the CG expression language — vocabulary aliases, math, pattern queries. ScriptComponent handles general-purpose code in external languages. They serve different purposes:
-
-| | ExpressionComponent | ScriptComponent |
-|---|---|---|
-| **Language** | CG expression language | Groovy, JavaScript, Python, Lua, WASM, Ruby |
-| **Evaluation** | Eval pipeline | Runtime engine |
-| **Typical use** | Aliases, formulas, queries | Complex logic, game rules, bots, integrations |
-| **Trust level** | Low (constrained grammar) | Higher (general-purpose code requires sandboxing) |
-
-Both contribute verbs through the same vocabulary. Both dispatch through the same sememe pipeline. The distinction is implementation complexity, not architectural separation.
-
----
-
-## Runtime Registry
-
-The Librarian maintains a **RuntimeRegistry** — a mapping from language Items to available script engines:
+Common examples:
 
 ```
-RuntimeRegistry {
-    engines:  Map<ItemID, RuntimeEngine>    # Language IID → engine instance
-    limits:   ResourceLimits               # Global defaults for all engines
-
-    resolve(languageId) → RuntimeEngine?
-    available() → [ItemID]
-}
+@JAVA:[ClassName] → "dev.everydaythings.graph.game.ChessGame"
+@PYTHON:[SourceCode] → "class ChessGame: ..."
+@LISP:[SourceCode] → "(defun chess-game-handle-move ...)"
+@JAVASCRIPT:[SourceCode] → "class ChessGame { ... }"
+@JAVA:[Bytecode] → ~<bytecode-cid>
 ```
 
-A `RuntimeEngine` wraps a specific interpreter or compiler:
+A single code item carries one such binding (the canonical case). The Stage reads it, picks the right language runtime, loads the code, and the item is ready to handle frames.
+
+## Sibling code items for the same archetype
+
+The same archetype can have multiple implementations, each in its own language, each in its own code item:
 
 ```
-RuntimeEngine {
-    languageId:   ItemID              # Which language this engine handles
-    evaluate(source, bindings, sandbox) → Object
-    canCompile() → boolean            # Ahead-of-time compilation support
-    compile(source) → CompiledScript  # Pre-compiled form for repeated execution
-}
+@chess-game-java's manifest:
+  head: @code
+  bindings:
+    @ITEM_ID → <java-iid>
+    @IMPLEMENTS → @chess-game
+    @JAVA:[ClassName] → "dev.everydaythings.graph.game.ChessGame"
+
+@chess-game-python's manifest:
+  head: @code
+  bindings:
+    @ITEM_ID → <python-iid>
+    @IMPLEMENTS → @chess-game
+    @PYTHON:[SourceCode] → "class ChessGame: ..."
+
+@chess-game-lisp's manifest:
+  head: @code
+  bindings:
+    @ITEM_ID → <lisp-iid>
+    @IMPLEMENTS → @chess-game
+    @LISP:[SourceCode] → "(defstruct chess-game ...)"
 ```
 
-### Supported Runtimes
+Three independent code items, three different IIDs, three different signers possibly, three different versions independently. All point at the same archetype through their IMPLEMENTS bindings. The archetype itself has no idea how many implementations exist; it just declares what it expects (its schema and HANDLES).
 
-| Priority | Language | Engine | Impedance | Use Case |
-|----------|----------|--------|-----------|----------|
-| 1 | **Groovy** | GroovyShell / GroovyClassLoader | Zero — calls CG Java classes directly | Power users, item authors, rapid prototyping |
-| 2 | **JavaScript** | GraalJS (GraalVM polyglot) | Low — polyglot interop | Web-familiar scripting, JSON manipulation |
-| 3 | **WASM** | Chicory (pure Java WASM interpreter) | High — binary interface | Distributed code, language-agnostic portable modules |
-| 4 | **Python** | GraalPython (GraalVM polyglot) | Low — polyglot interop | Data processing, scientific computing |
-| 5 | **Lua** | LuaJ | Medium — custom bindings | Game scripting, lightweight configuration |
-| 6 | **Ruby** | JRuby | Low — JVM-native | Text processing, DSLs |
+The choice of which to run isn't baked into the data. The trust matrix, the host's available runtimes, and the user's preferences combine to select one at runtime. The selection is policy, not declaration.
 
-Groovy is first because it has zero impedance with the host. A Groovy script can call `item.iid()`, construct a `Relation`, or invoke `librarian.get()` as naturally as Java code. No marshaling, no binding layer, no FFI — it runs on the same JVM and sees the same classpath.
+## How the runtime finds and runs code
 
-GraalVM polyglot (JavaScript, Python) provides a middle ground: sandboxed by default with controlled host access, but capable of interacting with CG objects through the polyglot API.
+When a frame arrives that the Librarian needs to dispatch:
 
-WASM (via Chicory) is the distributed code story. A WASM module is a portable binary — compiled from Rust, C, Go, or any language with a WASM target. It runs in a pure-Java interpreter with no JNI, no native dependencies, and hard resource limits. This is what makes "fetch code from the graph and run it safely" practical.
+1. **Find candidate archetypes** — items the frame concerns, walked via their archetype chains until a matching `@HANDLES → <frame-predicate>` is found.
+2. **Find code items** — for each candidate archetype, query the graph for items with `@IMPLEMENTS → <archetype>`. Multiple matches are normal.
+3. **Filter by available runtimes** — only code items whose language is available on this host can run. A Python implementation is excluded if no Python runtime is loaded.
+4. **Score with the trust matrix** — among the surviving candidates, score by trust (who signed the code item, what permissions does the runtime need, what policy applies to that combination). Strict policies eliminate many; permissive ones admit them all.
+5. **Pick one** — typically the highest-scored, possibly with user prompt if the difference is borderline.
+6. **Stage materializes** — the chosen code item's manifest tells the Stage which language and which reference; the Stage loads the code (instantiating a Java class, executing the Python source, evaluating the Lisp expressions, etc.) and produces a runtime handler.
+7. **Stage runs the handler** — `handler(frame) → value-or-frame`, under the capability bundle the trust matrix granted.
 
-### Engine Lifecycle
+This flow happens whether the chosen code is Java, Python, Lisp, JavaScript, or any other supported language. The Stage's job is to abstract over languages; the Librarian's job is to choose among them.
 
-Engines are initialized lazily on first use. The Librarian does not start a Python runtime unless someone hands it a Python script. Engine availability depends on classpath — if GraalJS isn't on the classpath, JavaScript scripts fail with a clear error, not a silent fallback.
+See [`api.md`](api.md) for the HANDLES + IMPLEMENTS declarations that drive steps 1–2; see [`trust.md`](trust.md) for the trust matrix that drives steps 4–5.
 
----
+## The polyglot environment
 
-## Vocabulary Integration
+The Stage hosts language runtimes through GraalVM's polyglot machinery (or equivalent for non-JVM hosts). Each supported language gets a context — a sandbox the runtime operates in:
 
-Scripts provide verbs through the same mechanism as everything else: **vocabulary contributions** on their Frame.
+- **Java** — runs in the host JVM directly (or in an Espresso sandbox when capability constraints require it).
+- **Python** — runs in a GraalPython context.
+- **JavaScript** — runs in a GraalJS context.
+- **Lisp / Clojure** — runs in either Clojure-on-JVM or a GraalVM Lisp context, depending on dialect.
+- **WebAssembly** — runs in a GraalWasm context.
+- **R, Ruby**, etc. — supported wherever the underlying polyglot host provides them.
 
-### Declaring Verbs
+Each language context is sandboxed by GraalVM's host-access controls. Untrusted code in any language can be denied filesystem access, network access, JVM reflection, and other privileged operations. The host's trust matrix decides what each piece of code is granted.
 
-A ScriptComponent declares which verbs it handles through VocabularyContributions on its entry:
+Languages communicate through GraalVM's interop machinery. A Python handler operating on a Frame (which is, in implementation terms, a Java object) sees it through a language-native surface — Python sees `frame["LHS"]` and dict-like iteration; Lisp sees keyword access; JavaScript sees property access. The Stage marshals the same Frame across languages with no copy; the language-native ergonomics emerge from the underlying interop wrappers.
 
-```
-VocabularyContribution {
-    trigger: Sememe(cg.verb:greet)     # "I handle the greet verb"
-    target:  Sememe(cg.verb:greet)     # Same sememe — capability registration
-    scope:   "/"
-}
-```
+## Sandboxing and capabilities
 
-When dispatch reaches this component, the ScriptComponent's source is evaluated with the verb's parameters bound into the script context.
+Untrusted code runs with **narrowed capabilities** — what it can do is constrained by the trust matrix and enforced by the Stage. The capability surface:
 
-### Script-Defined Verbs
+- **Compute budget** — CPU time and memory limits.
+- **Host access** — filesystem read, filesystem write, network connections, environment variables, system clock.
+- **Process operations** — spawning, signaling, threading.
+- **Reflection** — introspection into the host runtime.
+- **Inter-item calls** — what other items this code can dispatch to.
 
-A script can also define entirely new verbs — sememes that don't exist yet in the graph. The script author creates a new sememe (or references an existing one) and registers it as a vocabulary contribution:
+A handler in a fully trusted item (the Librarian, certain bootstrap items) runs with all capabilities. A handler in a third-party application bundle runs with the capabilities the user granted when installing the bundle. A handler from a network-received frame runs with whatever the host's default network-source policy allows — usually very narrow.
 
-```
-VocabularyContribution {
-    trigger: "analyze"                   # Literal token (becomes a proper noun on this item)
-    target:  Sememe(cg.verb:analyze)     # New verb sememe
-    scope:   "/"
-}
-```
+The capability bundle is computed by the Librarian, applied by the Stage, and enforced by GraalVM. Once the handler is running, it cannot escape its capabilities short of finding a vulnerability in the host. The system relies on the polyglot host's sandboxing primitives; it doesn't reinvent process isolation.
 
-From the user's perspective, typing "analyze" into the item's prompt dispatches to the script. The script-backed verb is indistinguishable from a Java-backed verb at the dispatch level.
+## Distributing code as items
 
-### Dispatch Flow
+Because code items are items, they distribute through the same machinery as any other content. A code item can be:
 
-```
-User types "greet alice"
-    |
-Token resolution: "greet" → Sememe(cg.verb:greet), "alice" → Item(alice)
-    |
-Frame assembly: verb=greet, THEME=alice
-    |
-Vocabulary lookup (inner to outer):
-    |
-    +-- ScriptComponent has VocabularyContribution for cg.verb:greet
-    |
-    +-- ScriptVerbInvoker:
-        1. Resolve RuntimeEngine from ScriptComponent.language
-        2. Build bindings: item, librarian, context, params
-        3. Apply sandbox from policy
-        4. engine.evaluate(source, bindings, sandbox)
-        5. Wrap result as ActionResult
-```
+- **Bundled with an application** — the application's manifest endorses the code items it provides. Installing the application loads the bundle.
+- **Posted to a code repository** — a librarian dedicated to hosting code items lets users browse and import.
+- **Linked from frames** — an arbitrary frame can reference a code item via `@IMPLEMENTS` or other bindings. The Librarian fetches it on demand.
+- **Updated through version chains** — a code item's new manifest follows its previous one via `@FOLLOWS`; users who trust the signer get the update; users who don't, don't.
 
-The `ScriptVerbInvoker` is the bridge between the vocabulary system and the runtime engine. It implements the same `VerbInvoker` interface as the Java reflection-based invoker — the dispatch layer doesn't know the difference.
+This is what makes Common Graph genuinely extensible: new behavior isn't a software install in the traditional sense (binaries deployed to fixed paths). It's an item showing up in the graph, signed by someone, available for the librarian to fetch and (subject to trust policy) load.
 
-### Multiple Scripts, Multiple Verbs
+A user can write a small Python handler for some predicate, sign it, and publish it to their personal librarian. Anyone the user shares it with can fetch the code item, verify the signature, and (if their trust policy allows) start using it. The handler is just another item; the distribution is just the network.
 
-An item can have multiple ScriptComponents, each handling different verbs. Or a single ScriptComponent can handle multiple verbs by registering multiple VocabularyContributions pointing to different entry points:
+## Code items as content
+
+A code item's *source* is content. A Python source string, a Java class name, a Wasm bytecode blob — each is a value the binding carries. Source strings sit inline as text literals; bytecode blobs sit by `~`-reference to their content hash; class names sit as plain text identifying code outside the graph.
+
+The bytecode-by-hash case is what enables a code item to ship without depending on out-of-band installation:
 
 ```
-ScriptComponent {
-    language: cg:language/groovy
-    source: """
-        def onGreet(who) { "Hello, ${who.displayToken()}!" }
-        def onFarewell(who) { "Goodbye, ${who.displayToken()}!" }
-    """
-}
-
-Entry vocabulary:
-    { trigger: Sememe(cg.verb:greet),    entryPoint: "onGreet" }
-    { trigger: Sememe(cg.verb:farewell), entryPoint: "onFarewell" }
+@compiled-handler's manifest:
+  head: @code
+  bindings:
+    @ITEM_ID → <handler-iid>
+    @IMPLEMENTS → @some-predicate
+    @JAVA:[Bytecode] → ~<bytecode-cid>
 ```
 
----
+The bytecode is content-addressed. Fetching the code item, fetching the bytecode bytes by their CID, verifying the bytes match the hash — all the usual machinery. Once loaded, the bytecode runs in the JVM (under the trust-matrix's capability bundle).
 
-## Sandboxing and Trust
+The `ClassName` form is the simpler case where the code is already on the host (loaded at startup by the implementation language's normal mechanisms). Convenient for foundational code that ships with the librarian; less useful for distributed extensions.
 
-Code from the graph is untrusted by default. The sandboxing model has three layers: runtime isolation, policy gating, and trust evaluation.
+## Foundational vs. distributed code
 
-### Runtime Isolation
+Two patterns coexist:
 
-Each runtime engine provides its own sandboxing mechanism:
+**Foundational code items** are bundled with the librarian itself. The Librarian item's code, the Add operator's code, the parser's code, the renderer's code. These ship with the implementation; their `@JAVA:[ClassName]` targets are present in the runtime by virtue of having been compiled into the librarian's image. Trust is absolute.
 
-**GraalVM polyglot** (JavaScript, Python): The `Context` object controls everything:
-- `allowIO(false)` — no filesystem access
-- `allowHostAccess(HostAccess.NONE)` — no calling Java classes
-- `allowCreateThread(false)` — no concurrency
-- `allowNativeAccess(false)` — no JNI
-- Host access is opt-in per class/method through a `HostAccess` policy
+**Distributed code items** arrive from the graph at runtime. Application bundles, user-contributed handlers, third-party extensions. Their language bindings might be `@PYTHON:[SourceCode]` (inline source), `@JAVA:[Bytecode] → ~<cid>` (content-addressed bytecode), or anything else the supported runtimes can load. Trust is policy-driven.
 
-**Chicory (WASM)**: Pure computation by default. WASM modules have no ambient capabilities — they can only call functions explicitly provided as imports. The host controls every system call.
+Both go through the same dispatch flow. The Stage doesn't know or care which path a code item arrived through; it loads what the binding tells it to load, under the capability bundle the trust matrix produced. Foundational items get full capabilities by default; distributed items get whatever the trust matrix grants them, often much less.
 
-**Groovy**: The most permissive by default (same classpath as the host). Sandboxed via `CompilerConfiguration` with a `SecureASTCustomizer` that restricts allowed language features, imports, and method calls. Scripts from untrusted sources get a restricted configuration; scripts from the local user or highly trusted signers can get broader access.
+## Worked examples
 
-**LuaJ**: Restricted standard library. Remove `os`, `io`, `debug` modules for untrusted scripts.
-
-### Policy Gating
-
-Before a script executes, the Librarian checks the item's `PolicySet`:
+**A chess game with multiple language implementations.**
 
 ```
-ScriptPolicy {
-    allowedLanguages:  [ItemID]         # Which runtime languages are permitted
-    maxCpuMs:          integer          # CPU time limit per invocation
-    maxMemoryBytes:    integer          # Heap limit per invocation
-    maxOutputBytes:    integer          # Output size limit
-    hostAccess:        HostAccessLevel  # NONE, READONLY, RESTRICTED, FULL
-    networkAccess:     boolean          # Can the script make network calls?
-    allowedBindings:   [string]         # Which binding sources are permitted
-}
+@chess-game's archetype manifest declares HANDLES:
+  @HANDLES → @move
+  @HANDLES → @resign
+  @HANDLES → @offer-draw
+
+Three sibling code items:
+  @chess-game-java   @JAVA:[ClassName] → "ChessGameJava"
+  @chess-game-python @PYTHON:[SourceCode] → "class ChessGame: ..."
+  @chess-game-lisp   @LISP:[SourceCode] → "(defstruct chess-game ...)"
+
+A MOVE frame arrives. The Librarian finds @chess-game-java, @chess-game-python, @chess-game-lisp as candidates (all IMPLEMENTS @chess-game). The host has Java and Python runtimes; @chess-game-lisp is excluded. The trust matrix gives @chess-game-java a higher score (signed by a more trusted authority). The Stage loads @chess-game-java's class and dispatches the MOVE frame. Result flows back; the chess game updates.
 ```
 
-`HostAccessLevel` controls what CG objects the script can see:
-
-| Level | Description |
-|-------|-------------|
-| **NONE** | Pure computation only — no access to items, librarian, or graph |
-| **READONLY** | Can read item state, query relations, but cannot modify anything |
-| **RESTRICTED** | Can read and write through a controlled API surface (no raw store access) |
-| **FULL** | Unrestricted access (local scripts, highly trusted signers only) |
-
-### Trust Evaluation
-
-The decision to run a script combines policy with trust:
+**A user-contributed handler.**
 
 ```
-1. Who signed this item (and its ScriptComponent)?
-2. What is their trust score in my matrix? (see trust.md)
-3. Does the item's PolicySet permit this script language?
-4. Does the Librarian's own policy permit this trust level to run code?
-5. Intersect: script gets the MINIMUM of all applicable limits
+A user writes a Python script that handles a custom @MOOD_CHECK_IN predicate
+for their personal journal items. They sign and publish:
+
+{@code, [
+  @ITEM_ID → <handler-iid>,
+  @IMPLEMENTS → @journal,
+  @PYTHON:[SourceCode] → "def handle_mood_check_in(frame): ..."
+]}
+
+Friends who trust this user import the journal application, which references
+their handler via @IMPLEMENTS. The friends' librarians fetch the code item,
+verify the user's signature, and load the handler under a capability bundle
+that grants Python compute time and filesystem access only to the friend's
+own journal data. No access to network, no access to other items.
 ```
 
-A script signed by the local user with full trust runs with broad permissions. A script from a stranger two hops away in the social graph runs with NONE host access and tight resource limits — or doesn't run at all, depending on policy.
-
-This replaces the app store model. Instead of a central authority deciding what code is safe, every Librarian makes its own decision based on who signed the code, how much they trust that signer, and what policies they've configured. Communities can publish recommended trust policies (themselves Items) that members adopt — "trust scripts signed by members of this group" — creating decentralized curation without centralized control.
-
----
-
-## Resource Metering
-
-Scripts run under metered resource limits. Overages terminate execution immediately.
-
-### Metered Resources
-
-| Resource | Unit | Default Limit | Mechanism |
-|----------|------|---------------|-----------|
-| **CPU time** | milliseconds | 5,000 ms | GraalVM CPU time limit / thread interrupt |
-| **Memory** | bytes | 64 MB | GraalVM heap limit / runtime tracking |
-| **Output** | bytes | 1 MB | Stream wrapper with byte counter |
-| **Invocations** | count per window | 100/minute | Token bucket on the Librarian |
-| **Network** | bytes in+out | 0 (disabled by default) | Proxy layer if enabled |
-
-### Reporting
-
-Resource consumption is recorded per script, per signer, as part of the Librarian's service accounting:
+**A bridge implemented as a code item.**
 
 ```
-ScriptUsageRecord {
-    scriptCid:   ContentID      # Which script version ran
-    signer:      ItemID         # Who signed it
-    cpuMs:       integer        # CPU time consumed
-    memoryBytes: integer        # Peak memory
-    outputBytes: integer        # Output produced
-    timestamp:   instant
-    result:      OK | TIMEOUT | OOM | ERROR
-}
+{@code, [
+  @ITEM_ID → <smtp-bridge-iid>,
+  @IMPLEMENTS → @smtp-bridge,
+  @JAVA:[Bytecode] → ~<bridge-bytecode-cid>
+]}
 ```
 
-These records feed into the trust matrix's **reciprocity** dimension (see [Trust](trust.md)). Items whose scripts consistently hit resource limits or produce errors erode their signer's service trust. Items whose scripts are lightweight and well-behaved build it.
+A bridge connecting Common Graph to email is a code item whose handlers translate inbound emails into frames and outbound frames into emails. The bytecode is fetched, verified, and loaded under a capability bundle that grants SMTP/IMAP network access but no other privileges.
 
-### Burst and Sustained Limits
+## Why "scripting" works at all
 
-The Librarian tracks resource usage at two timescales:
+A traditional scripting story is awkward: users want code to extend behavior, but the system has to load that code somehow, verify it's safe somehow, isolate it somehow, give it a calling convention somehow. Most systems hand-build these layers; the result is fragile, the boundaries are leaky, and every new language requires re-engineering the lot.
 
-- **Per-invocation**: Hard limits on a single script execution (the table above)
-- **Per-window**: Aggregate limits over a rolling time window — prevents a script that stays under per-invocation limits from consuming all resources through rapid repeated invocation
+Common Graph treats code as a data type. A code item is an item with the Code archetype and a language binding. The graph distributes it the same as everything else; the trust matrix scores it the same as everything else; the Stage runs it the same as everything else. New languages plug in by adding a runtime to the polyglot host; new code distributions emerge as new code items in the graph. None of the layers special-case "executable content."
 
-A script that takes 4,999 ms once is fine. A script that takes 4,999 ms one hundred times per minute is not. The token bucket on the Librarian enforces the sustained limit.
+The cost is one archetype (Code) and one set of language bindings on its manifests. The benefit is a unified extensibility story that scales to arbitrarily many languages and arbitrarily many trust contexts.
 
----
+## Relations
 
-## Inline Editing
-
-Scripts are editable from both the prompt and the surface UI. This is the "everything is inline editable" principle applied to code.
-
-### From the Prompt
-
-```
-alice@myitem> create groovy script
-  --> Creates a ScriptComponent, attaches to current item
-  --> Opens inline editor (or sets focus to the new script component)
-
-alice@myitem/greeting-script> edit
-  --> Opens script source in inline text editor
-  --> Changes take effect on commit
-
-alice@myitem/greeting-script> set language to javascript
-  --> Changes the runtime language (re-evaluation on next dispatch)
-```
-
-The `create` verb handles script creation because ScriptComponent is a component type registered in the vocabulary. "create groovy script" resolves "groovy" to the Groovy language Item and "script" to the ScriptComponent type — standard frame assembly.
-
-### From the Surface
-
-ScriptComponent has a surface schema that renders an inline code editor:
-
-- Source text in a monospace text area (editable when the item is in edit mode)
-- Language selector (dropdown of available runtimes)
-- Binding declarations (list of name + source pairs, editable)
-- Vocabulary contributions (list of verb registrations, editable)
-- Run/test button (evaluates the script with current bindings, shows result)
-- Resource usage summary (last invocation's metered resources)
-
-The surface is a standard `@Surface` declaration on the ScriptComponent class. The code editor widget is a TextSurface with `editable=true` and a monospace style class. No special-case rendering — the same surface pipeline that renders a document or a chat message renders a script editor.
-
-### Hot Reload
-
-When a script's source changes and the item is committed:
-
-1. The ScriptComponent's new content gets a new CID
-2. The item's vocabulary is rebuilt (standard hydration path)
-3. Any VocabularyContributions from the script are re-registered
-4. The next verb dispatch to this component uses the new source
-
-There is no restart, no reload command, no server bounce. The item commits, the vocabulary rebuilds, and the new code is live. This is the same mechanism that makes any component change take effect on commit — scripts are not special.
-
-### Settings as Configuration
-
-ScriptComponents use the same `ScopedSetting` mechanism as any frame for runtime configuration:
-
-```
-alice@myitem/greeting-script> set greeting-prefix to "Hey"
-```
-
-This writes a scoped setting on the Frame. The script reads it through the SETTING binding source. Settings are editable from both prompt and surface, versionable, and scoped (per-user, per-device, per-context). No config files. No environment variables. Settings on a frame.
-
----
-
-## Distributed Code: Code Items
-
-The distributed code story is straightforward: code is content. Content is content-addressed. Content syncs through the graph. Therefore code syncs through the graph.
-
-### Code Items
-
-A **Code Item** is any item that carries ScriptComponents (or WASM modules) intended for others to use. It is not a special type — it is a regular item whose components happen to be executable:
-
-```
-Code Item: "CSV Analyzer"
-    signer: alice
-    components:
-        ScriptComponent(groovy):  "def analyze(data) { ... }"
-        ScriptComponent(wasm):    <compiled WASM binary>
-    vocabulary:
-        cg.verb:analyze → ScriptComponent(groovy)
-    relations:
-        IMPLEMENTED_IN → cg:language/groovy
-        IMPLEMENTED_IN → cg:language/wasm
-        PROVIDES_VERB  → cg.verb:analyze
-```
-
-### Discovery
-
-Code Items are discoverable through normal graph queries:
-
-```
-alice@session> search items that provide analyze
-    --> Queries: ? → PROVIDES_VERB → cg.verb:analyze
-    --> Returns items whose ScriptComponents handle the analyze verb
-```
-
-The `PROVIDES_VERB` and `IMPLEMENTED_IN` predicates are indexed by the LibraryIndex like any other relation. Discovery fans out through the social graph — local first, then peers, then further (see [Network Architecture](network.md)).
-
-### Fetch and Verify
-
-When a Librarian encounters a Code Item from the graph:
-
-```
-1. Receive manifest (signed)
-2. Verify signature against signer's public key
-3. Check signer's trust score in local trust matrix
-4. If trust >= threshold: fetch content (ScriptComponents)
-5. Verify content hashes against manifest CIDs
-6. Apply policy: which languages, what resource limits
-7. Hydrate item — scripts become available for dispatch
-```
-
-Content-addressing guarantees integrity. The CID in the manifest is the hash of the script source. If a single byte changes, the CID changes, the VID changes, and the signature no longer verifies. Tampered code is cryptographically impossible — not just against policy, but against the data model.
-
-### WASM as the Portable Format
-
-WASM is the natural format for distributed code:
-
-- **Language-agnostic**: Compiled from Rust, C, Go, AssemblyScript, or any WASM-targeting language
-- **Sandboxed by design**: No ambient capabilities, no filesystem, no network — only explicit imports
-- **Deterministic**: Same input produces same output (critical for verification)
-- **Compact**: Binary format, content-addressed, deduplicatable
-- **Checkable**: WASM validation is fast — a Librarian can verify module safety before execution
-
-A Code Item can carry both a human-readable source (Groovy, JavaScript) and a compiled WASM binary. The source is for inspection and trust evaluation. The WASM binary is for execution on hosts that don't have the source language's runtime.
-
-### Multi-Language Fallback
-
-A Code Item can provide the same verb in multiple languages:
-
-```
-VocabularyContributions:
-    { trigger: cg.verb:analyze, target: cg.verb:analyze, component: "analyzer-groovy" }
-    { trigger: cg.verb:analyze, target: cg.verb:analyze, component: "analyzer-wasm" }
-```
-
-The Librarian selects the best available engine: if Groovy is available, use the Groovy source (faster, better interop). If not, fall back to the WASM binary (universal, but slower). The user doesn't see the difference — they type "analyze" and get a result.
-
----
-
-## Runtimes as Items
-
-Runtime engines are themselves Items in the graph. This closes the self-hosting loop: the system that runs code is itself managed by the system.
-
-### Runtime Items
-
-A runtime engine Item carries:
-
-```
-Runtime Item: "GraalJS Runtime"
-    type: cg:type/runtime
-    components:
-        RuntimeMetadata:
-            engineClass:    "dev.everydaythings.graph.scripting.GraalJsEngine"
-            languageId:     cg:language/javascript
-            version:        "24.1.0"
-            capabilities:   [SANDBOX, POLYGLOT, COMPILE]
-        ScriptPolicy:       # Default policy for scripts using this runtime
-            maxCpuMs: 5000
-            hostAccess: READONLY
-    relations:
-        IMPLEMENTS_LANGUAGE → cg:language/javascript
-        REQUIRES_CLASSPATH  → "org.graalvm.js:js:24.1.0"
-```
-
-### Discovery and Installation
-
-When a Librarian encounters a Code Item that requires a runtime it doesn't have:
-
-```
-1. Script language = cg:language/python
-2. RuntimeRegistry has no engine for cg:language/python
-3. Query graph: ? → IMPLEMENTS_LANGUAGE → cg:language/python
-4. Find Runtime Item "GraalPython Runtime" from a trusted peer
-5. Verify signer trust (runtime installation requires HIGH trust)
-6. Fetch runtime metadata
-7. If classpath dependency is available: register engine
-8. If not: report missing dependency to user
-```
-
-Runtime installation is a high-trust operation — higher than running a script. The Librarian's policy can require explicit user approval for new runtimes, or it can auto-install from signers above a trust threshold.
-
-### Capability Negotiation
-
-When a Code Item arrives from the graph, the Librarian checks whether it can run:
-
-```
-Code Item requires: cg:language/wasm
-Librarian has:      cg:language/groovy, cg:language/javascript, cg:language/wasm
-    --> Can run. Use WASM engine.
-
-Code Item requires: cg:language/python
-Librarian has:      cg:language/groovy, cg:language/javascript
-    --> Cannot run. Check for WASM fallback in the Code Item.
-    --> If no fallback: report to user, query graph for Python runtime.
-```
-
----
-
-## Implementation Roadmap
-
-### Phase 1: ScriptComponent + Groovy
-
-The minimum viable scripting layer.
-
-- Define `ScriptComponent` class (`@Type`, `Canonical`, `Component`)
-- Define `RuntimeEngine` interface and `GroovyEngine` implementation
-- Define `RuntimeRegistry` on Librarian
-- Wire `ScriptVerbInvoker` into the dispatch pipeline
-- Groovy scripts can define and handle verbs on items
-- Basic sandbox via `SecureASTCustomizer`
-- `create groovy script` works from the prompt
-
-### Phase 2: GraalVM Polyglot + Sandboxing
-
-Full sandboxing and JavaScript support.
-
-- `GraalJsEngine` implementation using GraalVM polyglot `Context`
-- `SandboxConfig` from `PolicySet` → GraalVM `Context.Builder` options
-- Host access control (NONE/READONLY/RESTRICTED/FULL)
-- CPU and memory limits via GraalVM resource limits
-- `ScriptPolicy` on Frame and PolicySet
-
-### Phase 3: Inline Editing + Surface
-
-The live editing experience.
-
-- `ScriptComponent` surface schema (code editor, language selector, bindings, test button)
-- Prompt verbs: `create <language> script`, `edit`, `set language to`
-- Hot reload on commit (vocabulary rebuild)
-- Settings-based configuration for scripts
-- Resource usage display in surface
-
-### Phase 4: WASM via Chicory
-
-The distributed code foundation.
-
-- `ChicoryEngine` implementation (pure Java WASM interpreter)
-- WASM module validation on fetch
-- Import/export binding between WASM and CG objects
-- Multi-language fallback (prefer native engine, fall back to WASM)
-- Content-addressed WASM modules as component content
-
-### Phase 5: Distributed Code + Trust Gating
-
-Code Items flowing through the graph.
-
-- `PROVIDES_VERB`, `IMPLEMENTED_IN`, `REQUIRES_RUNTIME` predicates
-- Trust-gated script execution (trust matrix check before evaluation)
-- Resource metering and usage records
-- `ScriptUsageRecord` feeding into trust reciprocity
-- Discovery queries for Code Items
-
-### Phase 6: Runtimes as Items
-
-Self-hosting runtimes.
-
-- `RuntimeMetadata` component type
-- Runtime discovery and installation through graph
-- Capability negotiation (can this Librarian run this code?)
-- Additional engines: GraalPython, LuaJ, JRuby
-- Runtime version management through item versioning
-
-### Dependency Graph
-
-```
-Phase 1 (ScriptComponent + Groovy)
-    |
-    +--→ Phase 2 (GraalVM + Sandboxing)
-    |        |
-    |        +--→ Phase 3 (Inline Editing)
-    |
-    +--→ Phase 4 (WASM via Chicory)
-              |
-              +--→ Phase 5 (Distributed Code)
-                       |
-                       +--→ Phase 6 (Runtimes as Items)
-```
-
-Phases 2 and 4 can proceed in parallel after Phase 1. Phase 3 depends on Phase 2 (needs sandboxing for the test button). Phase 5 depends on Phase 4 (WASM is the portable format for distribution). Phase 6 depends on Phase 5. Phase 7 can begin independently once Phase 5's trust gating is in place.
-
----
-
-## Bytecode Delivery: GraphClassLoader
-
-Level 6 is the endgame: compiled bytecode delivered as Item content, loaded by a custom `ClassLoader` that resolves classes from the graph instead of the filesystem. This collapses the distinction between "installed software" and "content" — code is just another component, subject to the same signing, versioning, trust, and content-addressing as everything else.
-
-### BytecodeComponent
-
-A `BytecodeComponent` is a component on a Type Item carrying compiled class files:
-
-```
-BytecodeComponent {
-    bytecode:       byte[]          # Compiled class bytes (content-addressed)
-    language:       string          # Source language ("java", "kotlin", "scala")
-    targetVersion:  integer         # JVM target version (e.g. 21)
-    mainClass:      string          # Fully qualified main class name
-    dependencies:   [ItemID]        # Other code Items this depends on
-}
-```
-
-The bytecode bytes are content-addressed like any other content. Identical classes deduplicate across the entire graph. The Type Item already exists (it's what `@Type` declares) — today it's a seedItem with annotations scanned from the local classpath. With `BytecodeComponent`, the type carries its own implementation.
-
-### GraphClassLoader
-
-A `GraphClassLoader` is a child classloader that resolves classes from Items:
-
-```
-GraphClassLoader extends ClassLoader {
-    librarian:  Librarian                   # For resolving code Items
-    policy:     PolicySet                   # What code is allowed to run
-    cache:      Map<VersionID, Class<?>>    # Loaded classes by version
-
-    findClass(name):
-        1. Look up Type Item by canonical key
-        2. Check trust policy (signed by trusted signer? threshold met?)
-        3. Get BytecodeComponent from Type Item
-        4. Verify content hash against manifest CID
-        5. defineClass() from bytecode bytes
-        6. Cache by VersionID
-        7. Return loaded class
-}
-```
-
-Classloader hierarchy: system classloader → CG core classloader → `GraphClassLoader` (per-trust-domain). Graph-delivered classes can reference core CG types but are isolated from each other unless explicitly linked via dependency relations.
-
-### Trust Gate
-
-Running someone's compiled bytecode is the highest trust operation — higher than reading their content, higher than running their sandboxed script:
-
-| Operation | Trust Level | Mechanism |
-|-----------|-------------|-----------|
-| Read content | Low | Content addressing + signature verification |
-| Run sandboxed script | Medium | Runtime isolation (GraalVM, WASM) + resource limits |
-| Run compiled bytecode | High | GraphClassLoader + policy + trust threshold |
-
-The Librarian's policy determines the minimum trust score required to load bytecode from a given signer. Local code (from the user's own Items) runs without restriction. Code from highly trusted peers (trust ≥ 0.9, for instance) might be allowed. Code from strangers is refused unless the user explicitly overrides.
-
-### Versioning and Hot Swap
-
-Because Items are versioned, code is versioned. When a Type Item gets a new version:
-
-1. New BytecodeComponent content → new CID → new VID
-2. GraphClassLoader creates a new classloader instance for the new version
-3. New instances use the new class; existing instances continue on the old
-4. Old classloader is GC'd when no instances remain
-
-This is the same model as OSGi bundles or Erlang's hot code loading, but driven by the graph's versioning model instead of a separate module system.
-
-### What It Replaces
-
-| Traditional | Common Graph |
-|-------------|-------------|
-| Maven/Gradle dependencies | Code Items with dependency relations |
-| npm/pip/cargo packages | Same — code is content, `dependencies: [ItemID]` |
-| App stores | Social graph curates what code you trust |
-| Plugin systems | Mount a code Item, its verbs become available |
-| Software updates | New version of the Type Item, classloader swaps |
-| Security reviews | Trust policy + signer reputation + community attestations |
-
-### The Smalltalk Parallel
-
-In Smalltalk, code lives in the image alongside data. In Common Graph, code lives in the graph alongside everything else. The difference: CG has cryptographic identity and trust built in, so code from strangers can be evaluated before execution. This is what Smalltalk's image model would look like if it had been designed for a networked, multi-user, adversarial world.
-
-### Implementation Roadmap: Phase 7
-
-**Phase 7: Bytecode Delivery**
-
-- Define `BytecodeComponent` class (`@Type`, `Canonical`, `Component`)
-- Implement `GraphClassLoader` with trust-gated `findClass()`
-- Dependency resolution: walk `dependencies: [ItemID]` to build classloader chain
-- Classloader isolation: per-trust-domain classloader instances
-- Hot swap: new classloader per VID, old GC'd when unused
-- `@Type` annotation discovery on graph-loaded classes (same `ItemScanner` path)
-- `@Verb`, `@Surface`, `@Canon` annotations work normally on graph-loaded classes
-
-**Dependency graph:**
-
-```
-Phase 5 (Distributed Code + Trust Gating)
-    |
-    +--→ Phase 7 (Bytecode Delivery)
-              |
-              +--→ Phase 6 (Runtimes as Items)
-```
-
-Phase 7 requires Phase 5's trust gating infrastructure. Phase 6 (runtimes as Items) can follow Phase 7, since runtime engines themselves could be delivered as bytecode Items.
-
----
-
-## Examples
-
-### Create a Groovy Verb
-
-```
-alice@project> create groovy script
-  --> ScriptComponent added to project item at handle "script-1"
-
-alice@project/script-1> edit
-  --> Opens inline editor
-
-  def onSummarize(item) {
-      def components = item.componentTable().entries()
-      return "Item has ${components.size()} components: " +
-             components.collect { it.handle().displayName() }.join(", ")
-  }
-
-alice@project/script-1> commit
-  --> Script saved, vocabulary rebuilt
-
-alice@project> summarize
-  --> "Item has 4 components: readme, config, script-1, roster"
-```
-
-The verb "summarize" was registered as a VocabularyContribution when the script was committed. It dispatches to `onSummarize` through the standard pipeline.
-
-### Edit a Script Inline
-
-```
-alice@project/script-1> edit
-  --> Source opens in text widget
-
-  # Change the greeting
-  def onSummarize(item) {
-      def n = item.componentTable().entries().size()
-      return "This item contains ${n} component${n == 1 ? '' : 's'}."
-  }
-
-alice@project/script-1> commit
-  --> New CID, new VID, vocabulary rebuilt
-
-alice@project> summarize
-  --> "This item contains 4 components."
-```
-
-No restart. No deploy. Edit, commit, dispatch.
-
-### Distribute a WASM Module
-
-```
-# Bob publishes a markdown-to-html converter as a Code Item
-
-bob@converter> describe
-  Type: cg:type/item
-  Signer: bob
-  Components:
-      converter.wasm    (WASM binary, 48 KB)
-      converter.rs      (Rust source, for inspection)
-  Vocabulary:
-      convert: ScriptComponent(wasm)
-  Relations:
-      PROVIDES_VERB → cg.verb:convert
-      IMPLEMENTED_IN → cg:language/wasm
-      IMPLEMENTED_IN → cg:language/rust
-
-# Alice discovers it through the graph
-
-alice@session> search items that provide convert
-  --> Found: "Markdown Converter" by bob (trust: 0.74)
-
-alice@session> view markdown converter
-  --> Fetches manifest, verifies bob's signature
-  --> Trust 0.74 >= alice's threshold 0.5 for READONLY scripts
-  --> Hydrates item, WASM module available
-
-alice@notes> convert readme to html
-  --> Dispatches convert verb
-  --> Chicory engine loads converter.wasm
-  --> Sandbox: no IO, no host access, 5s CPU limit, 64MB memory
-  --> Returns HTML string
-```
-
-Alice never installed anything. She never approved a permissions dialog. Her trust policy and bob's reputation made the decision. If bob's trust score drops below her threshold, the converter stops working — automatically, without intervention.
-
-### Deliver a Type via Bytecode
-
-```
-# Carol publishes a new component type — a "Kanban Board" — as a Code Item
-
-carol@kanban-type> describe
-  Type: cg:type/type
-  Signer: carol
-  Components:
-      BytecodeComponent:
-          mainClass: dev.carol.kanban.KanbanBoard
-          targetVersion: 21
-          dependencies: []   # Only depends on core CG types
-      Scene:
-          @Scene annotations on KanbanBoard define the board UI
-  Relations:
-      PROVIDES_TYPE → cg:type/kanban-board
-      HAS_VERB → cg.verb:create, cg.verb:move, cg.verb:archive
-
-# Dave discovers it
-
-dave@session> search items that provide kanban-board
-  --> Found: "Kanban Board" by carol (trust: 0.88)
-
-dave@session> create kanban-board
-  --> Librarian checks: carol's trust (0.88) >= bytecode threshold (0.85) ✓
-  --> GraphClassLoader loads KanbanBoard.class from carol's Type Item
-  --> @Type, @Verb, @Surface annotations discovered normally
-  --> KanbanBoard component created on Dave's item
-  --> Board UI renders via carol's @Surface declarations
-  --> "create", "move", "archive" verbs available in Dave's vocabulary
-
-dave@kanban> move "Fix login bug" to "Done"
-  --> Dispatches carol's @Verb(cg.verb:move) — same pipeline as local code
-```
-
-Dave didn't install a package. He didn't download an app. Carol's Kanban Board type flowed through the graph like any other content. Dave's Librarian loaded it because Dave trusts Carol enough to run her code. If Carol publishes a new version, Dave's Librarian picks it up on the next sync — hot swap, no restart.
-
----
-
-## References
-
-**Internal:**
-- [Vocabulary](vocabulary.md) — Token resolution, dispatch, expression input
-- [Frames](frames.md) — Frame primitive, vocabulary contributions, lifecycle
-- [Trust](trust.md) — Trust matrix, policy, signer verification
-- [Network Architecture](network.md) — Discovery, routing, content distribution
-- [Library](library.md) — Storage, content addressing
-
-**Runtime engines:**
-- [Groovy](https://groovy-lang.org/) — JVM scripting with zero-impedance Java interop
-- [GraalVM Polyglot](https://www.graalvm.org/latest/reference-manual/polyglot-programming/) — Multi-language runtime with built-in sandboxing
-- [Chicory](https://github.com/nicktomlin/chicory) — Pure Java WebAssembly interpreter
-- [LuaJ](https://github.com/luaj/luaj) — Lua 5.3 for Java
-- [JRuby](https://www.jruby.org/) — Ruby on the JVM
-
-**Foundations:**
-- [Miller 2006 — Robust Composition](references/Miller%202006%20-%20Robust%20Composition.pdf) — Capability-based security (the theoretical basis for sandboxing through explicit capabilities rather than ambient authority)
-- [Dennis, Van Horn 1966 — Programming Semantics for Multiprogrammed Computations](references/Dennis%2C%20Van%20Horn%201966%20-%20Programming%20Semantics%20for%20Multiprogrammed%20Computations.pdf) — The origin of capability-based addressing
-- [Szabo 1997 — Formalizing and Securing Relationships on Public Networks](references/Szabo%201997%20-%20Formalizing%20and%20Securing%20Relationships%20on%20Public%20Networks.pdf) — Smart contracts as formalized relationships (the pattern Code Items follow)
-- [Kay 1993 — The Early History of Smalltalk](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf) — Objects that carry their own behavior (the intellectual ancestor of items carrying code)
+- [`item.md`](item.md) — items as the entities code items are instances of.
+- [`api.md`](api.md) — IMPLEMENTS and HANDLES; how code items connect to archetypes.
+- [`runtime.md`](runtime.md) — the Stage and the polyglot host.
+- [`trust.md`](trust.md) — the trust matrix that selects among candidate implementations.
+- [`manifest.md`](manifest.md) — code item manifests and their language bindings.
+- [`ref-scheme.md`](ref-scheme.md) — the `@`/`~` references that carry code references.
+- [`vocabulary.md`](vocabulary.md) — language runtimes as sememes; the bootstrap vocabulary they're part of.
+- [`bridges.md`](bridges.md) — bridges as code items realizing external-protocol archetypes.
+- [`seed-vocabulary.md`](seed-vocabulary.md) — how application bundles ship code items.

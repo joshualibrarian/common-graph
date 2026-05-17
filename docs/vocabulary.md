@@ -1,932 +1,186 @@
 # Vocabulary
 
-**Vocabulary** is the linguistic surface of Common Graph. Every interaction — creating, navigating, querying, computing, customizing — flows through a unified language system where tokens resolve to sememes, and sememes drive action. This system is holistic: it handles all parts of speech, works in any human language, and uses the same resolution mechanism for verbs, nouns, proper names, units, operators, functions, and prepositions.
+Common Graph's vocabulary is the linguistic surface every interaction passes through. Users type text into a prompt; the text resolves to sememes via the **token dictionary**; sememes drive parsing, dispatch, frame assembly, and rendering. The vocabulary system is the runtime layer that turns text into structure and structure back into text.
 
-> This document covers the vocabulary system, token resolution, dispatch, the expression input, and how items expose their linguistic surface. For the semantic backbone (what sememes are, how they're anchored), see [Sememes](sememes.md). For how frames declare vocabulary contributions, see [Frames](frames.md). For the architectural picture of how this resolution pipeline serves *every* input context — interactive editors, bridges from external systems, scripted commands, queries — through a single unified entry point, see [Input](input.md).
+The system is holistic — verbs, nouns, operators, units, prepositions, particles, structural symbols, and even punctuation all resolve through the same mechanism. There's no separate command parser, separate operator table, separate noun lookup. One pipeline, one dictionary, one scope-aware lookup.
 
-## Core Principle: Everything Is Language
+This document defines the token dictionary, scope resolution, and how lexemes, sememes, and user-introduced names compose into a working linguistic interface.
 
-Traditional systems separate "commands" from "data" from "names" from "math." Common Graph doesn't. Every meaningful interaction is expressed through language — an approach with deep roots in formal semantics and speech act theory. Montague showed that natural language can be given the same formal treatment as programming languages (see [references/Montague 1973](references/Montague%201973%20-%20The%20Proper%20Treatment%20of%20Quantification.pdf)). Austin and Searle showed that utterances are *actions*, not just descriptions (see [references/Austin 1962](references/Austin%201962%20-%20How%20to%20Do%20Things%20with%20Words.pdf), [references/Searle 1969](references/Searle%201969%20-%20Speech%20Acts.pdf)). Common Graph takes both ideas literally: every token resolves to a meaning, and every expression dispatches an action or evaluates to a value.
+This document assumes familiarity with [sememes](sememes.md), [language](language.md), [frames](frames.md), and [items](item.md).
 
-- **Verbs**: "create", "move", "exit" — dispatch to methods
-- **Nouns**: "item", "log", "roster" — type references, navigation targets
-- **Proper nouns**: "My Shopping List", "notes", "chat" — specific items or components
-- **Units**: "meters", "kilograms", "seconds" — nouns with dimensional metadata
-- **Operators**: "+", "-", "=", ">", "|>" — arithmetic, comparison, composition
-- **Functions**: "sqrt", "sin", "max" — pure computation, applied to arguments
-- **Prepositions**: "in", "with", "to", "from" — structure the expression, fill thematic roles
-- **Modifiers**: "all", "recent", "unread" — qualify queries
+## The TokenDictionary
 
-All of these resolve through the same pipeline: token to sememe to action or value.
+The token dictionary is a scoped lookup from surface forms to sememe references. Given a token (a string) and a scope chain (an ordered list of scopes), the dictionary returns matching postings:
 
-## The EXPECTS / IMPLEMENTATION / HANDLES Trio
-
-Three orthogonal declarations on every item-shape that has a runtime aspect. They're easy to confuse — they sound similar — but they answer three distinct questions:
-
-| Declaration | Lives on | Question it answers |
-|---|---|---|
-| **EXPECTS** | The predicate/archetype | *What does an instance of this concept look like?* |
-| **IMPLEMENTATION** | Each individual item | *What code runs this item?* |
-| **HANDLES** | The archetype (inherited by instances) | *What predicates do items of this archetype process?* |
-
-### EXPECTS — the shape of instances
-
-EXPECTS is a binding on a predicate or archetype declaring what bindings its instances should carry. For a **predicate**, the instance shape is a *frame* (the frame's bindings). For an **archetype**, the instance shape is an *item* (the item's manifest bindings + endorsed frames). One mechanism, two surfaces.
-
-The distinction between predicate and archetype is **usage-based, not structural** — see `docs/item.md` "Predicate, archetype, or both?" The presence of an `ITEM_ID` binding in EXPECTS is what makes a concept usable as an archetype (its instances are items with stable identities). Without ITEM_ID, instances are frames.
-
-EXPECTS drives UI form generation, schema validation, and the duck-typing rule: an instance that structurally carries the expected bindings *is* that type, regardless of what its IMPLEMENTS frame claims.
-
-### IMPLEMENTATION — the code that runs this item
-
-IMPLEMENTATION is a manifest binding on each individual item, pointing at the code that should be loaded and invoked when the item is instantiated. The target is either a literal type name (built-in code on the local runtime, e.g., a Java class) or `@<code-item-ref>` (a code item carrying source/bytecode that can travel with the data).
-
-IMPLEMENTATION is **per-item**, not per-archetype. Two items implementing the same archetype can run different code — one a Java class, one a Python module, one a Rust binary — as long as each honors the predicate contracts declared in the archetype's HANDLES.
-
-The semantic claim "this code implements the chess concept" is an `IMPLEMENTS` frame on the code item, separate from the manifest binding. IMPLEMENTATION says *which code*; IMPLEMENTS says *what that code is an implementation of*.
-
-### HANDLES — the predicates this archetype processes
-
-HANDLES frames are endorsed on archetypes and declare "items of this archetype process these predicates." Each HANDLES frame carries:
-
-- `THEME` → the predicate handled
-- `INSTRUMENT` → the handler reference (method name string for Java reflection, or `@<code-item-ref>` for polyglot bundles)
-- `ATTRIBUTE[ARITY]`, `ATTRIBUTE[PRIORITY]`, … — optional metadata
-
-HANDLES is **archetype-only**, not predicate-only. A predicate's job is to describe the shape of frames using it; it doesn't receive frames. Archetypes (and their instances) receive frames and dispatch on the predicate.
-
-Two carve-outs:
-
-- **Self-handling predicates.** Pure operators like ADD, MULTIPLY, NEGATE — where the behavior is a function of the bindings alone with no contextual state — can self-handle. They are both message-shape *and* actor. Use sparingly; the default rule is behavior in items, not in predicates.
-- **Frames as `@Seed.Handler` annotations at bootstrap; HANDLES frames at runtime.** The two converge on the same data. Annotations are read at startup and produce HANDLES frames; the runtime consults the frames, not the annotations.
-
-### How the three relate
-
-```
-Archetype "Chess":
-    EXPECTS:   { ITEM_ID, PLAYER[WHITE], PLAYER[BLACK], MOVE+ }   -- shape of a chess-game item
-    HANDLES:   { CHESS_MOVE → "applyMove",
-                 RESIGN     → "handleResign",
-                 OFFER_DRAW → "offerDraw" }                       -- predicates a chess game processes
-
-A specific chess-game item:
-    Manifest:
-        IMPLEMENTATION → "dev.everydaythings.graph.game.ChessItem"   -- the Java class to load
-        IMPLEMENTS frame → @<chess archetype>                        -- this item is a chess game
-        PLAYER[WHITE] → @Alice, PLAYER[BLACK] → @Bob                 -- the EXPECTS shape, filled in
-        MOVE → ..., MOVE → ..., ...                                  -- accumulated moves
-```
-
-The runtime path: a `CHESS_MOVE` frame arrives at the chess-game item → the Librarian's trust matrix selects the implementation → the ItemStage loads `ChessItem.class` (per IMPLEMENTATION) → invokes the `applyMove` method (per HANDLES) with the frame's bindings.
-
-A polyglot chess game looks identical at the data layer — different IMPLEMENTATION target, same EXPECTS, same HANDLES. The wire format is the contract.
-
-See `docs/item.md` and `docs/runtime.md` for the runtime mechanics.
-
-## The Resolution Pipeline
-
-```
-Raw text
-    |
-TokenLattice (multi-strategy tokenization)
-    |  — whitespace boundaries, character-class boundaries,
-    |    multi-word windows, structural isolation, literal detection
-    |  — Viterbi scoring selects the best path through candidates
-    |
-TokenDictionary (scoped lexicon)
-    |  — each candidate span resolved against the dictionary
-    |  — postings carry scope (language, item, universal) + POS features + weight
-    |
-Language inference
-    |  — inferred from posting scopes on the best path
-    |  — e.g., English tokens → English parser; math symbols → expression parser
-    |
-Language.parse() + PredicateBehavior.contribute()
-    |  — language-specific grammar rules (word order, auxiliary predicates)
-    |  — each predicate declares its parsing behavior via contribute()
-    |  — predicates can delegate to sub-languages (chess notation, expression syntax)
-    |
-SemanticFrame(s)
-    |  — verb + role bindings, ready for dispatch
-    |
-PredicateBehavior.evaluate()
-    |  — unified evaluation: verbs, operators, functions, control flow
-    |
-Result
-```
-
-Whether you type `create chess`, `5+3`, `sqrt(144)`, or `e4 Nf3`, the same `TokenLattice` tokenizes your input, the same dictionary resolves it, and each predicate declares its own parsing and evaluation behavior. Natural language, math expressions, function calls, and domain-specific notation (chess, regex) all flow through ONE pipeline. The language is inferred from the tokens themselves — the evaluator doesn't assume English.
-
-### Example: Command Frame
-
-```
-alice@project> create document
-```
-
-A user types "create document" into an Item's prompt. The tokens resolve:
-
-```
-"create"   --> Sememe(cg.verb:create, VERB)
-"document" --> Sememe(cg:type/document, NOUN)
-```
-
-The FrameAssembler sees a verb + noun and builds a semantic frame: `verb=create, THEME=document`. Dispatch follows the inner-to-outer chain.
-
-### Example: Mathematical Expression
-
-```
-alice@project> (3 + 4) * 2
-```
-
-The tokens resolve:
-
-```
-"("  --> Sememe(cg.syntax:open-group)     — contribute() → OPEN_GROUP
-"3"  --> literal number
-"+"  --> Sememe(cg.op:add)                — contribute() → infix(10, LEFT)
-"4"  --> literal number
-")"  --> Sememe(cg.syntax:close-group)    — contribute() → CLOSE_GROUP
-"*"  --> Sememe(cg.op:mul)                — contribute() → infix(20, LEFT)
-"2"  --> literal number
-```
-
-Everything — including parentheses — resolves through the dictionary as sememes. The expression parser reads each operator's `contribute()` for precedence and associativity. Result: `14`.
-
-### Example: Function Application
-
-```
-alice@project> sqrt(144)
-```
-
-```
-"sqrt" --> Sememe(cg.fn:sqrt)              — contribute() → prefix, grouped
-"("    --> Sememe(cg.syntax:open-group)    — contribute() → OPEN_GROUP
-"144"  --> literal number
-")"    --> Sememe(cg.syntax:close-group)   — contribute() → CLOSE_GROUP
-```
-
-The function's `contribute()` declares `grouped=true` (expects parenthesized arguments). The parser reads this and handles the grouping. Result: `12`.
-
-### Example: Mixed
-
-```
-alice@project> move pawn to e4
-alice@project> 5 meters + 3 meters
-alice@project> sin(pi / 4)
-alice@project> notes
-```
-
-All four use the same input system. The first builds a command frame. The second constructs quantities and adds them. The third evaluates a mathematical function. The fourth navigates to a proper noun.
-
-## TokenDictionary: The Global Lexicon
-
-The **TokenDictionary** is the single source of truth for all token-to-meaning resolution. It maps human-readable strings to sememe postings, with support for scoping and weighted relevance.
-
-```
-TokenDictionary {
-    lookup(token, scopes...) --> [Posting]     # Exact match with scope chain
-    prefix(prefix, limit, scopes...) --> [Posting]  # Completion candidates
-    index(posting)                              # Register a mapping
-}
-```
-
-A **Posting** connects a token to its target:
-
-```
-Posting {
-    token:  string      # The matched text ("create", "crear", "m", "+")
-    target: ItemID      # The sememe or item this token refers to
-    scope:  ItemID?     # null = universal, or scoped to a language/item
-    weight: number      # Relevance ranking (higher = more relevant)
-}
-```
-
-### Scoping
-
-Every posting has one **scope** — an ItemID that says where this mapping is meaningful. The scope is just an ItemID; the TokenDictionary doesn't know or care what *kind* of item it is. The DB key is `<scope><token>`.
-
-The scope can be null for universal postings (language-neutral symbols like "m", "kg", "+", "USD", "sin", "sqrt") that resolve for everyone. Everything else has a scope:
-
-```
-Scope: cg:language/eng     Token: "create"     → cg.verb:create
-Scope: cg:language/spa     Token: "crear"      → cg.verb:create
-Scope: cg:language/eng     Token: "meter"      → cg:unit/meter
-Scope: cg:language/spa     Token: "metro"      → cg:unit/meter
-Scope: <item X>            Token: "notes"      → <frame on X>
-Scope: <user Y>            Token: "deploy"     → <user Y's alias>
-Scope: null                Token: "m"          → cg:unit/meter
-Scope: null                Token: "+"          → cg:operator/add
-Scope: null                Token: "sqrt"       → cg:function/sqrt
-```
-
-### Scope Chain Resolution
-
-When a user types a token, the TokenDictionary resolves it against a **scope chain** — a list of ItemIDs assembled from context. The caller decides what's in the chain:
-
-- The focused item, its ancestors, the session
-- The user's active languages (`cg:language/eng`, `cg:language/spa`)
-- The user's own item (personal aliases)
-- null (always included — universal symbols and operators)
-
-The dictionary looks up `<scope><token>` for each scope in the chain and returns all matching postings. One mechanism, one lookup path.
-
-### Token Sources
-
-Postings come from:
-- **Sememe symbols**: Language-neutral shorthand declared on sememes — indexed with null scope
-- **Seed vocabulary**: Bootstrap English tokens indexed under `cg:language/eng`
-- **Lexicon imports**: WordNet, CILI — each language's lexemes scoped to its Language Item, merged idempotently
-- **Frame vocabulary**: Vocabulary contributions scoped to their item
-- **Assertions**: Named assertion frames (title, alias) scoped to their item
-- **User customization**: Custom aliases and scripted expressions scoped to the user or item
-
-## Operators and Functions
-
-Operators, functions, and structural symbols are all first-class vocabulary — sememes that resolve through the TokenDictionary and carry their own behavior via the `PredicateBehavior` pattern (`contribute()` + `evaluate()`).
-
-### Operators
-
-Operator sememes (`Operator extends Sememe`) carry both parsing metadata AND evaluation logic on the same class. The `contribute()` method declares precedence, associativity, and fixity. The parser reads this — no hardcoded operator tables.
-
-```java
-// The class IS the behavior
-public static class Add extends Operator {
-    Add() { super("cg.op:add", "+", "add", 2, 10, LEFT, INFIX); }
-
-    @Override public ParseContribution contribute(ParseContext ctx) {
-        return ParseContribution.infix(precedence(), associativity());
-    }
-
-    @Override public Object applyBinary(Object left, Object right) { ... }
-}
-```
-
-Standard arithmetic (`+`, `-`, `*`, `/`), comparison (`==`, `!=`, `<`, `>`, `<=`, `>=`), logical (`&&`, `||`, `!`) operators are seedItem vocabulary. New operators can be defined the same way.
-
-### Functions
-
-Functions (`Function extends Sememe`) carry evaluation logic via `apply()` and declare parsing behavior via `contribute()` (`prefix`, `grouped=true`):
-
-```
-alice@project> sqrt(144)        # Built-in function
-alice@project> max(a, b, c)     # Multi-argument
-alice@project> sin(pi / 4)     # Nested expression
-```
-
-### Everything Is Vocabulary
-
-There is **no reserved syntax** — not even parentheses. `(`, `)`, `,`, `;`, `|`, `.` are all **sememes** (`StructuralVocabulary extends Sememe`) that resolve through the TokenDictionary and declare structural roles via `contribute()`:
-
-```
-"("  → Sememe(cg.syntax:open-group)   → contribute() → OPEN_GROUP
-")"  → Sememe(cg.syntax:close-group)  → contribute() → CLOSE_GROUP
-","  → Sememe(cg.syntax:separator)    → contribute() → SEPARATOR
-"|"  → Sememe(cg.syntax:pipe)         → contribute() → PIPE
-```
-
-This means:
-- No reserved words. "exit" is vocabulary, not syntax.
-- No reserved characters. Even `(` resolves through the dictionary.
-- Operator precedence is data on the sememe, not grammar rules.
-- A domain-specific syntax (chess notation, regex) is just another set of sememes with their own `contribute()` behavior.
-
-## Item Vocabulary
-
-Every Item has a **vocabulary** — its linguistic surface. An item's vocabulary is the **merged union of its components' vocabularies**, combined with its type's code-defined verbs.
-
-### Two Layers
-
-```
-Code Layer (transient, declared in type definitions)
-    |
-    +-- @Verb methods on the Item type --> base verbs all items of this type share
-    +-- @Verb methods on frame types --> frame-specific verbs
-    |
-User Layer (persistent, from vocabulary contributions)
-    |
-    +-- Custom aliases ("deploy" --> cg.verb:commit)
-    +-- Scripted expressions ("deploy" --> "commit then push to production")
-    +-- Function definitions (f(x) = x^2 + 1)
-    +-- Frame proper nouns ("notes", "chat")
-    |
-Runtime Merge (on item open/hydrate)
-    |
-    +-- Code layer + User layer = live dispatch surface
-    +-- User layer wins on conflict
-```
-
-### Vocabulary Is Derived
-
-An item's runtime vocabulary is rebuilt each time the item is opened — merged from its type's code-defined verbs and its frames' persistent vocabulary contributions.
-
-All persistent vocabulary customization happens through **frames**. Adding frames is how you customize items. Writing a new type is how you define new behavior.
-
-### Hydration: Synchronizing Persistent and Runtime State
-
-When an Item is opened (hydrated from storage):
-
-```
-1. Collect verb definitions from the item type --> base verb entries
-2. For each frame:
-   a. Collect verb definitions from the frame type --> frame verb entries
-   b. Load frame's vocabulary contributions --> persistent customizations
-   c. Merge into runtime dispatch surface
-3. User-layer entries overlay code-layer entries (user wins on conflict)
-4. Scoped tokens indexed in TokenDictionary for discoverability
 ```
-
-The result is a live dispatch map: sememeId to VerbEntry, plus all proper nouns, aliases, operators, and functions registered as scoped postings.
-
-## Dispatch: Inner to Outer
-
-When a command expression is evaluated, the system checks vocabularies from most specific to most general:
-
-```
-Frame vocabulary        (most specific — focused frame's verbs)
-    |
-Item vocabulary        (type-level verbs)
-    |
-Session vocabulary     (session-level verbs like "exit", "back")
-    |
-Librarian vocabulary   (system-level)
-```
-
-This means a frame's local meaning wins over the item's general meaning, which wins over the session's global meaning.
-
-Mathematical expressions and function calls don't follow this chain — operators and functions resolve directly from the TokenDictionary (typically at universal/null scope) and evaluate without verb dispatch.
-
-### Disambiguation Through Language
-
-There are no reserved words. No escape hatches. No special prefixes. When a token is ambiguous — it matches entries in multiple scopes — the system presents a **dropdown** of possibilities, and the user refines with more language:
-
-```
-User types: "exit"
-    --> resolves to Sememe(cg.verb:exit, VERB)
-    --> matches: Session.exit(), GameComponent.exit()
-    --> ambiguous! Present dropdown:
-        exit session
-        exit game
-    --> user continues typing: "exit ses..."
-    --> autocomplete: "exit session"
-    --> dispatch: session.exit()
-```
-
-This works because:
-- Session knows it's a `cg:type/session` (its type sememe, which has the token "session")
-- The game frame knows it's a `cg:type/game` (its type sememe, which has the token "game")
-- The expression parser sees `verb + noun` and uses the noun to scope the verb
-
-No special cases. Just more language. Automatically multilingual — "salir de sesion" works the same way once Spanish lexemes are loaded.
-
-## Session as an Item
-
-A Session is an Item. It has:
-- A type (`cg:type/session`) with verb definitions (`exit`, `view`, `close`, `authenticate`)
-- Frames (activity log, preferences, authenticated users)
-- Assertion frames (session to current user, session to focused item)
-
-This means session verbs participate in the same vocabulary system as everything else. "Exit" resolves through the TokenDictionary to `cg.verb:exit`, and the Session's vocabulary has a VerbEntry for it. No special-case string matching.
-
-Sessions can be ephemeral (in-memory, never committed) or persistent (committed, versioned, shareable — like sharing your shell configuration or editor setup).
-
-## Parameters and Thematic Roles
-
-Verb parameters carry metadata for validation, help text, and semantic framing. The thematic role system descends from Fillmore's frame semantics (see [references/Fillmore 1982](references/Fillmore%201982%20-%20Frame%20Semantics.pdf)) and its computational realization in FrameNet (see [references/Baker et al 1998](references/Baker%2C%20Fillmore%2C%20Lowe%201998%20-%20The%20Berkeley%20FrameNet%20Project.pdf)). Where FrameNet uses frames for *annotation*, Common Graph uses them for *dispatch* — the semantic frame assembled from an expression is the structure that drives verb invocation.
-
-```
-ParamSpec {
-    name:         string    # Parameter name/label
-    doc:          string    # Description
-    required:     boolean   # Must be provided?
-    defaultValue: string    # Default if omitted
-    role:         Role      # Thematic role (see below)
-}
-```
-
-### Thematic Roles
-
-Parameters declare roles from Fillmore's Case Grammar (1968), aligned with [VerbNet 3.x](https://verbs.colorado.edu/verbnet/) and [ISO 24617-4 (LIRICS/SemAF-SR)](https://www.iso.org/standard/56866.html). These are the same thematic roles defined by the sememe system — they're sememes themselves (see [Language — Thematic Roles](language.md#thematic-roles) for the full 25-role inventory):
-
-| Role | Meaning | Example |
-|------|---------|---------|
-| **THEME** | Located, moved, or existing without change | "delete **this item**" |
-| **GOAL** | Abstract end-point or target | "move to **e4**" |
-| **SOURCE** | Origin or starting point | "copy from **archive**" |
-| **INSTRUMENT** | Tool or means | "encrypt with **this key**" |
-| **RECIPIENT** | Entity receiving transfer | "share with **Alice**" |
-| **PARTNER** | Co-participating agent | "play with **Bob**" |
-
-Roles enable order-independent expression parsing. A verb's parameters can be filled positionally or by role — "move pawn to e4" and "move to e4 pawn" produce the same semantic frame. Prepositions map to roles (English "to" → GOAL, "from" → SOURCE, "with" → INSTRUMENT), enabling natural language-like input without a natural language parser.
-
-## VerbEntry and Dispatch
-
-A **VerbEntry** is the runtime binding between a sememe and a callable method:
-
-```
-VerbEntry {
-    sememeId:        ItemID          # The verb sememe this entry handles
-    method:          method ref      # The bound method to invoke
-    doc:             string          # Human-readable description
-    params:          [ParamSpec]     # Parameter metadata
-    source:          ITEM | FRAME     # Where this verb was declared
-    frameHandle:     string?        # Which frame (if source = FRAME)
-    target:          object          # The live instance to invoke on
-}
-```
-
-Every verb invocation returns an **ActionResult**:
-
-```
-ActionResult {
-    success: boolean    # Whether the action succeeded
-    value:   any        # Return value (may be null)
-    error:   Error?     # Error details if failed
-}
-```
-
-This is the universal return type for all dispatch — CLI, GUI, remote session, or inter-item invocation.
-
-## The Expression Input System
-
-The vocabulary system connects to the user through the **expression input** — a tokenizing prompt on every Item. This is not a command line. It's a **semi-structured language interface** that handles commands, mathematical expressions, function application, and navigation through a single unified input.
-
-### Every Item Has a Prompt
-
-Each Item has its own prompt. The prompt always shows `actor@context>`:
-
-```
-alice@session>                  # Session level (the default context)
-alice@chess>                    # Focused on a chess game
-alice@chess/board>              # Navigated into a frame
-bob@project>                    # Different user, different item
-```
-
-You are always *somewhere* (the context) and always *someone* (the actor). Typing into the prompt dispatches through that Item's vocabulary, or evaluates an expression. Different Items have different vocabularies — a chess game offers "move" and "resign", a document offers "edit" and "commit", a roster offers "add" and "remove". But mathematical expressions and universal operators work everywhere.
-
-### Input State
-
-```
-ExpressionInput {
-    tokens:              [ExpressionToken]   # Resolved references so far
-    pendingText:         string              # Currently-typing text buffer
-    cursor:              integer             # Position within buffer
-    completions:         [Posting]           # Active completion candidates
-    selectedCompletion:  integer             # Highlighted choice
-    showCompletions:     boolean             # Dropdown visibility
-    history:             [string]            # Previous expressions
-    expressionContext:   ExpressionContext    # Semantic narrowing state
-}
-```
-
-### Token Types
-
-As the user types, input is progressively resolved:
-
-| Token Type | Description | Visual | Example |
-|------------|-------------|--------|---------|
-| **Ref** | Resolved item reference | `[create]` | Verb, noun, function, operator, structural symbol — anything resolved from the dictionary |
-| **Literal** | Typed value | `42`, `"hello"`, `true` | Numbers, booleans, quoted strings |
-| **Unresolved** | Not yet resolved | `xyzzy` | Unknown words, partial input |
-
-Everything resolves through the dictionary — verbs, nouns, operators (`+`), functions (`sqrt`), structural symbols (`(`), prepositions (`to`). They're all Ref tokens pointing to sememes. The expression is a sequence of graph references, not text to be parsed.
-
-### Expression Routing
-
-The expression input handles multiple expression types through a single pipeline. After tokens are resolved, the system determines which evaluation path to use:
-
-1. **Mathematical expressions** — tokens contain operators, all-numeric operands, or function calls with no verb present. Routed to the Pratt parser, which builds an AST from operator precedence metadata and evaluates it.
-
-2. **Command frames** — tokens contain a verb sememe. Routed to the FrameAssembler, which maps arguments to thematic roles and dispatches via the inner-to-outer vocabulary chain.
-
-3. **Navigation** — a single noun or proper noun with no verb. Resolves the target and navigates.
-
-4. **Mixed** — verbs can take expression arguments: `set width to (3 + 4) * 2`. The Pratt parser handles the parenthesized sub-expression, and its result fills a parameter slot in the command frame.
-
-### Completion and Semantic Narrowing
-
-Pressing Tab triggers lookup via the TokenDictionary with the current scope chain. Completions are **semantically narrowed** based on what's already typed.
-
-The **ExpressionContext** analyzes the current token list:
-
-1. Find the verb (if any) — the token whose Posting carries VERB in its POS features
-2. Identify prepositional phrases — a preposition (with `assignedRole` via `contribute()`) followed by an object fills a thematic role
-3. Match bare nouns to unfilled argument slots
-4. Detect operator context — after an operator, complete with operands
-5. Compute which roles are still unfilled
-
-Then it **filters completions**:
-
-| Current State | Filter Rule |
-|---------------|-------------|
-| Empty | Show everything (verbs, nouns, functions, operators) |
-| Verb selected | Exclude other verbs; show nouns, prepositions, literals |
-| After operator | Show operands: nouns, functions, literals |
-| After open paren | Show everything that can start a sub-expression |
-| Last token is a preposition | Show nouns and proper nouns |
-| All required roles filled | Show optional roles and prepositions |
-
-**Example**: At `alice@chess>`:
-
-```
-alice@chess> m                         # Completions: move, max, min...
-alice@chess> move                      # Tab --> resolves to [move] verb
-alice@chess> [move] p                  # Completions: pawn, piece... (no verbs)
-alice@chess> [move] [pawn] to          # Tab --> resolves [to] preposition
-alice@chess> [move] [pawn] [to] e      # Completions: e4, e5... (positions)
-alice@chess> [move] [pawn] [to] [e4]   # Enter --> dispatches move(THEME=pawn, GOAL=e4)
-```
-
-**Example**: Mathematical expression:
-
-```
-alice@project> 2 * (                   # After open paren: show operands
-alice@project> 2 * (3 + sq             # Completions: sqrt
-alice@project> 2 * (3 + sqrt(9))       # Enter --> evaluates to 12
+lookup("create", [<focused-item>, <session>, @english, null]) → [Posting, Posting, ...]
 ```
 
-### Semantic Frame Assembly
+Each posting names a sememe that "create" resolves to in some scope. The lookup walks the chain from most-specific to most-general, gathering matches at each level.
 
-When Enter is pressed on a command expression, the token list is assembled into a **semantic frame** — an order-agnostic structure that maps tokens to verb parameters by thematic role:
+The dictionary itself is just an index — `(scope, token) → list of postings`. It doesn't interpret anything; it returns candidates. The parser (informed by composable notations and language-specific rules) decides which candidate fits the surrounding context.
 
-```
-Tokens:  [move] [pawn] [to] [e4]
-Frame:   verb=move, THEME=pawn, GOAL=e4
-```
+## Postings
 
-The assembly process:
+A **posting** carries:
 
-1. Find the verb (token with VERB POS features, scored by context relevance)
-2. Scan for prepositional phrases: each preposition's `contribute()` declares which role its object fills
-3. Match remaining bare items to argument slots by first-fit against the verb's `slotRoles()`
-4. Collect modifiers (adjectives → nouns, adverbs → verb)
-5. Build the frame — unmatched tokens go to `unmatchedArgs` for English's auxiliary predicate chaining
+- **Token** — the surface form. `"create"`, `"crear"`, `"+"`, `"kg"`, `"sqrt"`.
+- **Target** — the sememe (or item) the token resolves to.
+- **Scope** — the item IID this mapping is scoped under. May be `null` for universal postings.
+- **Weight** — a relevance score for ranking when multiple postings match.
 
-**Word order doesn't matter** (within limits):
-
-```
-move pawn to e4
-move to e4 pawn
-pawn move to e4
-```
+Postings come from several sources:
 
-All produce the same frame. The preposition "to" frames "e4" to GOAL regardless of position. "pawn" fills THEME as a bare argument. This is closer to natural language than positional command syntax.
+- **Lexeme frames** endorsed by Language items — language-scoped (`@english`, `@spanish`, …). The dominant source of vocabulary; one posting per inflected form per concept per language.
+- **Sememe symbols** — universal-scoped (null). Compact symbols that resolve everywhere: `"+"` → @add, `"kg"` → @kilogram, `"sqrt"` → @sqrt.
+- **Item-specific names** — item-scoped. A chess game's vocabulary names its pieces; a document item's vocabulary names its sections.
+- **User aliases** — user-scoped (the user's signing item). Custom shortcuts, personal terminology, scripted expressions.
+- **Application bundles** — application-scoped. An installed application contributes its vocabulary while the application is active.
 
-### Quantities in Expressions
+Each source adds postings under different scopes. The same surface form can have postings in multiple scopes; resolution picks based on which scopes are active.
 
-When a numeral precedes a unit noun, the expression parser recognizes the combination as a **Quantity**:
+## Scopes
 
-```
-"5 meters"  --> numeral(5) + noun(meter) --> Quantity(5, meter-sememe)
-"3 kg of flour" --> Quantity(3, kg) + preposition(of) + noun(flour)
-```
+A scope is an item IID. A scope is "active" for a particular lookup when it appears in that lookup's scope chain.
 
-The parser knows to form a Quantity because the noun-sememe carries dimensional metadata (it's a unit). No special syntax — just language. Quantities support arithmetic with dimensional analysis:
+Typical scope chain at an interactive prompt:
 
 ```
-alice@project> 5 meters + 3 meters     # --> 8 meters
-alice@project> 10 km / 2 hours         # --> 5 km/h
-alice@project> 5 meters + 3 kg         # --> error: incompatible dimensions
+[<focused-item>, <focused-item's-archetype>, <session>, <user>, @english, null]
 ```
-
-### Key Bindings
-
-| Key | Action |
-|-----|--------|
-| Characters | Insert into pending text |
-| Space | Token boundary — resolves recognized words |
-| Tab | Accept selected completion, or show completions |
-| Enter | Dispatch the expression |
-| Escape | Cancel / clear |
-| Backspace | Delete character; if empty, pop last token |
-| Ctrl+W | Delete word before cursor |
-| Up/Down | Navigate history (or completion list) |
-| Left/Right | Cursor movement |
-| Home/End | Jump to start/end |
-
-### Space as Token Boundary
-
-Space is a **token boundary**, not just whitespace. When you press Space:
 
-1. If the pending text resolves in the TokenDictionary → commit as resolved token
-2. If it's a recognized literal (number, boolean, quoted string) → commit as literal token
-3. Otherwise → insert a space (for multi-word lookups via the lattice's multi-word windows)
+From most-specific (the item currently focused, whose vocabulary takes priority) to most-general (the universal scope, always present for protocol-defined symbols). A token's resolution walks the chain; matches at narrower scopes generally outweigh matches at broader scopes.
 
-### Dispatch
+Scopes are nested by *purpose*, not by hierarchy. A user's active language doesn't "contain" the universal scope; they're peers. The dictionary just queries each scope independently and merges results. The chain's ordering is a *priority* hint, not a containment relationship.
 
-When Enter is pressed:
+**Universal scope (null).** Some symbols are universal: they're the same everywhere. The operator `+` resolves to `@add` for everyone; the unit `kg` resolves to `@kilogram` for everyone; the function `sqrt` resolves to `@sqrt` for everyone. These get null-scope postings — no scope is needed because the meaning is universal.
 
-1. Any remaining pending text is committed (resolved where possible)
-2. The token list is analyzed: does it contain operators/functions (expression) or a verb (command)?
-3. **Expression path**: the Pratt parser builds an AST, evaluates it, returns a value
-4. **Command path**: the FrameAssembler builds a semantic frame, the verb is located via the scope chain (frame --> item --> session --> librarian), and invoked with the frame's bindings
-5. **Navigation path**: a single resolved noun/proper noun navigates to that item
-6. An ActionResult or value is returned
+**Language scopes.** Each Language item is a scope. `@english`'s scope holds the English lexicon; `@spanish`'s scope holds the Spanish lexicon. A user's active languages contribute their scopes; lookups walk the active-language scopes alongside everything else.
 
-Results trigger appropriate actions:
-- **Item result** --> navigate into the item
-- **Value result** --> display the value
-- **Created result** --> show in activity log and tree
-- **Error result** --> show error message
+**Item scopes.** An item brings its own vocabulary when focused. A chess game item's manifest endorses frames whose roles, qualifiers, and named entities are in the game's vocabulary. Those entities become item-scoped postings while the game is focused.
 
-## Deferred Resolution
+**Application scopes.** An installed application contributes its vocabulary when the application is in use. The vocabulary lives on the application's archetype manifest; it activates with the application.
 
-Token resolution doesn't have to be all-or-nothing. When a token is ambiguous — matching multiple postings across different parts of speech or scopes — the system carries all candidates forward rather than forcing an immediate choice. Later tokens prune earlier candidates, and the expression resolves progressively as context accumulates.
+**User scope.** A user's own item carries their personal aliases — custom commands, scripted expressions, named shortcuts. These outweigh universal postings of the same token (a user can override "+" if they really want to, though the system warns).
 
-### The Problem with Eager Resolution
+## Universal vs scoped resolution
 
-Consider: a user types `create python`. At the space boundary after "python", the TokenDictionary returns multiple postings:
+Some symbols are universal; some are scoped. The distinction matters for resolution.
 
-```
-"python" --> [
-    Posting(target=cg:language/python, scope=cg:language/eng, weight=0.8),   # Programming language
-    Posting(target=cg:taxon/python,    scope=cg:language/eng, weight=0.6),   # Snake genus
-    Posting(target=cg:mythology/python, scope=cg:language/eng, weight=0.4),  # Greek mythology
-]
-```
-
-Eager resolution would either pick the highest-weight candidate (often wrong) or pop a disambiguation dropdown (interrupting flow). But the user isn't done typing. The *next* token — "script", "image", "document" — determines which "python" was meant.
-
-### Candidate Sets
-
-When a token matches multiple postings, the system creates a **CandidateToken** instead of a resolved RefToken. A CandidateToken carries the full set of postings:
-
-```
-CandidateToken {
-    text:        "python"
-    candidates:  [Posting...]    # All matching postings
-    resolved:    Posting?        # null until disambiguation succeeds
-}
-```
-
-The expression input displays CandidateTokens differently from resolved RefTokens — visually marked as pending (e.g., a chip outline without the filled background, or with a small dropdown indicator).
-
-When only one posting matches, the token resolves immediately to a RefToken — the common case. Deferred resolution only kicks in when there's genuine ambiguity.
+**Universal symbols** are unambiguous across contexts. `+` always means addition. `5` always means the integer five. `"hello"` is always a string literal. These get null-scope postings and resolve consistently.
 
-### Progressive Pruning
+**Scoped symbols** depend on context. "create" in English means @create; "crear" in Spanish means the same sememe. "move" in chess notation context resolves to a chess move; "move" in English verb context resolves to the general motion sememe.
 
-As subsequent tokens are resolved, the system prunes earlier candidate sets by checking semantic compatibility:
+The lookup combines both: walk the scope chain (collecting scoped matches), check universal (collecting universal matches), return them all. The parser disambiguates if needed.
 
-```
-User types: create python script
-
-Token 1: [create]  → RefToken(cg.verb:create)           # Unambiguous verb
-Token 2: "python"  → CandidateToken([language, taxon, mythology])  # Ambiguous
-Token 3: "script"  → resolves to Sememe(cg:type/script)  # Noun
+## Ambiguity and deferred resolution
 
-Frame assembly tries all combinations:
-  create(THEME=python-language, ???=script)  → python-language IS-A language, script IS-A type → "create python script" ✓
-  create(THEME=python-taxon, ???=script)     → python-taxon IS-A taxon, script doesn't fit → ✗
-  create(THEME=python-mythology, ???=script) → same problem → ✗
+A token can resolve to multiple sememes — in different scopes, or in the same scope. "Python" might be the language, the snake, or a Greek myth. "Move" might be a chess move or a file rename. "Bank" might be a financial institution or a riverbank.
 
-Result: "python" auto-resolves to cg:language/python
-```
+The dictionary returns *all* matching postings. The parser carries the ambiguity forward as a **candidate token** until later context narrows it down. A user typing "create python" leaves "python" ambiguous; the next token ("script") might resolve it to the programming language; or the user might explicitly pick.
 
-The pruning uses **semantic fit scoring**:
+This is what makes the input pipeline forgiving without giving up determinism. Ambiguity is acknowledged at lookup; resolution happens later, informed by surrounding tokens or by user choice. (Details in [`input.md`](input.md) and [`text.md`](text.md).)
 
-1. **Role compatibility** — does this candidate make sense in the thematic role it would fill? A programming language can be a THEME of "create script"; a snake genus can't.
-2. **Modifier-noun agreement** — if the candidate acts as a modifier (adjective-like), does it semantically compose with the noun it modifies? "Python script" composes; "python mathematics" doesn't.
-3. **Predicate selectional restrictions** — the verb's `@Param` metadata may declare type constraints on its arguments. If `create` expects a type noun as THEME, candidates that aren't types score lower.
-4. **Relational evidence** — if the candidate item has relations connecting it to other tokens in the expression (e.g., `python-language RELATED-TO script`), that raises its score.
+## The dispatch surface
 
-### Auto-Resolution and User Disambiguation
+Beyond mere lookup, vocabulary feeds the dispatch path. An item's HANDLES bindings declare which predicates the item processes; the dispatch flow uses the same vocabulary that drives parsing.
 
-After pruning:
+When a user types "move pawn to e4" into a chess game's prompt, the path is:
 
-- **One candidate survives** → auto-resolve. The CandidateToken silently becomes a RefToken. The chip fills in. No user action needed.
-- **Multiple candidates survive** → the token stays as a CandidateToken. Its dropdown shows the surviving candidates. The user can click one, or keep typing to provide more context.
-- **Zero candidates survive** → the token reverts to unresolved text. Something doesn't fit; the user sees it hasn't resolved and can retype.
+1. Tokenize: `["move", "pawn", "to", "e4"]`.
+2. Resolve each token through the dictionary in chess-game scope: `move` → @move, `pawn` → @pawn, `to` → @to-preposition, `e4` → @e4-square.
+3. Parse: the composable notations consume the tokens, build a frame with predicate @move.
+4. Submit: the frame body is signed and submitted.
+5. Dispatch: the librarian sees the frame's head is @move, finds the chess game item has `@HANDLES → @move`, routes the frame to the chess game's move handler.
 
-### Visual Model
+Every step rests on the same sememe vocabulary. The token dictionary resolves the user's surface forms to sememes; the dispatch path matches sememes to handlers; the result is structured behavior driven by structured language.
 
-In the GUI, the expression input renders token states distinctly:
+## Sememes drive everything
 
-```
-Resolved:     [create]  [script]     — filled chip, icon + label
-Candidates:   [python ▾]             — outlined chip, dropdown indicator
-Unresolved:   python                 — plain text, no chip
-```
+Verbs ("create", "exit"), nouns ("notes", "kg"), operators ("+", "=="), functions ("sqrt"), structural symbols ("(", ")"), prepositions ("to", "from"), particles ("the", "a") — all are sememes, all flow through the same lookup, all participate in the same parse and dispatch flow. There is no separate command system, separate operator system, separate preposition system.
 
-The candidate dropdown appears inline, under the token — the same dropdown used for completions, just showing the surviving candidates rather than prefix matches. Selecting a candidate locks it in. If the user keeps typing and a later token auto-resolves the candidate, the dropdown closes and the chip fills.
+This is what makes the vocabulary holistic. Adding a new "command" is adding a new sememe and endorsing lexemes for it. Adding a new operator is adding a new sememe with operator-flavored manifest bindings (precedence, associativity). Adding a new unit, a new noun, a new function — all are vocabulary additions, all the same shape.
 
-This means disambiguation is **visual, not verbal**. The system doesn't ask "did you mean X or Y?" — it shows you that "python" is still open, and you can see the options. If you keep typing and the system figures it out, it just resolves. If it can't, the pending candidates stay visible until you choose one.
+There's no architectural privilege between parts of speech. The parser's composable notations handle the syntactic shape (this is infix, this is postfix, this is a prefix function call), but every notation consumes the same dictionary-resolved tokens.
 
-### Interaction with Frame Assembly
+## Item vocabulary
 
-The FrameAssembler already builds `SemanticFrame` objects from resolved tokens. With deferred resolution, it tries all **candidate combinations** and scores each resulting frame:
+An item brings vocabulary into scope when it's focused. The chess game's archetype includes chess-notation lexemes and chess-specific named entities; while the game is focused, all of those are in scope. The same vocabulary leaves scope when the user navigates away.
 
 ```
-Given: [create] [python ▾{lang, taxon}] [script]
-
-Candidate frames:
-  Frame A: verb=create, THEME=python-lang + script   → score 0.95 (modifier+noun compose)
-  Frame B: verb=create, THEME=python-taxon + script   → score 0.10 (no composition)
-
-If top score >> second score → auto-resolve python to lang
-If scores are close → leave ambiguous, show candidates
+Chess game's effective vocabulary:
+  - Chess-notation lexemes (Nf3, e4, 0-0)
+  - Named pieces (@white-pawn, @black-knight)
+  - Named squares (@a1 through @h8)
+  - Game-specific named entities (this specific game, its move history)
 ```
 
-The scoring threshold is tunable — a wide gap auto-resolves; close scores defer to the user. The system errs on the side of showing candidates rather than guessing wrong.
+This is automatic. The chess game archetype's manifest declares the relevant Language scopes and named entities; the runtime activates them when the game is focused. No explicit "switch vocabulary" action.
 
-### Interaction with Enter (Submit)
+Items can also extend their vocabulary at runtime. A user playing a chess variant might endorse new lexemes for variant-specific moves on the game item; those become item-scoped postings immediately.
 
-When the user presses Enter with unresolved CandidateTokens still in the expression:
+## Composition
 
-1. Run one final pruning pass with the complete token list
-2. Any tokens that auto-resolve after this pass → resolve them
-3. If CandidateTokens still remain → **do not dispatch**. Instead, highlight the unresolved tokens and focus the first one's dropdown. The user must resolve all ambiguity before dispatch.
+Vocabulary is open. Users add aliases ("deploy" → @commit followed by @push). Applications contribute their vocabularies. Items add their own named entities. New sememes get new postings. The dictionary grows by accumulation, not by central registration.
 
-This is the same principle as form validation: you can't submit until all fields are filled. But the system tries hard to fill them for you first.
+When a user adds an alias:
 
-### Scope Chain and Weight Interaction
-
-Deferred resolution interacts with the existing scope chain. When candidates come from different scopes, scope proximity acts as a tiebreaker:
-
 ```
-"notes" in context of a Project item:
-  Posting(target=<project's notes frame>, scope=<project>, weight=0.9)      # Item scope
-  Posting(target=cg:type/note, scope=cg:language/eng, weight=0.7)          # Language scope
-
-Item scope > Language scope → auto-resolve to the frame
+{@lexeme, [
+  @THEME → @commit,
+  @NAME:[@english, @verb, @lemma] → "deploy"
+]}
 ```
 
-Weight already encodes relevance, and scope chain order encodes proximity. Together they handle most ambiguity without needing the full beam-search path. Deferred resolution is the fallback for cases where these signals aren't enough.
+…endorsed by the user's own item, the posting lands in user-scope. The next time "deploy" is typed in a context where the user's scope is active, it resolves.
 
-### Implementation Sequence
+Scripts and macros work the same way — vocabulary contributions that point at structured expressions or sequences. The target can be a single sememe or a composite frame; either way, the lookup finds the structured meaning.
 
-1. **CandidateToken type** — new ExpressionToken subclass carrying `List<Posting>` candidates
-2. **EvalInput changes** — `tokenBoundary()` creates CandidateToken when multiple postings match, instead of taking the first one
-3. **Progressive pruning** — after each new token is accepted, run pruning on all prior CandidateTokens
-4. **Frame scoring** — FrameAssembler generates candidate frames for each combination; score by semantic fit
-5. **Auto-resolution** — when pruning leaves one candidate, promote CandidateToken → RefToken
-6. **Visual feedback** — Surface rendering for CandidateToken (outlined chip + dropdown)
-7. **Submit guard** — Enter with unresolved candidates highlights them instead of dispatching
+## Worked examples
 
-## Vocabulary Customization and Scripting
+**Resolving "create" in a session with English active.**
 
-Vocabulary is persistent and customizable. Users can:
-- Add custom aliases for existing verbs
-- Create scripted expressions that chain actions
-- Define functions (stored as expressions)
-- Name frames with proper nouns
-- All stored as vocabulary contributions on frames
+Scope chain: `[<focused-item>, <session>, @english, null]`. The token dictionary returns:
+- `@english` scope: `("create", @create-sememe, @english, 1.0)` from the English lexeme.
+- Universal scope: no match (no universal symbol "create").
 
-### Custom Aliases
+The parser sees one candidate; "create" resolves to @create.
 
-A user adds an alias to a frame's vocabulary:
+**Resolving "Nf3" in a chess-game context.**
 
-```
-VocabularyContribution {
-    trigger: Sememe(cg.verb:commit)     # "I respond to the commit sememe"
-    target:  Sememe(cg.verb:commit)     # Simple: same sememe, registers capability
-}
-```
+Scope chain: `[<chess-game>, @chess-notation, @english, null]`. The token dictionary returns:
+- `@chess-notation` scope: `("Nf3", @knight-to-f3, @chess-notation, 1.0)`.
+- Other scopes: no match.
 
-Or a literal proper noun:
+The parser sees one candidate; "Nf3" resolves to a knight-move sememe.
 
-```
-VocabularyContribution {
-    trigger: "shopping list"            # Literal token, optionally with language tag
-    target:  <this frame>               # Registers a name
-}
-```
+**Resolving "exit" — multiple meanings, narrowing scope.**
 
-### Scripted Expressions
+Scope chain: `[<chess-game>, @english, null]`. The token dictionary returns:
+- `@english` scope: `("exit", @exit-verb, @english, 1.0)` from English.
+- Possibly `<chess-game>` scope: `("exit", @resign-game, <chess-game>, 1.0)` if the chess archetype aliases "exit" to resigning.
 
-An alias can target an **expression** instead of a single sememe:
+Two candidates. The parser, knowing the chess game's archetype scope is more specific than English, prefers the chess-game posting. The user gets prompted to confirm if confidence is borderline.
 
-```
-VocabularyContribution {
-    trigger: "deploy"                           # Literal token
-    target:  Expression("commit then push to production")  # Parsed recursively
-}
-```
+**Adding a personal alias.**
 
-When "deploy" is typed, the target expression is parsed through the same vocabulary system:
+A user, frustrated with typing "commit then push to production," endorses:
 
 ```
-"deploy"
-    --> resolves to Expression("commit then push to production")
-    --> parse: [commit] [then] [push] [to] [production]
-    --> resolve each token through TokenDictionary
-    --> execute: commit(); push(target=production)
+{@lexeme, [
+  @THEME → @deploy-script,
+  @NAME:[@english, @verb, @lemma] → "deploy"
+]}
 ```
 
-Language resolving to language resolving to action. Expressions compose through the same mechanism that handles single verbs.
+The lexeme points at a script item (`@deploy-script`) the user has minted, whose evaluation chains commit and push. Now typing "deploy" in the user's session resolves to that script, which the runtime executes.
 
-### User-Defined Functions
-
-Functions defined through the input (`f(x) = x^2 + 1`) become VocabularyContributions:
-
-```
-VocabularyContribution {
-    trigger: "f"
-    target:  Expression("x^2 + 1", params=["x"])
-}
-```
+## Relations
 
-Subsequent calls to `f(5)` evaluate the stored expression with `x = 5`, yielding `26`. Functions compose naturally: `g(x) = f(x) + f(x-1)`.
-
-## Why Semi-Natural Language?
-
-Traditional interfaces force rigid syntax: `git commit -m "message"`, `docker run -it --name foo image`. Common Graph's expression input is different:
-
-1. **Tokens are references, not strings** — "move" resolves to a sememe, not parsed as text
-2. **Order is flexible** — semantic frame assembly doesn't care about word order
-3. **Completion narrows semantically** — the system knows what makes sense next
-4. **Multilingual** — the same verb works in any language
-5. **Context-aware** — the focused Item determines available vocabulary
-6. **Customizable** — users add their own vocabulary through components
-7. **Composable** — expressions chain through scripted aliases, functions, and pipes
-8. **Mathematical** — arithmetic, functions, and dimensional analysis work everywhere
-
-This isn't trying to understand arbitrary natural language. It's a **structured-but-flexible** input system where the graph's semantic structure guides the user toward valid expressions. The approach is closest to what the NLP literature calls *executable semantic parsing* — mapping language directly to actions on a knowledge graph (see [references/Liang 2016](references/Liang%202016%20-%20Learning%20Executable%20Semantic%20Parsers.pdf), [references/Berant et al 2013](references/Berant%20et%20al%202013%20-%20Semantic%20Parsing%20on%20Freebase.pdf)). The key difference: those systems learn statistical mappings from data, while Common Graph uses deterministic vocabulary resolution through a curated sememe backbone.
-
-**The deeper point: semantics are resolved at write time, not read time.** When you type "move pawn to e4," each token resolves to a sememe as you type — "move" → `cg.verb:move`, "pawn" → the chess piece item, "to" → GOAL role, "e4" → board position. What gets stored is `MOVE { THEME: pawn, GOAL: e4 }` — a structure of semantic references, not text. The disambiguation happens at creation, performed by the person who knows what they mean. This is why Common Graph doesn't need a search engine or NLP pipeline to find things later — the data was pre-indexed by meaning at the moment it was created. The vocabulary system draws on established computational semantics (VerbNet's ~300 verb classes, ISO 24617-4's thematic roles, WordNet's 120K concepts) for the right set of predicates and roles, but it doesn't need the parsing machinery those projects were built for.
-
-## Core Vocabulary
-
-### Core Verbs
-
-| Sememe ID | Description |
-|-----------|-------------|
-| `cg.verb:create` | Create a new instance of a type |
-| `cg.verb:view` | Open or create a view of an item |
-| `cg.verb:help` | Show help for an item or verb |
-| `cg.verb:describe` | Show details about an item |
-| `cg.verb:cd` | Navigate into an item (change context) |
-| `cg.verb:commit` | Commit changes |
-| `cg.verb:exit` | Exit current context |
-| `cg.session:close` | Close a view |
-| `cg.verb:serve` | Set the active principal |
-| `cg.verb:authenticate` | Authenticate a user |
-| `cg.verb:invite` | Invite a peer |
-
-### Operators
-
-| Symbol | Sememe ID | Precedence | Description |
-|--------|-----------|------------|-------------|
-| `+` | `cg:operator/add` | 6 | Addition |
-| `-` | `cg:operator/subtract` | 6 | Subtraction |
-| `*` | `cg:operator/multiply` | 7 | Multiplication |
-| `/` | `cg:operator/divide` | 7 | Division |
-| `^` | `cg:operator/power` | 8 | Exponentiation |
-| `==` | `cg:operator/equals` | 4 | Equality |
-| `!=` | `cg:operator/not-equals` | 4 | Inequality |
-| `<` | `cg:operator/less-than` | 5 | Less than |
-| `>` | `cg:operator/greater-than` | 5 | Greater than |
-| `&&` | `cg:operator/and` | 2 | Logical AND |
-| `\|\|` | `cg:operator/or` | 1 | Logical OR |
-| `\|>` | `cg:operator/pipe` | 0 | Pipe (composition) |
-
-### Functions
-
-| Symbol | Sememe ID | Description |
-|--------|-----------|-------------|
-| `sqrt` | `cg:function/sqrt` | Square root |
-| `sin` | `cg:function/sin` | Sine |
-| `cos` | `cg:function/cos` | Cosine |
-| `abs` | `cg:function/abs` | Absolute value |
-| `max` | `cg:function/max` | Maximum |
-| `min` | `cg:function/min` | Minimum |
-| `log` | `cg:function/log` | Natural logarithm |
-
-### Game Verbs
-
-| Sememe ID | Description |
-|-----------|-------------|
-| `cg.verb:move` | Move a piece/element |
-| `cg.verb:resign` | Resign from game |
-| `cg.verb:select` | Select element |
-| `cg.verb:place` | Place element |
-| `cg.verb:flag` | Flag tile |
-| `cg.verb:join` | Join game |
-| `cg.verb:leave` | Leave game |
-| `cg.verb:roll` | Roll dice |
-| `cg.verb:deal` | Deal cards |
-| `cg.verb:play` | Play card |
-| `cg.verb:pass` | Pass turn |
-| `cg.verb:draw` | Draw card |
-| `cg.verb:bid` | Place bid |
-| `cg.verb:bet` | Place bet |
-| `cg.verb:fold` | Fold hand |
-| `cg.verb:score` | Score category |
-
-## References
-
-**Internal:**
-- [Sememes](sememes.md) — The semantic backbone (what sememes are, hierarchies, anchoring)
-- [Frames](frames.md) — Frame primitive, vocabulary contributions, frame proper nouns
-- [Library](library.md) — TokenDictionary storage architecture
-- [Protocol](protocol.md) — DISPATCH and LOOKUP messages
-- [Workspace](workspace.md) — Session, views, navigation, prompt format
-
-**Academic foundations:**
-- [Fillmore 1982 — Frame Semantics](references/Fillmore%201982%20-%20Frame%20Semantics.pdf) — The frame semantics that CG's SemanticFrame + ThematicRole descend from
-- [Baker, Fillmore, Lowe 1998 — FrameNet](references/Baker%2C%20Fillmore%2C%20Lowe%201998%20-%20The%20Berkeley%20FrameNet%20Project.pdf) — FrameNet as a computational resource for frame semantics
-- [Austin 1962 — How to Do Things with Words](references/Austin%201962%20-%20How%20to%20Do%20Things%20with%20Words.pdf) — Performative utterances: saying IS doing
-- [Searle 1969 — Speech Acts](references/Searle%201969%20-%20Speech%20Acts.pdf) — Formalizing illocutionary force
-- [Montague 1973 — Proper Treatment of Quantification](references/Montague%201973%20-%20The%20Proper%20Treatment%20of%20Quantification.pdf) — Natural language given formal semantics
-- [Liang 2016 — Executable Semantic Parsers](references/Liang%202016%20-%20Learning%20Executable%20Semantic%20Parsers.pdf) — The NLP field closest to CG's dispatch model
-- [Kay 1993 — The Early History of Smalltalk](references/Kay%201993%20-%20The%20Early%20History%20of%20Smalltalk.pdf) — "The big idea is messaging"
-- [Hewitt et al 1973 — Actor Model](references/Hewitt%2C%20Bishop%2C%20Steiger%201973%20-%20A%20Universal%20Modular%20ACTOR%20Formalism.pdf) — Items as independent message-processing agents
-- [Bocklisch et al 2017 — Rasa](references/Bocklisch%20et%20al%202017%20-%20Rasa%20Open%20Source%20Language%20Understanding.pdf) — The closest industrial system (intent + entity dispatch)
+- [`sememes.md`](sememes.md) — the meaning anchors lookups resolve to.
+- [`language.md`](language.md) — where lexeme postings come from.
+- [`seed-vocabulary.md`](seed-vocabulary.md) — the bootstrap vocabulary that ships with the system.
+- [`input.md`](input.md) — the parsing pipeline that consumes dictionary lookups.
+- [`text.md`](text.md) — parsing and rendering details.
+- [`api.md`](api.md) — HANDLES and dispatch; the back half of the vocabulary-driven flow.
+- [`item.md`](item.md) — items as scopes; how an item brings vocabulary into play.

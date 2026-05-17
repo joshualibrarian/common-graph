@@ -1,6 +1,11 @@
 package dev.everydaythings.graph.network.parley;
 
+import dev.everydaythings.graph.identity.MultiKey;
 import lombok.extern.log4j.Log4j2;
+
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * Noise-XX-based {@link Tunnel} between two parties holding static X25519
@@ -38,6 +43,31 @@ public final class NoiseTunnel implements Tunnel {
     // TODO: rekeying policy
     // TODO: adapter to Netty pipeline (for RemoteConnection) OR pure-byte
     //       duplex (for testing / non-Netty transports)
+
+    @Override
+    public CompletableFuture<Void> send(byte[] bytes) {
+        throw new UnsupportedOperationException("NoiseTunnel not yet implemented");
+    }
+
+    @Override
+    public void onReceive(Consumer<byte[]> consumer) {
+        throw new UnsupportedOperationException("NoiseTunnel not yet implemented");
+    }
+
+    @Override
+    public Optional<MultiKey> counterparty() {
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean isConfidential() {
+        return true;
+    }
+
+    @Override
+    public boolean isAuthenticated() {
+        return true;
+    }
 
     @Override
     public boolean isOpen() {
